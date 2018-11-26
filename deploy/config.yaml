@@ -1,0 +1,85 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: che-operator
+data:
+  ############################
+  ## General Che Settings ####
+  ############################
+
+  # Docker image for Che server. Defaults to eclipse/che-server. Keep blank unless you need to deploy your custom image
+  CHE_IMAGE_REPO: ""
+  # Docker image tag for Che server. Defaults to latest. Keep blank unless you want a specific tag
+  CHE_IMAGE_TAG: ""
+  # TLS support in Che. Defaults to false
+  TLS_SUPPORT: ""
+  # Content of your self signed cert as string, e.g:
+  # cat root ca.crt | base64 -w 0
+  # PVC strategy for Che workspaces. Defaults to 'common' where all workspaces use one shared PVC
+  # A 'unique' strategy implies that each workspaces gets own PVCs
+  PVC_STRATEGY: ""
+  # Workspace PVC claim. Defaults to 1Gi. It is recommended to increase it when using shared PVC
+  PVC_CLAIM: ""
+  SELF_SIGNED_CERT: ""
+  # enable Login with OpenShift in Codeready Workspaces. OpenShift only. Defaults to false
+  OPENSHIFT_OAUTH: ""
+  # OpenShift API endpoint URL. Required only when OPENSHIFT_OAUTH is true
+  OPENSHIFT_API_URL: ""
+  # use external existing Postgres DB. Defaults to false, which means a new instance of Postgres will be started
+
+  ############################
+  ## Database settings #######
+  ############################
+
+  # use external existing Postgres DB. Defaults to false which means a new instance of Postgres will be started
+  # when set to tru, provide connection details and make sure DB user is a SUPERUSER
+  EXTERNAL_DB: ""
+  # DB hostname
+  DB_HOSTNAME: ""
+  # DB port
+  DB_PORT: "5432"
+  # DB database
+  DB_DATABASE: ""
+  # DB username
+  DB_USERNAME: ""
+  # DB password
+  DB_PASSWORD: ""
+  # DB admin username
+  DB_ADMIN_USERNAME: ""
+  # Your DB admin password
+  DB_ADMIN_PASSWORD: ""
+
+  ############################
+  ## Keycloak settings #######
+  ############################
+
+  # Connect to an existing external Keycloak
+  # and skip deploying a dedicated Keycloak instance
+  EXTERNAL_KEYCLOAK: "false"
+  # Keycloak/Red Hat SSO
+  KEYCLOAK_URL: ""
+  # Keyloak Admin Username.
+  # Not required when connecting to an existing realm
+  KEYCLOAK_ADMIN_USERNAME: ""
+  # Keycloak admin password
+  KEYCLOAK_ADMIN_PASSWORD: "admin"
+  # Red Hat SSO realm
+  KEYCLOAK_REALM: ""
+  # Red Hat SSO client ID
+  KEYCLOAK_CLIENT_ID: ""
+
+  ############################
+  ## k8s only settings #######
+  ############################
+
+  # k8s ingress domain.
+  INGRESS_DOMAIN: "192.168.42.53"
+  # ingress strategy. Todo add some docs here
+  INGRESS_STRATEGY: "default-host"
+  INGRESS_CLASS: "nginx"
+  TLS_SECRET_NAME: "self-signed"
+  # fake DNS if you need it in deployments. Keep blank if you don't
+  HOST_ALIAS_IP: "192.168.42.53"
+  HOST_ALIAS_HOSTNAME: "example.com"
+
