@@ -1,3 +1,14 @@
+//
+// Copyright (c) 2012-2018 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package operator
 
 import (
@@ -6,7 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -19,7 +29,7 @@ var (
 	keycloakName               = "keycloak"
 	keycloakImage              = "registry.access.redhat.com/redhat-sso-7/sso72-openshift:1.2-8"
 	trustpass                  = util.GeneratePasswd(12)
-	addCertToTrustStoreCommand = "echo \"${SELF_SIGNED_CERTIFICATE}\" > /opt/eap/bin/openshift.crt" +
+	addCertToTrustStoreCommand = "echo \"${CHE_SELF__SIGNED__CERT}\" > /opt/eap/bin/openshift.crt" +
 		" && keytool -importcert -alias HOSTDOMAIN" +
 		" -keystore /opt/eap/bin/openshift.jks" +
 		" -file /opt/eap/bin/openshift.crt -storepass " + trustpass + " -noprompt" +
@@ -28,13 +38,13 @@ var (
 		" -srcstorepass changeit -deststorepass " + trustpass
 
 	trustStoreCommandArg = " --truststore /opt/eap/bin/openshift.jks --trustpass " + trustpass + " "
-	startCommand         = "/opt/eap/bin/openshift-launch.sh"
+	startCommand         = "sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 )
 
 func newKeycloakDeployment() *appsv1.Deployment {
 	optionalEnv := true
 	var command string
-	selfSignedCert := util.GetEnv(util.SelfSignedCert, "")
+	selfSignedCert := util.GetEnv("CHE_SELF__SIGNED__CERT", "")
 	ssoTrustStoreEnv := corev1.EnvVar{Name: "SSO_TRUSTSTORE", Value: "openshift.jks"}
 	ssoTrustStoreDir := corev1.EnvVar{Name: "SSO_TRUSTSTORE_DIR", Value: "/opt/eap/bin"}
 	ssoTrustStorePassword := corev1.EnvVar{Name: "SSO_TRUSTSTORE_PASSWORD", Value: trustpass,}
@@ -83,12 +93,12 @@ func newKeycloakDeployment() *appsv1.Deployment {
 			Value: "POSTGRES",
 		},
 		{
-			Name: "SELF_SIGNED_CERTIFICATE",
+			Name: "CHE_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					Key: "ca.crt",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "self-signed-cert",
+						Name: "self-signed-certificate",
 					},
 					Optional: &optionalEnv,
 				},
@@ -112,24 +122,21 @@ func newKeycloakDeployment() *appsv1.Deployment {
 			Name:      keycloakName,
 			Namespace: namespace,
 			Labels:    keycloakLabels,
-
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: keycloakLabels},
 			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.DeploymentStrategyType("Recreate"),
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: keycloakLabels,
 				},
 				Spec: corev1.PodSpec{
-					// testing https on k8s
-					HostAliases: hostAliases,
 					Containers: []corev1.Container{
 						{
-							Name:  keycloakName,
-							Image: keycloakImage,
+							Name:            keycloakName,
+							Image:           keycloakImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command: []string{
 								"/bin/sh",
@@ -179,126 +186,56 @@ func newKeycloakDeployment() *appsv1.Deployment {
 
 // CreateKeycloakDeployment creates a deployment that starts a container with Keycloak
 func CreateKeycloakDeployment() (*appsv1.Deployment, error) {
+	k8s := GetK8SConfig()
 	deployment := newKeycloakDeployment()
 	if err := sdk.Create(deployment); err != nil && !errors.IsAlreadyExists(err) {
 		logrus.Errorf("Failed to create "+keycloakName+" deployment : %v", err)
 		return nil, err
 	}
-
 	// wait until deployment is scaled to 1 replica to proceed with other deployments
-	util.WaitForSuccessfulDeployment(deployment, "Keycloak", 40)
+	k8s.GetDeploymentStatus(deployment)
 	return deployment, nil
 }
 
-func newKeycloakJob( keycloakURL string, cheHost string) *batchv1.Job {
-	if tlsSupport {
-		protocol = "https"
+func GetKeycloakProvisionCommand(keycloakURL string, cheHost string) (command string) {
+	openShiftApiUrl := util.GetEnv("CHE_OPENSHIFT_API_URL", "")
+	requiredActions := ""
+	if updateAdminPassword {
+		requiredActions = "\"UPDATE_PASSWORD\""
 	}
-	optionalEnv := true
-	labels := map[string]string{"app": "kc-job"}
-	var command string
-	var openshiftOAuth = util.GetEnvBool(util.OpenShiftOauth, false)
-	openShiftApiUrl := util.GetEnv(util.OpenShiftApiUrl, "")
-	var backoffLimit int64 = 40
-
-	// read entrypoint file, convert it to string and replace envs with real values
-	// it's better to have entrypoint command in a readable format rather than as a
-	// long string with escape characters
 	file, err := ioutil.ReadFile("/tmp/keycloak_provision") //
 	if err != nil {
 		logrus.Errorf("Failed to find keycloak entrypoint file", err)
 	}
+	keycloakTheme := "keycloak"
+	if cheFlavor == "codeready" {
+		keycloakTheme = "rh-sso"
+
+	}
 	str := string(file)
 	r := strings.NewReplacer("$keycloakURL", keycloakURL,
-									"$keycloakAdminUserName", keycloakAdminUserName,
-									"$keycloakAdminPassword", keycloakAdminPassword,
-									"$keycloakRealm", keycloakRealm,
-									"$keycloakClientId", keycloakClientId,
-									"$protocol", protocol,
-									"$cheHost", cheHost,
-									"$trustStoreCommandArg", trustStoreCommandArg)
+		"$keycloakAdminUserName", keycloakAdminUserName,
+		"$keycloakAdminPassword", keycloakAdminPassword,
+		"$keycloakRealm", keycloakRealm,
+		"$keycloakClientId", keycloakClientId,
+		"$keycloakTheme", keycloakTheme,
+		"$protocol", protocol,
+		"$cheHost", cheHost,
+		"$trustStoreCommandArg", trustStoreCommandArg,
+		"$requiredActions", requiredActions)
 	createRealmClientUserCommand := r.Replace(str)
-
 
 	createOpenShiftIdentityProviderCommand :=
 		"/opt/eap/bin/kcadm.sh create identity-provider/instances -r " + keycloakRealm +
 			" -s alias=openshift-v3 -s providerId=openshift-v3 -s enabled=true -s storeToken=true" +
 			" -s addReadTokenRoleOnCreate=true -s config.useJwksUrl=true" +
-			" -s config.clientId=openshift-identity-provider -s config.clientSecret=" + oauthSecret +
+			" -s config.clientId=" + oAuthClientName + " -s config.clientSecret=" + oauthSecret +
 			" -s config.baseUrl=" + openShiftApiUrl +
 			" -s config.defaultScope=user:full" + trustStoreCommandArg
 
 	command = createRealmClientUserCommand
-	if len(selfSignedCert) > 0 {
-		command = addCertToTrustStoreCommand + " && " + createRealmClientUserCommand
-	}
-	if len(selfSignedCert) > 0 && openshiftOAuth {
-		command = addCertToTrustStoreCommand + " && " + createRealmClientUserCommand + " && " + createOpenShiftIdentityProviderCommand
-	}
 	if openshiftOAuth {
 		command = createRealmClientUserCommand + " && " + createOpenShiftIdentityProviderCommand
 	}
-
-	return &batchv1.Job{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
-			APIVersion: batchv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kc-job",
-			Namespace: namespace,
-
-			Labels: labels,
-		},
-		Spec: batchv1.JobSpec{
-			ActiveDeadlineSeconds: &backoffLimit,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kc-job",
-					Namespace: namespace,
-					Labels:    labels,
-				},
-				Spec: corev1.PodSpec{
-					HostAliases:   hostAliases,
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:    "kc-service-pod",
-							Image:   "registry.access.redhat.com/redhat-sso-7/sso72-openshift:1.2-8",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Command: []string{"/bin/bash"},
-							Args: []string{
-								"-c",
-								command,
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "SELF_SIGNED_CERTIFICATE",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											Key: "ca.crt",
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "self-signed-cert",
-											},
-											Optional: &optionalEnv,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-// CreateKeycloakJob creates a Job that starts a pod with kcadm.sh utility to provision Keycloak resources such as realm, client, identity provider etc
-func CreateKeycloakJob( keycloakURL string, cheHost string) {
-	job := newKeycloakJob( keycloakURL, cheHost)
-	if err := sdk.Create(job); err != nil && !errors.IsAlreadyExists(err) {
-		logrus.Errorf("Failed to create Keycloak service pod : %v", err)
-	}
-	util.WaitForSuccessfulJobExecution(job, "Keycloak", 10)
-
+	return command
 }

@@ -1,4 +1,4 @@
-/opt/eap/bin/kcadm.sh config credentials --server $keycloakURL/auth \
+/opt/eap/bin/kcadm.sh config credentials --server http://0.0.0.0:8080/auth \
                                         --realm master \
                                         --user $keycloakAdminUserName \
                                         --password $keycloakAdminPassword \
@@ -6,16 +6,21 @@
 && /opt/eap/bin/kcadm.sh create realms  -s realm=$keycloakRealm \
                                         -s enabled=true \
                                         -s registrationAllowed=true \
+                                        -s loginTheme=$keycloakTheme \
+                                        -s accountTheme=$keycloakTheme \
+                                        -s adminTheme=$keycloakTheme \
+                                        -s emailTheme=$keycloakTheme \
                                         $trustStoreCommandArg \
 && /opt/eap/bin/kcadm.sh create clients -r $keycloakRealm \
                                         -s clientId=$keycloakClientId \
                                         -s 'webOrigins=["$protocol://$cheHost"]' \
                                         -s 'redirectUris=["$protocol://$cheHost/*"]' \
+                                        -s 'directAccessGrantsEnabled'=true \
                                         -s publicClient=true $trustStoreCommandArg \
 && /opt/eap/bin/kcadm.sh create users   -s username=admin \
                                         -s email=\"admin@admin.com\" \
                                         -s enabled=true -r $keycloakRealm \
-                                        -s 'requiredActions=["UPDATE_PASSWORD"]' \
+                                        -s 'requiredActions=[$requiredActions]' \
                                         $trustStoreCommandArg \
 && /opt/eap/bin/kcadm.sh set-password   -r $keycloakRealm --username admin \
                                         --new-password admin \

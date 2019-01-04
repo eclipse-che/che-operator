@@ -1,60 +1,73 @@
+//
+// Copyright (c) 2012-2018 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package operator
 
-import ("github.com/eclipse/che-operator/pkg/util"
-	corev1 "k8s.io/api/core/v1"
+import (
+	"github.com/eclipse/che-operator/pkg/util"
+	"strings"
 )
 
 var (
 	// general config
-	namespace = util.GetNamespace()
-	infra             = util.GetInfra()
-	protocol          = "http"
-	wsprotocol        = "ws"
-	cheHost           string
-	tlsSupport        = util.GetEnvBool(util.TlsSupport, false)
-	pvcStrategy = util.GetEnv(util.PvcStrategy, "common")
-	pvcClaimSize = util.GetEnv(util.PvcClaimSize,"1Gi")
-	selfSignedCert    = util.GetEnv(util.SelfSignedCert, "")
-	openshiftOAuth    = util.GetEnvBool(util.OpenShiftOauth, false)
-	oauthSecret       = util.GeneratePasswd(12)
-	hostAliasIP       = util.GetEnv(util.HostAliasIP, "10.10.10.10")
-	hostAliasHostname = util.GetEnv(util.HostAliasHostname, "example.com")
-	hostAliases = []corev1.HostAlias{
-		{
-			IP: hostAliasIP,
-			Hostnames: []string{
-				hostAliasHostname,
-			},
-		},
-	}
+	cheFlavor           = util.GetEnv("CHE_FLAVOR", "che")
+	namespace           = util.GetNamespace()
+	protocol            = "http"
+	wsprotocol          = "ws"
+	cheHost             string
+	tlsSupport          = util.GetEnvBool("CHE_TLS_SUPPORT", false)
+	pvcStrategy         = util.GetEnv("CHE_INFRA_KUBERNETES_PVC_STRATEGY", "common")
+	pvcClaimSize        = util.GetEnv("CHE_INFRA_KUBERNETES_PVC_QUANTITY", "1Gi")
+	selfSignedCert      = util.GetEnv("CHE_SELF__SIGNED__CERT", "")
+	openshiftOAuth      = util.GetEnvBool("CHE_OPENSHIFT_OAUTH", false)
+	oauthSecret         = util.GeneratePasswd(12)
+	oAuthClientName     = "openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(4))
+	updateAdminPassword = util.GetEnvBool("CHE_UPDATE_CHE_ADMIN_PASSWORD", true)
+
+	// proxy config
+
+	cheWsmasterProxyJavaOptions  = util.GetEnv("CHE_WORKSPACE_MASTER_PROXY_JAVA_OPTS", "")
+	cheWorkspaceProxyJavaOptions = util.GetEnv("CHE_WORKSPACE_PROXY_JAVA_OPTS", "")
+	cheWorkspaceHttpProxy        = util.GetEnv("CHE_WORKSPACE_HTTP__PROXY", "")
+	cheWorkspaceHttpsProxy       = util.GetEnv("CHE_WORKSPACE_HTTPS__PROXY", "")
+	cheWorkspaceNoProxy          = util.GetEnv("CHE_WORKSPACE_NO__PROXY", "")
+
+	// plugin registry url
+	pluginRegistryUrl = util.GetEnv("CHE_WORKSPACE_PLUGIN__REGISTRY__URL", "https://che-plugin-registry.openshift.io")
 
 	// k8s specific config
 
-	ingressDomain     = util.GetEnv(util.IngressDomain, "192.168.42.114")
-	strategy          = util.GetEnv(util.Strategy, "multi-host")
-	ingressClass = util.GetEnv(util.IngressClass, "nginx")
-	tlsSecretName     = util.GetEnv(util.TlsSecretName, "")
-
+	ingressDomain = util.GetEnv("CHE_INFRA_KUBERNETES_INGRESS_DOMAIN", "192.168.42.114")
+	strategy      = util.GetEnv("CHE_INFRA_KUBERNETES_SERVER__STRATEGY", "multi-host")
+	ingressClass  = util.GetEnv("INGRESS_CLASS", "nginx")
+	tlsSecretName = util.GetEnv("CHE_INFRA_KUBERNETES_TLS__SECRET", "")
 	// postgres config
-	externalDb            = util.GetEnvBool(util.ExternalDb, false)
-	postgresHostName      = util.GetEnv(util.ExternalDbHostname, "postgres")
-	postgresPort          = util.GetEnv(util.ExternalDbPort, "5432")
-	chePostgresDb         = util.GetEnv(util.ExternalDbDatabase, "dbche")
-	chePostgresUser       = util.GetEnv(util.ExternalDbUsername, "pgche")
-	chePostgresPassword   = util.GetEnv(util.ExternalDbPassword, util.GeneratePasswd(12))
+	externalDb            = util.GetEnvBool("CHE_EXTERNAL_DB", false)
+	postgresHostName      = util.GetEnv("CHE_DB_HOSTNAME", "postgres")
+	postgresPort          = util.GetEnv("CHE_DB_PORT", "5432")
+	chePostgresDb         = util.GetEnv("CHE_DB_DATABASE", "dbche")
+	chePostgresUser       = util.GetEnv("CHE_JDBC_USERNAME", "pgche")
+	chePostgresPassword   = util.GetEnv("CHE_JDBC_PASSWORD", util.GeneratePasswd(12))
 	postgresAdminPassword = util.GeneratePasswd(12)
 
 	// Keycloak config
-	externalKeycloak         = util.GetEnvBool(util.ExternalKeycloak, false)
-	keycloakURL              = util.GetEnv(util.ExternalKeycloakUrl, "")
-	keycloakAdminUserName    = util.GetEnv(util.ExternalKeycloakAdminUserName, "admin")
-	keycloakAdminPassword    = util.GetEnv(util.ExternalKeycloakAdminPassword, util.GeneratePasswd(12))
+	externalKeycloak         = util.GetEnvBool("CHE_EXTERNAL_KEYCLOAK", false)
+	keycloakURL              = util.GetEnv("CHE_KEYCLOAK_AUTH__SERVER__URL", "")
+	keycloakAdminUserName    = util.GetEnv("CHE_KEYCLOAK_ADMIN_USERNAME", "admin")
+	keycloakAdminPassword    = util.GetEnv("CHE_KEYCLOAK_ADMIN_PASSWORD", util.GeneratePasswd(12))
 	keycloakPostgresPassword = util.GeneratePasswd(10)
-	keycloakRealm            = util.GetEnv(util.ExternalKeycloakRealm, "codeready")
-	keycloakClientId         = util.GetEnv(util.ExternalKeycloakClientId, "codeready-public")
+	keycloakRealm            = util.GetEnv("CHE_KEYCLOAK_REALM", cheFlavor)
+	keycloakClientId         = util.GetEnv("CHE_KEYCLOAK_CLIENT__ID", cheFlavor+"-public")
 
-	cheImageRepo = util.GetEnv(util.CheImageRepo, "eclipse/che-server")
-	cheImageTag  = util.GetEnv(util.CheImageTag, "latest")
+	cheImage = util.GetEnv("CHE_IMAGE", "eclipse/che-server:latest")
 
 	postgresLabels = map[string]string{"app": "postgres"}
 	keycloakLabels = map[string]string{"app": "keycloak"}

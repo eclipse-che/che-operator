@@ -1,7 +1,17 @@
+//
+// Copyright (c) 2012-2018 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package operator
 
 import (
-	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -13,7 +23,7 @@ import (
 	"time"
 )
 
-func newCheDeployment(cheImageRepo string, cheImageTag string) *appsv1.Deployment {
+func newCheDeployment(cheImage string) *appsv1.Deployment {
 	cheLabels := map[string]string{"app": "che"}
 	optionalEnv := true
 	return &appsv1.Deployment{
@@ -29,31 +39,19 @@ func newCheDeployment(cheImageRepo string, cheImageTag string) *appsv1.Deploymen
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: cheLabels},
 			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.DeploymentStrategyType("Recreate"),
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: cheLabels,
 				},
 				Spec: corev1.PodSpec{
-					// testing https on k8s
-					HostAliases: hostAliases,
-					Volumes: []corev1.Volume{
-						{
-							Name: "che-data-volume",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "che-data-volume",
-								},
-							},
-						},
-					},
 					ServiceAccountName: "che",
 					Containers: []corev1.Container{
 						{
-							Name:  "che",
+							Name:            "che",
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Image: cheImageRepo + ":" + cheImageTag,
+							Image:           cheImage,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
@@ -77,12 +75,6 @@ func newCheDeployment(cheImageRepo string, cheImageTag string) *appsv1.Deploymen
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse("1Gi"),
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "che-data-volume",
-									MountPath: "/data",
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
@@ -123,7 +115,6 @@ func newCheDeployment(cheImageRepo string, cheImageTag string) *appsv1.Deploymen
 								},
 							},
 							Env: []corev1.EnvVar{
-								// todo Add OPENSHIFT_SELF_SIGNED_CERT form secret
 								{
 									Name: "OPENSHIFT_KUBE_PING_NAMESPACE",
 									ValueFrom: &corev1.EnvVarSource{
@@ -131,12 +122,12 @@ func newCheDeployment(cheImageRepo string, cheImageTag string) *appsv1.Deploymen
 											FieldPath: "metadata.namespace"}},
 								},
 								{
-									Name: "OPENSHIFT_IDENTITY_PROVIDER_CERTIFICATE",
+									Name: "CHE_SELF__SIGNED__CERT",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											Key: "ca.crt",
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "self-signed-cert",
+												Name: "self-signed-certificate",
 											},
 											Optional: &optionalEnv,
 										},
@@ -151,19 +142,17 @@ func newCheDeployment(cheImageRepo string, cheImageTag string) *appsv1.Deploymen
 }
 
 // CreateCheDeployment creates a deployment with che ConfigMap in env
-func CreateCheDeployment(cheImageRepo string, cheImageTag string) (*appsv1.Deployment, error) {
-	deployment := newCheDeployment(cheImageRepo, cheImageTag)
+func CreateCheDeployment(cheImage string) (*appsv1.Deployment, error) {
+	k8s := GetK8SConfig()
+	deployment := newCheDeployment(cheImage)
 	if err := sdk.Create(deployment); err != nil && !errors.IsAlreadyExists(err) {
 		logrus.Errorf("Failed to create Che deployment : %v", err)
 		return nil, err
 	}
 	// wait until deployment is scaled to 1 replica to proceed with other deployments
-	util.WaitForSuccessfulDeployment(deployment, "Che", 40)
-
+	k8s.GetDeploymentStatus(deployment)
 	logrus.Info("Che is available at: " + protocol + "://" + cheHost)
 	deploymentTime := time.Since(StartTime)
 	logrus.Info("Deployment took ", deploymentTime)
-
-
 	return deployment, nil
 }
