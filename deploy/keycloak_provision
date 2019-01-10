@@ -5,6 +5,7 @@
                                         $trustStoreCommandArg \
 && /opt/eap/bin/kcadm.sh create realms  -s realm=$keycloakRealm \
                                         -s enabled=true \
+                                        -s sslRequired=none \
                                         -s registrationAllowed=true \
                                         -s loginTheme=$keycloakTheme \
                                         -s accountTheme=$keycloakTheme \
