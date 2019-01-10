@@ -3,6 +3,7 @@
                                         --user $keycloakAdminUserName \
                                         --password $keycloakAdminPassword \
                                         $trustStoreCommandArg \
+&& /opt/eap/bin/kcadm.sh update realms/master -s sslRequired=none $trustStoreCommandArg \
 && /opt/eap/bin/kcadm.sh create realms  -s realm=$keycloakRealm \
                                         -s enabled=true \
                                         -s sslRequired=none \

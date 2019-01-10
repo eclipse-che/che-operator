@@ -28,10 +28,11 @@ func ReconcileChe() {
 	// service accounts, roles and role-binding for Che
 	CreateServiceAccount("che")
 	CreateServiceAccount("che-workspace")
-	CreateNewRole("exec")
+	CreateNewRole("exec", []string{"pods/exec"}, []string{"create"})
+	CreateNewRole("view", []string{"pods"}, []string{"list"})
 	CreateRoleBinding("RoleBinding", "che", "che", "edit", "ClusterRole")
 	CreateRoleBinding("RoleBinding", "che-workspace-exec", "che-workspace", "exec", "Role")
-	CreateRoleBinding("RoleBinding", "che-workspace-view", "che-workspace", "view", "ClusterRole")
+	CreateRoleBinding("RoleBinding", "che-workspace-view", "che-workspace", "view", "Role")
 
 	if len(selfSignedCert) > 0 {
 		CreateCertSecret()
