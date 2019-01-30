@@ -63,5 +63,5 @@ ${CMD} run -ti "che-operator" \
         --restart='Never' \
         --serviceaccount='che-operator' \
         --image='eivantsov/che-operator' \
-        --overrides='{"spec":{"containers":[{"image": "eivantsov/che-operator", "name": "che-operator", "imagePullPolicy":"IfNotPresent","envFrom":[{"configMapRef":{"name":"che-operator"}}]}]}}' \
+        --overrides='{"spec":{"containers":[{"image": "eclipse/che-operator", "name": "che-operator", "imagePullPolicy":"Always","envFrom":[{"configMapRef":{"name":"che-operator"}}]}]}}' \
         -n=${NAMESPACE}
