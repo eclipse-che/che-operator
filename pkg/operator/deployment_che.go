@@ -24,7 +24,6 @@ import (
 )
 
 func newCheDeployment(cheImage string) *appsv1.Deployment {
-	cheLabels := map[string]string{"app": "che"}
 	optionalEnv := true
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -32,7 +31,7 @@ func newCheDeployment(cheImage string) *appsv1.Deployment {
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che",
+			Name:      cheFlavor,
 			Namespace: namespace,
 			Labels:    cheLabels,
 		},
@@ -49,7 +48,7 @@ func newCheDeployment(cheImage string) *appsv1.Deployment {
 					ServiceAccountName: "che",
 					Containers: []corev1.Container{
 						{
-							Name:            "che",
+							Name:            cheFlavor,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Image:           cheImage,
 							Ports: []corev1.ContainerPort{

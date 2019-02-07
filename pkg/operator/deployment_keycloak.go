@@ -199,6 +199,9 @@ func CreateKeycloakDeployment() (*appsv1.Deployment, error) {
 
 func GetKeycloakProvisionCommand(keycloakURL string, cheHost string) (command string) {
 	openShiftApiUrl := util.GetEnv("CHE_OPENSHIFT_API_URL", "")
+	//if cheFlavor == "codeready" {
+	//	keycloakRealm = "codeready%20workspaces"
+	//}
 	requiredActions := ""
 	if updateAdminPassword {
 		requiredActions = "\"UPDATE_PASSWORD\""

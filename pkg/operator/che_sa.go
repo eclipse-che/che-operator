@@ -20,7 +20,6 @@ import (
 )
 
 func newServiceAccount(name string) *corev1.ServiceAccount {
-	labels := map[string]string{"app": "che"}
 	return &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
@@ -29,7 +28,7 @@ func newServiceAccount(name string) *corev1.ServiceAccount {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:     name,
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    cheLabels,
 
 		},
 	}

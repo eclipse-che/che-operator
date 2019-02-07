@@ -162,7 +162,7 @@ func (o *k8s) ExecToPod(command []string, podName, namespace string) (string, st
 func (o *k8s) GetDeploymentPod(name string) (podName string) {
 	api := o.clientset.CoreV1()
 	listOptions := metav1.ListOptions{
-		LabelSelector: "app=" + name,
+		LabelSelector: "component=" + name,
 	}
 	podList, _ := api.Pods(namespace).List(listOptions)
 	podListItems := podList.Items

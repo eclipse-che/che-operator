@@ -20,7 +20,6 @@ import (
 )
 
 func newRole(name string, resources []string, verbs []string) *rbac.Role {
-	labels := map[string]string{"app": "che"}
 	return &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Role",
@@ -29,7 +28,7 @@ func newRole(name string, resources []string, verbs []string) *rbac.Role {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    cheLabels,
 		},
 		Rules: []rbac.PolicyRule{
 			{

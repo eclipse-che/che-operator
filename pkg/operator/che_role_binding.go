@@ -21,7 +21,6 @@ import (
 )
 
 func newRoleBinding(kind string,name string, serviceAccountName string, roleName string, roleKind string) *rbac.RoleBinding {
-	labels := map[string]string{"app": "che"}
 	return &rbac.RoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       kind,
@@ -30,7 +29,7 @@ func newRoleBinding(kind string,name string, serviceAccountName string, roleName
 		ObjectMeta: metav1.ObjectMeta{
 			Name:     name,
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    cheLabels,
 
 		},
 		Subjects: []rbac.Subject{

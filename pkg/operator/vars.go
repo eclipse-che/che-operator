@@ -69,7 +69,7 @@ var (
 
 	cheImage = util.GetEnv("CHE_IMAGE", "eclipse/che-server:latest")
 
-	postgresLabels = map[string]string{"app": "postgres"}
-	keycloakLabels = map[string]string{"app": "keycloak"}
-	cheLabels      = map[string]string{"app": "che"}
+	postgresLabels = map[string]string{"component": "postgres", "app": cheFlavor}
+	keycloakLabels = map[string]string{"component": "keycloak", "app": cheFlavor}
+	cheLabels      = map[string]string{"component": cheFlavor, "app": cheFlavor}
 )

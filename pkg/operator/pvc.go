@@ -30,7 +30,7 @@ func pvc(name string, pvcClaimSize string, labels map[string]string) *corev1.Per
 		ObjectMeta: metav1.ObjectMeta{
 			Name:     name,
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    cheLabels,
 
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
