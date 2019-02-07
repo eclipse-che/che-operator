@@ -29,27 +29,31 @@ var (
 	keycloakName               = "keycloak"
 	keycloakImage              = "registry.access.redhat.com/redhat-sso-7/sso72-openshift:1.2-8"
 	trustpass                  = util.GeneratePasswd(12)
-	addCertToTrustStoreCommand = "echo \"${CHE_SELF__SIGNED__CERT}\" > /opt/eap/bin/openshift.crt" +
-		" && keytool -importcert -alias HOSTDOMAIN" +
-		" -keystore /opt/eap/bin/openshift.jks" +
-		" -file /opt/eap/bin/openshift.crt -storepass " + trustpass + " -noprompt" +
-		" && keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts" +
-		" -destkeystore /opt/eap/bin/openshift.jks" +
-		" -srcstorepass changeit -deststorepass " + trustpass
+	addCertToTrustStoreCommand = "keytool -importcert -alias HOSTDOMAIN" +
+			" -keystore /opt/eap/bin/openshift.jks" +
+			" -file /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -storepass " + trustpass + " -noprompt" +
+			" && keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts" +
+			" -destkeystore /opt/eap/bin/openshift.jks" +
+			" -srcstorepass changeit -deststorepass " + trustpass
 
 	trustStoreCommandArg = " --truststore /opt/eap/bin/openshift.jks --trustpass " + trustpass + " "
 	startCommand         = "sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 )
 
 func newKeycloakDeployment() *appsv1.Deployment {
-	optionalEnv := true
-	var command string
-	selfSignedCert := util.GetEnv("CHE_SELF__SIGNED__CERT", "")
-	ssoTrustStoreEnv := corev1.EnvVar{Name: "SSO_TRUSTSTORE", Value: "openshift.jks"}
-	ssoTrustStoreDir := corev1.EnvVar{Name: "SSO_TRUSTSTORE_DIR", Value: "/opt/eap/bin"}
-	ssoTrustStorePassword := corev1.EnvVar{Name: "SSO_TRUSTSTORE_PASSWORD", Value: trustpass,}
 
 	keycloakEnv := []corev1.EnvVar{
+		{
+			Name:  "SSO_TRUSTSTORE",
+			Value: "openshift.jks",
+		},
+		{
+			Name:  "SSO_TRUSTSTORE_DIR",
+			Value: "/opt/eap/bin"},
+		{
+			Name:  "SSO_TRUSTSTORE_PASSWORD",
+			Value: trustpass,
+		},
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
 			Value: "true",
@@ -92,27 +96,9 @@ func newKeycloakDeployment() *appsv1.Deployment {
 			Name:  "DB_VENDOR",
 			Value: "POSTGRES",
 		},
-		{
-			Name: "CHE_SELF__SIGNED__CERT",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "ca.crt",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "self-signed-certificate",
-					},
-					Optional: &optionalEnv,
-				},
-			},
-		},
 	}
 
-	if len(selfSignedCert) > 0 {
-		command = addCertToTrustStoreCommand + " && " + startCommand
-		keycloakEnv = append(keycloakEnv, ssoTrustStoreDir, ssoTrustStorePassword, ssoTrustStoreEnv)
-	} else {
-		command = startCommand
-	}
-
+	command := addCertToTrustStoreCommand + " && " + startCommand
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -199,9 +185,6 @@ func CreateKeycloakDeployment() (*appsv1.Deployment, error) {
 
 func GetKeycloakProvisionCommand(keycloakURL string, cheHost string) (command string) {
 	openShiftApiUrl := util.GetEnv("CHE_OPENSHIFT_API_URL", "")
-	//if cheFlavor == "codeready" {
-	//	keycloakRealm = "codeready%20workspaces"
-	//}
 	requiredActions := ""
 	if updateAdminPassword {
 		requiredActions = "\"UPDATE_PASSWORD\""
@@ -234,7 +217,7 @@ func GetKeycloakProvisionCommand(keycloakURL string, cheHost string) (command st
 			" -s addReadTokenRoleOnCreate=true -s config.useJwksUrl=true" +
 			" -s config.clientId=" + oAuthClientName + " -s config.clientSecret=" + oauthSecret +
 			" -s config.baseUrl=" + openShiftApiUrl +
-			" -s config.defaultScope=user:full" + trustStoreCommandArg
+			" -s config.defaultScope=user:full"
 
 	command = createRealmClientUserCommand
 	if openshiftOAuth {
