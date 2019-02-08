@@ -1,5 +1,4 @@
-#
-# Copyright (c) 2012-2018 Red Hat, Inc.
+# Copyright (c) 2018-2019 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -8,13 +7,14 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+#
 
 FROM golang:1.10.3 as builder
+USER root
 ADD . /go/src/github.com/eclipse/che-operator
-RUN cd /go/src/github.com/eclipse/che-operator && go test -v ./...
-RUN OOS=linux GOARCH=amd64 CGO_ENABLED=0 \
-    go build -o /tmp/che-operator/che-operator \
-    /go/src/github.com/eclipse/che-operator/cmd/che-operator/main.go
+RUN cd /go/src/github.com/eclipse/che-operator && go test -v ./... && \
+    OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator \
+    /go/src/github.com/eclipse/che-operator/cmd/che-operator/main.go && cd ..
 
 FROM alpine:3.7
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
