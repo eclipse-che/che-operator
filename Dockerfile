@@ -19,7 +19,6 @@ USER root
 # uncomment to run a local build
 #RUN subscription-manager register --username me --password mypwd --auto-attach
 #RUN subscription-manager repos --enable rhel-7-server-optional-rpms --enable rhel-server-rhscl-7-rpms
-
 ADD . /go/src/github.com/eclipse/che-operator
 RUN cd /go/src/github.com/eclipse/che-operator && go test -v ./... && \
     OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator \
