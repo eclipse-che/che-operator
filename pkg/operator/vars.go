@@ -26,6 +26,7 @@ var (
 	tlsSupport          = util.GetEnvBool("CHE_TLS_SUPPORT", false)
 	pvcStrategy         = util.GetEnv("CHE_INFRA_KUBERNETES_PVC_STRATEGY", "common")
 	pvcClaimSize        = util.GetEnv("CHE_INFRA_KUBERNETES_PVC_QUANTITY", "1Gi")
+	pvcJobImage         = util.GetEnv("CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE", "registry.access.redhat.com/rhel7-minimal:7.6-154")
 	selfSignedCert      = util.GetEnv("CHE_SELF__SIGNED__CERT", "")
 	openshiftOAuth      = util.GetEnvBool("CHE_OPENSHIFT_OAUTH", false)
 	oauthSecret         = util.GeneratePasswd(12)
