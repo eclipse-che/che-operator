@@ -58,6 +58,7 @@ func newCheConfigMap(cheHost string, keycloakURL string) *corev1.ConfigMap {
 		"CHE_INFRA_OPENSHIFT_PROJECT":                   workspacesNamespace,
 		"CHE_INFRA_KUBERNETES_PVC_STRATEGY":             pvcStrategy,
 		"CHE_INFRA_KUBERNETES_PVC_QUANTITY":             pvcClaimSize,
+		"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE":           pvcJobImage,
 		"CHE_INFRA_OPENSHIFT_TLS__ENABLED":              tls,
 		"CHE_INFRA_KUBERNETES_TRUST__CERTS":             tls,
 		"CHE_JDBC_URL":                                  "jdbc:postgresql://" + postgresHostName + ":" + postgresPort + "/" + chePostgresDb,
