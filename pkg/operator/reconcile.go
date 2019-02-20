@@ -101,7 +101,7 @@ func ReconcileChe() {
 		logrus.Errorf("Failed to update Che configmap : %v", err)
 	}
 	if cheFlavor == "codeready" {
-		cheImage = util.GetEnv("CHE_IMAGE", "registry.access.redhat.com/codeready-workspaces-beta/server:latest")
+		cheImage = util.GetEnv("CHE_IMAGE", "registry.access.redhat.com/codeready-workspaces/server:latest")
 	}
 	cheDc, _ := CreateCheDeployment(cheImage)
 	err = sdk.Update(cheDc)
