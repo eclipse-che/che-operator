@@ -20,12 +20,12 @@ USER root
 #RUN subscription-manager register --username me --password mypwd --auto-attach
 #RUN subscription-manager repos --enable rhel-7-server-optional-rpms --enable rhel-server-rhscl-7-rpms
 ADD . /go/src/github.com/eclipse/che-operator
-RUN cd /go/src/github.com/eclipse/che-operator && go test -v ./... && \
+RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go test -v ./... && \
     OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator \
-    /go/src/github.com/eclipse/che-operator/cmd/che-operator/main.go && cd ..
+    /go/src/github.com/eclipse/che-operator/cmd/manager/main.go && cd ..
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/rhel7
-FROM registry.access.redhat.com/rhel7:7.6-151.1550575774
+FROM registry.access.redhat.com/rhel7:7.6-202
 
 ENV SUMMARY="Red Hat CodeReady Workspaces Operator container" \
     DESCRIPTION="Red Hat CodeReady Workspaces Operator container" \
@@ -41,7 +41,7 @@ LABEL summary="$SUMMARY" \
       io.openshift.tags="$PRODNAME,$COMPNAME" \
       com.redhat.component="$PRODNAME-$COMPNAME" \
       name="$PRODNAME/$COMPNAME" \
-      version="1.0" \
+      version="1.1" \
       license="EPLv2" \
       maintainer="Nick Boldt <nboldt@redhat.com>" \
       io.openshift.expose-services="" \
