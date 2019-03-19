@@ -1,0 +1,72 @@
+#
+#  Copyright (c) 2012-2019 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+
+apiVersion: org.eclipse.che/v1
+kind: CheCluster
+metadata:
+  name: eclipse-che
+spec:
+  server:
+    cheImage: ''
+    cheImageTag: ''
+    # defaults to `che`. When set to `codeready`, CodeReady Workspaces is deployed
+    # the difference is in images, labels, exec commands
+    cheFlavor: ''
+    # when set to true the operator will attempt to get a secret in openshift router namespace
+    # to add it to Java trust store of Che server. Requires cluster-admin provileges for operator service account
+    selfSignedCert:
+    # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
+    tlsSupport:
+    proxyURL: ''
+    proxyPort: ''
+    proxyUser: ''
+    proxyPassword: ''
+    nonProxyHosts: ''
+    pluginRegistryUrl: ''
+  database:
+    # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
+    externalDb:
+    chePostgresHostname: ''
+    chePostgresPort: ''
+    chePostgresUser: ''
+    chePostgresPassword: ''
+    chePostgresDb: ''
+  storage:
+    # defaults to 'common' (one PVC for all workspacees). Can be 'unique' (PVC per volume), or 'per-workspace'
+    pvcStrategy: ''
+    # default to 1Gi
+    pvcClaimSize: ''
+    # use a special pod to pre-create subpaths in a common volume
+    preCreateSubPaths: true
+  auth:
+    # when set to true, the operator skips deploying Keycloak,
+    #and passes connection details of existing Keycloak auth server to Che server
+    externalKeycloak:
+    keycloakURL: ''
+    keycloakPostgresPassword: ''
+    keycloakAdminUserName: ''
+    keycloakAdminPassword: 'admin'
+    keycloakRealm: ''
+    keycloakClientId: ''
+    openShiftoAuth:
+    openShiftApiUrl: ''
+  k8s:
+    # your global ingress domain
+    ingressDomain: '192.168.99.101.nip.io'
+    # defaults to nginx
+    ingressClass: ''
+    # default to multi-host - <ingress-name>-<namespace>.<global-ingress-domain>
+    ingressStrategy: ''
+    # tls secret name will be used in ingress tls spec
+    tlsSecretName: ''
+
+
+
