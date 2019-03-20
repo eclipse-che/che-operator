@@ -15,7 +15,7 @@ const (
 	DefaultCheServerImageRepo       = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo = "registry.access.redhat.com/codeready-workspaces/server"
 	DefaultCheServerImageTag        = "6.19.0"
-	DefaultCodeReadyServerImageTag  = "1.0"
+	DefaultCodeReadyServerImageTag  = "1.1"
 	DefaultCheFlavor                = "che"
 	DefaultChePostgresUser          = "pgche"
 	DefaultChePostgresHostName      = "postgres"
