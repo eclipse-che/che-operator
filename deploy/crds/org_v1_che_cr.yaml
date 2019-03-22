@@ -15,57 +15,91 @@ metadata:
   name: eclipse-che
 spec:
   server:
+    # server image used in Che deployment
     cheImage: ''
+    # tag of an image used in Che deployment
     cheImageTag: ''
     # defaults to `che`. When set to `codeready`, CodeReady Workspaces is deployed
     # the difference is in images, labels, exec commands
     cheFlavor: ''
-    # when set to true the operator will attempt to get a secret in openshift router namespace
-    # to add it to Java trust store of Che server. Requires cluster-admin provileges for operator service account
+    # when set to true the operator will attempt to get a secret in OpenShift router namespace
+    # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
     selfSignedCert:
     # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
     tlsSupport:
+    # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
+    # to Che server and workspaces containers
     proxyURL: ''
+    # port of a proxy server
     proxyPort: ''
+    # username for a proxy server
     proxyUser: ''
+    # password for a proxy user
     proxyPassword: ''
+    # a list of non-proxy hosts. Use | as delimiter, eg localhost|my.host.com|123.42.12.32
     nonProxyHosts: ''
+    # an endpoint serving plugin definitions. Defaults to https://che-plugin-registry.openshift.io
     pluginRegistryUrl: ''
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
+    # otherwise a Postgres deployment is created
     externalDb:
+    # Postgres Database hostname that Che server uses to connect to. Defaults to postgres
     chePostgresHostname: ''
+    # Postgres Database port that Che server uses to connect to. Defaults to 5432
     chePostgresPort: ''
+    # Postgres user that Che server when making a db connection. Defaults to pgche
     chePostgresUser: ''
+    # password of a postgres user. Auto-generated when left blank
     chePostgresPassword: ''
+    # Postgres database name that Che server uses to connect to. Defaults to dbche
     chePostgresDb: ''
+    # Postgres deployment in format image:tag. Defaults to registry.access.redhat.com/rhscl/postgresql-96-rhel7:1-25
+    postgresImage: ''
   storage:
-    # defaults to 'common' (one PVC for all workspacees). Can be 'unique' (PVC per volume), or 'per-workspace'
+    # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
+    # per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common
     pvcStrategy: ''
-    # default to 1Gi
+    # size of a persistent volume claim for workspaces. Defaults to 1Gi
     pvcClaimSize: ''
-    # use a special pod to pre-create subpaths in a common volume
+    # instruct Che server to launch a special pod to precreate a subpath in a PV
     preCreateSubPaths: true
+    # image:tag for preCreateSubPaths jobs
+    pvcJobsImage:
   auth:
-    # when set to true, the operator skips deploying Keycloak,
-    #and passes connection details of existing Keycloak auth server to Che server
+    # instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
     externalKeycloak:
+    # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
     keycloakURL: ''
+    # password for keycloak database user. Auto generated if left blank
     keycloakPostgresPassword: ''
+    # desired admin username of Keycloak admin user (applicable only when ExternalKeycloak is false)
     keycloakAdminUserName: ''
+    # desired password of Keycloak admin user (applicable only when ExternalKeycloak is false)
     keycloakAdminPassword: 'admin'
+    # name of a keycloak realm. This realm will be created, when ExternalKeycloak is true, otherwise passed to Che server
     keycloakRealm: ''
+    # id of a keycloak client. This client will be created, when ExternalKeycloak is false, otherwise passed to Che server
     keycloakClientId: ''
+    # instructs an Operator to enable OpenShift v3 identity provider in Keycloak,
+    # as well as create respective oAuthClient and configure Che configMap accordingly
     openShiftoAuth:
-    openShiftApiUrl: ''
+    # name of oAuthClient used in OpenShift v3 identity provider in Keycloak realm. Auto generated if left blank
+    oAuthClientName: ''
+    # secret used in oAuthClient. Auto generated if left blank
+    oAuthSecret: ''
+    # image:tag used in Keycloak deployment
+    keycloakImage: ''
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
-    # defaults to nginx
+    # kubernetes.io/ingress.class, defaults to nginx
     ingressClass: ''
-    # default to multi-host - <ingress-name>-<namespace>.<global-ingress-domain>
+    # IngressStrategy is the way ingresses are created.
+    # Can be multi-host (host is explicitly provided in ingress, <ingress-name>-<namespace>.<global-ingress-domain>),
+    # single-host (host is provided, path based rules, <ingress-domain>/path) and default-host *(no host is provided, path based rules)
     ingressStrategy: ''
-    # tls secret name will be used in ingress tls spec
+    # secret name used for tls termination
     tlsSecretName: ''
 
 
