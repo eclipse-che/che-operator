@@ -107,5 +107,7 @@ tags
 !.vscode/extensions.json
 .history
 
+build/
+bin/
 
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode

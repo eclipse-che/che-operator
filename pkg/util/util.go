@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2018 Red Hat, Inc.
+// Copyright (c) 2012-2019 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,36 +12,21 @@
 package util
 
 import (
-	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
+	"crypto/tls"
+	"encoding/json"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"k8s.io/client-go/discovery"
 	"math/rand"
+	"net/http"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"strings"
+	"time"
 )
 
-// GetEnvValue looks for env variables in Operator pod to configure Code Ready deployments
-// with things like db users, passwords and deployment options in general. Envs are set in
-// a ConfigMap at deploy/config.yaml. Find more details on deployment options in README.md
-func GetEnv(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return defaultValue
-	}
-	return value
-}
-
-func GetEnvBool(key string, defaultValue bool) bool {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return defaultValue
-	}
-	if value == "true" {
-		return true
-	}
-	return false
-}
-
 func GeneratePasswd(stringLength int) (passwd string) {
+	rand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +
 		"0123456789")
@@ -54,37 +39,105 @@ func GeneratePasswd(stringLength int) (passwd string) {
 	return passwd
 }
 
-func GetInfra() (infra string) {
-	// set infra via env var, for instance for testing purposes
-	infraEnv := os.Getenv("INFRA")
-	if len(infraEnv) != 0 {
-		infra = infraEnv
-		return infra
-	} else {
-		kubeClient := k8sclient.GetKubeClient()
-		serverGroups, _ := kubeClient.Discovery().ServerGroups()
-		apiGroups := serverGroups.Groups
-
-		for i := range apiGroups {
-			name := apiGroups[i].Name
-			if name == "route.openshift.io" {
-				infra = "openshift"
+func DetectOpenShift() (bool, error) {
+	tests := IsTestMode()
+	if !tests {
+		kubeconfig, err := config.GetConfig()
+		if err != nil {
+			return false, err
+		}
+		discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeconfig)
+		if err != nil {
+			return false, err
+		}
+		apiList, err := discoveryClient.ServerGroups()
+		if err != nil {
+			return false, err
+		}
+		apiGroups := apiList.Groups
+		for i := 0; i < len(apiGroups); i++ {
+			if apiGroups[i].Name == "route.openshift.io" {
+				return true, nil
 			}
 		}
-		if infra == "" {
-			infra = "kubernetes"
-		}
-		return infra
+		return false, nil
 	}
+	return true, nil
 }
 
-func GetNamespace() (currentNamespace string) {
+func GetValue(key string, defaultValue string) (value string) {
 
-	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		logrus.Warnf("Failed to find mounted file with namespace name %s. Using default namespace eclipse-che", err)
-		namespace = []byte("eclipse-che")
+	value = key
+	if len(key) < 1 {
+		value = defaultValue
 	}
-	currentNamespace = string(namespace)
-	return currentNamespace
+	return value
+}
+
+func IsTestMode() (isTesting bool) {
+
+	testMode := os.Getenv("MOCK_API")
+	if len(testMode) == 0 {
+		return false
+	}
+	return true
+}
+
+// GetClusterPublicHostname is a hacky way to get OpenShift API public DNS/IP
+// to be used in OpenShift oAuth provider as baseURL
+func GetClusterPublicHostname() (hostname string, err error) {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{}
+	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
+	url := "https://" + kubeApi + "/.well-known/oauth-authorization-server"
+	req, err := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
+		return "", err
+	}
+	var jsonData map[string]interface{}
+	err = json.Unmarshal(body, &jsonData)
+	if err != nil {
+		logrus.Errorf("An error occurred when unmarshalling: %s")
+		return "", err
+	}
+	hostname = jsonData["issuer"].(string)
+	return hostname, nil
+}
+
+func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string) (javaOpts string) {
+
+	proxyHost := strings.TrimLeft(proxyURL, "https://")
+	proxyUserPassword := ""
+	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
+		proxyUserPassword =
+			" -Dhttp.proxyUser=" + proxyUser + " -Dhttp.proxyPassword=" + proxyPassword +
+				" -Dhttps.proxyUser=" + proxyUser + " -Dhttps.proxyPassword=" + proxyPassword
+	}
+	javaOpts =
+		" -Dhttp.proxyHost=" + proxyHost + " -Dhttp.proxyPort=" + proxyPort +
+			" -Dhttps.proxyHost=" + proxyHost + " -Dhttps.proxyPort=" + proxyPort +
+			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "|172.30.0.1'" + proxyUserPassword
+	return javaOpts
+}
+
+func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string) (proxyUrl string, noProxy string) {
+	proxyUrl = proxyHost + ":" + proxyPort
+	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
+		protocol := strings.Split(proxyHost, "://")[0]
+		host := strings.Split(proxyHost, "://")[1]
+		proxyUrl = protocol + "://" + proxyUser + ":" + proxyPassword + "@" + host + ":" + proxyPort
+	}
+
+	noProxy = strings.Replace(nonProxyHosts, "|", ",", -1)
+
+	return proxyUrl, noProxy
 }
