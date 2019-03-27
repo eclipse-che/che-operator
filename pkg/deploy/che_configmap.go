@@ -51,11 +51,6 @@ type CheConfigMap struct {
 	KeycloakRealm                string `json:"CHE_KEYCLOAK_REALM"`
 	KeycloakClientId             string `json:"CHE_KEYCLOAK_CLIENT__ID"`
 	OpenShiftIdentityProvider    string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
-	ReloadStacksOnStart          string `json:"CHE_PREDEFINED_STACKS_RELOAD__ON__START"`
-	WorkspaceServiceAccountName  string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	WorkspaceAutoStart           string `json:"CHE_WORKSPACE_AUTO_START"`
-	UnrecoverableEvents          string `json:"CHE_INFRA_KUBERNETES_WORKSPACE__UNRECOVERABLE__EVENTS"`
-	InactiveWorkspaceStopTimeout string `json:"CHE_WORKSPACE_AGENT_DEV_INACTIVE__STOP__TIMEOUT__MS"`
 	JavaOpts                     string `json:"JAVA_OPTS"`
 	WorkspaceJavaOpts            string `json:"CHE_WORKSPACE_JAVA__OPTIONS"`
 	WorkspaceMavenOpts           string `json:"CHE_WORKSPACE_MAVEN__OPTIONS"`
@@ -65,6 +60,19 @@ type CheConfigMap struct {
 	WorkspaceNoProxy             string `json:"CHE_WORKSPACE_NO__PROXY"`
 	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL"`
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
+}
+
+func GetCustomConfigMapData()(cheEnv map[string]string) {
+
+	cheEnv = map[string]string{
+		"CHE_PREDEFINED_STACKS_RELOAD__ON__START":               "true",
+		"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME":           "che-workspace",
+		"CHE_WORKSPACE_AUTO_START":                              "true",
+		"CHE_INFRA_KUBERNETES_WORKSPACE__UNRECOVERABLE__EVENTS": "FailedMount,FailedScheduling,MountVolume.SetUp failed,Failed to pull image",
+		"CHE_WORKSPACE_AGENT_DEV_INACTIVE__STOP__TIMEOUT__MS":   "-1",
+	}
+	return cheEnv
+
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -156,24 +164,14 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		KeycloakRealm:                keycloakRealm,
 		KeycloakClientId:             keycloakClientId,
 		OpenShiftIdentityProvider:    openShiftIdentityProviderId,
-		ReloadStacksOnStart:          "true",
-		WorkspaceServiceAccountName:  "che-workspace",
-		WorkspaceAutoStart:           "true",
-		UnrecoverableEvents:          "FailedMount,FailedScheduling,MountVolume.SetUp failed,Failed to pull image",
-		InactiveWorkspaceStopTimeout: "-1",
-		JavaOpts: "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
-			"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
-			"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
-			"-Dsun.zip.disableMemoryMapping=true -Xms20m " + proxyJavaOpts,
-		WorkspaceJavaOpts: "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
-			"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
-			"-Dsun.zip.disableMemoryMapping=true " +
-			"-Xms20m -Djava.security.egd=file:/dev/./urandom " + proxyJavaOpts,
-		WorkspaceProxyJavaOpts: proxyJavaOpts,
-		WorkspaceHttpProxy:     cheWorkspaceHttpProxy,
-		WorkspaceHttpsProxy:    cheWorkspaceHttpProxy,
-		WorkspaceNoProxy:       cheWorkspaceNoProxy,
-		PluginRegistryUrl:      pluginRegistryUrl,
+		JavaOpts:                     DefaultJavaOpts + " " + proxyJavaOpts,
+		WorkspaceJavaOpts:            DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
+		WorkspaceMavenOpts:           DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
+		WorkspaceProxyJavaOpts:       proxyJavaOpts,
+		WorkspaceHttpProxy:           cheWorkspaceHttpProxy,
+		WorkspaceHttpsProxy:          cheWorkspaceHttpProxy,
+		WorkspaceNoProxy:             cheWorkspaceNoProxy,
+		PluginRegistryUrl:            pluginRegistryUrl,
 	}
 
 	out, err := json.Marshal(data)

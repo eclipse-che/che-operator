@@ -19,7 +19,12 @@ oc apply -f ${BASE_DIR}/role_binding.yaml
 oc apply -f ${BASE_DIR}/crds/org_v1_che_crd.yaml
 # sometimes the operator cannot get CRD right away
 sleep 2
+
 # uncomment if you need Login with OpenShift and/or use self signed certificates and tls
-#oc adm policy add-cluster-role-to-user cluster-admin -z che-operator
-oc apply -f ${BASE_DIR}/operator.yaml
-oc apply -f ${BASE_DIR}/crds/org_v1_che_cr.yaml
+#oc new-app -f ${BASE_DIR}deploy/role_binding_oauth.yaml -p NAMESPACE=$1 -n=$1
+#oc apply -f ${BASE_DIR}deploy/cluster_role.yaml -n=$1
+#oc new-app -f ${BASE_DIR}deploy/role_binding_crt.yaml -p NAMESPACE=$1
+#oc apply -f ${BASE_DIR}deploy/role_get_tls.yaml
+
+oc apply -f ${BASE_DIR}/deploy/operator.yaml
+oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml

@@ -50,6 +50,7 @@ func GetK8Client() *k8s {
 
 // GetPostgresStatus waits for pvc.status.phase to be Bound
 func (cl *k8s) GetPostgresStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
+	// short timeout if a PVC is waiting for a first consumer to be bound
 	var timeout int64 = 10
 	listOptions := metav1.ListOptions{
 		FieldSelector:  fields.OneTermEqualSelector("metadata.name", pvc.Name).String(),

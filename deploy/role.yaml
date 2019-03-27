@@ -8,12 +8,12 @@
 #
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   creationTimestamp: null
   name: che-operator
-
 rules:
   - apiGroups:
       - extensions/v1beta1
@@ -32,6 +32,11 @@ rules:
     resources:
       - roles
       - rolebindings
+    verbs:
+      - "*"
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
       - clusterroles
       - clusterrolebindings
     verbs:

@@ -185,10 +185,6 @@ func (r *ReconcileChe) CreateNewSecret(instance *orgv1.CheCluster, secret *corev
 }
 
 func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthClient *oauth.OAuthClient) error {
-	if err := controllerutil.SetControllerReference(instance, oAuthClient, r.scheme); err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
 	oAuthClientFound := &oauth.OAuthClient{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClient.Name, Namespace: oAuthClient.Namespace}, oAuthClientFound)
 	if err != nil && errors.IsNotFound(err) {

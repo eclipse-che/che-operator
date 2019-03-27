@@ -54,9 +54,9 @@ When enabling TLS, make sure you create a secret with crt and key, and let the O
 
 ## How to Configure
 
-The operator watches all objects it creates and reconciles them with CR state. It means that if you edit, say, a configMap che, the operator will revert changes.
-Since not all Che configuration properties are custom resource spec fields, the operator creates a second configMap called custom. You can use this configmap
-for any configuration that is not supported by CR.
+The operator watches all objects it creates and reconciles them with CR state. It means that if you edit a configMap **che**, the operator will revert changes.
+Since not all Che configuration properties are custom resource spec fields (there are too many of them), the operator creates a second configMap called **custom**
+which you can use for any environment variables not supported by CR. The operator will not reconcile configMap custom.
 
 ## How to Build Operator Image
 

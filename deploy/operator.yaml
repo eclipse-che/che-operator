@@ -25,7 +25,7 @@ spec:
       serviceAccountName: che-operator
       containers:
         - name: che-operator
-          image: eivantsov/operator-container
+          image: eivantsov/operator
           ports:
           - containerPort: 60000
             name: metrics

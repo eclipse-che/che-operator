@@ -14,7 +14,9 @@ package che
 import (
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	oauth "github.com/openshift/api/oauth/v1"
 
 	"testing"
 )
@@ -134,7 +135,6 @@ func TestCheController(t *testing.T) {
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
-	// reconcile again
 	res, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
@@ -154,7 +154,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR)
-	err = r.CreateIdentityProviderItems(cheCR,req, "che", "keycloak")
+	err = r.CreateIdentityProviderItems(cheCR, req, "che", "keycloak")
 	oAuthClientName := cheCR.Spec.Auth.OauthClientName
 	oauthSecret := cheCR.Spec.Auth.OauthSecret
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
@@ -164,4 +164,20 @@ func TestCheController(t *testing.T) {
 		t.Errorf("Secrets do not match. Expecting %s, got %s", oauthSecret, oAuthClient.Secret)
 	}
 
+	// check if a new Postgres deployment is not created when spec.Database.ExternalDB is true
+	cheCR.Spec.Database.ExternalDB = true
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+	postgresDeployment := &appsv1.Deployment{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
+	err = r.client.Delete(context.TODO(), postgresDeployment)
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
+	if err == nil {
+		t.Fatalf("Deployment postgres shoud not exist")
+	}
 }

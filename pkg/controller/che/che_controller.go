@@ -41,7 +41,7 @@ import (
 
 var log = logf.Log.WithName("controller_che")
 var (
-	k8sclient      = GetK8Client()
+	k8sclient = GetK8Client()
 )
 
 // Add creates a new CheCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -474,7 +474,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
-	// create Che ConfigMap
+	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
+	// controller will reconcile this CM with CR spec
 	cheHost := instance.Spec.Server.CheHost
 	cheEnv := deploy.GetConfigMapData(instance)
 	cheConfigMap := deploy.NewCheConfigMap(instance, cheEnv)
@@ -482,10 +483,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create a custom configmap that won't be synced with CR spec
-	// to be able to override envs and not clutter CR spec with fields
+	// create a custom ConfigMap that won't be synced with CR spec
+	// to be able to override envs and not clutter CR spec with fields which are too numerous
 	customCM := &corev1.ConfigMap{
-		Data: map[string]string{"SAMPLE_KEY": "SAMPLE_VALUE"},
+		Data: deploy.GetCustomConfigMapData(),
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ConfigMap"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -495,7 +496,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err := r.CreateNewConfigMap(instance, customCM); err != nil {
 		return reconcile.Result{}, err
 	}
-
+	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
+	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
 	// create Che deployment
 	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo)
@@ -515,7 +517,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Failed to get %s deployment: %s", cheDeployment.Name, err)
 		return reconcile.Result{}, err
 	}
-
 	if !tests {
 		if deployment.Status.AvailableReplicas != 1 {
 			instance, _ := r.GetCR(request)

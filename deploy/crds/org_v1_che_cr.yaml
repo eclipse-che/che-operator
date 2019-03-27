@@ -45,7 +45,7 @@ spec:
     # otherwise a Postgres deployment is created
     externalDb:
     # Postgres Database hostname that Che server uses to connect to. Defaults to postgres
-    chePostgresHostname: ''
+    chePostgresHostName: ''
     # Postgres Database port that Che server uses to connect to. Defaults to 5432
     chePostgresPort: ''
     # Postgres user that Che server when making a db connection. Defaults to pgche
