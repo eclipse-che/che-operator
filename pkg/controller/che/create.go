@@ -216,7 +216,7 @@ func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, name string, labels m
 		logrus.Infof("Creating a new object %s, name: %s", service.Kind, service.Name)
 		err = r.client.Create(context.TODO(), service)
 		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", service.Kind, service.Name)
+			logrus.Errorf("Failed to create %s %s: %s", service.Kind, service.Name, err)
 			return err
 		}
 		return nil
