@@ -9,16 +9,12 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-1.10-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-1.10-rhel7:1.10.3-15 as builder
-
-ENV PATH=/opt/rh/go-toolset-1.10/root/usr/bin:$PATH \
+# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
+FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 as builder
+ENV PATH=/opt/rh/go-toolset-1.11/root/usr/bin:$PATH \
     GOPATH=/go/
 
 USER root
-# uncomment to run a local build
-#RUN subscription-manager register --username me --password mypwd --auto-attach
-#RUN subscription-manager repos --enable rhel-7-server-optional-rpms --enable rhel-server-rhscl-7-rpms
 ADD . /go/src/github.com/eclipse/che-operator
 RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go test -v ./... && \
     OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator \
@@ -30,9 +26,7 @@ FROM registry.access.redhat.com/rhel7:7.6-202
 ENV SUMMARY="Red Hat CodeReady Workspaces Operator container" \
     DESCRIPTION="Red Hat CodeReady Workspaces Operator container" \
     PRODNAME="codeready-workspaces" \
-    COMPNAME="operator-container" \
-    PATH=/opt/rh/go-toolset-1.10/root/usr/bin:$PATH \
-    GOPATH=/go/
+    COMPNAME="operator-container"
 
 LABEL summary="$SUMMARY" \
       description="$DESCRIPTION" \

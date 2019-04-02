@@ -206,7 +206,7 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster) (de
 			oAuthClient := &oauth.OAuthClient{}
 			oAuthClientName := instance.Spec.Auth.OauthClientName
 			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
-				logrus.Errorf("%s %s not found: %s", oAuthClient.Name, err)
+				logrus.Errorf("OAuthClient %s not found: %s", oAuthClient.Name, err)
 			}
 			if err := r.client.Delete(context.TODO(), oAuthClient); err != nil {
 				logrus.Errorf("Failed to delete %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err)

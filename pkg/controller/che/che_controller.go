@@ -70,16 +70,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// register OpenShift routes in the scheme
 	if isOpenShift {
 		if err := routev1.AddToScheme(mgr.GetScheme()); err != nil {
-			logrus.Errorf("Failed to add OpenShift route to scheme: %", err)
+			logrus.Errorf("Failed to add OpenShift route to scheme: %s", err)
 		}
 		if err := oauth.AddToScheme(mgr.GetScheme()); err != nil {
-			logrus.Errorf("Failed to add oAuth to scheme: %", err)
+			logrus.Errorf("Failed to add oAuth to scheme: %s", err)
 		}
 	}
 
 	// register RBAC in the scheme
 	if err := rbac.AddToScheme(mgr.GetScheme()); err != nil {
-		logrus.Errorf("Failed to add RBAC to scheme: %", err)
+		logrus.Errorf("Failed to add RBAC to scheme: %s", err)
 	}
 
 	// Watch for changes to primary resource CheCluster
@@ -213,7 +213,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if isOpenShift && selfSignedCert {
 		crt, err := k8sclient.GetDefaultRouterCert("openshift-ingress")
 		if err != nil {
-			logrus.Errorf("Default router tls secret not found. Self signed cert isn't added to CheCluster deployment")
+			logrus.Errorf("Default router tls secret not found. Self signed cert isn't added")
 			return reconcile.Result{}, err
 		} else {
 			secret := deploy.NewSecret(instance, "self-signed-certificate", crt)

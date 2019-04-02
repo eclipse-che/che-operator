@@ -97,7 +97,6 @@ func GetClusterPublicHostname() (hostname string, err error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
@@ -106,7 +105,7 @@ func GetClusterPublicHostname() (hostname string, err error) {
 	var jsonData map[string]interface{}
 	err = json.Unmarshal(body, &jsonData)
 	if err != nil {
-		logrus.Errorf("An error occurred when unmarshalling: %s")
+		logrus.Errorf("An error occurred when unmarshalling: %s", err)
 		return "", err
 	}
 	hostname = jsonData["issuer"].(string)
