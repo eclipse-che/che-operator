@@ -207,18 +207,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
-	// create a secret with router tls cert if self signed certs are in use
-	// requires cluster admin privileges
-	selfSignedCert := instance.Spec.Server.SelfSignedCert
-	if isOpenShift && selfSignedCert {
-		crt, err := k8sclient.GetDefaultRouterCert("openshift-ingress")
-		if err != nil {
-			logrus.Errorf("Default router tls secret not found. Self signed cert isn't added")
-			return reconcile.Result{}, err
-		} else {
-			secret := deploy.NewSecret(instance, "self-signed-certificate", crt)
-			if err := r.CreateNewSecret(instance, secret); err != nil {
+	// create a secret with router tls cert
+	if isOpenShift {
+		secret := &corev1.Secret{}
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "self-signed-certificate", Namespace: instance.Namespace}, secret);
+			err != nil && errors.IsNotFound(err) {
+			crt, err := r.GetRouterTlsCrt(instance)
+			if err != nil {
+				logrus.Errorf("Default router tls secret not found. Self signed cert isn't added")
 				return reconcile.Result{}, err
+			} else {
+				secret := deploy.NewSecret(instance, "self-signed-certificate", crt)
+				if err := r.CreateNewSecret(instance, secret); err != nil {
+					return reconcile.Result{}, err
+				}
 			}
 		}
 	}

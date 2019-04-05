@@ -104,11 +104,55 @@ cp deploy/keycloak_provision /tmp/keycloak_provision
 ```
 This file is added to a Docker image, thus this step isn't required when deploying an operator image.
 
+## E2E Tests
 
+`e2e` directory contains end-to-end tests that create a custom resource, operator deployment, required RBAC.
 
+Pre-reqs to run e3e tests:
 
+* a running OpenShift instance (3.11+)
+* current oc/kubectl context as a cluster admin user
 
+### How to build tests binary
+```
+OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $GOPATH/src/github.com/eclipse/che-operator/run-tests $GOPATH/src/github.com/eclipse/che-operator/e2e/*.go
+```
 
+Or you can build in a container:
+
+```
+docker run -ti -v /tmp:/tmp -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
+cp /tmp/run-tests ${OPERATOR_REPO}/run-tests
+```
+
+### How to run tests
+
+The resulted binary is created in the root of the repo. Make sure it is run from this location since it uses relative paths to yamls that are then deserialized.
+There's a script `run-okd-local.sh` which is more of a CI thing, however, if you can run `oc cluster up` in your environment, you are unlikely to have any issues.
+
+```
+./run-tests
+```
+
+Tests create a number of k8s/OpenShift objects and generally assume that a fresh installation of OpenShift is available.
+TODO: handle AlreadyExists errors to either remove che namespace or create a new one with a unique name.
+
+### What do tests check?
+
+#### Installation of Che/CRW
+
+A custom resource is created, which signals the operator to deploy Che/CRW with default settings.
+
+#### Configuration changes in runtime
+
+Once an successful installation of Che/CRW is verified, tests patch custom resource to:
+
+* enable oAuth
+* enable TLS mode
+
+Subsequent checks verify that the installation is reconfigured, for example uses secure routes or ConfigMap has the right Login-with-OpenShift values
+
+TODO: add more scenarios
 
 
 

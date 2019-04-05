@@ -13,6 +13,11 @@ package che
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
+	"encoding/pem"
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -22,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -183,24 +189,24 @@ func (cl *k8s) GetDeploymentStatus(name string, ns string) (scaled bool) {
 			}
 		}
 	}
-		dc, _ := cl.clientset.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
-		if dc.Status.AvailableReplicas != 1 {
-			logrus.Errorf("Failed to verify a successful %s deployment", name)
-			eventList := cl.GetEvents(name, ns).Items
-			for i := range eventList {
-				logrus.Errorf("Event message: %v", eventList[i].Message)
-			}
-			deploymentPod, err := cl.GetDeploymentPod(name, ns)
-			if err != nil {
-				return false
-			}
-			cl.GetPodLogs(deploymentPod, ns)
-			logrus.Errorf("Command to get deployment logs: kubectl logs deployment/%s -n=%s", name, ns)
-			logrus.Errorf("Get k8s events: kubectl get events "+
-				"--field-selector "+
-				"involvedObject.name=$(kubectl get pods -l=component=%s -n=%s"+
-				" -o=jsonpath='{.items[0].metadata.name}') -n=%s", name, ns, ns)
+	dc, _ := cl.clientset.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
+	if dc.Status.AvailableReplicas != 1 {
+		logrus.Errorf("Failed to verify a successful %s deployment", name)
+		eventList := cl.GetEvents(name, ns).Items
+		for i := range eventList {
+			logrus.Errorf("Event message: %v", eventList[i].Message)
+		}
+		deploymentPod, err := cl.GetDeploymentPod(name, ns)
+		if err != nil {
 			return false
+		}
+		cl.GetPodLogs(deploymentPod, ns)
+		logrus.Errorf("Command to get deployment logs: kubectl logs deployment/%s -n=%s", name, ns)
+		logrus.Errorf("Get k8s events: kubectl get events "+
+			"--field-selector "+
+			"involvedObject.name=$(kubectl get pods -l=component=%s -n=%s"+
+			" -o=jsonpath='{.items[0].metadata.name}') -n=%s", name, ns, ns)
+		return false
 	}
 	return true
 }
@@ -245,20 +251,42 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 	return podName, nil
 }
 
-// GetDefaultRouterCert retrieves secret with OpenShift router certificate and extracts it
-// The cert is then used to create self-signed-certificate secret consumed by CheCluster server and workspaces
-func (cl *k8s) GetDefaultRouterCert(ns string) (crt []byte, err error) {
-	options := metav1.GetOptions{}
-	secret, err := cl.clientset.CoreV1().Secrets(ns).Get("router-certs-default", options)
-	if err != nil {
-		// in 3.11 it's default namespace and router-certs secret
-		secret, err = cl.clientset.CoreV1().Secrets("default").Get("router-certs", options)
-		if err != nil {
-			logrus.Errorf("Failed to get a secret in both namespace %s and default: %s", ns, err)
-			return nil, err
-		}
+// GetRouterTlsCrt creates a test TLS route and gets it to extract certificate chain
+// There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
+// which however requires extra privileges for operator service account
+func (r *ReconcileChe) GetRouterTlsCrt(instance *orgv1.CheCluster) (certificate []byte, err error) {
+	testRoute := deploy.NewTlsRoute(instance, "test", "test")
+	logrus.Infof("Creating a test route %s to extract routes crt", testRoute.Name)
+	if err := r.CreateNewRoute(instance, testRoute); err != nil {
+		logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
+		return nil, err
 	}
-	secretData := secret.Data
-	crt = secretData["tls.crt"]
-	return crt, nil
+	url := "https://" + testRoute.Spec.Host
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		logrus.Errorf("An error occurred when reaching test TLS route: %s", err)
+		if r.tests {
+			fakeCrt := make([]byte, 5)
+			return fakeCrt, nil
+		}
+		return nil, err
+	}
+
+	for i := range resp.TLS.PeerCertificates {
+		cert := resp.TLS.PeerCertificates[i].Raw
+		crt := pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert,
+		})
+		certificate = append(certificate, crt...)
+	}
+	logrus.Infof("Deleting a test route %s to extract routes crt", testRoute.Name)
+	if err := r.client.Delete(context.TODO(), testRoute); err != nil {
+		logrus.Errorf("Failed to delete test route %s: %s", testRoute.Name, err)
+	}
+
+	return certificate, nil
 }
