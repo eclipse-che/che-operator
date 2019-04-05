@@ -16,8 +16,9 @@ wget https://github.com/openshift/origin/releases/download/v3.11.0/openshift-ori
 
 # start OKD
 echo "Starting OKD 3.11"
-cd /tmp
-sudo rm -rf openshift.local.clusterup
+mkdir -p ${OPERATOR_REPO}/tmp
+cd ${OPERATOR_REPO}/tmp
+rm -rf openshift.local.clusterup
 ./oc cluster up --public-hostname=172.17.0.1 --routing-suffix=172.17.0.1.nip.io
 ./oc login -u system:admin
 ./oc adm policy add-cluster-role-to-user cluster-admin developer
@@ -40,8 +41,8 @@ sleep 10
 ./oc rollout latest dc/router -n=default
 
 echo "Compiling tests binary"
-docker run -ti -v /tmp:/tmp -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
-cp /tmp/run-tests ${OPERATOR_REPO}/run-tests
+docker run -ti -v ${OPERATOR_REPO}/tmp:/tmp -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
+cp ${OPERATOR_REPO}/tmp/run-tests ${OPERATOR_REPO}/run-tests
 
 
 cd ${OPERATOR_REPO}
