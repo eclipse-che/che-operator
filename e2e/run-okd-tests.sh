@@ -34,7 +34,7 @@ cat cert.pem key.pem > ca.crt
 # replace default router cert
 echo "Updating OpenShift router tls secret"
 ./oc project default
-./oc secrets new router-certs tls.crt=ca.crt tls.key=key.pem -o json --type='kubernetes.io/tls' --confirm | oc replace -f -
+./oc secrets new router-certs tls.crt=ca.crt tls.key=key.pem -o json --type='kubernetes.io/tls' --confirm | ./oc replace -f -
 echo "Initiating a new router deployment"
 sleep 10
 ./oc rollout latest dc/router -n=default
