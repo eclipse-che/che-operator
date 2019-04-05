@@ -147,7 +147,7 @@ func main() {
 	}
 
 	// wait for Available status
-	logrus.Info("Waiting for CR Available status. Timeout 6 min")
+	logrus.Info("Waiting for CR Available status. Timeout 15 min")
 	deployed, err = VerifyCheRunning(che.AvailableStatus)
 	if deployed {
 		logrus.Info("Installation succeeded")
