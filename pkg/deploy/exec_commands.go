@@ -48,7 +48,7 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command 
 	}
 	file, err := ioutil.ReadFile("/tmp/keycloak_provision")
 	if err != nil {
-		logrus.Errorf("Failed to find keycloak entrypoint file %s", err)
+		logrus.Errorf("Failed to locate keycloak entrypoint file: %s", err)
 	}
 	keycloakTheme := "che"
 	realmDisplayName := "Eclipse Che"
