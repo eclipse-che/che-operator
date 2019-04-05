@@ -10,6 +10,13 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+# to purge ALL existing docker containers (including unrelated ones!)
+# docker rm -f $(docker ps -aq) || true
+# # to purge ALL existing docker images (including unrelated ones!)
+# docker rmi -f $(docker images -q) || true
+
+# requires Docker 18+
+
 OC_VERSION="v3.11.0-0cbc58b"
 GO_TOOLSET_VERSION="1.11.5-3"
 IP_ADDRESS="172.17.0.1"
