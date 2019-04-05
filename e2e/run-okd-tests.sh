@@ -19,7 +19,7 @@ echo "Starting OKD 3.11"
 cd /tmp
 sudo rm -rf openshift.local.clusterup
 ./oc cluster up --public-hostname=172.17.0.1 --routing-suffix=172.17.0.1.nip.io
-oc login -u system:admin
+./oc login -u system:admin
 ./oc adm policy add-cluster-role-to-user cluster-admin developer
 ./oc login -u developer -p password
 sleep 10

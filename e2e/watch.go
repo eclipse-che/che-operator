@@ -18,7 +18,7 @@ import (
 
 func VerifyCheRunning(status string) (deployed bool, err error) {
 
-	timeout := time.After(6 * time.Minute)
+	timeout := time.After(15 * time.Minute)
 	tick := time.Tick(10 * time.Second)
 	for {
 		select {
