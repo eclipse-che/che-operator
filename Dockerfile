@@ -10,7 +10,7 @@
 #
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 as builder
+FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3
 ENV PATH=/opt/rh/go-toolset-1.11/root/usr/bin:$PATH \
     GOPATH=/go/
 
@@ -21,7 +21,7 @@ RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go tes
     /go/src/github.com/eclipse/che-operator/cmd/manager/main.go && cd ..
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/rhel7
-FROM registry.access.redhat.com/rhel7:7.6-202.1553789841
+#FROM registry.access.redhat.com/rhel7:7.6-202.1553789841
 
 ENV SUMMARY="Red Hat CodeReady Workspaces Operator container" \
     DESCRIPTION="Red Hat CodeReady Workspaces Operator container" \
@@ -41,7 +41,7 @@ LABEL summary="$SUMMARY" \
       io.openshift.expose-services="" \
       usage=""
 
-COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
-COPY --from=builder /go/src/github.com/eclipse/che-operator/deploy/keycloak_provision /tmp/keycloak_provision
+RUN cp /tmp/che-operator/che-operator /usr/local/bin/che-operator
+RUN cp /go/src/github.com/eclipse/che-operator/deploy/keycloak_provision /tmp/keycloak_provision
 RUN yum list installed && echo "End Of Installed Packages"
 CMD ["che-operator"]
