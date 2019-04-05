@@ -22,7 +22,7 @@ if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE};
 echo "[INFO] Download oc client"
 mkdir -p ${OPERATOR_REPO}/tmp
 chmod -R 777 ${OPERATOR_REPO}/tmp
-curl -s -S https://github.com/openshift/origin/releases/download/${OC_VERSION%%-*}/openshift-origin-client-tools-${OC_VERSION}-linux-64bit.tar.gz \
+curl -s -S -L https://github.com/openshift/origin/releases/download/${OC_VERSION%%-*}/openshift-origin-client-tools-${OC_VERSION}-linux-64bit.tar.gz \
   -o ${OPERATOR_REPO}/tmp/oc.tar && tar -xvf ${OPERATOR_REPO}/tmp/oc.tar -C ${OPERATOR_REPO}/tmp --strip-components=1
 
 # start OKD
@@ -63,3 +63,6 @@ cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile .
 
 echo "[INFO] Run tests..."
 cd ${OPERATOR_REPO} && ./run-tests
+
+# cleanup
+rm -fr ${OPERATOR_REPO}/tmp
