@@ -13,6 +13,7 @@ set -e
 # download oc
 echo "Download oc client"
 mkdir -p ${OPERATOR_REPO}/tmp
+chmod -R 777 ${OPERATOR_REPO}/tmp
 wget https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz -O ${OPERATOR_REPO}/tmp/oc.tar && tar -xvf ${OPERATOR_REPO}/tmp/oc.tar -C ${OPERATOR_REPO}/tmp --strip-components=1
 
 # start OKD
@@ -41,10 +42,11 @@ sleep 10
 ./oc rollout latest dc/router -n=default
 
 echo "Compiling tests binary"
-docker run -t -v ${OPERATOR_REPO}/tmp:/tmp \
-              -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator \
-              registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 \
-              sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /opt/app-root/src/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go && cp /opt/app-root/src/run-tests /tmp/run-tests"
+docker run -t \
+            -v ${OPERATOR_REPO}/tmp:/operator \
+            -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3 \
+            sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /operator/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
+
 cp ${OPERATOR_REPO}/tmp/run-tests ${OPERATOR_REPO}/run-tests
 
 
