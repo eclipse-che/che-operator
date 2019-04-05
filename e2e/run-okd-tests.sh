@@ -52,6 +52,6 @@ cp ${OPERATOR_REPO}/tmp/run-tests ${OPERATOR_REPO}/run-tests
 
 cd ${OPERATOR_REPO}
 echo "Building operator docker image..."
-docker build -t che/operator -f Dockerfile.ci .
+docker build -t che/operator -f Dockerfile .
 echo "Running tests..."
 ./run-tests
