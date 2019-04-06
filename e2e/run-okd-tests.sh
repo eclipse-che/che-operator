@@ -70,6 +70,3 @@ cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile .
 
 echo "[INFO] Run tests..."
 cd ${OPERATOR_REPO} && ./run-tests
-
-# cleanup
-rm -fr ${OPERATOR_REPO}/tmp
