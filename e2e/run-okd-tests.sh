@@ -46,7 +46,7 @@ echo "[INFO] Register a custom resource definition"
 
 # generate self signed cert
 echo "[INFO] Generate self signed certificate"
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -subj '/CN=*.${IP_ADDRESS}.nip.io' -nodes
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -subj "/CN=*.${IP_ADDRESS}.nip.io" -nodes
 cat cert.pem key.pem > ca.crt
 
 # replace default router cert
