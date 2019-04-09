@@ -173,6 +173,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 var _ reconcile.Reconciler = &ReconcileChe{}
+var oAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 
 // ReconcileChe reconciles a CheCluster object
 type ReconcileChe struct {
@@ -207,6 +208,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
+
+	// delete oAuthClient before CR is deleted
+	doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
+	if doInstallOpenShiftoAuthProvider {
+		if err := r.ReconcileFinalizer(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// create a secret with router tls cert
 	if isOpenShift {
 		secret := &corev1.Secret{}

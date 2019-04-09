@@ -16,6 +16,7 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"time"
 
 	"testing"
 )
@@ -180,4 +182,49 @@ func TestCheController(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Deployment postgres shoud not exist")
 	}
+
+	// check of storageClassName ends up in pvc spec
+	fakeStorageClassName := "fake-storage-class-name"
+	cheCR.Spec.Storage.PostgresPVCStorageClassName = fakeStorageClassName
+	cheCR.Spec.Database.ExternalDB = false
+	if err := r.client.Update(context.TODO(), cheCR); err != nil {
+		t.Fatalf("Failed to update %s CR: %s", cheCR.Name, err)
+	}
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres-data", Namespace: cheCR.Namespace}, pvc); err != nil {
+		t.Fatalf("Failed to get PVC: %s", err)
+	}
+	if err = r.client.Delete(context.TODO(), pvc); err != nil {
+		t.Fatalf("Failed to delete PVC %s: %s", pvc.Name, err)
+	}
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	pvc = &corev1.PersistentVolumeClaim{}
+	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres-data", Namespace: cheCR.Namespace}, pvc); err != nil {
+		t.Fatalf("Failed to get PVC: %s", err)
+	}
+	actualStorageClassName := pvc.Spec.StorageClassName
+	if len(*actualStorageClassName) != len(fakeStorageClassName) {
+		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, *actualStorageClassName )
+	}
+
+	// check if oAuthClient is deleted after CR is deleted (finalizer logic)
+	// since fake api does not set deletion timestamp, CR is updated in tests rather than deleted
+	logrus.Info("Updating CR with deletion timestamp")
+	deletionTimestamp := &metav1.Time{Time: time.Now()}
+	cheCR.DeletionTimestamp = deletionTimestamp
+	if err := r.client.Update(context.TODO(), cheCR); err != nil {
+		t.Fatalf("Failed to update CR: %s", err)
+	}
+	if err := r.ReconcileFinalizer(cheCR); err != nil {
+		t.Fatal("Failed to reconcile oAuthClient")
+	}
+	oauthClientName := cheCR.Spec.Auth.OauthClientName
+	_, err = r.GetOAuthClient(oauthClientName)
+	if err == nil {
+		t.Fatalf("OauthClient %s has not been deleted", oauthClientName)
+	}
+	logrus.Infof("Disregard the error above. OauthClient %s has been deleted", oauthClientName)
 }

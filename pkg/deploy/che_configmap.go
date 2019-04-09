@@ -40,6 +40,7 @@ type CheConfigMap struct {
 	PvcStrategy                  string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                 string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                 string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
+	WorkspacePvcStorageClassName string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
 	PreCreateSubPaths            string `json:"CHE_INFRA_KUBERNETES_PVC_PRECREATE__SUBPATHS"`
 	TlsSupport                   string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
 	K8STrustCerts                string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
@@ -62,7 +63,7 @@ type CheConfigMap struct {
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 }
 
-func GetCustomConfigMapData()(cheEnv map[string]string) {
+func GetCustomConfigMapData() (cheEnv map[string]string) {
 
 	cheEnv = map[string]string{
 		"CHE_PREDEFINED_STACKS_RELOAD__ON__START":               "true",
@@ -122,6 +123,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	tlsSecretName := cr.Spec.K8SOnly.TlsSecretName
 	pvcStrategy := util.GetValue(cr.Spec.Storage.PvcStrategy, DefaultPvcStrategy)
 	pvcClaimSize := util.GetValue(cr.Spec.Storage.PvcClaimSize, DefaultPvcClaimSize)
+	workspacePvcStorageClassName := cr.Spec.Storage.WorkspacePVCStorageClassName
 	pvcJobsImage := util.GetValue(cr.Spec.Storage.PvcJobsImage, DefaultPvcJobsImage)
 	preCreateSubPaths := "true"
 	if !cr.Spec.Storage.PreCreateSubPaths {
@@ -152,6 +154,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspacesNamespace:          workspacesNamespace,
 		PvcStrategy:                  pvcStrategy,
 		PvcClaimSize:                 pvcClaimSize,
+		WorkspacePvcStorageClassName: workspacePvcStorageClassName,
 		PvcJobsImage:                 pvcJobsImage,
 		PreCreateSubPaths:            preCreateSubPaths,
 		TlsSupport:                   tls,

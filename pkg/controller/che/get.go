@@ -14,16 +14,17 @@ package che
 import (
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	oauth "github.com/openshift/api/oauth/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
-	routev1 "github.com/openshift/api/route/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func(r *ReconcileChe) GetEffectiveDeployment(instance *orgv1.CheCluster, name string) (deployment *appsv1.Deployment, err error) {
+func (r *ReconcileChe) GetEffectiveDeployment(instance *orgv1.CheCluster, name string) (deployment *appsv1.Deployment, err error) {
 	deployment = &appsv1.Deployment{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
 	if err != nil {
@@ -33,8 +34,7 @@ func(r *ReconcileChe) GetEffectiveDeployment(instance *orgv1.CheCluster, name st
 	return deployment, nil
 }
 
-
-func(r *ReconcileChe) GetEffectiveIngress(instance *orgv1.CheCluster, name string) (ingress *v1beta1.Ingress) {
+func (r *ReconcileChe) GetEffectiveIngress(instance *orgv1.CheCluster, name string) (ingress *v1beta1.Ingress) {
 	ingress = &v1beta1.Ingress{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, ingress)
 	if err != nil {
@@ -44,9 +44,7 @@ func(r *ReconcileChe) GetEffectiveIngress(instance *orgv1.CheCluster, name strin
 	return ingress
 }
 
-
-
-func(r *ReconcileChe) GetEffectiveRoute(instance *orgv1.CheCluster, name string) (route *routev1.Route) {
+func (r *ReconcileChe) GetEffectiveRoute(instance *orgv1.CheCluster, name string) (route *routev1.Route) {
 	route = &routev1.Route{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, route)
 	if err != nil {
@@ -75,4 +73,13 @@ func (r *ReconcileChe) GetCR(request reconcile.Request) (instance *orgv1.CheClus
 		return nil, err
 	}
 	return instance, nil
+}
+
+func (r *ReconcileChe) GetOAuthClient(oAuthClientName string) (oAuthClient *oauth.OAuthClient, err error) {
+	oAuthClient = &oauth.OAuthClient{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
+		logrus.Errorf("Failed to Get oAuthClient %s: %s", oAuthClientName, err)
+		return nil, err
+	}
+	return oAuthClient, nil
 }
