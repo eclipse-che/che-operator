@@ -65,7 +65,12 @@ spec:
     # instruct Che server to launch a special pod to precreate a subpath in a PV
     preCreateSubPaths: true
     # image:tag for preCreateSubPaths jobs
-    pvcJobsImage:
+    pvcJobsImage: ''
+    # keep blank unless you need to use a non default storage class for Postgres PVC
+    postgresPVCStorageClassName: ''
+    # keep blank unless you need to use a non default storage class for workspace PVC(s)
+    workspacePVCStorageClassName: ''
+
   auth:
     # instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
     externalKeycloak:

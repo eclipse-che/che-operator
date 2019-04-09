@@ -120,6 +120,10 @@ type CheClusterSpecStorage struct {
 	PreCreateSubPaths bool `json:"preCreateSubPaths"`
 	// PvcJobsImage is image:tag for preCreateSubPaths jobs
 	PvcJobsImage string `json:"pvcJobsImage"`
+	// PostgresPVCStorageClassName is storage class for a postgres pvc. Empty string by default, which means default storage class is used
+	PostgresPVCStorageClassName string `json:"postgresPVCStorageClassName"`
+	// WorkspacePVCStorageClassName is storage class for a workspaces pvc. Empty string by default, which means default storage class is used
+	WorkspacePVCStorageClassName string `json:"workspacePVCStorageClassName"`
 }
 
 type CheClusterSpecK8SOnly struct {

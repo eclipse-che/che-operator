@@ -19,7 +19,26 @@ import (
 )
 
 func NewPvc(cr *orgv1.CheCluster, name string, pvcClaimSize string, labels map[string]string) *corev1.PersistentVolumeClaim {
-	//value := true
+
+	accessModes := []corev1.PersistentVolumeAccessMode{
+		// todo Make configurable
+		corev1.ReadWriteOnce,
+	}
+	resources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(pvcClaimSize),
+		}}
+	pvcSpec := corev1.PersistentVolumeClaimSpec{
+		AccessModes: accessModes,
+		Resources:   resources,
+	}
+	if len(cr.Spec.Storage.PostgresPVCStorageClassName) > 1 {
+		pvcSpec = corev1.PersistentVolumeClaimSpec{
+			AccessModes:      accessModes,
+			StorageClassName: &cr.Spec.Storage.PostgresPVCStorageClassName,
+			Resources:        resources,
+		}
+	}
 	return &corev1.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PersistentVolumeClaim",
@@ -30,18 +49,7 @@ func NewPvc(cr *orgv1.CheCluster, name string, pvcClaimSize string, labels map[s
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				// todo Make configurable
-				corev1.ReadWriteOnce,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(pvcClaimSize),
-				},
-			},
-		},
+		Spec: pvcSpec,
 	}
 
 }
-
