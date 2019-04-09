@@ -188,7 +188,7 @@ func TestCheController(t *testing.T) {
 	cheCR.Spec.Storage.PostgresPVCStorageClassName = fakeStorageClassName
 	cheCR.Spec.Database.ExternalDB = false
 	if err := r.client.Update(context.TODO(), cheCR); err != nil {
-		t.Fatalf("Failed to update %s CR: %s", cheCR, err)
+		t.Fatalf("Failed to update %s CR: %s", cheCR.Name, err)
 	}
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres-data", Namespace: cheCR.Namespace}, pvc); err != nil {
@@ -207,16 +207,16 @@ func TestCheController(t *testing.T) {
 	}
 	actualStorageClassName := pvc.Spec.StorageClassName
 	if len(*actualStorageClassName) != len(fakeStorageClassName) {
-		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, actualStorageClassName )
+		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, *actualStorageClassName )
 	}
 
 	// check if oAuthClient is deleted after CR is deleted (finalizer logic)
 	// since fake api does not set deletion timestamp, CR is updated in tests rather than deleted
-	logrus.Infof("Updating %s CR with deletion timestamp", cheCR.Name)
+	logrus.Info("Updating CR with deletion timestamp")
 	deletionTimestamp := &metav1.Time{Time: time.Now()}
 	cheCR.DeletionTimestamp = deletionTimestamp
 	if err := r.client.Update(context.TODO(), cheCR); err != nil {
-		t.Fatalf("Failed to update %s CR: %s", cheCR, err)
+		t.Fatalf("Failed to update CR: %s", err)
 	}
 	if err := r.ReconcileFinalizer(cheCR); err != nil {
 		t.Fatal("Failed to reconcile oAuthClient")
