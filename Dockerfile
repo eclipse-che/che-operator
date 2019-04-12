@@ -21,7 +21,7 @@ RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go tes
     /go/src/github.com/eclipse/che-operator/cmd/manager/main.go && cd ..
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/rhel7
-FROM registry.access.redhat.com/rhel7:7.6-202.1553789841
+FROM registry.access.redhat.com/rhel7:7.6-202.1554729462
 
 ENV SUMMARY="Red Hat CodeReady Workspaces Operator container" \
     DESCRIPTION="Red Hat CodeReady Workspaces Operator container" \
