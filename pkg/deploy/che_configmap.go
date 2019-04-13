@@ -14,7 +14,7 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-	orgv2 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -78,7 +78,7 @@ func GetCustomConfigMapData() (cheEnv map[string]string) {
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func GetConfigMapData(cr *orgv2.CheCluster) (cheEnv map[string]string) {
+func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheHost := cr.Spec.Server.CheHost
 	keycloakURL := cr.Spec.Auth.KeycloakURL
 	isOpenShift, err := util.DetectOpenShift()
@@ -200,7 +200,7 @@ func GetConfigMapData(cr *orgv2.CheCluster) (cheEnv map[string]string) {
 	return cheEnv
 }
 
-func NewCheConfigMap(cr *orgv2.CheCluster, cheEnv map[string]string) *corev1.ConfigMap {
+func NewCheConfigMap(cr *orgv1.CheCluster, cheEnv map[string]string) *corev1.ConfigMap {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
