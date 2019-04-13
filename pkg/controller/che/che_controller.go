@@ -14,6 +14,7 @@ package che
 import (
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
@@ -189,10 +190,9 @@ type ReconcileChe struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-
 	// Fetch the CheCluster instance
 	tests := r.tests
-	var instance, err = r.GetCR(request)
+	instance, err := r.GetCR(request)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -208,7 +208,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
-
 	// delete oAuthClient before CR is deleted
 	doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
 	if doInstallOpenShiftoAuthProvider {
@@ -217,8 +216,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// create a secret with router tls cert
-	if isOpenShift {
+	// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
+	selfSignedCert := instance.Spec.Server.SelfSignedCert
+	if isOpenShift && selfSignedCert {
 		secret := &corev1.Secret{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "self-signed-certificate", Namespace: instance.Namespace}, secret);
 			err != nil && errors.IsNotFound(err) {
@@ -250,7 +250,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 	// create service accounts:
 	// che is the one which token is used to create workspace objects
-	// che-workspace is SA used by plugins like exec and terminal with limited privileges like view and exec
+	// che-workspace is SA used by plugins like exec and terminal with limited privileges
 	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
 	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
 		return reconcile.Result{}, err
@@ -402,6 +402,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 	// create and provision Keycloak related objects
 	ExternalKeycloak := instance.Spec.Auth.ExternalKeycloak
+
 	if !ExternalKeycloak {
 		keycloakLabels := deploy.GetLabels(instance, "keycloak")
 		if err := r.CreateService(instance, "keycloak", keycloakLabels, "http", 8080); err != nil {

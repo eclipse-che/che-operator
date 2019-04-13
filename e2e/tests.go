@@ -90,7 +90,7 @@ func main() {
 		logrus.Fatalf("Failed to create Operator deployment: %s", err)
 	}
 
-	logrus.Info("Waiting for CR Available status. Timeout 6 min")
+	logrus.Info("Waiting for CR Available status. Timeout 15 min")
 	deployed, err := VerifyCheRunning(che.AvailableStatus)
 	if deployed {
 		logrus.Info("Installation succeeded")
@@ -165,7 +165,7 @@ func main() {
 	}
 	logrus.Infof("Checking if oauthclient %s has been created", oAuthClientName)
 
-	// verify oathclient name is set in che ConfigMap
+	// verify oAuthClient name is set in che ConfigMap
 	cm, err := getConfigMap("che")
 	if err != nil {
 		log.Fatalf("Failed to get ConfigMap: %s", err)

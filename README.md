@@ -20,8 +20,10 @@ The project is in its early development and breaking changes are possible.
 
 ## How to Deploy
 
+**IMPORTANT! Cluster Admin privileges are required**
+
 ```
-./deploy.sh
+./deploy.sh $namespace
 ```
 
 The script will create sa, role, role binding, operator deployment, CRD and CR.
@@ -38,15 +40,17 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
 ### OpenShift oAuth
 
 Bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
-There is `oc adm` command in both scripts. Uncomment it if you need these features.
+There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
 Make sure your current user has cluster-admin privileges.
 
 ### TLS
 
 #### OpenShift
 
-When using self-signed certificates make sure you set `server.selfSignedCerts` to true and grant che-operator service account cluster admin privileges
+When using self-signed certificates make sure you set `server.selfSignedCert` to true
 or create a secret called `self-signed-certificate` in a target namespace with ca.crt holding your OpenShift router crt body.
+When `server.selfSignedCert` the operator will create a test TLS route, GET it, extract certificate chain, convert to a secret `self-signed-certificate`,
+and Che/CRW server will automatically add it to Java trust store.
 
 #### K8S
 
@@ -55,8 +59,8 @@ When enabling TLS, make sure you create a secret with crt and key, and let the O
 ## How to Configure
 
 The operator watches all objects it creates and reconciles them with CR state. It means that if you edit a configMap **che**, the operator will revert changes.
-Since not all Che configuration properties are custom resource spec fields (there are too many of them), the operator creates a second configMap called **custom**
-which you can use for any environment variables not supported by CR. The operator will not reconcile configMap custom.
+Since not all Che configuration properties are custom resource spec fields (there are simply too many of them), the operator creates a second configMap called **custom**
+which you can use for any environment variables not supported by CR field. The operator will not reconcile configMap custom.
 
 ## How to Build Operator Image
 
@@ -68,7 +72,7 @@ You can then use the resulting image in operator deployment (deploy/operator.yam
 
 ## Build and Deploy to a local cluster:
 
-There's a little script that will build a Docker image and deploy an operator to a selected namespace,
+There's a little script that will build a local Docker image and deploy an operator to a selected namespace,
 as well as create service account, role, role binding, CRD and example CR.
 
 ```
@@ -76,6 +80,8 @@ oc new-project $namespace
 build_deploy_local.sh $namespace
 
 ```
+
+The above method will work only with Docker 17.x (does not works if you want to build in MiniShift/MiniKube). Mostly useful if you run `oc cluster up` locally.
 
 ## How to Run/Debug Locally
 

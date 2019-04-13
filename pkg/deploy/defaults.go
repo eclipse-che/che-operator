@@ -14,7 +14,7 @@ package deploy
 const (
 	DefaultCheServerImageRepo       = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo = "registry.access.redhat.com/codeready-workspaces/server"
-	DefaultCheServerImageTag        = "7.0.0-beta-2.0"
+	DefaultCheServerImageTag        = "7.0.0-beta-3.0"
 	DefaultCodeReadyServerImageTag  = "1.1"
 	DefaultCheFlavor                = "che"
 	DefaultChePostgresUser          = "pgche"
