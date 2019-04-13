@@ -121,6 +121,11 @@ func newCheCluster() (cr *orgv1.CheCluster) {
 		TypeMeta: metav1.TypeMeta{
 			Kind: kind,
 		},
+		Spec:orgv1.CheClusterSpec{
+			Server:orgv1.CheClusterSpecServer{
+				SelfSignedCert: true,
+			},
+		},
 	}
 	return cr
 }

@@ -38,15 +38,6 @@ func (r *ReconcileChe) UpdateCheCRStatus(instance *orgv1.CheCluster, updatedFiel
 	return nil
 }
 
-func (r *ReconcileChe) UpdateCheCRSpec1(instance *orgv1.CheCluster, updatedField string, value string) (err error) {
-	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
-	if err = r.client.Update(context.TODO(), instance); err != nil {
-		return err
-	}
-	logrus.Infof("Custom resource %s updated", instance.Name)
-	return nil
-}
-
 func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField string, value string) (err error) {
 	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
 	err = r.client.Update(context.TODO(), instance)

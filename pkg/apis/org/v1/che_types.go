@@ -83,19 +83,21 @@ type CheClusterSpecDB struct {
 
 type CheClusterSpecAuth struct {
 	// ExternalKeycloak instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
-	ExternalKeycloak bool `json:"externalKeycloak"`
-	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
-	KeycloakURL string `json:"keycloakURL"`
-	// KeycloakAdminUserName is a desired admin username of Keycloak admin user (applicable only when ExternalKeycloak is false)
-	KeycloakAdminUserName string `json:"keycloakAdminUserName"`
-	// KeycloakAdminPassword is a desired password of Keycloak admin user (applicable only when ExternalKeycloak is false)
-	KeycloakAdminPassword string `json:"keycloakAdminPassword"`
-	// KeycloakRealm is name of a keycloak realm. When ExternalKeycloak is false this realm will be created, otherwise passed to Che server
-	KeycloakRealm string `json:"keycloakRealm"`
-	// KeycloakClientId is id of a keycloak client. When ExternalKeycloak is false this client will be created, otherwise passed to Che server
-	KeycloakClientId string `json:"keycloakClientId"`
+	ExternalKeycloak bool `json:"externalIdentityProvider"`
+	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
+	KeycloakURL string `json:"identityProviderURL"`
+	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
+	//IdentityProviderURL string `json:"identityProviderURL"`
+	// KeycloakAdminUserName is a desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
+	KeycloakAdminUserName string `json:"identityProviderAdminUserName"`
+	// KeycloakAdminPassword is a desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
+	KeycloakAdminPassword string `json:"identityProviderPassword"`
+	// KeycloakRealm is name of a keycloak realm. When externalIdentityProvider is false this realm will be created, otherwise passed to Che server
+	KeycloakRealm string `json:"identityProviderRealm"`
+	// KeycloakClientId is id of a keycloak client. When externalIdentityProvider is false this client will be created, otherwise passed to Che server
+	KeycloakClientId string `json:"identityProviderClientId"`
 	// KeycloakPostgresPassword is password for keycloak database user. Auto generated if left blank
-	KeycloakPostgresPassword string `json:"keycloakPostgresPassword"`
+	KeycloakPostgresPassword string `json:"identityProviderPostgresPassword"`
 	// UpdateAdminPassword forces the default admin Che user to update password on first login. False by default
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
 	// OpenShiftOauth instructs an Operator to enable OpenShift v3 identity provider in Keycloak,
@@ -106,9 +108,8 @@ type CheClusterSpecAuth struct {
 	// OauthSecret is secret used in oAuthClient. Auto generated if left blank
 	OauthSecret string `json:"oAuthSecret"`
 	// KeycloakImage is image:tag used in Keycloak deployment
-	KeycloakImage string `json:"keycloakImage"`
+	KeycloakImage string `json:"identityProviderImage"`
 }
-
 
 type CheClusterSpecStorage struct {
 	// PvcStrategy is a persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),

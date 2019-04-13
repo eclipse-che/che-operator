@@ -83,3 +83,15 @@ func (r *ReconcileChe) GetOAuthClient(oAuthClientName string) (oAuthClient *oaut
 	}
 	return oAuthClient, nil
 }
+
+func (r *ReconcileChe)GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
+	for i := range env {
+		name := env[i].Name
+		if name == key {
+			value = env[i].Value
+			break
+		}
+	}
+	return value
+}

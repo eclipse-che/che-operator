@@ -13,18 +13,16 @@
 
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
-oc apply -f ${BASE_DIR}/service_account.yaml
-oc apply -f ${BASE_DIR}/role.yaml
-oc apply -f ${BASE_DIR}/role_binding.yaml
-oc apply -f ${BASE_DIR}/crds/org_v1_che_crd.yaml
+oc apply -f ${BASE_DIR}/deploy/service_account.yaml
+oc apply -f ${BASE_DIR}/deploy/role.yaml
+oc apply -f ${BASE_DIR}/deploy/role_binding.yaml
+oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml
 # sometimes the operator cannot get CRD right away
 sleep 2
 
-# uncomment if you need Login with OpenShift and/or use self signed certificates and tls
-#oc new-app -f ${BASE_DIR}deploy/role_binding_oauth.yaml -p NAMESPACE=$1 -n=$1
-#oc apply -f ${BASE_DIR}deploy/cluster_role.yaml -n=$1
-#oc new-app -f ${BASE_DIR}deploy/role_binding_crt.yaml -p NAMESPACE=$1
-#oc apply -f ${BASE_DIR}deploy/role_get_tls.yaml
+# uncomment if you need Login with OpenShift
+#oc new-app -f ${BASE_DIR}/deploy/role_binding_oauth.yaml -p NAMESPACE=$1 -n=$1
+#oc apply -f ${BASE_DIR}/deploy/cluster_role.yaml -n=$1
 
 oc apply -f ${BASE_DIR}/deploy/operator.yaml
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml
