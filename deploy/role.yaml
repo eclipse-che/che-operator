@@ -68,6 +68,5 @@ rules:
   - org.eclipse.che
   resources:
   - '*'
-  - checlusters
   verbs:
   - '*'
