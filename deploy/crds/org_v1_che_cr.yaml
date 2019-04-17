@@ -73,7 +73,7 @@ spec:
 
   auth:
     # instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
-    externalIdentityProvider: false
+    externalIdentityProvider:
     # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
     identityProviderURL:
     # password for keycloak database user. Auto generated if left blank
@@ -81,7 +81,7 @@ spec:
     # desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
     identityProviderAdminUserName: ''
     # desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
-    identityProviderAdminPassword: 'admin'
+    identityProviderPassword: 'admin'
     # name of a keycloak realm. This realm will be created, when externalIdentityProvider is true, otherwise passed to Che server
     identityProviderRealm: ''
     # id of a keycloak client. This client will be created, when externalIdentityProvider is false, otherwise passed to Che server
