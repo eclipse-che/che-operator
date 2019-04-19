@@ -19,6 +19,7 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
@@ -251,17 +252,21 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 	return podName, nil
 }
 
-// GetRouterTlsCrt creates a test TLS route and gets it to extract certificate chain
+// GetEndpointTlsCrt creates a test TLS route and gets it to extract certificate chain
 // There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
 // which however requires extra privileges for operator service account
-func (r *ReconcileChe) GetRouterTlsCrt(instance *orgv1.CheCluster) (certificate []byte, err error) {
-	testRoute := deploy.NewTlsRoute(instance, "test", "test")
-	logrus.Infof("Creating a test route %s to extract routes crt", testRoute.Name)
-	if err := r.CreateNewRoute(instance, testRoute); err != nil {
-		logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
-		return nil, err
+func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string) (certificate []byte, err error) {
+	testRoute := &routev1.Route{}
+	if len(url) < 1 {
+		testRoute = deploy.NewTlsRoute(instance, "test", "test")
+		logrus.Infof("Creating a test route %s to extract routes crt", testRoute.Name)
+		if err := r.CreateNewRoute(instance, testRoute); err != nil {
+			logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
+			return nil, err
+		}
+		url = "https://" + testRoute.Spec.Host
+
 	}
-	url := "https://" + testRoute.Spec.Host
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -283,10 +288,12 @@ func (r *ReconcileChe) GetRouterTlsCrt(instance *orgv1.CheCluster) (certificate 
 		})
 		certificate = append(certificate, crt...)
 	}
-	logrus.Infof("Deleting a test route %s to extract routes crt", testRoute.Name)
-	if err := r.client.Delete(context.TODO(), testRoute); err != nil {
-		logrus.Errorf("Failed to delete test route %s: %s", testRoute.Name, err)
-	}
 
+	if len(url) < 1 {
+		logrus.Infof("Deleting a test route %s to extract routes crt", testRoute.Name)
+		if err := r.client.Delete(context.TODO(), testRoute); err != nil {
+			logrus.Errorf("Failed to delete test route %s: %s", testRoute.Name, err)
+		}
+	}
 	return certificate, nil
 }
