@@ -318,6 +318,28 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 	return nil
 }
 
+func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, name string) (err error) {
+	// create a secret with either router tls cert (or OpenShift API crt) when on OpenShift infra
+	// and router is configured with a self signed certificate
+	// this secret is used by CRW server to reach RH SSO TLS endpoint
+	secret := &corev1.Secret{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret);
+		err != nil && errors.IsNotFound(err) {
+		crt, err := r.GetEndpointTlsCrt(instance, url)
+		if err != nil {
+			logrus.Errorf("Failed to extract crt. Failed to create a secret with a self signed crt: %s", err)
+			return err
+		} else {
+			secret := deploy.NewSecret(instance, name, crt)
+			if err := r.CreateNewSecret(instance, secret); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
 
 	chePostgresPassword := util.GetValue(instance.Spec.Database.ChePostgresPassword, util.GeneratePasswd(12))
@@ -444,7 +466,6 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 	keycloakClientId := util.GetValue(instance.Spec.Auth.KeycloakClientId, cheFlavor+"-public")
 	if len(instance.Spec.Auth.KeycloakClientId) < 1 {
 		instance.Spec.Auth.KeycloakClientId = keycloakClientId
-
 
 		if err := r.UpdateCheCRSpec(instance, "Keycloak client ID", keycloakClientId); err != nil {
 			return err

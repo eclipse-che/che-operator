@@ -110,7 +110,7 @@ func GetClusterPublicHostname() (hostname string, err error) {
 	client := &http.Client{}
 	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
 	url := "https://" + kubeApi + "/.well-known/oauth-authorization-server"
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)

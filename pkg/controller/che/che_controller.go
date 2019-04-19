@@ -215,25 +215,25 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-
 	// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 	selfSignedCert := instance.Spec.Server.SelfSignedCert
 	if isOpenShift && selfSignedCert {
-		secret := &corev1.Secret{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "self-signed-certificate", Namespace: instance.Namespace}, secret);
-			err != nil && errors.IsNotFound(err) {
-			crt, err := r.GetRouterTlsCrt(instance)
-			if err != nil {
-				logrus.Errorf("Default router tls secret not found. Self signed cert isn't added")
+		if err := r.CreateTLSSecret(instance, "", "self-signed-certificate"); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+	// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
+	if isOpenShift {
+		baseURL, err := util.GetClusterPublicHostname()
+		if err != nil {
+			logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
+		} else {
+			if err := r.CreateTLSSecret(instance, baseURL, "openshift-api-crt"); err != nil {
 				return reconcile.Result{}, err
-			} else {
-				secret := deploy.NewSecret(instance, "self-signed-certificate", crt)
-				if err := r.CreateNewSecret(instance, secret); err != nil {
-					return reconcile.Result{}, err
-				}
 			}
 		}
 	}
+
 	if !tests {
 		deployment := &appsv1.Deployment{}
 		name := "che"
