@@ -54,8 +54,8 @@ echo "[INFO] Update OpenShift router tls secret"
 ./oc project default
 ./oc secrets new router-certs tls.crt=ca.crt tls.key=key.pem -o json --type='kubernetes.io/tls' --confirm | ./oc replace -f -
 echo "[INFO] Initiate a new router deployment"
-sleep 10
-./oc rollout latest dc/router -n=default
+sleep 20
+./oc rollout latest dc/router -n=default || true
 
 echo "[INFO] Compile tests binary"
 docker run -t \
