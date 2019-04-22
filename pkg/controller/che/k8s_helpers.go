@@ -97,7 +97,6 @@ func (cl *k8s) GetPostgresStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
 				logrus.Infof("PVC %s successfully bound to volume %s", postgresPvc.Name, volumeName)
 				watcher.Stop()
 			}
-
 		}
 	}
 	postgresPvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})

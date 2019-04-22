@@ -17,29 +17,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewService(cr *orgv1.CheCluster, name string, labels map[string]string, portName string, portNumber int32) *corev1.Service {
-
+func NewService(cr *orgv1.CheCluster, name string, portName []string, portNumber []int32, labels map[string]string) *corev1.Service {
+	ports := []corev1.ServicePort{}
+	for i := range portName {
+		port := corev1.ServicePort{
+			Name:     portName[i],
+			Port:     portNumber[i],
+			Protocol: "TCP",
+		}
+		ports = append(ports, port)
+	}
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:     name,
+			Name:      name,
 			Namespace: cr.Namespace,
 			Labels:    labels,
-
 		},
 		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Name:     portName,
-					Port:     portNumber,
-					Protocol: "TCP",
-				},
-			},
+			Ports:    ports,
 			Selector: labels,
 		},
 	}
 }
-

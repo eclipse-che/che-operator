@@ -22,11 +22,11 @@ import (
 type CheClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	Server CheClusterSpecServer `json:"server"`
-	Database CheClusterSpecDB `json:"database"`
-	Auth CheClusterSpecAuth `json:"auth"`
-	Storage CheClusterSpecStorage `json:"storage"`
-	K8SOnly CheClusterSpecK8SOnly `json:"k8s"`
+	Server   CheClusterSpecServer  `json:"server"`
+	Database CheClusterSpecDB      `json:"database"`
+	Auth     CheClusterSpecAuth    `json:"auth"`
+	Storage  CheClusterSpecStorage `json:"storage"`
+	K8SOnly  CheClusterSpecK8SOnly `json:"k8s"`
 }
 
 type CheClusterSpecServer struct {
@@ -60,6 +60,18 @@ type CheClusterSpecServer struct {
 	ProxyUser string `json:"proxyUser"`
 	// ProxyPassword is password for a proxy user
 	ProxyPassword string `json:"proxyPassword"`
+	// MetricsEnabled instructs Che server to provide metrics
+	MetricsEnabled bool `json:"metricsEnabled"`
+	// TracingEnabled makes tracing available
+	TracingEnabled               bool   `json:"tracingEnabled"`
+	JaegerEndpoint               string `json:"jaegerEndpoint"`
+	JaegerServiceName            string `json:"jaegerServiceName"`
+	JaegerSamplerManagerHostPort string `json:"jaegerSamplerManagerHostPort"`
+	JaegerSamplerType            string `json:"jaegerSamplerType"`
+	JaegerSamplerParam           string `json:"jaegerSamplerParam"`
+	JaegerMaxReporterQueueSize   string `json:"jaegerMaxReporterQueueSize"`
+	ServerMemoryRequest          string `json:"serverMemoryRequest"`
+	ServerMemoryLimit            string `json:"serverMemoryLimit"`
 }
 
 type CheClusterSpecDB struct {

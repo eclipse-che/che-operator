@@ -294,7 +294,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !externalDB {
 		// Create a new postgres service
 		postgresLabels := deploy.GetLabels(instance, "postgres")
-		if err := r.CreateService(instance, "postgres", postgresLabels, "postgres", 5432); err != nil {
+		if err := r.CreateService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels); err != nil {
 			return reconcile.Result{}, err
 		}
 		// Create a new Postgres PVC object
@@ -361,7 +361,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 
-	if err := r.CreateService(instance, "che-host", cheLabels, "http", 8080); err != nil {
+	if err := r.CreateService(instance, "che-host", []string{"http", "metrics"}, []int32{8080, 8087}, cheLabels); err != nil {
 		return reconcile.Result{}, err
 	}
 	if !isOpenShift {
@@ -405,7 +405,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if !ExternalKeycloak {
 		keycloakLabels := deploy.GetLabels(instance, "keycloak")
-		if err := r.CreateService(instance, "keycloak", keycloakLabels, "http", 8080); err != nil {
+		if err := r.CreateService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels); err != nil {
 			return reconcile.Result{}, err
 		}
 		// create Keycloak ingresses when on k8s

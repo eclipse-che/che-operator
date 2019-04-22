@@ -13,7 +13,6 @@ package deploy
 
 import (
 	"encoding/json"
-	"fmt"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -61,6 +60,17 @@ type CheConfigMap struct {
 	WorkspaceNoProxy             string `json:"CHE_WORKSPACE_NO__PROXY"`
 	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL"`
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
+	MetricsEnabled               string `json:"CHE_METRICS_ENABLED"`
+	TracingEnabled               string `json:"CHE_TRACING_ENABLED"`
+}
+
+type JaegerEnvs struct {
+	JaegerEndpoint               string `json:"JAEGER_ENDPOINT"`
+	JaegerServiceName            string `json:"JAEGER_SERVICE_NAME"`
+	JaegerSamplerManagerHostPort string `json:"JAEGER_SAMPLER_MANAGER_HOST_PORT"`
+	JaegerSamplerType            string `json:"JAEGER_SAMPLER_TYPE"`
+	JaegerSamplerParam           string `json:"JAEGER_SAMPLER_PARAM"`
+	JaegerMaxReporterQueueSize   string `json:"JAEGER_REPORTER_MAX_QUEUE_SIZE"`
 }
 
 func GetCustomConfigMapData() (cheEnv map[string]string) {
@@ -140,6 +150,33 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	pluginRegistryUrl := util.GetValue(cr.Spec.Server.PluginRegistryUrl, DefaultPluginRegistryUrl)
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
+	isMetricsEnabled := cr.Spec.Server.MetricsEnabled
+	isTracingEnabled := cr.Spec.Server.TracingEnabled
+	metricsEnabled := "false"
+	tracingEnabled := "false"
+	if isMetricsEnabled {
+		metricsEnabled = "true"
+	}
+	if isTracingEnabled {
+		tracingEnabled = "true"
+	}
+
+	jaegerEndpoint := cr.Spec.Server.JaegerEndpoint
+	jaegerServiceName := cr.Spec.Server.JaegerServiceName
+	jaegerSamplerManagerHostPort := cr.Spec.Server.JaegerSamplerManagerHostPort
+	jaegerSamplerType := cr.Spec.Server.JaegerSamplerType
+	jaegerSamplerParam := cr.Spec.Server.JaegerSamplerParam
+	jaegerMaxReporterQueueSize := cr.Spec.Server.JaegerMaxReporterQueueSize
+
+
+	jaegerEnvironment := &JaegerEnvs{
+		JaegerEndpoint:jaegerEndpoint,
+		JaegerMaxReporterQueueSize:jaegerMaxReporterQueueSize,
+		JaegerSamplerManagerHostPort:jaegerSamplerManagerHostPort,
+		JaegerSamplerParam: jaegerSamplerParam,
+		JaegerSamplerType:jaegerSamplerType,
+		JaegerServiceName:jaegerServiceName,
+	}
 
 	data := &CheConfigMap{
 		CheMultiUser:                 "true",
@@ -175,11 +212,13 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspaceHttpsProxy:          cheWorkspaceHttpProxy,
 		WorkspaceNoProxy:             cheWorkspaceNoProxy,
 		PluginRegistryUrl:            pluginRegistryUrl,
+		MetricsEnabled:               metricsEnabled,
+		TracingEnabled:               tracingEnabled,
 	}
 
 	out, err := json.Marshal(data)
 	if err != nil {
-		fmt.Println(err)
+		logrus.Errorf("An error occurred when marshalling: %s", err)
 
 	}
 	err = json.Unmarshal(out, &cheEnv)
@@ -196,6 +235,17 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	}
 	if !isOpenShift {
 		addMap(cheEnv, k8sCheEnv)
+	}
+
+	if isTracingEnabled {
+		var jaegerEnvs map[string]string
+		out, err := json.Marshal(jaegerEnvironment)
+		if err != nil {
+			logrus.Errorf("An error occurred when marshalling: %s", err)
+
+		}
+		err = json.Unmarshal(out, &jaegerEnvs)
+		addMap(cheEnv,jaegerEnvs)
 	}
 	return cheEnv
 }

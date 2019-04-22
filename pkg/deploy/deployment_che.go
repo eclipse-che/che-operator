@@ -25,6 +25,8 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	optionalEnv := true
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
+	memRequest := util.GetValue(cr.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
+	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -70,10 +72,10 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: resource.MustParse(memRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1Gi"),
+									corev1.ResourceMemory: resource.MustParse(memLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
