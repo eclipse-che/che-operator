@@ -381,9 +381,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	} else {
-		cheRoute := deploy.NewRoute(instance, cheFlavor, "che-host")
+		cheRoute := deploy.NewRoute(instance, cheFlavor, "che-host", 8080)
 		if tlsSupport {
-			cheRoute = deploy.NewTlsRoute(instance, cheFlavor, "che-host")
+			cheRoute = deploy.NewTlsRoute(instance, cheFlavor, "che-host", 8080)
 		}
 		if err := r.CreateNewRoute(instance, cheRoute); err != nil {
 			return reconcile.Result{}, err
@@ -427,9 +427,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		} else {
 			// create Keycloak route
-			keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak")
+			keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak", 8080)
 			if tlsSupport {
-				keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak")
+				keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak", 8080)
 			}
 			if err = r.CreateNewRoute(instance, keycloakRoute); err != nil {
 				return reconcile.Result{}, err

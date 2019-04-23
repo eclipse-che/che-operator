@@ -257,7 +257,7 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string) (certificate []byte, err error) {
 	testRoute := &routev1.Route{}
 	if len(url) < 1 {
-		testRoute = deploy.NewTlsRoute(instance, "test", "test")
+		testRoute = deploy.NewTlsRoute(instance, "test", "test", 8080)
 		logrus.Infof("Creating a test route %s to extract routes crt", testRoute.Name)
 		if err := r.CreateNewRoute(instance, testRoute); err != nil {
 			logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
