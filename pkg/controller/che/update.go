@@ -138,10 +138,10 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 		logrus.Errorf("Failed to delete %s route: %s", currentCheRoute.Name, err)
 		return false, err
 	}
-	cheRoute := deploy.NewRoute(instance, cheFlavor, "che-host")
+	cheRoute := deploy.NewRoute(instance, cheFlavor, "che-host", 8080)
 
 	if tlsSupport {
-		cheRoute = deploy.NewTlsRoute(instance, cheFlavor, "che-host")
+		cheRoute = deploy.NewTlsRoute(instance, cheFlavor, "che-host", 8080)
 		protocol = "https"
 	}
 
@@ -168,10 +168,10 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 		logrus.Errorf("Failed to delete %s route: %s", currentKeycloakRoute.Name, err)
 		return false, err
 	}
-	keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak")
+	keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak", 8080)
 
 	if tlsSupport {
-		keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak")
+		keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak", 8080)
 	}
 	if err := r.CreateNewRoute(instance, keycloakRoute); err != nil {
 		logrus.Errorf("Failed to create Keycloak route: %s", err)

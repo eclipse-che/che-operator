@@ -16,12 +16,17 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewRoute(cr *orgv1.CheCluster, name string, serviceName string) *routev1.Route {
+func NewRoute(cr *orgv1.CheCluster, name string, serviceName string, port int32) *routev1.Route {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	if name == "keycloak" {
 		labels = GetLabels(cr, name)
+	}
+	targetPort := intstr.IntOrString{
+		Type:   intstr.Int,
+		IntVal: int32(port),
 	}
 	return &routev1.Route{
 		TypeMeta: metav1.TypeMeta{
@@ -39,14 +44,21 @@ func NewRoute(cr *orgv1.CheCluster, name string, serviceName string) *routev1.Ro
 				Kind: "Service",
 				Name: serviceName,
 			},
+			Port:&routev1.RoutePort{
+				targetPort,
+			},
 		},
 	}
 }
 
-func NewTlsRoute(cr *orgv1.CheCluster, name string, serviceName string) *routev1.Route {
+func NewTlsRoute(cr *orgv1.CheCluster, name string, serviceName string, port int32) *routev1.Route {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	if name == "keycloak" {
 		labels = GetLabels(cr, name)
+	}
+	targetPort := intstr.IntOrString{
+		Type:   intstr.Int,
+		IntVal: int32(port),
 	}
 	return &routev1.Route{
 		TypeMeta: metav1.TypeMeta{
@@ -63,6 +75,9 @@ func NewTlsRoute(cr *orgv1.CheCluster, name string, serviceName string) *routev1
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
 				Name: serviceName,
+			},
+			Port:&routev1.RoutePort{
+				targetPort,
 			},
 			TLS: &routev1.TLSConfig{
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,

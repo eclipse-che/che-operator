@@ -60,6 +60,10 @@ type CheClusterSpecServer struct {
 	ProxyUser string `json:"proxyUser"`
 	// ProxyPassword is password for a proxy user
 	ProxyPassword string `json:"proxyPassword"`
+	// ServerMemoryRequest sets mem request for server deployment. Defaults to 512Mi
+	ServerMemoryRequest string `json:"serverMemoryRequest"`
+	// ServerMemoryLimit sets mem limit for server deployment. Defaults to 1Gi
+	ServerMemoryLimit string `json:"serverMemoryLimit"`
 }
 
 type CheClusterSpecDB struct {
