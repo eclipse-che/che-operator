@@ -204,8 +204,7 @@ func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthCli
 }
 
 // CreateService creates a service with a given name, port, selector and labels
-func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, name string, portNames []string, portNumbers []int32, labels map[string]string) error {
-	service := deploy.NewService(cr, name, portNames, portNumbers, labels)
+func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, service *corev1.Service) error {
 	if err := controllerutil.SetControllerReference(cr, service, r.scheme); err != nil {
 		logrus.Errorf("An error occurred %s", err)
 		return err

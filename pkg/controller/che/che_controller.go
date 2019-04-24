@@ -14,7 +14,6 @@ package che
 import (
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
@@ -24,20 +23,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
-
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"time"
 )
 
 var log = logf.Log.WithName("controller_che")
@@ -294,7 +292,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !externalDB {
 		// Create a new postgres service
 		postgresLabels := deploy.GetLabels(instance, "postgres")
-		if err := r.CreateService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels); err != nil {
+		postgresService := deploy.NewService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
+		if err := r.CreateService(instance, postgresService); err != nil {
 			return reconcile.Result{}, err
 		}
 		// Create a new Postgres PVC object
@@ -361,7 +360,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 
-	if err := r.CreateService(instance, "che-host", []string{"http", "metrics"}, []int32{8080, 8087}, cheLabels); err != nil {
+	cheService := deploy.NewService(instance, "che-host", []string{"http", "metrics"}, []int32{8080, 8087}, cheLabels)
+	if err := r.CreateService(instance, cheService); err != nil {
 		return reconcile.Result{}, err
 	}
 	if !isOpenShift {
@@ -405,7 +405,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if !ExternalKeycloak {
 		keycloakLabels := deploy.GetLabels(instance, "keycloak")
-		if err := r.CreateService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels); err != nil {
+		keycloakService := deploy.NewService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
+		if err := r.CreateService(instance, keycloakService); err != nil {
 			return reconcile.Result{}, err
 		}
 		// create Keycloak ingresses when on k8s
