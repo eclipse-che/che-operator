@@ -14,7 +14,7 @@
 
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
-#docker build -t che/operator .
+docker build -t che/operator .
 kubectl apply -f ${BASE_DIR}/deploy/service_account.yaml -n=$1
 kubectl apply -f ${BASE_DIR}/deploy/role.yaml -n=$1
 kubectl apply -f ${BASE_DIR}/deploy/role_binding.yaml -n=$1
