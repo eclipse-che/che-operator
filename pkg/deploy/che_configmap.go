@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 func addMap(a map[string]string, b map[string]string) {
@@ -110,8 +111,14 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	proxyJavaOpts := ""
 	proxyUser := cr.Spec.Server.ProxyUser
 	proxyPassword := cr.Spec.Server.ProxyPassword
+	nonProxyHosts := cr.Spec.Server.NonProxyHosts
+	if len(nonProxyHosts) < 1 && len(cr.Spec.Server.ProxyURL) > 1 {
+		nonProxyHosts = os.Getenv("KUBERNETES_SERVICE_HOST")
+	} else {
+		nonProxyHosts = nonProxyHosts + "|" + os.Getenv("KUBERNETES_SERVICE_HOST")
+	}
 	if len(cr.Spec.Server.ProxyURL) > 1 {
-		proxyJavaOpts = util.GenerateProxyJavaOpts(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, proxyUser, proxyPassword)
+		proxyJavaOpts = util.GenerateProxyJavaOpts(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword)
 	}
 	cheWorkspaceHttpProxy := ""
 	cheWorkspaceNoProxy := ""

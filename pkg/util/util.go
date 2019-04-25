@@ -144,7 +144,7 @@ func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts stri
 	javaOpts =
 		" -Dhttp.proxyHost=" + proxyHost + " -Dhttp.proxyPort=" + proxyPort +
 			" -Dhttps.proxyHost=" + proxyHost + " -Dhttps.proxyPort=" + proxyPort +
-			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "|172.30.0.1'" + proxyUserPassword
+			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "'" + proxyUserPassword
 	return javaOpts
 }
 
