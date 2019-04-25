@@ -12,6 +12,8 @@
 package util
 
 import (
+	"github.com/sirupsen/logrus"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -48,10 +50,13 @@ func TestGenerateProxyEnvs(t *testing.T) {
 }
 
 func TestGenerateProxyJavaOpts(t *testing.T) {
+	if err := os.Setenv("KUBERNETES_SERVICE_HOST", "172.30.0.1"); err != nil {
+		logrus.Errorf("Failed to set env %s", err)
+	}
 
 	javaOpts := GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword)
 	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com|172.30.0.1' -Dhttp.proxyUser=user " +
+		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
 		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password"
 	if !reflect.DeepEqual(javaOpts,expectedJavaOpts) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOpts, javaOpts)
@@ -60,7 +65,7 @@ func TestGenerateProxyJavaOpts(t *testing.T) {
 
 	javaOpts = GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword)
 	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com|172.30.0.1'"
+		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
 
 	if !reflect.DeepEqual(javaOpts ,expectedJavaOptsWithoutUsernamePassword) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
