@@ -26,7 +26,7 @@ FROM registry.access.redhat.com/ubi7/ubi:7.6-123
 ENV SUMMARY="Red Hat CodeReady Workspaces Operator container" \
     DESCRIPTION="Red Hat CodeReady Workspaces Operator container" \
     PRODNAME="codeready-workspaces" \
-    COMPNAME="operator-container"
+    COMPNAME="operator-rhel8"
 
 LABEL summary="$SUMMARY" \
       description="$DESCRIPTION" \
