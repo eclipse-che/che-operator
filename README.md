@@ -114,7 +114,7 @@ This file is added to a Docker image, thus this step isn't required when deployi
 
 `e2e` directory contains end-to-end tests that create a custom resource, operator deployment, required RBAC.
 
-Pre-reqs to run e3e tests:
+Pre-reqs to run end-to-end (e2e) tests:
 
 * a running OpenShift instance (3.11+)
 * current oc/kubectl context as a cluster admin user
