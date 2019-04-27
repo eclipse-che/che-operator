@@ -46,6 +46,6 @@ COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /go/src/github.com/eclipse/che-operator/deploy/keycloak_provision /tmp/keycloak_provision
 # CVE fix for RHSA-2019:0679-02 https://pipeline.engineering.redhat.com/freshmakerevent/8717
 # CVE-2019-9636 errata 40636 - update python and python-libs to 2.7.5-77.el7_6
-# RUN yum update -y libssh2 python-libs python && yum clean all && rm -rf /var/cache/yum
-RUN yum list installed && echo "End Of Installed Packages"
+# RUN yum update -y libssh2 python-libs python
+RUN yum clean all && rm -rf /var/cache/yum && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
