@@ -48,5 +48,5 @@ COPY --from=builder /go/src/github.com/eclipse/che-operator/deploy/keycloak_prov
 # CVE fix for RHSA-2019:0679-02 https://pipeline.engineering.redhat.com/freshmakerevent/8717
 # CVE-2019-9636 errata 40636 - update python and python-libs to 2.7.5-77.el7_6
 # cannot apply CVEs when using -rhel8 suffix or ubi base images, as yum will try to resolve .el8 rpms RUN yum update -y libssh2 python-libs python
-RUN yum clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
+# RUN yum clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
