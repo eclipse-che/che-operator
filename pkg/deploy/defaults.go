@@ -14,8 +14,8 @@ package deploy
 const (
 	DefaultCheServerImageRepo       = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo = "registry.access.redhat.com/codeready-workspaces/server"
-	DefaultCheServerImageTag        = "7.0.0-beta-3.0"
-	DefaultCodeReadyServerImageTag  = "1.1"
+	DefaultCheServerImageTag        = "7.0.0-beta-4.0"
+	DefaultCodeReadyServerImageTag  = "1.2"
 	DefaultCheFlavor                = "che"
 	DefaultChePostgresUser          = "pgche"
 	DefaultChePostgresHostName      = "postgres"
@@ -29,10 +29,10 @@ const (
 	DefaultKeycloakAdminUserName    = "admin"
 	DefaultCheLogLevel              = "INFO"
 	DefaultCheDebug                 = "false"
-	DefaultPvcJobsImage             = "registry.access.redhat.com/rhel7-minimal:7.6-154"
-	DefaultPostgresImage            = "registry.access.redhat.com/rhscl/postgresql-96-rhel7:1-25"
+	DefaultPvcJobsImage             = "registry.access.redhat.com/rhel7-minimal:7.6-253"
+	DefaultPostgresImage            = "registry.access.redhat.com/rhscl/postgresql-96-rhel7:1-40"
 	DefaultPostgresUpstreamImage    = "centos/postgresql-96-centos7:9.6"
-	DefaultKeycloakImage            = "registry.access.redhat.com/redhat-sso-7/sso72-openshift:1.2-8"
+	DefaultKeycloakImage            = "registry.access.redhat.com/redhat-sso-7/sso72-openshift:1.4-5"
 	DefaultKeycloakUpstreamImage    = "eclipse/che-keycloak:6.19.0"
 	DefaultJavaOpts                 = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
