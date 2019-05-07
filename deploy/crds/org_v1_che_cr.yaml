@@ -58,7 +58,7 @@ spec:
     chePostgresPassword: ''
     # Postgres database name that Che server uses to connect to. Defaults to dbche
     chePostgresDb: ''
-    # Postgres deployment in format image:tag. Defaults to registry.access.redhat.com/rhscl/postgresql-96-rhel7:1-25
+    # Postgres deployment in format image:tag. Defaults to registry.access.redhat.com/rhscl/postgresql-96-rhel7 (see pkg/deploy/defaults.go for latest tag)
     postgresImage: ''
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),

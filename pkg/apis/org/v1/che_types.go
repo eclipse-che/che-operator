@@ -81,7 +81,7 @@ type CheClusterSpecDB struct {
 	ChePostgresPassword string `json:"chePostgresPassword"`
 	// ChePostgresDb is Postgres database name that Che server uses to connect to. Defaults to dbche
 	ChePostgresDb string `json:"chePostgresDb"`
-	// PostgresImage is an image used in Postgres deployment in format image:tag. Defaults to registry.access.redhat.com/rhscl/postgresql-96-rhel7:1-25
+	// PostgresImage is an image used in Postgres deployment in format image:tag. Defaults to registry.access.redhat.com/rhscl/postgresql-96-rhel7 (see pkg/deploy/defaults.go for latest tag)
 	PostgresImage string `json:"postgresImage"`
 }
 
