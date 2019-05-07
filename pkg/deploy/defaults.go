@@ -25,7 +25,7 @@ const (
 	DefaultPvcClaimSize             = "1Gi"
 	DefaultIngressStrategy          = "multi-host"
 	DefaultIngressClass             = "nginx"
-	DefaultPluginRegistryUrl        = "https://che-plugin-registry.openshift.io"
+	DefaultPluginRegistryUrl        = "https://che-plugin-registry.openshift.io/v2"
 	DefaultKeycloakAdminUserName    = "admin"
 	DefaultCheLogLevel              = "INFO"
 	DefaultCheDebug                 = "false"
