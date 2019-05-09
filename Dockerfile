@@ -9,11 +9,8 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# NOTE: using registry.access.redhat.com/rhel8/go-toolset does not work (user is requested to use registry.redhat.io)
-# NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
-# NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.11.5-3.1553822355 as builder
+# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/rhel8/go-toolset
+FROM registry.redhat.io/rhel8/go-toolset:1.11.5-8 as builder
 ENV PATH=/opt/rh/go-toolset-1.11/root/usr/bin:$PATH \
     GOPATH=/go/
 
