@@ -469,6 +469,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
+			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage {
+				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor)
+				logrus.Infof("Updating Keycloak deployment with an image %s", instance.Spec.Auth.KeycloakImage)
+				if err := r.client.Update(context.TODO(),keycloakDeployment); err!= nil {
+					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
+				}
+
+			}
 			keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
 			if !keycloakRealmClientStatus {
 				if err := r.CreateKyecloakResources(instance, request, keycloakDeployment.Name); err != nil {
@@ -476,6 +484,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
+
+
+
 		if isOpenShift {
 			doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
 			if doInstallOpenShiftoAuthProvider {
