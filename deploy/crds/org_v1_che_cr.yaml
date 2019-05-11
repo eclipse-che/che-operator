@@ -98,7 +98,7 @@ spec:
     # secret used in oAuthClient. Auto generated if left blank
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
-    keycloakImage: ''
+    identityProviderImage: ''
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
