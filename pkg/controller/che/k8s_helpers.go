@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"time"
 )
 
 type k8s struct {
@@ -257,19 +258,28 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 // which however requires extra privileges for operator service account
 func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string) (certificate []byte, err error) {
 	testRoute := &routev1.Route{}
+	var requestURL string
 	if len(url) < 1 {
 		testRoute = deploy.NewTlsRoute(instance, "test", "test", 8080)
-		logrus.Infof("Creating a test route %s to extract routes crt", testRoute.Name)
+		logrus.Infof("Creating a test route %s to extract router crt", testRoute.Name)
 		if err := r.CreateNewRoute(instance, testRoute); err != nil {
 			logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
 			return nil, err
 		}
-		url = "https://" + testRoute.Spec.Host
+		// sometimes timing conditions apply, and host isn't available right away
+		if len(testRoute.Spec.Host) < 1 {
+			time.Sleep(time.Duration(1) * time.Second)
+			testRoute := r.GetEffectiveRoute(instance, "test")
+			requestURL = "https://" + testRoute.Spec.Host
+		}
+		requestURL = "https://" + testRoute.Spec.Host
 
+	} else {
+		requestURL = url
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", requestURL, nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("An error occurred when reaching test TLS route: %s", err)
