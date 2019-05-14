@@ -65,8 +65,8 @@ docker run -t \
 
 cp ${OPERATOR_REPO}/tmp/run-tests ${OPERATOR_REPO}/run-tests
 
-echo "[INFO] Pull operator docker image..."
-cd ${OPERATOR_REPO} && docker pull quay.io/crw/operator-rhel8:latest
+echo "[INFO] Build operator docker image..."
+cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile .
 
 echo "[INFO] Run tests..."
 cd ${OPERATOR_REPO} && ./run-tests
