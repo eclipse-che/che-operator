@@ -89,7 +89,7 @@ type ImageSignature struct {
 	// the information available.
 
 	// A human readable string representing image's identity. It could be a product name and version, or an
-	// image pull spec (e.g. "registry.access.redhat.com/rhel7/rhel:7.2").
+	// image pull spec (e.g. "registry.redhat.io/rhel7/rhel:7.2").
 	ImageIdentity string `json:"imageIdentity,omitempty" protobuf:"bytes,5,opt,name=imageIdentity"`
 	// Contains claims from the signature.
 	SignedClaims map[string]string `json:"signedClaims,omitempty" protobuf:"bytes,6,rep,name=signedClaims"`

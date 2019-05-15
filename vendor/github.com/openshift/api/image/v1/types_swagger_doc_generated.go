@@ -102,7 +102,7 @@ var map_ImageSignature = map[string]string{
 	"type":          "Required: Describes a type of stored blob.",
 	"content":       "Required: An opaque binary string which is an image's signature.",
 	"conditions":    "Conditions represent the latest available observations of a signature's current state.",
-	"imageIdentity": "A human readable string representing image's identity. It could be a product name and version, or an image pull spec (e.g. \"registry.access.redhat.com/rhel7/rhel:7.2\").",
+	"imageIdentity": "A human readable string representing image's identity. It could be a product name and version, or an image pull spec (e.g. \"registry.redhat.io/rhel7/rhel:7.2\").",
 	"signedClaims":  "Contains claims from the signature.",
 	"created":       "If specified, it is the time of signature's creation.",
 	"issuedBy":      "If specified, it holds information about an issuer of signing certificate or key (a person or entity who signed the signing certificate or key).",
