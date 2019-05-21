@@ -95,7 +95,7 @@ type CheClusterSpecAuth struct {
 	// KeycloakAdminUserName is a desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
 	KeycloakAdminUserName string `json:"identityProviderAdminUserName"`
 	// KeycloakAdminPassword is a desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
-	KeycloakAdminPassword string `json:"identityProviderPassword"`
+	KeycloakAdminPassword string `json:"identityProviderAdminPassword"`
 	// KeycloakRealm is name of a keycloak realm. When externalIdentityProvider is false this realm will be created, otherwise passed to Che server
 	KeycloakRealm string `json:"identityProviderRealm"`
 	// KeycloakClientId is id of a keycloak client. When externalIdentityProvider is false this client will be created, otherwise passed to Che server

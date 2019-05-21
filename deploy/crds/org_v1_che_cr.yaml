@@ -85,7 +85,7 @@ spec:
     # desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
     identityProviderAdminUserName: ''
     # desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
-    identityProviderPassword: 'admin'
+    identityProviderAdminPassword: 'admin'
     # name of a keycloak realm. This realm will be created, when externalIdentityProvider is true, otherwise passed to Che server
     identityProviderRealm: ''
     # id of a keycloak client. This client will be created, when externalIdentityProvider is false, otherwise passed to Che server
