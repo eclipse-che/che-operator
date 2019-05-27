@@ -22,11 +22,11 @@ import (
 type CheClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	Server CheClusterSpecServer `json:"server"`
-	Database CheClusterSpecDB `json:"database"`
-	Auth CheClusterSpecAuth `json:"auth"`
-	Storage CheClusterSpecStorage `json:"storage"`
-	K8SOnly CheClusterSpecK8SOnly `json:"k8s"`
+	Server   CheClusterSpecServer  `json:"server"`
+	Database CheClusterSpecDB      `json:"database"`
+	Auth     CheClusterSpecAuth    `json:"auth"`
+	Storage  CheClusterSpecStorage `json:"storage"`
+	K8SOnly  CheClusterSpecK8SOnly `json:"k8s"`
 }
 
 type CheClusterSpecServer struct {
@@ -42,6 +42,9 @@ type CheClusterSpecServer struct {
 	CheLogLevel string `json:"cheLogLevel"`
 	// CheDebug is debug mode for Che server. Defaults to false
 	CheDebug string `json:"cheDebug"`
+	// CustomClusterRoleName specifies a custom cluster role to user for the Che workspaces
+	// The default roles are used if this is left blank.
+	CheWorkspaceClusterRole string `json:"cheWorkspaceClusterRole"`
 	// SelfSignedCert signal about the necessity to get OpenShift router tls secret
 	// and extract certificate to add it to Java trust store for Che server
 	SelfSignedCert bool `json:"selfSignedCert"`

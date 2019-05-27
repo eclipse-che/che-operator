@@ -1,3 +1,4 @@
+
 #
 #  Copyright (c) 2012-2019 Red Hat, Inc.
 #    This program and the accompanying materials are made
@@ -22,6 +23,9 @@ spec:
     # defaults to `che`. When set to `codeready`, CodeReady Workspaces is deployed
     # the difference is in images, labels, exec commands
     cheFlavor: ''
+    # specifies a custom cluster role to user for the Che workspaces
+    # Uses the default roles if left blank.
+    cheWorkspaceClusterRole: ''
     # when set to true the operator will attempt to get a secret in OpenShift router namespace
     # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
     selfSignedCert:
