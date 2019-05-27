@@ -15,7 +15,7 @@ package deploy
 const (
 	DefaultCheServerImageRepo        = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo  = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	DefaultCheServerImageTag         = "7.0.0-beta-4.0"
+	DefaultCheServerImageTag         = "7.0.0-beta-5.0"
 	DefaultCodeReadyServerImageTag   = "1.2"
 	DefaultCheFlavor                 = "che"
 	DefaultChePostgresUser           = "pgche"
@@ -27,7 +27,7 @@ const (
 	DefaultIngressStrategy           = "multi-host"
 	DefaultIngressClass              = "nginx"
 	DefaultPluginRegistryUrl         = "https://che-plugin-registry.openshift.io"
-	DefaultUpstreamPluginRegistryUrl = "https://che-plugin-registry.openshift.io/v2"
+	DefaultUpstreamPluginRegistryUrl = "https://che-plugin-registry.openshift.io/v3"
 	DefaultKeycloakAdminUserName     = "admin"
 	DefaultCheLogLevel               = "INFO"
 	DefaultCheDebug                  = "false"
