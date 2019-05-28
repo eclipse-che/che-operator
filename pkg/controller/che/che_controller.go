@@ -308,7 +308,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 		// Create a new Postgres deployment
-		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword)
+		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift)
 		if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
 			return reconcile.Result{}, err
 		}
