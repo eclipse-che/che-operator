@@ -206,11 +206,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
-	// delete oAuthClient before CR is deleted
-	doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
-	if doInstallOpenShiftoAuthProvider {
-		if err := r.ReconcileFinalizer(instance); err != nil {
-			return reconcile.Result{}, err
+	if isOpenShift {
+		// delete oAuthClient before CR is deleted
+		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
+		if doInstallOpenShiftoAuthProvider {
+			if err := r.ReconcileFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 	// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
