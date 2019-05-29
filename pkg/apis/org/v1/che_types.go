@@ -141,6 +141,10 @@ type CheClusterSpecK8SOnly struct {
 	IngressClass string `json:"ingressClass"`
 	// secret name used for tls termination
 	TlsSecretName string `json:"tlsSecretName"`
+	// FSGroup the Che POD and Workspace pod containers should run in  
+	SecurityContextFsGroup string `json:"securityContextFsGroup"` 
+	// User the Che POD and Workspace pod containers should run as  
+	SecurityContextRunAsUser string `json:"securityContextRunAsUser"` 
 }
 
 // CheClusterStatus defines the observed state of CheCluster

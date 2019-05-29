@@ -46,4 +46,6 @@ const (
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
 	DefaultServerMemoryRequest = "512Mi"
 	DefaultServerMemoryLimit   = "1Gi"
+	DefaultSecurityContextFsGroup    = "1724"
+	DefaultSecurityContextRunAsUser  = "1724"
 )

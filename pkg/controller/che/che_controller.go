@@ -531,8 +531,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cheImageRepo = util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCodeReadyServerImageRepo)
 		cheImageTag = util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCodeReadyServerImageTag)
 	}
-	cheDeployment := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion)
-	if err := r.CreateNewDeployment(instance, cheDeployment); err != nil {
+	cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = r.CreateNewDeployment(instance, cheDeployment); err != nil {
 		return reconcile.Result{}, err
 	}
 	// sometimes Get cannot find deployment right away
@@ -654,7 +657,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		time.Sleep(time.Duration(1) * time.Second)
 		cm := r.GetEffectiveConfigMap(instance, cheConfigMap.Name)
 		cmResourceVersion := cm.ResourceVersion
-		cheDeployment := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
@@ -670,7 +676,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	desiredRequest := util.GetValue(instance.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest)
 	desiredLimit := util.GetValue(instance.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit)
 	if desiredRequest != requestStr || desiredLimit != limitStr {
-		cheDeployment := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		if err != nil {
+			logrus.Errorf("An error occurred: %s", err)
+		}
 		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
