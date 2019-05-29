@@ -110,6 +110,11 @@ spec:
     ingressStrategy: ''
     # secret name used for tls termination
     tlsSecretName: ''
+    # FSGroup the Che POD and Workspace pod containers should run in  
+    securityContextFsGroup: '' 
+    # User the Che POD and Workspace pod containers should run as  
+    securityContextRunAsUser: '' 
+
 
 
 
