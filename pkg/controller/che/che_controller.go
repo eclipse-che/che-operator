@@ -661,7 +661,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cmResourceVersion := cm.ResourceVersion
 		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
 		if err != nil {
-			return reconcile.Result{}, err
+			logrus.Errorf("An error occurred: %s", err)
 		}
 		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
