@@ -47,8 +47,6 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{
-					},
 					Volumes: []corev1.Volume{
 						{
 							Name: name + "-data",
