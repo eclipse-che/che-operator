@@ -42,8 +42,10 @@ LABEL summary="$SUMMARY" \
       license="EPLv2" \
       maintainer="Nick Boldt <nboldt@redhat.com>" \
       io.openshift.expose-services="" \
+      com.redhat.delivery.appregistry="true" \
       usage=""
 
+ADD controller-manifests /manifests
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /go/src/github.com/eclipse/che-operator/deploy/keycloak_provision /tmp/keycloak_provision
 # NOTE: cannot apply CVEs: minimal image does not include yum
