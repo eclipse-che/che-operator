@@ -20,14 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string) *appsv1.Deployment {
+func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isOpenshift bool) *appsv1.Deployment {
 	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, "pgche")
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, "dbche")
 	postgresAdminPassword := util.GeneratePasswd(12)
 	postgresImage := util.GetValue(cr.Spec.Database.PostgresImage, DefaultPostgresImage)
 	name := "postgres"
 	labels := GetLabels(cr, name)
-	return &appsv1.Deployment{
+	deployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
@@ -122,4 +122,12 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string) *ap
 			},
 		},
 	}
+	if ! isOpenshift {
+		var runAsUser int64 = 26
+		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext {
+			RunAsUser: &runAsUser,
+			FSGroup: &runAsUser,
+		}
+	}
+	return &deployment
 }

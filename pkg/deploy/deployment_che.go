@@ -12,6 +12,7 @@
 package deploy
 
 import (
+	"strconv"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,13 +22,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRevision string) *appsv1.Deployment {
+func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRevision string, isOpenshift bool) (*appsv1.Deployment, error) {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	optionalEnv := true
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
 	memRequest := util.GetValue(cr.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
-	return &appsv1.Deployment{
+	cheDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
@@ -150,4 +151,20 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 			},
 		},
 	}
+	if ! isOpenshift {
+		runAsUser, err := strconv.ParseInt(util.GetValue(cr.Spec.K8SOnly.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser), 10, 64) 
+		if err != nil {
+			return nil, err
+		}
+		fsGroup, err := strconv.ParseInt(util.GetValue(cr.Spec.K8SOnly.SecurityContextFsGroup, DefaultSecurityContextFsGroup), 10, 64) 
+		if err != nil {
+			return nil, err
+		}
+		cheDeployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext {
+			RunAsUser: &runAsUser,
+			FSGroup: &fsGroup,
+		}
+	}
+
+	return &cheDeployment, nil
 }

@@ -72,7 +72,7 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command 
 	createRealmClientUserCommand := r.Replace(str)
 	command = createRealmClientUserCommand
 	if cheFlavor == "che" {
-		command = "cd /scripts && " +createRealmClientUserCommand
+		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " +createRealmClientUserCommand
 	}
 	return command
 }

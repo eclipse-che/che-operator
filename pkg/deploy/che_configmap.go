@@ -128,6 +128,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 
 	ingressDomain := cr.Spec.K8SOnly.IngressDomain
 	tlsSecretName := cr.Spec.K8SOnly.TlsSecretName
+	securityContextFsGroup := util.GetValue(cr.Spec.K8SOnly.SecurityContextFsGroup, DefaultSecurityContextFsGroup)
+	securityContextRunAsUser := util.GetValue(cr.Spec.K8SOnly.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser)
 	pvcStrategy := util.GetValue(cr.Spec.Storage.PvcStrategy, DefaultPvcStrategy)
 	pvcClaimSize := util.GetValue(cr.Spec.Storage.PvcClaimSize, DefaultPvcClaimSize)
 	workspacePvcStorageClassName := cr.Spec.Storage.WorkspacePVCStorageClassName
@@ -193,8 +195,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 
 	// k8s specific envs
 	k8sCheEnv := map[string]string{
-		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     "0",
-		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": "0",
+		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
+		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
 		"CHE_INFRA_KUBERNETES_NAMESPACE":                           workspacesNamespace,
 		"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
 		"CHE_INFRA_KUBERNETES_SERVER__STRATEGY":                    ingressStrategy,

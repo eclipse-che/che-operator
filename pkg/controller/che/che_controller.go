@@ -206,11 +206,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
-	// delete oAuthClient before CR is deleted
-	doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
-	if doInstallOpenShiftoAuthProvider {
-		if err := r.ReconcileFinalizer(instance); err != nil {
-			return reconcile.Result{}, err
+	if isOpenShift {
+		// delete oAuthClient before CR is deleted
+		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
+		if doInstallOpenShiftoAuthProvider {
+			if err := r.ReconcileFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 	// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
@@ -308,7 +310,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 		// Create a new Postgres deployment
-		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword)
+		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift)
 		if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -531,8 +533,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cheImageRepo = util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCodeReadyServerImageRepo)
 		cheImageTag = util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCodeReadyServerImageTag)
 	}
-	cheDeployment := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion)
-	if err := r.CreateNewDeployment(instance, cheDeployment); err != nil {
+	cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = r.CreateNewDeployment(instance, cheDeployment); err != nil {
 		return reconcile.Result{}, err
 	}
 	// sometimes Get cannot find deployment right away
@@ -654,7 +659,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		time.Sleep(time.Duration(1) * time.Second)
 		cm := r.GetEffectiveConfigMap(instance, cheConfigMap.Name)
 		cmResourceVersion := cm.ResourceVersion
-		cheDeployment := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		if err != nil {
+			logrus.Errorf("An error occurred: %s", err)
+		}
 		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
@@ -670,7 +678,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	desiredRequest := util.GetValue(instance.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest)
 	desiredLimit := util.GetValue(instance.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit)
 	if desiredRequest != requestStr || desiredLimit != limitStr {
-		cheDeployment := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		if err != nil {
+			logrus.Errorf("An error occurred: %s", err)
+		}
 		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
