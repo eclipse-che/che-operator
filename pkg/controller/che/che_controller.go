@@ -281,6 +281,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err := r.CreateNewRoleBinding(instance, viewRoleBinding); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
+	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
+	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
+	if workspaceClusterRole != "" {
+		customRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-custom", workspaceServiceAccount.Name, workspaceClusterRole, "ClusterRole")
+		if err = r.CreateNewRoleBinding(instance, customRoleBinding); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	if err := r.GenerateAndSaveFields(instance, request); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -474,7 +485,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage {
 				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor)
 				logrus.Infof("Updating Keycloak deployment with an image %s", instance.Spec.Auth.KeycloakImage)
-				if err := r.client.Update(context.TODO(),keycloakDeployment); err!= nil {
+				if err := r.client.Update(context.TODO(), keycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
 				}
 
@@ -486,8 +497,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
-
-
 
 		if isOpenShift {
 			doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
@@ -685,7 +694,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
-		logrus.Infof("Updating deployment %s with new memory settings. Request: %s, limit: %s",cheDeployment.Name, desiredRequest, desiredLimit)
+		logrus.Infof("Updating deployment %s with new memory settings. Request: %s, limit: %s", cheDeployment.Name, desiredRequest, desiredLimit)
 		if err := r.client.Update(context.TODO(), cheDeployment); err != nil {
 			logrus.Errorf("Failed to update deployment: %s", err)
 			return reconcile.Result{}, err

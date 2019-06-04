@@ -13,12 +13,15 @@ package che
 
 import (
 	"context"
+	"time"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacapi "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"time"
 
 	"testing"
 )
@@ -63,6 +65,9 @@ func TestCheController(t *testing.T) {
 		},
 		Spec: orgv1.CheClusterSpec{
 			// todo add some spec to check controller ifs like external db, ssl etc
+			Server: orgv1.CheClusterSpecServer{
+				CheWorkspaceClusterRole: "cluster-admin",
+			},
 		},
 	}
 	// Objects to track in the fake client.
@@ -119,6 +124,12 @@ func TestCheController(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cm); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", cm.Name, err)
+	}
+
+	// Get the custom role binding that should have been created for the role we passed in
+	rb := &rbacapi.RoleBinding{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
+		t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
 	}
 
 	// run a few checks to make sure the operator reconciled tls routes and updated configmap
@@ -207,7 +218,7 @@ func TestCheController(t *testing.T) {
 	}
 	actualStorageClassName := pvc.Spec.StorageClassName
 	if len(*actualStorageClassName) != len(fakeStorageClassName) {
-		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, *actualStorageClassName )
+		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, *actualStorageClassName)
 	}
 
 	// check if oAuthClient is deleted after CR is deleted (finalizer logic)
