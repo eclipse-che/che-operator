@@ -27,6 +27,25 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 	optionalEnv := true
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
 	memRequest := util.GetValue(cr.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
+	selfSignedCertEnv := corev1.EnvVar{
+		Name: "CHE_SELF__SIGNED__CERT",
+		Value: "",
+	}
+
+	if cr.Spec.Server.SelfSignedCert {
+		selfSignedCertEnv = corev1.EnvVar{
+			Name: "CHE_SELF__SIGNED__CERT",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "ca.crt",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "self-signed-certificate",
+					},
+					Optional: &optionalEnv,
+				},
+			},
+		}
+	}
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	cheDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -133,18 +152,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 										FieldRef: &corev1.ObjectFieldSelector{
 											FieldPath: "metadata.namespace"}},
 								},
-								{
-									Name: "CHE_SELF__SIGNED__CERT",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											Key: "ca.crt",
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "self-signed-certificate",
-											},
-											Optional: &optionalEnv,
-										},
-									},
-								},
+								selfSignedCertEnv,
 							}},
 					},
 				},

@@ -56,7 +56,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	isOpenShift, err := util.DetectOpenShift()
+	isOpenShift, _, err := util.DetectOpenShift()
 
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
@@ -202,7 +202,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	isOpenShift, err := util.DetectOpenShift()
+	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
@@ -215,16 +215,19 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
-	// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-	selfSignedCert := instance.Spec.Server.SelfSignedCert
-	if isOpenShift && selfSignedCert {
-		if err := r.CreateTLSSecret(instance, "", "self-signed-certificate"); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-	// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 	if isOpenShift {
-		baseURL, err := util.GetClusterPublicHostname()
+		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
+		if instance.Spec.Server.SelfSignedCert ||
+			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
+			// and NOT from the Openshift API Master URL (as in v3)
+			// So we also need the self-signed certificate to access them (same as the Che server)
+			(isOpenShift4 && instance.Spec.Auth.OpenShiftOauth && ! instance.Spec.Server.TlsSupport) {
+			if err := r.CreateTLSSecret(instance, "", "self-signed-certificate"); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+		// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
+		baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
 		if err != nil {
 			logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 		} else {
@@ -503,7 +506,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if doInstallOpenShiftoAuthProvider {
 				openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
 				if !openShiftIdentityProviderStatus {
-					if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, keycloakDeployment.Name); err != nil {
+					if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, keycloakDeployment.Name, isOpenShift4); err != nil {
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 					}
 				}
@@ -644,7 +647,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 	// Delete OpenShift identity provider if OpenShift oAuth is false in spec
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
-	deleted, err := r.ReconcileIdentityProvider(instance)
+	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
 	if deleted {
 		instance.Status.OpenShiftoAuthProvisioned = false
 		if err := r.UpdateCheCRStatus(instance, "provisioned with OpenShift oAuth", "false"); err != nil {
