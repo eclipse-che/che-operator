@@ -16,6 +16,14 @@ rules:
   - apiGroups:
       - oauth.openshift.io
     resources:
-      - "*"
+      - oauthclients
     verbs:
-      - "*"
+      - create
+      - get
+      - delete
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - infrastructures
+    verbs:
+      - get
