@@ -268,7 +268,7 @@ func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBind
 	return nil
 }
 
-func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, keycloakDeploymentName string) (err error) {
+func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, keycloakDeploymentName string, isOpenShift4 bool) (err error) {
 	tests := r.tests
 	keycloakAdminPassword := instance.Spec.Auth.KeycloakAdminPassword
 	oAuthClientName := instance.Spec.Auth.OauthClientName
@@ -289,13 +289,13 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 	}
 	keycloakURL := instance.Spec.Auth.KeycloakURL
 	keycloakRealm := util.GetValue(instance.Spec.Auth.KeycloakRealm, cheFlavor)
-	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm)
+	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
 	if err := r.CreateNewOauthClient(instance, oAuthClient); err != nil {
 		return err
 	}
 
 	if !tests {
-		openShiftIdentityProviderCommand := deploy.GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, keycloakAdminPassword)
+		openShiftIdentityProviderCommand := deploy.GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, keycloakAdminPassword, isOpenShift4)
 		podToExec, err := k8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
 		if err != nil {
 			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")

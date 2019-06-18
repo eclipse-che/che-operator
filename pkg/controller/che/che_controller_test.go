@@ -156,7 +156,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR)
-	err = r.CreateIdentityProviderItems(cheCR, req, "che", "keycloak")
+	err = r.CreateIdentityProviderItems(cheCR, req, "che", "keycloak", false)
 	oAuthClientName := cheCR.Spec.Auth.OauthClientName
 	oauthSecret := cheCR.Spec.Auth.OauthSecret
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {

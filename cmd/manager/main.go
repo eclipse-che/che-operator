@@ -40,7 +40,7 @@ func printVersion() {
 	logrus.Infof(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	logrus.Infof(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
 	logrus.Infof(fmt.Sprintf("operator-sdk Version: %v", sdkVersion.Version))
-	isOpenShift, err := util.DetectOpenShift()
+	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Fatalf("Operator is exiting. An error occurred when detecting current infra: %s", err)
 
@@ -48,6 +48,11 @@ func printVersion() {
 	infra := "Kubernetes"
 	if isOpenShift {
 		infra = "OpenShift"
+		if isOpenShift4 {
+			infra += " v4.x"
+		} else {
+			infra += " v3.x"
+		}
 	}
 	logrus.Infof(fmt.Sprintf("Operator is running on %v", infra))
 

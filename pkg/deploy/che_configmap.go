@@ -82,7 +82,7 @@ func GetCustomConfigMapData() (cheEnv map[string]string) {
 func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheHost := cr.Spec.Server.CheHost
 	keycloakURL := cr.Spec.Auth.KeycloakURL
-	isOpenShift, err := util.DetectOpenShift()
+	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}
@@ -99,6 +99,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if openshiftOAuth && isOpenShift {
 		workspacesNamespace = ""
 		openShiftIdentityProviderId = "openshift-v3"
+		if isOpenshift4 {
+			openShiftIdentityProviderId = "openshift-v4"
+		}
 	}
 	tlsSupport := cr.Spec.Server.TlsSupport
 	protocol := "http"
