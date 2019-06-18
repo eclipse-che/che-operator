@@ -32,6 +32,7 @@ const (
 	DefaultCheLogLevel               = "INFO"
 	DefaultCheDebug                  = "false"
 	DefaultPvcJobsImage              = "registry.redhat.io/ubi8-minimal:8.0-127"
+	DefaultPvcJobsUpstreamImage      = "registry.access.redhat.com/ubi8-minimal:8.0-127"
 	DefaultPostgresImage             = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-40"
 	DefaultPostgresUpstreamImage     = "centos/postgresql-96-centos7:9.6"
 	DefaultKeycloakImage             = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-11"

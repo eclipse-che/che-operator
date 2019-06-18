@@ -509,7 +509,11 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	pvcJobsImage := util.GetValue(instance.Spec.Storage.PvcJobsImage, deploy.DefaultPvcJobsImage)
+	defaultPVCJobsImage := deploy.DefaultPvcJobsUpstreamImage
+	if cheFlavor == "codeready" {
+		defaultPVCJobsImage = deploy.DefaultPvcJobsImage
+	}
+	pvcJobsImage := util.GetValue(instance.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
 	if len(instance.Spec.Storage.PvcJobsImage) < 1 {
 		instance.Spec.Storage.PvcJobsImage = pvcJobsImage
 		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", pvcJobsImage); err != nil {
