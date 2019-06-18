@@ -17,7 +17,11 @@ import (
 )
 
 
-func NewOAuthClient(name string, oauthSecret string, keycloakURL string, keycloakRealm string) *oauth.OAuthClient {
+func NewOAuthClient(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
+	providerName := "openshift-v3"
+	if isOpenShift4 {
+		providerName = "openshift-v4"
+	}
 	return &oauth.OAuthClient{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OAuthClient",
@@ -30,7 +34,7 @@ func NewOAuthClient(name string, oauthSecret string, keycloakURL string, keycloa
 
 		Secret: oauthSecret,
 		RedirectURIs: []string{
-			keycloakURL + "/auth/realms/" + keycloakRealm +"/broker/openshift-v3/endpoint",
+			keycloakURL + "/auth/realms/" + keycloakRealm +"/broker/" + providerName + "/endpoint",
 		},
 		GrantMethod: oauth.GrantHandlerPrompt,
 	}

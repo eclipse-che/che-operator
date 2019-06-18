@@ -35,10 +35,10 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 
 	// add various certificates to Java trust store so that Keycloak can connect to OpenShift API
 	// certificate that OpenShift router uses (for 4.0 only)
-	addRouterCrt := "if [ ! -z \"${CHE_SELF__SIGNED__CERT}\" ]; then echo \"${CHE_SELF__SIGNED__CERT}\" > " + jbossDir + "/openshift.crt && " +
+	addRouterCrt := "if [ ! -z \"${CHE_SELF__SIGNED__CERT}\" ]; then echo \"${CHE_SELF__SIGNED__CERT}\" > " + jbossDir + "/che.crt && " +
 		"keytool -importcert -alias ROUTERCRT" +
 		" -keystore " + jbossDir + "/openshift.jks" +
-		" -file " + jbossDir + "/openshift.crt -storepass " + trustpass + " -noprompt; fi"
+		" -file " + jbossDir + "/che.crt -storepass " + trustpass + " -noprompt; fi"
 	// certificate retrieved from http call to OpenShift API endpoint
 	addOpenShiftAPICrt := "if [ ! -z \"${OPENSHIFT_SELF__SIGNED__CERT}\" ]; then echo \"${OPENSHIFT_SELF__SIGNED__CERT}\" > " + jbossDir + "/openshift.crt && " +
 		"keytool -importcert -alias OPENSHIFTAPI" +
@@ -48,15 +48,20 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	addMountedCrt := " keytool -importcert -alias MOUNTEDCRT" +
 		" -keystore " + jbossDir + "/openshift.jks" +
 		" -file /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -storepass " + trustpass + " -noprompt"
+	addMountedServiceCrt := "if [ -f /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt ]; then " +
+		"keytool -importcert -alias MOUNTEDSERVICECRT" +
+		" -keystore " + jbossDir + "/openshift.jks" +
+		" -file /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt -storepass " + trustpass + " -noprompt; fi"
 	importJavaCacerts := "keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts" +
 		" -destkeystore " + jbossDir + "/openshift.jks" +
 		" -srcstorepass changeit -deststorepass " + trustpass
 
-	addCertToTrustStoreCommand := addRouterCrt + " && " + addOpenShiftAPICrt + " && " + addMountedCrt + " && " + importJavaCacerts
+	addCertToTrustStoreCommand := addRouterCrt + " && " + addOpenShiftAPICrt + " && " + addMountedCrt + " && " + addMountedServiceCrt + " && " + importJavaCacerts
 
 	startCommand := "sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	// upstream Keycloak has a bit different mechanism of adding jks
-	changeConfigCommand := "echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
+	changeConfigCommand := "echo Installing certificates into Keycloak && " +
+	  "echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
 		"/subsystem=keycloak-server/spi=truststore/:add \n" +
 		"/subsystem=keycloak-server/spi=truststore/provider=file/:add(properties={file => " +
 		"\"" + jbossDir + "/openshift.jks\", password => \"" + trustpass + "\", disabled => \"false\" },enabled=true) \n" +
@@ -86,6 +91,10 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 		},
 		{
 			Name:  "POSTGRES_PORT_5432_TCP_PORT",
+			Value: "5432",
+		},
+		{
+			Name:  "POSTGRES_PORT",
 			Value: "5432",
 		},
 		{
@@ -205,7 +214,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			},
 		}
 	}
-	command := addCertToTrustStoreCommand + " && " + changeConfigCommand + " && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0"
+	command := addCertToTrustStoreCommand + " && " + changeConfigCommand + " && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
 	if cheFlavor == "codeready" {
 		command = addCertToTrustStoreCommand + " && " + startCommand
 	}
