@@ -108,15 +108,15 @@ func IsTestMode() (isTesting bool) {
 
 func GetClusterPublicHostname(isOpenShift4 bool) (hostname string, err error) {
 	if isOpenShift4 {
-		return GetClusterPublicHostnameForOpenshiftV4()
+		return getClusterPublicHostnameForOpenshiftV4()
 	} else {
-		return GetClusterPublicHostnameForOpenshiftV3()
+		return getClusterPublicHostnameForOpenshiftV3()
 	}
 }
 
-// GetClusterPublicHostnameForOpenshiftV3 is a hacky way to get OpenShift API public DNS/IP
+// getClusterPublicHostnameForOpenshiftV3 is a hacky way to get OpenShift API public DNS/IP
 // to be used in OpenShift oAuth provider as baseURL
-func GetClusterPublicHostnameForOpenshiftV3() (hostname string, err error) {
+func getClusterPublicHostnameForOpenshiftV3() (hostname string, err error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
 	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
@@ -143,9 +143,9 @@ func GetClusterPublicHostnameForOpenshiftV3() (hostname string, err error) {
 	return hostname, nil
 }
 
-// GetClusterPublicHostnameForOpenshiftV3 is a way to get OpenShift API public DNS/IP
+// getClusterPublicHostnameForOpenshiftV3 is a way to get OpenShift API public DNS/IP
 // to be used in OpenShift oAuth provider as baseURL
-func GetClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
+func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
 	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
