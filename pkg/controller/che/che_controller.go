@@ -226,13 +226,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{}, err
 			}
 		}
-		// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-		baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
-		if err != nil {
-			logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
-		} else {
-			if err := r.CreateTLSSecret(instance, baseURL, "openshift-api-crt"); err != nil {
-				return reconcile.Result{}, err
+		if instance.Spec.Auth.OpenShiftOauth {
+			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
+			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
+			if err != nil {
+				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
+			} else {
+				if err := r.CreateTLSSecret(instance, baseURL, "openshift-api-crt"); err != nil {
+					return reconcile.Result{}, err
+				}
 			}
 		}
 	}
