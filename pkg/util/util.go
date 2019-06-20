@@ -12,6 +12,7 @@
 package util
 
 import (
+	"errors"
 	"crypto/tls"
 	"encoding/json"
 	"github.com/sirupsen/logrus"
@@ -154,6 +155,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	file, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
 		logrus.Errorf("Failed to locate token file: %s", err)
+		return "", err
 	}
 	token := string(file)
 
@@ -166,6 +168,12 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode / 100 != 2 {
+		message := url + " - " + resp.Status
+		logrus.Errorf("An error occurred when getting API public hostname: %s", message)
+		return "", errors.New(message)
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
@@ -174,11 +182,16 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	var jsonData map[string]interface{}
 	err = json.Unmarshal(body, &jsonData)
 	if err != nil {
-		logrus.Errorf("An error occurred when unmarshalling: %s", err)
+		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", err)
 		return "", err
 	}
-	spec := jsonData["status"].(map[string]interface{})
-	hostname = spec["apiServerURL"].(string)
+	switch status := jsonData["status"].(type) {
+	case map[string]interface{}:
+		hostname = status["apiServerURL"].(string)
+	default:	
+		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", body)
+		return "", errors.New(string(body))
+	}
 
 	return hostname, nil
 }
