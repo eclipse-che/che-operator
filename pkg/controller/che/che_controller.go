@@ -497,6 +497,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			openshiftApiCertSecretVersion != deployment.Annotations["che.openshift-api-crt.version"] {
 				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof("Updating Keycloak deployment with an image %s", instance.Spec.Auth.KeycloakImage)
+				if err := controllerutil.SetControllerReference(instance, keycloakDeployment, r.scheme); err != nil {
+					logrus.Errorf("An error occurred: %s", err)
+				}
 				if err := r.client.Update(context.TODO(), keycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
 				}
