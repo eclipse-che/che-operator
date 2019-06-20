@@ -470,7 +470,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
-		keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor)
+		keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor,
+			r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate"),
+			r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt"))
 		if err := r.CreateNewDeployment(instance, keycloakDeployment); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -487,9 +489,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
-			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage {
-				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor)
+
+			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
+			openshiftApiCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt")
+			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage ||
+			cheCertSecretVersion != deployment.Annotations["che.self-signed-certificate.version"] ||
+			openshiftApiCertSecretVersion != deployment.Annotations["che.openshift-api-crt.version"] {
+				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof("Updating Keycloak deployment with an image %s", instance.Spec.Auth.KeycloakImage)
+				if err := controllerutil.SetControllerReference(instance, keycloakDeployment, r.scheme); err != nil {
+					logrus.Errorf("An error occurred: %s", err)
+				}
 				if err := r.client.Update(context.TODO(), keycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
 				}
@@ -651,6 +661,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
 	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
 	if deleted {
+		if err := r.DeleteFinalizer(instance); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
 		instance.Status.OpenShiftoAuthProvisioned = false
 		if err := r.UpdateCheCRStatus(instance, "provisioned with OpenShift oAuth", "false"); err != nil {
 			instance, _ = r.GetCR(request)

@@ -136,7 +136,7 @@ func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, ke
 			script + " delete identity-provider/instances/" + providerName + " -r " + keycloakRealm
 	command = deleteOpenShiftIdentityProviderCommand
 	if cheFlavor == "che" {
-		command = "cd /scripts && " + deleteOpenShiftIdentityProviderCommand
+		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + deleteOpenShiftIdentityProviderCommand
 	}
 	return command
 }
