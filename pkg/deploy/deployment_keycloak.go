@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string, keycloakAdminPassword string, cheFlavor string) *appsv1.Deployment {
+func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string, keycloakAdminPassword string, cheFlavor string, cheCertSecretVersion string, openshiftCertSecretVersion string) *appsv1.Deployment {
 	optionalEnv := true
 	keycloakName := "keycloak"
 	labels := GetLabels(cr, keycloakName)
@@ -227,6 +227,10 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			Name:      keycloakName,
 			Namespace: cr.Namespace,
 			Labels:    labels,
+			Annotations: map[string]string {
+				"che.self-signed-certificate.version": cheCertSecretVersion,
+				"che.openshift-api-crt.version": openshiftCertSecretVersion,
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},

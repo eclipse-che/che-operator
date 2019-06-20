@@ -12,6 +12,7 @@
 package che
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	oauth "github.com/openshift/api/oauth/v1"
@@ -58,11 +59,23 @@ func (r *ReconcileChe) GetEffectiveConfigMap(instance *orgv1.CheCluster, name st
 	configMap = &corev1.ConfigMap{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, configMap)
 	if err != nil {
-		logrus.Errorf("Failed to get %s route: %s", name, err)
+		logrus.Errorf("Failed to get %s config map: %s", name, err)
 		return nil
 	}
 	return configMap
 
+}
+
+func (r *ReconcileChe) GetEffectiveSecretResourceVersion(instance *orgv1.CheCluster, name string) string {
+	secret := &corev1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret)
+	if err != nil {
+		if !errors.IsNotFound(err){
+			logrus.Errorf("Failed to get %s secret: %s", name, err)
+		}
+		return ""
+	}
+	return secret.ResourceVersion
 }
 
 func (r *ReconcileChe) GetCR(request reconcile.Request) (instance *orgv1.CheCluster, err error) {

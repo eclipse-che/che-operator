@@ -470,7 +470,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
-		keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor)
+		keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor,
+			r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate"),
+			r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt"))
 		if err := r.CreateNewDeployment(instance, keycloakDeployment); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -487,8 +489,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
-			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage {
-				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor)
+
+			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
+			openshiftApiCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt")
+			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage ||
+			cheCertSecretVersion != deployment.Annotations["che.self-signed-certificate.version"] ||
+			openshiftApiCertSecretVersion != deployment.Annotations["che.openshift-api-crt.version"] {
+				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof("Updating Keycloak deployment with an image %s", instance.Spec.Auth.KeycloakImage)
 				if err := r.client.Update(context.TODO(), keycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
