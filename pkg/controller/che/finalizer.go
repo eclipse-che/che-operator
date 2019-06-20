@@ -27,7 +27,7 @@ func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error
 			if err := r.client.Delete(context.TODO(), oAuthClient); err != nil {
 				logrus.Errorf("Failed to delete %s oAuthClient: %s", oAuthClientName, err)
 				return err
-			}		
+			}
 			instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, oAuthFinalizerName)
 			logrus.Infof("Updating %s CR", instance.Name)
 
