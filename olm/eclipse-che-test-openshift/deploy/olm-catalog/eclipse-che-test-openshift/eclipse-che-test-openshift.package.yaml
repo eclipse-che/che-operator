@@ -1,0 +1,4 @@
+packageName: eclipse-che-test-openshift
+channels:
+- name: final
+  currentCSV: eclipse-che-test-openshift.v7.0.0-beta-5.0
