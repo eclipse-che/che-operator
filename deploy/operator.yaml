@@ -24,21 +24,24 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: quay.io/eclipse-che/che-operator:7.0.0-RC-2.0
+          image: quay.io/eclipse-che/che-operator:7.0.0-rc-2.0
           ports:
           - containerPort: 60000
             name: metrics
           command:
           - /usr/local/bin/che-operator
           imagePullPolicy: IfNotPresent
-          readinessProbe:
-            exec:
-              command:
-                - stat
-                - /tmp/operator-sdk-ready
-            initialDelaySeconds: 4
-            periodSeconds: 10
-            failureThreshold: 1
+#          TODO: to be uncommented when issue
+#          https://github.com/operator-framework/operator-sdk/issues/1234
+#          is fixed
+#          readinessProbe:
+#            exec:
+#              command:
+#                - stat
+#                - /tmp/operator-sdk-ready
+#            initialDelaySeconds: 4
+#            periodSeconds: 10
+#            failureThreshold: 1
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
