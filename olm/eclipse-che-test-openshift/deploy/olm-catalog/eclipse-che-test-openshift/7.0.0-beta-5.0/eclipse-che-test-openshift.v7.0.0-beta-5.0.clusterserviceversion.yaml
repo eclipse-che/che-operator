@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: |
+    alm-examples: |-
       [
         {
           "apiVersion": "org.eclipse.che/v1",
@@ -12,6 +12,7 @@ metadata:
           },
           "spec": {
              "server": {
+                "cheImageTag": "",
                 "tlsSupport": false,
                 "selfSignedCert": false
              },
@@ -25,6 +26,7 @@ metadata:
              },
              "auth": {
                 "openShiftoAuth": false,
+                "identityProviderImage": "",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",
                 "identityProviderRealm": "",
@@ -40,7 +42,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Developer Tools, OpenShift Optional
-    certified: "true"
+    certified: "false"
     containerImage: quay.io/eclipse-che/che-operator:7.0.0-beta-5.0
     createdAt: "2019-05-27T13:59:00Z"
     description: A Kube-native development solution that delivers portable and collaborative
@@ -353,8 +355,8 @@ spec:
     - name: Operator GitHub Repo
       url: https://github.com/eclipse/che-operator
   maintainers:
-    - email: eivantsov@redhat.com
-      name: Eugene Ivantsov
+  - email: dfestal@redhat.com
+    name: David Festal
   maturity: stable
   provider:
     name: Eclipse Foundation

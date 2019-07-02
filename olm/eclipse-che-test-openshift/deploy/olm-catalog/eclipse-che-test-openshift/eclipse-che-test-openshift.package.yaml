@@ -1,4 +1,7 @@
 packageName: eclipse-che-test-openshift
 channels:
-- name: final
-  currentCSV: eclipse-che-test-openshift.v7.0.0-beta-5.0
+- name: pre-releases
+  currentCSV: eclipse-che-test-openshift.v7.0.0-rc-2.0
+- name: nightly
+  currentCSV: eclipse-che-test-openshift.v0.0.0-nightly.1561994908
+defaultChannelName: pre-releases
