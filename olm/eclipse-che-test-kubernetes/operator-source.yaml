@@ -6,5 +6,5 @@ metadata:
 spec:
   authorizationToken: {}
   endpoint: 'https://quay.io/cnr'
-  registryNamespace: eclipse-che
+  registryNamespace: eclipse-che-operator-kubernetes
   type: appregistry
