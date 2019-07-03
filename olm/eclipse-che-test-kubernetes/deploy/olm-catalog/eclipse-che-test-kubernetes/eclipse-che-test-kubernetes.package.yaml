@@ -4,4 +4,4 @@ channels:
   currentCSV: eclipse-che-test-kubernetes.v7.0.0-rc-2.0
 - name: nightly
   currentCSV: eclipse-che-test-kubernetes.v0.0.0-nightly.1562083645
-defaultChannelName: pre-releases
+defaultChannel: pre-releases
