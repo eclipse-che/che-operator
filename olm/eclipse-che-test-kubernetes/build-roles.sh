@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # Copyright (c) 2012-2018 Red Hat, Inc.
 # This program and the accompanying materials are made
@@ -13,4 +13,16 @@
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 rm -Rf ${BASE_DIR}/generated/roles
 mkdir -p ${BASE_DIR}/generated/roles
-yq -r '.channels[] | select(.name == "nightly") | .currentCSV' ${BASE_DIR}/../../deploy/role.yaml ${packageFilePath} > ${BASE_DIR}/generated/roles/role.yaml
+roleYaml=${BASE_DIR}/../../deploy/role.yaml
+index=0
+while [ $index -le 20 ]
+do
+  yq -r -e ".rules[${index}] | select(.apiGroups[0] == \"route.openshift.io\") | \"\"" ${roleYaml}
+  if [ $? == 0 ]
+  then
+    yq -y "del(.rules[${index}])" ${roleYaml} > ${BASE_DIR}/generated/roles/role.yaml
+    exit $?
+  fi
+  ((index++))
+done
+exit 1

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # Copyright (c) 2012-2018 Red Hat, Inc.
 # This program and the accompanying materials are made
@@ -9,6 +9,8 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+
+set -e
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
@@ -31,6 +33,8 @@ do
     cp $role generated/current-role.yaml
     operator-sdk olm-catalog gen-csv --csv-version "${newNightlyPackageVersion}" --from-version="${lastPackageVersion}" 2>&1 | sed -e 's/^/      /'
   done
+  echo "   - Copying the CRD file"
+  cp ${packageBaseFolderPath}/deploy/olm-catalog/${packageName}/${lastPackageVersion}/eclipse-che-test-${platform}.crd.yaml ${packageBaseFolderPath}/deploy/olm-catalog/${packageName}/${newNightlyPackageVersion}/eclipse-che-test-${platform}.crd.yaml
   echo "   - Updating the 'nightly' channel with new version in the package descriptor: ${packageFilePath}"
   echo "     (the previous one is saved with the .old suffix)"
   sed -e "s/${lastPackageVersion}/${newNightlyPackageVersion}/" ${packageFilePath} > ${packageFilePath}.new
