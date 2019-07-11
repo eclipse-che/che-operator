@@ -20,7 +20,7 @@ if [[ "$1" =~ $REGEX ]]
 then
   RELEASE="$1"
 else
-  echo "You should the new release as the first parameter"
+  echo "You should provide the new release as the first parameter"
   echo "and it should be semver-compatible with optional *lower-case* pre-release part"
   exit 1
 fi
