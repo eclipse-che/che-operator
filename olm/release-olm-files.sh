@@ -27,20 +27,20 @@ fi
 
 for platform in 'kubernetes' 'openshift'
 do
-  packageName=eclipse-che-test-${platform}
+  packageName="eclipse-che-test-${platform}"
   echo
   echo "## Creating release '${RELEASE}' of the OperatorHub package '${packageName}' for platform '${platform}'"
 
-  packageBaseFolderPath=${BASE_DIR}/${packageName}
-  cd ${packageBaseFolderPath}
+  packageBaseFolderPath="${BASE_DIR}/${packageName}"
+  cd "${packageBaseFolderPath}"
 
-  packageFolderPath=${packageBaseFolderPath}/deploy/olm-catalog/${packageName}
-  packageFilePath=${packageFolderPath}/${packageName}.package.yaml
-  lastPackageNightlyVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' ${packageFilePath} | sed -e "s/${packageName}.v//")
-  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "pre-releases") | .currentCSV' ${packageFilePath} | sed -e "s/${packageName}.v//")
+  packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
+  packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  lastPackageNightlyVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
+  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "pre-releases") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
   echo "   - Last package nightly version: ${lastPackageNightlyVersion}"
   echo "   - Last package pre-release version: ${lastPackagePreReleaseVersion}"
-  if [ ${lastPackagePreReleaseVersion} == ${RELEASE} ]
+  if [ "${lastPackagePreReleaseVersion}" == "${RELEASE}" ]
   then
     echo "Release ${RELEASE} already exists in the package !"
     echo "You should first remove it"
@@ -49,8 +49,8 @@ do
 
   echo "     => will create release '${RELEASE}' from nightly version '${lastPackageNightlyVersion}' that will replace previous release '${lastPackagePreReleaseVersion}'"
 
-  mkdir -p ${packageFolderPath}/${RELEASE}
-  cat ${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.v${lastPackageNightlyVersion}.clusterserviceversion.yaml | sed \
+  mkdir -p "${packageFolderPath}/${RELEASE}"
+  sed \
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
   -e 's|"identityProviderImage": *"eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
@@ -60,15 +60,16 @@ do
   -e "s/:nightly/:${RELEASE}/" \
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" \
-  > ${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml
+  "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.v${lastPackageNightlyVersion}.clusterserviceversion.yaml" \
+  > "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
 
   echo "   - Copying the CRD file"
-  cp ${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml \
-  ${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml
+  cp "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml" \
+  "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
   echo "   - Updating the 'pre-releases' channel with new release in the package descriptor: ${packageFilePath}"
   echo "     (the previous one is saved with the .old suffix)"
-  sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" ${packageFilePath} > ${packageFilePath}.new
-  mv ${packageFilePath} ${packageFilePath}.old
-  mv ${packageFilePath}.new ${packageFilePath}
+  sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
+  mv "${packageFilePath}" "${packageFilePath}.old"
+  mv "${packageFilePath}.new" "${packageFilePath}"
 done
-cd ${CURRENT_DIR}
+cd "${CURRENT_DIR}"
