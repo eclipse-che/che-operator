@@ -10,8 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-rm -Rf ${BASE_DIR}/generated/roles
-mkdir -p ${BASE_DIR}/generated/roles
-cp ${BASE_DIR}/../../deploy/role.yaml ${BASE_DIR}/generated/roles/role.yaml
-cp ${BASE_DIR}/../../deploy/cluster_role.yaml ${BASE_DIR}/generated/roles/cluster_role.yaml
+BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+rm -Rf "${BASE_DIR}/generated/roles"
+mkdir -p "${BASE_DIR}/generated/roles"
+cp "${BASE_DIR}/../../deploy/role.yaml" "${BASE_DIR}/generated/roles/role.yaml"
+cp "${BASE_DIR}/../../deploy/cluster_role.yaml" "${BASE_DIR}/generated/roles/cluster_role.yaml"
