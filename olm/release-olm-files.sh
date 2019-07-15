@@ -67,9 +67,7 @@ do
   cp "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml" \
   "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
   echo "   - Updating the 'pre-releases' channel with new release in the package descriptor: ${packageFilePath}"
-  echo "     (the previous one is saved with the .old suffix)"
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
-  mv "${packageFilePath}" "${packageFilePath}.old"
   mv "${packageFilePath}.new" "${packageFilePath}"
 done
 cd "${CURRENT_DIR}"
