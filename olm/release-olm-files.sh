@@ -27,7 +27,7 @@ fi
 
 for platform in 'kubernetes' 'openshift'
 do
-  packageName="eclipse-che-test-${platform}"
+  packageName="eclipse-che-preview-${platform}"
   echo
   echo "## Creating release '${RELEASE}' of the OperatorHub package '${packageName}' for platform '${platform}'"
 
@@ -37,7 +37,7 @@ do
   packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
   packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
   lastPackageNightlyVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
-  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "pre-releases") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
+  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
   echo "   - Last package nightly version: ${lastPackageNightlyVersion}"
   echo "   - Last package pre-release version: ${lastPackagePreReleaseVersion}"
   if [ "${lastPackagePreReleaseVersion}" == "${RELEASE}" ]
@@ -66,7 +66,7 @@ do
   echo "   - Copying the CRD file"
   cp "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml" \
   "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
-  echo "   - Updating the 'pre-releases' channel with new release in the package descriptor: ${packageFilePath}"
+  echo "   - Updating the 'stable' channel with new release in the package descriptor: ${packageFilePath}"
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
 done

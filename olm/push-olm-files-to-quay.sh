@@ -17,7 +17,7 @@ BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 for platform in 'kubernetes' 'openshift'
 do
-  packageName="eclipse-che-test-${platform}"
+  packageName="eclipse-che-preview-${platform}"
   quayNamespace="eclipse-che-operator-${platform}"
   echo
   echo "## Pushing the OperatorHub package '${packageName}' for platform '${platform}' to the Quay.io '${quayNamespace}' organization"

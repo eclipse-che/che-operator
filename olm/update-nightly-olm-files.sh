@@ -16,7 +16,7 @@ CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 for platform in 'kubernetes' 'openshift'
 do
-  packageName=eclipse-che-test-${platform}
+  packageName=eclipse-che-preview-${platform}
   echo
   echo "## Updating OperatorHub package '${packageName}' for platform '${platform}'"
   packageBaseFolderPath=${BASE_DIR}/${packageName}
@@ -35,7 +35,7 @@ do
     operator-sdk olm-catalog gen-csv --csv-version "${newNightlyPackageVersion}" --from-version="${lastPackageVersion}" 2>&1 | sed -e 's/^/      /'
   done
   echo "   - Copying the CRD file"
-  cp "${packageFolderPath}/${lastPackageVersion}/eclipse-che-test-${platform}.crd.yaml" "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-test-${platform}.crd.yaml"
+  cp "${packageFolderPath}/${lastPackageVersion}/eclipse-che-preview-${platform}.crd.yaml" "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"
   echo "   - Updating the 'nightly' channel with new version in the package descriptor: ${packageFilePath}"
   echo "     (the previous one is saved with the .old suffix)"
   sed -e "s/${lastPackageVersion}/${newNightlyPackageVersion}/" "${packageFilePath}" > "${packageFilePath}.new"

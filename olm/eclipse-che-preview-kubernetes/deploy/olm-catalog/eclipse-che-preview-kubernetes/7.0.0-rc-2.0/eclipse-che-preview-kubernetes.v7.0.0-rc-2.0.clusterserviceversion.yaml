@@ -16,7 +16,7 @@ metadata:
                 "tlsSecretName": ""
               },
              "server": {
-                "cheImageTag": "nightly",
+                "cheImageTag": "",
                 "tlsSupport": false,
                 "selfSignedCert": false
              },
@@ -29,7 +29,7 @@ metadata:
                 "chePostgresDb": ""
              },
              "auth": {
-                "identityProviderImage": "eclipse/che-keycloak:nightly",
+                "identityProviderImage": "",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",
                 "identityProviderRealm": "",
@@ -46,13 +46,13 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: quay.io/eclipse-che/che-operator:nightly
+    containerImage: quay.io/eclipse-che/che-operator:7.0.0-rc-2.0
     createdAt: "2019-05-27T11:14:00Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-test-kubernetes.v0.0.0-nightly.1562083645
+  name: eclipse-che-preview-kubernetes.v7.0.0-rc-2.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -218,8 +218,8 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: che-operator
-                image: quay.io/eclipse-che/che-operator:nightly
-                imagePullPolicy: Always
+                image: quay.io/eclipse-che/che-operator:7.0.0-rc-2.0
+                imagePullPolicy: IfNotPresent
                 name: che-operator
                 ports:
                 - containerPort: 60000
@@ -321,4 +321,5 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 0.0.0-nightly.1562083645
+  replaces: eclipse-che-preview-kubernetes.v7.0.0-beta-5.0
+  version: 7.0.0-rc-2.0

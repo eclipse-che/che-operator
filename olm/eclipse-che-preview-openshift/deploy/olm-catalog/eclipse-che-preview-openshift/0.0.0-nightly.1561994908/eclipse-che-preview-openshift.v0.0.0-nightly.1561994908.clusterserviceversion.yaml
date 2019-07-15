@@ -12,7 +12,7 @@ metadata:
           },
           "spec": {
              "server": {
-                "cheImageTag": "",
+                "cheImageTag": "nightly",
                 "tlsSupport": false,
                 "selfSignedCert": false
              },
@@ -26,7 +26,7 @@ metadata:
              },
              "auth": {
                 "openShiftoAuth": true,
-                "identityProviderImage": "",
+                "identityProviderImage": "eclipse/che-keycloak:nightly",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",
                 "identityProviderRealm": "",
@@ -43,13 +43,13 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools, OpenShift Optional
     certified: "false"
-    containerImage: quay.io/eclipse-che/che-operator:7.0.0-rc-2.0
+    containerImage: quay.io/eclipse-che/che-operator:nightly
     createdAt: "2019-05-27T13:59:00Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-test-openshift.v7.0.0-rc-2.0
+  name: eclipse-che-preview-openshift.v0.0.0-nightly.1561994908
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -253,8 +253,8 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: che-operator
-                image: quay.io/eclipse-che/che-operator:7.0.0-rc-2.0
-                imagePullPolicy: IfNotPresent
+                image: quay.io/eclipse-che/che-operator:nightly
+                imagePullPolicy: Always
                 name: che-operator
                 ports:
                 - containerPort: 60000
@@ -356,5 +356,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  replaces: eclipse-che-test-openshift.v7.0.0-beta-5.0
-  version: 7.0.0-rc-2.0
+  version: 0.0.0-nightly.1561994908

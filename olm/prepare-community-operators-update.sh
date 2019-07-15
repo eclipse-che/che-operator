@@ -17,7 +17,7 @@ BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 for platform in 'kubernetes' 'openshift'
 do
-  packageName="eclipse-che-test-${platform}"
+  packageName="eclipse-che-preview-${platform}"
   echo
   echo "## Preparing the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
 
@@ -55,7 +55,7 @@ do
   sourcePackageFilePath="${packageFolderPath}/${packageName}.package.yaml"
   destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
-  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "pre-releases") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
+  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
   lastPublishedPackageVersion=$(yq -r '.channels[] | select(.name == "final") | .currentCSV' "${destinationPackageFilePath}" | sed -e "s/eclipse-che.v//")
   echo "   - Last package pre-release version of local package: ${lastPackagePreReleaseVersion}"
   echo "   - Last package release version of cloned 'community-operators' repository: ${lastPackagePreReleaseVersion}"

@@ -1,7 +1,0 @@
-packageName: eclipse-che-test-kubernetes
-channels:
-- name: pre-releases
-  currentCSV: eclipse-che-test-kubernetes.v7.0.0-rc-2.0
-- name: nightly
-  currentCSV: eclipse-che-test-kubernetes.v0.0.0-nightly.1562083645
-defaultChannel: pre-releases
