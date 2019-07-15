@@ -50,6 +50,8 @@ type CheClusterSpecServer struct {
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// TlsSupport instructs an operator to deploy Che in TLS mode, ie with TLS routes or ingresses
 	TlsSupport bool `json:"tlsSupport"`
+	// DevfileRegistryUrl is an endpoint serving sample ready-to-use devfiles. Defaults to https://che-devfile-registry.openshift.io
+	DevfileRegistryUrl string `json:"devfileRegistryUrl"`
 	// PluginRegistryUrl is an endpoint serving plugin definitions. Defaults to https://che-plugin-registry.openshift.io
 	PluginRegistryUrl string `json:"pluginRegistryUrl"`
 	// ProxyURL is protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
@@ -144,10 +146,10 @@ type CheClusterSpecK8SOnly struct {
 	IngressClass string `json:"ingressClass"`
 	// secret name used for tls termination
 	TlsSecretName string `json:"tlsSecretName"`
-	// FSGroup the Che POD and Workspace pod containers should run in  
-	SecurityContextFsGroup string `json:"securityContextFsGroup"` 
-	// User the Che POD and Workspace pod containers should run as  
-	SecurityContextRunAsUser string `json:"securityContextRunAsUser"` 
+	// FSGroup the Che POD and Workspace pod containers should run in
+	SecurityContextFsGroup string `json:"securityContextFsGroup"`
+	// User the Che POD and Workspace pod containers should run as
+	SecurityContextRunAsUser string `json:"securityContextRunAsUser"`
 }
 
 // CheClusterStatus defines the observed state of CheCluster

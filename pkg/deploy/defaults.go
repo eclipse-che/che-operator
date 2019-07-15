@@ -28,6 +28,7 @@ const (
 	DefaultIngressClass              = "nginx"
 	DefaultPluginRegistryUrl         = "https://che-plugin-registry.openshift.io"
 	DefaultUpstreamPluginRegistryUrl = "https://che-plugin-registry.openshift.io/v3"
+	DefaultDevfileRegistryUrl        = "https://che-devfile-registry.openshift.io"
 	DefaultKeycloakAdminUserName     = "admin"
 	DefaultCheLogLevel               = "INFO"
 	DefaultCheDebug                  = "false"
@@ -45,8 +46,8 @@ const (
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
-	DefaultServerMemoryRequest = "512Mi"
-	DefaultServerMemoryLimit   = "1Gi"
-	DefaultSecurityContextFsGroup    = "1724"
-	DefaultSecurityContextRunAsUser  = "1724"
+	DefaultServerMemoryRequest      = "512Mi"
+	DefaultServerMemoryLimit        = "1Gi"
+	DefaultSecurityContextFsGroup   = "1724"
+	DefaultSecurityContextRunAsUser = "1724"
 )

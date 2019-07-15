@@ -14,12 +14,13 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
 
 func addMap(a map[string]string, b map[string]string) {
@@ -61,6 +62,7 @@ type CheConfigMap struct {
 	WorkspaceHttpsProxy          string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
 	WorkspaceNoProxy             string `json:"CHE_WORKSPACE_NO__PROXY"`
 	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL"`
+	DevfileRegistryUrl           string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL"`
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 }
 
@@ -71,7 +73,7 @@ func GetCustomConfigMapData() (cheEnv map[string]string) {
 		"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME":           "che-workspace",
 		"CHE_WORKSPACE_AUTO_START":                              "true",
 		"CHE_INFRA_KUBERNETES_WORKSPACE__UNRECOVERABLE__EVENTS": "FailedMount,FailedScheduling,MountVolume.SetUp failed,Failed to pull image",
-		"CHE_LIMITS_WORKSPACE_IDLE_TIMEOUT": "-1",
+		"CHE_LIMITS_WORKSPACE_IDLE_TIMEOUT":                     "-1",
 	}
 	return cheEnv
 
@@ -136,7 +138,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	pvcStrategy := util.GetValue(cr.Spec.Storage.PvcStrategy, DefaultPvcStrategy)
 	pvcClaimSize := util.GetValue(cr.Spec.Storage.PvcClaimSize, DefaultPvcClaimSize)
 	workspacePvcStorageClassName := cr.Spec.Storage.WorkspacePVCStorageClassName
-	
+
 	defaultPVCJobsImage := DefaultPvcJobsUpstreamImage
 	if cheFlavor == "codeready" {
 		defaultPVCJobsImage = DefaultPvcJobsImage
@@ -154,6 +156,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	keycloakClientId := util.GetValue(cr.Spec.Auth.KeycloakClientId, cheFlavor+"-public")
 	ingressStrategy := util.GetValue(cr.Spec.K8SOnly.IngressStrategy, DefaultIngressStrategy)
 	ingressClass := util.GetValue(cr.Spec.K8SOnly.IngressClass, DefaultIngressClass)
+	devfileRegistryUrl := util.GetValue(cr.Spec.Server.DevfileRegistryUrl, DefaultDevfileRegistryUrl)
 	pluginRegistryUrl := util.GetValue(cr.Spec.Server.PluginRegistryUrl, DefaultPluginRegistryUrl)
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
@@ -192,6 +195,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspaceHttpsProxy:          cheWorkspaceHttpProxy,
 		WorkspaceNoProxy:             cheWorkspaceNoProxy,
 		PluginRegistryUrl:            pluginRegistryUrl,
+		DevfileRegistryUrl:           devfileRegistryUrl,
 	}
 
 	out, err := json.Marshal(data)
