@@ -22,6 +22,8 @@ rules:
       - get
       - delete
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - config.openshift.io

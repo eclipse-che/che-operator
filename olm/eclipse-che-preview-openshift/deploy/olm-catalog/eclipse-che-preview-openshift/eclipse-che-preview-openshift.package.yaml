@@ -1,0 +1,7 @@
+packageName: eclipse-che-preview-openshift
+channels:
+- name: stable
+  currentCSV: eclipse-che-preview-openshift.v7.0.0-rc-2.0
+- name: nightly
+  currentCSV: eclipse-che-preview-openshift.v9.9.9-nightly.1561994908
+defaultChannel: stable

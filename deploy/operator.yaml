@@ -16,30 +16,32 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      name: che-operator
+      app: che-operator
   template:
     metadata:
       labels:
-        name: che-operator
+        app: che-operator
     spec:
-      serviceAccountName: che-operator
       containers:
         - name: che-operator
-          image: quay.io/eclipse-che/che-operator:7.0.0-beta-5.0
+          image: quay.io/eclipse-che/che-operator:nightly
           ports:
           - containerPort: 60000
             name: metrics
           command:
-          - che-operator
-          imagePullPolicy: IfNotPresent
-          readinessProbe:
-            exec:
-              command:
-                - stat
-                - /tmp/operator-sdk-ready
-            initialDelaySeconds: 4
-            periodSeconds: 10
-            failureThreshold: 1
+          - /usr/local/bin/che-operator
+          imagePullPolicy: Always
+#          TODO: to be uncommented when issue
+#          https://github.com/operator-framework/operator-sdk/issues/1234
+#          is fixed
+#          readinessProbe:
+#            exec:
+#              command:
+#                - stat
+#                - /tmp/operator-sdk-ready
+#            initialDelaySeconds: 4
+#            periodSeconds: 10
+#            failureThreshold: 1
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -51,3 +53,6 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "che-operator"
+      restartPolicy: Always
+      serviceAccountName: che-operator
+      terminationGracePeriodSeconds: 5
