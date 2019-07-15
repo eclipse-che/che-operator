@@ -52,7 +52,7 @@ metadata:
       developer workspaces.
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v0.0.0-nightly.1562083645
+  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1562083645
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -321,4 +321,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 0.0.0-nightly.1562083645
+  version: 9.9.9-nightly.1562083645

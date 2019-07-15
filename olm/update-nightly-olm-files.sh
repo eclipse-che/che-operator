@@ -25,7 +25,7 @@ do
   packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
   lastPackageVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
   echo "   - Last package version: ${lastPackageVersion}"
-  newNightlyPackageVersion="0.0.0-nightly.$(date +%s)"
+  newNightlyPackageVersion="9.9.9-nightly.$(date +%s)"
   echo "     => will create a new version: ${newNightlyPackageVersion}"
   ./build-roles.sh
   for role in "$(pwd)"/generated/roles/*.yaml

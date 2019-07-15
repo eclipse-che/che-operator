@@ -49,7 +49,7 @@ metadata:
       developer workspaces in OpenShift.
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v0.0.0-nightly.1561994908
+  name: eclipse-che-preview-openshift.v9.9.9-nightly.1561994908
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -356,4 +356,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 0.0.0-nightly.1561994908
+  version: 9.9.9-nightly.1561994908
