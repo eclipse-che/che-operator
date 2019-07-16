@@ -33,13 +33,26 @@ do
     echo "   - Updating new package version with roles defined in: ${role}"
     cp "$role" generated/current-role.yaml
     operator-sdk olm-catalog gen-csv --csv-version "${newNightlyPackageVersion}" --from-version="${lastPackageVersion}" 2>&1 | sed -e 's/^/      /'
+
+    containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml")
+    createdAt=$(date -u +%FT%TZ)
+    echo "   - Updating new package version fields:"
+    echo "       - containerImage => ${containerImage}" 
+    echo "       - createdAt => ${createdAt}" 
+    sed \
+    -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
+    -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" \
+    "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml" \
+    > "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new"
+    
+    mv "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new" \
+    "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml"
+
   done
   echo "   - Copying the CRD file"
   cp "${packageFolderPath}/${lastPackageVersion}/eclipse-che-preview-${platform}.crd.yaml" "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"
   echo "   - Updating the 'nightly' channel with new version in the package descriptor: ${packageFilePath}"
-  echo "     (the previous one is saved with the .old suffix)"
   sed -e "s/${lastPackageVersion}/${newNightlyPackageVersion}/" "${packageFilePath}" > "${packageFilePath}.new"
-  mv "${packageFilePath}" "${packageFilePath}.old"
   mv "${packageFilePath}.new" "${packageFilePath}"
 done
 cd "${CURRENT_DIR}"
