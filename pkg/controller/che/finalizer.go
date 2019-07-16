@@ -1,6 +1,7 @@
 package che
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -20,12 +21,13 @@ func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error
 			oAuthClientName := instance.Spec.Auth.OauthClientName
 			logrus.Infof("Custom resource %s is being deleted. Deleting oAuthClient %s first", instance.Name, oAuthClientName)
 			oAuthClient, err := r.GetOAuthClient(oAuthClientName)
-			if err != nil {
+			if err == nil {
+				if err := r.client.Delete(context.TODO(), oAuthClient); err != nil {
+					logrus.Errorf("Failed to delete %s oAuthClient: %s", oAuthClientName, err)
+					return err
+				}
+			} else if !errors.IsNotFound(err) {
 				logrus.Errorf("Failed to get %s oAuthClient: %s", oAuthClientName, err)
-				return err
-			}
-			if err := r.client.Delete(context.TODO(), oAuthClient); err != nil {
-				logrus.Errorf("Failed to delete %s oAuthClient: %s", oAuthClientName, err)
 				return err
 			}
 			instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, oAuthFinalizerName)
