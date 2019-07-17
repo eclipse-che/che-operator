@@ -470,17 +470,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	pluginRegistryUrl := util.GetValue(instance.Spec.Server.PluginRegistryUrl, deploy.DefaultUpstreamPluginRegistryUrl)
-	if cheFlavor == "codeready" {
-		pluginRegistryUrl = deploy.DefaultPluginRegistryUrl
-	}
 
-	if len(instance.Spec.Server.PluginRegistryUrl) < 1 {
-		instance.Spec.Server.PluginRegistryUrl = pluginRegistryUrl
-		if err := r.UpdateCheCRSpec(instance, "plugin registry URL", pluginRegistryUrl); err != nil {
-			return err
-		}
-	}
 	cheLogLevel := util.GetValue(instance.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
 	if len(instance.Spec.Server.CheLogLevel) < 1 {
 		instance.Spec.Server.CheLogLevel = cheLogLevel

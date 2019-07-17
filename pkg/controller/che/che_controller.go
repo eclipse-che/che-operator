@@ -367,6 +367,37 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
+	// Create Plugin registry resources unless an external registry is used
+	externalPluginRegistry := instance.Spec.Server.ExternalPluginRegistry
+	if !externalPluginRegistry {
+		// Create a new che-plugin-registry service
+		pluginRegistryLabels := deploy.GetLabels(instance, "che-plugin-registry")
+		pluginRegistryService := deploy.NewService(instance, "che-plugin-registry", []string{"http"}, []int32{8080}, pluginRegistryLabels)
+		if err := r.CreateService(instance,pluginRegistryService); err != nil {
+			return reconcile.Result{}, err
+		}
+		// Create a new plugin registry deployment
+		pluginRegistryDeployment := deploy.NewPluginRegistryDeployment(instance)
+		if err := r.CreateNewDeployment(instance, pluginRegistryDeployment); err != nil {
+			return reconcile.Result{}, err
+		}
+		time.Sleep(time.Duration(1) * time.Second)
+		pluginDeployment, err := r.GetEffectiveDeployment(instance, pluginRegistryDeployment.Name)
+		if err != nil {
+			logrus.Errorf("Failed to get %s deployment: %s", pluginRegistryDeployment.Name, err)
+			return reconcile.Result{}, err
+		}
+		if !tests {
+			if pluginDeployment.Status.AvailableReplicas != 1 {
+				scaled := k8sclient.GetDeploymentStatus("che-plugin-registry", instance.Namespace)
+				if !scaled {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+				}
+			}
+		}
+	}
+
 	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
 	ingressStrategy := util.GetValue(instance.Spec.K8SOnly.IngressStrategy, deploy.DefaultIngressStrategy)
 	ingressDomain := instance.Spec.K8SOnly.IngressDomain
@@ -375,6 +406,85 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if tlsSupport {
 		protocol = "https"
 	}
+
+	// Create devfile registry resources unless an external registry is used
+	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
+	if !externalDevfileRegistry {
+		// Create a new che-plugin-registry service
+		devfileRegistryLabels := deploy.GetLabels(instance, "che-devfile-registry")
+		devfileRegistryService := deploy.NewService(instance, "che-devfile-registry", []string{"http"}, []int32{8080}, devfileRegistryLabels)
+		if err := r.CreateService(instance,devfileRegistryService); err != nil {
+			return reconcile.Result{}, err
+		}
+		// Create a new devfile registry deployment
+		devfileRegistryDeployment := deploy.NewDevfileRegistryDeployment(instance)
+		if err := r.CreateNewDeployment(instance, devfileRegistryDeployment); err != nil {
+			return reconcile.Result{}, err
+		}
+		time.Sleep(time.Duration(1) * time.Second)
+		devfileDeployment, err := r.GetEffectiveDeployment(instance, devfileRegistryDeployment.Name)
+		if err != nil {
+			logrus.Errorf("Failed to get %s deployment: %s", devfileRegistryDeployment.Name, err)
+			return reconcile.Result{}, err
+		}
+		if !tests {
+			if devfileDeployment.Status.AvailableReplicas != 1 {
+				scaled := k8sclient.GetDeploymentStatus("che-devfile-registry", instance.Namespace)
+				if !scaled {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+				}
+			}
+		}
+
+		addRegistryRoute := func (registryName string) (string, error) {
+			host := ""
+			if !isOpenShift {
+				ingress := deploy.NewIngress(instance, registryName, registryName, 8080)
+				if err := r.CreateNewIngress(instance, ingress); err != nil {
+					return "", err
+				}
+				host = ingressDomain
+				if ingressStrategy == "multi-host" {
+					host = registryName + "-" + instance.Namespace + "." + ingressDomain
+				}
+			} else {
+				route := deploy.NewRoute(instance, registryName, registryName, 8080)
+				if tlsSupport {
+					route = deploy.NewTlsRoute(instance, registryName, registryName, 8080)
+				}
+				if err := r.CreateNewRoute(instance, route); err != nil {
+					return "", err
+				}
+				host = route.Spec.Host
+				if len(host) < 1 {
+					cheRoute := r.GetEffectiveRoute(instance, route.Name)
+					host = cheRoute.Spec.Host
+				}
+			}
+			if instance.Spec.Server.TlsSupport {
+				return "https://" + host, nil
+			} else {
+				return "http://" + host, nil
+			}
+		}
+		
+		devfileRegistryURL, err := addRegistryRoute("che-devfile-registry")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		deploy.DefaultDevfileRegistryUrl = devfileRegistryURL
+	
+		pluginRegistryURL, err := addRegistryRoute("che-plugin-registry")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if cheFlavor != "codeready" {
+			pluginRegistryURL += "/v3"
+		}
+		deploy.DefaultUpstreamPluginRegistryUrl = pluginRegistryURL
+		deploy.DefaultPluginRegistryUrl = pluginRegistryURL
+	}
+
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 

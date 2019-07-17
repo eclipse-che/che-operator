@@ -157,7 +157,11 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	ingressStrategy := util.GetValue(cr.Spec.K8SOnly.IngressStrategy, DefaultIngressStrategy)
 	ingressClass := util.GetValue(cr.Spec.K8SOnly.IngressClass, DefaultIngressClass)
 	devfileRegistryUrl := util.GetValue(cr.Spec.Server.DevfileRegistryUrl, DefaultDevfileRegistryUrl)
-	pluginRegistryUrl := util.GetValue(cr.Spec.Server.PluginRegistryUrl, DefaultPluginRegistryUrl)
+	defaultPluginRegistryUrl := DefaultUpstreamPluginRegistryUrl
+	if cheFlavor == "codeready" {
+		defaultPluginRegistryUrl = DefaultPluginRegistryUrl
+	}
+	pluginRegistryUrl := util.GetValue(cr.Spec.Server.PluginRegistryUrl, defaultPluginRegistryUrl)
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 
