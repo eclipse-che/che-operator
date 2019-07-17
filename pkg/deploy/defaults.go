@@ -12,6 +12,12 @@
 // REMINDER: when updating versions below, see also pkg/apis/org/v1/che_types.go and deploy/crds/org_v1_che_cr.yaml
 package deploy
 
+var (
+	DefaultUpstreamPluginRegistryUrl = "http://che-plugin-registry:8080/v3"
+	DefaultPluginRegistryUrl         = "https://che-plugin-registry.openshift.io"
+	DefaultDevfileRegistryUrl        = "http://che-devfile-registry:8080"
+)
+
 const (
 	DefaultCheServerImageRepo        = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo  = "registry.redhat.io/codeready-workspaces/server-rhel8"
@@ -26,19 +32,22 @@ const (
 	DefaultPvcClaimSize              = "1Gi"
 	DefaultIngressStrategy           = "multi-host"
 	DefaultIngressClass              = "nginx"
-	DefaultPluginRegistryUrl         = "https://che-plugin-registry.openshift.io"
-	DefaultUpstreamPluginRegistryUrl = "https://che-plugin-registry.openshift.io/v3"
-	DefaultDevfileRegistryUrl        = "https://che-devfile-registry.openshift.io"
-	DefaultKeycloakAdminUserName     = "admin"
-	DefaultCheLogLevel               = "INFO"
-	DefaultCheDebug                  = "false"
-	DefaultPvcJobsImage              = "registry.redhat.io/ubi8-minimal:8.0-127"
-	DefaultPvcJobsUpstreamImage      = "registry.access.redhat.com/ubi8-minimal:8.0-127"
-	DefaultPostgresImage             = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-40"
-	DefaultPostgresUpstreamImage     = "centos/postgresql-96-centos7:9.6"
-	DefaultKeycloakImage             = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-11"
-	DefaultKeycloakUpstreamImage     = "eclipse/che-keycloak:7.0.0-RC-2.0"
-	DefaultJavaOpts                  = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
+	DefaultPluginRegistryImage       = "quay.io/eclipse/che-devfile-registry:7.0.0-RC-2.0"
+	DefaultPluginRegistryPullPolicy  = "Always"
+	DefaultPluginRegistryMemoryLimit = "256Mi"
+	DefaultDevfileRegistryImage      = "quay.io/eclipse/che-devfile-registry:7.0.0-RC-2.0"
+	DefaultDevfileRegistryPullPolicy = "Always"
+	DefaultDevfileRegistryMemoryLimit= "256Mi"
+	DefaultKeycloakAdminUserName = "admin"
+	DefaultCheLogLevel           = "INFO"
+	DefaultCheDebug              = "false"
+	DefaultPvcJobsImage          = "registry.redhat.io/ubi8-minimal:8.0-127"
+	DefaultPvcJobsUpstreamImage  = "registry.access.redhat.com/ubi8-minimal:8.0-127"
+	DefaultPostgresImage         = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-40"
+	DefaultPostgresUpstreamImage = "centos/postgresql-96-centos7:9.6"
+	DefaultKeycloakImage         = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-11"
+	DefaultKeycloakUpstreamImage = "eclipse/che-keycloak:7.0.0-RC-2.0"
+	DefaultJavaOpts              = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
 		"-Dsun.zip.disableMemoryMapping=true -Xms20m"
