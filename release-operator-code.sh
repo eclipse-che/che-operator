@@ -30,21 +30,27 @@ cd "${BASE_DIR}"
 echo
 echo "## Creating release '${RELEASE}' of the Che operator docker image"
 
+DefaultPluginRegistryImage
+
 lastDefaultCheVersion=$(grep 'DefaultCheServerImageTag' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultCheServerImageTag *= *"\([^"]*\)"/\1/')
 lastDefaultKeycloakVersion=$(grep 'DefaultKeycloakUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultKeycloakUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultPluginRegistryVersion=$(grep 'DefaultPluginRegistryImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultPluginRegistryImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultDevfileRegistryVersion=$(grep 'DefaultDevfileRegistryImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultDevfileRegistryImage *= *"[^":]*:\([^"]*\)"/\1/')
 if [ "${lastDefaultCheVersion}" != "${lastDefaultKeycloakVersion}" ]
 then
   echo "#### ERROR ####"
   echo "Current default Che version: ${lastDefaultCheVersion}"
   echo "Current default Keycloak version: ${lastDefaultKeycloakVersion}"
-  echo "Current default version for Che and keycloak are not the same in file 'pkg/deploy/defaults.go'."
+  echo "Current default Devfile Registry version: ${lastDefaultDevfileRegistryVersion}"
+  echo "Current default Plugin Registry version: ${lastDefaultPluginRegistryVersion}"
+  echo "Current default version for various Che containers are not the same in file 'pkg/deploy/defaults.go'."
   echo "Please fix that manually first !"
   exit 1
 fi
 
 lastDefaultVersion="${lastDefaultCheVersion}"
-echo "   - Current default Che and Keycloak version: ${lastDefaultVersion}"
-echo "   - New version to apply as default Che and Keycloak version: ${RELEASE}"
+echo "   - Current default version of Che containers: ${lastDefaultVersion}"
+echo "   - New version to apply as default version for Che containers: ${RELEASE}"
 if [ "${lastDefaultVersion}" == "${RELEASE}" ]
 then
   echo "Release ${RELEASE} already exists as the default in the Operator Go code !"
@@ -56,6 +62,8 @@ echo "     => will update default Eclipse Che Keycloak docker image tags from '$
 sed \
 -e "s/\(.*DefaultCheServerImageTag *= *\"\)[^\"]*\"/\1${RELEASE}\"/" \
 -e "s/\(.*DefaultKeycloakUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
+-e "s/\(.*DefaultPluginRegistryImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
+-e "s/\(.*DefaultDevfileRegistryImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
 pkg/deploy/defaults.go \
 > pkg/deploy/defaults.go.new
 mv pkg/deploy/defaults.go.new pkg/deploy/defaults.go
