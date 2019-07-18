@@ -61,8 +61,8 @@ type CheConfigMap struct {
 	WorkspaceHttpProxy           string `json:"CHE_WORKSPACE_HTTP__PROXY"`
 	WorkspaceHttpsProxy          string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
 	WorkspaceNoProxy             string `json:"CHE_WORKSPACE_NO__PROXY"`
-	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL"`
-	DevfileRegistryUrl           string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL"`
+	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL",omitempty`
+	DevfileRegistryUrl           string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 }
 
@@ -156,12 +156,11 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	keycloakClientId := util.GetValue(cr.Spec.Auth.KeycloakClientId, cheFlavor+"-public")
 	ingressStrategy := util.GetValue(cr.Spec.K8SOnly.IngressStrategy, DefaultIngressStrategy)
 	ingressClass := util.GetValue(cr.Spec.K8SOnly.IngressClass, DefaultIngressClass)
-	devfileRegistryUrl := util.GetValue(cr.Spec.Server.DevfileRegistryUrl, DefaultDevfileRegistryUrl)
-	defaultPluginRegistryUrl := DefaultUpstreamPluginRegistryUrl
-	if cheFlavor == "codeready" {
-		defaultPluginRegistryUrl = DefaultPluginRegistryUrl
+	devfileRegistryUrl := cr.Status.DevfileRegistryURL
+	pluginRegistryUrl := cr.Status.PluginRegistryURL
+	if pluginRegistryUrl == "" && cheFlavor == "codeready" {
+		pluginRegistryUrl = DefaultCodereadyPluginRegistryUrl
 	}
-	pluginRegistryUrl := util.GetValue(cr.Spec.Server.PluginRegistryUrl, defaultPluginRegistryUrl)
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 

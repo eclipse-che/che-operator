@@ -195,6 +195,10 @@ type CheClusterStatus struct {
 	CheURL string `json:"cheURL"`
 	// KeycloakURL is Keycloak protocol+route/ingress
 	KeycloakURL string `json:"keycloakURL"`
+	// DevfileRegistryURL is the Devfile registry protocol+route/ingress
+	DevfileRegistryURL string `json:"devfileRegistryURL"`
+	// PluginRegistryURL is the Plugin registry protocol+route/ingress
+	PluginRegistryURL string `json:"pluginRegistryURL"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

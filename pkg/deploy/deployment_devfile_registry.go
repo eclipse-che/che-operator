@@ -13,7 +13,6 @@ package deploy
 
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -21,13 +20,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewDevfileRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
-	name := "che-devfile-registry"
+func NewRegistryDeployment(
+		cr *orgv1.CheCluster, 
+		registryType string,
+		registryImage string,
+		registryImagePullPolicy corev1.PullPolicy,
+		registryMemoryLimit string,
+		registryMemoryRequest string,
+	) *appsv1.Deployment {
+	name := "che-" + registryType + "-registry"
 	labels := GetLabels(cr, name)
-	devfileRegistryImage := util.GetValue(cr.Spec.Server.DevfileRegistryImage, DefaultDevfileRegistryImage)
-	devfileRegistryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.DevfileRegistryImagePullPolicy), DefaultDevfileRegistryPullPolicy))
-	devfileRegistryMemoryLimit := util.GetValue(string(cr.Spec.Server.DevfileRegistryMemoryLimit), DefaultDevfileRegistryMemoryLimit)
-	devfileRegistryMemoryRequest := util.GetValue(string(cr.Spec.Server.DevfileRegistryMemoryRequest), DefaultDevfileRegistryMemoryRequest)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)
@@ -60,8 +62,8 @@ func NewDevfileRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:            name,
-							Image:           devfileRegistryImage,
-							ImagePullPolicy: devfileRegistryImagePullPolicy,
+							Image:           registryImage,
+							ImagePullPolicy: registryImagePullPolicy,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
@@ -71,16 +73,16 @@ func NewDevfileRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(devfileRegistryMemoryRequest),
+									corev1.ResourceMemory: resource.MustParse(registryMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(devfileRegistryMemoryLimit),
+									corev1.ResourceMemory: resource.MustParse(registryMemoryLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/devfiles/",
+										Path: "/" + registryType + "s/",
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(8080),
@@ -95,7 +97,7 @@ func NewDevfileRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/devfiles/",
+										Path: "/" + registryType + "s/",
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(8080),

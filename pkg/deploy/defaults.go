@@ -12,12 +12,6 @@
 // REMINDER: when updating versions below, see also pkg/apis/org/v1/che_types.go and deploy/crds/org_v1_che_cr.yaml
 package deploy
 
-var (
-	DefaultUpstreamPluginRegistryUrl = "http://che-plugin-registry:8080/v3"
-	DefaultPluginRegistryUrl         = "https://che-plugin-registry.openshift.io"
-	DefaultDevfileRegistryUrl        = "http://che-devfile-registry:8080"
-)
-
 const (
 	DefaultCheServerImageRepo           = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
@@ -36,6 +30,7 @@ const (
 	DefaultPluginRegistryPullPolicy     = "Always"
 	DefaultPluginRegistryMemoryLimit    = "32Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
+	DefaultCodereadyPluginRegistryUrl   = "https://che-plugin-registry.openshift.io"
 	DefaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0-RC-2.0"
 	DefaultDevfileRegistryPullPolicy    = "Always"
 	DefaultDevfileRegistryMemoryLimit   = "32Mi"
