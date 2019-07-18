@@ -27,6 +27,7 @@ func NewDevfileRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 	devfileRegistryImage := util.GetValue(cr.Spec.Server.DevfileRegistryImage, DefaultDevfileRegistryImage)
 	devfileRegistryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.DevfileRegistryImagePullPolicy), DefaultDevfileRegistryPullPolicy))
 	devfileRegistryMemoryLimit := util.GetValue(string(cr.Spec.Server.DevfileRegistryMemoryLimit), DefaultDevfileRegistryMemoryLimit)
+	devfileRegistryMemoryRequest := util.GetValue(string(cr.Spec.Server.DevfileRegistryMemoryRequest), DefaultDevfileRegistryMemoryRequest)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)
@@ -70,7 +71,7 @@ func NewDevfileRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(devfileRegistryMemoryLimit),
+									corev1.ResourceMemory: resource.MustParse(devfileRegistryMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse(devfileRegistryMemoryLimit),

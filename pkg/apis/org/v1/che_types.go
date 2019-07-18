@@ -59,6 +59,8 @@ type CheClusterSpecServer struct {
 	DevfileRegistryImagePullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy"`
 	// DevfileRegistryMemoryLimit is the memory limit used in Devfile registry deployment
 	DevfileRegistryMemoryLimit string `json:"devfileRegistryMemoryLimit"`
+	// DevfileRegistryMemoryRequest is the memory request used in Devfile registry deployment
+	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest"`
 	// ExternalDevfileRegistry instructs operator on whether or not to deploy a dedicated Devfile registry server
 	// By default a dedicated devfile registry server is started.
 	// But if ExternalDevfileRegistry is `true`, then no such dedicated server will be started by the operator
@@ -71,6 +73,8 @@ type CheClusterSpecServer struct {
 	PluginRegistryImagePullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy"`
 	// PluginRegistryMemoryLimit is the memory limit used in Plugin registry deployment
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit"`
+	// PluginRegistryMemoryRequest is the memory request used in Plugin registry deployment
+	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest"`
 	// ExternalPluginRegistry instructs operator on whether or not to deploy a dedicated Plugin registry server
 	// By default a dedicated plugin registry server is started.
 	// But if ExternalPluginRegistry is `true`, then no such dedicated server will be started by the operator

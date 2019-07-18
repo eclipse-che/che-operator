@@ -27,6 +27,7 @@ func NewPluginRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 	pluginRegistryImage := util.GetValue(cr.Spec.Server.PluginRegistryImage, DefaultPluginRegistryImage)
 	pluginRegistryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.PluginRegistryImagePullPolicy), DefaultPluginRegistryPullPolicy))
 	pluginRegistryMemoryLimit := util.GetValue(string(cr.Spec.Server.PluginRegistryMemoryLimit), DefaultPluginRegistryMemoryLimit)
+	pluginRegistryMemoryRequest := util.GetValue(string(cr.Spec.Server.PluginRegistryMemoryRequest), DefaultPluginRegistryMemoryRequest)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)
@@ -70,7 +71,7 @@ func NewPluginRegistryDeployment(cr *orgv1.CheCluster) *appsv1.Deployment {
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(pluginRegistryMemoryLimit),
+									corev1.ResourceMemory: resource.MustParse(pluginRegistryMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse(pluginRegistryMemoryLimit),
