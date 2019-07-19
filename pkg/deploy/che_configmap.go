@@ -61,7 +61,7 @@ type CheConfigMap struct {
 	WorkspaceHttpProxy           string `json:"CHE_WORKSPACE_HTTP__PROXY"`
 	WorkspaceHttpsProxy          string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
 	WorkspaceNoProxy             string `json:"CHE_WORKSPACE_NO__PROXY"`
-	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL",omitempty`
+	PluginRegistryUrl            string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
 	DevfileRegistryUrl           string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 }
