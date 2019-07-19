@@ -13,6 +13,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -52,8 +53,32 @@ type CheClusterSpecServer struct {
 	TlsSupport bool `json:"tlsSupport"`
 	// DevfileRegistryUrl is an endpoint serving sample ready-to-use devfiles. Defaults to https://che-devfile-registry.openshift.io
 	DevfileRegistryUrl string `json:"devfileRegistryUrl"`
+	// DevfileRegistryImage is image:tag used in Devfile registry deployment
+	DevfileRegistryImage string `json:"devfileRegistryImage"`
+	// DevfileRegistryImagePullPolicy is the image pull policy used in Devfile registry deployment
+	DevfileRegistryImagePullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy"`
+	// DevfileRegistryMemoryLimit is the memory limit used in Devfile registry deployment
+	DevfileRegistryMemoryLimit string `json:"devfileRegistryMemoryLimit"`
+	// DevfileRegistryMemoryRequest is the memory request used in Devfile registry deployment
+	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest"`
+	// ExternalDevfileRegistry instructs operator on whether or not to deploy a dedicated Devfile registry server
+	// By default a dedicated devfile registry server is started.
+	// But if ExternalDevfileRegistry is `true`, then no such dedicated server will be started by the operator
+	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
 	// PluginRegistryUrl is an endpoint serving plugin definitions. Defaults to https://che-plugin-registry.openshift.io
 	PluginRegistryUrl string `json:"pluginRegistryUrl"`
+	// PluginRegistryImage is image:tag used in Plugin registry deployment
+	PluginRegistryImage string `json:"pluginRegistryImage"`
+	// PluginRegistryImagePullPolicy is the image pull policy used in Plugin registry deployment
+	PluginRegistryImagePullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy"`
+	// PluginRegistryMemoryLimit is the memory limit used in Plugin registry deployment
+	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit"`
+	// PluginRegistryMemoryRequest is the memory request used in Plugin registry deployment
+	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest"`
+	// ExternalPluginRegistry instructs operator on whether or not to deploy a dedicated Plugin registry server
+	// By default a dedicated plugin registry server is started.
+	// But if ExternalPluginRegistry is `true`, then no such dedicated server will be started by the operator
+	ExternalPluginRegistry bool `json:"externalPluginRegistry"`
 	// ProxyURL is protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
 	// to Che server and workspaces containers
 	ProxyURL string `json:"proxyURL"`
@@ -170,6 +195,10 @@ type CheClusterStatus struct {
 	CheURL string `json:"cheURL"`
 	// KeycloakURL is Keycloak protocol+route/ingress
 	KeycloakURL string `json:"keycloakURL"`
+	// DevfileRegistryURL is the Devfile registry protocol+route/ingress
+	DevfileRegistryURL string `json:"devfileRegistryURL"`
+	// PluginRegistryURL is the Plugin registry protocol+route/ingress
+	PluginRegistryURL string `json:"pluginRegistryURL"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

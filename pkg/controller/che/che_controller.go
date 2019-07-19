@@ -367,6 +367,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
 	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
 	ingressStrategy := util.GetValue(instance.Spec.K8SOnly.IngressStrategy, deploy.DefaultIngressStrategy)
 	ingressDomain := instance.Spec.K8SOnly.IngressDomain
@@ -375,6 +376,150 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if tlsSupport {
 		protocol = "https"
 	}
+
+	addRegistryRoute := func (registryType string) (string, error) {
+		registryName := "che-" + registryType + "-registry"
+		host := ""
+		if !isOpenShift {
+			ingress := deploy.NewIngress(instance, registryName, registryName, 8080)
+			if err := r.CreateNewIngress(instance, ingress); err != nil {
+				return "", err
+			}
+			host = ingressDomain
+			if ingressStrategy == "multi-host" {
+				host = registryName + "-" + instance.Namespace + "." + ingressDomain
+			}
+		} else {
+			route := deploy.NewRoute(instance, registryName, registryName, 8080)
+			if tlsSupport {
+				route = deploy.NewTlsRoute(instance, registryName, registryName, 8080)
+			}
+			if err := r.CreateNewRoute(instance, route); err != nil {
+				return "", err
+			}
+			host = route.Spec.Host
+			if len(host) < 1 {
+				cheRoute := r.GetEffectiveRoute(instance, route.Name)
+				host = cheRoute.Spec.Host
+			}
+		}
+		return protocol + "://" + host, nil
+	}
+
+	addRegistryDeployment := func (
+		registryType string,
+		registryImage string,
+		registryImagePullPolicy corev1.PullPolicy,
+		registryMemoryLimit string,
+		registryMemoryRequest string,
+	) (*reconcile.Result, error) {
+		registryName := "che-" + registryType + "-registry"
+
+		// Create a new registry service
+		registryLabels := deploy.GetLabels(instance, registryName)
+		registryService := deploy.NewService(instance, registryName, []string{"http"}, []int32{8080}, registryLabels)
+		if err := r.CreateService(instance,registryService); err != nil {
+			return &reconcile.Result{}, err
+		}
+		// Create a new registry deployment
+		registryDeployment := deploy.NewRegistryDeployment(
+			instance,
+			registryType,
+			registryImage,
+			registryImagePullPolicy,
+			registryMemoryLimit,
+			registryMemoryRequest,
+		)
+		if err := r.CreateNewDeployment(instance, registryDeployment); err != nil {
+			return &reconcile.Result{}, err
+		}
+		time.Sleep(time.Duration(1) * time.Second)
+		effectiveDeployment, err := r.GetEffectiveDeployment(instance, registryDeployment.Name)
+		if err != nil {
+			logrus.Errorf("Failed to get %s deployment: %s", registryDeployment.Name, err)
+			return &reconcile.Result{}, err
+		}
+		if !tests {
+			if effectiveDeployment.Status.AvailableReplicas != 1 {
+				scaled := k8sclient.GetDeploymentStatus(registryName, instance.Namespace)
+				if !scaled {
+					return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+				}
+			}
+			if effectiveDeployment.Spec.Template.Spec.Containers[0].Image != registryImage {
+				newDeployment := deploy.NewRegistryDeployment(
+					instance,
+					registryType,
+					registryImage,
+					registryImagePullPolicy,
+					registryMemoryLimit,
+					registryMemoryRequest,
+				)
+				logrus.Infof("Updating %s registry deployment with an image %s", registryType, registryImage)
+				if err := controllerutil.SetControllerReference(instance, newDeployment, r.scheme); err != nil {
+					logrus.Errorf("An error occurred: %s", err)
+				}
+				if err := r.client.Update(context.TODO(), newDeployment); err != nil {
+					logrus.Errorf("Failed to update %s registry deployment: %s", registryType, err)
+				}
+			}
+		}
+		return nil, nil
+	}
+
+	// Create Plugin registry resources unless an external registry is used
+	externalPluginRegistry := instance.Spec.Server.ExternalPluginRegistry
+	if !externalPluginRegistry {
+		pluginRegistryURL, err := addRegistryRoute("plugin")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if cheFlavor != "codeready" {
+			pluginRegistryURL += "/v3"
+		}
+		instance.Status.PluginRegistryURL = pluginRegistryURL
+		if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
+
+		result, err := addRegistryDeployment(
+			"plugin",
+			util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage),
+			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPluginRegistryPullPolicy)),
+			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryLimit), deploy.DefaultPluginRegistryMemoryLimit),
+			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryRequest), deploy.DefaultPluginRegistryMemoryRequest),
+		)
+		if err != nil || result != nil {
+			return *result, err
+		}
+	}
+
+	// Create devfile registry resources unless an external registry is used
+	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
+	if !externalDevfileRegistry {
+		devfileRegistryURL, err := addRegistryRoute("devfile")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		instance.Status.DevfileRegistryURL = devfileRegistryURL
+		if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
+
+		result, err := addRegistryDeployment(
+			"devfile",
+			util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage),
+			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.DevfileRegistryImagePullPolicy), deploy.DefaultDevfileRegistryPullPolicy)),
+			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryLimit), deploy.DefaultDevfileRegistryMemoryLimit),
+			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryRequest), deploy.DefaultDevfileRegistryMemoryRequest),
+		)
+		if err != nil || result != nil {
+			return *result, err
+		}
+	}
+
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 

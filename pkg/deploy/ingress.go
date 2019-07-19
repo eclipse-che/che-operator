@@ -27,11 +27,8 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 	}
 	ingressDomain := cr.Spec.K8SOnly.IngressDomain
 	ingressClass := util.GetValue(cr.Spec.K8SOnly.IngressClass, DefaultIngressClass)
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(cr, name)
 	tlsSecretName := cr.Spec.K8SOnly.TlsSecretName
-	if name == "keycloak" {
-		labels = GetLabels(cr, name)
-	}
 	tls := "false"
 	if tlsSupport {
 		tls = "true"
