@@ -26,7 +26,7 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	DefaultPluginRegistryImage          = "quay.io/eclipse/che-devfile-registry:7.0.0-RC-2.0"
+	DefaultPluginRegistryImage          = "quay.io/eclipse/che-plugin-registry:7.0.0-RC-2.0"
 	DefaultPluginRegistryPullPolicy     = "Always"
 	DefaultPluginRegistryMemoryLimit    = "32Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
