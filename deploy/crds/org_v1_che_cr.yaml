@@ -19,7 +19,11 @@ spec:
     # server image used in Che deployment
     cheImage: ''
     # tag of an image used in Che deployment
-    cheImageTag: ''
+    cheImageTag: 'nightly'
+    # image:tag used in Devfile registry deployment
+    devfileRegistryImage: 'quay.io/eclipse/che-devfile-registry:nightly'
+    # image:tag used in plugin registry deployment
+    pluginRegistryImage: 'quay.io/eclipse/che-plugin-registry:nighlty'
     # defaults to `che`. When set to `codeready`, CodeReady Workspaces is deployed
     # the difference is in images, labels, exec commands
     cheFlavor: ''
@@ -28,9 +32,9 @@ spec:
     cheWorkspaceClusterRole: ''
     # when set to true the operator will attempt to get a secret in OpenShift router namespace
     # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
-    selfSignedCert:
+    selfSignedCert: false
     # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
-    tlsSupport:
+    tlsSupport: false
     # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
     # to Che server and workspaces containers
     proxyURL: ''
@@ -51,7 +55,7 @@ spec:
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
     # otherwise a Postgres deployment is created
-    externalDb:
+    externalDb: false
     # Postgres Database hostname that Che server uses to connect to. Defaults to postgres
     chePostgresHostName: ''
     # Postgres Database port that Che server uses to connect to. Defaults to 5432
@@ -67,9 +71,9 @@ spec:
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
     # per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common
-    pvcStrategy: ''
+    pvcStrategy: 'per-workspace'
     # size of a persistent volume claim for workspaces. Defaults to 1Gi
-    pvcClaimSize: ''
+    pvcClaimSize: '1Gi'
     # instruct Che server to launch a special pod to precreate a subpath in a PV
     preCreateSubPaths: true
     # image:tag for preCreateSubPaths jobs
@@ -81,9 +85,9 @@ spec:
 
   auth:
     # instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
-    externalIdentityProvider:
+    externalIdentityProvider: false
     # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
-    identityProviderURL:
+    identityProviderURL: ''
     # password for keycloak database user. Auto generated if left blank
     keycloakPostgresPassword: ''
     # desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
@@ -96,13 +100,13 @@ spec:
     identityProviderClientId: ''
     # instructs an Operator to enable OpenShift v3 identity provider in Keycloak,
     # as well as create respective oAuthClient and configure Che configMap accordingly
-    openShiftoAuth:
+    openShiftoAuth: false
     # name of oAuthClient used in OpenShift v3 identity provider in Keycloak realm. Auto generated if left blank
     oAuthClientName: ''
     # secret used in oAuthClient. Auto generated if left blank
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
-    identityProviderImage: ''
+    identityProviderImage: 'eclipse/che-keycloak:nightly'
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
