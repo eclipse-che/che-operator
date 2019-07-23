@@ -27,8 +27,9 @@ func NewRegistryDeployment(
 		registryImagePullPolicy corev1.PullPolicy,
 		registryMemoryLimit string,
 		registryMemoryRequest string,
+		probePath string,
 	) *appsv1.Deployment {
-	name := "che-" + registryType + "-registry"
+	name := registryType + "-registry"
 	labels := GetLabels(cr, name)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
@@ -61,7 +62,7 @@ func NewRegistryDeployment(
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            name,
+							Name:            "che-" + name,
 							Image:           registryImage,
 							ImagePullPolicy: registryImagePullPolicy,
 							Ports: []corev1.ContainerPort{
