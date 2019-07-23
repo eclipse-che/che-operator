@@ -378,7 +378,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	addRegistryRoute := func (registryType string) (string, error) {
-		registryName := "che-" + registryType + "-registry"
+		registryName := registryType + "-registry"
 		host := ""
 		if !isOpenShift {
 			ingress := deploy.NewIngress(instance, registryName, registryName, 8080)
@@ -412,8 +412,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		registryImagePullPolicy corev1.PullPolicy,
 		registryMemoryLimit string,
 		registryMemoryRequest string,
+		probePath string,
 	) (*reconcile.Result, error) {
-		registryName := "che-" + registryType + "-registry"
+		registryName := registryType + "-registry"
 
 		// Create a new registry service
 		registryLabels := deploy.GetLabels(instance, registryName)
@@ -429,6 +430,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			registryImagePullPolicy,
 			registryMemoryLimit,
 			registryMemoryRequest,
+			probePath,
 		)
 		if err := r.CreateNewDeployment(instance, registryDeployment); err != nil {
 			return &reconcile.Result{}, err
@@ -454,6 +456,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					registryImagePullPolicy,
 					registryMemoryLimit,
 					registryMemoryRequest,
+					probePath,
 				)
 				logrus.Infof("Updating %s registry deployment with an image %s", registryType, registryImage)
 				if err := controllerutil.SetControllerReference(instance, newDeployment, r.scheme); err != nil {
@@ -489,6 +492,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPluginRegistryPullPolicy)),
 			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryLimit), deploy.DefaultPluginRegistryMemoryLimit),
 			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryRequest), deploy.DefaultPluginRegistryMemoryRequest),
+			"/v3/plugins/",
 		)
 		if err != nil || result != nil {
 			return *result, err
@@ -514,6 +518,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.DevfileRegistryImagePullPolicy), deploy.DefaultDevfileRegistryPullPolicy)),
 			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryLimit), deploy.DefaultDevfileRegistryMemoryLimit),
 			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryRequest), deploy.DefaultDevfileRegistryMemoryRequest),
+			"/devfiles/",
 		)
 		if err != nil || result != nil {
 			return *result, err
