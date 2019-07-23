@@ -3,5 +3,5 @@ channels:
 - name: stable
   currentCSV: eclipse-che-preview-openshift.v7.0.0-rc-2.0
 - name: nightly
-  currentCSV: eclipse-che-preview-openshift.v9.9.9-nightly.1563804657
+  currentCSV: eclipse-che-preview-openshift.v9.9.9-nightly.1563883406
 defaultChannel: stable
