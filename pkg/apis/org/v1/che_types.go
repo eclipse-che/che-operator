@@ -12,8 +12,8 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -35,6 +35,8 @@ type CheClusterSpecServer struct {
 	CheImage string `json:"cheImage"`
 	// CheImageTag is a tag of an image used in Che deployment
 	CheImageTag string `json:"cheImageTag"`
+	// CheImagePullPolicy is the image pull policy used in Che registry deployment: default value is Always
+	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy"`
 	// CheFlavor is an installation flavor. Can be 'che' - upstream or 'codeready' - CodeReady Workspaces. Defaults to 'che'
 	CheFlavor string `json:"cheFlavor"`
 	// CheHost is an env consumer by server. Detected automatically from Che route
@@ -113,6 +115,8 @@ type CheClusterSpecDB struct {
 	ChePostgresDb string `json:"chePostgresDb"`
 	// PostgresImage is an image used in Postgres deployment in format image:tag. Defaults to registry.redhat.io/rhscl/postgresql-96-rhel7 (see pkg/deploy/defaults.go for latest tag)
 	PostgresImage string `json:"postgresImage"`
+	// PostgresImagePullPolicy is the image pull policy used in Postgres registry deployment: default value is Always
+	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy"`
 }
 
 type CheClusterSpecAuth struct {
@@ -143,6 +147,8 @@ type CheClusterSpecAuth struct {
 	OauthSecret string `json:"oAuthSecret"`
 	// KeycloakImage is image:tag used in Keycloak deployment
 	KeycloakImage string `json:"identityProviderImage"`
+	// KeycloakImagePullPolicy is the image pull policy used in Keycloak registry deployment: default value is Always
+	KeycloakImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy"`
 }
 
 type CheClusterSpecStorage struct {
