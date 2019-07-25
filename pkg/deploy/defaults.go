@@ -17,6 +17,8 @@ const (
 	DefaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	DefaultCheServerImageTag            = "7.0.0-RC-2.0"
 	DefaultCodeReadyServerImageTag      = "1.2"
+	DefaultCheServerPullPolicy          = "Always"
+	DefaultCodeReadyServerPullPolicy    = "IfNotPresent"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
@@ -42,8 +44,11 @@ const (
 	DefaultPvcJobsUpstreamImage         = "registry.access.redhat.com/ubi8-minimal:8.0-127"
 	DefaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-40"
 	DefaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
+	DefaultPostgresPullPolicy           = "IfNotPresent"
 	DefaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-11"
 	DefaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.0.0-RC-2.0"
+	DefaultKeycloakPullPolicy           = "IfNotPresent"
+	DefaultKeycloakUpstreamPullPolicy   = "Always"
 	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +

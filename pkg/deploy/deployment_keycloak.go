@@ -26,6 +26,11 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	keycloakName := "keycloak"
 	labels := GetLabels(cr, keycloakName)
 	keycloakImage := util.GetValue(cr.Spec.Auth.KeycloakImage, DefaultKeycloakImage)
+	defaultPullPolicy := DefaultKeycloakUpstreamPullPolicy
+	if cheFlavor == "codeready" {
+		defaultPullPolicy = DefaultKeycloakPullPolicy
+	}
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Auth.KeycloakImagePullPolicy), defaultPullPolicy))
 	trustpass := util.GeneratePasswd(12)
 	jbossDir := "/opt/eap"
 	if cheFlavor == "che" {
@@ -246,7 +251,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 						{
 							Name:            keycloakName,
 							Image:           keycloakImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: pullPolicy,
 							Command: []string{
 								"/bin/sh",
 							},

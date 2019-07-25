@@ -47,6 +47,12 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 		}
 	}
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
+	defaultPullPolicy := DefaultCheServerPullPolicy
+	if cheFlavor == "codeready" {
+		defaultPullPolicy = DefaultCodeReadyServerPullPolicy
+	}
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), defaultPullPolicy))
+
 	cheDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -71,7 +77,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 					Containers: []corev1.Container{
 						{
 							Name:            cheFlavor,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: pullPolicy,
 							Image:           cheImage + ":" + cheTag,
 							Ports: []corev1.ContainerPort{
 								{
