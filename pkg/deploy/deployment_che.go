@@ -26,6 +26,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	optionalEnv := true
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
+	cheImageAndTag := cheImage + ":" + cheTag
 	memRequest := util.GetValue(cr.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
 	selfSignedCertEnv := corev1.EnvVar{
 		Name: "CHE_SELF__SIGNED__CERT",
@@ -47,11 +48,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 		}
 	}
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
-	defaultPullPolicy := DefaultCheServerPullPolicy
-	if cheFlavor == "codeready" {
-		defaultPullPolicy = DefaultCodeReadyServerPullPolicy
-	}
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), defaultPullPolicy))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
 
 	cheDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -78,7 +75,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 						{
 							Name:            cheFlavor,
 							ImagePullPolicy: pullPolicy,
-							Image:           cheImage + ":" + cheTag,
+							Image:           cheImageAndTag,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",

@@ -25,8 +25,7 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, "dbche")
 	postgresAdminPassword := util.GeneratePasswd(12)
 	postgresImage := util.GetValue(cr.Spec.Database.PostgresImage, DefaultPostgresImage)
-	defaultPullPolicy := DefaultPostgresPullPolicy
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Database.PostgresImagePullPolicy), defaultPullPolicy))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Database.PostgresImagePullPolicy), DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	name := "postgres"
 	labels := GetLabels(cr, name)

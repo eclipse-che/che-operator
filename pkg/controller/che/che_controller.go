@@ -486,10 +486,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 
+		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage)
 		result, err := addRegistryDeployment(
 			"plugin",
-			util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage),
-			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPluginRegistryPullPolicy)),
+			pluginRegistryImage,
+			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(pluginRegistryImage))),
 			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryLimit), deploy.DefaultPluginRegistryMemoryLimit),
 			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryRequest), deploy.DefaultPluginRegistryMemoryRequest),
 			"/v3/plugins/",
@@ -512,10 +513,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 
+		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage)
 		result, err := addRegistryDeployment(
 			"devfile",
-			util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage),
-			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.DevfileRegistryImagePullPolicy), deploy.DefaultDevfileRegistryPullPolicy)),
+			devfileRegistryImage,
+			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(devfileRegistryImage))),
 			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryLimit), deploy.DefaultDevfileRegistryMemoryLimit),
 			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryRequest), deploy.DefaultDevfileRegistryMemoryRequest),
 			"/devfiles/",
