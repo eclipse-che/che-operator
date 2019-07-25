@@ -46,8 +46,6 @@ spec:
     proxyPassword: ''
     # a list of non-proxy hosts. Use | as delimiter, eg localhost|my.host.com|123.42.12.32
     nonProxyHosts: ''
-    # an endpoint serving plugin definitions. Defaults to https://che-plugin-registry.openshift.io
-    pluginRegistryUrl: ''
     # sets mem request for server deployment. Defaults to 512Mi
     serverMemoryRequest: ''
     # sets mem limit for server deployment. Defaults to 1Gi

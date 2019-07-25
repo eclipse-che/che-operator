@@ -30,7 +30,6 @@ const (
 	DefaultPluginRegistryPullPolicy     = "Always"
 	DefaultPluginRegistryMemoryLimit    = "32Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	DefaultCodereadyPluginRegistryUrl   = "https://che-plugin-registry.openshift.io"
 	DefaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0-RC-2.0"
 	DefaultDevfileRegistryPullPolicy    = "Always"
 	DefaultDevfileRegistryMemoryLimit   = "32Mi"

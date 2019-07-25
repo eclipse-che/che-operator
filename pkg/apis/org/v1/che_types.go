@@ -51,7 +51,7 @@ type CheClusterSpecServer struct {
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// TlsSupport instructs an operator to deploy Che in TLS mode, ie with TLS routes or ingresses
 	TlsSupport bool `json:"tlsSupport"`
-	// DevfileRegistryUrl is an endpoint serving sample ready-to-use devfiles. Defaults to https://che-devfile-registry.openshift.io
+	// DevfileRegistryUrl is an endpoint serving sample ready-to-use devfiles. Defaults to generated route
 	DevfileRegistryUrl string `json:"devfileRegistryUrl"`
 	// DevfileRegistryImage is image:tag used in Devfile registry deployment
 	DevfileRegistryImage string `json:"devfileRegistryImage"`
@@ -65,7 +65,7 @@ type CheClusterSpecServer struct {
 	// By default a dedicated devfile registry server is started.
 	// But if ExternalDevfileRegistry is `true`, then no such dedicated server will be started by the operator
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
-	// PluginRegistryUrl is an endpoint serving plugin definitions. Defaults to https://che-plugin-registry.openshift.io
+	// PluginRegistryUrl is an endpoint serving plugin definitions. Defaults to generated route
 	PluginRegistryUrl string `json:"pluginRegistryUrl"`
 	// PluginRegistryImage is image:tag used in Plugin registry deployment
 	PluginRegistryImage string `json:"pluginRegistryImage"`
