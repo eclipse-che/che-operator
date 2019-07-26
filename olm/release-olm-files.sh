@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2012-2018 Red Hat, Inc.
+# Copyright (c) 2019 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,6 +16,8 @@ REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+source ${BASE_DIR}/check-yq.sh
+
 if [[ "$1" =~ $REGEX ]]
 then
   RELEASE="$1"
@@ -55,7 +57,7 @@ do
   -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
   -e 's|"identityProviderImage": *"eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:nightly"|"devfileRegistryImage": ""|' \
-  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nighlty"|"pluginRegistryImage": ""|' \
+  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nightly"|"pluginRegistryImage": ""|' \
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
   -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${lastPackagePreReleaseVersion}" \
