@@ -16,9 +16,9 @@ metadata:
                 "tlsSecretName": ""
               },
              "server": {
-                "cheImageTag": "nightly",
-                "devfileRegistryImage": "quay.io/eclipse/che-devfile-registry:nightly",
-                "pluginRegistryImage": "quay.io/eclipse/che-plugin-registry:nightly",
+                "cheImageTag": "",
+                "devfileRegistryImage": "",
+                "pluginRegistryImage": "",
                 "tlsSupport": false,
                 "selfSignedCert": false
              },
@@ -31,7 +31,7 @@ metadata:
                 "chePostgresDb": ""
              },
              "auth": {
-                "identityProviderImage": "eclipse/che-keycloak:nightly",
+                "identityProviderImage": "",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",
                 "identityProviderRealm": "",
@@ -48,13 +48,13 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2019-07-23T12:03:26Z"
+    containerImage: quay.io/eclipse/che-operator:7.0.0-rc-4.0
+    createdAt: "2019-07-25T17:20:26Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1563883405
+  name: eclipse-che-preview-kubernetes.v7.0.0-rc-4.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -220,8 +220,8 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: che-operator
-                image: quay.io/eclipse/che-operator:nightly
-                imagePullPolicy: Always
+                image: quay.io/eclipse/che-operator:7.0.0-rc-4.0
+                imagePullPolicy: IfNotPresent
                 name: che-operator
                 ports:
                 - containerPort: 60000
@@ -323,5 +323,5 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1563804656
-  version: 9.9.9-nightly.1563883405
+  replaces: eclipse-che-preview-kubernetes.v7.0.0-rc-2.0
+  version: 7.0.0-rc-4.0
