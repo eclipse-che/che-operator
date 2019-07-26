@@ -14,6 +14,7 @@ set -e
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+source ${BASE_DIR}/check-yq.sh
 
 for platform in 'kubernetes' 'openshift'
 do

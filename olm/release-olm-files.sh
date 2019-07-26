@@ -16,6 +16,8 @@ REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+source ${BASE_DIR}/check-yq.sh
+
 if [[ "$1" =~ $REGEX ]]
 then
   RELEASE="$1"
