@@ -12,10 +12,14 @@
 // REMINDER: when updating versions below, see also pkg/apis/org/v1/che_types.go and deploy/crds/org_v1_che_cr.yaml
 package deploy
 
+import (
+	"strings"
+)
+
 const (
 	DefaultCheServerImageRepo           = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	DefaultCheServerImageTag            = "7.0.0-RC-2.0"
+	DefaultCheServerImageTag            = "7.0.0-rc-4.0"
 	DefaultCodeReadyServerImageTag      = "1.2"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
@@ -26,12 +30,10 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	DefaultPluginRegistryImage          = "quay.io/eclipse/che-plugin-registry:7.0.0-RC-2.0"
-	DefaultPluginRegistryPullPolicy     = "Always"
+	DefaultPluginRegistryImage          = "quay.io/eclipse/che-plugin-registry:7.0.0-rc-4.0"
 	DefaultPluginRegistryMemoryLimit    = "32Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	DefaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0-RC-2.0"
-	DefaultDevfileRegistryPullPolicy    = "Always"
+	DefaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0-rc-4.0"
 	DefaultDevfileRegistryMemoryLimit   = "32Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
@@ -42,7 +44,7 @@ const (
 	DefaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-40"
 	DefaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
 	DefaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-11"
-	DefaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.0.0-RC-2.0"
+	DefaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.0.0-rc-4.0"
 	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
@@ -56,3 +58,15 @@ const (
 	DefaultSecurityContextFsGroup       = "1724"
 	DefaultSecurityContextRunAsUser     = "1724"
 )
+
+func DefaultPullPolicyFromDockerImage(dockerImage string) string {
+	tag := "latest"
+	parts := strings.Split(dockerImage, ":")
+	if len(parts) > 1 {
+		tag = parts[1]
+	}
+	if tag == "latest" || tag == "nightly" {
+		return "Always"
+	}
+	return "IfNotPresent"
+}
