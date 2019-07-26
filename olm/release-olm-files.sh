@@ -55,7 +55,7 @@ do
   -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
   -e 's|"identityProviderImage": *"eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:nightly"|"devfileRegistryImage": ""|' \
-  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nighlty"|"pluginRegistryImage": ""|' \
+  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nightly"|"pluginRegistryImage": ""|' \
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
   -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${lastPackagePreReleaseVersion}" \
