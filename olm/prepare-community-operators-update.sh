@@ -25,23 +25,28 @@ do
   cd "${packageBaseFolderPath}"
 
   packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
+  sourcePackageFilePath="${packageFolderPath}/${packageName}.package.yaml"
   communityOperatorsLocalGitFolder="${packageBaseFolderPath}/generated/community-operators"
+  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
 
   echo "   - Cloning the 'community-operators' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
   
   rm -Rf "${communityOperatorsLocalGitFolder}"
   mkdir -p "${communityOperatorsLocalGitFolder}"
-  git clone https://github.com/operator-framework/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
-
+  git clone https://github.com/che-incubator/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
+  cd "${communityOperatorsLocalGitFolder}"
+  git remote add upstream https://github.com/operator-framework/community-operators.git
+  git fetch upstream master:upstream/master
+  
   branch="update-eclipse-che"
   if [ "${platform}" == "kubernetes" ]
   then
     branch="${branch}-upstream"
   fi
-  branch="${branch}-operator-$(date +%s)"
+  branch="${branch}-operator-${lastPackagePreReleaseVersion}"
+  echo
   echo "   - Creating branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
-  cd "${communityOperatorsLocalGitFolder}"
-  git checkout -b "${branch}" 2>&1 | sed -e 's/^/      /'
+  git checkout -b "${branch}" upstream/master 2>&1 | sed -e 's/^/      /'
   cd "${packageBaseFolderPath}"
 
   platformSubFolder="community-operators"
@@ -51,14 +56,12 @@ do
   fi
 
   folderToUpdate="${communityOperatorsLocalGitFolder}/${platformSubFolder}/eclipse-che"
-
-  sourcePackageFilePath="${packageFolderPath}/${packageName}.package.yaml"
   destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
-  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
   lastPublishedPackageVersion=$(yq -r '.channels[] | select(.name == "final") | .currentCSV' "${destinationPackageFilePath}" | sed -e "s/eclipse-che.v//")
+  echo
   echo "   - Last package pre-release version of local package: ${lastPackagePreReleaseVersion}"
-  echo "   - Last package release version of cloned 'community-operators' repository: ${lastPackagePreReleaseVersion}"
+  echo "   - Last package release version of cloned 'community-operators' repository: ${lastPublishedPackageVersion}"
   if [ "${lastPackagePreReleaseVersion}" == "${lastPublishedPackageVersion}" ]
   then
     echo "#### ERROR ####"
@@ -75,11 +78,29 @@ do
   "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
   > "${folderToUpdate}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
+  echo
   echo "   - Copying the CRD file"
   cp "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
   "${folderToUpdate}/eclipse-che.crd.yaml"
+  echo
   echo "   - Updating the 'final' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
   mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
+  echo
+  echo "   - Committing changes"
+  cd "${communityOperatorsLocalGitFolder}"
+  git add --all
+  git commit -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
+  echo
+  echo "   - Pushing branch ${branch} to the 'che-incubator/community-operators' GitHub repository"
+  if [ -z "${GIT_USER}" ] || [ -z "${GIT_PASSWORD}" ]
+  then
+    echo "#### WARNING ####"
+    echo "#### You shoud define GIT_USER and GIT_PASSWORD environment variable"
+    echo "#### to be able to push release branches to the 'che-incubator/community-operators' repository"
+    echo "#################"
+  else
+    git push "https://${GIT_USER}:${GIT_PASSWORD}@github.com/che-incubator/community-operators.git" "${branch}"
+  fi
 done
 cd "${CURRENT_DIR}"
