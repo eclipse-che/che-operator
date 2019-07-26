@@ -12,6 +12,10 @@
 // REMINDER: when updating versions below, see also pkg/apis/org/v1/che_types.go and deploy/crds/org_v1_che_cr.yaml
 package deploy
 
+import (
+	"strings"
+)
+
 const (
 	DefaultCheServerImageRepo           = "eclipse/che-server"
 	DefaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
@@ -27,12 +31,10 @@ const (
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
 	DefaultPluginRegistryImage          = "quay.io/eclipse/che-plugin-registry:7.0.0-rc-4.0"
-	DefaultPluginRegistryPullPolicy     = "Always"
 	DefaultPluginRegistryMemoryLimit    = "32Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
 	DefaultCodereadyPluginRegistryUrl   = "https://che-plugin-registry.openshift.io"
 	DefaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0-rc-4.0"
-	DefaultDevfileRegistryPullPolicy    = "Always"
 	DefaultDevfileRegistryMemoryLimit   = "32Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
@@ -57,3 +59,15 @@ const (
 	DefaultSecurityContextFsGroup       = "1724"
 	DefaultSecurityContextRunAsUser     = "1724"
 )
+
+func DefaultPullPolicyFromDockerImage(dockerImage string) string {
+	tag := "latest"
+	parts := strings.Split(dockerImage, ":")
+	if len(parts) > 1 {
+		tag = parts[1]
+	}
+	if tag == "latest" || tag == "nightly" {
+		return "Always"
+	}
+	return "IfNotPresent"
+}
