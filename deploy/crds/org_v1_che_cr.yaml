@@ -29,7 +29,7 @@ spec:
     cheFlavor: ''
     # specifies a custom cluster role to user for the Che workspaces
     # Uses the default roles if left blank.
-    cheWorkspaceClusterRole: 'eclipse-codewind'
+    cheWorkspaceClusterRole: ''
     # when set to true the operator will attempt to get a secret in OpenShift router namespace
     # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
     selfSignedCert: false
@@ -69,7 +69,7 @@ spec:
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
     # per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common
-    pvcStrategy: 'common'
+    pvcStrategy: 'per-workspace'
     # size of a persistent volume claim for workspaces. Defaults to 1Gi
     pvcClaimSize: '1Gi'
     # instruct Che server to launch a special pod to precreate a subpath in a PV
