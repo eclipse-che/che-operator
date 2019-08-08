@@ -16,21 +16,20 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/pem"
-	"io"
-	"net/http"
-	"time"
-
+	"errors"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -287,23 +286,24 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 // There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
 // which however requires extra privileges for operator service account
 func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string) (certificate []byte, err error) {
-	testRoute := &routev1.Route{}
 	var requestURL string
+	var testRoute *routev1.Route
 	if len(url) < 1 {
-		testRoute = deploy.NewTlsRoute(instance, "test", "test", 8080)
-		logrus.Infof("Creating a test route %s to extract router crt", testRoute.Name)
-		if err := r.CreateNewRoute(instance, testRoute); err != nil {
-			logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
-			return nil, err
+		testRoute = r.GetEffectiveRoute(instance, "test")
+		if testRoute == nil {
+			testRoute = deploy.NewTlsRoute(instance, "test", "test", 8080)
+			logrus.Infof("Creating a test route %s to extract router crt", testRoute.Name)
+			if err := r.CreateNewRoute(instance, testRoute); err != nil {
+				logrus.Errorf("Failed to create test route %s: %s", testRoute.Name, err)
+				return nil, err
+			}
 		}
-		// sometimes timing conditions apply, and host isn't available right away
-		if len(testRoute.Spec.Host) < 1 {
-			time.Sleep(time.Duration(1) * time.Second)
-			testRoute := r.GetEffectiveRoute(instance, "test")
-			requestURL = "https://" + testRoute.Spec.Host
-		}
-		requestURL = "https://" + testRoute.Spec.Host
 
+		if len(testRoute.Spec.Host) < 1 {
+			return nil, errors.New("Unable to get test route host for fetching certificate")
+		}
+
+		requestURL = "https://" + testRoute.Spec.Host
 	} else {
 		requestURL = url
 	}
@@ -329,11 +329,12 @@ func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string)
 		certificate = append(certificate, crt...)
 	}
 
-	if len(url) < 1 {
+	if testRoute != nil {
 		logrus.Infof("Deleting a test route %s to extract routes crt", testRoute.Name)
 		if err := r.client.Delete(context.TODO(), testRoute); err != nil {
 			logrus.Errorf("Failed to delete test route %s: %s", testRoute.Name, err)
 		}
 	}
+	logrus.Info("Self-signed certificate is automatically fetched from test route")
 	return certificate, nil
 }
