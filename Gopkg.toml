@@ -153,9 +153,9 @@ required = [
   name = "github.com/prometheus/procfs"
   revision = "6ed1f7e1041181781dd2826d3001075d011a80cc"
 
-[[override]]
+[[constraint]]
   name = "github.com/sirupsen/logrus"
-  version = "0.11.5"
+  version = "v1.4.2"
 
 [[override]]
   name = "github.com/spf13/pflag"
