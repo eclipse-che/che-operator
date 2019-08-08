@@ -1,17 +1,25 @@
+// The Test package is used for testing logrus. It is here for backwards
+// compatibility from when logrus' organization was upper-case. Please use
+// lower-case logrus and the `null` package instead of this one.
 package test
 
 import (
 	"io/ioutil"
+	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-// test.Hook is a hook designed for dealing with logs in test scenarios.
+// Hook is a hook designed for dealing with logs in test scenarios.
 type Hook struct {
-	Entries []*logrus.Entry
+	// Entries is an array of all entries that have been received by this hook.
+	// For safe access, use the AllEntries() method, rather than reading this
+	// value directly.
+	Entries []logrus.Entry
+	mu      sync.RWMutex
 }
 
-// Installs a test hook for the global logger.
+// NewGlobal installs a test hook for the global logger.
 func NewGlobal() *Hook {
 
 	hook := new(Hook)
@@ -21,7 +29,7 @@ func NewGlobal() *Hook {
 
 }
 
-// Installs a test hook for a given local logger.
+// NewLocal installs a test hook for a given local logger.
 func NewLocal(logger *logrus.Logger) *Hook {
 
 	hook := new(Hook)
@@ -31,7 +39,7 @@ func NewLocal(logger *logrus.Logger) *Hook {
 
 }
 
-// Creates a discarding logger and installs the test hook.
+// NewNullLogger creates a discarding logger and installs the test hook.
 func NewNullLogger() (*logrus.Logger, *Hook) {
 
 	logger := logrus.New()
@@ -42,7 +50,9 @@ func NewNullLogger() (*logrus.Logger, *Hook) {
 }
 
 func (t *Hook) Fire(e *logrus.Entry) error {
-	t.Entries = append(t.Entries, e)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.Entries = append(t.Entries, *e)
 	return nil
 }
 
@@ -51,17 +61,32 @@ func (t *Hook) Levels() []logrus.Level {
 }
 
 // LastEntry returns the last entry that was logged or nil.
-func (t *Hook) LastEntry() (l *logrus.Entry) {
-
-	if i := len(t.Entries) - 1; i < 0 {
+func (t *Hook) LastEntry() *logrus.Entry {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	i := len(t.Entries) - 1
+	if i < 0 {
 		return nil
-	} else {
-		return t.Entries[i]
 	}
+	return &t.Entries[i]
+}
 
+// AllEntries returns all entries that were logged.
+func (t *Hook) AllEntries() []*logrus.Entry {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	// Make a copy so the returned value won't race with future log requests
+	entries := make([]*logrus.Entry, len(t.Entries))
+	for i := 0; i < len(t.Entries); i++ {
+		// Make a copy, for safety
+		entries[i] = &t.Entries[i]
+	}
+	return entries
 }
 
 // Reset removes all Entries from this test hook.
 func (t *Hook) Reset() {
-	t.Entries = make([]*logrus.Entry, 0)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.Entries = make([]logrus.Entry, 0)
 }
