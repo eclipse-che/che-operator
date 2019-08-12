@@ -108,3 +108,15 @@ func (r *ReconcileChe)GetDeploymentEnv(deployment *appsv1.Deployment, key string
 	}
 	return value
 }
+
+func (r *ReconcileChe)GetDeploymentEnvVarSource(deployment *appsv1.Deployment, key string) (valueFrom *corev1.EnvVarSource) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
+	for i := range env {
+		name := env[i].Name
+		if name == key {
+			valueFrom = env[i].ValueFrom
+			break
+		}
+	}
+	return valueFrom
+}
