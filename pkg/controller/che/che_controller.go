@@ -12,6 +12,7 @@
 package che
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -448,15 +449,23 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
+			desiredMemRequest, err := resource.ParseQuantity(registryMemoryRequest)
+			if err != nil {
+				logrus.Errorf("Wrong quantity for %s deployment Memory Request: %s", registryName, err)
+				return &reconcile.Result{}, err
+			}
 			effectiveMemRequest := effectiveDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
+			desiredMemLimit, err := resource.ParseQuantity(registryMemoryLimit)
+			if err != nil {
+				logrus.Errorf("Wrong quantity for %s deployment Memory Limit: %s", registryName, err)
+				return &reconcile.Result{}, err
+			}
 			effectiveMemLimit := effectiveDeployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
-			effectiveMemLimitStr := effectiveMemLimit.String()
-			effectiveMemRequestStr := effectiveMemRequest.String()
 			effectiveRegistryImage := effectiveDeployment.Spec.Template.Spec.Containers[0].Image
 			effectiveRegistryImagePullPolicy := effectiveDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy
 			if effectiveRegistryImage != registryImage ||
-				registryMemoryRequest != effectiveMemRequestStr ||
-				registryMemoryLimit != effectiveMemLimitStr ||
+				effectiveMemRequest.Cmp(desiredMemRequest) != 0 ||
+				effectiveMemLimit.Cmp(desiredMemLimit) != 0 ||
 				effectiveRegistryImagePullPolicy != registryImagePullPolicy {
 				newDeployment := deploy.NewRegistryDeployment(
 					instance,
@@ -468,14 +477,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					probePath,
 				)
 				logrus.Infof(`Updating %s registry deployment with:
-	- Docker Image: old: %s, new: %s
-	- Image Pull Policy: old: %s, new: %s
-	- Memory Request: old: %s, new: %s
-	- Memory Limit: old: %s, new: %s`, registryType,
-					registryImage, effectiveRegistryImage,
-					registryImagePullPolicy, effectiveRegistryImagePullPolicy,
-					registryMemoryRequest, effectiveMemRequestStr,
-					registryMemoryLimit, effectiveMemLimitStr,
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s
+	- Memory Request: %s => %s
+	- Memory Limit: %s => %s`, registryType,
+					effectiveRegistryImage, registryImage,
+					effectiveRegistryImagePullPolicy, registryImagePullPolicy,
+					effectiveMemRequest.String(), desiredMemRequest.String(),
+					effectiveMemLimit.String(), desiredMemLimit.String(),
 				)
 				if err := controllerutil.SetControllerReference(instance, newDeployment, r.scheme); err != nil {
 					logrus.Errorf("An error occurred: %s", err)
@@ -685,10 +694,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				openshiftApiCertSecretVersion != storedOpenshiftApiCertSecretVersion {
 				newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof(`Updating Keycloak deployment with:
-	- Docker Image: old: %s, new: %s
-	- Image Pull Policy: old: %s, new: %s
-	- Self-Signed Certificate Version: old: %s, new: %s
-	- OpenShift API Certificate Version: old: %s, new: %s`,
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s
+	- Self-Signed Certificate Version: %s => %s
+	- OpenShift API Certificate Version: %s => %s`,
 					effectiveImage, desiredImage,
 					effectiveImagePullPolicy, desiredImagePullPolicy,
 					cheCertSecretVersion, storedCheCertSecretVersion,
@@ -898,16 +907,22 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	effectiveCheDeployment, _ = r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
 	effectiveMemRequest := effectiveCheDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
 	effectiveMemLimit := effectiveCheDeployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
-	effectiveMemLimitStr := effectiveMemLimit.String()
-	effectiveMemRequestStr := effectiveMemRequest.String()
-	desiredMemRequest := util.GetValue(instance.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest)
-	desiredMemLimit := util.GetValue(instance.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit)
+	desiredMemRequest, err := resource.ParseQuantity(util.GetValue(instance.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest))
+	if err != nil {
+		logrus.Errorf("Wrong quantity for Che deployment Memory Request: %s", err)
+		return reconcile.Result{}, err
+	}
+	desiredMemLimit, err := resource.ParseQuantity(util.GetValue(instance.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit))
+	if err != nil {
+		logrus.Errorf("Wrong quantity for Che deployment Memory Limit: %s", err)
+		return reconcile.Result{}, err
+	}
 	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo + ":" + cheImageTag))
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
 	effectiveSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
-	if desiredMemRequest != effectiveMemRequestStr ||
-		desiredMemLimit != effectiveMemLimitStr ||
+	if desiredMemRequest.Cmp(effectiveMemRequest) != 0 ||
+		desiredMemLimit.Cmp(effectiveMemLimit) != 0 ||
 		effectiveImagePullPolicy != desiredImagePullPolicy ||
 		effectiveSelfSignedCert != desiredSelfSignedCert {
 		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
@@ -918,13 +933,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			logrus.Errorf("An error occurred: %s", err)
 		}
 		logrus.Infof(`Updating deployment %s with:
-	- Memory Request: old: %s, new: %s
-	- Memory Limit: old: %s, new: %s
-	- Image Pull Policy: old: %s, new: %s
-	- Self-Signed Cert: old: %t, new: %t`,
+	- Memory Request: %s => %s
+	- Memory Limit: %s => %s
+	- Image Pull Policy: %s => %s
+	- Self-Signed Cert: %t => %t`,
 			cheDeployment.Name,
-			effectiveMemRequestStr, desiredMemRequest,
-			effectiveMemLimitStr, desiredMemLimit,
+			effectiveMemRequest.String(), desiredMemRequest.String(),
+			effectiveMemLimit.String(), desiredMemLimit.String(),
 			effectiveImagePullPolicy, desiredImagePullPolicy,
 			effectiveSelfSignedCert, desiredSelfSignedCert,
 		)
