@@ -448,7 +448,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
-			if effectiveDeployment.Spec.Template.Spec.Containers[0].Image != registryImage {
+			actualMemRequest := effectiveDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
+			actualMemLimit := effectiveDeployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
+			limitStr := actualMemLimit.String()
+			requestStr := actualMemRequest.String()
+			if effectiveDeployment.Spec.Template.Spec.Containers[0].Image != registryImage ||
+				registryMemoryRequest != requestStr ||
+				registryMemoryLimit != limitStr ||
+				effectiveDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy != registryImagePullPolicy {
 				newDeployment := deploy.NewRegistryDeployment(
 					instance,
 					registryType,
@@ -640,30 +647,32 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 		time.Sleep(time.Duration(1) * time.Second)
-		deployment, err := r.GetEffectiveDeployment(instance, keycloakDeployment.Name)
+		effectiveKeycloakDeployment, err := r.GetEffectiveDeployment(instance, keycloakDeployment.Name)
 		if err != nil {
 			logrus.Errorf("Failed to get %s deployment: %s", keycloakDeployment.Name, err)
 			return reconcile.Result{}, err
 		}
 		if !tests {
-			if deployment.Status.AvailableReplicas != 1 {
+			if effectiveKeycloakDeployment.Status.AvailableReplicas != 1 {
 				scaled := k8sclient.GetDeploymentStatus(keycloakDeployment.Name, instance.Namespace)
 				if !scaled {
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
 
+			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(instance.Spec.Auth.KeycloakImage))
 			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
 			openshiftApiCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt")
-			if deployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage ||
-			cheCertSecretVersion != deployment.Annotations["che.self-signed-certificate.version"] ||
-			openshiftApiCertSecretVersion != deployment.Annotations["che.openshift-api-crt.version"] {
-				keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
+			if effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image != instance.Spec.Auth.KeycloakImage ||
+			  string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) != desiredImagePullPolicy ||
+			  cheCertSecretVersion != effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"] ||
+				openshiftApiCertSecretVersion != effectiveKeycloakDeployment.Annotations["che.openshift-api-crt.version"] {
+				newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof("Updating Keycloak deployment with an image %s", instance.Spec.Auth.KeycloakImage)
-				if err := controllerutil.SetControllerReference(instance, keycloakDeployment, r.scheme); err != nil {
+				if err := controllerutil.SetControllerReference(instance, newKeycloakDeployment, r.scheme); err != nil {
 					logrus.Errorf("An error occurred: %s", err)
 				}
-				if err := r.client.Update(context.TODO(), keycloakDeployment); err != nil {
+				if err := r.client.Update(context.TODO(), newKeycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
 				}
 
@@ -720,32 +729,32 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cheImageRepo = util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCodeReadyServerImageRepo)
 		cheImageTag = util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCodeReadyServerImageTag)
 	}
-	cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = r.CreateNewDeployment(instance, cheDeployment); err != nil {
+	if err = r.CreateNewDeployment(instance, cheDeploymentToCreate); err != nil {
 		return reconcile.Result{}, err
 	}
 	// sometimes Get cannot find deployment right away
 	time.Sleep(time.Duration(1) * time.Second)
-	deployment, err := r.GetEffectiveDeployment(instance, cheDeployment.Name)
+	effectiveCheDeployment, err := r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
 	if err != nil {
-		logrus.Errorf("Failed to get %s deployment: %s", cheDeployment.Name, err)
+		logrus.Errorf("Failed to get %s deployment: %s", cheDeploymentToCreate.Name, err)
 		return reconcile.Result{}, err
 	}
 	if !tests {
-		if deployment.Status.AvailableReplicas != 1 {
+		if effectiveCheDeployment.Status.AvailableReplicas != 1 {
 			instance, _ := r.GetCR(request)
 			if err := r.SetCheUnavailableStatus(instance, request); err != nil {
 				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 			}
-			scaled := k8sclient.GetDeploymentStatus(cheDeployment.Name, instance.Namespace)
+			scaled := k8sclient.GetDeploymentStatus(cheDeploymentToCreate.Name, instance.Namespace)
 			if !scaled {
 				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 			}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeployment.Name, Namespace: instance.Namespace}, deployment)
-			if deployment.Status.AvailableReplicas == 1 {
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentToCreate.Name, Namespace: instance.Namespace}, effectiveCheDeployment)
+			if effectiveCheDeployment.Status.AvailableReplicas == 1 {
 				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -759,14 +768,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
-		if deployment.Status.Replicas > 1 {
-			logrus.Infof("Deployment %s is in the rolling update state", cheDeployment.Name)
+		if effectiveCheDeployment.Status.Replicas > 1 {
+			logrus.Infof("Deployment %s is in the rolling update state", cheDeploymentToCreate.Name)
 			if err := r.SetCheRollingUpdateStatus(instance, request); err != nil {
 				instance, _ = r.GetCR(request)
 				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 			}
-			k8sclient.GetDeploymentRollingUpdateStatus(cheDeployment.Name, instance.Namespace)
-			deployment, _ := r.GetEffectiveDeployment(instance, cheDeployment.Name)
+			k8sclient.GetDeploymentRollingUpdateStatus(cheDeploymentToCreate.Name, instance.Namespace)
+			deployment, _ := r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
 			if deployment.Status.Replicas == 1 {
 				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
 					instance, _ = r.GetCR(request)
@@ -775,18 +784,18 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
-	if deployment.Spec.Template.Spec.Containers[0].Image != cheDeployment.Spec.Template.Spec.Containers[0].Image {
-		if err := controllerutil.SetControllerReference(instance, deployment, r.scheme); err != nil {
+	if effectiveCheDeployment.Spec.Template.Spec.Containers[0].Image != cheDeploymentToCreate.Spec.Template.Spec.Containers[0].Image {
+		if err := controllerutil.SetControllerReference(instance, cheDeploymentToCreate, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
-		logrus.Infof("Updating %s %s with image %s:%s", cheDeployment.Name, cheDeployment.Kind, cheImageRepo, cheImageTag)
+		logrus.Infof("Updating %s %s with image %s:%s", cheDeploymentToCreate.Name, cheDeploymentToCreate.Kind, cheImageRepo, cheImageTag)
 		instance.Status.CheVersion = cheImageTag
 		if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
 			instance, _ = r.GetCR(request)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
-		if err := r.client.Update(context.TODO(), cheDeployment); err != nil {
-			logrus.Errorf("Failed to update %s %s: %s", deployment.Kind, deployment.Name, err)
+		if err := r.client.Update(context.TODO(), cheDeploymentToCreate); err != nil {
+			logrus.Errorf("Failed to update %s %s: %s", effectiveCheDeployment.Kind, effectiveCheDeployment.Name, err)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 
 		}
@@ -861,14 +870,18 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-	deployment, _ = r.GetEffectiveDeployment(instance, cheDeployment.Name)
-	actualMemRequest := deployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
-	actualMemLimit := deployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
+	effectiveCheDeployment, _ = r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
+	actualMemRequest := effectiveCheDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
+	actualMemLimit := effectiveCheDeployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
 	limitStr := actualMemLimit.String()
 	requestStr := actualMemRequest.String()
 	desiredRequest := util.GetValue(instance.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest)
 	desiredLimit := util.GetValue(instance.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit)
-	if desiredRequest != requestStr || desiredLimit != limitStr {
+	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo + ":" + cheImageTag))
+	if desiredRequest != requestStr ||
+		desiredLimit != limitStr ||
+		string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) != desiredImagePullPolicy ||
+		(r.GetDeploymentEnv(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != "") != instance.Spec.Server.SelfSignedCert {
 		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
 		if err != nil {
 			logrus.Errorf("An error occurred: %s", err)
