@@ -498,10 +498,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return *result, err
 		}
 	}
-	instance.Status.PluginRegistryURL = pluginRegistryURL
-	if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
-		instance, _ = r.GetCR(request)
-		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+	if pluginRegistryURL != instance.Status.PluginRegistryURL {
+		instance.Status.PluginRegistryURL = pluginRegistryURL
+		if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
 	}
 
 	devfileRegistryURL := instance.Spec.Server.DevfileRegistryUrl
@@ -529,12 +531,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return *result, err
 		}
 	}
-	instance.Status.DevfileRegistryURL = devfileRegistryURL
-	if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
-		instance, _ = r.GetCR(request)
-		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+	if devfileRegistryURL != instance.Status.DevfileRegistryURL {
+		instance.Status.DevfileRegistryURL = devfileRegistryURL
+		if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
 	}
-
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 
