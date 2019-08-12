@@ -470,20 +470,19 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return nil, nil
 	}
 
+	pluginRegistryURL := instance.Spec.Server.PluginRegistryUrl
 	// Create Plugin registry resources unless an external registry is used
 	externalPluginRegistry := instance.Spec.Server.ExternalPluginRegistry
 	if !externalPluginRegistry {
-		pluginRegistryURL, err := addRegistryRoute("plugin")
+		guessedPluginRegistryURL, err := addRegistryRoute("plugin")
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		if cheFlavor != "codeready" {
-			pluginRegistryURL += "/v3"
+			guessedPluginRegistryURL += "/v3"
 		}
-		instance.Status.PluginRegistryURL = pluginRegistryURL
-		if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		if pluginRegistryURL == "" {
+			pluginRegistryURL = guessedPluginRegistryURL
 		}
 
 		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage)
@@ -499,18 +498,22 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return *result, err
 		}
 	}
+	instance.Status.PluginRegistryURL = pluginRegistryURL
+	if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
+		instance, _ = r.GetCR(request)
+		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+	}
 
+	devfileRegistryURL := instance.Spec.Server.DevfileRegistryUrl
 	// Create devfile registry resources unless an external registry is used
 	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
 	if !externalDevfileRegistry {
-		devfileRegistryURL, err := addRegistryRoute("devfile")
+		guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		instance.Status.DevfileRegistryURL = devfileRegistryURL
-		if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		if devfileRegistryURL == "" {
+			devfileRegistryURL = guessedDevfileRegistryURL
 		}
 
 		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage)
@@ -525,6 +528,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err != nil || result != nil {
 			return *result, err
 		}
+	}
+	instance.Status.DevfileRegistryURL = devfileRegistryURL
+	if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
+		instance, _ = r.GetCR(request)
+		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
 
 	// create Che service and route
