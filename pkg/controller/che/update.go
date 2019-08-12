@@ -80,6 +80,63 @@ func (r *ReconcileChe) UpdateConfigMap(instance *orgv1.CheCluster) (updated bool
 
 func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, tlsSupport bool, isOpenShift bool) (updated bool, err error) {
 
+	updateRegistryRoute := func (registryType string) (bool, error) {
+		registryName := registryType + "-registry"
+		if !isOpenShift {
+			currentRegistryIngress := r.GetEffectiveIngress(instance, registryName)
+			if currentRegistryIngress == nil {
+				return false, err
+			}
+			logrus.Infof("Deleting ingress %s", currentRegistryIngress.Name)
+			if err := r.client.Delete(context.TODO(), currentRegistryIngress); err != nil {
+				logrus.Errorf("Failed to delete %s ingress: %s", currentRegistryIngress.Name, err)
+				return false, err
+			}
+			registryIngress := deploy.NewIngress(instance, registryName, registryName, 8080)
+	
+			if err := r.CreateNewIngress(instance, registryIngress); err != nil {
+				logrus.Errorf("Failed to create %s %s: %s", registryIngress.Name, registryIngress.Kind, err)
+				return false, err
+			}
+			return true, nil
+		}
+
+		currentRegistryRoute := r.GetEffectiveRoute(instance, registryName)
+		if currentRegistryRoute == nil {
+			return false, err
+		}
+		logrus.Infof("Deleting route %s", currentRegistryRoute.Name)
+		if err := r.client.Delete(context.TODO(), currentRegistryRoute); err != nil {
+			logrus.Errorf("Failed to delete %s route: %s", currentRegistryRoute.Name, err)
+			return false, err
+		}
+		registryRoute := deploy.NewRoute(instance, registryName, registryName, 8080)
+	
+		if tlsSupport {
+			registryRoute = deploy.NewTlsRoute(instance, registryName, registryName, 8080)
+		}
+	
+		if err := r.CreateNewRoute(instance, registryRoute); err != nil {
+			logrus.Errorf("Failed to create %s %s: %s", registryRoute.Name, registryRoute.Kind, err)
+			return false, err
+		}
+		return true, nil
+	}
+
+	updated, err = updateRegistryRoute("devfile")
+	if !(updated 	|| instance.Spec.Server.ExternalDevfileRegistry) || err != nil {
+		return updated, err
+	}
+
+	updated, err = updateRegistryRoute("plugin")
+	if !(updated 	|| instance.Spec.Server.ExternalPluginRegistry) || err != nil {
+		return updated, err
+	}
+
+	protocol := "http"
+	if tlsSupport {
+		protocol = "https"
+	}
 	// reconcile ingresses
 	if !isOpenShift {
 		ingressDomain := instance.Spec.K8SOnly.IngressDomain
@@ -88,7 +145,6 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 		if currentCheIngress == nil {
 			return false, err
 		}
-		protocol := "http"
 		logrus.Infof("Deleting ingress %s", currentCheIngress.Name)
 		if err := r.client.Delete(context.TODO(), currentCheIngress); err != nil {
 			logrus.Errorf("Failed to delete %s ingress: %s", currentCheIngress.Name, err)
@@ -113,7 +169,7 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 				return false, err
 			}
 		}
-		logrus.Infof("Deleting route %s", currentKeycloakIngress.Name)
+		logrus.Infof("Deleting ingress %s", currentKeycloakIngress.Name)
 		if err := r.client.Delete(context.TODO(), currentKeycloakIngress); err != nil {
 			logrus.Errorf("Failed to delete %s ingress: %s", currentKeycloakIngress.Name, err)
 			return false, err
@@ -127,7 +183,6 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 		return true, nil
 
 	}
-	protocol := "http"
 	currentCheRoute := r.GetEffectiveRoute(instance, cheFlavor)
 	if currentCheRoute == nil {
 		return false, err
@@ -142,7 +197,6 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 
 	if tlsSupport {
 		cheRoute = deploy.NewTlsRoute(instance, cheFlavor, "che-host", 8080)
-		protocol = "https"
 	}
 
 	if err := r.CreateNewRoute(instance, cheRoute); err != nil {
