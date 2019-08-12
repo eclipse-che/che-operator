@@ -112,10 +112,11 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 25,
-								FailureThreshold:    5,
+								InitialDelaySeconds: 60,
+								FailureThreshold:    10,
 								TimeoutSeconds:      5,
-							},
+								PeriodSeconds:       10,
+							}, // Will stop testing readiness after a minimum of 65 seconds and a maximum of 200 seconds (60 + 10*5 + 9*10)
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -127,9 +128,10 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 50,
+								InitialDelaySeconds: 200, // Start liveness probe after readiness probe has finished
 								FailureThreshold:    3,
 								TimeoutSeconds:      3,
+								PeriodSeconds:       10,
 							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
