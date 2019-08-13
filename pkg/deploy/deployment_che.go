@@ -112,9 +112,12 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
+								// After POD start, the POD will be seen as ready after a minimum of 15 seconds and we expect it to be seen as ready until a maximum of 200 seconds
+								// 200 s = InitialDelaySeconds + PeriodSeconds * (FailureThreshold - 1) + TimeoutSeconds
 								InitialDelaySeconds: 25,
-								FailureThreshold:    5,
+								FailureThreshold:    18,
 								TimeoutSeconds:      5,
+								PeriodSeconds:       10,
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -127,9 +130,11 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 50,
+								// After POD start, don't initiate liveness probe while the POD is still expected to be declared as ready by the readiness probe
+								InitialDelaySeconds: 200,
 								FailureThreshold:    3,
 								TimeoutSeconds:      3,
+								PeriodSeconds:       10,
 							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
