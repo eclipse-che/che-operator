@@ -65,7 +65,7 @@ which you can use for any environment variables not supported by CR field. The o
 ## How to Build Operator Image
 
 ```bash
-docker build -t $registry/$repo:$tag
+docker build -t $registry/$repo:$tag .
 ```
 
 You can then use the resulting image in operator deployment (deploy/operator.yaml)
