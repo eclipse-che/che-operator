@@ -59,7 +59,7 @@ do
   folderToUpdate="${communityOperatorsLocalGitFolder}/${platformSubFolder}/eclipse-che"
   destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
-  lastPublishedPackageVersion=$(yq -r '.channels[] | select(.name == "final") | .currentCSV' "${destinationPackageFilePath}" | sed -e "s/eclipse-che.v//")
+  lastPublishedPackageVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${destinationPackageFilePath}" | sed -e "s/eclipse-che.v//")
   echo
   echo "   - Last package pre-release version of local package: ${lastPackagePreReleaseVersion}"
   echo "   - Last package release version of cloned 'community-operators' repository: ${lastPublishedPackageVersion}"
@@ -84,7 +84,7 @@ do
   cp "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
   "${folderToUpdate}/eclipse-che.crd.yaml"
   echo
-  echo "   - Updating the 'final' channel with new release in the package descriptor: ${destinationPackageFilePath}"
+  echo "   - Updating the 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
   mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
   echo
