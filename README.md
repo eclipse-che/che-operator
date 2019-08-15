@@ -156,6 +156,26 @@ Once an successful installation of Che/CRW is verified, tests patch custom resou
 * enable oAuth
 * enable TLS mode
 
+You can check and turn ono/ff the TLS mod from ConfigMap by following the steps:
+1. See ConfigMap
+```sh
+oc get configmap
+```
+
+!(oc get configmap)[./images/TLSEnabledFlag_1.jpg]
+
+2. Describe or edit Configmap che to see the value **CHE_INFRA_OPENSHIFT_TLS_ENABLED**
+```sh
+oc edit configmap che
+```
+or
+```sh
+oc describe configmap che
+```
+!(oc edit configmap che)[./images/TLSEnabledFlag_2.jpg]
+
+3. See the value for **CHE_INFRA_OPENSHIFT_TLS_ENABLED**
+
 Subsequent checks verify that the installation is reconfigured, for example uses secure routes or ConfigMap has the right Login-with-OpenShift values
 
 TODO: add more scenarios
