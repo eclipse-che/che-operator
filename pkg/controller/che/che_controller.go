@@ -346,6 +346,29 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
+			
+			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(cheFlavor))
+			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
+			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
+			effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+			if effectiveImage != desiredImage ||
+				effectiveImagePullPolicy != desiredImagePullPolicy {
+				newPostgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
+				logrus.Infof(`Updating Postgres deployment with:
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s`,
+					effectiveImage, desiredImage,
+					effectiveImagePullPolicy, desiredImagePullPolicy,
+				)
+				if err := controllerutil.SetControllerReference(instance, newPostgresDeployment, r.scheme); err != nil {
+					logrus.Errorf("An error occurred: %s", err)
+				}
+				if err := r.client.Update(context.TODO(), newPostgresDeployment); err != nil {
+					logrus.Errorf("Failed to update Postgres deployment: %s", err)
+				}
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+			}
+
 			pgCommand := deploy.GetPostgresProvisionCommand(instance)
 			dbStatus := instance.Status.DbProvisoned
 			// provision Db and users for Che and Keycloak servers
@@ -493,6 +516,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if err := r.client.Update(context.TODO(), newDeployment); err != nil {
 					logrus.Errorf("Failed to update %s registry deployment: %s", registryType, err)
 				}
+				return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 			}
 		}
 		return nil, nil
@@ -710,7 +734,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if err := r.client.Update(context.TODO(), newKeycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
 				}
-
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 			}
 			keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
 			if !keycloakRealmClientStatus {
