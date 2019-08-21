@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	DefaultCheServerImageRepo           = "eclipse/che-server"
-	DefaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	DefaultCheServerImageTag            = "7.0.0"
-	DefaultCodeReadyServerImageTag      = "2.0"
+	defaultCheServerImageRepo           = "eclipse/che-server"
+	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
+	defaultCheServerImageTag            = "7.0.0"
+	defaultCodeReadyServerImageTag      = "2.0"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
@@ -30,21 +30,23 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	DefaultPluginRegistryImage          = "quay.io/eclipse/che-plugin-registry:7.0.0"
+	defaultPluginRegistryImage          = "quay.io/eclipse/che-plugin-registry:7.0.0"
+	defaultPluginRegistryUpstreamImage  = "registry.redhat.io/codeready-workspaces/che-plugin-registry:2.0"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	DefaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0"
+	defaultDevfileRegistryImage         = "quay.io/eclipse/che-devfile-registry:7.0.0"
+	defaultDevfileRegistryUpstreamImage = "registry.redhat.io/codeready-workspaces/che-devfile-registry:2.0"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
 	DefaultCheLogLevel                  = "INFO"
 	DefaultCheDebug                     = "false"
-	DefaultPvcJobsImage                 = "registry.redhat.io/ubi8-minimal:8.0-159"
-	DefaultPvcJobsUpstreamImage         = "registry.access.redhat.com/ubi8-minimal:8.0-159"
-	DefaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-46"
-	DefaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
-	DefaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-13"
-	DefaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.0.0"
+	defaultPvcJobsImage                 = "registry.redhat.io/ubi8-minimal:8.0-159"
+	defaultPvcJobsUpstreamImage         = "registry.access.redhat.com/ubi8-minimal:8.0-159"
+	defaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-46"
+	defaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
+	defaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-13"
+	defaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.0.0"
 	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
@@ -58,6 +60,56 @@ const (
 	DefaultSecurityContextFsGroup       = "1724"
 	DefaultSecurityContextRunAsUser     = "1724"
 )
+
+func DefaultCheServerImageTag(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultCodeReadyServerImageTag
+	}
+	return defaultCheServerImageTag
+}
+
+func DefaultCheServerImageRepo(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultCodeReadyServerImageRepo
+	}
+	return defaultCheServerImageRepo
+}
+
+func DefaultPvcJobsImage(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultPvcJobsImage
+	}
+	return defaultPvcJobsUpstreamImage
+}
+
+func DefaultPostgresImage(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultPostgresImage
+	}
+	return defaultPostgresUpstreamImage
+}
+
+
+func DefaultKeycloakImage(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultKeycloakImage
+	}
+	return defaultKeycloakUpstreamImage
+}
+
+func DefaultPluginRegistryImage(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultPluginRegistryImage
+	}
+	return defaultPluginRegistryUpstreamImage
+}
+
+func DefaultDevfileRegistryImage(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultDevfileRegistryImage
+	}
+	return defaultDevfileRegistryUpstreamImage
+}
 
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	tag := "latest"

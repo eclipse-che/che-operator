@@ -25,7 +25,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	optionalEnv := true
 	keycloakName := "keycloak"
 	labels := GetLabels(cr, keycloakName)
-	keycloakImage := util.GetValue(cr.Spec.Auth.KeycloakImage, DefaultKeycloakImage)
+	keycloakImage := util.GetValue(cr.Spec.Auth.KeycloakImage, DefaultKeycloakImage(cheFlavor))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Auth.KeycloakImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
 	trustpass := util.GeneratePasswd(12)
 	jbossDir := "/opt/eap"

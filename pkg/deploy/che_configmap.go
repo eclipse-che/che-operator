@@ -139,10 +139,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	pvcClaimSize := util.GetValue(cr.Spec.Storage.PvcClaimSize, DefaultPvcClaimSize)
 	workspacePvcStorageClassName := cr.Spec.Storage.WorkspacePVCStorageClassName
 
-	defaultPVCJobsImage := DefaultPvcJobsUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultPVCJobsImage = DefaultPvcJobsImage
-	}
+	defaultPVCJobsImage := DefaultPvcJobsImage(cheFlavor)
 	pvcJobsImage := util.GetValue(cr.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
 	preCreateSubPaths := "true"
 	if !cr.Spec.Storage.PreCreateSubPaths {

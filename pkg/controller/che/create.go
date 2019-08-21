@@ -13,6 +13,8 @@ package che
 
 import (
 	"context"
+	"strings"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -27,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 func (r *ReconcileChe) CreateNewDeployment(instance *orgv1.CheCluster, deployment *appsv1.Deployment) error {
@@ -322,8 +323,7 @@ func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, n
 	// and router is configured with a self signed certificate
 	// this secret is used by CRW server to reach RH SSO TLS endpoint
 	secret := &corev1.Secret{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret);
-		err != nil && errors.IsNotFound(err) {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret); err != nil && errors.IsNotFound(err) {
 		crt, err := r.GetEndpointTlsCrt(instance, url)
 		if err != nil {
 			logrus.Errorf("Failed to extract crt. Failed to create a secret with a self signed crt: %s", err)
@@ -436,13 +436,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		}
 	}
 
-	defaultKeycloakImage := deploy.DefaultKeycloakUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultKeycloakImage = deploy.DefaultKeycloakImage
-
-	}
-
-	keycloakImage := util.GetValue(instance.Spec.Auth.KeycloakImage, defaultKeycloakImage)
+	keycloakImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakUpstreamImage(cheFlavor))
 	if len(instance.Spec.Auth.KeycloakImage) < 1 {
 		instance.Spec.Auth.KeycloakImage = keycloakImage
 		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
@@ -499,11 +493,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	defaultPVCJobsImage := deploy.DefaultPvcJobsUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultPVCJobsImage = deploy.DefaultPvcJobsImage
-	}
-	pvcJobsImage := util.GetValue(instance.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
+	pvcJobsImage := util.GetValue(instance.Spec.Storage.PvcJobsImage, deploy.DefaultPvcJobsImage(cheFlavor))
 	if len(instance.Spec.Storage.PvcJobsImage) < 1 {
 		instance.Spec.Storage.PvcJobsImage = pvcJobsImage
 		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", pvcJobsImage); err != nil {
