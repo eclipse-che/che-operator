@@ -683,7 +683,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(instance.Spec.Auth.KeycloakImage))
+			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
 			storedCheCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"]

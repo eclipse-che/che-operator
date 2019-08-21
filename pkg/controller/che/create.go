@@ -423,32 +423,6 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	defaultPostgresImage := deploy.DefaultPostgresUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultPostgresImage = deploy.DefaultPostgresImage
-
-	}
-	postgresImage := util.GetValue(instance.Spec.Database.PostgresImage, defaultPostgresImage)
-	if len(instance.Spec.Database.PostgresImage) < 1 {
-		instance.Spec.Database.PostgresImage = postgresImage
-		if err := r.UpdateCheCRSpec(instance, "DB image:tag", postgresImage); err != nil {
-			return err
-		}
-	}
-
-	keycloakImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakUpstreamImage(cheFlavor))
-	if len(instance.Spec.Auth.KeycloakImage) < 1 {
-		instance.Spec.Auth.KeycloakImage = keycloakImage
-		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-		if err != nil {
-			logrus.Info("Disregard the error. No existing Identity provider deployment found. Using default image")
-		} else {
-			keycloakImage = keycloakDeployment.Spec.Template.Spec.Containers[0].Image
-		}
-		if err := r.UpdateCheCRSpec(instance, "Keycloak image:tag", keycloakImage); err != nil {
-			return err
-		}
-	}
 	keycloakRealm := util.GetValue(instance.Spec.Auth.KeycloakRealm, cheFlavor)
 	if len(instance.Spec.Auth.KeycloakRealm) < 1 {
 		instance.Spec.Auth.KeycloakRealm = keycloakRealm
@@ -490,13 +464,6 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 	if len(instance.Spec.Storage.PvcClaimSize) < 1 {
 		instance.Spec.Storage.PvcClaimSize = pvcClaimSize
 		if err := r.UpdateCheCRSpec(instance, "pvc claim size", pvcClaimSize); err != nil {
-			return err
-		}
-	}
-	pvcJobsImage := util.GetValue(instance.Spec.Storage.PvcJobsImage, deploy.DefaultPvcJobsImage(cheFlavor))
-	if len(instance.Spec.Storage.PvcJobsImage) < 1 {
-		instance.Spec.Storage.PvcJobsImage = pvcJobsImage
-		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", pvcJobsImage); err != nil {
 			return err
 		}
 	}
