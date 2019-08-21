@@ -473,6 +473,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
+
+			if effectiveDeployment.Status.Replicas > 1 {
+				logrus.Infof("Deployment %s is in the rolling update state", registryName)
+				k8sclient.GetDeploymentRollingUpdateStatus(registryName, instance.Namespace)
+			}
+			
 			desiredMemRequest, err := resource.ParseQuantity(registryMemoryRequest)
 			if err != nil {
 				logrus.Errorf("Wrong quantity for %s deployment Memory Request: %s", registryName, err)
@@ -705,6 +711,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
+			if effectiveKeycloakDeployment.Status.Replicas > 1 {
+				logrus.Infof("Deployment %s is in the rolling update state", "keycloak")
+				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
+			}
+			
 			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
