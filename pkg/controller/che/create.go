@@ -467,5 +467,31 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
+
+	// This is only to correctly  manage defaults during the transition
+	// from Upstream 7.0.0 GA to the next
+	// version that should fixed bug https://github.com/eclipse/che/issues/13714
+
+	if instance.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect {
+		instance.Spec.Storage.PvcJobsImage = ""
+		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", instance.Spec.Storage.PvcJobsImage); err != nil {
+			return err
+		}
+	}
+
+	if instance.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect {
+		instance.Spec.Database.PostgresImage = ""
+		if err := r.UpdateCheCRSpec(instance, "postgres image", instance.Spec.Database.PostgresImage); err != nil {
+			return err
+		}
+	}
+
+	if instance.Spec.Auth.KeycloakImage == deploy.OldDefaultKeycloakUpstreamImageToDetect {
+		instance.Spec.Auth.KeycloakImage = ""
+		if err := r.UpdateCheCRSpec(instance, "keycloak image", instance.Spec.Auth.KeycloakImage); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

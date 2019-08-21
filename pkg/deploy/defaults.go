@@ -59,6 +59,13 @@ const (
 	DefaultServerMemoryLimit            = "1Gi"
 	DefaultSecurityContextFsGroup       = "1724"
 	DefaultSecurityContextRunAsUser     = "1724"
+
+	// This is only to correctly  manage defaults during the transition
+	// from Upstream 7.0.0 GA to the next version
+	// That fixed bug https://github.com/eclipse/che/issues/13714
+	OldDefaultKeycloakUpstreamImageToDetect     = "eclipse/che-keycloak:7.0.0"
+	OldDefaultPvcJobsUpstreamImageToDetect      = "registry.access.redhat.com/ubi8-minimal:8.0-127"
+	OldDefaultPostgresUpstreamImageToDetect     = "centos/postgresql-96-centos7:9.6"
 )
 
 func DefaultCheServerImageTag(cheFlavor string) string {
