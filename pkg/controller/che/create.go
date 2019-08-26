@@ -13,6 +13,8 @@ package che
 
 import (
 	"context"
+	"strings"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -27,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 func (r *ReconcileChe) CreateNewDeployment(instance *orgv1.CheCluster, deployment *appsv1.Deployment) error {
@@ -322,8 +323,7 @@ func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, n
 	// and router is configured with a self signed certificate
 	// this secret is used by CRW server to reach RH SSO TLS endpoint
 	secret := &corev1.Secret{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret);
-		err != nil && errors.IsNotFound(err) {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret); err != nil && errors.IsNotFound(err) {
 		crt, err := r.GetEndpointTlsCrt(instance, url)
 		if err != nil {
 			logrus.Errorf("Failed to extract crt. Failed to create a secret with a self signed crt: %s", err)
@@ -423,38 +423,6 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	defaultPostgresImage := deploy.DefaultPostgresUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultPostgresImage = deploy.DefaultPostgresImage
-
-	}
-	postgresImage := util.GetValue(instance.Spec.Database.PostgresImage, defaultPostgresImage)
-	if len(instance.Spec.Database.PostgresImage) < 1 {
-		instance.Spec.Database.PostgresImage = postgresImage
-		if err := r.UpdateCheCRSpec(instance, "DB image:tag", postgresImage); err != nil {
-			return err
-		}
-	}
-
-	defaultKeycloakImage := deploy.DefaultKeycloakUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultKeycloakImage = deploy.DefaultKeycloakImage
-
-	}
-
-	keycloakImage := util.GetValue(instance.Spec.Auth.KeycloakImage, defaultKeycloakImage)
-	if len(instance.Spec.Auth.KeycloakImage) < 1 {
-		instance.Spec.Auth.KeycloakImage = keycloakImage
-		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-		if err != nil {
-			logrus.Info("Disregard the error. No existing Identity provider deployment found. Using default image")
-		} else {
-			keycloakImage = keycloakDeployment.Spec.Template.Spec.Containers[0].Image
-		}
-		if err := r.UpdateCheCRSpec(instance, "Keycloak image:tag", keycloakImage); err != nil {
-			return err
-		}
-	}
 	keycloakRealm := util.GetValue(instance.Spec.Auth.KeycloakRealm, cheFlavor)
 	if len(instance.Spec.Auth.KeycloakRealm) < 1 {
 		instance.Spec.Auth.KeycloakRealm = keycloakRealm
@@ -499,16 +467,31 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	defaultPVCJobsImage := deploy.DefaultPvcJobsUpstreamImage
-	if cheFlavor == "codeready" {
-		defaultPVCJobsImage = deploy.DefaultPvcJobsImage
-	}
-	pvcJobsImage := util.GetValue(instance.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
-	if len(instance.Spec.Storage.PvcJobsImage) < 1 {
-		instance.Spec.Storage.PvcJobsImage = pvcJobsImage
-		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", pvcJobsImage); err != nil {
+
+	// This is only to correctly  manage defaults during the transition
+	// from Upstream 7.0.0 GA to the next
+	// version that should fixed bug https://github.com/eclipse/che/issues/13714
+
+	if instance.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect {
+		instance.Spec.Storage.PvcJobsImage = ""
+		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", instance.Spec.Storage.PvcJobsImage); err != nil {
 			return err
 		}
 	}
+
+	if instance.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect {
+		instance.Spec.Database.PostgresImage = ""
+		if err := r.UpdateCheCRSpec(instance, "postgres image", instance.Spec.Database.PostgresImage); err != nil {
+			return err
+		}
+	}
+
+	if instance.Spec.Auth.KeycloakImage == deploy.OldDefaultKeycloakUpstreamImageToDetect {
+		instance.Spec.Auth.KeycloakImage = ""
+		if err := r.UpdateCheCRSpec(instance, "keycloak image", instance.Spec.Auth.KeycloakImage); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

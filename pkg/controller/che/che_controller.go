@@ -306,6 +306,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	keycloakPostgresPassword := instance.Spec.Auth.KeycloakPostgresPassword
 	keycloakAdminPassword := instance.Spec.Auth.KeycloakAdminPassword
 
+	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
+
 	// Create Postgres resources and provisioning unless an external DB is used
 	externalDB := instance.Spec.Database.ExternalDB
 	if !externalDB {
@@ -327,7 +329,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 		// Create a new Postgres deployment
-		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift)
+		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
 		if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -344,6 +346,29 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
+			
+			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(cheFlavor))
+			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
+			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
+			effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+			if effectiveImage != desiredImage ||
+				effectiveImagePullPolicy != desiredImagePullPolicy {
+				newPostgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
+				logrus.Infof(`Updating Postgres deployment with:
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s`,
+					effectiveImage, desiredImage,
+					effectiveImagePullPolicy, desiredImagePullPolicy,
+				)
+				if err := controllerutil.SetControllerReference(instance, newPostgresDeployment, r.scheme); err != nil {
+					logrus.Errorf("An error occurred: %s", err)
+				}
+				if err := r.client.Update(context.TODO(), newPostgresDeployment); err != nil {
+					logrus.Errorf("Failed to update Postgres deployment: %s", err)
+				}
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+			}
+
 			pgCommand := deploy.GetPostgresProvisionCommand(instance)
 			dbStatus := instance.Status.DbProvisoned
 			// provision Db and users for Che and Keycloak servers
@@ -369,7 +394,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
 	ingressStrategy := util.GetValue(instance.Spec.K8SOnly.IngressStrategy, deploy.DefaultIngressStrategy)
 	ingressDomain := instance.Spec.K8SOnly.IngressDomain
 	tlsSupport := instance.Spec.Server.TlsSupport
@@ -449,6 +473,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
+
+			if effectiveDeployment.Status.Replicas > 1 {
+				logrus.Infof("Deployment %s is in the rolling update state", registryName)
+				k8sclient.GetDeploymentRollingUpdateStatus(registryName, instance.Namespace)
+			}
+			
 			desiredMemRequest, err := resource.ParseQuantity(registryMemoryRequest)
 			if err != nil {
 				logrus.Errorf("Wrong quantity for %s deployment Memory Request: %s", registryName, err)
@@ -492,6 +522,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if err := r.client.Update(context.TODO(), newDeployment); err != nil {
 					logrus.Errorf("Failed to update %s registry deployment: %s", registryType, err)
 				}
+				return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 			}
 		}
 		return nil, nil
@@ -512,7 +543,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			pluginRegistryURL = guessedPluginRegistryURL
 		}
 
-		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage)
+		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(cheFlavor))
 		result, err := addRegistryDeployment(
 			"plugin",
 			pluginRegistryImage,
@@ -545,7 +576,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			devfileRegistryURL = guessedDevfileRegistryURL
 		}
 
-		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage)
+		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(cheFlavor))
 		result, err := addRegistryDeployment(
 			"devfile",
 			devfileRegistryImage,
@@ -680,9 +711,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
-			desiredImage := instance.Spec.Auth.KeycloakImage
+			if effectiveKeycloakDeployment.Status.Replicas > 1 {
+				logrus.Infof("Deployment %s is in the rolling update state", "keycloak")
+				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
+			}
+			
+			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(instance.Spec.Auth.KeycloakImage))
+			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
 			storedCheCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"]
@@ -709,7 +745,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if err := r.client.Update(context.TODO(), newKeycloakDeployment); err != nil {
 					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
 				}
-
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 			}
 			keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
 			if !keycloakRealmClientStatus {
@@ -757,12 +793,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
 	// create Che deployment
-	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo)
-	cheImageTag := util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCheServerImageTag)
-	if cheFlavor == "codeready" {
-		cheImageRepo = util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCodeReadyServerImageRepo)
-		cheImageTag = util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCodeReadyServerImageTag)
-	}
+	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo(cheFlavor))
+	cheImageTag := util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCheServerImageTag(cheFlavor))
 	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
 	if err != nil {
 		return reconcile.Result{}, err

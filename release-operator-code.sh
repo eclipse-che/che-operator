@@ -30,10 +30,10 @@ cd "${BASE_DIR}"
 echo
 echo "## Creating release '${RELEASE}' of the Che operator docker image"
 
-lastDefaultCheVersion=$(grep 'DefaultCheServerImageTag' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultCheServerImageTag *= *"\([^"]*\)"/\1/')
-lastDefaultKeycloakVersion=$(grep 'DefaultKeycloakUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultKeycloakUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
-lastDefaultPluginRegistryVersion=$(grep 'DefaultPluginRegistryImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultPluginRegistryImage *= *"[^":]*:\([^"]*\)"/\1/')
-lastDefaultDevfileRegistryVersion=$(grep 'DefaultDevfileRegistryImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultDevfileRegistryImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultCheVersion=$(grep 'defaultCheServerImageTag' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultCheServerImageTag *= *"\([^"]*\)"/\1/')
+lastDefaultKeycloakVersion=$(grep 'defaultKeycloakUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultKeycloakUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultPluginRegistryVersion=$(grep 'defaultPluginRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultPluginRegistryImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultDevfileRegistryVersion=$(grep 'defaultDevfileRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/.*DefaultDevfileRegistryImage *= *"[^":]*:\([^"]*\)"/\1/')
 if [ "${lastDefaultCheVersion}" != "${lastDefaultKeycloakVersion}" ]
 then
   echo "#### ERROR ####"
@@ -58,10 +58,10 @@ fi
 echo "     => will update default Eclipse Che Keycloak docker image tags from '${lastDefaultVersion}' to '${RELEASE}'"
 
 sed \
--e "s/\(.*DefaultCheServerImageTag *= *\"\)[^\"]*\"/\1${RELEASE}\"/" \
--e "s/\(.*DefaultKeycloakUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
--e "s/\(.*DefaultPluginRegistryImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
--e "s/\(.*DefaultDevfileRegistryImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
+-e "s/\(.*defaultCheServerImageTag *= *\"\)[^\"]*\"/\1${RELEASE}\"/" \
+-e "s/\(.*defaultKeycloakUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
+-e "s/\(.*defaultPluginRegistryUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
+-e "s/\(.*defaultDevfileRegistryUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
 pkg/deploy/defaults.go \
 > pkg/deploy/defaults.go.new
 mv pkg/deploy/defaults.go.new pkg/deploy/defaults.go
