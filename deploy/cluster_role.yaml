@@ -31,3 +31,9 @@ rules:
       - infrastructures
     verbs:
       - get
+  - apiGroups:
+      - user.openshift.io
+    resources:
+      - users
+    verbs:
+      - list
