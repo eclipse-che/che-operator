@@ -109,7 +109,7 @@ func TestCheController(t *testing.T) {
 	tests := true
 
 	// Create a ReconcileChe object with the scheme and fake client
-	r := &ReconcileChe{client: cl, scheme: s, tests: tests}
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: s, tests: tests}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
