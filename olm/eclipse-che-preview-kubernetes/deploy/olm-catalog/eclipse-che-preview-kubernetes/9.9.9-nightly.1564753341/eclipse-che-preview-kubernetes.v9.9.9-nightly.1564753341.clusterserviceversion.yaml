@@ -134,7 +134,7 @@ spec:
     ```
     ***important:*** The operator is only tracking resources in its own namespace. If CheCluster is not created in this namespace it's ignored.
     The operator will now create pods for Eclipse Che. The deployment status can be tracked by looking at the Operator logs by using the command:
-    ```    
+    ```
     $ kubectl logs -n my-eclipse-che che-operator-554c564476-fl98z
     ```
     ***important:*** pod name is different on each installation
@@ -145,7 +145,7 @@ spec:
     Eclipse Che URL can be tracked by searching for available trace:
     ```
     $ kubectl logs -f -n my-eclipse-che che-operator-7b6b4bcb9c-m4m2m | grep "Eclipse Che is now available"
-    time="2019-08-01T13:31:05Z" level=info msg="Eclipse Che is now available at: http://che-my-eclipse-che.gcp.my-ide.cloud" 
+    time="2019-08-01T13:31:05Z" level=info msg="Eclipse Che is now available at: http://che-my-eclipse-che.gcp.my-ide.cloud"
     ```
     When Eclipse Che is ready, the Eclipse Che URL is displayed in CheCluster resource in `status` section
     ```
