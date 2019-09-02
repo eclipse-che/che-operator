@@ -93,6 +93,21 @@ spec:
         path: cheClusterRunning
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
+      - description: Reason of the current status
+        displayName: Reason
+        path: reason
+        x-descriptors:
+          - 'urn:alm:descriptor:text'
+      - description: Message explaining the current status
+        displayName: Message
+        path: message
+        x-descriptors:
+          - 'urn:alm:descriptor:text'
+      - description: Link providing help related to the current status
+        displayName: Help link
+        path: helpLink
+        x-descriptors:
+          - 'urn:alm:descriptor:org.w3:link'
       version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.

@@ -206,24 +206,6 @@ type ReconcileChe struct {
 	tests  bool
 }
 
-/*
-          - description: Reason of the current status
-            displayName: Reason
-            path: reason
-            x-descriptors:
-              - 'urn:alm:descriptor:text'
-          - description: Message explaining the current status
-            displayName: Message
-            path: message
-            x-descriptors:
-              - 'urn:alm:descriptor:text'
-          - description: Link providing help related to the current status
-            displayName: Help link
-            path: helpLink
-            x-descriptors:
-              - 'urn:alm:descriptor:org.w3:link'
-*/
-
 const (
 	failedNoOpenshiftUserReason  = "InstallOrUpdateFailed"
 	failedNoOpenshiftUserMessage = "No real user exists in the OpenShift cluster." +

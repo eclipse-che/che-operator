@@ -15,7 +15,29 @@
    namespace: placeholder
  spec:
    apiservicedefinitions: {}
-@@ -98,7 +98,7 @@
+@@ -91,6 +91,21 @@
+         path: cheClusterRunning
+         x-descriptors:
+         - urn:alm:descriptor:io.kubernetes.phase
++      - description: Reason of the current status
++        displayName: Reason
++        path: reason
++        x-descriptors:
++          - 'urn:alm:descriptor:text'
++      - description: Message explaining the current status
++        displayName: Message
++        path: message
++        x-descriptors:
++          - 'urn:alm:descriptor:text'
++      - description: Link providing help related to the current status
++        displayName: Help link
++        path: helpLink
++        x-descriptors:
++          - 'urn:alm:descriptor:org.w3:link'
+       version: v1
+   description: |
+     A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development.
+@@ -98,7 +113,7 @@
      ## Prerequisites
      - Operator Lifecycle Manager (OLM) needs to be installed.
      - Kubernetes Platform. For OpenShift, the installation is directly made from OperatorHub UI in the admin console.
@@ -24,7 +46,7 @@
      OLM installation can be checked by running the command:
      ```
      $ kubectl get pods --all-namespaces | grep olm
-@@ -109,23 +109,23 @@
+@@ -109,23 +124,23 @@
      olm             packageserver-5c5f64947b-trghp                          1/1     Running   0          9m56s
      olm             packageserver-5c5f64947b-zqvxg                          1/1     Running   0          9m56s
      ```
@@ -55,7 +77,7 @@
      Click on `View YAML Example` *Link* and copy the content to a new file named `my-eclipse-che.yaml`
      **Important!** Make sure you provide **K8s.ingressDomain** which is a global ingress domain of your k8s cluster, for example, `gcp.my-ide.cloud`
      Create the new CheCluster by creating the resource in the `my-eclipse-che` namespace :
-@@ -138,10 +138,10 @@
+@@ -138,10 +153,10 @@
      $ kubectl logs -n my-eclipse-che che-operator-554c564476-fl98z
      ```
      ***important:*** pod name is different on each installation
@@ -69,7 +91,7 @@
      Eclipse Che URL can be tracked by searching for available trace:
      ```
      $ kubectl logs -f -n my-eclipse-che che-operator-7b6b4bcb9c-m4m2m | grep "Eclipse Che is now available"
-@@ -151,7 +151,7 @@
+@@ -151,7 +166,7 @@
      ```
      $ kubectl describe checluster/eclipse-che -n my-eclipse-che
      ```
@@ -78,7 +100,7 @@
      ```
      Status:
        Che Cluster Running:           Available
-@@ -159,7 +159,7 @@
+@@ -159,7 +174,7 @@
        Che Version:                   7.0.0
        ...
      ```
@@ -87,7 +109,7 @@
      By opening this URL in a web browser, Eclipse Che is ready to use.
      ## Defaults
      By default, the operator deploys Eclipse Che with:
-@@ -335,5 +335,5 @@
+@@ -335,5 +350,5 @@
    maturity: stable
    provider:
      name: Eclipse Foundation
