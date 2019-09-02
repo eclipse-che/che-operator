@@ -1,0 +1,38 @@
+--- /home/dfestal/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1564753341/eclipse-che-preview-openshift.v9.9.9-nightly.1564753341.clusterserviceversion.yaml	2019-08-28 12:17:35.000000000 +0200
++++ /home/dfestal/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1567437269/eclipse-che-preview-openshift.v9.9.9-nightly.1567437269.clusterserviceversion.yaml	2019-09-02 17:14:29.000000000 +0200
+@@ -46,12 +46,12 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2019-08-02T13:42:22Z"
++    createdAt: "2019-09-02T15:14:29Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1564753341
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1567437269
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -227,6 +227,12 @@
+           - infrastructures
+           verbs:
+           - get
++        - apiGroups:
++          - user.openshift.io
++          resources:
++          - users
++          verbs:
++          - list
+         serviceAccountName: che-operator
+       deployments:
+       - name: che-operator
+@@ -363,5 +369,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1563883406
+-  version: 9.9.9-nightly.1564753341
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1564753341
++  version: 9.9.9-nightly.1567437269
