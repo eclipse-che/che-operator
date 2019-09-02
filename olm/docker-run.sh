@@ -17,7 +17,7 @@ GIT_ROOT_DIRECTORY=$(git rev-parse --show-toplevel)
 IMAGE_NAME="eclipse/che-operator-olm-build"
 
 # Operator SDK
-OPERATOR_SDK_VERSION=v0.8.2
+OPERATOR_SDK_VERSION=v0.10.0
 
 init() {
   BLUE='\033[1;34m'
