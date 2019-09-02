@@ -53,18 +53,46 @@ func (r *ReconcileChe) SetCheAvailableStatus(instance *orgv1.CheCluster, request
 }
 
 func (r *ReconcileChe) SetCheUnavailableStatus(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
-	instance.Status.CheClusterRunning = UnavailableStatus
-	if err:= r.UpdateCheCRStatus(instance, "status: Che API", UnavailableStatus); err != nil {
-		instance, _ = r.GetCR(request)
-		return err
+	if instance.Status.CheClusterRunning != UnavailableStatus {
+		instance.Status.CheClusterRunning = UnavailableStatus
+		if err := r.UpdateCheCRStatus(instance, "status: Che API", UnavailableStatus); err != nil {
+			instance, _ = r.GetCR(request)
+			return err
+		}
 	}
 	return nil
 }
 
-func (r *ReconcileChe) SetCheRollingUpdateStatus(instance *orgv1.CheCluster, request reconcile.Request) (err error){
+func (r *ReconcileChe) SetStatusDetails(instance *orgv1.CheCluster, request reconcile.Request, reason string, message string, helpLink string) (err error) {
+	if reason != instance.Status.Reason {
+		instance.Status.Reason = reason
+		if err := r.UpdateCheCRStatus(instance, "status: Reason", reason); err != nil {
+			instance, _ = r.GetCR(request)
+			return err
+		}
+	}
+	if message != instance.Status.Message {
+		instance.Status.Message = message
+		if err := r.UpdateCheCRStatus(instance, "status: Message", message); err != nil {
+			instance, _ = r.GetCR(request)
+			return err
+		}
+	}
+	if helpLink != instance.Status.HelpLink {
+		instance.Status.HelpLink = helpLink
+		if err := r.UpdateCheCRStatus(instance, "status: HelpLink", message); err != nil {
+			instance, _ = r.GetCR(request)
+			return err
+		}
+	}
+	return nil
+}
+
+
+func (r *ReconcileChe) SetCheRollingUpdateStatus(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
 
 	instance.Status.CheClusterRunning = RollingUpdateInProgressStatus
-	if err:= r.UpdateCheCRStatus(instance, "status", RollingUpdateInProgressStatus); err != nil {
+	if err := r.UpdateCheCRStatus(instance, "status", RollingUpdateInProgressStatus); err != nil {
 		instance, _ = r.GetCR(request)
 		return err
 	}

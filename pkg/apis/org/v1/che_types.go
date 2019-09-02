@@ -205,6 +205,16 @@ type CheClusterStatus struct {
 	DevfileRegistryURL string `json:"devfileRegistryURL"`
 	// PluginRegistryURL is the Plugin registry protocol+route/ingress
 	PluginRegistryURL string `json:"pluginRegistryURL"`
+	// A human readable message indicating details about why the pod is in this condition.
+	// +optional
+	Message string `json:"message,omitempty"`
+	// A brief CamelCase message indicating details about why the pod is in this state.
+	// e.g. 'Evicted'
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// A URL that can point to some URL where to find help related to the current Operator status.
+	// +optional
+	HelpLink string `json:"helpLink,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

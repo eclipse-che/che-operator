@@ -12,19 +12,22 @@
 package che
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"context"
+	"time"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
 )
 
 var log = logf.Log.WithName("controller_che")
@@ -47,12 +49,24 @@ var (
 // Add creates a new CheCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	reconciler, err := newReconciler(mgr)
+	if err != nil {
+		return err
+	}
+	return add(mgr, reconciler)
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileChe{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{})
+	if err != nil {
+		return nil, err
+	}
+	return &ReconcileChe{
+		client: mgr.GetClient(), 
+		nonCachedClient: noncachedClient,
+		scheme: mgr.GetScheme(),
+	}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -73,7 +87,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			logrus.Errorf("Failed to add OpenShift route to scheme: %s", err)
 		}
 		if err := oauth.AddToScheme(mgr.GetScheme()); err != nil {
-			logrus.Errorf("Failed to add oAuth to scheme: %s", err)
+			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
+		}
+		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift User to scheme: %s", err)
 		}
 	}
 
@@ -180,9 +197,22 @@ type ReconcileChe struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
+	// This client, is a simple client
+	// that reads objects without using the cache,
+	// to simply read objects thta we don't intend
+	// to further watch
+	nonCachedClient client.Client
 	scheme *runtime.Scheme
 	tests  bool
 }
+
+const (
+	failedNoOpenshiftUserReason  = "InstallOrUpdateFailed"
+	failedNoOpenshiftUserMessage = "No real user exists in the OpenShift cluster." +
+		" Either disable OpenShift OAuth integration or add at least one user (details in the Help link)"
+	howToCreateAUserLinkOS4 = "https://docs.openshift.com/container-platform/4.1/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
+	howToCreateAUserLinkOS3 = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
+)
 
 // Reconcile reads that state of the cluster for a CheCluster object and makes changes based on the state read
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
@@ -222,12 +252,46 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftOauth && ! instance.Spec.Server.TlsSupport) {
+			(isOpenShift4 && instance.Spec.Auth.OpenShiftOauth && !instance.Spec.Server.TlsSupport) {
 			if err := r.CreateTLSSecret(instance, "", "self-signed-certificate"); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
+
+		if !tests {
+			deployment := &appsv1.Deployment{}
+			name := "che"
+			cheFlavor := instance.Spec.Server.CheFlavor
+			if cheFlavor == "codeready" {
+				name = cheFlavor
+			}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
+			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
+				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
+			}
+		}
+
 		if instance.Spec.Auth.OpenShiftOauth {
+			users := &userv1.UserList{}
+			listOptions := &client.ListOptions{}
+			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
+				return reconcile.Result{}, err
+			}
+			if len(users.Items) < 1 {
+				helpLink := ""
+				if isOpenShift4 {
+					helpLink = howToCreateAUserLinkOS4
+				} else {
+					helpLink = howToCreateAUserLinkOS3
+				}
+				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, failedNoOpenshiftUserMessage, helpLink); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 10}, nil
+			}
+
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
 			if err != nil {
@@ -239,21 +303,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
-
-	if !tests {
-		deployment := &appsv1.Deployment{}
-		name := "che"
-		cheFlavor := instance.Spec.Server.CheFlavor
-		if cheFlavor == "codeready" {
-			name = cheFlavor
-		}
-		err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
-		if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
-			if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-			}
-		}
+	
+	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
+		return reconcile.Result{}, err
 	}
+
 	// create service accounts:
 	// che is the one which token is used to create workspace objects
 	// che-workspace is SA used by plugins like exec and terminal with limited privileges
@@ -346,7 +400,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 			}
-			
+
 			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(cheFlavor))
 			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
@@ -402,7 +456,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		protocol = "https"
 	}
 
-	addRegistryRoute := func (registryType string) (string, error) {
+	addRegistryRoute := func(registryType string) (string, error) {
 		registryName := registryType + "-registry"
 		host := ""
 		if !isOpenShift {
@@ -431,7 +485,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return protocol + "://" + host, nil
 	}
 
-	addRegistryDeployment := func (
+	addRegistryDeployment := func(
 		registryType string,
 		registryImage string,
 		registryImagePullPolicy corev1.PullPolicy,
@@ -444,7 +498,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Create a new registry service
 		registryLabels := deploy.GetLabels(instance, registryName)
 		registryService := deploy.NewService(instance, registryName, []string{"http"}, []int32{8080}, registryLabels)
-		if err := r.CreateService(instance,registryService); err != nil {
+		if err := r.CreateService(instance, registryService); err != nil {
 			return &reconcile.Result{}, err
 		}
 		// Create a new registry deployment
@@ -478,7 +532,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				logrus.Infof("Deployment %s is in the rolling update state", registryName)
 				k8sclient.GetDeploymentRollingUpdateStatus(registryName, instance.Namespace)
 			}
-			
+
 			desiredMemRequest, err := resource.ParseQuantity(registryMemoryRequest)
 			if err != nil {
 				logrus.Errorf("Wrong quantity for %s deployment Memory Request: %s", registryName, err)
@@ -715,7 +769,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				logrus.Infof("Deployment %s is in the rolling update state", "keycloak")
 				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
 			}
-			
+
 			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
@@ -726,7 +780,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			storedOpenshiftApiCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.openshift-api-crt.version"]
 			if effectiveImage != desiredImage ||
 				effectiveImagePullPolicy != desiredImagePullPolicy ||
-			  cheCertSecretVersion != storedCheCertSecretVersion ||
+				cheCertSecretVersion != storedCheCertSecretVersion ||
 				openshiftApiCertSecretVersion != storedOpenshiftApiCertSecretVersion {
 				newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof(`Updating Keycloak deployment with:
@@ -810,31 +864,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 	if !tests {
-		if effectiveCheDeployment.Status.AvailableReplicas != 1 {
-			instance, _ := r.GetCR(request)
-			if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-			}
-			scaled := k8sclient.GetDeploymentStatus(cheDeploymentToCreate.Name, instance.Namespace)
-			if !scaled {
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-			}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentToCreate.Name, Namespace: instance.Namespace}, effectiveCheDeployment)
-			if effectiveCheDeployment.Status.AvailableReplicas == 1 {
-				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-				if instance.Status.CheVersion != cheImageTag {
-					instance.Status.CheVersion = cheImageTag
-					if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
-						instance, _ = r.GetCR(request)
-						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-					}
-				}
-			}
-		}
 		if effectiveCheDeployment.Status.Replicas > 1 {
+			// Specific case: a Rolling update is happening
 			logrus.Infof("Deployment %s is in the rolling update state", cheDeploymentToCreate.Name)
 			if err := r.SetCheRollingUpdateStatus(instance, request); err != nil {
 				instance, _ = r.GetCR(request)
@@ -846,6 +877,33 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
+			}
+		} else {
+			if effectiveCheDeployment.Status.AvailableReplicas < 1 {
+				// Deployment was just created
+				instance, _ := r.GetCR(request)
+				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
+				scaled := k8sclient.GetDeploymentStatus(cheDeploymentToCreate.Name, instance.Namespace)
+				if !scaled {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+				}
+				effectiveCheDeployment, err = r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
+			}
+			if effectiveCheDeployment.Status.AvailableReplicas == 1 &&
+			    instance.Status.CheClusterRunning != AvailableStatus {
+				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
+					instance, _ = r.GetCR(request)
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
+				if instance.Status.CheVersion != cheImageTag {
+					instance.Status.CheVersion = cheImageTag
+					if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
+						instance, _ = r.GetCR(request)
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+					}
 				}
 			}
 		}
@@ -949,7 +1007,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Wrong quantity for Che deployment Memory Limit: %s", err)
 		return reconcile.Result{}, err
 	}
-	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo + ":" + cheImageTag))
+	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo+":"+cheImageTag))
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
 	effectiveSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil

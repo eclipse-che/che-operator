@@ -18,6 +18,7 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -70,26 +71,45 @@ func TestCheController(t *testing.T) {
 			},
 		},
 	}
+
+	userList := &userv1.UserList{
+		Items: []userv1.User{
+			userv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "user1",
+				},
+			},
+			userv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "user2",
+				},
+			},
+		},
+	}
+
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		cheCR, pgPod,
+		cheCR, pgPod, userList,
 	}
 
 	route := &routev1.Route{}
 	oAuthClient := &oauth.OAuthClient{}
+	users := &userv1.UserList{}
+	user := &userv1.User{}
 
 	// Register operator types with the runtime scheme
 	s := scheme.Scheme
 	s.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
 	s.AddKnownTypes(routev1.SchemeGroupVersion, route)
 	s.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	s.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
 
 	// Create a fake client to mock API calls
 	cl := fake.NewFakeClient(objs...)
 	tests := true
 
 	// Create a ReconcileChe object with the scheme and fake client
-	r := &ReconcileChe{client: cl, scheme: s, tests: tests}
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: s, tests: tests}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
