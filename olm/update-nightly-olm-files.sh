@@ -50,5 +50,9 @@ do
   echo "   - Updating the 'nightly' channel with new version in the package descriptor: ${packageFilePath}"
   sed -e "s/${lastPackageVersion}/${newNightlyPackageVersion}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
+
+  diff -u "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml" \
+  "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml" \
+  > "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.diff" || true
 done
 cd "${CURRENT_DIR}"
