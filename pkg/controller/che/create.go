@@ -296,7 +296,11 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 	}
 
 	if !tests {
-		openShiftIdentityProviderCommand := deploy.GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, keycloakAdminPassword, isOpenShift4)
+		openShiftIdentityProviderCommand, err := deploy.GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, keycloakAdminPassword, isOpenShift4)
+		if err != nil {
+			logrus.Errorf("Failed to build identity provider provisioning command")
+			return err
+		}
 		podToExec, err := k8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
 		if err != nil {
 			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
