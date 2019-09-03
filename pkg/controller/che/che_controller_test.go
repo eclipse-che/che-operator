@@ -13,6 +13,7 @@ package che
 
 import (
 	"context"
+	console "github.com/openshift/api/console/v1"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -103,6 +104,8 @@ func TestCheController(t *testing.T) {
 	s.AddKnownTypes(routev1.SchemeGroupVersion, route)
 	s.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 	s.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+
+	s.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
 
 	// Create a fake client to mock API calls
 	cl := fake.NewFakeClient(objs...)

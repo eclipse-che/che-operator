@@ -12,11 +12,12 @@
 package util
 
 import (
-	"errors"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"math/rand"
 	"net/http"
@@ -63,30 +64,49 @@ func GeneratePasswd(stringLength int) (passwd string) {
 func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 	tests := IsTestMode()
 	if !tests {
-		kubeconfig, err := config.GetConfig()
-		if err != nil {
+		apiGroups, err := getApiList()
+		if err != nil{
 			return false, false, err
 		}
-		discoveryClient, err := discovery.NewDiscoveryClientForConfig(kubeconfig)
-		if err != nil {
-			return false, false, err
-		}
-		apiList, err := discoveryClient.ServerGroups()
-		if err != nil {
-			return false, false, err
-		}
-		apiGroups := apiList.Groups
-		for i := 0; i < len(apiGroups); i++ {
-			if apiGroups[i].Name == "route.openshift.io" {
+		for _, apiGroup := range apiGroups {
+			if apiGroup.Name == "route.openshift.io" {
 				isOpenshift = true
 			}
-			if apiGroups[i].Name == "config.openshift.io" {
+			if apiGroup.Name == "config.openshift.io" {
 				isOpenshift4 = true
 			}
 		}
 		return
 	}
 	return true, false, nil
+}
+
+func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
+	kubeconfig, err := config.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	return discovery.NewDiscoveryClientForConfig(kubeconfig)
+}
+
+func getApiList() ([]v1.APIGroup, error) {
+	discoveryClient, err := getDiscoveryClient()
+	if err != nil {
+		return nil, err
+	}
+	apiList, err := discoveryClient.ServerGroups()
+	if err != nil {
+		return nil, err
+	}
+	return apiList.Groups, nil
+}
+
+func GetServerResources() ([]*v1.APIResourceList, error) {
+	discoveryClient, err := getDiscoveryClient()
+	if err != nil {
+		return nil, err
+	}
+	return discoveryClient.ServerResources()
 }
 
 func GetValue(key string, defaultValue string) (value string) {

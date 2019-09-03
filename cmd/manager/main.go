@@ -108,7 +108,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logrus.Info("Registering Components")
+	logrus.Info("Registering Che Components Types")
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
