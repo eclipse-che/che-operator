@@ -35,6 +35,10 @@ required = [
   # revision for tag "kubernetes-1.12.3"
   revision = "0cd23ebeb6882bd1cdc2cb15fc7b2d72e8a86a5b"
 
+[[constraint]]
+  name = "github.com/openshift/api"
+  branch = "release-4.2"
+
 [[override]]
   name = "k8s.io/apimachinery"
   # revision for tag "kubernetes-1.12.3"
