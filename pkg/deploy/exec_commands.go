@@ -12,11 +12,14 @@
 package deploy
 
 import (
+	"bytes"
+	"io/ioutil"
+	"strings"
+	"text/template"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"strings"
 )
 
 func GetPostgresProvisionCommand(cr *orgv1.CheCluster) (command string) {
@@ -35,8 +38,8 @@ func GetPostgresProvisionCommand(cr *orgv1.CheCluster) (command string) {
 }
 
 func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command string) {
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.KeycloakAdminUserName,"admin")
-	keycloakAdminPassword := util.GetValue(cr.Spec.Auth.KeycloakAdminPassword,"admin")
+	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.KeycloakAdminUserName, "admin")
+	keycloakAdminPassword := util.GetValue(cr.Spec.Auth.KeycloakAdminPassword, "admin")
 	requiredActions := ""
 	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
@@ -72,17 +75,17 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command 
 	createRealmClientUserCommand := r.Replace(str)
 	command = createRealmClientUserCommand
 	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " +createRealmClientUserCommand
+		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + createRealmClientUserCommand
 	}
 	return command
 }
 
-func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthClientName string, oauthSecret string, keycloakAdminPassword string, isOpenShift4 bool) (command string) {
+func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthClientName string, oauthSecret string, keycloakAdminPassword string, isOpenShift4 bool) (command string, err error) {
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
 	openShiftApiUrl, err := util.GetClusterPublicHostname(isOpenShift4)
 	if err != nil {
 		logrus.Errorf("Failed to auto-detect public OpenShift API URL. Configure it in Identity provider details page in Keycloak admin console: %s", err)
-		openShiftApiUrl = "RECPLACE_ME"
+		return "", err
 	}
 
 	keycloakRealm := util.GetValue(cr.Spec.Auth.KeycloakRealm, cheFlavor)
@@ -98,22 +101,59 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 		providerId = "openshift-v4"
 	}
 
-	createOpenShiftIdentityProviderCommand :=
-		script + " config credentials --server http://0.0.0.0:8080/auth " +
-			"--realm master --user " + keycloakAdminUserName + " --password " + keycloakAdminPassword + " && " + script +
-			" get identity-provider/instances/" + providerId + " -r " + keycloakRealm + "; " +
-			"if [ $? -eq 0 ]; then echo \"Provider exists\"; exit 0; fi && " + script +
-			" create identity-provider/instances -r " + keycloakRealm +
-			" -s alias=" + providerId + " -s providerId=" + providerId + " -s enabled=true -s storeToken=true" +
-			" -s addReadTokenRoleOnCreate=true -s config.useJwksUrl=true" +
-			" -s config.clientId=" + oAuthClientName + " -s config.clientSecret=" + oauthSecret +
-			" -s config.baseUrl=" + openShiftApiUrl +
-			" -s config.defaultScope=user:full"
-	command = createOpenShiftIdentityProviderCommand
-	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + createOpenShiftIdentityProviderCommand
+	createOpenShiftIdentityProviderTemplate := `\
+{{ .Script }} config credentials --server http://0.0.0.0:8080/auth --realm master --user {{ .KeycloakAdminUserName }} --password {{ .KeycloakAdminPassword }} \
+&& \
+{{ .Script }} get identity-provider/instances/{{ .ProviderId }} -r {{ .KeycloakRealm }} \
+; \
+if [ $? -eq 0 ]; \
+then echo \"Provider exists\"; \
+else {{ .Script }} create identity-provider/instances -r {{ .KeycloakRealm }} -s alias={{ .ProviderId }} -s providerId={{ .ProviderId }} -s enabled=true -s storeToken=true -s addReadTokenRoleOnCreate=true -s config.useJwksUrl=true -s config.clientId={{ .OAuthClientName}} -s config.clientSecret={{ .OauthSecret}} -s config.baseUrl={{ .OpenShiftApiUrl }} -s config.defaultScope=user:full ; \
+fi \
+&& \
+EXECUTION_ID=$({{ .Script }} get authentication/flows/browser/executions -r {{ .KeycloakRealm }} -c | sed -e 's/.*\({[^}]\+"identity-provider-redirector"[^}]\+}\).*/\1/' -e 's/.*"id":"\([^"]\+\)".*/\1/') \
+&& \
+ALIAS=$({{ .Script }} get authentication/flows/browser/executions -r {{ .KeycloakRealm }} -c | sed -e 's/.*\({[^}]\+"identity-provider-redirector"[^}]\+}\).*/\1/' | grep '"alias":"' | sed -e 's/.*"alias":"\([^"]\+\)".*/\1/') \
+; \
+if [ -z ${ALIAS} ]; \
+then echo '{"config":{"defaultProvider":"{{ .ProviderId }}"},"alias":"{{ .ProviderId }}"}' | {{ .Script }} create -r che authentication/executions/${EXECUTION_ID}/config -f - ; \
+fi\
+`
+	template, err := template.New("IdentityProviderProvisioning").Parse(createOpenShiftIdentityProviderTemplate)
+	if err != nil {
+		return "", err
 	}
-	return command
+	buffer := new(bytes.Buffer)
+	err = template.Execute(
+		buffer,
+		struct {
+			Script                string
+			KeycloakAdminUserName string
+			KeycloakAdminPassword string
+			KeycloakRealm         string
+			ProviderId            string
+			OAuthClientName       string
+			OauthSecret           string
+			OpenShiftApiUrl       string
+		}{
+			script,
+			keycloakAdminUserName,
+			keycloakAdminPassword,
+			keycloakRealm,
+			providerId,
+			oAuthClientName,
+			oauthSecret,
+			openShiftApiUrl,
+		})
+	if err != nil {
+		return "", err
+	}
+
+	command = buffer.String()
+	if cheFlavor == "che" {
+		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + command
+	}
+	return command, nil
 }
 
 func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, keycloakAdminPassword string, isOpenShift4 bool) (command string) {
