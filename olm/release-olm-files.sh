@@ -74,7 +74,7 @@ do
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
 
-  diff -u "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.v${lastPackageNightlyVersion}.clusterserviceversion.yaml" \
+  diff -u "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
   "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml" \
   > "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml.diff" || true
 done
