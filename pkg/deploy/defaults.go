@@ -66,6 +66,12 @@ const (
 	OldDefaultKeycloakUpstreamImageToDetect     = "eclipse/che-keycloak:7.0.0"
 	OldDefaultPvcJobsUpstreamImageToDetect      = "registry.access.redhat.com/ubi8-minimal:8.0-127"
 	OldDefaultPostgresUpstreamImageToDetect     = "centos/postgresql-96-centos7:9.6"
+
+	// ConsoleLink default
+	DefaultConsoleLinkName        = "che"
+	DefaultConsoleLinkImage       = "/dashboard/assets/branding/loader.svg"
+	DefaultConsoleLinkDisplayName = "Eclipse Che"
+	DefaultConsoleLinkSection     = "Red Hat Applications"
 )
 
 func DefaultCheServerImageTag(cheFlavor string) string {

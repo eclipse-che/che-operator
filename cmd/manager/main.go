@@ -12,7 +12,6 @@
 package main
 
 import (
-
 	"context"
 	"flag"
 	"fmt"
@@ -33,10 +32,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	//logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-
 )
 
+func setLogLevel() {
+	logLevel, isFound := os.LookupEnv("LOG_LEVEL")
+	if isFound && len(logLevel) > 0 {
+		parsedLevel, err := logrus.ParseLevel(logLevel)
+		if err == nil {
+			logrus.SetLevel(parsedLevel)
+			logrus.Infof("Configured '%s' log level is applied", logLevel)
+		} else {
+			logrus.Errorf("Failed to parse log level `%s`. Possible values: panic, fatal, error, warn, info, debug. Default 'info' is applied", logLevel)
+			logrus.SetLevel(logrus.InfoLevel)
+		}
+	} else {
+		logrus.Infof("Default 'info' log level is applied")
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+}
+
 func printVersion() {
+	setLogLevel()
 	logrus.Infof(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	logrus.Infof(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
 	logrus.Infof(fmt.Sprintf("operator-sdk Version: %v", sdkVersion.Version))
@@ -55,7 +71,6 @@ func printVersion() {
 		}
 	}
 	logrus.Infof(fmt.Sprintf("Operator is running on %v", infra))
-
 }
 
 func main() {
@@ -64,7 +79,7 @@ func main() {
 	printVersion()
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
-		logrus.Errorf( "Failed to get watch namespace. Using default namespace eclipse-che: %s", err)
+		logrus.Errorf("Failed to get watch namespace. Using default namespace eclipse-che: %s", err)
 		namespace = "eclipse-che"
 	}
 
@@ -93,7 +108,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logrus.Info("Registering Components")
+	logrus.Info("Registering Che Components Types")
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {

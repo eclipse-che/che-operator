@@ -285,15 +285,17 @@
   version = "1.0.1"
 
 [[projects]]
-  digest = "1:8bc8f43d2332d035857c92581df240f247c287629d5f60c751df609f9b6215c5"
+  branch = "release-4.2"
+  digest = "1:378f421dd9888e2a449835b102849dabc6e35918432b872c7718a962d5bcc0ad"
   name = "github.com/openshift/api"
   packages = [
+    "console/v1",
     "oauth/v1",
     "route/v1",
+    "user/v1",
   ]
   pruneopts = "NT"
-  revision = "0d921e363e951d89f583292c60d013c318df64dc"
-  version = "v3.9.0"
+  revision = "763878ba9fae6d87ab1d8310aa0c01fe7dd2499a"
 
 [[projects]]
   digest = "1:df8e741cd0f86087367f3bcfeb1cf237e96fada71194b6d4cee9412d221ec763"
@@ -885,8 +887,10 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/openshift/api/console/v1",
     "github.com/openshift/api/oauth/v1",
     "github.com/openshift/api/route/v1",
+    "github.com/openshift/api/user/v1",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
     "github.com/operator-framework/operator-sdk/pkg/ready",

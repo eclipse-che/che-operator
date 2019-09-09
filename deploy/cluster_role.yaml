@@ -37,3 +37,14 @@ rules:
       - users
     verbs:
       - list
+  - apiGroups:
+      - console.openshift.io
+    resources:
+      - consolelinks
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+      - delete

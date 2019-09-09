@@ -13,11 +13,13 @@ package che
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
+	consolev1 "github.com/openshift/api/console/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -63,9 +65,9 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		return nil, err
 	}
 	return &ReconcileChe{
-		client: mgr.GetClient(), 
+		client:          mgr.GetClient(),
 		nonCachedClient: noncachedClient,
-		scheme: mgr.GetScheme(),
+		scheme:          mgr.GetScheme(),
 	}, nil
 }
 
@@ -81,7 +83,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-	// register OpenShift routes in the scheme
+	// register OpenShift specific types in the scheme
 	if isOpenShift {
 		if err := routev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift route to scheme: %s", err)
@@ -91,6 +93,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}
 		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift User to scheme: %s", err)
+		}
+		if hasConsolelinkObject() {
+			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
+				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
+			}
 		}
 	}
 
@@ -202,8 +209,8 @@ type ReconcileChe struct {
 	// to simply read objects thta we don't intend
 	// to further watch
 	nonCachedClient client.Client
-	scheme *runtime.Scheme
-	tests  bool
+	scheme          *runtime.Scheme
+	tests           bool
 }
 
 const (
@@ -237,6 +244,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
+
 	if isOpenShift {
 		// delete oAuthClient before CR is deleted
 		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
@@ -303,7 +311,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
-	
+
 	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -499,6 +507,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
 	// create and provision Keycloak related objects
 	ExternalKeycloak := instance.Spec.Auth.ExternalKeycloak
 
@@ -895,7 +904,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				effectiveCheDeployment, err = r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
 			}
 			if effectiveCheDeployment.Status.AvailableReplicas == 1 &&
-			    instance.Status.CheClusterRunning != AvailableStatus {
+				instance.Status.CheClusterRunning != AvailableStatus {
 				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -910,6 +919,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
+	// we can now try to create consolelink, after che instance is available
+	if err := createConsoleLink(isOpenShift4, protocol, instance, r); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	if effectiveCheDeployment.Spec.Template.Spec.Containers[0].Image != cheDeploymentToCreate.Spec.Template.Spec.Containers[0].Image {
 		if err := controllerutil.SetControllerReference(instance, cheDeploymentToCreate, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
@@ -1041,4 +1056,68 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 	return reconcile.Result{}, nil
+}
+
+func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCluster, r *ReconcileChe) error {
+	if !isOpenShift4 || !hasConsolelinkObject() {
+		logrus.Debug("Console link won't be created. It's not supported by cluster")
+		// console link is supported only on OpenShift >= 4.2
+		return nil
+	}
+
+	if protocol != "https" {
+		logrus.Debug("Console link won't be created. It's not supported when http connection is used")
+		// console link is supported only with https
+		return nil
+	}
+
+	cheHost := instance.Spec.Server.CheHost
+	preparedConsoleLink := &consolev1.ConsoleLink{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: deploy.DefaultConsoleLinkName,
+		},
+		Spec: consolev1.ConsoleLinkSpec{
+			Link: consolev1.Link{
+				Href: protocol + "://" + cheHost,
+				Text: deploy.DefaultConsoleLinkDisplayName},
+			Location: consolev1.ApplicationMenu,
+			ApplicationMenu: &consolev1.ApplicationMenuSpec{
+				Section:  deploy.DefaultConsoleLinkSection,
+				ImageURL: fmt.Sprintf("%s://%s%s", protocol, cheHost, deploy.DefaultConsoleLinkImage),
+			},
+		},
+	}
+
+	existingConsoleLink := &consolev1.ConsoleLink{}
+
+	if getErr := r.nonCachedClient.Get(context.TODO(), client.ObjectKey{Name: deploy.DefaultConsoleLinkName}, existingConsoleLink); getErr == nil {
+		// if found, update existing one. We need ResourceVersion from current one.
+		preparedConsoleLink.ResourceVersion = existingConsoleLink.ResourceVersion
+		logrus.Debugf("Updating the object: ConsoleLink, name: %s", existingConsoleLink.Name)
+		return r.nonCachedClient.Update(context.TODO(), preparedConsoleLink)
+	} else {
+		// if not found, create new one
+		if statusError, ok := getErr.(*errors.StatusError); ok &&
+			statusError.Status().Reason == metav1.StatusReasonNotFound {
+			logrus.Infof("Creating a new object: ConsoleLink, name: %s", preparedConsoleLink.Name)
+			return r.nonCachedClient.Create(context.TODO(), preparedConsoleLink)
+		} else {
+			return getErr
+		}
+	}
+}
+
+func hasConsolelinkObject() bool {
+	resourceList, err := util.GetServerResources()
+	if err != nil {
+		return false
+	}
+	for _, res := range resourceList {
+		for _, r := range res.APIResources {
+			if r.Name == "consolelinks" {
+				return true
+			}
+		}
+	}
+	return false
 }
