@@ -69,7 +69,7 @@ const (
 
 	// ConsoleLink default
 	DefaultConsoleLinkName        = "che"
-	DefaultConsoleLinkImage       = "/dashboard/assets/branding/che-logo.svg"
+	DefaultConsoleLinkImage       = "/dashboard/assets/branding/loader.svg"
 	DefaultConsoleLinkDisplayName = "Eclipse Che"
 	DefaultConsoleLinkSection     = "Red Hat Applications"
 )
