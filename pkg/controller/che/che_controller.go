@@ -508,10 +508,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if err := createConsoleLink(isOpenShift4, protocol, instance, r); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// create and provision Keycloak related objects
 	ExternalKeycloak := instance.Spec.Auth.ExternalKeycloak
 
@@ -923,6 +919,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
+	// we can now try to create consolelink, after che instance is available
+	if err := createConsoleLink(isOpenShift4, protocol, instance, r); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	if effectiveCheDeployment.Spec.Template.Spec.Containers[0].Image != cheDeploymentToCreate.Spec.Template.Spec.Containers[0].Image {
 		if err := controllerutil.SetControllerReference(instance, cheDeploymentToCreate, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
