@@ -32,5 +32,5 @@ if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
                                         --uusername admin \
                                         --cclientid broker \
                                         --rolename read-token \
-&& CLIENT_ID=$($script get clients -r che -q clientId=broker | sed -n 's/.*"id" *: *"\([^"]\+\).*/\1/p') \
-&& $script update clients/$CLIENT_ID -r che -s "defaultRoles+=read-token"
+&& CLIENT_ID=$($script get clients -r '$keycloakRealm' -q clientId=broker | sed -n 's/.*"id" *: *"\([^"]\+\).*/\1/p') \
+&& $script update clients/$CLIENT_ID -r '$keycloakRealm' -s "defaultRoles+=read-token"
