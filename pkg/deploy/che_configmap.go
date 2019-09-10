@@ -210,7 +210,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
 		"CHE_INFRA_KUBERNETES_SERVER__STRATEGY":                    ingressStrategy,
 		"CHE_INFRA_KUBERNETES_TLS__SECRET":                         tlsSecretName,
-		"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
+		"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
+		"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 	}
 	if !isOpenShift {
 		addMap(cheEnv, k8sCheEnv)
