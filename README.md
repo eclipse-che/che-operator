@@ -100,15 +100,16 @@ You can set it in Run configuration in the IDE, or export this env before execut
 
 This applies both to Run and Debug.
 
-### Pre-Reqs: /tmp/keycloak_provision file
+### Pre-Reqs: /tmp/keycloak_provision and oauth_provision files
 
-The operator grabs this file and replaces values to get a string used as exec command to create Keycloak realm, client and user.
+The operator grabs these files and replaces values to get a string used as exec command to configure Keycloak.
 Make sure you run the following before running/debugging:
 
 ```
 cp deploy/keycloak_provision /tmp/keycloak_provision
+cp deploy/oauth_provision /tmp/oauth_provision
 ```
-This file is added to a Docker image, thus this step isn't required when deploying an operator image.
+These files are added to a Docker image, thus this step isn't required when deploying an operator image.
 
 ## E2E Tests
 

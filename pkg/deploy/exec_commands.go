@@ -101,31 +101,18 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 		providerId = "openshift-v4"
 	}
 
-	createOpenShiftIdentityProviderTemplate := `\
-{{ .Script }} config credentials --server http://0.0.0.0:8080/auth --realm master --user {{ .KeycloakAdminUserName }} --password {{ .KeycloakAdminPassword }} \
-&& \
-{{ .Script }} get identity-provider/instances/{{ .ProviderId }} -r {{ .KeycloakRealm }} \
-; \
-if [ $? -eq 0 ]; \
-then echo \"Provider exists\"; \
-else {{ .Script }} create identity-provider/instances -r {{ .KeycloakRealm }} -s alias={{ .ProviderId }} -s providerId={{ .ProviderId }} -s enabled=true -s storeToken=true -s addReadTokenRoleOnCreate=true -s config.useJwksUrl=true -s config.clientId={{ .OAuthClientName}} -s config.clientSecret={{ .OauthSecret}} -s config.baseUrl={{ .OpenShiftApiUrl }} -s config.defaultScope=user:full ; \
-fi \
-&& \
-EXECUTION_ID=$({{ .Script }} get authentication/flows/browser/executions -r {{ .KeycloakRealm }} -c | sed -e 's/.*\({[^}]\+"identity-provider-redirector"[^}]\+}\).*/\1/' -e 's/.*"id":"\([^"]\+\)".*/\1/') \
-&& \
-ALIAS=$({{ .Script }} get authentication/flows/browser/executions -r {{ .KeycloakRealm }} -c | sed -e 's/.*\({[^}]\+"identity-provider-redirector"[^}]\+}\).*/\1/' | grep '"alias":"' | sed -e 's/.*"alias":"\([^"]\+\)".*/\1/') \
-; \
-if [ -z ${ALIAS} ]; \
-then echo '{"config":{"defaultProvider":"{{ .ProviderId }}"},"alias":"{{ .ProviderId }}"}' | {{ .Script }} create -r che authentication/executions/${EXECUTION_ID}/config -f - ; \
-fi\
-`
-	/*
-			However in order to have this working, we should (in case of Keycloak) be able to
+	file, err := ioutil.ReadFile("/tmp/oauth_provision")
+	if err != nil {
+		logrus.Errorf("Failed to locate keycloak oauth provisioning file: %s", err)
+	}
+	createOpenShiftIdentityProviderTemplate := string(file)
+/*
+			In order to have the token-exchange currently working and easily usable, we should (in case of Keycloak) be able to
 			- Automatically redirect the user to its Keycloak account page to set those required values when the email is empty (instead of failing here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakEnvironmentInitalizationFilter.java#L125)
 			- Or at least point with a link to the place where it can be set (the KeycloakSettings PROFILE_ENDPOINT_SETTING value)
 			  (cf. here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakSettings.java#L117)
 	*/
-	
+
 	template, err := template.New("IdentityProviderProvisioning").Parse(createOpenShiftIdentityProviderTemplate)
 	if err != nil {
 		return "", err
