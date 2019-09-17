@@ -119,6 +119,13 @@ if [ -z ${ALIAS} ]; \
 then echo '{"config":{"defaultProvider":"{{ .ProviderId }}"},"alias":"{{ .ProviderId }}"}' | {{ .Script }} create -r che authentication/executions/${EXECUTION_ID}/config -f - ; \
 fi\
 `
+	/*
+			However in order to have this working, we should (in case of Keycloak) be able to
+			- Automatically redirect the user to its Keycloak account page to set those required values when the email is empty (instead of failing here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakEnvironmentInitalizationFilter.java#L125)
+			- Or at least point with a link to the place where it can be set (the KeycloakSettings PROFILE_ENDPOINT_SETTING value)
+			  (cf. here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakSettings.java#L117)
+	*/
+	
 	template, err := template.New("IdentityProviderProvisioning").Parse(createOpenShiftIdentityProviderTemplate)
 	if err != nil {
 		return "", err
@@ -150,6 +157,7 @@ fi\
 	}
 
 	command = buffer.String()
+	
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + command
 	}
