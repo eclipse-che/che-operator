@@ -43,20 +43,20 @@ enable_openshift_token-exchange() {
     echo "token exchange permissions not found"
     return 1
   fi
-  TOKEN_EXCHANGE_RESOURCE=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | jq --raw-output '.resource')
-  TOKEN_EXCHANGE_PERMISSION_ID=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | jq --raw-output '.scopePermissions["token-exchange"]')
+  TOKEN_EXCHANGE_RESOURCE=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | jq --raw-output '.resource | strings')
+  TOKEN_EXCHANGE_PERMISSION_ID=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | jq --raw-output '.scopePermissions["token-exchange"] | strings')
   if [ "${TOKEN_EXCHANGE_RESOURCE}" == "" ] || [ "${TOKEN_EXCHANGE_PERMISSION_ID}" == "" ]
   then
     echo "token exchange permissions do not contain expected values"
     return 1
   fi
-  REALM_MGMT_CLIENT_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} clients | jq --raw-output '.[] | select(.clientId == "realm-management") | .id')
+  REALM_MGMT_CLIENT_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} clients | jq --raw-output '.[] | select(.clientId == "realm-management") | .id | strings')
   if [ "${REALM_MGMT_CLIENT_ID}" == "" ]
   then
     echo "Realm management client ID not found"
     return 1
   fi
-  EXISTING_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}')
+  EXISTING_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | jq --raw-output '.[0].id | strings')
   if [ "${EXISTING_POLICY}" == "" ]
   then
     echo '{"type":"client","logic":"POSITIVE","decisionStrategy":"UNANIMOUS","name":"{{ .ProviderId }}","clients":["che-public"]}' | {{ .Script }} create -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -f -
@@ -66,19 +66,19 @@ enable_openshift_token-exchange() {
       return 1
     fi
   fi
-  TOKEN_EXCHANGE_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | jq --raw-output '.[0].id')
+  TOKEN_EXCHANGE_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | jq --raw-output '.[0].id | strings')
   if [ "${TOKEN_EXCHANGE_POLICY}" == "" ]
   then
     echo "Token exchange policy not found"
     return 1
   fi
   TOKEN_EXCHANGE_PERMISSION=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/permission/scope/${TOKEN_EXCHANGE_PERMISSION_ID})
-  if [ ${TOKEN_EXCHANGE_PERMISSION} == "" ]
+  if [ "${TOKEN_EXCHANGE_PERMISSION}" == "" ]
   then
     echo "Token exchange permission not found"
     return 1
   fi
-  TOKEN_EXCHANGE_SCOPE=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/resource/${TOKEN_EXCHANGE_RESOURCE}/scopes | jq --raw-output '.[] | select( .name == "token-exchange") | .id')
+  TOKEN_EXCHANGE_SCOPE=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/resource/${TOKEN_EXCHANGE_RESOURCE}/scopes | jq --raw-output '.[] | select( .name == "token-exchange") | .id | strings')
   if [ "${TOKEN_EXCHANGE_PERMISSION}" == "" ]
   then
     echo "Token exchange scope not found"
