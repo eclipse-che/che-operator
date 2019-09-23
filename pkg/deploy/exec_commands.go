@@ -168,7 +168,8 @@ func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, ke
 	deleteOpenShiftIdentityProviderCommand :=
 		script + " config credentials --server http://0.0.0.0:8080/auth " +
 			"--realm master --user " + keycloakAdminUserName + " --password " + keycloakAdminPassword + " && " +
-			script + " delete identity-provider/instances/" + providerName + " -r " + keycloakRealm
+			"if " + script + " get identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; then " +
+			script + " delete identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; fi"
 	command = deleteOpenShiftIdentityProviderCommand
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + deleteOpenShiftIdentityProviderCommand
