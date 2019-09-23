@@ -443,11 +443,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if provisioned {
 					for {
 						instance.Status.DbProvisoned = true
-						if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil {
+						if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
+						errors.IsConflict(err) {
 							instance, _ = r.GetCR(request)
-						} else {
-							break
+							continue
 						}
+						break
 					}
 				} else {
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
@@ -974,24 +975,32 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
 	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
 	if deleted {
-		if err := r.DeleteFinalizer(instance); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		for {
+			if err := r.DeleteFinalizer(instance); err != nil &&
+			errors.IsConflict(err) {
+				instance, _ = r.GetCR(request)
+				continue
+			}
+			break
 		}
-		instance.Status.OpenShiftoAuthProvisioned = false
-		if err := r.UpdateCheCRStatus(instance, "provisioned with OpenShift oAuth", "false"); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		for {
+			instance.Status.OpenShiftoAuthProvisioned = false
+			if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
+			errors.IsConflict(err) {
+				instance, _ = r.GetCR(request)
+				continue
+			}
+			break
 		}
-		instance.Spec.Auth.OauthSecret = ""
-		if err := r.UpdateCheCRSpec(instance, "delete oAuth secret name", ""); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-		instance.Spec.Auth.OauthClientName = ""
-		if err := r.UpdateCheCRSpec(instance, "delete oAuth client name", ""); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		for {
+			instance.Spec.Auth.OauthSecret = ""
+			instance.Spec.Auth.OauthClientName = ""
+			if err := r.UpdateCheCRSpec(instance, "clean oAuth secret name and client name", ""); err != nil &&
+			errors.IsConflict(err) {
+				instance, _ = r.GetCR(request)
+				continue
+			}
+			break
 		}
 	}
 
