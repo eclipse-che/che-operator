@@ -109,7 +109,7 @@ Make sure you run the following before running/debugging:
 cp deploy/keycloak_provision /tmp/keycloak_provision
 cp deploy/oauth_provision /tmp/oauth_provision
 ```
-These files are added to a Docker image, thus this step isn't required when deploying an operator image.
+These files are added to a container image, and thus this step is not required when deploying an Operator image.
 
 ## E2E Tests
 
