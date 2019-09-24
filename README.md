@@ -102,7 +102,7 @@ This applies both to Run and Debug.
 
 ### Pre-Reqs: /tmp/keycloak_provision and oauth_provision files
 
-The operator grabs these files and replaces values to get a string used as exec command to configure Keycloak.
+The Operator takes these files and replaces values to get a string used as the `exec` command to configure Keycloak.
 Make sure you run the following before running/debugging:
 
 ```
