@@ -310,11 +310,12 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 		if provisioned {
 			for {
 				instance.Status.OpenShiftoAuthProvisioned = true
-				if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "true"); err != nil {
+				if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
+				errors.IsConflict(err) {
 					instance, _ = r.GetCR(request)
-				} else {
-					break
+					continue
 				}
+				break
 			}
 		}
 		return nil

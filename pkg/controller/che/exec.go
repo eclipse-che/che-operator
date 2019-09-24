@@ -98,11 +98,12 @@ func (r *ReconcileChe) CreateKyecloakResources(instance *orgv1.CheCluster, reque
 		}
 		for {
 			instance.Status.KeycloakProvisoned = true
-			if err := r.UpdateCheCRStatus(instance, "status: provisioned with Keycloak", "true"); err != nil {
+			if err := r.UpdateCheCRStatus(instance, "status: provisioned with Keycloak", "true"); err != nil &&
+			errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
-			} else {
-				break
+				continue
 			}
+			break
 		}
 
 		return nil

@@ -219,6 +219,8 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	if cheFlavor == "codeready" {
 		command = addCertToTrustStoreCommand + " && " + startCommand
 	}
+	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
+
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
