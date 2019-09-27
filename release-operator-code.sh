@@ -30,10 +30,10 @@ cd "${BASE_DIR}"
 echo
 echo "## Creating release '${RELEASE}' of the Che operator docker image"
 
-lastDefaultCheVersion=$(grep -e '^ *defaultCheServerImageTag' "pkg/deploy/defaults.go" | sed -e 's/^ *defaultCheServerImageTag *= *"\([^"]*\)"/\1/')
-lastDefaultKeycloakVersion=$(grep -e '^ *defaultKeycloakUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^ *defaultKeycloakUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
-lastDefaultPluginRegistryVersion=$(grep -e '^ *defaultPluginRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^ *defaultPluginRegistryUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
-lastDefaultDevfileRegistryVersion=$(grep -e '^ *defaultDevfileRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^ *defaultDevfileRegistryUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultCheVersion=$(grep -e '^[^a-zA-Z]*defaultCheServerImageTag' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultCheServerImageTag *= *"\([^"]*\)"/\1/')
+lastDefaultKeycloakVersion=$(grep -e '^[^a-zA-Z]*defaultKeycloakUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultKeycloakUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultPluginRegistryVersion=$(grep -e '^[^a-zA-Z]*defaultPluginRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultPluginRegistryUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
+lastDefaultDevfileRegistryVersion=$(grep -e '^[^a-zA-Z]*defaultDevfileRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultDevfileRegistryUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
 if [ "${lastDefaultCheVersion}" != "${lastDefaultKeycloakVersion}" ]
 then
   echo "#### ERROR ####"
