@@ -81,6 +81,8 @@ type CheClusterSpecServer struct {
 	// By default a dedicated plugin registry server is started.
 	// But if ExternalPluginRegistry is `true`, then no such dedicated server will be started by the operator
 	ExternalPluginRegistry bool `json:"externalPluginRegistry"`
+	// OverrideCheProperties is a list of EnvVars of Che properties to override from their default value
+	OverrideCheProperties []ChePropertyOverride `json:"overrideCheProperties"`
 	// ProxyURL is protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
 	// to Che server and workspaces containers
 	ProxyURL string `json:"proxyURL"`
@@ -96,6 +98,15 @@ type CheClusterSpecServer struct {
 	ServerMemoryRequest string `json:"serverMemoryRequest"`
 	// ServerMemoryLimit sets mem limit for server deployment. Defaults to 1Gi
 	ServerMemoryLimit string `json:"serverMemoryLimit"`
+}
+
+// ChePropertyOverride is a key-value pair of environment variables to
+// override for the default che configmap
+type ChePropertyOverride struct {
+	// The environment variable to override
+	Name string `json:"name"`
+	// The corresponding value to override
+	Value string `json:"value"`
 }
 
 type CheClusterSpecDB struct {

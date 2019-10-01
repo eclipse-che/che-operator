@@ -66,13 +66,13 @@ type CheConfigMap struct {
 	WebSocketEndpointMinor       string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 }
 
-func GetCustomConfigMapData() (cheEnv map[string]string) {
+func GetPredefinedConfigMapData() (cheEnv map[string]string) {
 
 	cheEnv = map[string]string{
 		"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME":           "che-workspace",
 	}
-	return cheEnv
 
+	return cheEnv
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -212,6 +212,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if !isOpenShift {
 		addMap(cheEnv, k8sCheEnv)
 	}
+
+	addMap(cheEnv, GetPredefinedConfigMapData())
+	cheEnv = mergeConfigMapWithOverrides(cheEnv, cr.Spec.Server.OverrideCheProperties)
 	return cheEnv
 }
 
@@ -229,4 +232,13 @@ func NewCheConfigMap(cr *orgv1.CheCluster, cheEnv map[string]string) *corev1.Con
 		},
 		Data: cheEnv,
 	}
+}
+
+func mergeConfigMapWithOverrides(cheEnv map[string]string, overrides []orgv1.ChePropertyOverride) map[string]string {
+	newCheEnv := make(map[string]string)
+	addMap(newCheEnv, cheEnv)
+	for _, envVar := range overrides {
+		newCheEnv[envVar.Name] = envVar.Value
+	}
+	return newCheEnv
 }

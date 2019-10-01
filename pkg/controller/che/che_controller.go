@@ -224,7 +224,6 @@ const (
 // Reconcile reads that state of the cluster for a CheCluster object and makes changes based on the state read
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the CheCluster instance
 	tests := r.tests
@@ -444,7 +443,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					for {
 						instance.Status.DbProvisoned = true
 						if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
-						errors.IsConflict(err) {
+							errors.IsConflict(err) {
 							instance, _ = r.GetCR(request)
 							continue
 						}
@@ -842,19 +841,28 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create a custom ConfigMap that won't be synced with CR spec
-	// to be able to override envs and not clutter CR spec with fields which are too numerous
-	customCM := &corev1.ConfigMap{
-		Data: deploy.GetCustomConfigMapData(),
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "custom",
-			Namespace: instance.Namespace,
-			Labels:    cheLabels}}
-	if err := r.CreateNewConfigMap(instance, customCM); err != nil {
-		return reconcile.Result{}, err
+	// Get custom ConfigMap
+	// if it exists, merge it with the Che ConfigMap and Update
+	// if not, continue
+	customConfigMap := &corev1.ConfigMap{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
+	if !errors.IsNotFound(err) {
+		logrus.Infof("Found legacy custom ConfigMap.  Merging the values in custom with the Che ConfigMap")
+		cheConfigMap = mergeConfigMaps(customConfigMap, cheConfigMap)
+		r.client.Update(context.TODO(), cheConfigMap)
+		if err != nil {
+			logrus.Errorf("Error merging Che ConfigMap with legacy Custom ConfigMap: %v", err)
+			return reconcile.Result{}, err
+		} else {
+			r.client.Delete(context.TODO(), customConfigMap)
+			if err != nil {
+				logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
+		}
 	}
+
 	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
 	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
@@ -977,7 +985,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if deleted {
 		for {
 			if err := r.DeleteFinalizer(instance); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}
@@ -986,7 +994,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		for {
 			instance.Status.OpenShiftoAuthProvisioned = false
 			if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}
@@ -996,7 +1004,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			instance.Spec.Auth.OauthSecret = ""
 			instance.Spec.Auth.OauthClientName = ""
 			if err := r.UpdateCheCRSpec(instance, "clean oAuth secret name and client name", ""); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}
@@ -1129,4 +1137,15 @@ func hasConsolelinkObject() bool {
 		}
 	}
 	return false
+}
+
+// mergeConfigMap adds all the keys and values from 'from' into the keys of 'to', overwriting their values
+// if they are already defined in 'to'.  Returns a new ConfigMap with the combined keys and values.
+func mergeConfigMaps(from, to *corev1.ConfigMap) *corev1.ConfigMap {
+	var merged corev1.ConfigMap
+	to.DeepCopyInto(&merged)
+	for k, v := range from.Data {
+		merged.Data[k] = v
+	}
+	return &merged
 }

@@ -12,9 +12,11 @@
 package deploy
 
 import (
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"strings"
 	"testing"
+
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 )
 
 func TestNewCheConfigMap(t *testing.T) {
@@ -30,10 +32,33 @@ func TestNewCheConfigMap(t *testing.T) {
 	testCm := NewCheConfigMap(cr, cheEnv)
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
 	protocol := strings.Split(testCm.Data["CHE_INFRA_KUBERNETES_BOOTSTRAPPER_BINARY__URL"], "://")[0]
-	if identityProvider != "openshift-v3" {
-		t.Errorf("Test failed. Expecting identity provider to be 'openshift-v3' while got '%s'", identityProvider)
+	_, isOpenshiftv4, _ := util.DetectOpenShift()
+	expectedIdentityProvider := "openshift-v3"
+	if isOpenshiftv4 {
+		expectedIdentityProvider = "openshift-v4"
+	}
+	if identityProvider != expectedIdentityProvider {
+		t.Errorf("Test failed. Expecting identity provider to be '%s' while got '%s'", expectedIdentityProvider, identityProvider)
 	}
 	if protocol != "https" {
 		t.Errorf("Test failed. Expecting 'https' protocol, got '%s'", protocol)
+	}
+}
+
+func TestConfigMapOverride(t *testing.T) {
+	cr := &orgv1.CheCluster{}
+	cr.Spec.Server.CheHost = "myhostname.com"
+	cr.Spec.Server.TlsSupport = true
+	cr.Spec.Server.OverrideCheProperties = []orgv1.ChePropertyOverride{
+		{
+			Name:  "CHE_WORKSPACE_NO_PROXY",
+			Value: "myproxy.myhostname.com",
+		},
+	}
+	cr.Spec.Auth.OpenShiftOauth = true
+	cheEnv := GetConfigMapData(cr)
+	testCm := NewCheConfigMap(cr, cheEnv)
+	if testCm.Data["CHE_WORKSPACE_NO_PROXY"] != "myproxy.myhostname.com" {
+		t.Errorf("Test failed. Expected myproxy.myhostname.com but was %s", testCm.Data["CHE_WORKSPACE_NO_PROXY"])
 	}
 }
