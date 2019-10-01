@@ -37,15 +37,14 @@ func NewRoute(cr *orgv1.CheCluster, name string, serviceName string, port int32)
 			Name:      name,
 			Namespace: cr.Namespace,
 			Labels:    labels,
-
 		},
 		Spec: routev1.RouteSpec{
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
 				Name: serviceName,
 			},
-			Port:&routev1.RoutePort{
-				targetPort,
+			Port: &routev1.RoutePort{
+				TargetPort: targetPort,
 			},
 		},
 	}
@@ -69,15 +68,14 @@ func NewTlsRoute(cr *orgv1.CheCluster, name string, serviceName string, port int
 			Name:      name,
 			Namespace: cr.Namespace,
 			Labels:    labels,
-
 		},
 		Spec: routev1.RouteSpec{
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
 				Name: serviceName,
 			},
-			Port:&routev1.RoutePort{
-				targetPort,
+			Port: &routev1.RoutePort{
+				TargetPort: targetPort,
 			},
 			TLS: &routev1.TLSConfig{
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
