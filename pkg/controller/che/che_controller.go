@@ -842,25 +842,23 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Get custom ConfigMap
-	// if it exists, merge it with the Che ConfigMap and Update
-	// if not, continue
+	// if it exists, add the data into OverrideCheProperties
 	customConfigMap := &corev1.ConfigMap{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
 	if !errors.IsNotFound(err) {
-		logrus.Infof("Found legacy custom ConfigMap.  Merging the values in custom with the Che ConfigMap")
-		cheConfigMap = mergeConfigMaps(customConfigMap, cheConfigMap)
-		r.client.Update(context.TODO(), cheConfigMap)
-		if err != nil {
-			logrus.Errorf("Error merging Che ConfigMap with legacy Custom ConfigMap: %v", err)
-			return reconcile.Result{}, err
-		} else {
-			r.client.Delete(context.TODO(), customConfigMap)
-			if err != nil {
-				logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, nil
+		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.OverrideCheProperties")
+		for k, v := range customConfigMap.Data {
+			instance.Spec.Server.OverrideCheProperties = append(instance.Spec.Server.OverrideCheProperties, orgv1.ChePropertyOverride{Name: k, Value: v})
 		}
+		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
+			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
+			return reconcile.Result{}, err
+		}
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			logrus.Errorf("Error updating CheCluster: %v", err)
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
@@ -1137,15 +1135,4 @@ func hasConsolelinkObject() bool {
 		}
 	}
 	return false
-}
-
-// mergeConfigMap adds all the keys and values from 'from' into the keys of 'to', overwriting their values
-// if they are already defined in 'to'.  Returns a new ConfigMap with the combined keys and values.
-func mergeConfigMaps(from, to *corev1.ConfigMap) *corev1.ConfigMap {
-	var merged corev1.ConfigMap
-	to.DeepCopyInto(&merged)
-	for k, v := range from.Data {
-		merged.Data[k] = v
-	}
-	return &merged
 }

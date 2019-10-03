@@ -154,7 +154,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	customCm := &corev1.ConfigMap{}
-	// Che ConfigMap should have the default custom properties
+	// OverrideCheProperties should have the default custom properties
 	customCheEnv := deploy.GetPredefinedConfigMapData()
 
 	for k, v := range customCheEnv {
