@@ -214,7 +214,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	}
 
 	addMap(cheEnv, GetPredefinedConfigMapData())
-	cheEnv = mergeConfigMapWithOverrides(cheEnv, cr.Spec.Server.OverrideCheProperties)
+	addMap(cheEnv, cr.Spec.Server.CustomCheProperties)
 	return cheEnv
 }
 
@@ -232,13 +232,4 @@ func NewCheConfigMap(cr *orgv1.CheCluster, cheEnv map[string]string) *corev1.Con
 		},
 		Data: cheEnv,
 	}
-}
-
-func mergeConfigMapWithOverrides(cheEnv map[string]string, overrides []orgv1.ChePropertyOverride) map[string]string {
-	newCheEnv := make(map[string]string)
-	addMap(newCheEnv, cheEnv)
-	for _, envVar := range overrides {
-		newCheEnv[envVar.Name] = envVar.Value
-	}
-	return newCheEnv
 }

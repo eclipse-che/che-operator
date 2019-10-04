@@ -49,11 +49,8 @@ func TestConfigMapOverride(t *testing.T) {
 	cr := &orgv1.CheCluster{}
 	cr.Spec.Server.CheHost = "myhostname.com"
 	cr.Spec.Server.TlsSupport = true
-	cr.Spec.Server.OverrideCheProperties = []orgv1.ChePropertyOverride{
-		{
-			Name:  "CHE_WORKSPACE_NO_PROXY",
-			Value: "myproxy.myhostname.com",
-		},
+	cr.Spec.Server.CustomCheProperties = map[string]string{
+		"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 	}
 	cr.Spec.Auth.OpenShiftOauth = true
 	cheEnv := GetConfigMapData(cr)
@@ -61,4 +58,5 @@ func TestConfigMapOverride(t *testing.T) {
 	if testCm.Data["CHE_WORKSPACE_NO_PROXY"] != "myproxy.myhostname.com" {
 		t.Errorf("Test failed. Expected myproxy.myhostname.com but was %s", testCm.Data["CHE_WORKSPACE_NO_PROXY"])
 	}
+
 }

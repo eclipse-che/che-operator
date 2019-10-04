@@ -842,13 +842,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Get custom ConfigMap
-	// if it exists, add the data into OverrideCheProperties
+	// if it exists, add the data into CustomCheProperties
 	customConfigMap := &corev1.ConfigMap{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
-	if !errors.IsNotFound(err) {
-		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.OverrideCheProperties")
+	if err != nil && !errors.IsNotFound(err) {
+		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.CustomCheProperties")
 		for k, v := range customConfigMap.Data {
-			instance.Spec.Server.OverrideCheProperties = append(instance.Spec.Server.OverrideCheProperties, orgv1.ChePropertyOverride{Name: k, Value: v})
+			instance.Spec.Server.CustomCheProperties[k] = v
 		}
 		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
 			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
