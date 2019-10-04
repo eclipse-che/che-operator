@@ -18,7 +18,6 @@ import (
 	console "github.com/openshift/api/console/v1"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -154,19 +153,6 @@ func TestCheController(t *testing.T) {
 	}
 
 	customCm := &corev1.ConfigMap{}
-	// CustomCheProperties should have the default custom properties
-	customCheEnv := deploy.GetPredefinedConfigMapData()
-
-	for k, v := range customCheEnv {
-		val, ok := cm.Data[k]
-		if !ok {
-			t.Errorf("Expected Che configMap to have key %s", k)
-		} else {
-			if v != val {
-				t.Errorf("Expected Che ConfigMap key %s to have value %s but was %s", k, v, val)
-			}
-		}
-	}
 
 	// Reconcile to delete legacy custom configmap
 	res, err = r.Reconcile(req)
