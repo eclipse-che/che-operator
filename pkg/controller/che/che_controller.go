@@ -253,6 +253,34 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
+	// Get custom ConfigMap
+	// if it exists, add the data into CustomCheProperties
+	customConfigMap := &corev1.ConfigMap{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
+	if err != nil && !errors.IsNotFound(err) {
+		logrus.Errorf("Error getting custom configMap: %v", err)
+		return reconcile.Result{}, err
+	}
+	if err == nil {
+		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.CustomCheProperties")
+		if instance.Spec.Server.CustomCheProperties == nil {
+			instance.Spec.Server.CustomCheProperties = make(map[string]string)
+		}
+		for k, v := range customConfigMap.Data {
+			instance.Spec.Server.CustomCheProperties[k] = v
+		}
+		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
+			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
+			return reconcile.Result{}, err
+		}
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			logrus.Errorf("Error updating CheCluster: %v", err)
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	if isOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if instance.Spec.Server.SelfSignedCert ||
@@ -839,26 +867,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheConfigMap := deploy.NewCheConfigMap(instance, cheEnv)
 	if err := r.CreateNewConfigMap(instance, cheConfigMap); err != nil {
 		return reconcile.Result{}, err
-	}
-
-	// Get custom ConfigMap
-	// if it exists, add the data into CustomCheProperties
-	customConfigMap := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
-	if err != nil && !errors.IsNotFound(err) {
-		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.CustomCheProperties")
-		for k, v := range customConfigMap.Data {
-			instance.Spec.Server.CustomCheProperties[k] = v
-		}
-		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
-			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
-			return reconcile.Result{}, err
-		}
-		if err := r.client.Update(context.TODO(), instance); err != nil {
-			logrus.Errorf("Error updating CheCluster: %v", err)
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
