@@ -270,12 +270,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		for k, v := range customConfigMap.Data {
 			instance.Spec.Server.CustomCheProperties[k] = v
 		}
-		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
-			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
-			return reconcile.Result{}, err
-		}
 		if err := r.client.Update(context.TODO(), instance); err != nil {
 			logrus.Errorf("Error updating CheCluster: %v", err)
+			return reconcile.Result{}, err
+		}
+		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
+			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
