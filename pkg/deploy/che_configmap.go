@@ -73,6 +73,7 @@ func GetCustomConfigMapData() (cheEnv map[string]string) {
 		"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME":           "che-workspace",
 		"CHE_WORKSPACE_AUTO_START":                              "true",
 		"CHE_INFRA_KUBERNETES_WORKSPACE__UNRECOVERABLE__EVENTS": "FailedMount,FailedScheduling,MountVolume.SetUp failed,Failed to pull image",
+		"CHE_LIMITS_WORKSPACE_IDLE_TIMEOUT":                     "1800000",
 	}
 	return cheEnv
 
