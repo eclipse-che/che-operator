@@ -25,7 +25,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	optionalEnv := true
 	keycloakName := "keycloak"
 	labels := GetLabels(cr, keycloakName)
-	keycloakImage := util.GetValue(cr.Spec.Auth.KeycloakImage, DefaultKeycloakImage(cheFlavor))
+	keycloakImage := util.GetValue(cr.Spec.Auth.KeycloakImage, DefaultKeycloakImage(cr, cheFlavor))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Auth.KeycloakImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
 	trustpass := util.GeneratePasswd(12)
 	jbossDir := "/opt/eap"
@@ -62,7 +62,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	startCommand := "sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	// upstream Keycloak has a bit different mechanism of adding jks
 	changeConfigCommand := "echo Installing certificates into Keycloak && " +
-	  "echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
+		"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
 		"/subsystem=keycloak-server/spi=truststore/:add \n" +
 		"/subsystem=keycloak-server/spi=truststore/provider=file/:add(properties={file => " +
 		"\"" + jbossDir + "/openshift.jks\", password => \"" + trustpass + "\", disabled => \"false\" },enabled=true) \n" +
@@ -230,9 +230,9 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			Name:      keycloakName,
 			Namespace: cr.Namespace,
 			Labels:    labels,
-			Annotations: map[string]string {
+			Annotations: map[string]string{
 				"che.self-signed-certificate.version": cheCertSecretVersion,
-				"che.openshift-api-crt.version": openshiftCertSecretVersion,
+				"che.openshift-api-crt.version":       openshiftCertSecretVersion,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{

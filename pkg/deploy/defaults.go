@@ -84,11 +84,12 @@ func DefaultCheServerImageTag(cheFlavor string) string {
 	return defaultCheServerImageTag
 }
 
-func DefaultCheServerImageRepo(cheFlavor string) string {
+func DefaultCheServerImageRepo(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultCodeReadyServerImageRepo
+		return patchDefaultImageName(cr, defaultCodeReadyServerImageRepo)
+	} else {
+		return patchDefaultImageName(cr, defaultCheServerImageRepo)
 	}
-	return defaultCheServerImageRepo
 }
 
 func DefaultPvcJobsImage(cheFlavor string) string {
@@ -106,25 +107,28 @@ func DefaultPostgresImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	}
 }
 
-func DefaultKeycloakImage(cheFlavor string) string {
+func DefaultKeycloakImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultKeycloakImage
+		return patchDefaultImageName(cr, defaultKeycloakImage)
+	} else {
+		return patchDefaultImageName(cr, defaultKeycloakUpstreamImage)
 	}
-	return defaultKeycloakUpstreamImage
 }
 
-func DefaultPluginRegistryImage(cheFlavor string) string {
+func DefaultPluginRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultPluginRegistryImage
+		return patchDefaultImageName(cr, defaultPluginRegistryImage)
+	} else {
+		return patchDefaultImageName(cr, defaultPluginRegistryUpstreamImage)
 	}
-	return defaultPluginRegistryUpstreamImage
 }
 
-func DefaultDevfileRegistryImage(cheFlavor string) string {
+func DefaultDevfileRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultDevfileRegistryImage
+		return patchDefaultImageName(cr, defaultDevfileRegistryImage)
+	} else {
+		return patchDefaultImageName(cr, defaultDevfileRegistryUpstreamImage)
 	}
-	return defaultDevfileRegistryUpstreamImage
 }
 
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
