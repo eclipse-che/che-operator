@@ -31,10 +31,10 @@ const (
 	DefaultKeycloakAdminUserName     = "admin"
 	DefaultCheLogLevel               = "INFO"
 	DefaultCheDebug                  = "false"
-	DefaultPvcJobsImage              = "registry.redhat.io/ubi8-minimal:8.0-159"
-	DefaultPostgresImage             = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-46"
+	DefaultPvcJobsImage              = "registry.access.redhat.com/ubi8-minimal:8.0-213"
+	DefaultPostgresImage             = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
 	DefaultPostgresUpstreamImage     = "centos/postgresql-96-centos7:9.6"
-	DefaultKeycloakImage             = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-13"
+	DefaultKeycloakImage             = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-13.1567588155"
 	DefaultKeycloakUpstreamImage     = "eclipse/che-keycloak:6.19.0"
 	DefaultJavaOpts                  = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
