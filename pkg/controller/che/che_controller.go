@@ -224,7 +224,6 @@ const (
 // Reconcile reads that state of the cluster for a CheCluster object and makes changes based on the state read
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the CheCluster instance
 	tests := r.tests
@@ -254,6 +253,34 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	}
+
+	// Get custom ConfigMap
+	// if it exists, add the data into CustomCheProperties
+	customConfigMap := &corev1.ConfigMap{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
+	if err != nil && !errors.IsNotFound(err) {
+		logrus.Errorf("Error getting custom configMap: %v", err)
+		return reconcile.Result{}, err
+	}
+	if err == nil {
+		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.CustomCheProperties")
+		if instance.Spec.Server.CustomCheProperties == nil {
+			instance.Spec.Server.CustomCheProperties = make(map[string]string)
+		}
+		for k, v := range customConfigMap.Data {
+			instance.Spec.Server.CustomCheProperties[k] = v
+		}
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			logrus.Errorf("Error updating CheCluster: %v", err)
+			return reconcile.Result{}, err
+		}
+		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
+			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	if isOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if instance.Spec.Server.SelfSignedCert ||
@@ -444,7 +471,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					for {
 						instance.Status.DbProvisoned = true
 						if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
-						errors.IsConflict(err) {
+							errors.IsConflict(err) {
 							instance, _ = r.GetCR(request)
 							continue
 						}
@@ -842,19 +869,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create a custom ConfigMap that won't be synced with CR spec
-	// to be able to override envs and not clutter CR spec with fields which are too numerous
-	customCM := &corev1.ConfigMap{
-		Data: deploy.GetCustomConfigMapData(),
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "custom",
-			Namespace: instance.Namespace,
-			Labels:    cheLabels}}
-	if err := r.CreateNewConfigMap(instance, customCM); err != nil {
-		return reconcile.Result{}, err
-	}
 	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
 	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
@@ -977,7 +991,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if deleted {
 		for {
 			if err := r.DeleteFinalizer(instance); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}
@@ -986,7 +1000,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		for {
 			instance.Status.OpenShiftoAuthProvisioned = false
 			if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}
@@ -996,7 +1010,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			instance.Spec.Auth.OauthSecret = ""
 			instance.Spec.Auth.OauthClientName = ""
 			if err := r.UpdateCheCRSpec(instance, "clean oAuth secret name and client name", ""); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}

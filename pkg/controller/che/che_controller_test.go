@@ -13,10 +13,12 @@ package che
 
 import (
 	"context"
-	console "github.com/openshift/api/console/v1"
 	"time"
 
+	console "github.com/openshift/api/console/v1"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -24,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacapi "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -149,6 +152,20 @@ func TestCheController(t *testing.T) {
 		t.Errorf("ConfigMap %s not found: %s", cm.Name, err)
 	}
 
+	customCm := &corev1.ConfigMap{}
+
+	// Reconcile to delete legacy custom configmap
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// Custom ConfigMap should be gone
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: "custom", Namespace: cheCR.Namespace}, customCm)
+	if !errors.IsNotFound(err) {
+		t.Errorf("Custom config map should be deleted and merged with Che ConfigMap")
+	}
+
 	// Get the custom role binding that should have been created for the role we passed in
 	rb := &rbacapi.RoleBinding{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
@@ -184,9 +201,18 @@ func TestCheController(t *testing.T) {
 	if cm.Data["CHE_INFRA_OPENSHIFT_PROJECT"] != "" {
 		t.Errorf("ConfigMap wasn't updated properly. Extecting empty string, got: '%s'", cm.Data["CHE_INFRA_OPENSHIFT_PROJECT"])
 	}
+
+	_, isOpenshiftv4, err := util.DetectOpenShift()
+	if err != nil {
+		logrus.Errorf("Error detecting openshift version: %v", err)
+	}
 	expectedIdentityProviderName := "openshift-v3"
+	if isOpenshiftv4 {
+		expectedIdentityProviderName = "openshift-v4"
+	}
+
 	if cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"] != expectedIdentityProviderName {
-		t.Errorf("ConfigMap wasn't updated properly. Extecting '%s', got: '%s'", expectedIdentityProviderName, cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"])
+		t.Errorf("ConfigMap wasn't updated properly. Expecting '%s', got: '%s'", expectedIdentityProviderName, cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"])
 	}
 
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR)

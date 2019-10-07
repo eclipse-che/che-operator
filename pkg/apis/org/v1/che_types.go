@@ -81,6 +81,11 @@ type CheClusterSpecServer struct {
 	// By default a dedicated plugin registry server is started.
 	// But if ExternalPluginRegistry is `true`, then no such dedicated server will be started by the operator
 	ExternalPluginRegistry bool `json:"externalPluginRegistry"`
+	// CustomCheProperties is a list of additional environment variables that will be applied in the che config map,
+	// in addition to the values already generated from other fields of the custom resource (CR).
+	// If CustomCheProperties contains a property that would be normally generated in che config map from other
+	// CR fields, then the value in the CustomCheProperties will be used.
+	CustomCheProperties map[string]string `json:"customCheProperties"`
 	// ProxyURL is protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
 	// to Che server and workspaces containers
 	ProxyURL string `json:"proxyURL"`
