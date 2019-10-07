@@ -31,6 +31,12 @@ type CheClusterSpec struct {
 }
 
 type CheClusterSpecServer struct {
+	// AirGapMode is a flag to tell Che server that it is running in an air-gapped environment
+	AirGapMode bool `json:"airGapMode"`
+	// AirGapContainerRegistryHostname is the hostname to the internal registry to pull images from in the air-gapped environment
+	AirGapContainerRegistryHostname string `json:"airGapContainerRegistryHostname"`
+	// AirGapContainerRegistryRepository is the repository name in the registry to pull images from in the air-gapped environment
+	AirGapContainerRegistryRepository string `json:"airGapContainerRegistryRepository"`
 	// CheImage is a server image used in Che deployment
 	CheImage string `json:"cheImage"`
 	// CheImageTag is a tag of an image used in Che deployment

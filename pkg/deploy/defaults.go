@@ -13,7 +13,10 @@
 package deploy
 
 import (
+	"fmt"
 	"strings"
+
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
 const (
@@ -55,17 +58,17 @@ const (
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
-	DefaultServerMemoryRequest          = "512Mi"
-	DefaultServerMemoryLimit            = "1Gi"
-	DefaultSecurityContextFsGroup       = "1724"
-	DefaultSecurityContextRunAsUser     = "1724"
+	DefaultServerMemoryRequest      = "512Mi"
+	DefaultServerMemoryLimit        = "1Gi"
+	DefaultSecurityContextFsGroup   = "1724"
+	DefaultSecurityContextRunAsUser = "1724"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
 	// That fixed bug https://github.com/eclipse/che/issues/13714
-	OldDefaultKeycloakUpstreamImageToDetect     = "eclipse/che-keycloak:7.0.0"
-	OldDefaultPvcJobsUpstreamImageToDetect      = "registry.access.redhat.com/ubi8-minimal:8.0-127"
-	OldDefaultPostgresUpstreamImageToDetect     = "centos/postgresql-96-centos7:9.6"
+	OldDefaultKeycloakUpstreamImageToDetect = "eclipse/che-keycloak:7.0.0"
+	OldDefaultPvcJobsUpstreamImageToDetect  = "registry.access.redhat.com/ubi8-minimal:8.0-127"
+	OldDefaultPostgresUpstreamImageToDetect = "centos/postgresql-96-centos7:9.6"
 
 	// ConsoleLink default
 	DefaultConsoleLinkName        = "che"
@@ -95,13 +98,13 @@ func DefaultPvcJobsImage(cheFlavor string) string {
 	return defaultPvcJobsUpstreamImage
 }
 
-func DefaultPostgresImage(cheFlavor string) string {
+func DefaultPostgresImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultPostgresImage
+		return patchDefaultImageName(cr, defaultPostgresImage)
+	} else {
+		return patchDefaultImageName(cr, defaultPostgresUpstreamImage)
 	}
-	return defaultPostgresUpstreamImage
 }
-
 
 func DefaultKeycloakImage(cheFlavor string) string {
 	if cheFlavor == "codeready" {
@@ -134,4 +137,29 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 		return "Always"
 	}
 	return "IfNotPresent"
+}
+
+func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
+	if !cr.Spec.Server.AirGapMode {
+		return imageName
+	}
+
+	hostname := cr.Spec.Server.AirGapContainerRegistryHostname
+	repository := cr.Spec.Server.AirGapContainerRegistryRepository
+	image := getImageNameFromFullImage(imageName)
+	return fmt.Sprintf("%s/%s/%s", hostname, repository, image)
+}
+
+func getImageNameFromFullImage(image string) string {
+	imageParts := strings.Split(image, "/")
+	nameAndTag := ""
+	switch len(imageParts) {
+	case 1:
+		nameAndTag = imageParts[0]
+	case 2:
+		nameAndTag = imageParts[1]
+	case 3:
+		nameAndTag = imageParts[2]
+	}
+	return nameAndTag
 }
