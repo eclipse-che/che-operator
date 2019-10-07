@@ -62,7 +62,7 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 		"upstream default postgres": {image: defaultPostgresUpstreamImage, expected: defaultPostgresUpstreamImage, cr: upstream},
 		"airgap upstream postgres":  {image: defaultPostgresUpstreamImage, expected: "bigcorp.net/che-images/postgresql-96-centos7:9.6", cr: airGapUpstream},
 		"CRW postgres":              {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
-		"CRW airgap postgres":       {image: defaultPostgresImage, expected: "bigcorp.net/che-images/postgresql-96-rhel7:1-46", cr: airGapCRW},
+		"CRW airgap postgres":       {image: defaultPostgresImage, expected: "bigcorp.net/che-images/postgresql-96-rhel7:1-47", cr: airGapCRW},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {
