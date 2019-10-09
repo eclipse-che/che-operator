@@ -20,6 +20,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // CheClusterSpec defines the desired state of CheCluster
+// +k8s:openapi-gen=true
 type CheClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
@@ -27,9 +28,10 @@ type CheClusterSpec struct {
 	Database CheClusterSpecDB      `json:"database"`
 	Auth     CheClusterSpecAuth    `json:"auth"`
 	Storage  CheClusterSpecStorage `json:"storage"`
-	K8SOnly  CheClusterSpecK8SOnly `json:"k8s"`
+	K8s      CheClusterSpecK8SOnly `json:"k8s"`
 }
 
+// +k8s:openapi-gen=true
 type CheClusterSpecServer struct {
 	// AirGapMode is a flag to tell Che server that it is running in an air-gapped environment
 	AirGapMode bool `json:"airGapMode"`
@@ -109,6 +111,7 @@ type CheClusterSpecServer struct {
 	ServerMemoryLimit string `json:"serverMemoryLimit"`
 }
 
+// +k8s:openapi-gen=true
 type CheClusterSpecDB struct {
 	// ExternalDB instructs the operator either to skip deploying Postgres,
 	// and passes connection details of existing DB to Che server (when set to true)
@@ -130,6 +133,7 @@ type CheClusterSpecDB struct {
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy"`
 }
 
+// +k8s:openapi-gen=true
 type CheClusterSpecAuth struct {
 	// ExternalKeycloak instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
 	ExternalKeycloak bool `json:"externalIdentityProvider"`
@@ -162,6 +166,7 @@ type CheClusterSpecAuth struct {
 	KeycloakImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy"`
 }
 
+// +k8s:openapi-gen=true
 type CheClusterSpecStorage struct {
 	// PvcStrategy is a persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
 	// per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common
@@ -178,6 +183,7 @@ type CheClusterSpecStorage struct {
 	WorkspacePVCStorageClassName string `json:"workspacePVCStorageClassName"`
 }
 
+// +k8s:openapi-gen=true
 type CheClusterSpecK8SOnly struct {
 	// IngressDomain is a global ingress domain for a k8s cluster. Must be explicitly specified in CR. There are no defaults
 	IngressDomain string `json:"ingressDomain"`
@@ -195,6 +201,7 @@ type CheClusterSpecK8SOnly struct {
 }
 
 // CheClusterStatus defines the observed state of CheCluster
+// +k8s:openapi-gen=true
 type CheClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file

@@ -66,7 +66,7 @@ pkg/deploy/defaults.go \
 > pkg/deploy/defaults.go.new
 mv pkg/deploy/defaults.go.new pkg/deploy/defaults.go
 
-wget https://raw.githubusercontent.com/eclipse/che/master/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 latestCheWorkspacePluginBrokerInitImage=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.init.image" | cut -d = -f2)
 latestCheWorkspacePluginBrokerUnifiedImage=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.unified.image" | cut -d = -f2)
 latestCheServerSecureExposerJwtProxyImage=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
