@@ -229,6 +229,7 @@ type CheClusterStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // CheCluster is the Schema for the ches API
+// +k8s:openapi-gen=true
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
