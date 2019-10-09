@@ -80,7 +80,7 @@ func (r *ReconcileChe) UpdateConfigMap(instance *orgv1.CheCluster) (updated bool
 
 func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, tlsSupport bool, isOpenShift bool) (updated bool, err error) {
 
-	updateRegistryRoute := func (registryType string) (bool, error) {
+	updateRegistryRoute := func(registryType string) (bool, error) {
 		registryName := registryType + "-registry"
 		if !isOpenShift {
 			currentRegistryIngress := r.GetEffectiveIngress(instance, registryName)
@@ -93,7 +93,7 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 				return false, err
 			}
 			registryIngress := deploy.NewIngress(instance, registryName, registryName, 8080)
-	
+
 			if err := r.CreateNewIngress(instance, registryIngress); err != nil {
 				logrus.Errorf("Failed to create %s %s: %s", registryIngress.Name, registryIngress.Kind, err)
 				return false, err
@@ -111,11 +111,11 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 			return false, err
 		}
 		registryRoute := deploy.NewRoute(instance, registryName, registryName, 8080)
-	
+
 		if tlsSupport {
 			registryRoute = deploy.NewTlsRoute(instance, registryName, registryName, 8080)
 		}
-	
+
 		if err := r.CreateNewRoute(instance, registryRoute); err != nil {
 			logrus.Errorf("Failed to create %s %s: %s", registryRoute.Name, registryRoute.Kind, err)
 			return false, err
@@ -124,12 +124,12 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 	}
 
 	updated, err = updateRegistryRoute("devfile")
-	if !(updated 	|| instance.Spec.Server.ExternalDevfileRegistry) || err != nil {
+	if !(updated || instance.Spec.Server.ExternalDevfileRegistry) || err != nil {
 		return updated, err
 	}
 
 	updated, err = updateRegistryRoute("plugin")
-	if !(updated 	|| instance.Spec.Server.ExternalPluginRegistry) || err != nil {
+	if !(updated || instance.Spec.Server.ExternalPluginRegistry) || err != nil {
 		return updated, err
 	}
 
@@ -139,8 +139,8 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 	}
 	// reconcile ingresses
 	if !isOpenShift {
-		ingressDomain := instance.Spec.K8SOnly.IngressDomain
-		ingressStrategy := util.GetValue(instance.Spec.K8SOnly.IngressStrategy, deploy.DefaultIngressStrategy)
+		ingressDomain := instance.Spec.K8s.IngressDomain
+		ingressStrategy := util.GetValue(instance.Spec.K8s.IngressStrategy, deploy.DefaultIngressStrategy)
 		currentCheIngress := r.GetEffectiveIngress(instance, cheFlavor)
 		if currentCheIngress == nil {
 			return false, err
@@ -164,7 +164,7 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 			if ingressStrategy == "multi-host" {
 				keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
 			}
-			instance.Spec.Auth.KeycloakURL = keycloakURL
+			instance.Spec.Auth.IdentityProviderURL = keycloakURL
 			if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
 				return false, err
 			}
@@ -211,7 +211,7 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 
 	} else {
 		keycloakURL := currentKeycloakRoute.Spec.Host
-		instance.Spec.Auth.KeycloakURL = protocol + "://" + keycloakURL
+		instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
 		if err := r.UpdateCheCRSpec(instance, "Keycloak URL", protocol+"://"+keycloakURL); err != nil {
 			return false, err
 		}
@@ -235,8 +235,8 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 }
 
 func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isOpenShift4 bool) (deleted bool, err error) {
-	if instance.Spec.Auth.OpenShiftOauth == false && instance.Status.OpenShiftoAuthProvisioned == true {
-		keycloakAdminPassword := instance.Spec.Auth.KeycloakAdminPassword
+	if instance.Spec.Auth.OpenShiftoAuth == false && instance.Status.OpenShiftoAuthProvisioned == true {
+		keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
 		keycloakDeployment := &appsv1.Deployment{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: instance.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
@@ -249,7 +249,7 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isO
 		provisioned := ExecIntoPod(podToExec, deleteOpenShiftIdentityProviderProvisionCommand, "delete OpenShift identity provider", instance.Namespace)
 		if provisioned {
 			oAuthClient := &oauth.OAuthClient{}
-			oAuthClientName := instance.Spec.Auth.OauthClientName
+			oAuthClientName := instance.Spec.Auth.OAuthClientName
 			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
 				logrus.Errorf("OAuthClient %s not found: %s", oAuthClient.Name, err)
 			}

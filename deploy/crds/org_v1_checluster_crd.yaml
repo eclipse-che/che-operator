@@ -1,0 +1,466 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: checlusters.org.eclipse.che
+spec:
+  group: org.eclipse.che
+  names:
+    kind: CheCluster
+    listKind: CheClusterList
+    plural: checlusters
+    singular: checluster
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            auth:
+              properties:
+                externalIdentityProvider:
+                  description: ExternalIdentityProvider instructs operator on whether
+                    or not to deploy Keycloak/RH SSO instance. When set to true provision
+                    connection details
+                  type: boolean
+                identityProviderAdminUserName:
+                  description: IdentityProviderURL is retrieved from respective route/ingress
+                    unless explicitly specified in CR (when externalIdentityProvider
+                    is true) IdentityProviderURL string `json:"identityProviderURL"`
+                    IdentityProviderAdminUserName is a desired admin username of Keycloak
+                    admin user (applicable only when externalIdentityProvider is false)
+                  type: string
+                identityProviderClientId:
+                  description: IdentityProviderClientId is id of a keycloak client.
+                    When externalIdentityProvider is false this client will be created,
+                    otherwise passed to Che server
+                  type: string
+                identityProviderImage:
+                  description: IdentityProviderImage is image:tag used in Keycloak
+                    deployment
+                  type: string
+                identityProviderImagePullPolicy:
+                  description: 'IdentityProviderImagePullPolicy is the image pull
+                    policy used in Keycloak registry deployment: default value is
+                    Always'
+                  type: string
+                identityProviderPassword:
+                  description: IdentityProviderPassword is a desired password of Keycloak
+                    admin user (applicable only when externalIdentityProvider is false)
+                  type: string
+                identityProviderPostgresPassword:
+                  description: IdentityProviderPostgresPassword is password for keycloak
+                    database user. Auto generated if left blank
+                  type: string
+                identityProviderRealm:
+                  description: IdentityProviderRealm is name of a keycloak realm.
+                    When externalIdentityProvider is false this realm will be created,
+                    otherwise passed to Che server
+                  type: string
+                identityProviderURL:
+                  description: IdentityProviderURL is retrieved from respective route/ingress
+                    unless explicitly specified in CR (when externalIdentityProvider
+                    is true)
+                  type: string
+                oAuthClientName:
+                  description: OauthClientName is name of oAuthClient used in OpenShift
+                    v3 identity provider in Keycloak realm. Auto generated if left
+                    blank
+                  type: string
+                oAuthSecret:
+                  description: OauthSecret is secret used in oAuthClient. Auto generated
+                    if left blank
+                  type: string
+                openShiftoAuth:
+                  description: OpenShiftOauth instructs an Operator to enable OpenShift
+                    v3 identity provider in Keycloak, as well as create respective
+                    oAuthClient and configure Che configMap accordingly
+                  type: boolean
+                updateAdminPassword:
+                  description: UpdateAdminPassword forces the default admin Che user
+                    to update password on first login. False by default
+                  type: boolean
+              required:
+              - externalIdentityProvider
+              - identityProviderURL
+              - identityProviderAdminUserName
+              - identityProviderPassword
+              - identityProviderRealm
+              - identityProviderClientId
+              - identityProviderPostgresPassword
+              - updateAdminPassword
+              - openShiftoAuth
+              - oAuthClientName
+              - oAuthSecret
+              - identityProviderImage
+              - identityProviderImagePullPolicy
+              type: object
+            database:
+              properties:
+                chePostgresDb:
+                  description: ChePostgresDb is Postgres database name that Che server
+                    uses to connect to. Defaults to dbche
+                  type: string
+                chePostgresHostName:
+                  description: ChePostgresDBHostname is Postgres Database hostname
+                    that Che server uses to connect to. Defaults to postgres
+                  type: string
+                chePostgresPassword:
+                  description: ChePostgresPassword is password of a postgres user.
+                    Auto-generated when left blank
+                  type: string
+                chePostgresPort:
+                  description: ChePostgresPort is Postgres Database port that Che
+                    server uses to connect to. Defaults to 5432
+                  type: string
+                chePostgresUser:
+                  description: ChePostgresUser is Postgres user that Che server when
+                    making a db connection. Defaults to pgche
+                  type: string
+                externalDb:
+                  description: ExternalDB instructs the operator either to skip deploying
+                    Postgres, and passes connection details of existing DB to Che
+                    server (when set to true) or a new Postgres deployment is created
+                  type: boolean
+                postgresImage:
+                  description: PostgresImage is an image used in Postgres deployment
+                    in format image:tag. Defaults to registry.redhat.io/rhscl/postgresql-96-rhel7
+                    (see pkg/deploy/defaults.go for latest tag)
+                  type: string
+                postgresImagePullPolicy:
+                  description: 'PostgresImagePullPolicy is the image pull policy used
+                    in Postgres registry deployment: default value is Always'
+                  type: string
+              required:
+              - externalDb
+              - chePostgresHostName
+              - chePostgresPort
+              - chePostgresUser
+              - chePostgresPassword
+              - chePostgresDb
+              - postgresImage
+              - postgresImagePullPolicy
+              type: object
+            k8s:
+              properties:
+                ingressClass:
+                  description: IngressClass is kubernetes.io/ingress.class, defaults
+                    to nginx
+                  type: string
+                ingressDomain:
+                  description: IngressDomain is a global ingress domain for a k8s
+                    cluster. Must be explicitly specified in CR. There are no defaults
+                  type: string
+                ingressStrategy:
+                  description: IngressStrategy is the way ingresses are created. Casn
+                    be multi-host (host is explicitly provided in ingress), single-host
+                    (host is provided, path based rules) and default-host *(no host
+                    is provided, path based rules)
+                  type: string
+                securityContextFsGroup:
+                  description: FSGroup the Che POD and Workspace pod containers should
+                    run in
+                  type: string
+                securityContextRunAsUser:
+                  description: User the Che POD and Workspace pod containers should
+                    run as
+                  type: string
+                tlsSecretName:
+                  description: secret name used for tls termination
+                  type: string
+              required:
+              - ingressDomain
+              - ingressStrategy
+              - ingressClass
+              - tlsSecretName
+              - securityContextFsGroup
+              - securityContextRunAsUser
+              type: object
+            server:
+              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                Important: Run "operator-sdk generate k8s" to regenerate code after
+                modifying this file'
+              properties:
+                cheDebug:
+                  description: CheDebug is debug mode for Che server. Defaults to
+                    false
+                  type: string
+                cheFlavor:
+                  description: CheFlavor is an installation flavor. Can be 'che' -
+                    upstream or 'codeready' - CodeReady Workspaces. Defaults to 'che'
+                  type: string
+                cheHost:
+                  description: CheHost is an env consumer by server. Detected automatically
+                    from Che route
+                  type: string
+                cheImage:
+                  description: CheImage is a server image used in Che deployment
+                  type: string
+                cheImagePullPolicy:
+                  description: 'CheImagePullPolicy is the image pull policy used in
+                    Che registry deployment: default value is Always'
+                  type: string
+                cheImageTag:
+                  description: CheImageTag is a tag of an image used in Che deployment
+                  type: string
+                cheLogLevel:
+                  description: 'CheLostLevel is log level for Che server: INFO or
+                    DEBUG. Defaults to INFO'
+                  type: string
+                cheWorkspaceClusterRole:
+                  description: CustomClusterRoleName specifies a custom cluster role
+                    to user for the Che workspaces The default roles are used if this
+                    is left blank.
+                  type: string
+                customCheProperties:
+                  additionalProperties:
+                    type: string
+                  description: CustomCheProperties is a list of additional environment
+                    variables that will be applied in the che config map, in addition
+                    to the values already generated from other fields of the custom
+                    resource (CR). If CustomCheProperties contains a property that
+                    would be normally generated in che config map from other CR fields,
+                    then the value in the CustomCheProperties will be used.
+                  type: object
+                devfileRegistryImage:
+                  description: DevfileRegistryImage is image:tag used in Devfile registry
+                    deployment
+                  type: string
+                devfileRegistryMemoryLimit:
+                  description: DevfileRegistryMemoryLimit is the memory limit used
+                    in Devfile registry deployment
+                  type: string
+                devfileRegistryMemoryRequest:
+                  description: DevfileRegistryMemoryRequest is the memory request
+                    used in Devfile registry deployment
+                  type: string
+                devfileRegistryPullPolicy:
+                  description: DevfileRegistryImagePullPolicy is the image pull policy
+                    used in Devfile registry deployment
+                  type: string
+                devfileRegistryUrl:
+                  description: DevfileRegistryUrl is an endpoint serving sample ready-to-use
+                    devfiles. Defaults to generated route
+                  type: string
+                externalDevfileRegistry:
+                  description: ExternalDevfileRegistry instructs operator on whether
+                    or not to deploy a dedicated Devfile registry server By default
+                    a dedicated devfile registry server is started. But if ExternalDevfileRegistry
+                    is `true`, then no such dedicated server will be started by the
+                    operator
+                  type: boolean
+                externalPluginRegistry:
+                  description: ExternalPluginRegistry instructs operator on whether
+                    or not to deploy a dedicated Plugin registry server By default
+                    a dedicated plugin registry server is started. But if ExternalPluginRegistry
+                    is `true`, then no such dedicated server will be started by the
+                    operator
+                  type: boolean
+                nonProxyHosts:
+                  description: NonProxyHosts is a list of non-proxy hosts. Use | as
+                    delimiter, eg localhost|my.host.com|123.42.12.32
+                  type: string
+                pluginRegistryImage:
+                  description: PluginRegistryImage is image:tag used in Plugin registry
+                    deployment
+                  type: string
+                pluginRegistryMemoryLimit:
+                  description: PluginRegistryMemoryLimit is the memory limit used
+                    in Plugin registry deployment
+                  type: string
+                pluginRegistryMemoryRequest:
+                  description: PluginRegistryMemoryRequest is the memory request used
+                    in Plugin registry deployment
+                  type: string
+                pluginRegistryPullPolicy:
+                  description: PluginRegistryImagePullPolicy is the image pull policy
+                    used in Plugin registry deployment
+                  type: string
+                pluginRegistryUrl:
+                  description: PluginRegistryUrl is an endpoint serving plugin definitions.
+                    Defaults to generated route
+                  type: string
+                proxyPassword:
+                  description: ProxyPassword is password for a proxy user
+                  type: string
+                proxyPort:
+                  description: ProxyPort is port of a proxy server
+                  type: string
+                proxyURL:
+                  description: ProxyURL is protocol+hostname of a proxy server. Automatically
+                    added as JAVA_OPTS and https(s)_proxy to Che server and workspaces
+                    containers
+                  type: string
+                proxyUser:
+                  description: ProxyUser is username for a proxy server
+                  type: string
+                selfSignedCert:
+                  description: SelfSignedCert signal about the necessity to get OpenShift
+                    router tls secret and extract certificate to add it to Java trust
+                    store for Che server
+                  type: boolean
+                serverMemoryLimit:
+                  description: ServerMemoryLimit sets mem limit for server deployment.
+                    Defaults to 1Gi
+                  type: string
+                serverMemoryRequest:
+                  description: ServerMemoryRequest sets mem request for server deployment.
+                    Defaults to 512Mi
+                  type: string
+                tlsSupport:
+                  description: TlsSupport instructs an operator to deploy Che in TLS
+                    mode, ie with TLS routes or ingresses
+                  type: boolean
+              required:
+              - cheImage
+              - cheImageTag
+              - cheImagePullPolicy
+              - cheFlavor
+              - cheHost
+              - cheLogLevel
+              - cheDebug
+              - cheWorkspaceClusterRole
+              - selfSignedCert
+              - tlsSupport
+              - devfileRegistryUrl
+              - devfileRegistryImage
+              - devfileRegistryPullPolicy
+              - devfileRegistryMemoryLimit
+              - devfileRegistryMemoryRequest
+              - externalDevfileRegistry
+              - pluginRegistryUrl
+              - pluginRegistryImage
+              - pluginRegistryPullPolicy
+              - pluginRegistryMemoryLimit
+              - pluginRegistryMemoryRequest
+              - externalPluginRegistry
+              - customCheProperties
+              - proxyURL
+              - proxyPort
+              - nonProxyHosts
+              - proxyUser
+              - proxyPassword
+              - serverMemoryRequest
+              - serverMemoryLimit
+              type: object
+            storage:
+              properties:
+                postgresPVCStorageClassName:
+                  description: PostgresPVCStorageClassName is storage class for a
+                    postgres pvc. Empty string by default, which means default storage
+                    class is used
+                  type: string
+                preCreateSubPaths:
+                  description: PreCreateSubPaths instructs Che server to launch a
+                    special pod to precreate a subpath in a PV
+                  type: boolean
+                pvcClaimSize:
+                  description: PvcClaimSize is size of a persistent volume claim for
+                    workspaces. Defaults to 1Gi
+                  type: string
+                pvcJobsImage:
+                  description: PvcJobsImage is image:tag for preCreateSubPaths jobs
+                  type: string
+                pvcStrategy:
+                  description: PvcStrategy is a persistent volume claim strategy for
+                    Che server. Can be common (all workspaces PVCs in one volume),
+                    per-workspace (one PVC per workspace for all declared volumes)
+                    and unique (one PVC per declared volume). Defaults to common
+                  type: string
+                workspacePVCStorageClassName:
+                  description: WorkspacePVCStorageClassName is storage class for a
+                    workspaces pvc. Empty string by default, which means default storage
+                    class is used
+                  type: string
+              required:
+              - pvcStrategy
+              - pvcClaimSize
+              - preCreateSubPaths
+              - pvcJobsImage
+              - postgresPVCStorageClassName
+              - workspacePVCStorageClassName
+              type: object
+          required:
+          - server
+          - database
+          - auth
+          - storage
+          - k8s
+          type: object
+        status:
+          properties:
+            cheClusterRunning:
+              description: CheClusterRunning is status of a cluster. Can be Available,
+                Unavailable, Available, Rolling Update in Progress
+              type: string
+            cheURL:
+              description: CheURL is Che protocol+route/ingress
+              type: string
+            cheVersion:
+              description: CheVersion is current Che version retrieved from image
+                tag
+              type: string
+            dbProvisioned:
+              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                of cluster Important: Run "operator-sdk generate k8s" to regenerate
+                code after modifying this file DbProvisoned indicates if or not a
+                Postgres instance has been provisioned with db and user'
+              type: boolean
+            devfileRegistryURL:
+              description: DevfileRegistryURL is the Devfile registry protocol+route/ingress
+              type: string
+            helpLink:
+              description: A URL that can point to some URL where to find help related
+                to the current Operator status.
+              type: string
+            keycloakProvisioned:
+              description: KeycloakProvisoned indicates if or not a Keycloak instance
+                has been provisioned with realm, client, user
+              type: boolean
+            keycloakURL:
+              description: KeycloakURL is Keycloak protocol+route/ingress
+              type: string
+            message:
+              description: A human readable message indicating details about why the
+                pod is in this condition.
+              type: string
+            openShiftoAuthProvisioned:
+              description: OpenShiftoAuthProvisioned indicates if or not a Keycloak
+                instance has been provisioned identity provider and oAuthclient
+              type: boolean
+            pluginRegistryURL:
+              description: PluginRegistryURL is the Plugin registry protocol+route/ingress
+              type: string
+            reason:
+              description: A brief CamelCase message indicating details about why
+                the pod is in this state. e.g. 'Evicted'
+              type: string
+          required:
+          - dbProvisioned
+          - keycloakProvisioned
+          - openShiftoAuthProvisioned
+          - cheClusterRunning
+          - cheVersion
+          - cheURL
+          - keycloakURL
+          - devfileRegistryURL
+          - pluginRegistryURL
+          type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true

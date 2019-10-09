@@ -21,14 +21,14 @@ import (
 
 func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int) *v1beta1.Ingress {
 	tlsSupport := cr.Spec.Server.TlsSupport
-	ingressStrategy := cr.Spec.K8SOnly.IngressStrategy
+	ingressStrategy := cr.Spec.K8s.IngressStrategy
 	if len(ingressStrategy) < 1 {
 		ingressStrategy = "multi-host"
 	}
-	ingressDomain := cr.Spec.K8SOnly.IngressDomain
-	ingressClass := util.GetValue(cr.Spec.K8SOnly.IngressClass, DefaultIngressClass)
+	ingressDomain := cr.Spec.K8s.IngressDomain
+	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(cr, name)
-	tlsSecretName := cr.Spec.K8SOnly.TlsSecretName
+	tlsSecretName := cr.Spec.K8s.TlsSecretName
 	tls := "false"
 	if tlsSupport {
 		tls = "true"
@@ -95,4 +95,3 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 		},
 	}
 }
-

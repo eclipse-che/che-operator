@@ -74,7 +74,7 @@ type CheConfigMap struct {
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
 func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheHost := cr.Spec.Server.CheHost
-	keycloakURL := cr.Spec.Auth.KeycloakURL
+	keycloakURL := cr.Spec.Auth.IdentityProviderURL
 	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
@@ -88,7 +88,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	workspacesNamespace := cr.Namespace
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	openshiftOAuth := cr.Spec.Auth.OpenShiftOauth
+	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
 	if openshiftOAuth && isOpenShift {
 		workspacesNamespace = ""
 		openShiftIdentityProviderId = "openshift-v3"
@@ -122,10 +122,10 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		cheWorkspaceHttpProxy, cheWorkspaceNoProxy = util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, proxyUser, proxyPassword)
 	}
 
-	ingressDomain := cr.Spec.K8SOnly.IngressDomain
-	tlsSecretName := cr.Spec.K8SOnly.TlsSecretName
-	securityContextFsGroup := util.GetValue(cr.Spec.K8SOnly.SecurityContextFsGroup, DefaultSecurityContextFsGroup)
-	securityContextRunAsUser := util.GetValue(cr.Spec.K8SOnly.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser)
+	ingressDomain := cr.Spec.K8s.IngressDomain
+	tlsSecretName := cr.Spec.K8s.TlsSecretName
+	securityContextFsGroup := util.GetValue(cr.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup)
+	securityContextRunAsUser := util.GetValue(cr.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser)
 	pvcStrategy := util.GetValue(cr.Spec.Storage.PvcStrategy, DefaultPvcStrategy)
 	pvcClaimSize := util.GetValue(cr.Spec.Storage.PvcClaimSize, DefaultPvcClaimSize)
 	workspacePvcStorageClassName := cr.Spec.Storage.WorkspacePVCStorageClassName
@@ -136,14 +136,14 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if !cr.Spec.Storage.PreCreateSubPaths {
 		preCreateSubPaths = "false"
 	}
-	chePostgresHostName := util.GetValue(cr.Spec.Database.ChePostgresDBHostname, DefaultChePostgresHostName)
+	chePostgresHostName := util.GetValue(cr.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName)
 	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, DefaultChePostgresUser)
 	chePostgresPort := util.GetValue(cr.Spec.Database.ChePostgresPort, DefaultChePostgresPort)
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, DefaultChePostgresDb)
-	keycloakRealm := util.GetValue(cr.Spec.Auth.KeycloakRealm, cheFlavor)
-	keycloakClientId := util.GetValue(cr.Spec.Auth.KeycloakClientId, cheFlavor+"-public")
-	ingressStrategy := util.GetValue(cr.Spec.K8SOnly.IngressStrategy, DefaultIngressStrategy)
-	ingressClass := util.GetValue(cr.Spec.K8SOnly.IngressClass, DefaultIngressClass)
+	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+	ingressStrategy := util.GetValue(cr.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
 	devfileRegistryUrl := cr.Status.DevfileRegistryURL
 	pluginRegistryUrl := cr.Status.PluginRegistryURL
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)

@@ -19,16 +19,16 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// CheClusterSpec defines the desired state of CheCluster
 // +k8s:openapi-gen=true
+// CheClusterSpec defines the desired state of CheCluster
 type CheClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	Server   CheClusterSpecServer  `json:"server"`
 	Database CheClusterSpecDB      `json:"database"`
 	Auth     CheClusterSpecAuth    `json:"auth"`
 	Storage  CheClusterSpecStorage `json:"storage"`
-	K8SOnly  CheClusterSpecK8SOnly `json:"k8s"`
+
+	// +optional
+	K8s CheClusterSpecK8SOnly `json:"k8s"`
 }
 
 // +k8s:openapi-gen=true
@@ -38,12 +38,15 @@ type CheClusterSpecServer struct {
 	// AirGapContainerRegistryOrganization is the repository name in the registry to pull images from in the air-gapped environment
 	AirGapContainerRegistryOrganization string `json:"airGapContainerRegistryOrganization"`
 	// CheImage is a server image used in Che deployment
+	// +optional
 	CheImage string `json:"cheImage"`
 	// CheImageTag is a tag of an image used in Che deployment
 	CheImageTag string `json:"cheImageTag"`
 	// CheImagePullPolicy is the image pull policy used in Che registry deployment: default value is Always
+	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy"`
 	// CheFlavor is an installation flavor. Can be 'che' - upstream or 'codeready' - CodeReady Workspaces. Defaults to 'che'
+	// +optional
 	CheFlavor string `json:"cheFlavor"`
 	// CheHost is an env consumer by server. Detected automatically from Che route
 	CheHost string `json:"cheHost"`
@@ -64,7 +67,7 @@ type CheClusterSpecServer struct {
 	// DevfileRegistryImage is image:tag used in Devfile registry deployment
 	DevfileRegistryImage string `json:"devfileRegistryImage"`
 	// DevfileRegistryImagePullPolicy is the image pull policy used in Devfile registry deployment
-	DevfileRegistryImagePullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy"`
+	DevfileRegistryPullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy"`
 	// DevfileRegistryMemoryLimit is the memory limit used in Devfile registry deployment
 	DevfileRegistryMemoryLimit string `json:"devfileRegistryMemoryLimit"`
 	// DevfileRegistryMemoryRequest is the memory request used in Devfile registry deployment
@@ -78,7 +81,7 @@ type CheClusterSpecServer struct {
 	// PluginRegistryImage is image:tag used in Plugin registry deployment
 	PluginRegistryImage string `json:"pluginRegistryImage"`
 	// PluginRegistryImagePullPolicy is the image pull policy used in Plugin registry deployment
-	PluginRegistryImagePullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy"`
+	PluginRegistryPullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy"`
 	// PluginRegistryMemoryLimit is the memory limit used in Plugin registry deployment
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit"`
 	// PluginRegistryMemoryRequest is the memory request used in Plugin registry deployment
@@ -114,9 +117,9 @@ type CheClusterSpecDB struct {
 	// ExternalDB instructs the operator either to skip deploying Postgres,
 	// and passes connection details of existing DB to Che server (when set to true)
 	// or a new Postgres deployment is created
-	ExternalDB bool `json:"externalDb"`
+	ExternalDb bool `json:"externalDb"`
 	// ChePostgresDBHostname is Postgres Database hostname that Che server uses to connect to. Defaults to postgres
-	ChePostgresDBHostname string `json:"chePostgresHostName"`
+	ChePostgresHostName string `json:"chePostgresHostName"`
 	// ChePostgresPort is Postgres Database port that Che server uses to connect to. Defaults to 5432
 	ChePostgresPort string `json:"chePostgresPort"`
 	// ChePostgresUser is Postgres user that Che server when making a db connection. Defaults to pgche
@@ -133,35 +136,35 @@ type CheClusterSpecDB struct {
 
 // +k8s:openapi-gen=true
 type CheClusterSpecAuth struct {
-	// ExternalKeycloak instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
-	ExternalKeycloak bool `json:"externalIdentityProvider"`
-	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
-	KeycloakURL string `json:"identityProviderURL"`
-	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
+	// ExternalIdentityProvider instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
+	ExternalIdentityProvider bool `json:"externalIdentityProvider"`
+	// IdentityProviderURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
+	IdentityProviderURL string `json:"identityProviderURL"`
+	// IdentityProviderURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
 	//IdentityProviderURL string `json:"identityProviderURL"`
-	// KeycloakAdminUserName is a desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
-	KeycloakAdminUserName string `json:"identityProviderAdminUserName"`
-	// KeycloakAdminPassword is a desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
-	KeycloakAdminPassword string `json:"identityProviderPassword"`
-	// KeycloakRealm is name of a keycloak realm. When externalIdentityProvider is false this realm will be created, otherwise passed to Che server
-	KeycloakRealm string `json:"identityProviderRealm"`
-	// KeycloakClientId is id of a keycloak client. When externalIdentityProvider is false this client will be created, otherwise passed to Che server
-	KeycloakClientId string `json:"identityProviderClientId"`
-	// KeycloakPostgresPassword is password for keycloak database user. Auto generated if left blank
-	KeycloakPostgresPassword string `json:"identityProviderPostgresPassword"`
+	// IdentityProviderAdminUserName is a desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
+	IdentityProviderAdminUserName string `json:"identityProviderAdminUserName"`
+	// IdentityProviderPassword is a desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
+	IdentityProviderPassword string `json:"identityProviderPassword"`
+	// IdentityProviderRealm is name of a keycloak realm. When externalIdentityProvider is false this realm will be created, otherwise passed to Che server
+	IdentityProviderRealm string `json:"identityProviderRealm"`
+	// IdentityProviderClientId is id of a keycloak client. When externalIdentityProvider is false this client will be created, otherwise passed to Che server
+	IdentityProviderClientId string `json:"identityProviderClientId"`
+	// IdentityProviderPostgresPassword is password for keycloak database user. Auto generated if left blank
+	IdentityProviderPostgresPassword string `json:"identityProviderPostgresPassword"`
 	// UpdateAdminPassword forces the default admin Che user to update password on first login. False by default
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
 	// OpenShiftOauth instructs an Operator to enable OpenShift v3 identity provider in Keycloak,
 	// as well as create respective oAuthClient and configure Che configMap accordingly
-	OpenShiftOauth bool `json:"openShiftoAuth"`
+	OpenShiftoAuth bool `json:"openShiftoAuth"`
 	// OauthClientName is name of oAuthClient used in OpenShift v3 identity provider in Keycloak realm. Auto generated if left blank
-	OauthClientName string `json:"oAuthClientName"`
+	OAuthClientName string `json:"oAuthClientName"`
 	// OauthSecret is secret used in oAuthClient. Auto generated if left blank
-	OauthSecret string `json:"oAuthSecret"`
-	// KeycloakImage is image:tag used in Keycloak deployment
-	KeycloakImage string `json:"identityProviderImage"`
-	// KeycloakImagePullPolicy is the image pull policy used in Keycloak registry deployment: default value is Always
-	KeycloakImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy"`
+	OAuthSecret string `json:"oAuthSecret"`
+	// IdentityProviderImage is image:tag used in Keycloak deployment
+	IdentityProviderImage string `json:"identityProviderImage"`
+	// IdentityProviderImagePullPolicy is the image pull policy used in Keycloak registry deployment: default value is Always
+	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy"`
 }
 
 // +k8s:openapi-gen=true
@@ -236,6 +239,7 @@ type CheClusterStatus struct {
 
 // CheCluster is the Schema for the ches API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

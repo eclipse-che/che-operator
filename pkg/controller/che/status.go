@@ -31,7 +31,7 @@ func (r *ReconcileChe) SetCheAvailableStatus(instance *orgv1.CheCluster, request
 	if cheFlavor == "codeready" {
 		name = "CodeReady Workspaces"
 	}
-	keycloakURL := instance.Spec.Auth.KeycloakURL
+	keycloakURL := instance.Spec.Auth.IdentityProviderURL
 	instance.Status.KeycloakURL = keycloakURL
 	if err := r.UpdateCheCRStatus(instance, "Keycloak URL status", keycloakURL); err != nil {
 		instance, _ = r.GetCR(request)
@@ -87,7 +87,6 @@ func (r *ReconcileChe) SetStatusDetails(instance *orgv1.CheCluster, request reco
 	}
 	return nil
 }
-
 
 func (r *ReconcileChe) SetCheRollingUpdateStatus(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
 
