@@ -68,8 +68,6 @@ type CheConfigMap struct {
 	CheWorkspacePluginBrokerInitImage    string `json:"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE,omitempty"`
 	CheWorkspacePluginBrokerUnifiedImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage  string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
-	CheWorkspaceSidecarImagePullPolicy   string `json:"CHE_WORKSPACE_SIDECAR_IMAGE__PULL__POLICY,omitempty"`
-	CheDockerAlwaysPullImage             string `json:"CHE_DOCKER_ALWAYS__PULL__IMAGE,omitempty"`
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -159,8 +157,6 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheWebSocketEndpoint:                 wsprotocol + "://" + cheHost + "/api/websocket",
 		WebSocketEndpointMinor:               wsprotocol + "://" + cheHost + "/api/websocket-minor",
 		CheDebugServer:                       cheDebug,
-		CheDockerAlwaysPullImage:             cheDockerAlwaysPullImage,
-		CheWorkspaceSidecarImagePullPolicy:   cheWorkspaceSidecarImagePullPolicy,
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
 		BootstrapperBinaryUrl:                protocol + "://" + cheHost + "/agent-binaries/linux_amd64/bootstrapper/bootstrapper",
@@ -241,8 +237,6 @@ func extraImagesConfig(cr *orgv1.CheCluster) map[string]string {
 		"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE":    patchDefaultImageName(cr, cheWorkspacePluginBrokerInitImage),
 		"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE": patchDefaultImageName(cr, cheWorkspacePluginBrokerUnifiedImage),
 		"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE":  patchDefaultImageName(cr, cheServerSecureExposerJwtProxyImage),
-		"CHE_WORKSPACE_SIDECAR_IMAGE__PULL__POLICY":  cheWorkspaceSidecarImagePullPolicy,
-		"CHE_DOCKER_ALWAYS__PULL__IMAGE":             cheDockerAlwaysPullImage,
 	}
 	return extraImages
 }
