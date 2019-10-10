@@ -144,7 +144,7 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
-	if !cr.Spec.Server.AirGapMode {
+	if !cr.IsAirGapMode() {
 		return imageName
 	}
 

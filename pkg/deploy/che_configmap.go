@@ -210,7 +210,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	}
 
 	addMap(cheEnv, cr.Spec.Server.CustomCheProperties)
-	if cr.Spec.Server.AirGapMode {
+	if cr.IsAirGapMode() {
 		addMap(cheEnv, extraImagesConfig(cr))
 	}
 	return cheEnv

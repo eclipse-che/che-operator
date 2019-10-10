@@ -252,3 +252,9 @@ type CheClusterList struct {
 func init() {
 	SchemeBuilder.Register(&CheCluster{}, &CheClusterList{})
 }
+
+func (c *CheCluster) IsAirGapMode() bool {
+	return c.Spec.Server.AirGapMode &&
+		c.Spec.Server.AirGapContainerRegistryHostname != "" &&
+		c.Spec.Server.AirGapContainerRegistryRepository != ""
+}
