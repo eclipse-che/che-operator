@@ -281,6 +281,22 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	// If the devfile-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
+	devfileRegistryConfigMap := &corev1.ConfigMap{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "devfile-registry"}, devfileRegistryConfigMap)
+	if err != nil && !errors.IsNotFound(err) {
+		logrus.Errorf("Error getting devfile-registry ConfigMap: %v", err)
+		return reconcile.Result{}, err
+	}
+	if err == nil && !instance.IsAirGapMode() {
+		logrus.Info("Found devfile-registry ConfigMap and not in airgap mode.  Deleting.")
+		if err = r.client.Delete(context.TODO(), devfileRegistryConfigMap); err != nil {
+			logrus.Errorf("Error deleting devfile-registry ConfigMap: %v", err)
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
 	if isOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if instance.Spec.Server.SelfSignedCert ||
@@ -796,6 +812,25 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// Create devfile registry resources unless an external registry is used
 	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
 	if !externalDevfileRegistry {
+		if instance.IsAirGapMode() {
+			devFileRegistryConfigMap := &corev1.ConfigMap{}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					logrus.Info("Creating devfile registry airgap configmap")
+					devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance)
+					err = r.client.Create(context.TODO(), devFileRegistryConfigMap)
+					if err != nil {
+						logrus.Errorf("Error creating devfile registry configmap: %v", err)
+						return reconcile.Result{}, err
+					}
+					return reconcile.Result{Requeue: true}, nil
+				}
+				logrus.Errorf("Could not get devfile-registry ConfigMap: %v", err)
+				return reconcile.Result{}, err
+			}
+		}
+
 		guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
 		if err != nil {
 			return reconcile.Result{}, err
