@@ -147,11 +147,19 @@ func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
 	if !cr.IsAirGapMode() {
 		return imageName
 	}
-
-	hostname := cr.Spec.Server.AirGapContainerRegistryHostname
-	repository := cr.Spec.Server.AirGapContainerRegistryRepository
+	var hostname, organization string
+	if cr.Spec.Server.AirGapContainerRegistryHostname != "" {
+		hostname = cr.Spec.Server.AirGapContainerRegistryHostname
+	} else {
+		hostname = getHostnameFromImage(imageName)
+	}
+	if cr.Spec.Server.AirGapContainerRegistryOrganization != "" {
+		organization = cr.Spec.Server.AirGapContainerRegistryOrganization
+	} else {
+		organization = getOrganizationFromImage(imageName)
+	}
 	image := getImageNameFromFullImage(imageName)
-	return fmt.Sprintf("%s/%s/%s", hostname, repository, image)
+	return fmt.Sprintf("%s/%s/%s", hostname, organization, image)
 }
 
 func getImageNameFromFullImage(image string) string {
@@ -166,4 +174,28 @@ func getImageNameFromFullImage(image string) string {
 		nameAndTag = imageParts[2]
 	}
 	return nameAndTag
+}
+
+func getHostnameFromImage(image string) string {
+	imageParts := strings.Split(image, "/")
+	hostname := ""
+	switch len(imageParts) {
+	case 3:
+		hostname = imageParts[0]
+	default:
+		hostname = "docker.io"
+	}
+	return hostname
+}
+
+func getOrganizationFromImage(image string) string {
+	imageParts := strings.Split(image, "/")
+	organization := ""
+	switch len(imageParts) {
+	case 2:
+		organization = imageParts[0]
+	case 3:
+		organization = imageParts[1]
+	}
+	return organization
 }

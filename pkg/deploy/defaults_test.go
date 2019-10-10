@@ -42,27 +42,60 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	airGapUpstream := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapMode:                        true,
-				AirGapContainerRegistryHostname:   "bigcorp.net",
-				AirGapContainerRegistryRepository: "che-images",
+				AirGapContainerRegistryHostname:     "bigcorp.net",
+				AirGapContainerRegistryOrganization: "che-images",
 			},
 		},
 	}
 	airGapCRW := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapMode:                        true,
-				AirGapContainerRegistryHostname:   "bigcorp.net",
-				AirGapContainerRegistryRepository: "che-images",
-				CheFlavor:                         "codeready",
+				AirGapContainerRegistryHostname:     "bigcorp.net",
+				AirGapContainerRegistryOrganization: "che-images",
+				CheFlavor:                           "codeready",
 			},
 		},
 	}
+	upstreamOnlyOrg := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				AirGapContainerRegistryOrganization: "che-images",
+			},
+		},
+	}
+	upstreamOnlyHostname := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				AirGapContainerRegistryHostname: "bigcorp.net",
+			},
+		},
+	}
+	crwOnlyOrg := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				AirGapContainerRegistryOrganization: "che-images",
+				CheFlavor:                           "codeready",
+			},
+		},
+	}
+	crwOnlyHostname := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				AirGapContainerRegistryHostname: "bigcorp.net",
+				CheFlavor:                       "codeready",
+			},
+		},
+	}
+
 	testCases := map[string]testcase{
-		"upstream default postgres": {image: defaultPostgresUpstreamImage, expected: defaultPostgresUpstreamImage, cr: upstream},
-		"airgap upstream postgres":  {image: defaultPostgresUpstreamImage, expected: "bigcorp.net/che-images/postgresql-96-centos7:9.6", cr: airGapUpstream},
-		"CRW postgres":              {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
-		"CRW airgap postgres":       {image: defaultPostgresImage, expected: "bigcorp.net/che-images/postgresql-96-rhel7:1-47", cr: airGapCRW},
+		"upstream default postgres":                           {image: defaultPostgresUpstreamImage, expected: defaultPostgresUpstreamImage, cr: upstream},
+		"airgap upstream postgres":                            {image: defaultPostgresUpstreamImage, expected: "bigcorp.net/che-images/postgresql-96-centos7:9.6", cr: airGapUpstream},
+		"upstream with only the org changed":                  {image: defaultPostgresUpstreamImage, expected: "docker.io/che-images/postgresql-96-centos7:9.6", cr: upstreamOnlyOrg},
+		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: "registry.redhat.io/che-images/pluginregistry-rhel8:2.0", cr: crwOnlyOrg},
+		"CRW postgres":                                        {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
+		"CRW airgap postgres":                                 {image: defaultPostgresImage, expected: "bigcorp.net/che-images/postgresql-96-rhel7:1-47", cr: airGapCRW},
+		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: "bigcorp.net/eclipse/che-keycloak:7.2.0", cr: upstreamOnlyHostname},
+		"crw airgap with only hostname defined":               {image: defaultDevfileRegistryImage, expected: "bigcorp.net/codeready-workspaces/devfileregistry-rhel8:2.0", cr: crwOnlyHostname},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {

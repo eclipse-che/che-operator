@@ -31,12 +31,10 @@ type CheClusterSpec struct {
 }
 
 type CheClusterSpecServer struct {
-	// AirGapMode is a flag to tell Che server that it is running in an air-gapped environment
-	AirGapMode bool `json:"airGapMode"`
 	// AirGapContainerRegistryHostname is the hostname to the internal registry to pull images from in the air-gapped environment
 	AirGapContainerRegistryHostname string `json:"airGapContainerRegistryHostname"`
-	// AirGapContainerRegistryRepository is the repository name in the registry to pull images from in the air-gapped environment
-	AirGapContainerRegistryRepository string `json:"airGapContainerRegistryRepository"`
+	// AirGapContainerRegistryOrganization is the repository name in the registry to pull images from in the air-gapped environment
+	AirGapContainerRegistryOrganization string `json:"airGapContainerRegistryOrganization"`
 	// CheImage is a server image used in Che deployment
 	CheImage string `json:"cheImage"`
 	// CheImageTag is a tag of an image used in Che deployment
@@ -254,7 +252,6 @@ func init() {
 }
 
 func (c *CheCluster) IsAirGapMode() bool {
-	return c.Spec.Server.AirGapMode &&
-		c.Spec.Server.AirGapContainerRegistryHostname != "" &&
-		c.Spec.Server.AirGapContainerRegistryRepository != ""
+	return c.Spec.Server.AirGapContainerRegistryHostname != "" ||
+		c.Spec.Server.AirGapContainerRegistryOrganization != ""
 }
