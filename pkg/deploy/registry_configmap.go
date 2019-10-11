@@ -13,13 +13,11 @@ import (
 type DevFileRegistryConfigMap struct {
 	CheDevfileImagesRegistryURL          string `json:"CHE_DEVFILE_IMAGES_REGISTRY_URL"`
 	CheDevfileImagesRegistryOrganization string `json:"CHE_DEVFILE_IMAGES_REGISTRY_ORGANIZATION"`
-	CheDevfileImagesRegistryTag          string `json:"CHE_DEVFILE_IMAGES_REGISTRY_TAG"`
 }
 
 type PluginRegistryConfigMap struct {
 	CheSidecarContainersRegistryURL          string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_URL"`
 	CheSidecarContainersRegistryOrganization string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_ORGANIZATION"`
-	CheSideCarContainersRegistryTag          string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_TAG"`
 }
 
 func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
@@ -47,7 +45,7 @@ func CreatePluginRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "plugin-regitsry",
+			Name:      "plugin-registry",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
