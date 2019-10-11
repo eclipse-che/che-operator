@@ -614,7 +614,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(cheFlavor))
+			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance, cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)

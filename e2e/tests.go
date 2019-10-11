@@ -41,7 +41,6 @@ func main() {
 	}
 	logrus.Info("CRD successfully added to schema")
 
-
 	logrus.Infof("Creating a new namespace: %s", namespace)
 	ns := newNamespace()
 	if err := createNamespace(ns); err != nil {
@@ -95,7 +94,6 @@ func main() {
 	if deployed {
 		logrus.Info("Installation succeeded")
 	}
-
 
 	// reconfigure CR to enable TLS support
 	logrus.Info("Patching CR with TLS enabled. This should cause a new Che deployment")
@@ -158,7 +156,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to get CR: %s", err)
 	}
-	oAuthClientName := cr.Spec.Auth.OauthClientName
+	oAuthClientName := cr.Spec.Auth.OAuthClientName
 	_, err = getOauthClient(oAuthClientName)
 	if err != nil {
 		logrus.Fatalf("oAuthclient %s not found", oAuthClientName)
