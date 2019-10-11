@@ -58,7 +58,6 @@ func GetDevfileRegistryConfigMapData(cr *orgv1.CheCluster) map[string]string {
 	data := &DevFileRegistryConfigMap{
 		CheDevfileImagesRegistryURL:          cr.Spec.Server.AirGapContainerRegistryHostname,
 		CheDevfileImagesRegistryOrganization: cr.Spec.Server.AirGapContainerRegistryOrganization,
-		CheDevfileImagesRegistryTag:          "latest",
 	}
 
 	out, err := json.Marshal(data)
@@ -78,7 +77,6 @@ func GetPluginRegistryConfigMapData(cr *orgv1.CheCluster) map[string]string {
 	data := &PluginRegistryConfigMap{
 		CheSidecarContainersRegistryURL:          cr.Spec.Server.AirGapContainerRegistryHostname,
 		CheSidecarContainersRegistryOrganization: cr.Spec.Server.AirGapContainerRegistryOrganization,
-		CheSideCarContainersRegistryTag:          "latest",
 	}
 
 	out, err := json.Marshal(data)
