@@ -13,7 +13,10 @@
 package deploy
 
 import (
+	"fmt"
 	"strings"
+
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
 const (
@@ -55,17 +58,17 @@ const (
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
-	DefaultServerMemoryRequest          = "512Mi"
-	DefaultServerMemoryLimit            = "1Gi"
-	DefaultSecurityContextFsGroup       = "1724"
-	DefaultSecurityContextRunAsUser     = "1724"
+	DefaultServerMemoryRequest      = "512Mi"
+	DefaultServerMemoryLimit        = "1Gi"
+	DefaultSecurityContextFsGroup   = "1724"
+	DefaultSecurityContextRunAsUser = "1724"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
 	// That fixed bug https://github.com/eclipse/che/issues/13714
-	OldDefaultKeycloakUpstreamImageToDetect     = "eclipse/che-keycloak:7.0.0"
-	OldDefaultPvcJobsUpstreamImageToDetect      = "registry.access.redhat.com/ubi8-minimal:8.0-127"
-	OldDefaultPostgresUpstreamImageToDetect     = "centos/postgresql-96-centos7:9.6"
+	OldDefaultKeycloakUpstreamImageToDetect = "eclipse/che-keycloak:7.0.0"
+	OldDefaultPvcJobsUpstreamImageToDetect  = "registry.access.redhat.com/ubi8-minimal:8.0-127"
+	OldDefaultPostgresUpstreamImageToDetect = "centos/postgresql-96-centos7:9.6"
 
 	// ConsoleLink default
 	DefaultConsoleLinkName        = "che"
@@ -81,11 +84,12 @@ func DefaultCheServerImageTag(cheFlavor string) string {
 	return defaultCheServerImageTag
 }
 
-func DefaultCheServerImageRepo(cheFlavor string) string {
+func DefaultCheServerImageRepo(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultCodeReadyServerImageRepo
+		return patchDefaultImageName(cr, defaultCodeReadyServerImageRepo)
+	} else {
+		return patchDefaultImageName(cr, defaultCheServerImageRepo)
 	}
-	return defaultCheServerImageRepo
 }
 
 func DefaultPvcJobsImage(cheFlavor string) string {
@@ -95,33 +99,36 @@ func DefaultPvcJobsImage(cheFlavor string) string {
 	return defaultPvcJobsUpstreamImage
 }
 
-func DefaultPostgresImage(cheFlavor string) string {
+func DefaultPostgresImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultPostgresImage
+		return patchDefaultImageName(cr, defaultPostgresImage)
+	} else {
+		return patchDefaultImageName(cr, defaultPostgresUpstreamImage)
 	}
-	return defaultPostgresUpstreamImage
 }
 
-
-func DefaultKeycloakImage(cheFlavor string) string {
+func DefaultKeycloakImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultKeycloakImage
+		return patchDefaultImageName(cr, defaultKeycloakImage)
+	} else {
+		return patchDefaultImageName(cr, defaultKeycloakUpstreamImage)
 	}
-	return defaultKeycloakUpstreamImage
 }
 
-func DefaultPluginRegistryImage(cheFlavor string) string {
+func DefaultPluginRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultPluginRegistryImage
+		return patchDefaultImageName(cr, defaultPluginRegistryImage)
+	} else {
+		return patchDefaultImageName(cr, defaultPluginRegistryUpstreamImage)
 	}
-	return defaultPluginRegistryUpstreamImage
 }
 
-func DefaultDevfileRegistryImage(cheFlavor string) string {
+func DefaultDevfileRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultDevfileRegistryImage
+		return patchDefaultImageName(cr, defaultDevfileRegistryImage)
+	} else {
+		return patchDefaultImageName(cr, defaultDevfileRegistryUpstreamImage)
 	}
-	return defaultDevfileRegistryUpstreamImage
 }
 
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
@@ -134,4 +141,61 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 		return "Always"
 	}
 	return "IfNotPresent"
+}
+
+func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
+	if !cr.IsAirGapMode() {
+		return imageName
+	}
+	var hostname, organization string
+	if cr.Spec.Server.AirGapContainerRegistryHostname != "" {
+		hostname = cr.Spec.Server.AirGapContainerRegistryHostname
+	} else {
+		hostname = getHostnameFromImage(imageName)
+	}
+	if cr.Spec.Server.AirGapContainerRegistryOrganization != "" {
+		organization = cr.Spec.Server.AirGapContainerRegistryOrganization
+	} else {
+		organization = getOrganizationFromImage(imageName)
+	}
+	image := getImageNameFromFullImage(imageName)
+	return fmt.Sprintf("%s/%s/%s", hostname, organization, image)
+}
+
+func getImageNameFromFullImage(image string) string {
+	imageParts := strings.Split(image, "/")
+	nameAndTag := ""
+	switch len(imageParts) {
+	case 1:
+		nameAndTag = imageParts[0]
+	case 2:
+		nameAndTag = imageParts[1]
+	case 3:
+		nameAndTag = imageParts[2]
+	}
+	return nameAndTag
+}
+
+func getHostnameFromImage(image string) string {
+	imageParts := strings.Split(image, "/")
+	hostname := ""
+	switch len(imageParts) {
+	case 3:
+		hostname = imageParts[0]
+	default:
+		hostname = "docker.io"
+	}
+	return hostname
+}
+
+func getOrganizationFromImage(image string) string {
+	imageParts := strings.Split(image, "/")
+	organization := ""
+	switch len(imageParts) {
+	case 2:
+		organization = imageParts[0]
+	case 3:
+		organization = imageParts[1]
+	}
+	return organization
 }

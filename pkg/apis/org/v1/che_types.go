@@ -31,6 +31,10 @@ type CheClusterSpec struct {
 }
 
 type CheClusterSpecServer struct {
+	// AirGapContainerRegistryHostname is the hostname to the internal registry to pull images from in the air-gapped environment
+	AirGapContainerRegistryHostname string `json:"airGapContainerRegistryHostname"`
+	// AirGapContainerRegistryOrganization is the repository name in the registry to pull images from in the air-gapped environment
+	AirGapContainerRegistryOrganization string `json:"airGapContainerRegistryOrganization"`
 	// CheImage is a server image used in Che deployment
 	CheImage string `json:"cheImage"`
 	// CheImageTag is a tag of an image used in Che deployment
@@ -245,4 +249,9 @@ type CheClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&CheCluster{}, &CheClusterList{})
+}
+
+func (c *CheCluster) IsAirGapMode() bool {
+	return c.Spec.Server.AirGapContainerRegistryHostname != "" ||
+		c.Spec.Server.AirGapContainerRegistryOrganization != ""
 }

@@ -65,6 +65,9 @@ type CheConfigMap struct {
 	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
 	DevfileRegistryUrl                   string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
 	WebSocketEndpointMinor               string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
+	CheWorkspacePluginBrokerInitImage    string `json:"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE,omitempty"`
+	CheWorkspacePluginBrokerUnifiedImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE,omitempty"`
+	CheServerSecureExposerJwtProxyImage  string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -207,6 +210,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	}
 
 	addMap(cheEnv, cr.Spec.Server.CustomCheProperties)
+	if cr.IsAirGapMode() {
+		addMap(cheEnv, extraImagesConfig(cr))
+	}
 	return cheEnv
 }
 
@@ -224,4 +230,13 @@ func NewCheConfigMap(cr *orgv1.CheCluster, cheEnv map[string]string) *corev1.Con
 		},
 		Data: cheEnv,
 	}
+}
+
+func extraImagesConfig(cr *orgv1.CheCluster) map[string]string {
+	extraImages := map[string]string{
+		"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE":    patchDefaultImageName(cr, cheWorkspacePluginBrokerInitImage),
+		"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE": patchDefaultImageName(cr, cheWorkspacePluginBrokerUnifiedImage),
+		"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE":  patchDefaultImageName(cr, cheServerSecureExposerJwtProxyImage),
+	}
+	return extraImages
 }

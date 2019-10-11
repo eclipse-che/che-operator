@@ -66,6 +66,25 @@ pkg/deploy/defaults.go \
 > pkg/deploy/defaults.go.new
 mv pkg/deploy/defaults.go.new pkg/deploy/defaults.go
 
+wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+latestCheWorkspacePluginBrokerInitImage=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.init.image" | cut -d = -f2)
+latestCheWorkspacePluginBrokerUnifiedImage=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.unified.image" | cut -d = -f2)
+latestCheServerSecureExposerJwtProxyImage=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
+
+cat << EOF > pkg/deploy/extra_images.go
+// This file is generated, and contains the latest versions of certain properties from che.properties
+package deploy
+
+const (
+	cheWorkspacePluginBrokerInitImage    = "${latestCheWorkspacePluginBrokerInitImage}"
+	cheWorkspacePluginBrokerUnifiedImage = "${latestCheWorkspacePluginBrokerUnifiedImage}"
+	cheServerSecureExposerJwtProxyImage  = "${latestCheServerSecureExposerJwtProxyImage}"
+)
+EOF
+
+gofmt -w pkg/deploy/extra_images.go
+rm /tmp/che.properties
+
 dockerImage="quay.io/eclipse/che-operator:${RELEASE}"
 echo "   - Building Che Operator docker image for new release ${RELEASE}"
 docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .

@@ -419,6 +419,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		// Create a new Postgres deployment
 		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
+
 		if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -436,7 +437,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(cheFlavor))
+			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(instance, cheFlavor))
 			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
@@ -613,7 +614,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(cheFlavor))
+			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(instance, cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
@@ -803,7 +804,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			devfileRegistryURL = guessedDevfileRegistryURL
 		}
 
-		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(cheFlavor))
+		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(instance, cheFlavor))
 		result, err := addRegistryDeployment(
 			"devfile",
 			devfileRegistryImage,
@@ -839,7 +840,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			pluginRegistryURL = guessedPluginRegistryURL
 		}
 
-		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(cheFlavor))
+		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(instance, cheFlavor))
 		result, err := addRegistryDeployment(
 			"plugin",
 			pluginRegistryImage,
@@ -873,7 +874,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
 	// create Che deployment
-	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo(cheFlavor))
+	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo(instance, cheFlavor))
 	cheImageTag := util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCheServerImageTag(cheFlavor))
 	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
 	if err != nil {

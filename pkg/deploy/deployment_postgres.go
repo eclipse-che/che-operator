@@ -24,7 +24,7 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, "pgche")
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, "dbche")
 	postgresAdminPassword := util.GeneratePasswd(12)
-	postgresImage := util.GetValue(cr.Spec.Database.PostgresImage, DefaultPostgresImage(cheFlavor))
+	postgresImage := util.GetValue(cr.Spec.Database.PostgresImage, DefaultPostgresImage(cr, cheFlavor))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Database.PostgresImagePullPolicy), DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	name := "postgres"
@@ -124,11 +124,11 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 			},
 		},
 	}
-	if ! isOpenshift {
+	if !isOpenshift {
 		var runAsUser int64 = 26
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext {
+		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
 			RunAsUser: &runAsUser,
-			FSGroup: &runAsUser,
+			FSGroup:   &runAsUser,
 		}
 	}
 	return &deployment
