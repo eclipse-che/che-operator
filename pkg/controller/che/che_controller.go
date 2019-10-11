@@ -817,8 +817,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					logrus.Info("Creating devfile registry airgap configmap")
 					devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance)
+					err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
+					logrus.Infof("DevFileRegistryConfigMap %v", devFileRegistryConfigMap)
+					logrus.Info("Creating devfile registry airgap configmap")
 					err = r.client.Create(context.TODO(), devFileRegistryConfigMap)
 					if err != nil {
 						logrus.Errorf("Error creating devfile registry configmap: %v", err)

@@ -133,8 +133,6 @@ type CheClusterSpecAuth struct {
 	ExternalKeycloak bool `json:"externalIdentityProvider"`
 	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
 	KeycloakURL string `json:"identityProviderURL"`
-	// KeycloakURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)
-	//IdentityProviderURL string `json:"identityProviderURL"`
 	// KeycloakAdminUserName is a desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
 	KeycloakAdminUserName string `json:"identityProviderAdminUserName"`
 	// KeycloakAdminPassword is a desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
