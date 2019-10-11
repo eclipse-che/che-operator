@@ -297,6 +297,23 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	pluginRegistryConfigMap := &corev1.ConfigMap{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "plugin-registry"}, pluginRegistryConfigMap)
+	if err != nil && !errors.IsNotFound(err) {
+		logrus.Errorf("Error getting plugin-registry ConfigMap: %v", err)
+		return reconcile.Result{}, err
+	}
+	if err == nil && !instance.IsAirGapMode() {
+		logrus.Info("Found plugin-registry ConfigMap and not in airgap mode.  Deleting.")
+		if err = r.client.Delete(context.TODO(), pluginRegistryConfigMap); err != nil {
+			logrus.Errorf("Error deleting plugin-registry ConfigMap: %v", err)
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// If the plugin-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
+
 	if isOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if instance.Spec.Server.SelfSignedCert ||
@@ -835,13 +852,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{}, err
 				}
 			} else {
-				devfileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance)
+				devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance)
 				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
 				if err != nil {
 					logrus.Errorf("An error occurred: %v", err)
 					return reconcile.Result{}, err
 				}
-				logrus.Info("AirGap configuration changed.  Updating devfile-registry ConfigMap")
+				logrus.Info("Updating devfile-registry ConfigMap")
 				err = r.client.Update(context.TODO(), devFileRegistryConfigMap)
 				if err != nil {
 					logrus.Errorf("Error updating devfile-registry ConfigMap: %v", err)
@@ -885,7 +902,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !externalPluginRegistry {
 		if instance.IsAirGapMode() {
 			pluginRegistryConfigMap := &corev1.ConfigMap{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, pluginRegistryConfigMap)
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: instance.Namespace}, pluginRegistryConfigMap)
 			if err != nil {
 				if errors.IsNotFound(err) {
 					pluginRegistryConfigMap = deploy.CreatePluginRegistryConfigMap(instance)
@@ -894,15 +911,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 						logrus.Errorf("An error occurred: %v", err)
 						return reconcile.Result{}, err
 					}
-					logrus.Info("Creating devfile registry airgap configmap")
+					logrus.Info("Creating plugin registry airgap configmap")
 					err = r.client.Create(context.TODO(), pluginRegistryConfigMap)
 					if err != nil {
-						logrus.Errorf("Error creating devfile registry configmap: %v", err)
+						logrus.Errorf("Error creating plugin registry configmap: %v", err)
 						return reconcile.Result{}, err
 					}
 					return reconcile.Result{Requeue: true}, nil
 				} else {
-					logrus.Errorf("Could not get devfile-registry ConfigMap: %v", err)
+					logrus.Errorf("Could not get plugin-registry ConfigMap: %v", err)
 					return reconcile.Result{}, err
 				}
 			} else {
@@ -912,10 +929,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					logrus.Errorf("An error occurred: %v", err)
 					return reconcile.Result{}, err
 				}
-				logrus.Info("AirGap configuration changed.  Updating devfile-registry ConfigMap")
+				logrus.Info(" Updating plugin-registry ConfigMap")
 				err = r.client.Update(context.TODO(), pluginRegistryConfigMap)
 				if err != nil {
-					logrus.Errorf("Error updating devfile-registry ConfigMap: %v", err)
+					logrus.Errorf("Error updating plugin-registry ConfigMap: %v", err)
 					return reconcile.Result{}, err
 				}
 			}
