@@ -25,7 +25,7 @@ func schema_pkg_apis_org_v1_CheCluster(ref common.ReferenceCallback) common.Open
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CheCluster is the Schema for the ches API",
+				Description: "The `CheCluster` custom resource allows defining and managing a Che server installation",
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -68,35 +68,39 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CheClusterSpec defines the desired state of CheCluster",
+				Description: "Desired configuration of the Che installation. Based on these settings, the operator automatically creates and maintains several config maps that will contain the appropriate environment variables the various components of the Che installation. These generated config maps should NOT be updated manually.",
 				Properties: map[string]spec.Schema{
 					"server": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer"),
+							Description: "General configuration settings related to the Che server and the plugin and devfile registries",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer"),
 						},
 					},
 					"database": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB"),
+							Description: "Configuration settings related to the database used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB"),
 						},
 					},
 					"auth": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth"),
+							Description: "Configuration settings related to the Authentication used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth"),
 						},
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"),
+							Description: "Configuration settings related to the persistent storage used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"),
 						},
 					},
 					"k8s": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly"),
+							Description: "Configuration settings specific to Che installations made on upstream Kubernetes.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly"),
 						},
 					},
 				},
-				Required: []string{"server", "database", "auth", "storage"},
 			},
 		},
 		Dependencies: []string{
@@ -108,94 +112,95 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings related to the Authentication used by the Che installation.",
 				Properties: map[string]spec.Schema{
 					"externalIdentityProvider": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ExternalIdentityProvider instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details",
+							Description: "Instructs the operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance). By default a dedicated Identity Provider server is deployed as part of the Che installation. But if `externalIdentityProvider` is `true`, then no dedicated identity provider will be deployed by the operator and you might need to provide details about the external identity provider you want to use. See also all the other fields starting with: `identityProvider`.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"identityProviderURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true)",
+							Description: "Public URL of the Identity Provider server (Keycloak / RH SSO server). You should set it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field). By default this will be automatically calculated and set by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderAdminUserName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderURL is retrieved from respective route/ingress unless explicitly specified in CR (when externalIdentityProvider is true) IdentityProviderURL string `json:\"identityProviderURL\"` IdentityProviderAdminUserName is a desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)",
+							Description: "Overrides the name of the Identity Provider admin user. Defaults to `admin`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderPassword is a desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)",
+							Description: "Overrides the password of Keycloak admin user. This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field). If omitted or left blank, it will be set to an auto-generated password.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderRealm": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderRealm is name of a keycloak realm. When externalIdentityProvider is false this realm will be created, otherwise passed to Che server",
+							Description: "Name of a Identity provider (Keycloak / RH SSO) realm that should be used for Che. This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field). If omitted or left blank, it will be set to the value of the `flavour` field.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderClientId": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderClientId is id of a keycloak client. When externalIdentityProvider is false this client will be created, otherwise passed to Che server",
+							Description: "Name of a Identity provider (Keycloak / RH SSO) `client-id` that should be used for Che. This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field). If omitted or left blank, it will be set to the value of the `flavour` field suffixed with `-public`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderPostgresPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderPostgresPassword is password for keycloak database user. Auto generated if left blank",
+							Description: "Password for The Identity Provider (Keycloak / RH SSO) to connect to the database. This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field). If omitted or left blank, it will be set to an auto-generated password.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"updateAdminPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UpdateAdminPassword forces the default admin Che user to update password on first login. False by default",
+							Description: "Forces the default `admin` Che user to update password on first login. Defaults to `false`.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"openShiftoAuth": {
 						SchemaProps: spec.SchemaProps{
-							Description: "OpenShiftOauth instructs an Operator to enable OpenShift v3 identity provider in Keycloak, as well as create respective oAuthClient and configure Che configMap accordingly",
+							Description: "Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth. Enabled by defaumt on OpenShift. This will allow users to directly login with their Openshift user throug the Openshift login, and have their workspaces created under personnal OpenShift namespaces. WARNING: the `kuebadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"oAuthClientName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "OauthClientName is name of oAuthClient used in OpenShift v3 identity provider in Keycloak realm. Auto generated if left blank",
+							Description: "Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank. See also the `OpenShiftoAuth` field.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"oAuthSecret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "OauthSecret is secret used in oAuthClient. Auto generated if left blank",
+							Description: "Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank. See also the `OAuthClientName` field.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderImage is image:tag used in Keycloak deployment",
+							Description: "Overrides the container image used in the Identity Provider (Keycloak / RH SSO) deployment. This includes the image tag. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"identityProviderImagePullPolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IdentityProviderImagePullPolicy is the image pull policy used in Keycloak registry deployment: default value is Always",
+							Description: "Overrides the image pull policy used in the Identity Provider (Keycloak / RH SSO) deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -211,59 +216,60 @@ func schema_pkg_apis_org_v1_CheClusterSpecDB(ref common.ReferenceCallback) commo
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings related to the database used by the Che installation.",
 				Properties: map[string]spec.Schema{
 					"externalDb": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ExternalDB instructs the operator either to skip deploying Postgres, and passes connection details of existing DB to Che server (when set to true) or a new Postgres deployment is created",
+							Description: "Instructs the operator on whether or not to deploy a dedicated database. By default a dedicated Postgres database is deployed as part of the Che installation. But if `externalDb` is `true`, then no dedicated database will be deployed by the operator and you might need to provide connection details to the external DB you want to use. See also all the fields starting with: `chePostgres`.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"chePostgresHostName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ChePostgresDBHostname is Postgres Database hostname that Che server uses to connect to. Defaults to postgres",
+							Description: "Postgres Database hostname that the Che server uses to connect to. Defaults to postgres. This value should be overridden ONLY when using an external database (see field `externalDb`). In the default case it will be automatically set by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"chePostgresPort": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ChePostgresPort is Postgres Database port that Che server uses to connect to. Defaults to 5432",
+							Description: "Postgres Database port that the Che server uses to connect to. Defaults to 5432. This value should be overridden ONLY when using an external database (see field `externalDb`). In the default case it will be automatically set by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"chePostgresUser": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ChePostgresUser is Postgres user that Che server when making a db connection. Defaults to pgche",
+							Description: "Postgres user that the Che server should use to connect to the DB. Defaults to `pgche`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"chePostgresPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ChePostgresPassword is password of a postgres user. Auto-generated when left blank",
+							Description: "Postgres password that the Che server should use to connect to the DB. If omitted or left blank, it will be set to an auto-generated value.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"chePostgresDb": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ChePostgresDb is Postgres database name that Che server uses to connect to. Defaults to dbche",
+							Description: "Postgres database name that the Che server uses to connect to the DB. Defaults to `dbche`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"postgresImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PostgresImage is an image used in Postgres deployment in format image:tag. Defaults to registry.redhat.io/rhscl/postgresql-96-rhel7 (see pkg/deploy/defaults.go for latest tag)",
+							Description: "Overrides the container image used in the Postgres database deployment. This includes the image tag. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"postgresImagePullPolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PostgresImagePullPolicy is the image pull policy used in Postgres registry deployment: default value is Always",
+							Description: "Overrides the image pull policy used in the Postgres database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -279,45 +285,46 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings specific to Che installations made on upstream Kubernetes.",
 				Properties: map[string]spec.Schema{
 					"ingressDomain": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IngressDomain is a global ingress domain for a k8s cluster. Must be explicitly specified in CR. There are no defaults",
+							Description: "Global ingress domain for a K8S cluster. This MUST be explicitly specified: there are no defaults.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"ingressStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IngressStrategy is the way ingresses are created. Casn be multi-host (host is explicitly provided in ingress), single-host (host is provided, path based rules) and default-host *(no host is provided, path based rules)",
+							Description: "Strategy for ingress creation. This can be `multi-host` (host is explicitly provided in ingress), `single-host` (host is provided, path-based rules) and `default-host.*`(no host is provided, path-based rules). Defaults to `\"multi-host`",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"ingressClass": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IngressClass is kubernetes.io/ingress.class, defaults to nginx",
+							Description: "Ingress class that will define the which controler will manage ingresses. Defaults to `nginx`. NB: This drives the `is kubernetes.io/ingress.class` annotation on Che-related ingresses.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"tlsSecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "secret name used for tls termination",
+							Description: "Name of a secret that will be used to setup ingress TLS termination if TLS is enabled. See also the `tlsSupport` field.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"securityContextFsGroup": {
 						SchemaProps: spec.SchemaProps{
-							Description: "FSGroup the Che POD and Workspace pod containers should run in",
+							Description: "FSGroup the Che pod and Workspace pods containers should run in. Defaults to `1724`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"securityContextRunAsUser": {
 						SchemaProps: spec.SchemaProps{
-							Description: "User the Che POD and Workspace pod containers should run as",
+							Description: "ID of the user the Che pod and Workspace pods containers should run as. Default to `1724`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -333,178 +340,179 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
+				Description: "General configuration settings related to the Che server and the plugin and devfile registries.",
 				Properties: map[string]spec.Schema{
 					"airGapContainerRegistryHostname": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AirGapContainerRegistryHostname is the hostname to the internal registry to pull images from in the air-gapped environment",
+							Description: "Optional hostname (or url) to an alternate container registry to pull images from. This value overrides the container registry hostname defined in all the default container images involved in a Che deployment. This is particularly useful to install Che in an air-gapped environment.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"airGapContainerRegistryOrganization": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AirGapContainerRegistryOrganization is the repository name in the registry to pull images from in the air-gapped environment",
+							Description: "Optional repository name of an alternate container registry to pull images from. This value overrides the container registry organization defined in all the default container images involved in a Che deployment. This is particularly useful to install Che in an air-gapped environment.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheImage is a server image used in Che deployment",
+							Description: "Overrides the container image used in Che deployment. This does NOT include the container image tag. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheImageTag": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheImageTag is a tag of an image used in Che deployment",
+							Description: "Overrides the tag of the container image used in Che deployment. Omit it or leave it empty to use the defaut image tag provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheImagePullPolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheImagePullPolicy is the image pull policy used in Che registry deployment: default value is Always",
+							Description: "Overrides the image pull policy used in Che deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheFlavor": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheFlavor is an installation flavor. Can be 'che' - upstream or 'codeready' - CodeReady Workspaces. Defaults to 'che'",
+							Description: "Flavor of the installation. This is either `che` for upstream Che installations, or `codeready` for CodeReady Workspaces installation. In most cases the default value should not be overriden.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheHost": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheHost is an env consumer by server. Detected automatically from Che route",
+							Description: "Public hostname of the installed Che server. This will be automatically set by the operator. In most cases the default value set by the operator should not be overriden.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheLostLevel is log level for Che server: INFO or DEBUG. Defaults to INFO",
+							Description: "Log level for the Che server: `INFO` or `DEBUG`. Defaults to `INFO`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheDebug": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CheDebug is debug mode for Che server. Defaults to false",
+							Description: "Enables the debug mode for Che server. Defaults to `false`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheWorkspaceClusterRole": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CustomClusterRoleName specifies a custom cluster role to user for the Che workspaces The default roles are used if this is left blank.",
+							Description: "Custom cluster role bound to the user for the Che workspaces. The default roles are used if this is omitted or left blank.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"selfSignedCert": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SelfSignedCert signal about the necessity to get OpenShift router tls secret and extract certificate to add it to Java trust store for Che server",
+							Description: "Enables the support of OpenShift clusters whose router uses self-signed certificates. When enabled, the operator retrieves the default self-signed certificate of OpenShift routes and adds it to the Java trust store of the Che server. This is usually required when activating the `tlsSupport` field on demo OpenShift clusters that have not been setup with a valid certificate for the routes. This is disabled by default.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"tlsSupport": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TlsSupport instructs an operator to deploy Che in TLS mode, ie with TLS routes or ingresses",
+							Description: "Instructs the operator to deploy Che in TLS mode, ie with TLS routes or ingresses. This is disabled by default. WARNING: Enabling TLS might require enabling the `selfSignedCert` field also in some cases.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"devfileRegistryUrl": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DevfileRegistryUrl is an endpoint serving sample ready-to-use devfiles. Defaults to generated route",
+							Description: "Public URL of the Devfile registry, that serves sample, ready-to-use devfiles. You should set it ONLY if you use an external devfile registry (see the `externalDevfileRegistry` field). By default this will be automatically calculated by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"devfileRegistryImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DevfileRegistryImage is image:tag used in Devfile registry deployment",
+							Description: "Overrides the container image used in the Devfile registry deployment. This includes the image tag. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"devfileRegistryPullPolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DevfileRegistryImagePullPolicy is the image pull policy used in Devfile registry deployment",
+							Description: "Overrides the image pull policy used in the Devfile registry deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"devfileRegistryMemoryLimit": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DevfileRegistryMemoryLimit is the memory limit used in Devfile registry deployment",
+							Description: "Overrides the memory limit used in the Devfile registry deployment. Defaults to 256Mi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"devfileRegistryMemoryRequest": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DevfileRegistryMemoryRequest is the memory request used in Devfile registry deployment",
+							Description: "Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"externalDevfileRegistry": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ExternalDevfileRegistry instructs operator on whether or not to deploy a dedicated Devfile registry server By default a dedicated devfile registry server is started. But if ExternalDevfileRegistry is `true`, then no such dedicated server will be started by the operator",
+							Description: "Instructs the operator on whether or not to deploy a dedicated Devfile registry server. By default a dedicated devfile registry server is started. But if `externalDevfileRegistry` is `true`, then no such dedicated server will be started by the operator and you will have to manually set the `devfileRegistryUrl` field",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"pluginRegistryUrl": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PluginRegistryUrl is an endpoint serving plugin definitions. Defaults to generated route",
+							Description: "Public URL of the Plugin registry, that serves sample ready-to-use devfiles. You should set it ONLY if you use an external devfile registry (see the `externalPluginRegistry` field). By default this will be automatically calculated by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"pluginRegistryImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PluginRegistryImage is image:tag used in Plugin registry deployment",
+							Description: "Overrides the container image used in the Plugin registry deployment. This includes the image tag. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"pluginRegistryPullPolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PluginRegistryImagePullPolicy is the image pull policy used in Plugin registry deployment",
+							Description: "Overrides the image pull policy used in the Plugin registry deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"pluginRegistryMemoryLimit": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PluginRegistryMemoryLimit is the memory limit used in Plugin registry deployment",
+							Description: "Overrides the memory limit used in the Plugin registry deployment. Defaults to 256Mi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"pluginRegistryMemoryRequest": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PluginRegistryMemoryRequest is the memory request used in Plugin registry deployment",
+							Description: "Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"externalPluginRegistry": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ExternalPluginRegistry instructs operator on whether or not to deploy a dedicated Plugin registry server By default a dedicated plugin registry server is started. But if ExternalPluginRegistry is `true`, then no such dedicated server will be started by the operator",
+							Description: "Instructs the operator on whether or not to deploy a dedicated Plugin registry server. By default a dedicated plugin registry server is started. But if `externalPluginRegistry` is `true`, then no such dedicated server will be started by the operator and you will have to manually set the `pluginRegistryUrl` field.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"customCheProperties": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CustomCheProperties is a list of additional environment variables that will be applied in the che config map, in addition to the values already generated from other fields of the custom resource (CR). If CustomCheProperties contains a property that would be normally generated in che config map from other CR fields, then the value in the CustomCheProperties will be used.",
+							Description: "Map of additional environment variables that will be applied in the generated `che` config map to be used by the Che server, in addition to the values already generated from other fields of the `CheCluster` custom resource (CR). If `customCheProperties` contains a property that would be normally generated in `che` config map from other CR fields, then the value defined in the `customCheProperties` will be used instead.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Schema: &spec.Schema{
@@ -518,49 +526,49 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"proxyURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ProxyURL is protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy to Che server and workspaces containers",
+							Description: "URL (protocol+hostname) of the proxy server. This drives the appropriate changes in the `JAVA_OPTS` and `https(s)_proxy` variables in the Che server and workspaces containers. Only use when configuring a proxy is required.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyPort": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ProxyPort is port of a proxy server",
+							Description: "Port of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL` field).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"nonProxyHosts": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NonProxyHosts is a list of non-proxy hosts. Use | as delimiter, eg localhost|my.host.com|123.42.12.32",
+							Description: "List of hosts that should not use the configured proxy. Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32` Only use when configuring a proxy is required (see also the `proxyURL` field).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyUser": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ProxyUser is username for a proxy server",
+							Description: "User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL` field).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ProxyPassword is password for a proxy user",
+							Description: "Password of the proxy server\n\nOnly use when proxy configuration is required (see also the `proxyUser` field).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"serverMemoryRequest": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServerMemoryRequest sets mem request for server deployment. Defaults to 512Mi",
+							Description: "Overrides the memory request used in the Che server deployment. Defaults to 512Mi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"serverMemoryLimit": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServerMemoryLimit sets mem limit for server deployment. Defaults to 1Gi",
+							Description: "Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -576,45 +584,46 @@ func schema_pkg_apis_org_v1_CheClusterSpecStorage(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings related to the persistent storage used by the Che installation.",
 				Properties: map[string]spec.Schema{
 					"pvcStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PvcStrategy is a persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume), per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common",
+							Description: "Persistent volume claim strategy for the Che server. This Can be:`common` (all workspaces PVCs in one volume), `per-workspace` (one PVC per workspace for all declared volumes) and `unique` (one PVC per declared volume). Defaults to `common`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"pvcClaimSize": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PvcClaimSize is size of a persistent volume claim for workspaces. Defaults to 1Gi",
+							Description: "Size of the persistent volume claim for workspaces. Defaults to `1Gi`",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"preCreateSubPaths": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PreCreateSubPaths instructs Che server to launch a special pod to precreate a subpath in a PV",
+							Description: "Instructs the Che server to launch a special pod to pre-create a subpath in the Persistent Volumes. Defaults to `false`, however it might need to enable it according to the configuration of your K8S cluster.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"pvcJobsImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PvcJobsImage is image:tag for preCreateSubPaths jobs",
+							Description: "Overrides the container image used to create sub-paths in the Persistent Volumes. This includes the image tag. Omit it or leave it empty to use the defaut container image provided by the operator. See also the `preCreateSubPaths` field.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"postgresPVCStorageClassName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PostgresPVCStorageClassName is storage class for a postgres pvc. Empty string by default, which means default storage class is used",
+							Description: "Storage class for the Persistent Volume Claim dedicated to the Postgres database. If omitted or left blank, default storage class is used.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"workspacePVCStorageClassName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "WorkspacePVCStorageClassName is storage class for a workspaces pvc. Empty string by default, which means default storage class is used",
+							Description: "Storage class for the Persistent Volume Claims dedicated to the Che workspaces. If omitted or left blank, default storage class is used.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

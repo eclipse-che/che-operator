@@ -68,7 +68,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 		"\"" + jbossDir + "/openshift.jks\", password => \"" + trustpass + "\", disabled => \"false\" },enabled=true) \n" +
 		"stop-embedded-server\" > /scripts/add_openshift_certificate.cli && " +
 		"/opt/jboss/keycloak/bin/jboss-cli.sh --file=/scripts/add_openshift_certificate.cli"
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderPassword, DefaultKeycloakAdminUserName)
+	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	keycloakEnv := []corev1.EnvVar{
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
