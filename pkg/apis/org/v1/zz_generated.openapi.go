@@ -72,8 +72,7 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 				Properties: map[string]spec.Schema{
 					"server": {
 						SchemaProps: spec.SchemaProps{
-							Description: "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file",
-							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer"),
+							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer"),
 						},
 					},
 					"database": {
@@ -202,7 +201,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"externalIdentityProvider", "identityProviderURL", "identityProviderAdminUserName", "identityProviderPassword", "identityProviderRealm", "identityProviderClientId", "identityProviderPostgresPassword", "updateAdminPassword", "openShiftoAuth", "oAuthClientName", "oAuthSecret", "identityProviderImage", "identityProviderImagePullPolicy"},
 			},
 		},
 		Dependencies: []string{},
@@ -271,7 +269,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecDB(ref common.ReferenceCallback) commo
 						},
 					},
 				},
-				Required: []string{"externalDb", "chePostgresHostName", "chePostgresPort", "chePostgresUser", "chePostgresPassword", "chePostgresDb", "postgresImage", "postgresImagePullPolicy"},
 			},
 		},
 		Dependencies: []string{},
@@ -326,7 +323,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 						},
 					},
 				},
-				Required: []string{"ingressDomain", "ingressStrategy", "ingressClass", "tlsSecretName", "securityContextFsGroup", "securityContextRunAsUser"},
 			},
 		},
 		Dependencies: []string{},
@@ -338,6 +334,20 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{
+					"airGapContainerRegistryHostname": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AirGapContainerRegistryHostname is the hostname to the internal registry to pull images from in the air-gapped environment",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"airGapContainerRegistryOrganization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AirGapContainerRegistryOrganization is the repository name in the registry to pull images from in the air-gapped environment",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"cheImage": {
 						SchemaProps: spec.SchemaProps{
 							Description: "CheImage is a server image used in Che deployment",
@@ -556,7 +566,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"cheImage", "cheImageTag", "cheImagePullPolicy", "cheFlavor", "cheHost", "cheLogLevel", "cheDebug", "cheWorkspaceClusterRole", "selfSignedCert", "tlsSupport", "devfileRegistryUrl", "devfileRegistryImage", "devfileRegistryPullPolicy", "devfileRegistryMemoryLimit", "devfileRegistryMemoryRequest", "externalDevfileRegistry", "pluginRegistryUrl", "pluginRegistryImage", "pluginRegistryPullPolicy", "pluginRegistryMemoryLimit", "pluginRegistryMemoryRequest", "externalPluginRegistry", "customCheProperties", "proxyURL", "proxyPort", "nonProxyHosts", "proxyUser", "proxyPassword", "serverMemoryRequest", "serverMemoryLimit"},
 			},
 		},
 		Dependencies: []string{},
@@ -611,7 +620,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecStorage(ref common.ReferenceCallback) 
 						},
 					},
 				},
-				Required: []string{"pvcStrategy", "pvcClaimSize", "preCreateSubPaths", "pvcJobsImage", "postgresPVCStorageClassName", "workspacePVCStorageClassName"},
 			},
 		},
 		Dependencies: []string{},

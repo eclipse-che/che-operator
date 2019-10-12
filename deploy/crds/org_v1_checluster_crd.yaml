@@ -93,20 +93,6 @@ spec:
                   description: UpdateAdminPassword forces the default admin Che user
                     to update password on first login. False by default
                   type: boolean
-              required:
-              - externalIdentityProvider
-              - identityProviderURL
-              - identityProviderAdminUserName
-              - identityProviderPassword
-              - identityProviderRealm
-              - identityProviderClientId
-              - identityProviderPostgresPassword
-              - updateAdminPassword
-              - openShiftoAuth
-              - oAuthClientName
-              - oAuthSecret
-              - identityProviderImage
-              - identityProviderImagePullPolicy
               type: object
             database:
               properties:
@@ -144,15 +130,6 @@ spec:
                   description: 'PostgresImagePullPolicy is the image pull policy used
                     in Postgres registry deployment: default value is Always'
                   type: string
-              required:
-              - externalDb
-              - chePostgresHostName
-              - chePostgresPort
-              - chePostgresUser
-              - chePostgresPassword
-              - chePostgresDb
-              - postgresImage
-              - postgresImagePullPolicy
               type: object
             k8s:
               properties:
@@ -181,19 +158,17 @@ spec:
                 tlsSecretName:
                   description: secret name used for tls termination
                   type: string
-              required:
-              - ingressDomain
-              - ingressStrategy
-              - ingressClass
-              - tlsSecretName
-              - securityContextFsGroup
-              - securityContextRunAsUser
               type: object
             server:
-              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                Important: Run "operator-sdk generate k8s" to regenerate code after
-                modifying this file'
               properties:
+                airGapContainerRegistryHostname:
+                  description: AirGapContainerRegistryHostname is the hostname to
+                    the internal registry to pull images from in the air-gapped environment
+                  type: string
+                airGapContainerRegistryOrganization:
+                  description: AirGapContainerRegistryOrganization is the repository
+                    name in the registry to pull images from in the air-gapped environment
+                  type: string
                 cheDebug:
                   description: CheDebug is debug mode for Che server. Defaults to
                     false
@@ -324,37 +299,6 @@ spec:
                   description: TlsSupport instructs an operator to deploy Che in TLS
                     mode, ie with TLS routes or ingresses
                   type: boolean
-              required:
-              - cheImage
-              - cheImageTag
-              - cheImagePullPolicy
-              - cheFlavor
-              - cheHost
-              - cheLogLevel
-              - cheDebug
-              - cheWorkspaceClusterRole
-              - selfSignedCert
-              - tlsSupport
-              - devfileRegistryUrl
-              - devfileRegistryImage
-              - devfileRegistryPullPolicy
-              - devfileRegistryMemoryLimit
-              - devfileRegistryMemoryRequest
-              - externalDevfileRegistry
-              - pluginRegistryUrl
-              - pluginRegistryImage
-              - pluginRegistryPullPolicy
-              - pluginRegistryMemoryLimit
-              - pluginRegistryMemoryRequest
-              - externalPluginRegistry
-              - customCheProperties
-              - proxyURL
-              - proxyPort
-              - nonProxyHosts
-              - proxyUser
-              - proxyPassword
-              - serverMemoryRequest
-              - serverMemoryLimit
               type: object
             storage:
               properties:
@@ -385,20 +329,12 @@ spec:
                     workspaces pvc. Empty string by default, which means default storage
                     class is used
                   type: string
-              required:
-              - pvcStrategy
-              - pvcClaimSize
-              - preCreateSubPaths
-              - pvcJobsImage
-              - postgresPVCStorageClassName
-              - workspacePVCStorageClassName
               type: object
           required:
           - server
           - database
           - auth
           - storage
-          - k8s
           type: object
         status:
           properties:
