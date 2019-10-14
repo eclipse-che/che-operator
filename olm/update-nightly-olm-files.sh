@@ -46,7 +46,10 @@ do
   mv "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new" \
   "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml"
   echo "   - Copying the CRD file"
-  cp "${packageFolderPath}/${lastPackageVersion}/eclipse-che-preview-${platform}.crd.yaml" "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"
+  cp "${BASE_DIR}/../deploy/crds/org_v1_che_crd.yaml" "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"
+  diff -u "${packageFolderPath}/${lastPackageVersion}/eclipse-che-preview-${platform}.crd.yaml" \
+  "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml" \
+  > "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml.diff" || true
   echo "   - Updating the 'nightly' channel with new version in the package descriptor: ${packageFilePath}"
   sed -e "s/${lastPackageVersion}/${newNightlyPackageVersion}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
