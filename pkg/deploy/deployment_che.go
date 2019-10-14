@@ -162,11 +162,11 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 		},
 	}
 	if !isOpenshift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(cr.Spec.K8SOnly.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser), 10, 64)
+		runAsUser, err := strconv.ParseInt(util.GetValue(cr.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(cr.Spec.K8SOnly.SecurityContextFsGroup, DefaultSecurityContextFsGroup), 10, 64)
+		fsGroup, err := strconv.ParseInt(util.GetValue(cr.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup), 10, 64)
 		if err != nil {
 			return nil, err
 		}

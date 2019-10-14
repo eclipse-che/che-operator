@@ -271,25 +271,25 @@ func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBind
 
 func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, keycloakDeploymentName string, isOpenShift4 bool) (err error) {
 	tests := r.tests
-	keycloakAdminPassword := instance.Spec.Auth.KeycloakAdminPassword
-	oAuthClientName := instance.Spec.Auth.OauthClientName
+	keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
+	oAuthClientName := instance.Spec.Auth.OAuthClientName
 	if len(oAuthClientName) < 1 {
 		oAuthClientName = instance.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
-		instance.Spec.Auth.OauthClientName = oAuthClientName
+		instance.Spec.Auth.OAuthClientName = oAuthClientName
 		if err := r.UpdateCheCRSpec(instance, "oAuthClient name", oAuthClientName); err != nil {
 			return err
 		}
 	}
-	oauthSecret := instance.Spec.Auth.OauthSecret
+	oauthSecret := instance.Spec.Auth.OAuthSecret
 	if len(oauthSecret) < 1 {
 		oauthSecret = util.GeneratePasswd(12)
-		instance.Spec.Auth.OauthSecret = oauthSecret
+		instance.Spec.Auth.OAuthSecret = oauthSecret
 		if err := r.UpdateCheCRSpec(instance, "oAuthC secret name", oauthSecret); err != nil {
 			return err
 		}
 	}
-	keycloakURL := instance.Spec.Auth.KeycloakURL
-	keycloakRealm := util.GetValue(instance.Spec.Auth.KeycloakRealm, cheFlavor)
+	keycloakURL := instance.Spec.Auth.IdentityProviderURL
+	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
 	if err := r.CreateNewOauthClient(instance, oAuthClient); err != nil {
 		return err
@@ -311,7 +311,7 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 			for {
 				instance.Status.OpenShiftoAuthProvisioned = true
 				if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
-				errors.IsConflict(err) {
+					errors.IsConflict(err) {
 					instance, _ = r.GetCR(request)
 					continue
 				}
@@ -354,9 +354,9 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		}
 
 	}
-	keycloakPostgresPassword := util.GetValue(instance.Spec.Auth.KeycloakPostgresPassword, util.GeneratePasswd(12))
-	if len(instance.Spec.Auth.KeycloakPostgresPassword) < 1 {
-		instance.Spec.Auth.KeycloakPostgresPassword = keycloakPostgresPassword
+	keycloakPostgresPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPostgresPassword, util.GeneratePasswd(12))
+	if len(instance.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
+		instance.Spec.Auth.IdentityProviderPostgresPassword = keycloakPostgresPassword
 		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
 		if err != nil {
 			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
@@ -367,28 +367,28 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	if len(instance.Spec.Auth.KeycloakAdminPassword) < 1 {
-		keycloakAdminPassword := util.GetValue(instance.Spec.Auth.KeycloakAdminPassword, util.GeneratePasswd(12))
+	if len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
+		keycloakAdminPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
 		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
 		if err != nil {
 			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
 		} else {
 			keycloakAdminPassword = r.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
 		}
-		instance.Spec.Auth.KeycloakAdminPassword = keycloakAdminPassword
+		instance.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
 		if err := r.UpdateCheCRSpec(instance, "Keycloak admin password", "password hidden"); err != nil {
 			return err
 		}
 	}
-	if len(instance.Spec.Auth.KeycloakAdminUserName) < 1 {
-		keycloakAdminUserName := util.GetValue(instance.Spec.Auth.KeycloakAdminUserName, "admin")
+	if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 {
+		keycloakAdminUserName := util.GetValue(instance.Spec.Auth.IdentityProviderAdminUserName, "admin")
 		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
 		if err != nil {
 			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating admin username")
 		} else {
 			keycloakAdminUserName = r.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
 		}
-		instance.Spec.Auth.KeycloakAdminUserName = keycloakAdminUserName
+		instance.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
 		if err := r.UpdateCheCRSpec(instance, "Keycloak admin username", keycloakAdminUserName); err != nil {
 			return err
 		}
@@ -407,9 +407,9 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	chePostgresHostName := util.GetValue(instance.Spec.Database.ChePostgresDBHostname, deploy.DefaultChePostgresHostName)
-	if len(instance.Spec.Database.ChePostgresDBHostname) < 1 {
-		instance.Spec.Database.ChePostgresDBHostname = chePostgresHostName
+	chePostgresHostName := util.GetValue(instance.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
+	if len(instance.Spec.Database.ChePostgresHostName) < 1 {
+		instance.Spec.Database.ChePostgresHostName = chePostgresHostName
 		if err := r.UpdateCheCRSpec(instance, "Postgres hostname", chePostgresHostName); err != nil {
 			return err
 		}
@@ -428,16 +428,16 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	keycloakRealm := util.GetValue(instance.Spec.Auth.KeycloakRealm, cheFlavor)
-	if len(instance.Spec.Auth.KeycloakRealm) < 1 {
-		instance.Spec.Auth.KeycloakRealm = keycloakRealm
+	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	if len(instance.Spec.Auth.IdentityProviderRealm) < 1 {
+		instance.Spec.Auth.IdentityProviderRealm = keycloakRealm
 		if err := r.UpdateCheCRSpec(instance, "Keycloak realm", keycloakRealm); err != nil {
 			return err
 		}
 	}
-	keycloakClientId := util.GetValue(instance.Spec.Auth.KeycloakClientId, cheFlavor+"-public")
-	if len(instance.Spec.Auth.KeycloakClientId) < 1 {
-		instance.Spec.Auth.KeycloakClientId = keycloakClientId
+	keycloakClientId := util.GetValue(instance.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+	if len(instance.Spec.Auth.IdentityProviderClientId) < 1 {
+		instance.Spec.Auth.IdentityProviderClientId = keycloakClientId
 
 		if err := r.UpdateCheCRSpec(instance, "Keycloak client ID", keycloakClientId); err != nil {
 			return err
@@ -491,9 +491,9 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		}
 	}
 
-	if instance.Spec.Auth.KeycloakImage == deploy.OldDefaultKeycloakUpstreamImageToDetect {
-		instance.Spec.Auth.KeycloakImage = ""
-		if err := r.UpdateCheCRSpec(instance, "keycloak image", instance.Spec.Auth.KeycloakImage); err != nil {
+	if instance.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect {
+		instance.Spec.Auth.IdentityProviderImage = ""
+		if err := r.UpdateCheCRSpec(instance, "keycloak image", instance.Spec.Auth.IdentityProviderImage); err != nil {
 			return err
 		}
 	}

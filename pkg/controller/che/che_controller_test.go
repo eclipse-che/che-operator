@@ -184,7 +184,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Auth.OpenShiftOauth = true
+	cheCR.Spec.Auth.OpenShiftoAuth = true
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -217,8 +217,8 @@ func TestCheController(t *testing.T) {
 
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR)
 	err = r.CreateIdentityProviderItems(cheCR, req, "che", "keycloak", false)
-	oAuthClientName := cheCR.Spec.Auth.OauthClientName
-	oauthSecret := cheCR.Spec.Auth.OauthSecret
+	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
+	oauthSecret := cheCR.Spec.Auth.OAuthSecret
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
 		t.Errorf("Failed to Get oAuthClient %s: %s", oAuthClient.Name, err)
 	}
@@ -227,7 +227,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// check if a new Postgres deployment is not created when spec.Database.ExternalDB is true
-	cheCR.Spec.Database.ExternalDB = true
+	cheCR.Spec.Database.ExternalDb = true
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -246,7 +246,7 @@ func TestCheController(t *testing.T) {
 	// check of storageClassName ends up in pvc spec
 	fakeStorageClassName := "fake-storage-class-name"
 	cheCR.Spec.Storage.PostgresPVCStorageClassName = fakeStorageClassName
-	cheCR.Spec.Database.ExternalDB = false
+	cheCR.Spec.Database.ExternalDb = false
 	if err := r.client.Update(context.TODO(), cheCR); err != nil {
 		t.Fatalf("Failed to update %s CR: %s", cheCR.Name, err)
 	}
@@ -281,7 +281,7 @@ func TestCheController(t *testing.T) {
 	if err := r.ReconcileFinalizer(cheCR); err != nil {
 		t.Fatal("Failed to reconcile oAuthClient")
 	}
-	oauthClientName := cheCR.Spec.Auth.OauthClientName
+	oauthClientName := cheCR.Spec.Auth.OAuthClientName
 	_, err = r.GetOAuthClient(oauthClientName)
 	if err == nil {
 		t.Fatalf("OauthClient %s has not been deleted", oauthClientName)

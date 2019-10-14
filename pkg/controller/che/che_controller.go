@@ -246,7 +246,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if isOpenShift {
 		// delete oAuthClient before CR is deleted
-		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
+		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
 		if doInstallOpenShiftoAuthProvider {
 			if err := r.ReconcileFinalizer(instance); err != nil {
 				return reconcile.Result{}, err
@@ -287,7 +287,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftOauth && !instance.Spec.Server.TlsSupport) {
+			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
 			if err := r.CreateTLSSecret(instance, "", "self-signed-certificate"); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -308,7 +308,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		if instance.Spec.Auth.OpenShiftOauth {
+		if instance.Spec.Auth.OpenShiftoAuth {
 			users := &userv1.UserList{}
 			listOptions := &client.ListOptions{}
 			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
@@ -392,13 +392,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
 	chePostgresPassword := instance.Spec.Database.ChePostgresPassword
-	keycloakPostgresPassword := instance.Spec.Auth.KeycloakPostgresPassword
-	keycloakAdminPassword := instance.Spec.Auth.KeycloakAdminPassword
+	keycloakPostgresPassword := instance.Spec.Auth.IdentityProviderPostgresPassword
+	keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
 
 	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
 
 	// Create Postgres resources and provisioning unless an external DB is used
-	externalDB := instance.Spec.Database.ExternalDB
+	externalDB := instance.Spec.Database.ExternalDb
 	if !externalDB {
 		// Create a new postgres service
 		postgresLabels := deploy.GetLabels(instance, "postgres")
@@ -485,8 +485,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	ingressStrategy := util.GetValue(instance.Spec.K8SOnly.IngressStrategy, deploy.DefaultIngressStrategy)
-	ingressDomain := instance.Spec.K8SOnly.IngressDomain
+	ingressStrategy := util.GetValue(instance.Spec.K8s.IngressStrategy, deploy.DefaultIngressStrategy)
+	ingressDomain := instance.Spec.K8s.IngressDomain
 	tlsSupport := instance.Spec.Server.TlsSupport
 	protocol := "http"
 	if tlsSupport {
@@ -538,7 +538,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create and provision Keycloak related objects
-	ExternalKeycloak := instance.Spec.Auth.ExternalKeycloak
+	ExternalKeycloak := instance.Spec.Auth.ExternalIdentityProvider
 
 	if !ExternalKeycloak {
 		keycloakLabels := deploy.GetLabels(instance, "keycloak")
@@ -556,9 +556,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if ingressStrategy == "multi-host" {
 				keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
 			}
-			if len(instance.Spec.Auth.KeycloakURL) == 0 {
-				instance.Spec.Auth.KeycloakURL = keycloakURL
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.KeycloakURL); err != nil {
+			if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
+				instance.Spec.Auth.IdentityProviderURL = keycloakURL
+				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
@@ -573,17 +573,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{}, err
 			}
 			keycloakURL := keycloakRoute.Spec.Host
-			if len(instance.Spec.Auth.KeycloakURL) == 0 {
-				instance.Spec.Auth.KeycloakURL = protocol + "://" + keycloakURL
+			if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
+				instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
 				if len(keycloakURL) < 1 {
 					keycloakURL := r.GetEffectiveRoute(instance, keycloakRoute.Name).Spec.Host
-					instance.Spec.Auth.KeycloakURL = protocol + "://" + keycloakURL
+					instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
 				}
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.KeycloakURL); err != nil {
+				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
 				instance.Status.KeycloakURL = protocol + "://" + keycloakURL
-				if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", instance.Spec.Auth.KeycloakURL); err != nil {
+				if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
@@ -614,9 +614,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Auth.KeycloakImage, deploy.DefaultKeycloakImage(instance, cheFlavor))
+			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance, cheFlavor))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.KeycloakImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
+			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
 			storedCheCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"]
@@ -654,7 +654,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		if isOpenShift {
-			doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftOauth
+			doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
 			if doInstallOpenShiftoAuthProvider {
 				openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
 				if !openShiftIdentityProviderStatus {
@@ -808,7 +808,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		result, err := addRegistryDeployment(
 			"devfile",
 			devfileRegistryImage,
-			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(devfileRegistryImage))),
+			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(devfileRegistryImage))),
 			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryLimit), deploy.DefaultDevfileRegistryMemoryLimit),
 			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryRequest), deploy.DefaultDevfileRegistryMemoryRequest),
 			"/devfiles/",
@@ -844,7 +844,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		result, err := addRegistryDeployment(
 			"plugin",
 			pluginRegistryImage,
-			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(pluginRegistryImage))),
+			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(pluginRegistryImage))),
 			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryLimit), deploy.DefaultPluginRegistryMemoryLimit),
 			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryRequest), deploy.DefaultPluginRegistryMemoryRequest),
 			"/v3/plugins/",
@@ -1008,8 +1008,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			break
 		}
 		for {
-			instance.Spec.Auth.OauthSecret = ""
-			instance.Spec.Auth.OauthClientName = ""
+			instance.Spec.Auth.OAuthSecret = ""
+			instance.Spec.Auth.OAuthClientName = ""
 			if err := r.UpdateCheCRSpec(instance, "clean oAuth secret name and client name", ""); err != nil &&
 				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
