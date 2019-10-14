@@ -21,19 +21,20 @@ import (
 )
 
 func NewRegistryDeployment(
-		cr *orgv1.CheCluster, 
-		registryType string,
-		registryImage string,
-		registryImagePullPolicy corev1.PullPolicy,
-		registryMemoryLimit string,
-		registryMemoryRequest string,
-		probePath string,
-	) *appsv1.Deployment {
+	cr *orgv1.CheCluster,
+	registryType string,
+	registryImage string,
+	registryImagePullPolicy corev1.PullPolicy,
+	registryMemoryLimit string,
+	registryMemoryRequest string,
+	probePath string,
+) *appsv1.Deployment {
 	name := registryType + "-registry"
 	labels := GetLabels(cr, name)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)
+	isOptional := true
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -45,13 +46,13 @@ func NewRegistryDeployment(
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &_1,
+			Replicas:             &_1,
 			RevisionHistoryLimit: &_2,
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector:             &metav1.LabelSelector{MatchLabels: labels},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
-				RollingUpdate: &appsv1.RollingUpdateDeployment {
-					MaxSurge: &_25Percent,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxSurge:       &_25Percent,
 					MaxUnavailable: &_25Percent,
 				},
 			},
@@ -70,6 +71,16 @@ func NewRegistryDeployment(
 									Name:          "http",
 									ContainerPort: 8080,
 									Protocol:      "TCP",
+								},
+							},
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
+										Optional: &isOptional,
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: registryType + "-registry",
+										},
+									},
 								},
 							},
 							Resources: corev1.ResourceRequirements{
