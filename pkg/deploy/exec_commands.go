@@ -25,7 +25,7 @@ import (
 func GetPostgresProvisionCommand(cr *orgv1.CheCluster) (command string) {
 
 	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, DefaultChePostgresUser)
-	keycloakPostgresPassword := cr.Spec.Auth.KeycloakPostgresPassword
+	keycloakPostgresPassword := cr.Spec.Auth.IdentityProviderPostgresPassword
 
 	command = "OUT=$(psql postgres -tAc \"SELECT 1 FROM pg_roles WHERE rolname='keycloak'\"); " +
 		"if [ $OUT -eq 1 ]; then echo \"DB exists\"; exit 0; fi " +
@@ -38,13 +38,13 @@ func GetPostgresProvisionCommand(cr *orgv1.CheCluster) (command string) {
 }
 
 func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command string) {
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.KeycloakAdminUserName, "admin")
-	keycloakAdminPassword := util.GetValue(cr.Spec.Auth.KeycloakAdminPassword, "admin")
+	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, "admin")
+	keycloakAdminPassword := util.GetValue(cr.Spec.Auth.IdentityProviderPassword, "admin")
 	requiredActions := ""
 	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
-	keycloakRealm := util.GetValue(cr.Spec.Auth.KeycloakRealm, cheFlavor)
-	keycloakClientId := util.GetValue(cr.Spec.Auth.KeycloakClientId, cheFlavor+"-public")
+	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 
 	if updateAdminPassword {
 		requiredActions = "\"UPDATE_PASSWORD\""
@@ -88,8 +88,8 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 		return "", err
 	}
 
-	keycloakRealm := util.GetValue(cr.Spec.Auth.KeycloakRealm, cheFlavor)
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.KeycloakAdminUserName, DefaultKeycloakAdminUserName)
+	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	script := "/opt/jboss/keycloak/bin/kcadm.sh"
 	if cheFlavor == "codeready" {
 		script = "/opt/eap/bin/kcadm.sh"
@@ -106,11 +106,11 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 		logrus.Errorf("Failed to locate keycloak oauth provisioning file: %s", err)
 	}
 	createOpenShiftIdentityProviderTemplate := string(file)
-/*
-			In order to have the token-exchange currently working and easily usable, we should (in case of Keycloak) be able to
-			- Automatically redirect the user to its Keycloak account page to set those required values when the email is empty (instead of failing here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakEnvironmentInitalizationFilter.java#L125)
-			- Or at least point with a link to the place where it can be set (the KeycloakSettings PROFILE_ENDPOINT_SETTING value)
-			  (cf. here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakSettings.java#L117)
+	/*
+		In order to have the token-exchange currently working and easily usable, we should (in case of Keycloak) be able to
+		- Automatically redirect the user to its Keycloak account page to set those required values when the email is empty (instead of failing here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakEnvironmentInitalizationFilter.java#L125)
+		- Or at least point with a link to the place where it can be set (the KeycloakSettings PROFILE_ENDPOINT_SETTING value)
+		  (cf. here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakSettings.java#L117)
 	*/
 
 	template, err := template.New("IdentityProviderProvisioning").Parse(createOpenShiftIdentityProviderTemplate)
@@ -144,7 +144,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 	}
 
 	command = buffer.String()
-	
+
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + command
 	}
@@ -153,8 +153,8 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 
 func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, keycloakAdminPassword string, isOpenShift4 bool) (command string) {
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
-	keycloakRealm := util.GetValue(cr.Spec.Auth.KeycloakRealm, cheFlavor)
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.KeycloakAdminUserName, DefaultKeycloakAdminUserName)
+	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	script := "/opt/jboss/keycloak/bin/kcadm.sh"
 	if cheFlavor == "codeready" {
 		script = "/opt/eap/bin/kcadm.sh"
@@ -176,4 +176,3 @@ func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, ke
 	}
 	return command
 }
-

@@ -91,7 +91,7 @@ func (in *CheClusterSpec) DeepCopyInto(out *CheClusterSpec) {
 	out.Database = in.Database
 	out.Auth = in.Auth
 	out.Storage = in.Storage
-	out.K8SOnly = in.K8SOnly
+	out.K8s = in.K8s
 	return
 }
 

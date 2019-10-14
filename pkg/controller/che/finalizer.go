@@ -1,11 +1,11 @@
 package che
 
 import (
-	"k8s.io/apimachinery/pkg/api/errors"
 	"context"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error) {
@@ -18,7 +18,7 @@ func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error
 		}
 	} else {
 		if util.ContainsString(instance.ObjectMeta.Finalizers, oAuthFinalizerName) {
-			oAuthClientName := instance.Spec.Auth.OauthClientName
+			oAuthClientName := instance.Spec.Auth.OAuthClientName
 			logrus.Infof("Custom resource %s is being deleted. Deleting oAuthClient %s first", instance.Name, oAuthClientName)
 			oAuthClient, err := r.GetOAuthClient(oAuthClientName)
 			if err == nil {

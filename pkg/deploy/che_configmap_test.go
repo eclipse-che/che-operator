@@ -27,7 +27,7 @@ func TestNewCheConfigMap(t *testing.T) {
 	cr := &orgv1.CheCluster{}
 	cr.Spec.Server.CheHost = "myhostname.com"
 	cr.Spec.Server.TlsSupport = true
-	cr.Spec.Auth.OpenShiftOauth = true
+	cr.Spec.Auth.OpenShiftoAuth = true
 	cheEnv := GetConfigMapData(cr)
 	testCm := NewCheConfigMap(cr, cheEnv)
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
@@ -52,7 +52,7 @@ func TestConfigMapOverride(t *testing.T) {
 	cr.Spec.Server.CustomCheProperties = map[string]string{
 		"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 	}
-	cr.Spec.Auth.OpenShiftOauth = true
+	cr.Spec.Auth.OpenShiftoAuth = true
 	cheEnv := GetConfigMapData(cr)
 	testCm := NewCheConfigMap(cr, cheEnv)
 	if testCm.Data["CHE_WORKSPACE_NO_PROXY"] != "myproxy.myhostname.com" {

@@ -25,8 +25,8 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	optionalEnv := true
 	keycloakName := "keycloak"
 	labels := GetLabels(cr, keycloakName)
-	keycloakImage := util.GetValue(cr.Spec.Auth.KeycloakImage, DefaultKeycloakImage(cr, cheFlavor))
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Auth.KeycloakImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
+	keycloakImage := util.GetValue(cr.Spec.Auth.IdentityProviderImage, DefaultKeycloakImage(cr, cheFlavor))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Auth.IdentityProviderImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
 	trustpass := util.GeneratePasswd(12)
 	jbossDir := "/opt/eap"
 	if cheFlavor == "che" {
@@ -68,7 +68,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 		"\"" + jbossDir + "/openshift.jks\", password => \"" + trustpass + "\", disabled => \"false\" },enabled=true) \n" +
 		"stop-embedded-server\" > /scripts/add_openshift_certificate.cli && " +
 		"/opt/jboss/keycloak/bin/jboss-cli.sh --file=/scripts/add_openshift_certificate.cli"
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.KeycloakAdminUserName, DefaultKeycloakAdminUserName)
+	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	keycloakEnv := []corev1.EnvVar{
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
