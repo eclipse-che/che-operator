@@ -149,7 +149,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 									Value: cmRevision,
 								},
 								{
-									Name: "OPENSHIFT_KUBE_PING_NAMESPACE",
+									Name: "KUBERNETES_NAMESPACE",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
 											FieldPath: "metadata.namespace"}},
