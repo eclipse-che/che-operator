@@ -94,7 +94,7 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: "registry.redhat.io/che-images/pluginregistry-rhel8:2.0", cr: crwOnlyOrg},
 		"CRW postgres":                                        {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
 		"CRW airgap postgres":                                 {image: defaultPostgresImage, expected: "bigcorp.net/che-images/postgresql-96-rhel7:1-47", cr: airGapCRW},
-		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: "bigcorp.net/eclipse/che-keycloak:7.2.0", cr: upstreamOnlyHostname},
+		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: "bigcorp.net/eclipse/che-keycloak:7.3.0", cr: upstreamOnlyHostname},
 		"crw airgap with only hostname defined":               {image: defaultDevfileRegistryImage, expected: "bigcorp.net/codeready-workspaces/devfileregistry-rhel8:2.0", cr: crwOnlyHostname},
 	}
 	for name, tc := range testCases {
