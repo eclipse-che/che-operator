@@ -941,9 +941,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		if cheFlavor != "codeready" {
-			guessedPluginRegistryURL += "/v3"
-		}
+		guessedPluginRegistryURL += "/v3"
 		if pluginRegistryURL == "" {
 			pluginRegistryURL = guessedPluginRegistryURL
 		}
