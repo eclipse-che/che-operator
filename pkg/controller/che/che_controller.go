@@ -1044,6 +1044,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// we can now try to create consolelink, after che instance is available
 	if err := createConsoleLink(isOpenShift4, protocol, instance, r); err != nil {
+		logrus.Errorf("An error occurred during console link provisioning: %s", err)
 		return reconcile.Result{}, err
 	}
 
@@ -1200,7 +1201,7 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 		// console link is supported only with https
 		return nil
 	}
-
+	cheFlavor := instance.Spec.Server.CheFlavor
 	cheHost := instance.Spec.Server.CheHost
 	preparedConsoleLink := &consolev1.ConsoleLink{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1209,7 +1210,7 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
 				Href: protocol + "://" + cheHost,
-				Text: deploy.DefaultConsoleLinkDisplayName},
+				Text: deploy.DefaultConsoleLinkDisplayName(cheFlavor)},
 			Location: consolev1.ApplicationMenu,
 			ApplicationMenu: &consolev1.ApplicationMenuSpec{
 				Section:  deploy.DefaultConsoleLinkSection,
