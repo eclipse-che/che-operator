@@ -71,11 +71,19 @@ const (
 	OldDefaultPostgresUpstreamImageToDetect = "centos/postgresql-96-centos7:9.6"
 
 	// ConsoleLink default
-	DefaultConsoleLinkName        = "che"
-	DefaultConsoleLinkImage       = "/dashboard/assets/branding/loader.svg"
-	DefaultConsoleLinkDisplayName = "Eclipse Che"
-	DefaultConsoleLinkSection     = "Red Hat Applications"
+	DefaultConsoleLinkName                = "che"
+	DefaultConsoleLinkSection             = "Red Hat Applications"
+	DefaultConsoleLinkImage               = "/dashboard/assets/branding/loader.svg"
+	defaultConsoleLinkUpstreamDisplayName = "Eclipse Che"
+	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )
+
+func DefaultConsoleLinkDisplayName(cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		return defaultConsoleLinkDisplayName
+	}
+	return defaultConsoleLinkUpstreamDisplayName
+}
 
 func DefaultCheServerImageTag(cheFlavor string) string {
 	if cheFlavor == "codeready" {
