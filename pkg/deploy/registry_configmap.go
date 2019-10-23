@@ -13,6 +13,7 @@ import (
 type DevFileRegistryConfigMap struct {
 	CheDevfileImagesRegistryURL          string `json:"CHE_DEVFILE_IMAGES_REGISTRY_URL"`
 	CheDevfileImagesRegistryOrganization string `json:"CHE_DEVFILE_IMAGES_REGISTRY_ORGANIZATION"`
+	CheDevfileHttpsEndpoint              string `json:"CHE_DEVFILE_HTTPS_ENDPOINT"`
 }
 
 type PluginRegistryConfigMap struct {
@@ -20,7 +21,7 @@ type PluginRegistryConfigMap struct {
 	CheSidecarContainersRegistryOrganization string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_ORGANIZATION"`
 }
 
-func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
+func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster, endpoint string) *corev1.ConfigMap {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -32,7 +33,7 @@ func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
-		Data: GetDevfileRegistryConfigMapData(cr),
+		Data: GetDevfileRegistryConfigMapData(cr, endpoint),
 	}
 }
 
@@ -53,11 +54,12 @@ func CreatePluginRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
 	}
 }
 
-func GetDevfileRegistryConfigMapData(cr *orgv1.CheCluster) map[string]string {
+func GetDevfileRegistryConfigMapData(cr *orgv1.CheCluster, endpoint string) map[string]string {
 	devfileRegistryEnv := make(map[string]string)
 	data := &DevFileRegistryConfigMap{
 		CheDevfileImagesRegistryURL:          cr.Spec.Server.AirGapContainerRegistryHostname,
 		CheDevfileImagesRegistryOrganization: cr.Spec.Server.AirGapContainerRegistryOrganization,
+		CheDevfileHttpsEndpoint:              endpoint,
 	}
 
 	out, err := json.Marshal(data)
