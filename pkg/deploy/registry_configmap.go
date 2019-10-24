@@ -13,7 +13,7 @@ import (
 type DevFileRegistryConfigMap struct {
 	CheDevfileImagesRegistryURL          string `json:"CHE_DEVFILE_IMAGES_REGISTRY_URL"`
 	CheDevfileImagesRegistryOrganization string `json:"CHE_DEVFILE_IMAGES_REGISTRY_ORGANIZATION"`
-	CheDevfileHttpsEndpoint              string `json:"CHE_DEVFILE_HTTPS_ENDPOINT"`
+	CheDevfileRegistryURL                string `json:"CHE_DEVFILE_REGISTRY_URL"`
 }
 
 type PluginRegistryConfigMap struct {
@@ -59,7 +59,7 @@ func GetDevfileRegistryConfigMapData(cr *orgv1.CheCluster, endpoint string) map[
 	data := &DevFileRegistryConfigMap{
 		CheDevfileImagesRegistryURL:          cr.Spec.Server.AirGapContainerRegistryHostname,
 		CheDevfileImagesRegistryOrganization: cr.Spec.Server.AirGapContainerRegistryOrganization,
-		CheDevfileHttpsEndpoint:              endpoint,
+		CheDevfileRegistryURL:                endpoint,
 	}
 
 	out, err := json.Marshal(data)
