@@ -827,17 +827,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	devfileRegistryURL := instance.Spec.Server.DevfileRegistryUrl
 
-	guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if devfileRegistryURL == "" {
-		devfileRegistryURL = guessedDevfileRegistryURL
-	}
-
 	// Create devfile registry resources unless an external registry is used
 	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
 	if !externalDevfileRegistry {
+		guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if devfileRegistryURL == "" {
+			devfileRegistryURL = guessedDevfileRegistryURL
+		}
 		if instance.IsAirGapMode() {
 			devFileRegistryConfigMap := &corev1.ConfigMap{}
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
