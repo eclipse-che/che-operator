@@ -100,11 +100,11 @@ func DefaultCheServerImageRepo(cr *orgv1.CheCluster, cheFlavor string) string {
 	}
 }
 
-func DefaultPvcJobsImage(cheFlavor string) string {
+func DefaultPvcJobsImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
-		return defaultPvcJobsImage
+		return patchDefaultImageName(cr, defaultPvcJobsImage)
 	}
-	return defaultPvcJobsUpstreamImage
+	return patchDefaultImageName(cr, defaultPvcJobsUpstreamImage)
 }
 
 func DefaultPostgresImage(cr *orgv1.CheCluster, cheFlavor string) string {
