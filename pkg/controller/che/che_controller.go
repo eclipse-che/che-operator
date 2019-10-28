@@ -826,15 +826,23 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	devfileRegistryURL := instance.Spec.Server.DevfileRegistryUrl
+
 	// Create devfile registry resources unless an external registry is used
 	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
 	if !externalDevfileRegistry {
+		guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if devfileRegistryURL == "" {
+			devfileRegistryURL = guessedDevfileRegistryURL
+		}
 		if instance.IsAirGapMode() {
 			devFileRegistryConfigMap := &corev1.ConfigMap{}
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance)
+					devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
 					err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
 					if err != nil {
 						logrus.Errorf("An error occurred: %v", err)
@@ -852,7 +860,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{}, err
 				}
 			} else {
-				devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance)
+				devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
 				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
 				if err != nil {
 					logrus.Errorf("An error occurred: %v", err)
@@ -865,14 +873,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{}, err
 				}
 			}
-		}
-
-		guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		if devfileRegistryURL == "" {
-			devfileRegistryURL = guessedDevfileRegistryURL
 		}
 
 		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(instance, cheFlavor))
