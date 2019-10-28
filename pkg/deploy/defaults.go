@@ -21,7 +21,8 @@ import (
 
 const (
 	defaultCheServerImageRepo           = "eclipse/che-server"
-	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
+	// TODO: switch all quay.io/crw/ images to registry.redhat.io/codeready-workspaces/
+	defaultCodeReadyServerImageRepo     = "quay.io/crw/server-rhel8"
 	defaultCheServerImageTag            = "7.3.0"
 	defaultCodeReadyServerImageTag      = "2.0"
 	DefaultCheFlavor                    = "che"
@@ -33,11 +34,13 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.0"
+	// TODO: switch all quay.io/crw/ images to registry.redhat.io/codeready-workspaces/
+	defaultPluginRegistryImage          = "quay.io/crw/pluginregistry-rhel8:2.0"
 	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.3.0"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.0"
+	// TODO: switch all quay.io/crw/ images to registry.redhat.io/codeready-workspaces/
+	defaultDevfileRegistryImage         = "quay.io/crw/devfileregistry-rhel8:2.0"
 	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.3.0"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
