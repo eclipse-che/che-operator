@@ -1,8 +1,10 @@
 package deploy
 
 import (
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"fmt"
 	"testing"
+
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
 func TestCorrectImageName(t *testing.T) {
@@ -27,6 +29,18 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 		expected string
 		cr       *orgv1.CheCluster
 	}
+
+	var (
+		airGapRegistryHostname                                   = "myregistry.org"
+		airGapRegistryOrganization                               = "myorg"
+		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresUpstreamImage))
+		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresUpstreamImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresUpstreamImage))
+		expectedAirGapCRWPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
+		expectedAirGapCRWPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapKeyCloakImageOnlyHostnameChanged           = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultKeycloakUpstreamImage), getImageNameFromFullImage(defaultKeycloakUpstreamImage))
+		expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
+	)
+
 	upstream := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{},
@@ -42,16 +56,16 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	airGapUpstream := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapContainerRegistryHostname:     "bigcorp.net",
-				AirGapContainerRegistryOrganization: "che-images",
+				AirGapContainerRegistryHostname:     airGapRegistryHostname,
+				AirGapContainerRegistryOrganization: airGapRegistryOrganization,
 			},
 		},
 	}
 	airGapCRW := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapContainerRegistryHostname:     "bigcorp.net",
-				AirGapContainerRegistryOrganization: "che-images",
+				AirGapContainerRegistryHostname:     airGapRegistryHostname,
+				AirGapContainerRegistryOrganization: airGapRegistryOrganization,
 				CheFlavor:                           "codeready",
 			},
 		},
@@ -59,21 +73,21 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	upstreamOnlyOrg := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapContainerRegistryOrganization: "che-images",
+				AirGapContainerRegistryOrganization: airGapRegistryOrganization,
 			},
 		},
 	}
 	upstreamOnlyHostname := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapContainerRegistryHostname: "bigcorp.net",
+				AirGapContainerRegistryHostname: airGapRegistryHostname,
 			},
 		},
 	}
 	crwOnlyOrg := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapContainerRegistryOrganization: "che-images",
+				AirGapContainerRegistryOrganization: airGapRegistryOrganization,
 				CheFlavor:                           "codeready",
 			},
 		},
@@ -81,7 +95,7 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	crwOnlyHostname := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				AirGapContainerRegistryHostname: "bigcorp.net",
+				AirGapContainerRegistryHostname: airGapRegistryHostname,
 				CheFlavor:                       "codeready",
 			},
 		},
@@ -89,13 +103,13 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 
 	testCases := map[string]testcase{
 		"upstream default postgres":                           {image: defaultPostgresUpstreamImage, expected: defaultPostgresUpstreamImage, cr: upstream},
-		"airgap upstream postgres":                            {image: defaultPostgresUpstreamImage, expected: "bigcorp.net/che-images/postgresql-96-centos7:9.6", cr: airGapUpstream},
-		"upstream with only the org changed":                  {image: defaultPostgresUpstreamImage, expected: "docker.io/che-images/postgresql-96-centos7:9.6", cr: upstreamOnlyOrg},
-		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: "registry.redhat.io/che-images/pluginregistry-rhel8:2.0", cr: crwOnlyOrg},
+		"airgap upstream postgres":                            {image: defaultPostgresUpstreamImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
+		"upstream with only the org changed":                  {image: defaultPostgresUpstreamImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
+		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: expectedAirGapCRWPluginRegistryOnlyOrgChanged, cr: crwOnlyOrg},
 		"CRW postgres":                                        {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
-		"CRW airgap postgres":                                 {image: defaultPostgresImage, expected: "bigcorp.net/che-images/postgresql-96-rhel7:1-47", cr: airGapCRW},
-		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: "bigcorp.net/eclipse/che-keycloak:7.3.0", cr: upstreamOnlyHostname},
-		"crw airgap with only hostname defined":               {image: defaultDevfileRegistryImage, expected: "bigcorp.net/codeready-workspaces/devfileregistry-rhel8:2.0", cr: crwOnlyHostname},
+		"CRW airgap postgres":                                 {image: defaultPostgresImage, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
+		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: expectedAirGapKeyCloakImageOnlyHostnameChanged, cr: upstreamOnlyHostname},
+		"crw airgap with only hostname defined":               {image: defaultDevfileRegistryImage, expected: expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged, cr: crwOnlyHostname},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {
@@ -105,4 +119,8 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 			}
 		})
 	}
+}
+
+func makeAirGapImagePath(hostname, org, nameAndTag string) string {
+	return fmt.Sprintf("%s/%s/%s", hostname, org, nameAndTag)
 }
