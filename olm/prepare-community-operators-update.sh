@@ -72,17 +72,18 @@ do
 
   echo "     => will create release '${lastPackagePreReleaseVersion}' in the following package folder :'${folderToUpdate}'"
 
+  mkdir -p "${folderToUpdate}/${lastPackagePreReleaseVersion}"
   sed \
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "/^  version: ${lastPackagePreReleaseVersion}/i\ \ replaces: eclipse-che.v${lastPublishedPackageVersion}" \
   -e "s/${packageName}/eclipse-che/" \
   "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
-  > "${folderToUpdate}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
+  > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
   echo
-  echo "   - Copying the CRD file"
+  echo "   - Updating the CRD file"
   cp "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
-  "${folderToUpdate}/eclipse-che.crd.yaml"
+  "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
   echo
   echo "   - Updating the 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
