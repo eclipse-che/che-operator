@@ -38,7 +38,6 @@ type CheConfigMap struct {
 	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
 	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	BootstrapperBinaryUrl                string `json:"CHE_INFRA_KUBERNETES_BOOTSTRAPPER_BINARY__URL"`
 	WorkspacesNamespace                  string `json:"CHE_INFRA_OPENSHIFT_PROJECT"`
 	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
@@ -159,7 +158,6 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheDebugServer:                       cheDebug,
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
-		BootstrapperBinaryUrl:                protocol + "://" + cheHost + "/agent-binaries/linux_amd64/bootstrapper/bootstrapper",
 		WorkspacesNamespace:                  workspacesNamespace,
 		PvcStrategy:                          pvcStrategy,
 		PvcClaimSize:                         pvcClaimSize,
