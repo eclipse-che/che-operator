@@ -12,6 +12,7 @@
 package deploy
 
 import (
+	"strings"
 	"testing"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -31,6 +32,7 @@ func TestNewCheConfigMap(t *testing.T) {
 	testCm := NewCheConfigMap(cr, cheEnv)
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
 	_, isOpenshiftv4, _ := util.DetectOpenShift()
+	protocol := strings.Split(testCm.Data["CHE_API"], "://")[0]
 	expectedIdentityProvider := "openshift-v3"
 	if isOpenshiftv4 {
 		expectedIdentityProvider = "openshift-v4"
