@@ -92,7 +92,7 @@ do
   echo "   - Committing changes"
   cd "${communityOperatorsLocalGitFolder}"
   git add --all
-  git commit -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
+  git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
   echo
   echo "   - Pushing branch ${branch} to the 'che-incubator/community-operators' GitHub repository"
   if [ -z "${GIT_USER}" ] || [ -z "${GIT_PASSWORD}" ]
