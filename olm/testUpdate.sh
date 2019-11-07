@@ -53,6 +53,8 @@ fi
 
 echo "Installing test pre-requisistes"
 
+kubectl apply -f ${platformPath}/operator-source.yaml
+
 marketplaceNamespace="marketplace"
 if [ "${platform}" == "openshift" ]
 then
@@ -68,9 +70,27 @@ else
   sleep 1
   kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
   kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
-fi
 
-kubectl apply -f ${platformPath}/operator-source.yaml
+  i=0
+  while [ $i -le 120 ]
+  do
+    if kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}"  >/dev/null 2>&1
+    then
+      break
+    fi
+    sleep 1
+    ((i++))
+  done
+
+  if [ $i -gt 120 ]
+  then
+    echo "Catalog source not created after 2 minutes"
+    exit 1
+  fi
+
+  kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}" -o json | jq '.metadata.namespace = "olm" | del(.metadata.creationTimestamp) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.generation) | del(.metadata.selfLink) | del(.status)' | kubectl create -f -
+  marketplaceNamespace="olm"
+fi
 
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -128,6 +148,10 @@ echo "Creating Custom Resource"
 
 CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
 CR=$(echo "$CRs" | yq -r ".[0]")
+if [ "${platform}" == "kubernetes" ]
+then
+  CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
+fi
 
 echo "$CR" | kubectl apply -n "${namespace}" -f -
 
