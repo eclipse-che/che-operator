@@ -12,6 +12,7 @@
 package che
 
 import (
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"context"
 	"time"
 
@@ -176,7 +177,7 @@ func TestCheController(t *testing.T) {
 	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {
 		t.Errorf("ConfigMap wasn't updated. Extecting true, got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])
 	}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, route); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor, Namespace: cheCR.Namespace}, route); err != nil {
 		t.Errorf("Route %s not found: %s", cm.Name, err)
 	}
 	if route.Spec.TLS.Termination != "edge" {
