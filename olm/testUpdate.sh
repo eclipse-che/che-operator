@@ -53,12 +53,11 @@ fi
 
 echo "Installing test pre-requisistes"
 
-kubectl apply -f ${platformPath}/operator-source.yaml
-
 marketplaceNamespace="marketplace"
 if [ "${platform}" == "openshift" ]
 then
   marketplaceNamespace="openshift-marketplace"
+  kubectl apply -f ${platformPath}/operator-source.yaml
 else
   curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.12.0/install.sh | bash -s 0.12.0
   kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
@@ -70,6 +69,8 @@ else
   sleep 1
   kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
   kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+
+  kubectl apply -f ${platformPath}/operator-source.yaml
 
   i=0
   while [ $i -le 120 ]
