@@ -76,9 +76,9 @@ cat << EOF > pkg/deploy/extra_images.go
 package deploy
 
 const (
-	cheWorkspacePluginBrokerInitImage    = "${latestCheWorkspacePluginBrokerInitImage}"
-	cheWorkspacePluginBrokerUnifiedImage = "${latestCheWorkspacePluginBrokerUnifiedImage}"
-	cheServerSecureExposerJwtProxyImage  = "${latestCheServerSecureExposerJwtProxyImage}"
+	defaultCheWorkspacePluginBrokerInitUpstreamImage    = "${latestCheWorkspacePluginBrokerInitImage}"
+	defaultCheWorkspacePluginBrokerUnifiedUpstreamImage = "${latestCheWorkspacePluginBrokerUnifiedImage}"
+	defaultCheServerSecureExposerJwtProxyUpstreamImage  = "${latestCheServerSecureExposerJwtProxyImage}"
 )
 EOF
 
