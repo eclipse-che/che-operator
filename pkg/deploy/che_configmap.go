@@ -183,6 +183,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspaceNoProxy:                     cheWorkspaceNoProxy,
 		PluginRegistryUrl:                    pluginRegistryUrl,
 		DevfileRegistryUrl:                   devfileRegistryUrl,
+		CheWorkspacePluginBrokerInitImage:    DefaultCheWorkspacePluginBrokerInitImage(cr, cheFlavor),
+		CheWorkspacePluginBrokerUnifiedImage: DefaultCheWorkspacePluginBrokerUnifiedImage(cr, cheFlavor),
+		CheServerSecureExposerJwtProxyImage:  DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
 	}
 
 	out, err := json.Marshal(data)
@@ -208,9 +211,6 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	}
 
 	addMap(cheEnv, cr.Spec.Server.CustomCheProperties)
-	if cr.IsAirGapMode() {
-		addMap(cheEnv, extraImagesConfig(cr))
-	}
 	return cheEnv
 }
 
@@ -228,13 +228,4 @@ func NewCheConfigMap(cr *orgv1.CheCluster, cheEnv map[string]string) *corev1.Con
 		},
 		Data: cheEnv,
 	}
-}
-
-func extraImagesConfig(cr *orgv1.CheCluster) map[string]string {
-	extraImages := map[string]string{
-		"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE":    patchDefaultImageName(cr, cheWorkspacePluginBrokerInitImage),
-		"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE": patchDefaultImageName(cr, cheWorkspacePluginBrokerUnifiedImage),
-		"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE":  patchDefaultImageName(cr, cheServerSecureExposerJwtProxyImage),
-	}
-	return extraImages
 }

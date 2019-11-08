@@ -63,6 +63,15 @@ const (
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
+	// CRW images for that are mentioned in the Che server che.properties
+	// For CRW these should be synced by hand with images stored in RH registries
+	// instead of being synced by script with the content of the upstream `che.properties` file
+	// NB:
+	// The upstream equivent are stored in the generated `extra_images.go` source file.
+	defaultCheWorkspacePluginBrokerInitImage    = "quay.io/crw/pluginbrokerinit-rhel8:2.0-6"
+	defaultCheWorkspacePluginBrokerUnifiedImage = "quay.io/crw/pluginbroker-rhel8:2.0-5"
+	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.0-4"
+
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
 	// That fixed bug https://github.com/eclipse/che/issues/13714
@@ -136,6 +145,51 @@ func DefaultDevfileRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string 
 		return patchDefaultImageName(cr, defaultDevfileRegistryImage)
 	} else {
 		return patchDefaultImageName(cr, defaultDevfileRegistryUpstreamImage)
+	}
+}
+
+func DefaultCheWorkspacePluginBrokerInitImage(cr *orgv1.CheCluster, cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		// In the CRW case, we should always set the plugin broker image in the Che config map
+		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerInitImage)
+	} else {
+		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
+		// if we return an empty string here.
+		// We only need to override it in case of AirGap mode
+		if cr.IsAirGapMode() {
+			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerInitUpstreamImage)
+		}
+		return ""
+	}
+}
+
+func DefaultCheWorkspacePluginBrokerUnifiedImage(cr *orgv1.CheCluster, cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		// In the CRW case, we should always set the plugin broker image in the Che config map
+		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerUnifiedImage)
+	} else {
+		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
+		// if we return an empty string here.
+		// We only need to override it in case of AirGap mode
+		if cr.IsAirGapMode() {
+			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerUnifiedUpstreamImage)
+		}
+		return ""
+	}
+}
+
+func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster, cheFlavor string) string {
+	if cheFlavor == "codeready" {
+		// In the CRW case, we should always set the jwt-proxy image in the Che config map
+		return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
+	} else {
+		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
+		// if we return an empty string here.
+		// We only need to override it in case of AirGap mode
+		if cr.IsAirGapMode() {
+			return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyUpstreamImage)
+		}
+		return ""
 	}
 }
 
