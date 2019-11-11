@@ -50,6 +50,10 @@ spec:
     serverMemoryRequest: ''
     # sets mem limit for server deployment. Defaults to 1Gi
     serverMemoryLimit: ''
+    # Enables '/metrics' endpoint of Che server.
+    cheMetrics: false
+    # Port where metrics will be exposed. Defaults to `8087`.
+    cheMetricsPort: ''
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
     # otherwise a Postgres deployment is created

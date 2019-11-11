@@ -43,6 +43,9 @@ type CheClusterSpec struct {
 	// Configuration settings related to the persistent storage used by the Che installation.
 	// +optional
 	Storage CheClusterSpecStorage `json:"storage"`
+	// Configuration settings related to the metrics collection used by the Che installation.
+	// +optional
+	Metrics CheClusterSpecMetrics `json:"metrics"`
 
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
@@ -358,6 +361,12 @@ type CheClusterSpecK8SOnly struct {
 	// ID of the user the Che pod and Workspace pods containers should run as. Default to `1724`.
 	// +optional
 	SecurityContextRunAsUser string `json:"securityContextRunAsUser,omitempty"`
+}
+
+type CheClusterSpecMetrics struct {
+	// Enables `metrics` Che server endpoint.
+	// +optional
+	Enable bool `json:"enable"`
 }
 
 // CheClusterStatus defines the observed state of Che installation

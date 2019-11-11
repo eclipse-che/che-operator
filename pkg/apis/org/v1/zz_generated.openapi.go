@@ -26,17 +26,18 @@ func schema_pkg_apis_org_v1_CheCluster(ref common.ReferenceCallback) common.Open
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "The `CheCluster` custom resource allows defining and managing a Che server installation",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -69,6 +70,7 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "Desired configuration of the Che installation. Based on these settings, the operator automatically creates and maintains several config maps that will contain the appropriate environment variables the various components of the Che installation. These generated config maps should NOT be updated manually.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"server": {
 						SchemaProps: spec.SchemaProps{
@@ -94,6 +96,12 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"),
 						},
 					},
+					"metrics": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Configuration settings related to the metrics collection used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecMetrics"),
+						},
+					},
 					"k8s": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Configuration settings specific to Che installations made on upstream Kubernetes.",
@@ -104,7 +112,7 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 			},
 		},
 		Dependencies: []string{
-			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"},
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecMetrics", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"},
 	}
 }
 
@@ -113,6 +121,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "Configuration settings related to the Authentication used by the Che installation.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"externalIdentityProvider": {
 						SchemaProps: spec.SchemaProps{
@@ -208,7 +217,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 				},
 			},
 		},
-		Dependencies: []string{},
 	}
 }
 
@@ -217,6 +225,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecDB(ref common.ReferenceCallback) commo
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "Configuration settings related to the database used by the Che installation.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"externalDb": {
 						SchemaProps: spec.SchemaProps{
@@ -277,7 +286,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecDB(ref common.ReferenceCallback) commo
 				},
 			},
 		},
-		Dependencies: []string{},
 	}
 }
 
@@ -286,6 +294,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "Configuration settings specific to Che installations made on upstream Kubernetes.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"ingressDomain": {
 						SchemaProps: spec.SchemaProps{
@@ -332,7 +341,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 				},
 			},
 		},
-		Dependencies: []string{},
 	}
 }
 
@@ -341,6 +349,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "General configuration settings related to the Che server and the plugin and devfile registries.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"airGapContainerRegistryHostname": {
 						SchemaProps: spec.SchemaProps{
@@ -515,6 +524,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Description: "Map of additional environment variables that will be applied in the generated `che` config map to be used by the Che server, in addition to the values already generated from other fields of the `CheCluster` custom resource (CR). If `customCheProperties` contains a property that would be normally generated in `che` config map from other CR fields, then the value defined in the `customCheProperties` will be used instead.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Type:   []string{"string"},
@@ -576,7 +586,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 				},
 			},
 		},
-		Dependencies: []string{},
 	}
 }
 
@@ -585,6 +594,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecStorage(ref common.ReferenceCallback) 
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "Configuration settings related to the persistent storage used by the Che installation.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"pvcStrategy": {
 						SchemaProps: spec.SchemaProps{
@@ -631,6 +641,5 @@ func schema_pkg_apis_org_v1_CheClusterSpecStorage(ref common.ReferenceCallback) 
 				},
 			},
 		},
-		Dependencies: []string{},
 	}
 }

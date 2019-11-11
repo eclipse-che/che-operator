@@ -44,6 +44,7 @@ const (
 	DefaultKeycloakAdminUserName        = "admin"
 	DefaultCheLogLevel                  = "INFO"
 	DefaultCheDebug                     = "false"
+	DefaultCheMetricsPort               = 8087
 	defaultPvcJobsImage                 = "registry.redhat.io/ubi8-minimal:8.0-213"
 	defaultPvcJobsUpstreamImage         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
 	defaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"

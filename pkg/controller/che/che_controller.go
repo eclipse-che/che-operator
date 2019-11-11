@@ -529,8 +529,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 
-	cheService := deploy.NewService(instance, "che-host", []string{"http", "metrics"}, []int32{8080, 8087}, cheLabels)
-	if err := r.CreateService(instance, cheService); err != nil {
+	if _, err := deploy.NewCheService(instance, cheLabels, r); err != nil {
 		return reconcile.Result{}, err
 	}
 	if !isOpenShift {
