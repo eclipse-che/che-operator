@@ -477,23 +477,35 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 	// from Upstream 7.0.0 GA to the next
 	// version that should fixed bug https://github.com/eclipse/che/issues/13714
 
-	if instance.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect {
+	if instance.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect ||
+		deploy.MigratingToCRW2_0(instance) {
 		instance.Spec.Storage.PvcJobsImage = ""
 		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", instance.Spec.Storage.PvcJobsImage); err != nil {
 			return err
 		}
 	}
 
-	if instance.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect {
+	if instance.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect ||
+		deploy.MigratingToCRW2_0(instance) {
 		instance.Spec.Database.PostgresImage = ""
 		if err := r.UpdateCheCRSpec(instance, "postgres image", instance.Spec.Database.PostgresImage); err != nil {
 			return err
 		}
 	}
 
-	if instance.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect {
+	if instance.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect ||
+		deploy.MigratingToCRW2_0(instance) {
 		instance.Spec.Auth.IdentityProviderImage = ""
 		if err := r.UpdateCheCRSpec(instance, "keycloak image", instance.Spec.Auth.IdentityProviderImage); err != nil {
+			return err
+		}
+	}
+
+	if deploy.MigratingToCRW2_0(instance) &&
+		! instance.Spec.Server.ExternalPluginRegistry &&
+		instance.Spec.Server.PluginRegistryUrl == "https://che-plugin-registry.openshift.io" {
+		instance.Spec.Server.PluginRegistryUrl = ""
+		if err := r.UpdateCheCRSpec(instance, "plugin registry url", instance.Spec.Server.PluginRegistryUrl); err != nil {
 			return err
 		}
 	}
