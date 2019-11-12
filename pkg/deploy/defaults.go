@@ -24,7 +24,7 @@ const (
 	defaultCodeReadyServerImageRepo     = "quay.io/crw/server-rhel8"
 	defaultCheServerImageTag            = "7.3.1"
 	defaultCodeReadyServerImageTag      = "2.0-384"
-	DefaultCheFlavor                    = "codeready"
+	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
 	DefaultChePostgresPort              = "5432"
