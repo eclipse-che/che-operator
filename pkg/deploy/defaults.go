@@ -79,6 +79,10 @@ const (
 	OldDefaultPvcJobsUpstreamImageToDetect  = "registry.access.redhat.com/ubi8-minimal:8.0-127"
 	OldDefaultPostgresUpstreamImageToDetect = "centos/postgresql-96-centos7:9.6"
 
+	OldDefaultCodeReadyServerImageRepo="registry.redhat.io/codeready-workspaces/server-operator-rhel8"
+	OldDefaultCodeReadyServerImageTag="1.2"
+	OldCrwPluginRegistryUrl="https://che-plugin-registry.openshift.io"
+	
 	// ConsoleLink default
 	DefaultConsoleLinkName                = "che"
 	DefaultConsoleLinkSection             = "Red Hat Applications"
@@ -86,6 +90,16 @@ const (
 	defaultConsoleLinkUpstreamDisplayName = "Eclipse Che"
 	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )
+
+
+func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
+	if cr.Spec.Server.CheFlavor == "codeready" &&
+		strings.HasPrefix(cr.Status.CheVersion, "1.2") &&
+		strings.HasPrefix(defaultCodeReadyServerImageTag, "2.0") {
+		return true
+	}
+	return false
+}
 
 func DefaultConsoleLinkDisplayName(cheFlavor string) string {
 	if cheFlavor == "codeready" {
