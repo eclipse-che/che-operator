@@ -91,7 +91,6 @@ const (
 	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )
 
-
 func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	if cr.Spec.Server.CheFlavor == "codeready" &&
 		strings.HasPrefix(cr.Status.CheVersion, "1.2") &&
