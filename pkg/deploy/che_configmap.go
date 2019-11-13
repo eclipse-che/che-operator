@@ -38,7 +38,7 @@ type CheConfigMap struct {
 	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
 	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	WorkspacesNamespace                  string `json:"CHE_INFRA_OPENSHIFT_PROJECT"`
+	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
 	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                         string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
@@ -84,12 +84,12 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if isOpenShift {
 		infra = "openshift"
 	}
-	workspacesNamespace := cr.Namespace
+	defaultTargetNamespace := cr.Namespace
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
 	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
 	if openshiftOAuth && isOpenShift {
-		workspacesNamespace = ""
+		defaultTargetNamespace = "<username>-" + cheFlavor
 		openShiftIdentityProviderId = "openshift-v3"
 		if isOpenshift4 {
 			openShiftIdentityProviderId = "openshift-v4"
@@ -158,7 +158,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheDebugServer:                       cheDebug,
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
-		WorkspacesNamespace:                  workspacesNamespace,
+		DefaultTargetNamespace:               defaultTargetNamespace,
 		PvcStrategy:                          pvcStrategy,
 		PvcClaimSize:                         pvcClaimSize,
 		WorkspacePvcStorageClassName:         workspacePvcStorageClassName,
@@ -196,7 +196,6 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	k8sCheEnv := map[string]string{
 		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
 		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
-		"CHE_INFRA_KUBERNETES_NAMESPACE":                           workspacesNamespace,
 		"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
 		"CHE_INFRA_KUBERNETES_SERVER__STRATEGY":                    ingressStrategy,
 		"CHE_INFRA_KUBERNETES_TLS__SECRET":                         tlsSecretName,

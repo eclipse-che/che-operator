@@ -69,7 +69,7 @@ spec:
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
     # per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common
-    pvcStrategy: 'per-workspace'
+    pvcStrategy: 'common'
     # size of a persistent volume claim for workspaces. Defaults to 1Gi
     pvcClaimSize: '1Gi'
     # instruct Che server to launch a special pod to precreate a subpath in a PV
