@@ -95,6 +95,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 		script = "/opt/eap/bin/kcadm.sh"
 
 	}
+	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 
 	providerId := "openshift-v3"
 	if isOpenShift4 {
@@ -129,6 +130,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 			OAuthClientName       string
 			OauthSecret           string
 			OpenShiftApiUrl       string
+			KeycloakClientId      string
 		}{
 			script,
 			keycloakAdminUserName,
@@ -138,6 +140,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 			oAuthClientName,
 			oauthSecret,
 			openShiftApiUrl,
+			keycloakClientId,
 		})
 	if err != nil {
 		return "", err

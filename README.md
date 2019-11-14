@@ -106,8 +106,8 @@ The Operator takes these files and replaces values to get a string used as the `
 Make sure you run the following before running/debugging:
 
 ```
-cp deploy/keycloak_provision /tmp/keycloak_provision
-cp deploy/oauth_provision /tmp/oauth_provision
+cp templates/keycloak_provision /tmp/keycloak_provision
+cp templates/oauth_provision /tmp/oauth_provision
 ```
 These files are added to a container image, and thus this step is not required when deploying an Operator image.
 
