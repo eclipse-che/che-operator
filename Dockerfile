@@ -49,8 +49,8 @@ LABEL summary="$SUMMARY" \
 # ADD controller-manifests /manifests
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
-COPY --from=builder /go/src/github.com/eclipse/che-operator/deploy/keycloak_provision /tmp/keycloak_provision
-COPY --from=builder /go/src/github.com/eclipse/che-operator/deploy/oauth_provision /tmp/oauth_provision
+COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/keycloak_provision /tmp/keycloak_provision
+COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/oauth_provision /tmp/oauth_provision
 # apply CVE fixes, if required
 RUN microdnf update -y libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
