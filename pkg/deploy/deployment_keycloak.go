@@ -216,10 +216,12 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 		}
 	}
 	command := addCertToTrustStoreCommand + " && " + changeConfigCommand + " && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
-	if cheFlavor == "codeready" {
-		command = addCertToTrustStoreCommand + " && " + startCommand
-	}
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
+	if cheFlavor == "codeready" {
+		command = addCertToTrustStoreCommand +
+		" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties && " +
+		startCommand
+	}
 
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{

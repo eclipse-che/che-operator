@@ -25,7 +25,7 @@ default_to_openshift_login() {
 }
 
 enable_openshift_token-exchange() {
-  IDENTITY_PROVIDER_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} identity-provider/instances/{{ .ProviderId }} | jq --raw-output '.internalId')
+  IDENTITY_PROVIDER_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} identity-provider/instances/{{ .ProviderId }} | grep -e '"internalId" *: *"' | sed -e 's/.*"internalId" *: *"\([^"]\+\)".*/\1/')
   if [ "${IDENTITY_PROVIDER_ID}" == "" ]
   then
     echo "identity provider not found"
@@ -43,30 +43,30 @@ enable_openshift_token-exchange() {
     echo "token exchange permissions not found"
     return 1
   fi
-  TOKEN_EXCHANGE_RESOURCE=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | jq --raw-output '.resource | strings')
-  TOKEN_EXCHANGE_PERMISSION_ID=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | jq --raw-output '.scopePermissions["token-exchange"] | strings')
+  TOKEN_EXCHANGE_RESOURCE=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | grep -e '"resource" *: *"' | sed -e 's/.*"resource" *: *"\([^"]\+\)".*/\1/')
+  TOKEN_EXCHANGE_PERMISSION_ID=$(echo ${TOKEN_EXCHANGE_PERMISSIONS} | sed -e 's/.*"scopePermissions" *: *{ *"token-exchange" *: *"\([^"]\+\)".*/\1/')
   if [ "${TOKEN_EXCHANGE_RESOURCE}" == "" ] || [ "${TOKEN_EXCHANGE_PERMISSION_ID}" == "" ]
   then
     echo "token exchange permissions do not contain expected values"
     return 1
   fi
-  REALM_MGMT_CLIENT_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} clients | jq --raw-output '.[] | select(.clientId == "realm-management") | .id | strings')
+  REALM_MGMT_CLIENT_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} clients -q clientId=realm-management | grep -e '"id" *: *"' | sed -e 's/.*"id" *: *"\([^"]\+\)".*/\1/')
   if [ "${REALM_MGMT_CLIENT_ID}" == "" ]
   then
     echo "Realm management client ID not found"
     return 1
   fi
-  EXISTING_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | jq --raw-output '.[0].id | strings')
+  EXISTING_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | grep -e '"id" *: *"' | sed -e 's/.*"id" *: *"\([^"]\+\)".*/\1/')
   if [ "${EXISTING_POLICY}" == "" ]
   then
-    echo '{"type":"client","logic":"POSITIVE","decisionStrategy":"UNANIMOUS","name":"{{ .ProviderId }}","clients":["che-public"]}' | {{ .Script }} create -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -f -
+    echo '{"type":"client","logic":"POSITIVE","decisionStrategy":"UNANIMOUS","name":"{{ .ProviderId }}","clients":["{{ .KeycloakClientId }}"]}' | {{ .Script }} create -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -f -
     if [ $? -ne 0 ]
     then
       echo "Failed to create policy"
       return 1
     fi
   fi
-  TOKEN_EXCHANGE_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | jq --raw-output '.[0].id | strings')
+  TOKEN_EXCHANGE_POLICY=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/policy/client -q 'name={{ .ProviderId }}' | grep -e '"id" *: *"' | sed -e 's/.*"id" *: *"\([^"]\+\)".*/\1/')
   if [ "${TOKEN_EXCHANGE_POLICY}" == "" ]
   then
     echo "Token exchange policy not found"
@@ -78,13 +78,23 @@ enable_openshift_token-exchange() {
     echo "Token exchange permission not found"
     return 1
   fi
-  TOKEN_EXCHANGE_SCOPE=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/resource/${TOKEN_EXCHANGE_RESOURCE}/scopes | jq --raw-output '.[] | select( .name == "token-exchange") | .id | strings')
-  if [ "${TOKEN_EXCHANGE_PERMISSION}" == "" ]
+  TOKEN_EXCHANGE_SCOPES=$({{ .Script }} get -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/resource/${TOKEN_EXCHANGE_RESOURCE}/scopes)
+  if [ "${TOKEN_EXCHANGE_SCOPES}" == "" ]
+  then
+    echo "Token exchange scopes not found"
+    return 1
+  fi
+  TOKEN_EXCHANGE_SCOPE=$(echo ${TOKEN_EXCHANGE_SCOPES} | sed -e 's/.*"id" *: *"\([^"]\+\)" *, *"name" *: *"token-exchange".*/\1/')
+  if [ "${TOKEN_EXCHANGE_SCOPE}" == "" ]
   then
     echo "Token exchange scope not found"
     return 1
   fi
-  echo ${TOKEN_EXCHANGE_PERMISSION} | jq --arg resource "${TOKEN_EXCHANGE_RESOURCE}" --arg scope "${TOKEN_EXCHANGE_SCOPE}" --arg policy "${TOKEN_EXCHANGE_POLICY}" '. + {resources:[$resource],scopes:[$scope],policies:[$policy]}' | {{ .Script }} update -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/permission/scope/${TOKEN_EXCHANGE_PERMISSION_ID} -f -
+  PERMISSION_RESOURCES=$(echo ${TOKEN_EXCHANGE_PERMISSION} | grep -e 'resources *:')
+  if [ "${PERMISSION_RESOURCES}" == "" ]
+  then
+    echo ${TOKEN_EXCHANGE_PERMISSION} | sed -e "s/ *{\(.*}\) */{\"resources\":[\"${TOKEN_EXCHANGE_RESOURCE}\"],\"scopes\":[\"${TOKEN_EXCHANGE_SCOPE}\"],\"policies\":[\"${TOKEN_EXCHANGE_POLICY}\"],\1/" | {{ .Script }} update -r {{ .KeycloakRealm }} clients/${REALM_MGMT_CLIENT_ID}/authz/resource-server/permission/scope/${TOKEN_EXCHANGE_PERMISSION_ID} -f -
+  fi
 }
 
 set -x
