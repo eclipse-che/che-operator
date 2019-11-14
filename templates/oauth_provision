@@ -25,7 +25,7 @@ default_to_openshift_login() {
 }
 
 enable_openshift_token-exchange() {
-  IDENTITY_PROVIDER_ID=$(/opt/eap/bin/kcadm.sh get -r codeready identity-provider/instances/openshift-v4 | grep -e '"internalId" *: *"' | sed -e 's/.*"internalId" *: *"\([^"]\+\)".*/\1/')
+  IDENTITY_PROVIDER_ID=$({{ .Script }} get -r {{ .KeycloakRealm }} identity-provider/instances/{{ .ProviderId }} | grep -e '"internalId" *: *"' | sed -e 's/.*"internalId" *: *"\([^"]\+\)".*/\1/')
   if [ "${IDENTITY_PROVIDER_ID}" == "" ]
   then
     echo "identity provider not found"
