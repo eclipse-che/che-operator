@@ -2,7 +2,7 @@
 package deploy
 
 const (
-	defaultCheWorkspacePluginBrokerInitUpstreamImage    = "eclipse/che-init-plugin-broker:v0.22"
-	defaultCheWorkspacePluginBrokerUnifiedUpstreamImage = "eclipse/che-unified-plugin-broker:v0.22"
+	defaultCheWorkspacePluginBrokerInitUpstreamImage    = "eclipse/che-init-plugin-broker:v0.24"
+	defaultCheWorkspacePluginBrokerUnifiedUpstreamImage = "eclipse/che-unified-plugin-broker:v0.24"
 	defaultCheServerSecureExposerJwtProxyUpstreamImage  = "quay.io/eclipse/che-jwtproxy:dbd0578"
 )
