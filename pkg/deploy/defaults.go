@@ -23,7 +23,7 @@ const (
 	defaultCheServerImageRepo           = "eclipse/che-server"
 	defaultCodeReadyServerImageRepo     = "quay.io/crw/server-rhel8"
 	defaultCheServerImageTag            = "7.3.2"
-	defaultCodeReadyServerImageTag      = "2.0-384"
+	defaultCodeReadyServerImageTag      = "2.0-391"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
