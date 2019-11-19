@@ -23,7 +23,7 @@ const (
 	defaultCheServerImageRepo           = "eclipse/che-server"
 	defaultCodeReadyServerImageRepo     = "quay.io/crw/server-rhel8"
 	defaultCheServerImageTag            = "7.3.2"
-	defaultCodeReadyServerImageTag      = "2.0-391"
+	defaultCodeReadyServerImageTag      = "2.0-393"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
@@ -33,11 +33,11 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	defaultPluginRegistryImage          = "quay.io/crw/pluginregistry-rhel8:2.0-217"
+	defaultPluginRegistryImage          = "quay.io/crw/pluginregistry-rhel8:2.0-221"
 	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.3.2"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	defaultDevfileRegistryImage         = "quay.io/crw/devfileregistry-rhel8:2.0-169"
+	defaultDevfileRegistryImage         = "quay.io/crw/devfileregistry-rhel8:2.0-172"
 	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.3.2"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
@@ -68,9 +68,9 @@ const (
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
 	// The upstream equivent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerInitImage    = "quay.io/crw/pluginbrokerinit-rhel8:2.0-6"
-	defaultCheWorkspacePluginBrokerUnifiedImage = "quay.io/crw/pluginbroker-rhel8:2.0-5"
-	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.0-4"
+	defaultCheWorkspacePluginBrokerInitImage    = "quay.io/crw/pluginbrokerinit-rhel8:2.0-7"
+	defaultCheWorkspacePluginBrokerUnifiedImage = "quay.io/crw/pluginbroker-rhel8:2.0-6"
+	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.0-5"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
