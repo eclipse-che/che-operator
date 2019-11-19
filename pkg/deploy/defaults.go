@@ -21,9 +21,9 @@ import (
 
 const (
 	defaultCheServerImageRepo           = "eclipse/che-server"
-	defaultCodeReadyServerImageRepo     = "quay.io/crw/server-rhel8"
+	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	defaultCheServerImageTag            = "7.3.2"
-	defaultCodeReadyServerImageTag      = "2.0-393"
+	defaultCodeReadyServerImageTag      = "2.0"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
@@ -33,11 +33,11 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	defaultPluginRegistryImage          = "quay.io/crw/pluginregistry-rhel8:2.0-221"
+	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.0"
 	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.3.2"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	defaultDevfileRegistryImage         = "quay.io/crw/devfileregistry-rhel8:2.0-172"
+	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.0"
 	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.3.2"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
@@ -68,9 +68,9 @@ const (
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
 	// The upstream equivent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerInitImage    = "quay.io/crw/pluginbrokerinit-rhel8:2.0-7"
-	defaultCheWorkspacePluginBrokerUnifiedImage = "quay.io/crw/pluginbroker-rhel8:2.0-6"
-	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.0-5"
+	defaultCheWorkspacePluginBrokerInitImage    = "registry.redhat.io/codeready-workspaces/pluginbrokerinit-rhel8:2.0"
+	defaultCheWorkspacePluginBrokerUnifiedImage = "registry.redhat.io/codeready-workspaces/pluginbroker-rhel8:2.0"
+	defaultCheServerSecureExposerJwtProxyImage  = "registry.redhat.io/codeready-workspaces/jwtproxy-rhel8:2.0"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
