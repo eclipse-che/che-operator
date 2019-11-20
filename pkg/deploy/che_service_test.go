@@ -4,8 +4,6 @@ import (
 	"fmt"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
-	"strconv"
 	"testing"
 )
 
@@ -26,8 +24,7 @@ func (s *DummyFailingServiceCreator) CreateService(cr *orgv1.CheCluster, service
 func TestCreateCheDefaultService(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-			},
+			Server: orgv1.CheClusterSpecServer{},
 		},
 	}
 
@@ -46,8 +43,29 @@ func TestCreateCheDefaultService(t *testing.T) {
 func TestCreateCheServiceEnableMetrics(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheMetrics: true,
+			Metrics: orgv1.CheClusterSpecMetrics{
+				Enable: false,
+			},
+		},
+	}
+
+	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
+
+	if service == nil || err != nil {
+		t.Error("service should be created witn no error")
+	}
+	ports := service.Spec.Ports
+	if len(ports) != 1 {
+		t.Error("expected 1 default port")
+	}
+	checkPort(ports[0], "http", 8080, t)
+}
+
+func TestCreateCheServiceDisableMetrics(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Metrics: orgv1.CheClusterSpecMetrics{
+				Enable: true,
 			},
 		},
 	}
@@ -65,86 +83,20 @@ func TestCreateCheServiceEnableMetrics(t *testing.T) {
 	checkPort(ports[1], "metrics", 8087, t)
 }
 
-func TestCreateCheServiceEnableMetricsWithCustomPort(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheMetrics:     true,
-				CheMetricsPort: "8887",
-			},
-		},
-	}
-
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
-
-	if service == nil || err != nil {
-		t.Error("service should be created witn no error")
-	}
-	ports := service.Spec.Ports
-	if len(ports) != 2 {
-		t.Error("expected 2 ports")
-	}
-	checkPort(ports[0], "http", 8080, t)
-	checkPort(ports[1], "metrics", 8887, t)
-}
-
-func TestDontCreatePortWhenDisableMetricsButSetPort(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheMetrics:     false,
-				CheMetricsPort: "8887",
-			},
-		},
-	}
-
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
-
-	if service == nil || err != nil {
-		t.Error("service should be created witn no error")
-	}
-	ports := service.Spec.Ports
-	if len(ports) != 1 {
-		t.Error("expected 2 ports")
-	}
-	checkPort(ports[0], "http", 8080, t)
-}
-
 func TestFailWhenCantCreateService(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-			},
+			Server: orgv1.CheClusterSpecServer{},
 		},
 	}
 
 	service, err := NewCheService(cheCluster, map[string]string{}, &DummyFailingServiceCreator{})
 
-
 	if service != nil || err == nil {
 		t.Errorf("expected error and service to be nil. Actual service:`%s` err:`%s`", service, err)
 	}
 }
 
-func TestFailWhenInvalidMetricsPortSet(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheMetrics:     true,
-				CheMetricsPort: "this looks like an invalid port",
-			},
-		},
-	}
-
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
-
-	if service != nil || err == nil {
-		t.Errorf("expected error and service to be nil. Actual service:`%s` err:`%s`", service, err)
-	}
-	if _, errType := err.(*strconv.NumError); !errType {
-		t.Errorf("Expected error type `NumError`. Actual type:`%s`", reflect.TypeOf(err))
-	}
-}
 
 func checkPort(actualPort corev1.ServicePort, expectedName string, expectedPort int32, t *testing.T) {
 	if actualPort.Name != expectedName || actualPort.Port != expectedPort {

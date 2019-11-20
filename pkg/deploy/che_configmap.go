@@ -188,7 +188,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheWorkspacePluginBrokerInitImage:    DefaultCheWorkspacePluginBrokerInitImage(cr, cheFlavor),
 		CheWorkspacePluginBrokerUnifiedImage: DefaultCheWorkspacePluginBrokerUnifiedImage(cr, cheFlavor),
 		CheServerSecureExposerJwtProxyImage:  DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
-		CheMetricsEnabled:      cheMetrics,
+		CheMetricsEnabled:                    cheMetrics,
 	}
 
 	out, err := json.Marshal(data)
