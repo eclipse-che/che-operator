@@ -25,6 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strings"
 	"time"
+	"bytes"
+	"fmt"
 )
 
 
@@ -59,6 +61,14 @@ func GeneratePasswd(stringLength int) (passwd string) {
 	}
 	passwd = string(buf)
 	return passwd
+}
+
+func MapToKeyValuePairs(m map[string]string) string {
+	buff := new(bytes.Buffer)
+	for key, value := range m {
+		fmt.Fprintf(buff, "%s=%s,", key, value)
+	}
+	return strings.TrimSuffix(buff.String(), ",")
 }
 
 func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
