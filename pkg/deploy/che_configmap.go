@@ -67,7 +67,7 @@ type CheConfigMap struct {
 	CheWorkspacePluginBrokerInitImage    string `json:"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE,omitempty"`
 	CheWorkspacePluginBrokerUnifiedImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage  string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
-	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABEL,omitempty"`
+	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
