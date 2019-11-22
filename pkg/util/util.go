@@ -12,6 +12,7 @@
 package util
 
 import (
+	"sort"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -65,8 +66,16 @@ func GeneratePasswd(stringLength int) (passwd string) {
 
 func MapToKeyValuePairs(m map[string]string) string {
 	buff := new(bytes.Buffer)
-	for key, value := range m {
-		fmt.Fprintf(buff, "%s=%s,", key, value)
+	keys := make([]string, 0, len(m))
+
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys) //sort keys alphabetically
+
+	for _, key := range keys {
+		fmt.Fprintf(buff, "%s=%s,", key, m[key])
 	}
 	return strings.TrimSuffix(buff.String(), ",")
 }
