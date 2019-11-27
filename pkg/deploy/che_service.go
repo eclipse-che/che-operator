@@ -6,11 +6,11 @@ import (
 	"strconv"
 )
 
-type ServiceCreator interface {
-	CreateService(cr *orgv1.CheCluster, service *corev1.Service) error
+type ServiceWriter interface {
+	CreateService(cr *orgv1.CheCluster, service *corev1.Service, updateIfExists bool) error
 }
 
-func NewCheService(instance *orgv1.CheCluster, cheLabels map[string]string, r ServiceCreator) (*corev1.Service, error) {
+func NewCheService(instance *orgv1.CheCluster, cheLabels map[string]string, r ServiceWriter) (*corev1.Service, error) {
 	portNames := []string{"http"}
 	portPorts := []int32{8080}
 	if instance.Spec.Metrics.Enable {
@@ -24,7 +24,7 @@ func NewCheService(instance *orgv1.CheCluster, cheLabels map[string]string, r Se
 		portPorts = append(portPorts, int32(metricsPort))
 	}
 	cheService := NewService(instance, "che-host", portNames, portPorts, cheLabels)
-	if err := r.CreateService(instance, cheService); err != nil {
+	if err := r.CreateService(instance, cheService, true); err != nil {
 		return nil, err
 	}
 	return cheService, nil

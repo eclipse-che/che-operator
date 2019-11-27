@@ -436,7 +436,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Create a new postgres service
 		postgresLabels := deploy.GetLabels(instance, "postgres")
 		postgresService := deploy.NewService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
-		if err := r.CreateService(instance, postgresService); err != nil {
+		if err := r.CreateService(instance, postgresService, false); err != nil {
 			return reconcile.Result{}, err
 		}
 		// Create a new Postgres PVC object
@@ -575,7 +575,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !ExternalKeycloak {
 		keycloakLabels := deploy.GetLabels(instance, "keycloak")
 		keycloakService := deploy.NewService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
-		if err := r.CreateService(instance, keycloakService); err != nil {
+		if err := r.CreateService(instance, keycloakService, false); err != nil {
 			return reconcile.Result{}, err
 		}
 		// create Keycloak ingresses when on k8s
@@ -740,7 +740,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Create a new registry service
 		registryLabels := deploy.GetLabels(instance, registryName)
 		registryService := deploy.NewService(instance, registryName, []string{"http"}, []int32{8080}, registryLabels)
-		if err := r.CreateService(instance, registryService); err != nil {
+		if err := r.CreateService(instance, registryService, true); err != nil {
 			return &reconcile.Result{}, err
 		}
 		// Create a new registry deployment

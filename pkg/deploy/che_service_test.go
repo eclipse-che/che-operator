@@ -10,14 +10,14 @@ import (
 type DummyServiceCreator struct {
 }
 
-func (s *DummyServiceCreator) CreateService(cr *orgv1.CheCluster, service *corev1.Service) error {
+func (s *DummyServiceCreator) CreateService(cr *orgv1.CheCluster, service *corev1.Service, updateIfExists bool) error {
 	return nil
 }
 
 type DummyFailingServiceCreator struct {
 }
 
-func (s *DummyFailingServiceCreator) CreateService(cr *orgv1.CheCluster, service *corev1.Service) error {
+func (s *DummyFailingServiceCreator) CreateService(cr *orgv1.CheCluster, service *corev1.Service, updateIfExists bool) error {
 	return fmt.Errorf("dummy error")
 }
 
