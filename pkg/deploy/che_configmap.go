@@ -14,13 +14,13 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"strconv"
 )
 
 func addMap(a map[string]string, b map[string]string) {
@@ -36,6 +36,7 @@ type CheConfigMap struct {
 	CheApi                               string `json:"CHE_API"`
 	CheWebSocketEndpoint                 string `json:"CHE_WEBSOCKET_ENDPOINT"`
 	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
+	CheMetricsEnabled                    string `json:"CHE_METRICS_ENABLED"`
 	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
@@ -148,6 +149,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	pluginRegistryUrl := cr.Status.PluginRegistryURL
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
+	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)))
 
 	data := &CheConfigMap{
@@ -189,6 +191,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheWorkspacePluginBrokerUnifiedImage: DefaultCheWorkspacePluginBrokerUnifiedImage(cr, cheFlavor),
 		CheServerSecureExposerJwtProxyImage:  DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
 		CheJGroupsKubernetesLabels:           cheLabels,
+		CheMetricsEnabled:                    cheMetrics,
 	}
 
 	out, err := json.Marshal(data)
