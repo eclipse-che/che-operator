@@ -80,7 +80,7 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 		t.Error("expected 2 ports")
 	}
 	checkPort(ports[0], "http", 8080, t)
-	checkPort(ports[1], "metrics", 8087, t)
+	checkPort(ports[1], "metrics", DefaultCheMetricsPort, t)
 }
 
 func TestFailWhenCantCreateService(t *testing.T) {
