@@ -25,6 +25,7 @@ const (
 	defaultCheServerImageTag            = "7.4.0"
 	defaultCodeReadyServerImageTag      = "2.0"
 	DefaultCheFlavor                    = "che"
+	DefaultCheTargetNamespaceFormat		= "<username>-%s"	// %s - cheFlavor
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
 	DefaultChePostgresPort              = "5432"

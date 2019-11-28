@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -39,6 +40,7 @@ type CheConfigMap struct {
 	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceAllowUserDefined            string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
 	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                         string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
@@ -85,12 +87,12 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if isOpenShift {
 		infra = "openshift"
 	}
-	defaultTargetNamespace := cr.Namespace
+	defaultTargetNamespace := util.GetValue(cr.Spec.Server.CheInfraNamespaceDefault, fmt.Sprintf(DefaultCheTargetNamespaceFormat, cheFlavor))
+	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.CheInfraNamespaceAllowUserDefined)
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
 	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
 	if openshiftOAuth && isOpenShift {
-		defaultTargetNamespace = "<username>-" + cheFlavor
 		openShiftIdentityProviderId = "openshift-v3"
 		if isOpenshift4 {
 			openShiftIdentityProviderId = "openshift-v4"
@@ -161,6 +163,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
 		DefaultTargetNamespace:               defaultTargetNamespace,
+		NamespaceAllowUserDefined:            namespaceAllowUserDefined,
 		PvcStrategy:                          pvcStrategy,
 		PvcClaimSize:                         pvcClaimSize,
 		WorkspacePvcStorageClassName:         workspacePvcStorageClassName,
