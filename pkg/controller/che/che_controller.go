@@ -436,7 +436,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Create a new postgres service
 		postgresLabels := deploy.GetLabels(instance, "postgres")
 		postgresService := deploy.NewService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
-		if err := r.CreateService(instance, postgresService); err != nil {
+		if err := r.CreateService(instance, postgresService, false); err != nil {
 			return reconcile.Result{}, err
 		}
 		// Create a new Postgres PVC object
@@ -529,8 +529,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create Che service and route
 	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
 
-	cheService := deploy.NewService(instance, "che-host", []string{"http", "metrics"}, []int32{8080, 8087}, cheLabels)
-	if err := r.CreateService(instance, cheService); err != nil {
+	if _, err := deploy.NewCheService(instance, cheLabels, r); err != nil {
 		return reconcile.Result{}, err
 	}
 	if !isOpenShift {
@@ -576,7 +575,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !ExternalKeycloak {
 		keycloakLabels := deploy.GetLabels(instance, "keycloak")
 		keycloakService := deploy.NewService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
-		if err := r.CreateService(instance, keycloakService); err != nil {
+		if err := r.CreateService(instance, keycloakService, false); err != nil {
 			return reconcile.Result{}, err
 		}
 		// create Keycloak ingresses when on k8s
@@ -741,7 +740,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Create a new registry service
 		registryLabels := deploy.GetLabels(instance, registryName)
 		registryService := deploy.NewService(instance, registryName, []string{"http"}, []int32{8080}, registryLabels)
-		if err := r.CreateService(instance, registryService); err != nil {
+		if err := r.CreateService(instance, registryService, true); err != nil {
 			return &reconcile.Result{}, err
 		}
 		// Create a new registry deployment

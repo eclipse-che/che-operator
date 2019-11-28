@@ -24,20 +24,27 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: The `CheCluster` custom resource allows defining and managing a
+        Che server installation
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
+          description: Desired configuration of the Che installation. Based on these
+            settings, the operator automatically creates and maintains several config
+            maps that will contain the appropriate environment variables the various
+            components of the Che installation. These generated config maps should
+            NOT be updated manually.
           properties:
             auth:
               description: Configuration settings related to the Authentication used
@@ -208,6 +215,14 @@ spec:
                     TLS termination if TLS is enabled. See also the `tlsSupport` field.
                   type: string
               type: object
+            metrics:
+              description: Configuration settings related to the metrics collection
+                used by the Che installation.
+              properties:
+                enable:
+                  description: Enables `metrics` Che server endpoint.
+                  type: boolean
+              type: object
             server:
               description: General configuration settings related to the Che server
                 and the plugin and devfile registries
@@ -343,8 +358,8 @@ spec:
                     default this will be automatically calculated by the operator.
                   type: string
                 proxyPassword:
-                  description: Password of the proxy server  Only use when proxy configuration
-                    is required (see also the `proxyUser` field).
+                  description: "Password of the proxy server \n Only use when proxy
+                    configuration is required (see also the `proxyUser` field)."
                   type: string
                 proxyPort:
                   description: Port of the proxy server. Only use when configuring
@@ -423,6 +438,7 @@ spec:
               type: object
           type: object
         status:
+          description: CheClusterStatus defines the observed state of Che installation
           properties:
             cheClusterRunning:
               description: Status of a Che installation. Can be `Available`, `Unavailable`,
@@ -469,8 +485,9 @@ spec:
                 the pod is in this state.
               type: string
           type: object
+      type: object
   version: v1
   versions:
-  - name: v1
-    served: true
-    storage: true
+    - name: v1
+      served: true
+      storage: true

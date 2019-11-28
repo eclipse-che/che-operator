@@ -43,3 +43,15 @@ func NewService(cr *orgv1.CheCluster, name string, portName []string, portNumber
 		},
 	}
 }
+
+// Writes only mutable fields from `in` into `out` service.
+//
+// This is useful when doing service update, because we have to get existing service,
+// update just mutable fields and leave the rest as is.
+//
+// Be aware that function is not doing any copy/deepcopy.
+func MergeServices(out *corev1.Service, in *corev1.Service) {
+	out.ObjectMeta.Labels = in.ObjectMeta.Labels
+	out.Spec.Ports = in.Spec.Ports
+	out.Spec.Selector = in.Spec.Selector
+}

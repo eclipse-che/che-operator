@@ -119,8 +119,7 @@ spec:
     # FSGroup the Che POD and Workspace pod containers should run in  
     securityContextFsGroup: '' 
     # User the Che POD and Workspace pod containers should run as  
-    securityContextRunAsUser: '' 
-
-
-
-
+    securityContextRunAsUser: ''
+  metrics:
+    # Enables '/metrics' endpoint of Che server.
+    enable: false
