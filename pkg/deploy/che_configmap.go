@@ -14,14 +14,14 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"strconv"
 )
 
 func addMap(a map[string]string, b map[string]string) {

@@ -478,8 +478,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				effectiveImagePullPolicy != desiredImagePullPolicy {
 				newPostgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
 				logrus.Infof(`Updating Postgres deployment with:
-		- Docker Image: %s => %s
-		- Image Pull Policy: %s => %s`,
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s`,
 					effectiveImage, desiredImage,
 					effectiveImagePullPolicy, desiredImagePullPolicy,
 				)
@@ -660,10 +660,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				openshiftApiCertSecretVersion != storedOpenshiftApiCertSecretVersion {
 				newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
 				logrus.Infof(`Updating Keycloak deployment with:
-		- Docker Image: %s => %s
-		- Image Pull Policy: %s => %s
-		- Self-Signed Certificate Version: %s => %s
-		- OpenShift API Certificate Version: %s => %s`,
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s
+	- Self-Signed Certificate Version: %s => %s
+	- OpenShift API Certificate Version: %s => %s`,
 					effectiveImage, desiredImage,
 					effectiveImagePullPolicy, desiredImagePullPolicy,
 					cheCertSecretVersion, storedCheCertSecretVersion,
@@ -803,10 +803,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					probePath,
 				)
 				logrus.Infof(`Updating %s registry deployment with:
-		- Docker Image: %s => %s
-		- Image Pull Policy: %s => %s
-		- Memory Request: %s => %s
-		- Memory Limit: %s => %s`, registryType,
+	- Docker Image: %s => %s
+	- Image Pull Policy: %s => %s
+	- Memory Request: %s => %s
+	- Memory Limit: %s => %s`, registryType,
 					effectiveRegistryImage, registryImage,
 					effectiveRegistryImagePullPolicy, registryImagePullPolicy,
 					effectiveMemRequest.String(), desiredMemRequest.String(),
@@ -1170,10 +1170,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			logrus.Errorf("An error occurred: %s", err)
 		}
 		logrus.Infof(`Updating deployment %s with:
-		- Memory Request: %s => %s
-		- Memory Limit: %s => %s
-		- Image Pull Policy: %s => %s
-		- Self-Signed Cert: %t => %t`,
+	- Memory Request: %s => %s
+	- Memory Limit: %s => %s
+	- Image Pull Policy: %s => %s
+	- Self-Signed Cert: %t => %t`,
 			cheDeployment.Name,
 			effectiveMemRequest.String(), desiredMemRequest.String(),
 			effectiveMemLimit.String(), desiredMemLimit.String(),
