@@ -14,7 +14,6 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
