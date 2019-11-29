@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewRole(cr *orgv1.CheCluster, name string, apiGroups []string, resources []string, verbs []string) *rbac.Role {
+func NewRole(cr *orgv1.CheCluster, name string, resources []string, verbs []string) *rbac.Role {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	return &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
@@ -32,7 +32,9 @@ func NewRole(cr *orgv1.CheCluster, name string, apiGroups []string, resources []
 		},
 		Rules: []rbac.PolicyRule{
 			{
-				APIGroups: apiGroups,
+				APIGroups: []string{
+					"",
+				},
 				Resources: resources,
 				Verbs:     verbs,
 			},
@@ -40,23 +42,5 @@ func NewRole(cr *orgv1.CheCluster, name string, apiGroups []string, resources []
 	}
 }
 
-func NewClusterRole(cr *orgv1.CheCluster, name string, apiGroups []string, resources []string, verbs []string) *rbac.ClusterRole {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
-	return &rbac.ClusterRole{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ClusterRole",
-			APIVersion: rbac.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Labels:    labels,
-		},
-		Rules: []rbac.PolicyRule{
-			{
-				APIGroups: apiGroups,
-				Resources: resources,
-				Verbs:     verbs,
-			},
-		},
-	}
-}
+
+
