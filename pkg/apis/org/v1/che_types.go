@@ -105,9 +105,8 @@ type CheClusterSpecServer struct {
 	// Is used by OpenShift infra as well to specify Project
 	// +optional
 	CheNamespaceDefault string `json:"cheNamespaceDefault,omitempty"`
-	// Defines if a user is able to specify Kubernetes namespace different from default.
-	// It's NOT RECOMMENDED to configured true without OAuth configured.
-	// Is used by OpenShift infra as well to allows users choose Project
+	// Defines if a user is able to specify Kubernetes namespace (or OpenShift project) different from the default.
+	// It's NOT RECOMMENDED to configured true without OAuth configured. This property is also used by the OpenShift infra.
 	// +optional
 	CheNamespaceAllowUserDefined bool `json:"cheNamespaceAllowUserDefined"`
 	// Enables the support of OpenShift clusters whose router uses self-signed certificates.

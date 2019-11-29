@@ -430,7 +430,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"cheNamespaceAllowUserDefined": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Defines if a user is able to specify Kubernetes namespace different from default. It's NOT RECOMMENDED to configured true without OAuth configured. Is used by OpenShift infra as well to allows users choose Project",
+							Description: "Defines if a user is able to specify Kubernetes namespace (or OpenShift project) different from the default. It's NOT RECOMMENDED to configured true without OAuth configured. This property is also used by the OpenShift infra.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
