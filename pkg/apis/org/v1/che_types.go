@@ -100,10 +100,10 @@ type CheClusterSpecServer struct {
 	CheWorkspaceClusterRole string `json:"cheWorkspaceClusterRole,omitempty"`
 	// TODO: doc
 	// +optional
-	CheInfraNamespaceDefault string `json:"cheInfraNamespaceDefault,omitempty"`
+	CheNamespaceDefault string `json:"cheNamespaceDefault,omitempty"`
 	// TODO: doc
 	// +optional
-	CheInfraNamespaceAllowUserDefined bool `json:"cheInfraNamespaceAllowUserDefined"`
+	CheNamespaceAllowUserDefined bool `json:"cheNamespaceAllowUserDefined"`
 	// Enables the support of OpenShift clusters whose router uses self-signed certificates.
 	// When enabled, the operator retrieves the default self-signed certificate of OpenShift routes
 	// and adds it to the Java trust store of the Che server.
