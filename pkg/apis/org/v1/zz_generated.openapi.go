@@ -423,14 +423,16 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"cheNamespaceDefault": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Defines Kubernetes default namespace in which user's workspaces are created if user does not override it. It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>). In that case, new namespace will be created for each user (or workspace). Is used by OpenShift infra as well to specify Project",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"cheNamespaceAllowUserDefined": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
+							Description: "Defines if a user is able to specify Kubernetes namespace different from default. It's NOT RECOMMENDED to configured true without OAuth configured. Is used by OpenShift infra as well to allows users choose Project",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 					"selfSignedCert": {
