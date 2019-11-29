@@ -205,7 +205,7 @@ func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthCli
 }
 
 // CreateService creates a service with a given name, port, selector and labels
-func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, service *corev1.Service) error {
+func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, service *corev1.Service, updateIfExists bool) error {
 	if err := controllerutil.SetControllerReference(cr, service, r.scheme); err != nil {
 		logrus.Errorf("An error occurred %s", err)
 		return err
@@ -223,6 +223,12 @@ func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, service *corev1.Servi
 	} else if err != nil {
 		logrus.Errorf("An error occurred %s", err)
 		return err
+	} else if updateIfExists {
+		deploy.MergeServices(serviceFound, service)
+		if err := r.client.Update(context.TODO(), serviceFound); err != nil {
+			logrus.Errorf("Failed to update %s %s: %s", service.Kind, service.Name, err)
+			return err
+		}
 	}
 	return nil
 }

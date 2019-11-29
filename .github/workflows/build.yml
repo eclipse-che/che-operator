@@ -8,15 +8,14 @@
 #
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: che-operator
-subjects:
-  - kind: ServiceAccount
-    name: che-operator
-    namespace: che
-roleRef:
-  kind: ClusterRole
-  name: che-operator
-  apiGroup: rbac.authorization.k8s.io
+name: Docker
+on: [pull_request, push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build the Docker image
+      run: docker build .
