@@ -421,13 +421,13 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"cheInfraNamespaceDefault": {
+					"cheNamespaceDefault": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
 						},
 					},
-					"cheInfraNamespaceAllowUserDefined": {
+					"cheNamespaceAllowUserDefined": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},
 							Format: "",
