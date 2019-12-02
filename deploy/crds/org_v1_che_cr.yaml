@@ -51,9 +51,9 @@ spec:
     # sets mem limit for server deployment. Defaults to 1Gi
     serverMemoryLimit: ''
     # sets default namespace where new workspaces will be created
-    cheNamespaceDefault: ''
+    workspaceNamespaceDefault: ''
     # defines if user is able to specify namespace different from the default
-    cheNamespaceAllowUserDefined: false
+    allowUserDefinedWorkspaceNamespaces: false
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
     # otherwise a Postgres deployment is created

@@ -87,8 +87,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if isOpenShift {
 		infra = "openshift"
 	}
-	defaultTargetNamespace := util.GetValue(cr.Spec.Server.CheNamespaceDefault, cr.Namespace)
-	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.CheNamespaceAllowUserDefined)
+	defaultTargetNamespace := util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, cr.Namespace)
+	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
 	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
