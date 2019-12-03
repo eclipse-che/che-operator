@@ -376,48 +376,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create service accounts:
-	// che is the one which token is used to create workspace objects
-	// che-workspace is SA used by plugins like exec and terminal with limited privileges
-	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
-	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
+	if err := createServiceAccounts(instance, r); err != nil {
 		return reconcile.Result{}, err
-	}
-	workspaceServiceAccount := deploy.NewServiceAccount(instance, "che-workspace")
-	if err := r.CreateServiceAccount(instance, workspaceServiceAccount); err != nil {
-		return reconcile.Result{}, err
-	}
-	// create exec and view roles for CheCluster server and workspaces
-	execRole := deploy.NewRole(instance, "exec", []string{"pods/exec"}, []string{"*"})
-	if err := r.CreateNewRole(instance, execRole); err != nil {
-		return reconcile.Result{}, err
-	}
-	viewRole := deploy.NewRole(instance, "view", []string{"pods"}, []string{"list"})
-	if err := r.CreateNewRole(instance, viewRole); err != nil {
-		return reconcile.Result{}, err
-	}
-	// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-	cheRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, "edit", "ClusterRole")
-	if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
-		return reconcile.Result{}, err
-	}
-	execRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-exec", workspaceServiceAccount.Name, execRole.Name, "Role")
-	if err = r.CreateNewRoleBinding(instance, execRoleBinding); err != nil {
-		return reconcile.Result{}, err
-	}
-	viewRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-view", workspaceServiceAccount.Name, viewRole.Name, "Role")
-	if err := r.CreateNewRoleBinding(instance, viewRoleBinding); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
-	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
-	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
-	if workspaceClusterRole != "" {
-		customRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-custom", workspaceServiceAccount.Name, workspaceClusterRole, "ClusterRole")
-		if err = r.CreateNewRoleBinding(instance, customRoleBinding); err != nil {
-			return reconcile.Result{}, err
-		}
 	}
 
 	if err := r.GenerateAndSaveFields(instance, request); err != nil {
@@ -1186,6 +1146,54 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 	return reconcile.Result{}, nil
+}
+
+// creates `che` serviceaccount with needed permissions
+func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
+	// create service accounts:
+	// che is the one which token is used to create workspace objects
+	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
+	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
+		return err
+	}
+
+	// this role is needed to manage che-workspace serviceaccount inside che namespace
+	cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
+		{
+			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+			Resources: []string{"roles"},
+			Verbs:     []string{"get", "create"},
+		},
+		{
+			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "update", "create"},
+		},
+	})
+	if err := r.CreateNewRole(instance, cheRole); err != nil {
+		return err
+	}
+	cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "Role")
+	if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
+		return err
+	}
+
+	// create RoleBindings for created (and existing ClusterRole) roles and service accounts
+	cheRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, "edit", "ClusterRole")
+	if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
+		return err
+	}
+
+
+	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
+	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
+	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
+	if workspaceClusterRole != "" {
+		// TODO: set configmap variable
+		logrus.Info("TODO: set configmap variable")
+	}
+
+	return nil
 }
 
 func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCluster, r *ReconcileChe) error {
