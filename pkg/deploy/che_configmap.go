@@ -40,6 +40,7 @@ type CheConfigMap struct {
 	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceAllowUserDefined            string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
 	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                         string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
@@ -86,7 +87,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if isOpenShift {
 		infra = "openshift"
 	}
-	defaultTargetNamespace := cr.Namespace
+	defaultTargetNamespace := util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, cr.Namespace)
+	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
 	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
@@ -163,6 +165,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
 		DefaultTargetNamespace:               defaultTargetNamespace,
+		NamespaceAllowUserDefined:            namespaceAllowUserDefined,
 		PvcStrategy:                          pvcStrategy,
 		PvcClaimSize:                         pvcClaimSize,
 		WorkspacePvcStorageClassName:         workspacePvcStorageClassName,
