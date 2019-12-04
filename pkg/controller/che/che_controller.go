@@ -380,6 +380,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
+	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
+	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
+	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
+	if workspaceClusterRole != "" {
+		// TODO: set configmap variable
+		logrus.Info("TODO: set configmap variable")
+	}
+
 	if err := r.GenerateAndSaveFields(instance, request); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -1157,40 +1165,33 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 		return err
 	}
 
-	// this role is needed to manage che-workspace serviceaccount inside che namespace
-	cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
-		{
-			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-			Resources: []string{"roles"},
-			Verbs:     []string{"get", "create"},
-		},
-		{
-			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "update", "create"},
-		},
-	})
-	if err := r.CreateNewRole(instance, cheRole); err != nil {
-		return err
-	}
-	cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "Role")
-	if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
-		return err
-	}
+	if !instance.Spec.Auth.OpenShiftoAuth {
+		// this role is needed to manage che-workspace serviceaccount inside che namespace
+		cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
+			{
+				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+				Resources: []string{"roles"},
+				Verbs:     []string{"get", "create"},
+			},
+			{
+				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+				Resources: []string{"rolebindings"},
+				Verbs:     []string{"get", "update", "create"},
+			},
+		})
+		if err := r.CreateNewRole(instance, cheRole); err != nil {
+			return err
+		}
+		cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "Role")
+		if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
+			return err
+		}
 
-	// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-	cheRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, "edit", "ClusterRole")
-	if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
-		return err
-	}
-
-
-	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
-	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
-	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
-	if workspaceClusterRole != "" {
-		// TODO: set configmap variable
-		logrus.Info("TODO: set configmap variable")
+		// create RoleBindings for created (and existing ClusterRole) roles and service accounts
+		cheRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, "edit", "ClusterRole")
+		if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
+			return err
+		}
 	}
 
 	return nil
