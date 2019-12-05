@@ -11,12 +11,12 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: che-operator
+  name: che-operator-edit
 subjects:
   - kind: ServiceAccount
     name: che-operator
     namespace: che
 roleRef:
   kind: ClusterRole
-  name: che-operator
+  name: edit
   apiGroup: rbac.authorization.k8s.io

@@ -1166,8 +1166,7 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 	}
 
 	if !instance.Spec.Auth.OpenShiftoAuth {
-		// this role is needed to manage che-workspace serviceaccount inside che namespace
-		cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
+		rules := []rbac.PolicyRule{
 			{
 				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
 				Resources: []string{"roles"},
@@ -1178,18 +1177,32 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 				Resources: []string{"rolebindings"},
 				Verbs:     []string{"get", "update", "create"},
 			},
-		})
-		if err := r.CreateNewRole(instance, cheRole); err != nil {
-			return err
 		}
-		cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "Role")
-		if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
-			return err
+		if instance.Namespace == instance.Spec.Server.WorkspaceNamespaceDefault {
+			// this role is needed to manage che-workspace serviceaccount inside che namespace
+			cheRole := deploy.NewRole(instance, "che", rules)
+			if err := r.CreateNewRole(instance, cheRole); err != nil {
+				return err
+			}
+			cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "Role")
+			if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
+				return err
+			}
+		} else {
+			// this role is needed to manage che-workspace serviceaccount inside che namespace
+			cheRole := deploy.NewClusterRole(instance, "che", rules)
+			if err := r.CreateNewClusterRole(instance, cheRole); err != nil {
+				return err
+			}
+			cheExecrolesRoleBinding := deploy.NewClusterRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "ClusterRole")
+			if err := r.CreateNewClusterRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
+				return err
+			}
 		}
 
 		// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-		cheRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, "edit", "ClusterRole")
-		if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
+		cheRoleBinding := deploy.NewClusterRoleBinding(instance, "che-edit", cheServiceAccount.Name, "edit", "ClusterRole")
+		if err := r.CreateNewClusterRoleBinding(instance, cheRoleBinding); err != nil {
 			return err
 		}
 	}

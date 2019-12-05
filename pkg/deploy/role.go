@@ -33,3 +33,18 @@ func NewRole(cr *orgv1.CheCluster, name string, rules []rbac.PolicyRule) *rbac.R
 		Rules: rules,
 	}
 }
+
+func NewClusterRole(cr *orgv1.CheCluster, name string, rules []rbac.PolicyRule) *rbac.ClusterRole {
+	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+	return &rbac.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRole",
+			APIVersion: rbac.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Labels:    labels,
+		},
+		Rules: rules,
+	}
+}

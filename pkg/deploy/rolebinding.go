@@ -45,3 +45,28 @@ func NewRoleBinding(cr *orgv1.CheCluster, name string, serviceAccountName string
 	}
 }
 
+func NewClusterRoleBinding(cr *orgv1.CheCluster, name string, serviceAccountName string, roleName string, roleKind string) *rbac.ClusterRoleBinding {
+	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+	return &rbac.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRoleBinding",
+			APIVersion: rbac.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Labels:    labels,
+		},
+		Subjects: []rbac.Subject{
+			{
+				Kind:      rbac.ServiceAccountKind,
+				Name:      serviceAccountName,
+				Namespace: cr.Namespace,
+			},
+		},
+		RoleRef: rbac.RoleRef{
+			Name:     roleName,
+			Kind:     roleKind,
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+}

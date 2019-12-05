@@ -117,6 +117,28 @@ func (r *ReconcileChe) CreateNewRole(instance *orgv1.CheCluster, role *rbac.Role
 	return nil
 }
 
+func (r *ReconcileChe) CreateNewClusterRole(instance *orgv1.CheCluster, role *rbac.ClusterRole) error {
+	// TODO: this cause error with finishers. Can we fix it or do we have to remove it?
+	//if err := controllerutil.SetControllerReference(instance, role, r.scheme); err != nil {
+	//	return err
+	//}
+	roleFound := &rbac.ClusterRole{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: role.Name}, roleFound)
+	if err != nil && errors.IsNotFound(err) {
+		logrus.Infof("Creating a new object: %s, name: %s", role.Kind, role.Name)
+		err = r.client.Create(context.TODO(), role)
+		if err != nil {
+			logrus.Errorf("Failed to create %s %s: %s", role.Name, role.Kind, err)
+			return err
+		}
+		return nil
+	} else if err != nil {
+		logrus.Errorf("An error occurred: %s", err)
+		return err
+	}
+	return nil
+}
+
 func (r *ReconcileChe) CreateNewIngress(instance *orgv1.CheCluster, ingress *v1beta1.Ingress) error {
 	if err := controllerutil.SetControllerReference(instance, ingress, r.scheme); err != nil {
 		logrus.Errorf("An error occurred %s", err)
@@ -260,6 +282,28 @@ func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBind
 	}
 	roleBindingFound := &rbac.RoleBinding{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: roleBinding.Name, Namespace: roleBinding.Namespace}, roleBindingFound)
+	if err != nil && errors.IsNotFound(err) {
+		logrus.Infof("Creating a new object: %s, name: %s", roleBinding.Kind, roleBinding.Name)
+		err = r.client.Create(context.TODO(), roleBinding)
+		if err != nil {
+			logrus.Errorf("Failed to create %s %s: %s", roleBinding.Name, roleBinding.Kind, err)
+			return err
+		}
+		return nil
+	} else if err != nil {
+		logrus.Errorf("An error occurred: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (r *ReconcileChe) CreateNewClusterRoleBinding(instance *orgv1.CheCluster, roleBinding *rbac.ClusterRoleBinding) error {
+	// TODO: this cause error with finishers. Can we fix it or do we have to remove it?
+	//if err := controllerutil.SetControllerReference(instance, roleBinding, r.scheme); err != nil {
+	//	return err
+	//}
+	roleBindingFound := &rbac.ClusterRoleBinding{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: roleBinding.Name}, roleBindingFound)
 	if err != nil && errors.IsNotFound(err) {
 		logrus.Infof("Creating a new object: %s, name: %s", roleBinding.Kind, roleBinding.Name)
 		err = r.client.Create(context.TODO(), roleBinding)
