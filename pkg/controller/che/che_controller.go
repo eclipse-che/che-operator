@@ -1166,22 +1166,21 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 	}
 
 	if !instance.Spec.Auth.OpenShiftoAuth {
-		rules := []rbac.PolicyRule{
-			{
-				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-				Resources: []string{"roles"},
-				Verbs:     []string{"get", "create"},
-			},
-			{
-				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-				Resources: []string{"rolebindings"},
-				Verbs:     []string{"get", "update", "create"},
-			},
-		}
 
 		if instance.Namespace == instance.Spec.Server.WorkspaceNamespaceDefault {
 			// this role is needed to manage che-workspace serviceaccount inside che namespace
-			cheRole := deploy.NewRole(instance, "che", rules)
+			cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
+				{
+					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+					Resources: []string{"roles"},
+					Verbs:     []string{"get", "create"},
+				},
+				{
+					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+					Resources: []string{"rolebindings"},
+					Verbs:     []string{"get", "update", "create"},
+				},
+			})
 			if err := r.CreateNewRole(instance, cheRole); err != nil {
 				return err
 			}
