@@ -1,0 +1,14 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: che-create-namespaces
+  labels:
+    app: che
+    component: che
+rules:
+  - verbs:
+      - create
+    apiGroups:
+      - project.openshift.io
+    resources:
+      - projectrequests

@@ -1,0 +1,132 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: che
+  labels:
+    app: che
+    component: che
+rules:
+  - verbs:
+      - get
+      - create
+    apiGroups:
+      - authorization.openshift.io
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+  - verbs:
+      - get
+      - update
+      - create
+    apiGroups:
+      - authorization.openshift.io
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+  - verbs:
+      - get
+    apiGroups:
+      - project.openshift.io
+    resources:
+      - projects
+  - verbs:
+      - get
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - serviceaccounts
+  - verbs:
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - pods/exec
+  - verbs:
+      - list
+    apiGroups:
+      - ''
+    resources:
+      - persistentvolumeclaims
+      - configmaps
+  - verbs:
+      - list
+    apiGroups:
+      - apps
+    resources:
+      - secrets
+  - verbs:
+      - list
+      - create
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - secrets
+  - verbs:
+      - create
+      - get
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - persistentvolumeclaims
+  - verbs:
+      - get
+      - list
+      - create
+      - watch
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - pods
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - watch
+      - delete
+    apiGroups:
+      - apps
+    resources:
+      - deployments
+  - verbs:
+      - list
+      - create
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - services
+  - verbs:
+      - create
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
+      - list
+      - create
+      - delete
+    apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
+  - verbs:
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - events
+  - verbs:
+      - list
+      - get
+      - patch
+      - delete
+    apiGroups:
+      - apps
+    resources:
+      - replicasets

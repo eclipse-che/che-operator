@@ -1178,32 +1178,37 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 				Verbs:     []string{"get", "update", "create"},
 			},
 		}
+
 		if instance.Namespace == instance.Spec.Server.WorkspaceNamespaceDefault {
 			// this role is needed to manage che-workspace serviceaccount inside che namespace
 			cheRole := deploy.NewRole(instance, "che", rules)
 			if err := r.CreateNewRole(instance, cheRole); err != nil {
 				return err
 			}
-			cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "Role")
+			cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, cheRole.Name, "Role")
 			if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
 				return err
 			}
-		} else {
-			// this role is needed to manage che-workspace serviceaccount inside che namespace
-			cheRole := deploy.NewClusterRole(instance, "che", rules)
-			if err := r.CreateNewClusterRole(instance, cheRole); err != nil {
-				return err
-			}
-			cheExecrolesRoleBinding := deploy.NewClusterRoleBinding(instance, "che-che", cheServiceAccount.Name, cheRole.Name, "ClusterRole")
-			if err := r.CreateNewClusterRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
-				return err
-			}
-		}
 
-		// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-		cheRoleBinding := deploy.NewClusterRoleBinding(instance, "che-edit", cheServiceAccount.Name, "edit", "ClusterRole")
-		if err := r.CreateNewClusterRoleBinding(instance, cheRoleBinding); err != nil {
-			return err
+			// create RoleBindings for created (and existing ClusterRole) roles and service accounts
+			cheRoleBinding := deploy.NewRoleBinding(instance, "che-edit", cheServiceAccount.Name, "edit", "ClusterRole")
+			if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
+				return err
+			}
+		} else {
+			// this binding is needed to create new namespaces for workspaces
+			// `che` ClusterRole should be created during che-operator deploy
+			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, "che-create-namespaces", cheServiceAccount.Name, "che-create-namespaces", "ClusterRole")
+			if err := r.CreateNewClusterRoleBinding(instance, cheCreateNamespaceRoleBinding); err != nil {
+				return err
+			}
+
+			// this binding is needed to manage che workspaces out of che namespace
+			// `che` ClusterRole should be created during che-operator deploy
+			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, "che", cheServiceAccount.Name, "che", "ClusterRole")
+			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
+				return err
+			}
 		}
 	}
 
