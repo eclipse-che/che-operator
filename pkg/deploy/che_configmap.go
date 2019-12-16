@@ -70,6 +70,7 @@ type CheConfigMap struct {
 	CheWorkspacePluginBrokerUnifiedImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage  string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
 	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
+	CheClusterRole                       string `json:"CHE_INFRA_KUBERNETES_CLUSTER__ROLE__NAME"`
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -153,6 +154,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)))
+	cheWorkspaceClusterRole := util.GetValue(cr.Spec.Server.CheWorkspaceClusterRole, "")
 
 	data := &CheConfigMap{
 		CheMultiUser:                         "true",
@@ -195,6 +197,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheServerSecureExposerJwtProxyImage:  DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
 		CheJGroupsKubernetesLabels:           cheLabels,
 		CheMetricsEnabled:                    cheMetrics,
+		CheClusterRole:                       cheWorkspaceClusterRole,
 	}
 
 	out, err := json.Marshal(data)
