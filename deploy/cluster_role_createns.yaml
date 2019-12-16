@@ -22,3 +22,9 @@ rules:
       - project.openshift.io
     resources:
       - projectrequests
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - create

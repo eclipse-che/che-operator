@@ -42,6 +42,7 @@ rules:
   - verbs:
       - get
       - create
+      - watch
     apiGroups:
       - ''
     resources:
@@ -140,3 +141,19 @@ rules:
       - apps
     resources:
       - replicasets
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - list
+      - create
+      - watch
+      - get
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - namespaces
+    verbs:
+      - get
