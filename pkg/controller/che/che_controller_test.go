@@ -12,8 +12,8 @@
 package che
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"context"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"time"
 
 	console "github.com/openshift/api/console/v1"
@@ -26,7 +26,6 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacapi "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -167,10 +166,8 @@ func TestCheController(t *testing.T) {
 		t.Errorf("Custom config map should be deleted and merged with Che ConfigMap")
 	}
 
-	// Get the custom role binding that should have been created for the role we passed in
-	rb := &rbacapi.RoleBinding{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
-		t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
+	if cm.Data["CHE_INFRA_KUBERNETES_CLUSTER__ROLE__NAME"] != "cluster-admin" {
+		t.Errorf("Custom cluter role not set in configmap")
 	}
 
 	// run a few checks to make sure the operator reconciled tls routes and updated configmap
