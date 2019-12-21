@@ -117,6 +117,7 @@ type CheClusterSpecServer struct {
 	// This is disabled by default.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
+	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Instructs the operator to deploy Che in TLS mode, ie with TLS routes or ingresses.
 	// This is disabled by default.
 	// WARNING: Enabling TLS might require enabling the `selfSignedCert` field also in some cases.
