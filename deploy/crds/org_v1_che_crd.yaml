@@ -390,8 +390,8 @@ spec:
                   type: boolean
                 gitSelfSignedCert:
                   description: If enabled, then the certificate from `che-git-self-signed-cert`
-                  config map will be propagated to the Che components and provide particular
-                  configuration for Git.
+                    config map will be propagated to the Che components and provide particular
+                    configuration for Git.
                   type: boolean
                 serverMemoryLimit:
                   description: Overrides the memory limit used in the Che server deployment.
