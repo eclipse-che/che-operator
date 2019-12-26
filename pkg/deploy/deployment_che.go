@@ -32,7 +32,14 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
-
+	gitSelfSignedCertEnv := corev1.EnvVar{
+        Name:  "CHE_GIT_SELF__SIGNED__CERT",
+        Value: "",
+    }
+    gitSelfSignedCertHostEnv := corev1.EnvVar{
+        Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
+        Value: "",
+    }
 	if cr.Spec.Server.SelfSignedCert {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
@@ -47,6 +54,33 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 			},
 		}
 	}
+	if cr.Spec.Server.GitSelfSignedCert {
+        gitSelfSignedCertEnv = corev1.EnvVar{
+            Name: "CHE_GIT_SELF__SIGNED__CERT",
+            ValueFrom: &corev1.EnvVarSource{
+                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+                    Key: "ca.crt",
+                    LocalObjectReference: corev1.LocalObjectReference{
+                        Name: "che-git-self-signed-cert",
+                    },
+                    Optional: &optionalEnv,
+                },
+            },
+        }
+        gitSelfSignedCertHostEnv = corev1.EnvVar{
+            Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
+            ValueFrom: &corev1.EnvVarSource{
+                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+                    Key: "githost",
+                    LocalObjectReference: corev1.LocalObjectReference{
+                        Name: "che-git-self-signed-cert",
+                    },
+                    Optional: &optionalEnv,
+                },
+            },
+        }
+    }
+
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
 
@@ -155,6 +189,8 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 											FieldPath: "metadata.namespace"}},
 								},
 								selfSignedCertEnv,
+								gitSelfSignedCertEnv,
+								gitSelfSignedCertHostEnv,
 							}},
 					},
 				},

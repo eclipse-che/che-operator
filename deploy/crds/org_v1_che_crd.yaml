@@ -388,6 +388,11 @@ spec:
                     clusters that have not been setup with a valid certificate for
                     the routes. This is disabled by default.
                   type: boolean
+                gitSelfSignedCert:
+                  description: If enabled, then the certificate from `che-git-self-signed-cert`
+                  config map will be propagated to the Che components and provide particular
+                  configuration for Git.
+                  type: boolean
                 serverMemoryLimit:
                   description: Overrides the memory limit used in the Che server deployment.
                     Defaults to 1Gi.
