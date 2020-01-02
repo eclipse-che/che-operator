@@ -85,6 +85,8 @@ spec:
     pvcJobsImage: ''
     # keep blank unless you need to use a non default storage class for Postgres PVC
     postgresPVCStorageClassName: ''
+    # Postgres volume path to store db in the node host
+    postgresPVCHostVolumePath: ''
     # keep blank unless you need to use a non default storage class for workspace PVC(s)
     workspacePVCStorageClassName: ''
 

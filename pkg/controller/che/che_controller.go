@@ -419,7 +419,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-
 	if err := r.GenerateAndSaveFields(instance, request); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -427,7 +426,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	chePostgresPassword := instance.Spec.Database.ChePostgresPassword
 	keycloakPostgresPassword := instance.Spec.Auth.IdentityProviderPostgresPassword
 	keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
-
 	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
 
 	// Create Postgres resources and provisioning unless an external DB is used
@@ -439,17 +437,28 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := r.CreateService(instance, postgresService, false); err != nil {
 			return reconcile.Result{}, err
 		}
-		// Create a new Postgres PVC object
+
+		// Create a new Postgres PersistentVolume object
+		if instance.Spec.Storage.PostgresPVCHostVolumePath != "" {
+			pv := deploy.NewPv(instance, "postgres-data", "1Gi", postgresLabels)
+			if err := r.CreatePV(instance, pv); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+
+		// Create a new Postgres PersistentVolumeClaim object
 		pvc := deploy.NewPvc(instance, "postgres-data", "1Gi", postgresLabels)
 		if err := r.CreatePVC(instance, pvc); err != nil {
 			return reconcile.Result{}, err
 		}
+
 		if !tests {
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: instance.Namespace}, pvc)
 			if pvc.Status.Phase != "Bound" {
 				k8sclient.GetPostgresStatus(pvc, instance.Namespace)
 			}
 		}
+
 		// Create a new Postgres deployment
 		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
 

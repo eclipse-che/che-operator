@@ -233,6 +233,29 @@ func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, service *corev1.Servi
 	return nil
 }
 
+func (r *ReconcileChe) CreatePV(instance *orgv1.CheCluster, pv *corev1.PersistentVolume) error {
+	// Set CheCluster instance as the owner and controller
+	if err := controllerutil.SetControllerReference(instance, pv, r.scheme); err != nil {
+		return err
+	}
+	pvFound := &corev1.PersistentVolume{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: pv.Name, Namespace: pv.Namespace}, pvFound)
+	if err != nil && errors.IsNotFound(err) {
+		logrus.Infof("Creating a new object %s, name: %s. Cause: %s", pv.Kind, pv.Name, err.Error())
+		err = r.client.Create(context.TODO(), pv)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			logrus.Errorf("Creating a new pv object %s, name: %s. Cause %s", pv.Kind, pv.Name, err.Error())
+			return err
+		}
+		return nil
+	} else if err != nil {
+		logrus.Errorf("No pvFound %s, name: %s", pv.Kind, pv.Name)
+		return err
+	}
+	return nil
+
+}
+
 func (r *ReconcileChe) CreatePVC(instance *orgv1.CheCluster, pvc *corev1.PersistentVolumeClaim) error {
 	// Set CheCluster instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, pvc, r.scheme); err != nil {

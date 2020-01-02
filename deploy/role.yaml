@@ -48,6 +48,7 @@ rules:
   - serviceaccounts
   - endpoints
   - persistentvolumeclaims
+  - persistentVolumes
   - events
   - configmaps
   - secrets

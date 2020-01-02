@@ -425,6 +425,9 @@ spec:
                     to the Postgres database. If omitted or left blank, default storage
                     class is used.
                   type: string
+                postgresPVCHostVolumePath:
+                  description: Postgres volume path to store db in the node host
+                  type: string
                 preCreateSubPaths:
                   description: Instructs the Che server to launch a special pod to
                     pre-create a subpath in the Persistent Volumes. Defaults to `false`,

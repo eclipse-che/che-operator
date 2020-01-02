@@ -343,6 +343,9 @@ type CheClusterSpecStorage struct {
 	// If omitted or left blank, default storage class is used.
 	// +optional
 	PostgresPVCStorageClassName string `json:"postgresPVCStorageClassName,omitempty"`
+	// Postgres volume path to store db in the node host
+	// +optional
+	PostgresPVCHostVolumePath string `json:"postgresPVCHostVolumePath,omitempty"`
 	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces.
 	// If omitted or left blank, default storage class is used.
 	// +optional
