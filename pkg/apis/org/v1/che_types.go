@@ -117,6 +117,10 @@ type CheClusterSpecServer struct {
 	// This is disabled by default.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
+	// If enabled, then the certificate from `che-git-self-signed-cert`
+	// config map will be propagated to the Che components and provide particular
+	// configuration for Git.
+	// +optional
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Instructs the operator to deploy Che in TLS mode, ie with TLS routes or ingresses.
 	// This is disabled by default.
@@ -430,7 +434,14 @@ type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// Desired configuration of the Che installation.
+	// Based on these settings, the operator automatically creates and maintains
+	// several config maps that will contain the appropriate environment variables
+	// the various components of the Che installation.
+	// These generated config maps should NOT be updated manually.
 	Spec   CheClusterSpec   `json:"spec,omitempty"`
+	
+	// CheClusterStatus defines the observed state of Che installation	
 	Status CheClusterStatus `json:"status,omitempty"`
 }
 

@@ -331,6 +331,11 @@ spec:
                     `true`, then no such dedicated server will be started by the operator
                     and you will have to manually set the `pluginRegistryUrl` field.
                   type: boolean
+                gitSelfSignedCert:
+                  description: If enabled, then the certificate from `che-git-self-signed-cert`
+                    config map will be propagated to the Che components and provide
+                    particular configuration for Git.
+                  type: boolean
                 nonProxyHosts:
                   description: List of hosts that should not use the configured proxy.
                     Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
@@ -362,8 +367,8 @@ spec:
                     default this will be automatically calculated by the operator.
                   type: string
                 proxyPassword:
-                  description: "Password of the proxy server \n Only use when proxy
-                    configuration is required (see also the `proxyUser` field)."
+                  description: Password of the proxy server  Only use when proxy configuration
+                    is required (see also the `proxyUser` field).
                   type: string
                 proxyPort:
                   description: Port of the proxy server. Only use when configuring
@@ -387,11 +392,6 @@ spec:
                     required when activating the `tlsSupport` field on demo OpenShift
                     clusters that have not been setup with a valid certificate for
                     the routes. This is disabled by default.
-                  type: boolean
-                gitSelfSignedCert:
-                  description: If enabled, then the certificate from `che-git-self-signed-cert`
-                    config map will be propagated to the Che components and provide particular
-                    configuration for Git.
                   type: boolean
                 serverMemoryLimit:
                   description: Overrides the memory limit used in the Che server deployment.
