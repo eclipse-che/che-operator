@@ -26,25 +26,6 @@ RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go tes
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.1-279
 
-ENV SUMMARY="Red Hat CodeReady Workspaces Operator container" \
-    DESCRIPTION="Red Hat CodeReady Workspaces Operator container" \
-    PRODNAME="codeready-workspaces" \
-    COMPNAME="operator-rhel8"
-
-LABEL summary="$SUMMARY" \
-      description="$DESCRIPTION" \
-      io.k8s.description="$DESCRIPTION" \
-      io.k8s.display-name="$DESCRIPTION" \
-      io.openshift.tags="$PRODNAME,$COMPNAME" \
-      com.redhat.component="$PRODNAME-$COMPNAME-container" \
-      name="$PRODNAME/$COMPNAME" \
-      version="2.1" \
-      license="EPLv2" \
-      maintainer="Nick Boldt <nboldt@redhat.com>" \
-      io.openshift.expose-services="" \
-      com.redhat.delivery.appregistry="true" \
-      usage=""
-
 # not applicable to Che, only needed for CRW
 # ADD controller-manifests /manifests
 
@@ -54,3 +35,5 @@ COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/oauth_prov
 # apply CVE fixes, if required
 RUN microdnf update -y libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
+
+# append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/upstream.Jenkinsfile)
