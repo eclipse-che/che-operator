@@ -22,7 +22,7 @@ import (
 const (
 	defaultCheServerImageRepo           = "eclipse/che-server"
 	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	defaultCheServerImageTag            = "7.7.0"
+	defaultCheServerImageTag            = "7.7.1"
 	defaultCodeReadyServerImageTag      = "2.0"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
@@ -34,11 +34,11 @@ const (
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
 	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.0"
-	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.7.0"
+	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.7.1"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
 	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.0"
-	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.7.0"
+	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.7.1"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
@@ -50,7 +50,7 @@ const (
 	defaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
 	defaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
 	defaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
-	defaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.7.0"
+	defaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.7.1"
 	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
