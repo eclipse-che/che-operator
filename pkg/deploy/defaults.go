@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	defaultCheServerImageRepo           = "eclipse/che-server"
+	defaultCheServerImageRepo           = "quay.io/eclipse/che-server"
 	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	defaultCheServerImageTag            = "7.7.1"
 	defaultCodeReadyServerImageTag      = "2.0"
@@ -50,7 +50,7 @@ const (
 	defaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
 	defaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
 	defaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
-	defaultKeycloakUpstreamImage        = "eclipse/che-keycloak:7.7.1"
+	defaultKeycloakUpstreamImage        = "quay.io/eclipse/che-keycloak:7.7.1"
 	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
