@@ -27,6 +27,12 @@ func NewCheService(instance *orgv1.CheCluster, cheLabels map[string]string, r Se
 		portNames = append(portNames, "metrics")
 		portPorts = append(portPorts, DefaultCheMetricsPort)
 	}
+
+	if instance.Spec.Server.CheDebug == "true" {
+		portNames = append(portNames, "debug")
+		portPorts = append(portPorts, DefaultCheDebugPort)
+	}
+
 	cheService := NewService(instance, "che-host", portNames, portPorts, cheLabels)
 	if err := r.CreateService(instance, cheService, true); err != nil {
 		return nil, err
