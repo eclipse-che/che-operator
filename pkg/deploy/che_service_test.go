@@ -63,11 +63,11 @@ func TestCreateCheServerDebug(t *testing.T) {
 	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
 
 	if service == nil || err != nil {
-		t.Error("service should be created witn no error")
+		t.Error("service should be created without error")
 	}
 	ports := service.Spec.Ports
 	if len(ports) != 2 {
-		t.Error("expected 1 default port")
+		t.Error("expected 2 default port")
 	}
 	checkPort(ports[0], "http", 8080, t)
 	checkPort(ports[1], "debug", 8000, t)
