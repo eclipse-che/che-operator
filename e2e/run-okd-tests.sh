@@ -33,7 +33,8 @@ oc_installation() {
   echo "[INFO] Sarting a new OC cluster."
   cd "$OPERATOR_REPO/tmp"
   ./oc cluster up --public-hostname=${IP_ADDRESS} --routing-suffix=${IP_ADDRESS}.nip.io
-  ./oc login -u system:admin && ./oc adm policy add-cluster-role-to-user cluster-admin developer && ./oc login -u developer -p developer
+  ./oc login -u system:admin 
+  ./oc adm policy add-cluster-role-to-user cluster-admin developer && ./oc login -u developer -p developer
 }
 
 oc_tls_mode() {
@@ -51,14 +52,20 @@ oc_tls_mode() {
 
 run_tests() {
   oc_installation
+  echo "[INFO] Register a custom resource definition"
+  ./oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
   oc_tls_mode
   echo "[INFO] Compile tests binary"
   docker run -t \
               -v ${OPERATOR_REPO}/tmp:/operator \
               -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:${GO_TOOLSET_VERSION} \
               sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /operator/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
+  
+  echo "[INFO] Build operator docker image..."
+  cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile .
+
   echo "[INFO] Run tests..."
-  ./run-tests
+  ./tmp/run-tests
 }
 
 init
