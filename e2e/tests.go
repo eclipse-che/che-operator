@@ -12,13 +12,14 @@
 package main
 
 import (
+	"log"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/controller/che"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"log"
 )
 
 var (
@@ -95,26 +96,6 @@ func main() {
 		logrus.Info("Installation succeeded")
 	}
 
-	// reconfigure CR to enable TLS support
-	logrus.Info("Patching CR with TLS enabled. This should cause a new Che deployment")
-	patchPath := "/spec/server/tlsSupport"
-	if err := patchCustomResource(patchPath, true); err != nil {
-		logrus.Fatalf("An error occurred while patching CR %s", err)
-	}
-
-	// check if a CR status has changed to Rolling update in progress
-	redeployed, err := VerifyCheRunning(che.RollingUpdateInProgressStatus)
-	if redeployed {
-		logrus.Info("New deployment triggered")
-	}
-
-	// wait for Available status
-	logrus.Info("Waiting for CR Available status. Timeout 6 min")
-	deployed, err = VerifyCheRunning(che.AvailableStatus)
-	if deployed {
-		logrus.Info("Installation succeeded")
-	}
-
 	// create clusterRole and clusterRoleBinding to let operator service account create oAuthclients
 	logrus.Info("Creating cluster role for operator service account")
 
@@ -133,13 +114,13 @@ func main() {
 
 	// reconfigure CR to enable login with OpenShift
 	logrus.Info("Patching CR with oAuth enabled. This should cause a new Che deployment")
-	patchPath = "/spec/auth/openShiftoAuth"
+	patchPath := "/spec/auth/openShiftoAuth"
 	if err := patchCustomResource(patchPath, true); err != nil {
 		logrus.Fatalf("An error occurred while patching CR %s", err)
 	}
 
 	// check if a CR status has changed to Rolling update in progress
-	redeployed, err = VerifyCheRunning(che.RollingUpdateInProgressStatus)
+	redeployed, err := VerifyCheRunning(che.RollingUpdateInProgressStatus)
 	if redeployed {
 		logrus.Info("New deployment triggered")
 	}

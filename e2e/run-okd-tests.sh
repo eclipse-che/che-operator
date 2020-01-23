@@ -14,27 +14,25 @@
 set -e -x
 
 init() {
-  OC_VERSION="v3.11.0-0cbc58b"
+  MSFT_RELEASE="1.34.2"
   GO_TOOLSET_VERSION="1.11.5-3"
-  IP_ADDRESS="172.17.0.1"
   SCRIPT=$(readlink -f "$0") # this script's absolute path
   SCRIPTPATH=$(dirname "$SCRIPT") # /path/to/e2e/ folder
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
 }
 
 oc_installation() {
-  if [ ! -f "$OPERATOR_REPO/tmp/oc" ]; then
-    if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 775 "$OPERATOR_REPO/tmp"; fi
-
+  if [ ! -f "$OPERATOR_REPO/tmp/minishift" ]; then
+    if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
     echo "[INFO] Downloading Openshift3.11 binaries..."
-    curl -s -S -L https://github.com/openshift/origin/releases/download/${OC_VERSION%%-*}/openshift-origin-client-tools-${OC_VERSION}-linux-64bit.tar.gz \
-      -o ${OPERATOR_REPO}/tmp/oc.tar && tar -xvf ${OPERATOR_REPO}/tmp/oc.tar -C ${OPERATOR_REPO}/tmp --strip-components=1
+    curl -s -S -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
+      -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C ${OPERATOR_REPO}/tmp --strip-components=1
   fi
-  echo "[INFO] Sarting a new OC cluster."
   cd "$OPERATOR_REPO/tmp"
-  ./oc cluster up --public-hostname=${IP_ADDRESS} --routing-suffix=${IP_ADDRESS}.nip.io
-  ./oc login -u system:admin 
-  ./oc adm policy add-cluster-role-to-user cluster-admin developer && ./oc login -u developer -p developer
+  echo "[INFO] Sarting a new OC cluster."
+  ./minishift start --memory=4096 && eval $(./minishift oc-env)
+  oc login -u system:admin
+  oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
 }
 
 oc_tls_mode() {
@@ -43,29 +41,31 @@ oc_tls_mode() {
     openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -subj "/CN=*.${IP_ADDRESS}.nip.io" -nodes && cat cert.pem key.pem > ca.crt
     # replace default router cert
     echo "[INFO] Update OpenShift router tls secret"
-    ./oc project default
-    ./oc secrets new router-certs tls.crt=ca.crt tls.key=key.pem -o json --type='kubernetes.io/tls' --confirm | ./oc replace -f -
+    oc project default
+    oc secrets new router-certs tls.crt=ca.crt tls.key=key.pem -o json --type='kubernetes.io/tls' --confirm | oc replace -f -
     echo "[INFO] Initiate a new router deployment"
     sleep 20
-    ./oc rollout latest dc/router -n=default || true
+    oc rollout latest dc/router -n=default || true
 }
 
 run_tests() {
   oc_installation
   echo "[INFO] Register a custom resource definition"
-  ./oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
+  oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
   oc_tls_mode
   echo "[INFO] Compile tests binary"
   docker run -t \
               -v ${OPERATOR_REPO}/tmp:/operator \
               -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:${GO_TOOLSET_VERSION} \
               sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /operator/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
-  
   echo "[INFO] Build operator docker image..."
-  cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile .
-
+  cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile . && docker save che/operator > operator.tar
+  eval $(./tmp/minishift docker-env) && docker load -i operator.tar && rm operator.tar
   echo "[INFO] Run tests..."
   ./tmp/run-tests
+  echo "[INFO] Deleting minishift VM..."
+  #Take a look...
+  yes | ./tmp/minishift delete && rm -rf ~/.minishift ${OPERATOR_REPO}/tmp
 }
 
 init
