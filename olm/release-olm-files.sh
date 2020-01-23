@@ -77,5 +77,9 @@ do
   diff -u "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
   "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml" \
   > "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml.diff" || true
+
+  diff -u "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
+  "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml" \
+  > "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml.diff" || true
 done
 cd "${CURRENT_DIR}"
