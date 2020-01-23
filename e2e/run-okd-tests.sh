@@ -25,7 +25,7 @@ init() {
 oc_installation() {
   if [ ! -f "$OPERATOR_REPO/tmp/minishift" ]; then
     if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
-    echo "[INFO] Downloading Openshift3.11 binaries..."
+    echo "[INFO] Downloading Minishift binaries..."
     curl -s -S -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
       -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C ${OPERATOR_REPO}/tmp --strip-components=1
   fi
@@ -51,22 +51,27 @@ oc_tls_mode() {
 
 run_tests() {
   oc_installation
+  
   echo "[INFO] Register a custom resource definition"
   oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
   oc_tls_mode
+  
   echo "[INFO] Compile tests binary"
   docker run -t \
               -v ${OPERATOR_REPO}/tmp:/operator \
               -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:${GO_TOOLSET_VERSION} \
               sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /operator/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
-  echo "[INFO] Build operator docker image..."
+  
+  echo "[INFO] Build operator docker image and load in to minishift VM..."
   cd ${OPERATOR_REPO} && docker build -t che/operator -f Dockerfile . && docker save che/operator > operator.tar
   eval $(./tmp/minishift docker-env) && docker load -i operator.tar && rm operator.tar
+  
   echo "[INFO] Run tests..."
   ./tmp/run-tests
+  
   echo "[INFO] Deleting minishift VM..."
-  #Take a look...
   yes | ./tmp/minishift delete && rm -rf ~/.minishift ${OPERATOR_REPO}/tmp
+
 }
 
 init
