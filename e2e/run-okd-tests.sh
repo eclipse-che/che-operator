@@ -16,6 +16,7 @@ set -e -x
 init() {
   MSFT_RELEASE="1.34.2"
   GO_TOOLSET_VERSION="1.11.5-3"
+  IP_ADDRESS="172.17.0.1"
   SCRIPT=$(readlink -f "$0") # this script's absolute path
   SCRIPTPATH=$(dirname "$SCRIPT") # /path/to/e2e/ folder
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
