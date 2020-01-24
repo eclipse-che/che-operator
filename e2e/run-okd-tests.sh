@@ -11,7 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 # Exit on error
-set -e -x
+set -x
 
 installStartDocker() {
   if [ -x "$(command -v docker)" ]; then
