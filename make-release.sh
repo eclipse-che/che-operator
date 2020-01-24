@@ -11,33 +11,39 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -u
 
 init() {
-  RED='\033[0;31m'
-  NC='\033[0m'
+  RED='\e[31m'
+  NC='\e[0m'
+  YELLOW='\e[33m'
+  GREEN='\e[32m'
 }
 
 check() {
+  echo -e $RED"##############################################"
+  echo -e $RED"  This is a draft version of release script."
+  echo -e $RED"  It is needed to check all steps manually."
+  echo -e $RED"##############################################"$NC
+
+
   if [ $# -ne 1 ]; then
     printf "%bError: %bWrong number of parameters.\nUsage: ./make-release.sh <version>\n" "${RED}" "${NC}"
     exit 1
   fi
 
-  [ -z "$QUAY_USERNAME" ] && echo "QUAY_USERNAME is not set" && exit 1
-  [ -z "$QUAY_PASSWORD" ] && echo "QUAY_PASSWORD is not set" && exit 1
-  [ -z "$GIT_USER" ] && echo "GIT_USER is not set" && exit 1
-  [ -z "$GIT_PASSWORD" ] && echo "GIT_PASSWORD is not set" && exit 1
-  command -v operator-courier >/dev/null 2>&1 || { echo >&2 "operator-courier is not installed. Aborting."; exit 1; }
-  command -v operator-sdk >/dev/null 2>&1 || { echo >&2 "operator-sdk is not installed. Aborting."; exit 1; }
+  [ -z "$QUAY_USERNAME" ] && echo -e $RED"QUAY_USERNAME is not set"$NC && exit 1
+  [ -z "$QUAY_PASSWORD" ] && echo -e $RED"QUAY_PASSWORD is not set"$NC && exit 1
+  command -v operator-courier >/dev/null 2>&1 || { echo -e $RED"operator-courier is not installed. Aborting."$NC; exit 1; }
+  command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
 
   local operatorVersion=$(operator-sdk version)
-  [[ $operatorVersion =~ .*v0.10.0.* ]] || echo "operator-sdk v0.10.0 is required" && exit 1
+  [[ ! $operatorVersion =~ .*v0.10.0.* ]] || { echo -e $RED"operator-sdk v0.10.0 is required"$NC; exit 1; }
 }
 
 ask() {
   while true; do
-    read -r -p "$@ " yn
+    echo -e $GREEN$@$NC" (Y)es or (N)o"
+    read -r yn
     case $yn in
       [Yy]* ) return 0;;
       [Nn]* ) return 1;;
@@ -56,7 +62,7 @@ resetLocalChanges() {
     git fetch ${GIT_REMOTE_UPSTREAM}
     git pull ${GIT_REMOTE_UPSTREAM} master
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -69,7 +75,7 @@ createLocalBranch() {
   if [[ $result == 0 ]]; then
     git checkout -b $RELEASE
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -91,7 +97,7 @@ releaseOperatorCode() {
     grep -q "defaultPluginRegistryUpstreamImage  = \"quay.io/eclipse/che-plugin-registry:"$RELEASE"\"" $defaultsgo
     grep -q "defaultKeycloakUpstreamImage        = \"quay.io/eclipse/che-keycloak:"$RELEASE"\"" $defaultsgo
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -104,7 +110,7 @@ commitDefaultsGoChanges() {
   if [[ $result == 0 ]]; then
     git commit -am "Update defaults tags to "$RELEASE --singoff
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -118,7 +124,7 @@ pushImage() {
     docker login quay.io
     docker push quay.io/eclipse/che-operator:$RELEASE
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -150,7 +156,7 @@ releaseOlmFiles() {
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml.diff
     read -p "Press enter to continue"
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -164,7 +170,7 @@ commitOlmChanges() {
     git add -A
     git commit -m "Release OLM files to "$RELEASE --singoff
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -185,7 +191,7 @@ pushOlmFiles() {
 
     read -p "Press enter to continue"
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
@@ -200,7 +206,7 @@ pushChanges() {
     git tag -a $RELEASE
     git push --tags origin
   elif [[ $result == 1 ]]; then
-    echo "SKIPPED"
+    echo -e $YELLOW"> SKIPPED"$NC
   fi
 }
 
