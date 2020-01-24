@@ -33,4 +33,4 @@ COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/oauth_prov
 RUN microdnf update -y libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
 
-# append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/upstream.Jenkinsfile)
+# append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator.Jenkinsfile)
