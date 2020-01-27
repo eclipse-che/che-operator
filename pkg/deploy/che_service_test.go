@@ -51,6 +51,28 @@ func TestCreateCheDefaultService(t *testing.T) {
 	checkPort(ports[0], "http", 8080, t)
 }
 
+func TestCreateCheServerDebug(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				CheDebug: "true",
+			},
+		},
+	}
+
+	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
+
+	if service == nil || err != nil {
+		t.Error("service should be created without error")
+	}
+	ports := service.Spec.Ports
+	if len(ports) != 2 {
+		t.Error("expected 2 default port")
+	}
+	checkPort(ports[0], "http", 8080, t)
+	checkPort(ports[1], "debug", 8000, t)
+}
+
 func TestCreateCheServiceEnableMetrics(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		Spec: orgv1.CheClusterSpec{
@@ -107,7 +129,6 @@ func TestFailWhenCantCreateService(t *testing.T) {
 		t.Errorf("expected error and service to be nil. Actual service:`%s` err:`%s`", service, err)
 	}
 }
-
 
 func checkPort(actualPort corev1.ServicePort, expectedName string, expectedPort int32, t *testing.T) {
 	if actualPort.Name != expectedName || actualPort.Port != expectedPort {

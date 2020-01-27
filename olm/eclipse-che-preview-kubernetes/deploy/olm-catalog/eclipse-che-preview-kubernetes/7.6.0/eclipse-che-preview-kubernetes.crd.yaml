@@ -24,6 +24,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: The `CheCluster` custom resource allows defining and managing a
+        Che server installation
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -497,6 +499,7 @@ spec:
                 the pod is in this state.
               type: string
           type: object
+      type: object
   version: v1
   versions:
   - name: v1
