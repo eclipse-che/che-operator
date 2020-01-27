@@ -11,7 +11,25 @@
 #   Red Hat, Inc. - initial API and implementation
 
 # Exit on error
-set -x
+set -e -x
+
+trap 'Catch_Finish $?' EXIT SIGINT
+
+cleanup() {
+  echo "[INFO] Deleting minishift VM..."
+  yes | ./tmp/minishift delete && rm -rf ~/.minishift ${OPERATOR_REPO}/tmp
+
+}
+
+Catch_Finish() {
+  if [ $1 != 0 ]; then
+    echo "[ERROR] Please check the output error"
+    cleanup
+  else
+    echo "[INFO] Script executed successfully: $0!"
+    cleanup
+  fi
+}
 
 installStartDocker() {
   if [ -x "$(command -v docker)" ]; then
@@ -84,11 +102,7 @@ run_tests() {
   echo "[INFO] Run tests..."
   ./tmp/run-tests
   
-  echo "[INFO] Deleting minishift VM..."
-  yes | ./tmp/minishift delete && rm -rf ~/.minishift ${OPERATOR_REPO}/tmp
-
   echo "[INFO] Tests passed successfully!"
-
 }
 
 init
