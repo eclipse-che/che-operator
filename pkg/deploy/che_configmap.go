@@ -41,6 +41,7 @@ type CheConfigMap struct {
 	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
 	NamespaceAllowUserDefined            string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
+	CheWorkspaceClusterRole              string `json:"CHE_INFRA_KUBERNETES_CLUSTER__ROLE__NAME"`
 	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                         string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
@@ -153,6 +154,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)))
+	cheWorkspaceClusterRole := cr.Spec.Server.CheWorkspaceClusterRole
 
 	data := &CheConfigMap{
 		CheMultiUser:                         "true",
@@ -164,6 +166,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheDebugServer:                       cheDebug,
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
+		CheWorkspaceClusterRole:			  cheWorkspaceClusterRole,
 		DefaultTargetNamespace:               defaultTargetNamespace,
 		NamespaceAllowUserDefined:            namespaceAllowUserDefined,
 		PvcStrategy:                          pvcStrategy,

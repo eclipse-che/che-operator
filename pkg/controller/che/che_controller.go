@@ -380,14 +380,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
-	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
-	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
-	if workspaceClusterRole != "" {
-		// TODO: set configmap variable
-		logrus.Info("TODO: set configmap variable")
-	}
-
 	if err := r.GenerateAndSaveFields(instance, request); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -1207,7 +1199,7 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 
 			// this binding is needed to manage che workspaces out of che namespace
 			// `che` ClusterRole should be created during che-operator deploy
-			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, "che", cheServiceAccount.Name, "che", "ClusterRole")
+			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, "che-manage-namespaces", cheServiceAccount.Name, "che-manage-namespaces", "ClusterRole")
 			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
 				return err
 			}

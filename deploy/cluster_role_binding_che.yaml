@@ -18,5 +18,5 @@ subjects:
     namespace: che
 roleRef:
   kind: ClusterRole
-  name: che
+  name: che-manage-namespaces
   apiGroup: rbac.authorization.k8s.io

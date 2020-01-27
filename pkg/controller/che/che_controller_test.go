@@ -44,8 +44,9 @@ func TestCheController(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
 	var (
-		name      = "eclipse-che"
-		namespace = "eclipse-che"
+		name                = "eclipse-che"
+		namespace           = "eclipse-che"
+		worspaceClusterRole = "cluster-admin"
 	)
 
 	pgPod := &corev1.Pod{
@@ -55,7 +56,7 @@ func TestCheController(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "fake-pg-pod",
-			Namespace: "eclipse-che",
+			Namespace: namespace,
 			Labels: map[string]string{
 				"component": "postgres",
 			},
@@ -71,7 +72,7 @@ func TestCheController(t *testing.T) {
 		Spec: orgv1.CheClusterSpec{
 			// todo add some spec to check controller ifs like external db, ssl etc
 			Server: orgv1.CheClusterSpecServer{
-				CheWorkspaceClusterRole: "cluster-admin",
+				CheWorkspaceClusterRole: worspaceClusterRole,
 			},
 		},
 	}
@@ -166,12 +167,9 @@ func TestCheController(t *testing.T) {
 		t.Errorf("Custom config map should be deleted and merged with Che ConfigMap")
 	}
 
-	// Get the custom role binding that should have been created for the role we passed in
-	// TODO: check for configmap value here
-	//rb := &rbacapi.RoleBinding{}
-	//if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
-	//	t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
-	//}
+	if cm.Data["CHE_INFRA_KUBERNETES_CLUSTER__ROLE__NAME"] != worspaceClusterRole {
+		t.Errorf("Custom role binding %s not found in the config map: %s", worspaceClusterRole, err)
+	}
 
 	// run a few checks to make sure the operator reconciled tls routes and updated configmap
 	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {

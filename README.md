@@ -131,6 +131,7 @@ Or you can build in a container:
 docker run -ti -v /tmp:/tmp -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.redhat.io/devtools/go-toolset-rhel7:1.11.5-3 sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
 cp /tmp/run-tests ${OPERATOR_REPO}/run-tests
 ```
+> Notice: if you don't have redhat subscription, use public image registry.access.redhat.com/devtools/go-toolset-rhel7:latest
 
 ### How to run tests
 

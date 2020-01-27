@@ -18,6 +18,7 @@ metadata:
 rules:
   - verbs:
       - create
+      - update
     apiGroups:
       - project.openshift.io
     resources:
@@ -28,3 +29,4 @@ rules:
       - namespaces
     verbs:
       - create
+      - update
