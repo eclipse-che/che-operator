@@ -118,10 +118,9 @@ func (r *ReconcileChe) CreateNewRole(instance *orgv1.CheCluster, role *rbac.Role
 }
 
 func (r *ReconcileChe) CreateNewClusterRole(instance *orgv1.CheCluster, role *rbac.ClusterRole) error {
-	// TODO: this cause error with finishers. Can we fix it or do we have to remove it?
-	//if err := controllerutil.SetControllerReference(instance, role, r.scheme); err != nil {
-	//	return err
-	//}
+	if err := controllerutil.SetControllerReference(instance, role, r.scheme); err != nil {
+		return err
+	}
 	roleFound := &rbac.ClusterRole{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: role.Name}, roleFound)
 	if err != nil && errors.IsNotFound(err) {
@@ -298,10 +297,9 @@ func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBind
 }
 
 func (r *ReconcileChe) CreateNewClusterRoleBinding(instance *orgv1.CheCluster, roleBinding *rbac.ClusterRoleBinding) error {
-	// TODO: this cause error with finishers. Can we fix it or do we have to remove it?
-	//if err := controllerutil.SetControllerReference(instance, roleBinding, r.scheme); err != nil {
-	//	return err
-	//}
+	if err := controllerutil.SetControllerReference(instance, roleBinding, r.scheme); err != nil {
+		return err
+	}
 	roleBindingFound := &rbac.ClusterRoleBinding{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: roleBinding.Name}, roleBindingFound)
 	if err != nil && errors.IsNotFound(err) {

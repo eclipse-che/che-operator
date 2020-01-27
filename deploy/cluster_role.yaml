@@ -79,3 +79,9 @@ rules:
       - get
       - update
       - create
+  - apiGroups:
+    - org.eclipse.che
+    resources:
+    - checlusters/finalizers
+    verbs:
+    - '*'
