@@ -15,6 +15,7 @@ set -e -x
 
 trap 'Catch_Finish $?' EXIT SIGINT
 
+# Catch errors and force to delete minishift VM.
 cleanup() {
   echo "[INFO] Deleting minishift VM..."
   yes | ./tmp/minishift delete && rm -rf ~/.minishift ${OPERATOR_REPO}/tmp
@@ -31,21 +32,7 @@ Catch_Finish() {
   fi
 }
 
-installStartDocker() {
-  if [ -x "$(command -v docker)" ]; then
-    echo "[INFO] Docker already installed"
-  else
-    echo "[INFO] Installing docker..."
-    yum install --assumeyes -d1 yum-utils device-mapper-persistent-data lvm2
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    yum install --assumeyes -d1 docker-ce
-    systemctl start docker
-    docker version
-  fi
-}
-
 init() {
-  installStartDocker
   MSFT_RELEASE="1.34.2"
   GO_TOOLSET_VERSION="1.11.5-3"
   IP_ADDRESS="172.17.0.1"
@@ -106,4 +93,11 @@ run_tests() {
 }
 
 init
+
+source ./cico_common.sh
+installStartDocker
+install_required_packages
+start_libvirt
+setup_kvm_machine_driver
+
 run_tests
