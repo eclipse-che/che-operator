@@ -88,8 +88,6 @@ run_tests() {
   
   echo "[INFO] Run tests..."
   ./tmp/run-tests
-  
-  echo "[INFO] Tests passed successfully!"
 }
 
 init
