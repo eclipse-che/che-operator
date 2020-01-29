@@ -111,7 +111,7 @@ spec:
     # secret used in oAuthClient. Auto generated if left blank
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
-    identityProviderImage: 'eclipse/che-keycloak:nightly'
+    identityProviderImage: 'quay.io/eclipse/che-keycloak:nightly'
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
@@ -123,9 +123,9 @@ spec:
     ingressStrategy: ''
     # secret name used for tls termination
     tlsSecretName: ''
-    # FSGroup the Che POD and Workspace pod containers should run in  
-    securityContextFsGroup: '' 
-    # User the Che POD and Workspace pod containers should run as  
+    # FSGroup the Che POD and Workspace pod containers should run in
+    securityContextFsGroup: ''
+    # User the Che POD and Workspace pod containers should run as
     securityContextRunAsUser: ''
   metrics:
     # Enables '/metrics' endpoint of Che server.
