@@ -1,0 +1,25 @@
+--- /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1578737756/eclipse-che-preview-openshift.v9.9.9-nightly.1578737756.clusterserviceversion.yaml	2020-01-15 17:12:52.597647818 +0200
++++ /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1580283700/eclipse-che-preview-openshift.v9.9.9-nightly.1580283700.clusterserviceversion.yaml	2020-01-29 09:41:40.613062696 +0200
+@@ -46,12 +46,12 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-01-11T10:15:56Z"
++    createdAt: "2020-01-29T07:41:40Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1578737756
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1580283700
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -395,5 +395,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1575355471
+-  version: 9.9.9-nightly.1578737756
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1578737756
++  version: 9.9.9-nightly.1580283700
