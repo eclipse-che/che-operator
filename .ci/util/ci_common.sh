@@ -9,7 +9,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set -e -x
+set -e
 
 installStartDocker() {
   if [ -x "$(command -v docker)" ]; then
@@ -26,7 +26,6 @@ installStartDocker() {
 
 install_required_packages() {
     # Install EPEL repo
-    yum -y install epel-release
     # Get all the deps in
     yum -y install libvirt qemu-kvm
   echo '[INFO]CICO: Required virtualization packages installed'
