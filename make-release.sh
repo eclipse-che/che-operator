@@ -151,13 +151,13 @@ releaseOlmFiles() {
   set -e
 
   if [[ $result == 0 ]]; then
-    echo "6.1 Launch 'olm/release-olm-files.sh' script"
+    echo -e $GREEN""6.1 Launch 'olm/release-olm-files.sh' script"$NC
     . $BASE_DIR/olm/release-olm-files.sh $RELEASE
 
     local openshift=$BASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
     local kubernetes=$BASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
 
-    echo "6.2 Validate files"
+    echo -e $GREEN"6.2 Validate files"$NC
     grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
     grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
     grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
@@ -165,12 +165,16 @@ releaseOlmFiles() {
     test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
     test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
 
-    echo "6.3 It is needed to check diff files manully"
+    echo -e $GREEN""6.3 It is needed to check diff files manully"$NC
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml.diff
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml.diff
     read -p "Press enter to continue"
+
+    echo -e $GREEN"6.4 Validate number of changed files"$NC
+    local changes=$(git whatchanged -1 --format=oneline | wc -l)
+    [[ $changes -gt 6 ]] && { echo -e $RED"The number of changed files are greated then 6. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
