@@ -1,0 +1,90 @@
+--- /workdir/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1572295030/eclipse-che-preview-openshift.crd.yaml
++++ /workdir/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1575355471/eclipse-che-preview-openshift.crd.yaml
+@@ -24,6 +24,8 @@
+     status: {}
+   validation:
+     openAPIV3Schema:
+       properties:
+         apiVersion:
+           description: 'APIVersion defines the versioned schema of this representation
+@@ -38,6 +40,11 @@
+         metadata:
+           type: object
+         spec:
++          description: Desired configuration of the Che installation. Based on these
++            settings, the operator automatically creates and maintains several config
++            maps that will contain the appropriate environment variables the various
++            components of the Che installation. These generated config maps should
++            NOT be updated manually.
+           properties:
+             auth:
+               description: Configuration settings related to the Authentication used
+@@ -208,6 +215,14 @@
+                     TLS termination if TLS is enabled. See also the `tlsSupport` field.
+                   type: string
+               type: object
++            metrics:
++              description: Configuration settings related to the metrics collection
++                used by the Che installation.
++              properties:
++                enable:
++                  description: Enables `metrics` Che server endpoint. Default to `false`.
++                  type: boolean
++              type: object
+             server:
+               description: General configuration settings related to the Che server
+                 and the plugin and devfile registries
+@@ -226,6 +241,12 @@
+                     involved in a Che deployment. This is particularly useful to install
+                     Che in an air-gapped environment.
+                   type: string
++                allowUserDefinedWorkspaceNamespaces:
++                  description: Defines if a user is able to specify Kubernetes namespace
++                    (or OpenShift project) different from the default. It's NOT RECOMMENDED
++                    to configured true without OAuth configured. This property is
++                    also used by the OpenShift infra.
++                  type: boolean
+                 cheDebug:
+                   description: Enables the debug mode for Che server. Defaults to
+                     `false`.
+@@ -343,8 +364,8 @@
+                     default this will be automatically calculated by the operator.
+                   type: string
+                 proxyPassword:
+-                  description: Password of the proxy server  Only use when proxy configuration
+-                    is required (see also the `proxyUser` field).
++                  description: "Password of the proxy server \n Only use when proxy
++                    configuration is required (see also the `proxyUser` field)."
+                   type: string
+                 proxyPort:
+                   description: Port of the proxy server. Only use when configuring
+@@ -383,6 +404,14 @@
+                     WARNING: Enabling TLS might require enabling the `selfSignedCert`
+                     field also in some cases.'
+                   type: boolean
++                workspaceNamespaceDefault:
++                  description: 'Defines Kubernetes default namespace in which user''s
++                    workspaces are created if user does not override it. It''s possible
++                    to use <username>, <userid> and <workspaceid> placeholders (e.g.:
++                    che-workspace-<username>). In that case, new namespace will be
++                    created for each user (or workspace). Is used by OpenShift infra
++                    as well to specify Project'
++                  type: string
+               type: object
+             storage:
+               description: Configuration settings related to the persistent storage
+@@ -423,6 +452,7 @@
+               type: object
+           type: object
+         status:
++          description: CheClusterStatus defines the observed state of Che installation
+           properties:
+             cheClusterRunning:
+               description: Status of a Che installation. Can be `Available`, `Unavailable`,
+@@ -469,6 +499,7 @@
+                 the pod is in this state.
+               type: string
+           type: object
+   version: v1
+   versions:
+   - name: v1

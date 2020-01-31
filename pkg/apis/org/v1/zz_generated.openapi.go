@@ -48,12 +48,14 @@ func schema_pkg_apis_org_v1_CheCluster(ref common.ReferenceCallback) common.Open
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpec"),
+							Description: "Desired configuration of the Che installation. Based on these settings, the operator automatically creates and maintains several config maps that will contain the appropriate environment variables the various components of the Che installation. These generated config maps should NOT be updated manually.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterStatus"),
+							Description: "CheClusterStatus defines the observed state of Che installation",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterStatus"),
 						},
 					},
 				},
@@ -94,6 +96,12 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"),
 						},
 					},
+					"metrics": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Configuration settings related to the metrics collection used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecMetrics"),
+						},
+					},
 					"k8s": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Configuration settings specific to Che installations made on upstream Kubernetes.",
@@ -104,7 +112,7 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 			},
 		},
 		Dependencies: []string{
-			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"},
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecMetrics", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"},
 	}
 }
 
@@ -412,9 +420,30 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
+					"workspaceNamespaceDefault": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines Kubernetes default namespace in which user's workspaces are created if user does not override it. It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>). In that case, new namespace will be created for each user (or workspace). Is used by OpenShift infra as well to specify Project",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"allowUserDefinedWorkspaceNamespaces": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines if a user is able to specify Kubernetes namespace (or OpenShift project) different from the default. It's NOT RECOMMENDED to configured true without OAuth configured. This property is also used by the OpenShift infra.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"selfSignedCert": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Enables the support of OpenShift clusters whose router uses self-signed certificates. When enabled, the operator retrieves the default self-signed certificate of OpenShift routes and adds it to the Java trust store of the Che server. This is usually required when activating the `tlsSupport` field on demo OpenShift clusters that have not been setup with a valid certificate for the routes. This is disabled by default.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"gitSelfSignedCert": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If enabled, then the certificate from `che-git-self-signed-cert` config map will be propagated to the Che components and provide particular configuration for Git.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

@@ -43,6 +43,9 @@ type CheClusterSpec struct {
 	// Configuration settings related to the persistent storage used by the Che installation.
 	// +optional
 	Storage CheClusterSpecStorage `json:"storage"`
+	// Configuration settings related to the metrics collection used by the Che installation.
+	// +optional
+	Metrics CheClusterSpecMetrics `json:"metrics"`
 
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
@@ -95,6 +98,17 @@ type CheClusterSpecServer struct {
 	// The default roles are used if this is omitted or left blank.
 	// +optional
 	CheWorkspaceClusterRole string `json:"cheWorkspaceClusterRole,omitempty"`
+	// Defines Kubernetes default namespace in which user's workspaces are created
+	// if user does not override it.
+	// It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>).
+	// In that case, new namespace will be created for each user (or workspace).
+	// Is used by OpenShift infra as well to specify Project
+	// +optional
+	WorkspaceNamespaceDefault string `json:"workspaceNamespaceDefault,omitempty"`
+	// Defines if a user is able to specify Kubernetes namespace (or OpenShift project) different from the default.
+	// It's NOT RECOMMENDED to configured true without OAuth configured. This property is also used by the OpenShift infra.
+	// +optional
+	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
 	// Enables the support of OpenShift clusters whose router uses self-signed certificates.
 	// When enabled, the operator retrieves the default self-signed certificate of OpenShift routes
 	// and adds it to the Java trust store of the Che server.
@@ -103,6 +117,11 @@ type CheClusterSpecServer struct {
 	// This is disabled by default.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
+	// If enabled, then the certificate from `che-git-self-signed-cert`
+	// config map will be propagated to the Che components and provide particular
+	// configuration for Git.
+	// +optional
+	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Instructs the operator to deploy Che in TLS mode, ie with TLS routes or ingresses.
 	// This is disabled by default.
 	// WARNING: Enabling TLS might require enabling the `selfSignedCert` field also in some cases.
@@ -360,6 +379,12 @@ type CheClusterSpecK8SOnly struct {
 	SecurityContextRunAsUser string `json:"securityContextRunAsUser,omitempty"`
 }
 
+type CheClusterSpecMetrics struct {
+	// Enables `metrics` Che server endpoint. Default to `false`.
+	// +optional
+	Enable bool `json:"enable"`
+}
+
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
 	// Indicates if or not a Postgres instance has been correctly provisioned
@@ -409,7 +434,14 @@ type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// Desired configuration of the Che installation.
+	// Based on these settings, the operator automatically creates and maintains
+	// several config maps that will contain the appropriate environment variables
+	// the various components of the Che installation.
+	// These generated config maps should NOT be updated manually.
 	Spec   CheClusterSpec   `json:"spec,omitempty"`
+	
+	// CheClusterStatus defines the observed state of Che installation	
 	Status CheClusterStatus `json:"status,omitempty"`
 }
 

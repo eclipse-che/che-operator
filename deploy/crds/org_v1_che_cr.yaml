@@ -33,6 +33,9 @@ spec:
     # when set to true the operator will attempt to get a secret in OpenShift router namespace
     # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
     selfSignedCert: false
+    ## If enabled then the certificate from `che-git-self-signed-cert` config map
+    ## will be propagated to the Che components and provide particular configuration for Git.
+    gitSelfSignedCert: false
     # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
     tlsSupport: false
     # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
@@ -50,6 +53,10 @@ spec:
     serverMemoryRequest: ''
     # sets mem limit for server deployment. Defaults to 1Gi
     serverMemoryLimit: ''
+    # sets default namespace where new workspaces will be created
+    workspaceNamespaceDefault: ''
+    # defines if user is able to specify namespace different from the default
+    allowUserDefinedWorkspaceNamespaces: false
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
     # otherwise a Postgres deployment is created
@@ -69,7 +76,7 @@ spec:
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
     # per-workspace (one PVC per workspace for all declared volumes) and unique (one PVC per declared volume). Defaults to common
-    pvcStrategy: 'per-workspace'
+    pvcStrategy: 'common'
     # size of a persistent volume claim for workspaces. Defaults to 1Gi
     pvcClaimSize: '1Gi'
     # instruct Che server to launch a special pod to precreate a subpath in a PV
@@ -104,7 +111,7 @@ spec:
     # secret used in oAuthClient. Auto generated if left blank
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
-    identityProviderImage: 'eclipse/che-keycloak:nightly'
+    identityProviderImage: 'quay.io/eclipse/che-keycloak:nightly'
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
@@ -116,11 +123,10 @@ spec:
     ingressStrategy: ''
     # secret name used for tls termination
     tlsSecretName: ''
-    # FSGroup the Che POD and Workspace pod containers should run in  
-    securityContextFsGroup: '' 
-    # User the Che POD and Workspace pod containers should run as  
-    securityContextRunAsUser: '' 
-
-
-
-
+    # FSGroup the Che POD and Workspace pod containers should run in
+    securityContextFsGroup: ''
+    # User the Che POD and Workspace pod containers should run as
+    securityContextRunAsUser: ''
+  metrics:
+    # Enables '/metrics' endpoint of Che server.
+    enable: false
