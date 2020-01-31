@@ -17,6 +17,11 @@ init() {
   NC='\e[0m'
   YELLOW='\e[33m'
   GREEN='\e[32m'
+
+  RELEASE="$1"
+  GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
+  CURRENT_DIR=$(pwd)
+  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 }
 
 check() {
@@ -110,8 +115,8 @@ releaseOperatorCode() {
     [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheServerSecureExposerJwtProxyUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
 
     echo -e $GREEN"3.4 Validate number of changed files"$NC
-    local changes=$(git whatchanged -1 --format=oneline | wc -l)
-    [[ $changes -gt 2 ]] && { echo -e $RED"The number of changed files are greated then 2. Check 'git status'."$NC; return 1; }
+    local changes=$(git status -s | wc -l)
+    [[ $changes -gt 2 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -151,8 +156,10 @@ releaseOlmFiles() {
   set -e
 
   if [[ $result == 0 ]]; then
-    echo -e $GREEN""6.1 Launch 'olm/release-olm-files.sh' script"$NC
+    echo -e $GREEN"6.1 Launch 'olm/release-olm-files.sh' script"$NC
+    cd $BASE_DIR/olm
     . $BASE_DIR/olm/release-olm-files.sh $RELEASE
+    cd $CURRENT_DIR
 
     local openshift=$BASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
     local kubernetes=$BASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
@@ -165,7 +172,7 @@ releaseOlmFiles() {
     test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
     test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
 
-    echo -e $GREEN""6.3 It is needed to check diff files manully"$NC
+    echo -e $GREEN"6.3 It is needed to check diff files manully"$NC
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml.diff
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml.diff
@@ -173,8 +180,8 @@ releaseOlmFiles() {
     read -p "Press enter to continue"
 
     echo -e $GREEN"6.4 Validate number of changed files"$NC
-    local changes=$(git whatchanged -1 --format=oneline | wc -l)
-    [[ $changes -gt 6 ]] && { echo -e $RED"The number of changed files are greated then 6. Check 'git status'."$NC; return 1; }
+    local changes=$(git status -s | wc -l)
+    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changed files are greated then 4. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -231,11 +238,6 @@ pushChanges() {
 }
 
 run() {
-  RELEASE="$1"
-  GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
-  CURRENT_DIR=$(pwd)
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-
   resetLocalChanges
   createLocalBranch
   releaseOperatorCode
