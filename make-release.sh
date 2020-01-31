@@ -37,17 +37,17 @@ check() {
   command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
 
   local operatorVersion=$(operator-sdk version)
-  [[ ! $operatorVersion =~ .*v0.10.0.* ]] || { echo -e $RED"operator-sdk v0.10.0 is required"$NC; exit 1; }
+  [[ $operatorVersion =~ .*v0.10.0.* ]] || { echo -e $RED"operator-sdk v0.10.0 is required"$NC; exit 1; }
 }
 
 ask() {
   while true; do
-    echo -e $GREEN$@$NC" (Y)es or (N)o"
+    echo -e -n $GREEN$@$NC" (Y)es or (N)o "
     read -r yn
     case $yn in
       [Yy]* ) return 0;;
       [Nn]* ) return 1;;
-      * ) echo "Please answer (Y)es or (N)o.";;
+      * ) echo "Please answer (Y)es or (N)o. ";;
     esac
   done
 }
@@ -79,6 +79,12 @@ createLocalBranch() {
   fi
 }
 
+getPropertyValue() {
+  local file=$1
+  local key=$2
+  echo $(cat $file | grep -m1 "$key" | tr -d ' ' | tr -d '\t' | cut -d = -f2)
+}
+
 releaseOperatorCode() {
   set +e
   ask "3. Release operator code?"
@@ -87,15 +93,25 @@ releaseOperatorCode() {
 
   if [[ $result == 0 ]]; then
     local defaultsgo=$BASE_DIR/pkg/deploy/defaults.go
+    local extraimagesgo=$BASE_DIR/pkg/deploy/extra_images.go
 
-    echo "3.1 Launch 'release-operator-code.sh' script"
+    echo -e $GREEN"3.1 Launch 'release-operator-code.sh' script"$NC
     . ${BASE_DIR}/release-operator-code.sh $RELEASE
 
-    echo "3.2 Validate pkg/deploy/defaults.go"
-    grep -q "defaultCheServerImageTag            = \""$RELEASE"\"" $defaultsgo
-    grep -q "defaultDevfileRegistryUpstreamImage = \"quay.io/eclipse/che-devfile-registry:"$RELEASE"\"" $defaultsgo
-    grep -q "defaultPluginRegistryUpstreamImage  = \"quay.io/eclipse/che-plugin-registry:"$RELEASE"\"" $defaultsgo
-    grep -q "defaultKeycloakUpstreamImage        = \"quay.io/eclipse/che-keycloak:"$RELEASE"\"" $defaultsgo
+    echo -e $GREEN"3.2 Validate changes for $defaultsgo"$NC
+    [[ \"$RELEASE\" != $(getPropertyValue $defaultsgo defaultCheServerImageTag) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
+    [[ \"quay.io/eclipse/che-devfile-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultDevfileRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
+    [[ \"quay.io/eclipse/che-plugin-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultPluginRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
+    [[ \"quay.io/eclipse/che-keycloak:$RELEASE\" != $(getPropertyValue $defaultsgo defaultKeycloakUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
+
+    echo -e $GREEN"3.3 Validate changes for $extraimagesgo"$NC
+    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheWorkspacePluginBrokerMetadataUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
+    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheWorkspacePluginBrokerArtifactsUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
+    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheServerSecureExposerJwtProxyUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
+
+    echo -e $GREEN"3.4 Validate number of changed files"$NC
+    local changes=$(git whatchanged -1 --format=oneline | wc -l)
+    [[ $changes -gt 2 ]] && { echo -e $RED"The number of changed files are greated then 2. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -108,7 +124,7 @@ commitDefaultsGoChanges() {
   set -e
 
   if [[ $result == 0 ]]; then
-    git commit -am "Update defaults tags to "$RELEASE --singoff
+    git commit -am "Update defaults tags to "$RELEASE --signoff
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
