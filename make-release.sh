@@ -231,8 +231,8 @@ pushChanges() {
   set -e
 
   if [[ $result == 0 ]]; then
-    git push origin $RELEASE
-    git tag -a $RELEASE
+    # git push origin $RELEASE
+    git tag -a $RELEASE -m $RELEASE
     git push --tags origin
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
