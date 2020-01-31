@@ -208,7 +208,9 @@ pushOlmFiles() {
   set -e
 
   if [[ $result == 0 ]]; then
+    cd $BASE_DIR/olm
     . $BASE_DIR/olm/push-olm-files-to-quay.sh
+    cd $CURRENT_DIR
 
     read -p "Validate RELEASES page on quay.io. Press enter to open the browser"
     xdg-open https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes
@@ -230,7 +232,7 @@ pushChanges() {
 
   if [[ $result == 0 ]]; then
     git push origin $RELEASE
-    git tag -a $RELEASE
+    git tag -a $RELEASE -m $RELEASE
     git push --tags origin
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
