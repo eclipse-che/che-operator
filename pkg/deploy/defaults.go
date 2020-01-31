@@ -70,8 +70,8 @@ const (
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
 	// The upstream equivalent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerMetadataImage    = "quay.io/crw/operator-metadata:2.1-2"
-	defaultCheWorkspacePluginBrokerArtifactsImage = "quay.io/crw/operator-rhel8:2.1-2"
+	defaultCheWorkspacePluginBrokerMetadataImage    = "quay.io/crw/pluginbrokermetadata-rhel8:2.1"
+	defaultCheWorkspacePluginBrokerArtifactsImage = "quay.io/crw/pluginbrokerartifacts-rhel8:2.1"
 	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.0-4"
 
 	// This is only to correctly  manage defaults during the transition
