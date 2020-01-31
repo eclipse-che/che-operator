@@ -195,7 +195,7 @@ commitOlmChanges() {
 
   if [[ $result == 0 ]]; then
     git add -A
-    git commit -m "Release OLM files to "$RELEASE --singoff
+    git commit -m "Release OLM files to "$RELEASE --signoff
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
