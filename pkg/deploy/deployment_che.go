@@ -83,7 +83,6 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
-	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, "false")
 
 	cheDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -181,6 +180,8 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 		},
 	}
 
+	// configure readiness probe if debug isn't set
+	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 	if cheDebug == "false" {
 		cheDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
