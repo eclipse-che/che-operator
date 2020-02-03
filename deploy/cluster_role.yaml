@@ -62,6 +62,8 @@ rules:
       - clusterroles
     verbs:
       - create
+      - list
+      - watch
   - apiGroups:
       - authorization.openshift.io
       - rbac.authorization.k8s.io

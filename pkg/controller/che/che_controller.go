@@ -196,8 +196,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileChe{}
-var oAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
+var (
+	_ reconcile.Reconciler = &ReconcileChe{}
+	oAuthFinalizerName     = "oauthclients.finalizers.che.eclipse.org"
+	cheCreateNamespaces    = "%s-clusterrole-create-namespaces"
+	cheManageNamespaces    = "%s-clusterrole-manage-namespaces"
+)
 
 // ReconcileChe reconciles a CheCluster object
 type ReconcileChe struct {
@@ -1190,16 +1194,131 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 				return err
 			}
 		} else {
+			cheCreateNamespacesName := fmt.Sprintf(cheCreateNamespaces, instance.Namespace)
+			cheCreateNameSpacesRole := deploy.NewClusterRole(instance, cheCreateNamespacesName, []rbac.PolicyRule{
+				{
+					APIGroups: []string{"project.openshift.io"},
+					Resources: []string{"projectrequests"},
+					Verbs: []string{"create", "update"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"namespaces"},
+					Verbs: []string{"create", "update"},
+				},
+			})
+			if err := r.CreateNewClusterRole(instance, cheCreateNameSpacesRole); err != nil {
+				return err
+			}
+
 			// this binding is needed to create new namespaces for workspaces
 			// `che` ClusterRole should be created during che-operator deploy
-			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, "che-create-namespaces", cheServiceAccount.Name, "che-create-namespaces", "ClusterRole")
+			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, cheCreateNamespacesName, cheServiceAccount.Name, cheCreateNameSpacesRole.Name, "ClusterRole")
 			if err := r.CreateNewClusterRoleBinding(instance, cheCreateNamespaceRoleBinding); err != nil {
+				return err
+			}
+
+			cheManageNamespacesName := fmt.Sprintf(cheManageNamespaces, instance.Namespace)
+			cheManageNameSpacesRole := deploy.NewClusterRole(instance, cheManageNamespacesName, []rbac.PolicyRule{
+				{
+					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+					Resources: []string{"roles"},
+					Verbs: []string{"get", "create"},
+				},
+				{
+					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+					Resources: []string{"rolebindings"},
+					Verbs: []string{"get", "update", "create"},
+				},
+				{
+					APIGroups: []string{"project.openshift.io"},
+					Resources: []string{"projects"},
+					Verbs: []string{"get"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"serviceaccounts"},
+					Verbs: []string{"get", "create", "watch"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"pods/exec"},
+					Verbs: []string{"create"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"persistentvolumeclaims", "configmaps"},
+					Verbs: []string{"list"},
+				},
+				{
+					APIGroups: []string{"apps"},
+					Resources: []string{"secrets"},
+					Verbs: []string{"list"},
+				},
+
+				{
+					APIGroups: []string{""},
+					Resources: []string{"secrets"},
+					Verbs: []string{"list", "create", "delete"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"persistentvolumeclaims"},
+					Verbs: []string{"get", "create", "watch"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"pods"},
+					Verbs: []string{"get", "create", "list", "watch", "delete"},
+				},
+				{
+					APIGroups: []string{"apps"},
+					Resources: []string{"deployments"},
+					Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"services"},
+					Verbs: []string{"create", "list", "delete"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"configmaps"},
+					Verbs: []string{"create", "delete"},
+				},
+				{
+					APIGroups: []string{"route.openshift.io"},
+					Resources: []string{"routes"},
+					Verbs: []string{"list", "create", "delete"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"events"},
+					Verbs: []string{"watch"},
+				},
+				{
+					APIGroups: []string{"apps"},
+					Resources: []string{"replicasets"},
+					Verbs: []string{"list", "get", "patch", "delete"},
+				},
+				{
+					APIGroups: []string{"extensions"},
+					Resources: []string{"ingresses"},
+					Verbs: []string{"list", "create", "watch", "get", "delete"},
+				},
+				{
+					APIGroups: []string{""},
+					Resources: []string{"namespaces"},
+					Verbs: []string{"get"},
+				},
+			})
+			if err := r.CreateNewClusterRole(instance, cheManageNameSpacesRole); err != nil {
 				return err
 			}
 
 			// this binding is needed to manage che workspaces out of che namespace
 			// `che` ClusterRole should be created during che-operator deploy
-			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, "che-manage-namespaces", cheServiceAccount.Name, "che-manage-namespaces", "ClusterRole")
+			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, cheManageNamespacesName, cheServiceAccount.Name, cheManageNameSpacesRole.Name, "ClusterRole")
 			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
 				return err
 			}
