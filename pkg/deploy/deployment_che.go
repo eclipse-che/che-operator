@@ -182,7 +182,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 
 	// configure readiness probe if debug isn't set
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
-	if cheDebug == "false" {
+	if cheDebug != "true" {
 		cheDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
