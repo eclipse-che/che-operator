@@ -22,7 +22,7 @@ import (
 const (
 	defaultCheServerImageRepo           = "quay.io/eclipse/che-server"
 	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	defaultCheServerImageTag            = "7.7.1"
+	defaultCheServerImageTag            = "7.8.0"
 	defaultCodeReadyServerImageTag      = "2.0"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
@@ -34,11 +34,11 @@ const (
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
 	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.0"
-	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.7.1"
+	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.8.0"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
 	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.0"
-	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.7.1"
+	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.8.0"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
@@ -51,7 +51,7 @@ const (
 	defaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
 	defaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
 	defaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
-	defaultKeycloakUpstreamImage        = "quay.io/eclipse/che-keycloak:7.7.1"
+	defaultKeycloakUpstreamImage        = "quay.io/eclipse/che-keycloak:7.8.0"
 	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
@@ -69,10 +69,10 @@ const (
 	// For CRW these should be synced by hand with images stored in RH registries
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
-	// The upstream equivent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerInitImage    = "quay.io/crw/pluginbrokerinit-rhel8:2.0-6"
-	defaultCheWorkspacePluginBrokerUnifiedImage = "quay.io/crw/pluginbroker-rhel8:2.0-5"
-	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.0-4"
+	// The upstream equivalent are stored in the generated `extra_images.go` source file.
+	defaultCheWorkspacePluginBrokerMetadataImage    = "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
+	defaultCheWorkspacePluginBrokerArtifactsImage = "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
+	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.1"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
@@ -163,31 +163,31 @@ func DefaultDevfileRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string 
 	}
 }
 
-func DefaultCheWorkspacePluginBrokerInitImage(cr *orgv1.CheCluster, cheFlavor string) string {
+func DefaultCheWorkspacePluginBrokerMetadataImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
 		// In the CRW case, we should always set the plugin broker image in the Che config map
-		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerInitImage)
+		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataImage)
 	} else {
 		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
 		// if we return an empty string here.
 		// We only need to override it in case of AirGap mode
 		if cr.IsAirGapMode() {
-			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerInitUpstreamImage)
+			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataUpstreamImage)
 		}
 		return ""
 	}
 }
 
-func DefaultCheWorkspacePluginBrokerUnifiedImage(cr *orgv1.CheCluster, cheFlavor string) string {
+func DefaultCheWorkspacePluginBrokerArtifactsImage(cr *orgv1.CheCluster, cheFlavor string) string {
 	if cheFlavor == "codeready" {
 		// In the CRW case, we should always set the plugin broker image in the Che config map
-		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerUnifiedImage)
+		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsImage)
 	} else {
 		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
 		// if we return an empty string here.
 		// We only need to override it in case of AirGap mode
 		if cr.IsAirGapMode() {
-			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerUnifiedUpstreamImage)
+			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsUpstreamImage)
 		}
 		return ""
 	}

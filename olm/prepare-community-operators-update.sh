@@ -31,14 +31,14 @@ do
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
 
   echo "   - Cloning the 'community-operators' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
-  
+
   rm -Rf "${communityOperatorsLocalGitFolder}"
   mkdir -p "${communityOperatorsLocalGitFolder}"
   git clone https://github.com/che-incubator/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
   cd "${communityOperatorsLocalGitFolder}"
   git remote add upstream https://github.com/operator-framework/community-operators.git
   git fetch upstream master:upstream/master
-  
+
   branch="update-eclipse-che"
   if [ "${platform}" == "kubernetes" ]
   then
@@ -47,7 +47,8 @@ do
   branch="${branch}-operator-${lastPackagePreReleaseVersion}"
   echo
   echo "   - Creating branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
-  git checkout -b "${branch}" upstream/master 2>&1 | sed -e 's/^/      /'
+  git checkout upstream/master
+  git checkout -b "${branch}" 2>&1 | sed -e 's/^/      /'
   cd "${packageBaseFolderPath}"
 
   platformSubFolder="community-operators"
