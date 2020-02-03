@@ -67,8 +67,8 @@ pkg/deploy/defaults.go \
 mv pkg/deploy/defaults.go.new pkg/deploy/defaults.go
 
 wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
-latestCheWorkspacePluginBrokerInitImage=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.init.image" | cut -d = -f2)
-latestCheWorkspacePluginBrokerUnifiedImage=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.unified.image" | cut -d = -f2)
+latestCheWorkspacePluginBrokerMetadataImage=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
+latestCheWorkspacePluginBrokerArtifactsImage=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
 latestCheServerSecureExposerJwtProxyImage=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
 
 cat << EOF > pkg/deploy/extra_images.go
@@ -76,8 +76,8 @@ cat << EOF > pkg/deploy/extra_images.go
 package deploy
 
 const (
-	defaultCheWorkspacePluginBrokerInitUpstreamImage    = "${latestCheWorkspacePluginBrokerInitImage}"
-	defaultCheWorkspacePluginBrokerUnifiedUpstreamImage = "${latestCheWorkspacePluginBrokerUnifiedImage}"
+	defaultCheWorkspacePluginBrokerMetadataUpstreamImage    = "${latestCheWorkspacePluginBrokerMetadataImage}"
+	defaultCheWorkspacePluginBrokerArtifactsUpstreamImage = "${latestCheWorkspacePluginBrokerArtifactsImage}"
 	defaultCheServerSecureExposerJwtProxyUpstreamImage  = "${latestCheServerSecureExposerJwtProxyImage}"
 )
 EOF

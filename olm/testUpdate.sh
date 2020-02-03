@@ -40,10 +40,12 @@ packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
 lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
 lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
 previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
+previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
 echo "lastPackageVersion=${lastPackageVersion}"
 echo "lastCSV=${lastCSV}"
 echo "previousCSV=${previousCSV}"
+echo "previousPackageVersion=${previousPackageVersion}"
 
 if kubectl get namespace "${namespace}" >/dev/null 2>&1
 then
@@ -147,7 +149,7 @@ fi
 
 echo "Creating Custom Resource"
 
-CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
+CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${previousPackageVersion}/${packageName}.v${previousPackageVersion}.clusterserviceversion.yaml")
 CR=$(echo "$CRs" | yq -r ".[0]")
 if [ "${platform}" == "kubernetes" ]
 then
