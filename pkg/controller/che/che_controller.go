@@ -1212,7 +1212,7 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 			}
 
 			// this binding is needed to create new namespaces for workspaces
-			// `che` ClusterRole should be created during che-operator deploy
+			// `${namespace}-clusterrole-create-namespaces` ClusterRole should be created during che-operator deploy
 			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, cheCreateNamespacesName, cheServiceAccount.Name, cheCreateNameSpacesRole.Name, "ClusterRole")
 			if err := r.CreateNewClusterRoleBinding(instance, cheCreateNamespaceRoleBinding); err != nil {
 				return err
@@ -1317,7 +1317,7 @@ func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
 			}
 
 			// this binding is needed to manage che workspaces out of che namespace
-			// `che` ClusterRole should be created during che-operator deploy
+			// `${namespace}-clusterrole-manage-namespaces` ClusterRole should be created during che-operator deploy
 			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, cheManageNamespacesName, cheServiceAccount.Name, cheManageNameSpacesRole.Name, "ClusterRole")
 			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
 				return err

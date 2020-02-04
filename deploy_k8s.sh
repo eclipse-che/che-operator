@@ -12,27 +12,30 @@
 set -e
 set -x
 
+if [ -z "${1}" ]; then
+  echo "missing namespace parameter './deploy_k8s.sh <che-namespace>'"
+  exit 1
+fi
+NAMESPACE=${1}
+
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
-kubectl apply -f "${BASE_DIR}"/deploy/service_account.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/role.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/role_binding.yaml -n che
+kubectl apply -f "${BASE_DIR}"/deploy/service_account.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/role.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/role_binding.yaml -n="${NAMESPACE}"
 
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_che.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_createns.yaml -n che
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_che.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_createns.yaml -n="${NAMESPACE}"
 
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding_che.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding_createns.yaml -n che
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding_che.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding_createns.yaml -n="${NAMESPACE}"
 
-kubectl apply -f "${BASE_DIR}"/deploy/crds/org_v1_che_crd.yaml -n che
+kubectl apply -f "${BASE_DIR}"/deploy/crds/org_v1_che_crd.yaml -n="${NAMESPACE}"
+
 # sometimes the operator cannot get CRD right away
 sleep 2
 
-# uncomment if you need Login with OpenShift
-#kubectl new-app -f ${BASE_DIR}/deploy/role_binding_oauth.yaml -p NAMESPACE=$1 -n=$1
-#kubectl apply -f ${BASE_DIR}/deploy/cluster_role.yaml -n=$1
-
-kubectl apply -f "${BASE_DIR}"/deploy/operator.yaml -n che
-kubectl apply -f "${BASE_DIR}"/deploy/crds/org_v1_che_cr.yaml -n che
+kubectl apply -f "${BASE_DIR}"/deploy/operator.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/crds/org_v1_che_cr.yaml -n="${NAMESPACE}"

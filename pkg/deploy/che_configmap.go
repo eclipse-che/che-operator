@@ -166,7 +166,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheDebugServer:                       cheDebug,
 		CheInfrastructureActive:              infra,
 		CheInfraKubernetesServiceAccountName: "che-workspace",
-		CheWorkspaceClusterRole:			  cheWorkspaceClusterRole,
+		CheWorkspaceClusterRole:              cheWorkspaceClusterRole,
 		DefaultTargetNamespace:               defaultTargetNamespace,
 		NamespaceAllowUserDefined:            namespaceAllowUserDefined,
 		PvcStrategy:                          pvcStrategy,
