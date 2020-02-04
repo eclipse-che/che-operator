@@ -135,24 +135,6 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 									corev1.ResourceMemory: resource.MustParse(memLimit),
 								},
 							},
-							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/api/system/state",
-										Port: intstr.IntOrString{
-											Type:   intstr.Int,
-											IntVal: int32(8080),
-										},
-										Scheme: corev1.URISchemeHTTP,
-									},
-								},
-								// After POD start, the POD will be seen as ready after a minimum of 15 seconds and we expect it to be seen as ready until a maximum of 200 seconds
-								// 200 s = InitialDelaySeconds + PeriodSeconds * (FailureThreshold - 1) + TimeoutSeconds
-								InitialDelaySeconds: 25,
-								FailureThreshold:    18,
-								TimeoutSeconds:      5,
-								PeriodSeconds:       10,
-							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -197,6 +179,30 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 			},
 		},
 	}
+
+	// configure readiness probe if debug isn't set
+	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
+	if cheDebug != "true" {
+		cheDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/api/system/state",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8080),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			// After POD start, the POD will be seen as ready after a minimum of 15 seconds and we expect it to be seen as ready until a maximum of 200 seconds
+			// 200 s = InitialDelaySeconds + PeriodSeconds * (FailureThreshold - 1) + TimeoutSeconds
+			InitialDelaySeconds: 25,
+			FailureThreshold:    18,
+			TimeoutSeconds:      5,
+			PeriodSeconds:       10,
+		}
+	}
+
 	if !isOpenshift {
 		runAsUser, err := strconv.ParseInt(util.GetValue(cr.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
