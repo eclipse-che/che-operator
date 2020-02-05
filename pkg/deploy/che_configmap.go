@@ -14,13 +14,14 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"strconv"
 )
 
 func addMap(a map[string]string, b map[string]string) {
@@ -30,47 +31,47 @@ func addMap(a map[string]string, b map[string]string) {
 }
 
 type CheConfigMap struct {
-	CheHost                              string `json:"CHE_HOST"`
-	CheMultiUser                         string `json:"CHE_MULTIUSER"`
-	ChePort                              string `json:"CHE_PORT"`
-	CheApi                               string `json:"CHE_API"`
-	CheWebSocketEndpoint                 string `json:"CHE_WEBSOCKET_ENDPOINT"`
-	CheDebugServer                       string `json:"CHE_DEBUG_SERVER"`
-	CheMetricsEnabled                    string `json:"CHE_METRICS_ENABLED"`
-	CheInfrastructureActive              string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
-	CheInfraKubernetesServiceAccountName string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
-	DefaultTargetNamespace               string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceAllowUserDefined            string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
-	CheWorkspaceClusterRole              string `json:"CHE_INFRA_KUBERNETES_CLUSTER__ROLE__NAME"`
-	PvcStrategy                          string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
-	PvcClaimSize                         string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
-	PvcJobsImage                         string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
-	WorkspacePvcStorageClassName         string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
-	PreCreateSubPaths                    string `json:"CHE_INFRA_KUBERNETES_PVC_PRECREATE__SUBPATHS"`
-	TlsSupport                           string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
-	K8STrustCerts                        string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
-	DatabaseURL                          string `json:"CHE_JDBC_URL"`
-	DbUserName                           string `json:"CHE_JDBC_USERNAME"`
-	DbPassword                           string `json:"CHE_JDBC_PASSWORD"`
-	CheLogLevel                          string `json:"CHE_LOG_LEVEL"`
-	KeycloakURL                          string `json:"CHE_KEYCLOAK_AUTH__SERVER__URL"`
-	KeycloakRealm                        string `json:"CHE_KEYCLOAK_REALM"`
-	KeycloakClientId                     string `json:"CHE_KEYCLOAK_CLIENT__ID"`
-	OpenShiftIdentityProvider            string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
-	JavaOpts                             string `json:"JAVA_OPTS"`
-	WorkspaceJavaOpts                    string `json:"CHE_WORKSPACE_JAVA__OPTIONS"`
-	WorkspaceMavenOpts                   string `json:"CHE_WORKSPACE_MAVEN__OPTIONS"`
-	WorkspaceProxyJavaOpts               string `json:"CHE_WORKSPACE_HTTP__PROXY__JAVA__OPTIONS"`
-	WorkspaceHttpProxy                   string `json:"CHE_WORKSPACE_HTTP__PROXY"`
-	WorkspaceHttpsProxy                  string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
-	WorkspaceNoProxy                     string `json:"CHE_WORKSPACE_NO__PROXY"`
-	PluginRegistryUrl                    string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
-	DevfileRegistryUrl                   string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
-	WebSocketEndpointMinor               string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
-	CheWorkspacePluginBrokerInitImage    string `json:"CHE_WORKSPACE_PLUGIN__BROKER_INIT_IMAGE,omitempty"`
-	CheWorkspacePluginBrokerUnifiedImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_UNIFIED_IMAGE,omitempty"`
-	CheServerSecureExposerJwtProxyImage  string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
-	CheJGroupsKubernetesLabels           string `json:"KUBERNETES_LABELS,omitempty"`
+	CheHost                                string `json:"CHE_HOST"`
+	CheMultiUser                           string `json:"CHE_MULTIUSER"`
+	ChePort                                string `json:"CHE_PORT"`
+	CheApi                                 string `json:"CHE_API"`
+	CheWebSocketEndpoint                   string `json:"CHE_WEBSOCKET_ENDPOINT"`
+	CheDebugServer                         string `json:"CHE_DEBUG_SERVER"`
+	CheMetricsEnabled                      string `json:"CHE_METRICS_ENABLED"`
+	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
+	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
+	CheWorkspaceClusterRole                string `json:"CHE_INFRA_KUBERNETES_CLUSTER__ROLE__NAME"`
+	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
+	NamespaceAllowUserDefined              string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
+	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
+	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
+	PvcJobsImage                           string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
+	WorkspacePvcStorageClassName           string `json:"CHE_INFRA_KUBERNETES_PVC_STORAGE__CLASS__NAME"`
+	PreCreateSubPaths                      string `json:"CHE_INFRA_KUBERNETES_PVC_PRECREATE__SUBPATHS"`
+	TlsSupport                             string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
+	K8STrustCerts                          string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
+	DatabaseURL                            string `json:"CHE_JDBC_URL"`
+	DbUserName                             string `json:"CHE_JDBC_USERNAME"`
+	DbPassword                             string `json:"CHE_JDBC_PASSWORD"`
+	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
+	KeycloakURL                            string `json:"CHE_KEYCLOAK_AUTH__SERVER__URL"`
+	KeycloakRealm                          string `json:"CHE_KEYCLOAK_REALM"`
+	KeycloakClientId                       string `json:"CHE_KEYCLOAK_CLIENT__ID"`
+	OpenShiftIdentityProvider              string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
+	JavaOpts                               string `json:"JAVA_OPTS"`
+	WorkspaceJavaOpts                      string `json:"CHE_WORKSPACE_JAVA__OPTIONS"`
+	WorkspaceMavenOpts                     string `json:"CHE_WORKSPACE_MAVEN__OPTIONS"`
+	WorkspaceProxyJavaOpts                 string `json:"CHE_WORKSPACE_HTTP__PROXY__JAVA__OPTIONS"`
+	WorkspaceHttpProxy                     string `json:"CHE_WORKSPACE_HTTP__PROXY"`
+	WorkspaceHttpsProxy                    string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
+	WorkspaceNoProxy                       string `json:"CHE_WORKSPACE_NO__PROXY"`
+	PluginRegistryUrl                      string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
+	DevfileRegistryUrl                     string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
+	WebSocketEndpointMinor                 string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
+	CheWorkspacePluginBrokerMetadataImage  string `json:"CHE_WORKSPACE_PLUGIN__BROKER_METADATA_IMAGE,omitempty"`
+	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
+	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
+	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -157,47 +158,47 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheWorkspaceClusterRole := cr.Spec.Server.CheWorkspaceClusterRole
 
 	data := &CheConfigMap{
-		CheMultiUser:                         "true",
-		CheHost:                              cheHost,
-		ChePort:                              "8080",
-		CheApi:                               protocol + "://" + cheHost + "/api",
-		CheWebSocketEndpoint:                 wsprotocol + "://" + cheHost + "/api/websocket",
-		WebSocketEndpointMinor:               wsprotocol + "://" + cheHost + "/api/websocket-minor",
-		CheDebugServer:                       cheDebug,
-		CheInfrastructureActive:              infra,
-		CheInfraKubernetesServiceAccountName: "che-workspace",
-		CheWorkspaceClusterRole:              cheWorkspaceClusterRole,
-		DefaultTargetNamespace:               defaultTargetNamespace,
-		NamespaceAllowUserDefined:            namespaceAllowUserDefined,
-		PvcStrategy:                          pvcStrategy,
-		PvcClaimSize:                         pvcClaimSize,
-		WorkspacePvcStorageClassName:         workspacePvcStorageClassName,
-		PvcJobsImage:                         pvcJobsImage,
-		PreCreateSubPaths:                    preCreateSubPaths,
-		TlsSupport:                           tls,
-		K8STrustCerts:                        tls,
-		DatabaseURL:                          "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb,
-		DbUserName:                           chePostgresUser,
-		DbPassword:                           chePostgresPassword,
-		CheLogLevel:                          cheLogLevel,
-		KeycloakURL:                          keycloakURL + "/auth",
-		KeycloakRealm:                        keycloakRealm,
-		KeycloakClientId:                     keycloakClientId,
-		OpenShiftIdentityProvider:            openShiftIdentityProviderId,
-		JavaOpts:                             DefaultJavaOpts + " " + proxyJavaOpts,
-		WorkspaceJavaOpts:                    DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
-		WorkspaceMavenOpts:                   DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
-		WorkspaceProxyJavaOpts:               proxyJavaOpts,
-		WorkspaceHttpProxy:                   cheWorkspaceHttpProxy,
-		WorkspaceHttpsProxy:                  cheWorkspaceHttpProxy,
-		WorkspaceNoProxy:                     cheWorkspaceNoProxy,
-		PluginRegistryUrl:                    pluginRegistryUrl,
-		DevfileRegistryUrl:                   devfileRegistryUrl,
-		CheWorkspacePluginBrokerInitImage:    DefaultCheWorkspacePluginBrokerInitImage(cr, cheFlavor),
-		CheWorkspacePluginBrokerUnifiedImage: DefaultCheWorkspacePluginBrokerUnifiedImage(cr, cheFlavor),
-		CheServerSecureExposerJwtProxyImage:  DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
-		CheJGroupsKubernetesLabels:           cheLabels,
-		CheMetricsEnabled:                    cheMetrics,
+		CheMultiUser:                           "true",
+		CheHost:                                cheHost,
+		ChePort:                                "8080",
+		CheApi:                                 protocol + "://" + cheHost + "/api",
+		CheWebSocketEndpoint:                   wsprotocol + "://" + cheHost + "/api/websocket",
+		WebSocketEndpointMinor:                 wsprotocol + "://" + cheHost + "/api/websocket-minor",
+		CheDebugServer:                         cheDebug,
+		CheInfrastructureActive:                infra,
+		CheInfraKubernetesServiceAccountName:   "che-workspace",
+		CheWorkspaceClusterRole:                cheWorkspaceClusterRole,
+		DefaultTargetNamespace:                 defaultTargetNamespace,
+		NamespaceAllowUserDefined:              namespaceAllowUserDefined,
+		PvcStrategy:                            pvcStrategy,
+		PvcClaimSize:                           pvcClaimSize,
+		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
+		PvcJobsImage:                           pvcJobsImage,
+		PreCreateSubPaths:                      preCreateSubPaths,
+		TlsSupport:                             tls,
+		K8STrustCerts:                          tls,
+		DatabaseURL:                            "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb,
+		DbUserName:                             chePostgresUser,
+		DbPassword:                             chePostgresPassword,
+		CheLogLevel:                            cheLogLevel,
+		KeycloakURL:                            keycloakURL + "/auth",
+		KeycloakRealm:                          keycloakRealm,
+		KeycloakClientId:                       keycloakClientId,
+		OpenShiftIdentityProvider:              openShiftIdentityProviderId,
+		JavaOpts:                               DefaultJavaOpts + " " + proxyJavaOpts,
+		WorkspaceJavaOpts:                      DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
+		WorkspaceMavenOpts:                     DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
+		WorkspaceProxyJavaOpts:                 proxyJavaOpts,
+		WorkspaceHttpProxy:                     cheWorkspaceHttpProxy,
+		WorkspaceHttpsProxy:                    cheWorkspaceHttpProxy,
+		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
+		PluginRegistryUrl:                      pluginRegistryUrl,
+		DevfileRegistryUrl:                     devfileRegistryUrl,
+		CheWorkspacePluginBrokerMetadataImage:  DefaultCheWorkspacePluginBrokerMetadataImage(cr, cheFlavor),
+		CheWorkspacePluginBrokerArtifactsImage: DefaultCheWorkspacePluginBrokerArtifactsImage(cr, cheFlavor),
+		CheServerSecureExposerJwtProxyImage:    DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
+		CheJGroupsKubernetesLabels:             cheLabels,
+		CheMetricsEnabled:                      cheMetrics,
 	}
 
 	out, err := json.Marshal(data)
