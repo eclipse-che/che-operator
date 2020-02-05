@@ -1,3 +1,5 @@
+# DO NOT MERGE THIS PR. I'm just testing PR check mechanism on ci.centos.org
+
 ## Che/CodeReady Workspaces Operator
 
 Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a multi user Eclipse Che/CodeReady Workspaces cluster.
