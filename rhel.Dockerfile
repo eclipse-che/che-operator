@@ -24,7 +24,7 @@ ADD . /go/src/github.com/eclipse/che-operator
 RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go test -v ./... && OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator /go/src/github.com/eclipse/che-operator/cmd/manager/main.go && cd ..
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.1-328
+FROM registry.access.redhat.com/ubi8-minimal:8.1-398
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/keycloak_provision /tmp/keycloak_provision
