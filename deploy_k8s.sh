@@ -24,9 +24,9 @@ kubectl apply -f "${BASE_DIR}"/deploy/service_account.yaml -n="${NAMESPACE}"
 kubectl apply -f "${BASE_DIR}"/deploy/role.yaml -n="${NAMESPACE}"
 kubectl apply -f "${BASE_DIR}"/deploy/role_binding.yaml -n="${NAMESPACE}"
 
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role.yaml -n="${NAMESPACE}"
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_che.yaml -n="${NAMESPACE}"
-kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_createns.yaml -n="${NAMESPACE}"
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role.yaml
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_che.yaml
+kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_createns.yaml
 
 kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding.yaml -n="${NAMESPACE}"
 kubectl apply -f "${BASE_DIR}"/deploy/cluster_role_binding_che.yaml -n="${NAMESPACE}"
