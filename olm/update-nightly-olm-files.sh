@@ -34,15 +34,17 @@ do
   operator-sdk olm-catalog gen-csv --csv-version "${newNightlyPackageVersion}" --from-version="${lastPackageVersion}" 2>&1 | sed -e 's/^/      /'
   containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml")
   createdAt=$(date -u +%FT%TZ)
+  serviceAccountName=che-operator
   echo "   - Updating new package version fields:"
-  echo "       - containerImage => ${containerImage}" 
-  echo "       - createdAt => ${createdAt}" 
+  echo "       - containerImage => ${containerImage}"
+  echo "       - createdAt => ${createdAt}"
+  echo "       - fix serviceAccountName => ${serviceAccountName}"
   sed \
   -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
   -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" \
+  -e "s/serviceAccountName:.*$/serviceAccountName: \"${serviceAccountName}\"/" \
   "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml" \
   > "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new"
-  
   mv "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new" \
   "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml"
   echo "   - Copying the CRD file"
