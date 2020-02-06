@@ -18,7 +18,13 @@ BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 for platform in 'kubernetes' 'openshift'
 do
   packageName="eclipse-che-preview-${platform}"
-  quayNamespace="eclipse-che-operator-${platform}"
+
+  if [ "${APPLICATION_REGISTRY}" == "" ]; then
+    quayNamespace="eclipse-che-operator-${platform}"
+  else
+    quayNamespace="${APPLICATION_REGISTRY}"
+  fi
+
   echo
   echo "## Pushing the OperatorHub package '${packageName}' for platform '${platform}' to the Quay.io '${quayNamespace}' organization"
 
@@ -29,7 +35,7 @@ do
   flattenFolderPath="${packageBaseFolderPath}/generated/flatten"
 
   echo "   - Flatten package to temporary folder: ${flattenFolderPath}"
-  
+
   rm -Rf "${flattenFolderPath}"
   mkdir -p "${flattenFolderPath}"
   operator-courier flatten "${packageFolderPath}" generated/flatten
