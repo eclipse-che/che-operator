@@ -12,8 +12,6 @@
 
 set -e -x
 
-source ./util/ci_common.sh
-
 trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minishift VM.
@@ -64,6 +62,8 @@ run_tests() {
 }
 
 init
+source ${OPERATOR_REPO}/.ci/util/ci_common.sh
+
 installStartDocker
 install_required_packages
 start_libvirt
