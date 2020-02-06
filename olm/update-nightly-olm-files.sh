@@ -42,7 +42,7 @@ do
   sed \
   -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
   -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" \
-  -e "s/serviceAccountName:.*$/serviceAccountName: \"${serviceAccountName}\"/" \
+  -e "s/serviceAccountName:.*$/serviceAccountName: ${serviceAccountName}/" \
   "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml" \
   > "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new"
   mv "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new" \
