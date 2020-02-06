@@ -46,6 +46,7 @@ setup_kvm_machine_driver() {
 }
 
 minishift_installation() {
+  MSFT_RELEASE="1.34.1"
   echo "[INFO] Downloading Minishift binaries..."
   curl -s -S -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
     -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/bin --strip-components=1
