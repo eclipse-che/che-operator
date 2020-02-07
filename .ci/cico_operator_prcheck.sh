@@ -12,13 +12,11 @@
 
 set -e -x
 
-source ./util/ci_common.sh
-
 trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minishift VM.
 Catch_Finish() {
-  rm -rf ${OPERATOR_REPO}/tmp && yes | minishift delete
+  rm -rf ${OPERATOR_REPO}/tmp ~/.minishift && yes | minishift delete
 }
 
 init() {
@@ -43,7 +41,6 @@ oc_tls_mode() {
 }
 
 run_tests() {
-  if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
   echo "[INFO] Register a custom resource definition"
   oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
 
@@ -64,6 +61,8 @@ run_tests() {
 }
 
 init
+source ${OPERATOR_REPO}/.ci/util/ci_common.sh
+
 installStartDocker
 install_required_packages
 start_libvirt

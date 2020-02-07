@@ -395,5 +395,5 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1567514660
+  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1567437269
   version: 9.9.9-nightly.1567522875
