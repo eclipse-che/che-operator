@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2018-2020 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -23,7 +23,7 @@ const (
 	defaultCheServerImageRepo           = "quay.io/eclipse/che-server"
 	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	defaultCheServerImageTag            = "7.8.0"
-	defaultCodeReadyServerImageTag      = "2.0"
+	defaultCodeReadyServerImageTag      = "2.1"
 	DefaultCheFlavor                    = "che"
 	DefaultChePostgresUser              = "pgche"
 	DefaultChePostgresHostName          = "postgres"
@@ -33,11 +33,11 @@ const (
 	DefaultPvcClaimSize                 = "1Gi"
 	DefaultIngressStrategy              = "multi-host"
 	DefaultIngressClass                 = "nginx"
-	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.0"
+	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1"
 	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.8.0"
 	DefaultPluginRegistryMemoryLimit    = "256Mi"
 	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.0"
+	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1"
 	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.8.0"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
