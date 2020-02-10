@@ -46,6 +46,7 @@ do
   "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml" \
   > "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new"
   mv "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml.new" \
+
   "${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml"
   echo "   - Copying the CRD file"
   cp "${BASE_DIR}/../deploy/crds/org_v1_che_crd.yaml" "${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"

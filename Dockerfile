@@ -13,7 +13,7 @@
 # NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
 # NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.12.12-3 as builder
+FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.12.12-4 as builder
 ENV PATH=/opt/rh/go-toolset-1.12/root/usr/bin:$PATH \
     GOPATH=/go/
 
