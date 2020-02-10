@@ -53,6 +53,51 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "che-operator"
+            # Operator defaults
+            - name: DEFAULT_CHE_SERVER_IMAGE_REPO
+              value: "quay.io/eclipse/che-server"
+            - name: DEFAULT_CODE_READY_SERVER_IMAGE_REPO
+              value: "registry.redhat.io/codeready-workspaces/server-rhel8"
+            - name: DEFAULT_CHE_SERVER_IMAGE_TAG
+              value: "7.8.0"
+            - name: DEFAULT_CODE_READY_SERVER_IMAGE_TAG
+              value: "2.1"
+            - name: DEFAULT_PLUGIN_REGISTRY_IMAGE
+              value: "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1"
+            - name: DEFAULT_PLUGIN_REGISTRY_UPSTREAM_IMAGE
+              value: "quay.io/eclipse/che-plugin-registry:7.8.0"
+            - name: DEFAULT_DEVFILE_REGISTRY_IMAGE
+              value: "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1"
+            - name: DEFAULT_DEVFILE_REGISTRY_UPSTREAM_IMAGE
+              value: "quay.io/eclipse/che-devfile-registry:7.8.0"
+            - name: "DEFAULT_PVC_JOBS_IMAGE"
+              value: "registry.redhat.io/ubi8-minimal:8.0-213"
+            - name: "DEFAULT_PVC_JOBS_UPSTREAM_IMAGE"
+              value: "registry.access.redhat.com/ubi8-minimal:8.0-213"
+            - name: "DEFAULT_POSTGRES_IMAGE"
+              value: "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
+            - name: "DEFAULT_POSTGRES_UPSTREAM_IMAGE"
+              value: "centos/postgresql-96-centos7:9.6"
+            - name: "DEFAULT_KEYCLOAK_IMAGE"
+              value: "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
+            - name: "DEFAULT_KEYCLOAK_UPSTREAM_IMAGE"
+              value: "quay.io/eclipse/che-keycloak:7.8.0"
+            - name: "DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE"
+              value: "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
+            - name: "DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE"
+              value: "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
+            - name: "DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE"
+              value: "quay.io/crw/jwtproxy-rhel8:2.1"
+            - name: "OLD_DEFAULT_KEYCLOAK_UPSTREAM_IMAGE_TO_DETECT"
+              value: "eclipse/che-keycloak:7.0.0"
+            - name: "OLD_DEFAULT_PVC_JOBS_UPSTREAM_IMAGE_TO_DETECT"
+              value: "registry.access.redhat.com/ubi8-minimal:8.0-127"
+            - name: "OLD_DEFAULT_POSTGRES_UPSTREAM_IMAGE_TO_DETECT"
+              value: "centos/postgresql-96-centos7:9.6"
+            - name: "OLD_DEFAULT_CODE_READY_SERVER_IMAGE_REPO"
+              value: "registry.redhat.io/codeready-workspaces/server-rhel8"
+            - name: "OLD_DEFAULT_CODE_READY_SERVER_IMAGE_TAG"
+              value: "1.2"
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5
