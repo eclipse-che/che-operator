@@ -16,13 +16,20 @@ set -e -x
 Channel=$1
 if [ -z "${Channel}" ]
   then
-    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>]"
+    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>] [<platform>]"
     exit 1
 fi
 Namespace=$2
 if [ -z "${Namespace}" ]
   then
-    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>]"
+    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>] [<platform>]"
+    exit 1
+fi
+
+Platform=$2
+if [ -z "${Platform}" ]
+  then
+    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>] [<platform>]"
     exit 1
 fi
 
@@ -42,7 +49,7 @@ check_oc_cluster() {
 
   # oc logged in
   if ! oc whoami; then
-    printf "[ERROR] Please login as a cluster-admin."
+    printf "[ERROR] Please login into your oc cluster."
     exit 1
   fi
 }
@@ -50,7 +57,7 @@ check_oc_cluster() {
 create_csource_image() {
   docker build -t ${CATALOG_IMAGENAME} -f ${BASE_DIR}/eclipse-che-preview-openshift/Dockerfile \
         ${BASE_DIR}/eclipse-che-preview-openshift
-  docker login -u ${QUAY_USERNAME} -p ${QUAY_PASWORD} quay.io
+  docker login -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD} quay.io
   docker push ${CATALOG_IMAGENAME}
 }
 
@@ -61,7 +68,7 @@ kind: Namespace
 metadata:
   name: ${Namespace}
 ---
-apiVersion: operators.coreos.com/v1alpha2
+apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: operatorgroup
