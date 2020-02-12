@@ -18,12 +18,7 @@ oc apply -f ${BASE_DIR}/deploy/role.yaml
 oc apply -f ${BASE_DIR}/deploy/role_binding.yaml
 
 oc apply -f ${BASE_DIR}/deploy/cluster_role.yaml
-oc apply -f ${BASE_DIR}/deploy/cluster_role_che.yaml
-oc apply -f ${BASE_DIR}/deploy/cluster_role_createns.yaml
-
 oc apply -f ${BASE_DIR}/deploy/cluster_role_binding.yaml
-oc apply -f ${BASE_DIR}/deploy/cluster_role_binding_che.yaml
-oc apply -f ${BASE_DIR}/deploy/cluster_role_binding_createns.yaml
 
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml
 # sometimes the operator cannot get CRD right away
