@@ -23,6 +23,7 @@ import (
 	"runtime"
 
 	"github.com/eclipse/che-operator/pkg/apis"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/controller"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
@@ -75,6 +76,7 @@ func printVersion() {
 
 func main() {
 	flag.Parse()
+	deploy.InitDefaultsFromEnv()
 	//logf.SetLogger(logf.ZapLogger(false))
 	printVersion()
 	namespace, err := k8sutil.GetWatchNamespace()

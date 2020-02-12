@@ -22,43 +22,35 @@ import (
 )
 
 var (
-	defaultCheServerImageRepo           = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_REPO") // = "quay.io/eclipse/che-server"
-	defaultCodeReadyServerImageRepo     = getDefaultFromEnv("DEFAULT_CODE_READY_SERVER_IMAGE_REPO") //  = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	defaultCheServerImageTag            = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_TAG") // "7.8.0"
-	defaultCodeReadyServerImageTag      = getDefaultFromEnv("DEFAULT_CODE_READY_SERVER_IMAGE_TAG") // "2.1"
+	defaultCheServerImageRepo string
+	defaultCodeReadyServerImageRepo string
+	defaultCheServerImageTag string
+	defaultCodeReadyServerImageTag string
 
-	defaultPluginRegistryImage          = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_IMAGE") // "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1"
-	defaultPluginRegistryUpstreamImage  = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_UPSTREAM_IMAGE") // "quay.io/eclipse/che-plugin-registry:7.8.0"
+	defaultPluginRegistryImage string
+	defaultPluginRegistryUpstreamImage string
 
-	defaultDevfileRegistryImage         = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_IMAGE") // "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1"
-	defaultDevfileRegistryUpstreamImage = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_UPSTREAM_IMAGE") // "quay.io/eclipse/che-devfile-registry:7.8.0"
+	defaultDevfileRegistryImage string
+	defaultDevfileRegistryUpstreamImage  string
 
-	defaultPvcJobsImage                 = getDefaultFromEnv("DEFAULT_PVC_JOBS_IMAGE") // "registry.redhat.io/ubi8-minimal:8.0-213"
-	defaultPvcJobsUpstreamImage         = getDefaultFromEnv("DEFAULT_PVC_JOBS_UPSTREAM_IMAGE") // "registry.access.redhat.com/ubi8-minimal:8.0-213"
+	defaultPvcJobsImage string
+	defaultPvcJobsUpstreamImage string
 
-	defaultPostgresImage                = getDefaultFromEnv("DEFAULT_POSTGRES_IMAGE") // "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
-	defaultPostgresUpstreamImage        = getDefaultFromEnv("DEFAULT_POSTGRES_UPSTREAM_IMAGE") // "centos/postgresql-96-centos7:9.6"
+	defaultPostgresImage string
+	defaultPostgresUpstreamImage string
 
-	defaultKeycloakImage                = getDefaultFromEnv("DEFAULT_KEYCLOAK_IMAGE") // "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
-	defaultKeycloakUpstreamImage        = getDefaultFromEnv("DEFAULT_KEYCLOAK_UPSTREAM_IMAGE") // "quay.io/eclipse/che-keycloak:7.8.0"
+	defaultKeycloakImage string
+	defaultKeycloakUpstreamImage string
 
-	// CRW images for that are mentioned in the Che server che.properties
-	// For CRW these should be synced by hand with images stored in RH registries
-	// instead of being synced by script with the content of the upstream `che.properties` file
-	// NB:
-	// The upstream equivalent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE") // "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
-	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE") // "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
-	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE") // "quay.io/crw/jwtproxy-rhel8:2.1"
+	defaultCheWorkspacePluginBrokerMetadataImage string
+	defaultCheWorkspacePluginBrokerArtifactsImage string
+	defaultCheServerSecureExposerJwtProxyImage string
 
-	// This is only to correctly  manage defaults during the transition
-	// from Upstream 7.0.0 GA to the next version
-	// That fixed bug https://github.com/eclipse/che/issues/13714
-	OldDefaultKeycloakUpstreamImageToDetect = getDefaultFromEnv("OLD_DEFAULT_KEYCLOAK_UPSTREAM_IMAGE_TO_DETECT") // "eclipse/che-keycloak:7.0.0"
-	OldDefaultPvcJobsUpstreamImageToDetect  = getDefaultFromEnv("OLD_DEFAULT_PVC_JOBS_UPSTREAM_IMAGE_TO_DETECT") // "registry.access.redhat.com/ubi8-minimal:8.0-127"
-	OldDefaultPostgresUpstreamImageToDetect = getDefaultFromEnv("OLD_DEFAULT_POSTGRES_UPSTREAM_IMAGE_TO_DETECT") // "centos/postgresql-96-centos7:9.6"
-	OldDefaultCodeReadyServerImageRepo      = getDefaultFromEnv("OLD_DEFAULT_CODE_READY_SERVER_IMAGE_REPO") // "registry.redhat.io/codeready-workspaces/server-rhel8"
-	OldDefaultCodeReadyServerImageTag       = getDefaultFromEnv("OLD_DEFAULT_CODE_READY_SERVER_IMAGE_TAG") //  "1.2"
+	OldDefaultKeycloakUpstreamImageToDetect string
+	OldDefaultPvcJobsUpstreamImageToDetect string
+	OldDefaultPostgresUpstreamImageToDetect string
+	OldDefaultCodeReadyServerImageRepo string
+	OldDefaultCodeReadyServerImageTag string
 )
 
 const (
@@ -108,6 +100,46 @@ const (
 	defaultConsoleLinkUpstreamDisplayName = "Eclipse Che"
 	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )
+
+func InitDefaultsFromEnv() {
+	defaultCheServerImageRepo           = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_REPO") // = "quay.io/eclipse/che-server"
+	defaultCodeReadyServerImageRepo     = getDefaultFromEnv("DEFAULT_CODE_READY_SERVER_IMAGE_REPO") //  = "registry.redhat.io/codeready-workspaces/server-rhel8"
+	defaultCheServerImageTag            = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_TAG") // "7.8.0"
+	defaultCodeReadyServerImageTag      = getDefaultFromEnv("DEFAULT_CODE_READY_SERVER_IMAGE_TAG") // "2.1"
+
+	defaultPluginRegistryImage          = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_IMAGE") // "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1"
+	defaultPluginRegistryUpstreamImage  = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_UPSTREAM_IMAGE") // "quay.io/eclipse/che-plugin-registry:7.8.0"
+
+	defaultDevfileRegistryImage         = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_IMAGE") // "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1"
+	defaultDevfileRegistryUpstreamImage = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_UPSTREAM_IMAGE") // "quay.io/eclipse/che-devfile-registry:7.8.0"
+
+	defaultPvcJobsImage                 = getDefaultFromEnv("DEFAULT_PVC_JOBS_IMAGE") // "registry.redhat.io/ubi8-minimal:8.0-213"
+	defaultPvcJobsUpstreamImage         = getDefaultFromEnv("DEFAULT_PVC_JOBS_UPSTREAM_IMAGE") // "registry.access.redhat.com/ubi8-minimal:8.0-213"
+
+	defaultPostgresImage                = getDefaultFromEnv("DEFAULT_POSTGRES_IMAGE") // "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
+	defaultPostgresUpstreamImage        = getDefaultFromEnv("DEFAULT_POSTGRES_UPSTREAM_IMAGE") // "centos/postgresql-96-centos7:9.6"
+
+	defaultKeycloakImage                = getDefaultFromEnv("DEFAULT_KEYCLOAK_IMAGE") // "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
+	defaultKeycloakUpstreamImage        = getDefaultFromEnv("DEFAULT_KEYCLOAK_UPSTREAM_IMAGE") // "quay.io/eclipse/che-keycloak:7.8.0"
+
+	// CRW images for that are mentioned in the Che server che.properties
+	// For CRW these should be synced by hand with images stored in RH registries
+	// instead of being synced by script with the content of the upstream `che.properties` file
+	// NB:
+	// The upstream equivalent are stored in the generated `extra_images.go` source file.
+	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE") // "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
+	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE") // "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
+	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE") // "quay.io/crw/jwtproxy-rhel8:2.1"
+
+	// This is only to correctly  manage defaults during the transition
+	// from Upstream 7.0.0 GA to the next version
+	// That fixed bug https://github.com/eclipse/che/issues/13714
+	OldDefaultKeycloakUpstreamImageToDetect = getDefaultFromEnv("OLD_DEFAULT_KEYCLOAK_UPSTREAM_IMAGE_TO_DETECT") // "eclipse/che-keycloak:7.0.0"
+	OldDefaultPvcJobsUpstreamImageToDetect  = getDefaultFromEnv("OLD_DEFAULT_PVC_JOBS_UPSTREAM_IMAGE_TO_DETECT") // "registry.access.redhat.com/ubi8-minimal:8.0-127"
+	OldDefaultPostgresUpstreamImageToDetect = getDefaultFromEnv("OLD_DEFAULT_POSTGRES_UPSTREAM_IMAGE_TO_DETECT") // "centos/postgresql-96-centos7:9.6"
+	OldDefaultCodeReadyServerImageRepo      = getDefaultFromEnv("OLD_DEFAULT_CODE_READY_SERVER_IMAGE_REPO") // "registry.redhat.io/codeready-workspaces/server-rhel8"
+	OldDefaultCodeReadyServerImageTag       = getDefaultFromEnv("OLD_DEFAULT_CODE_READY_SERVER_IMAGE_TAG") //  "1.2"
+}
 
 func getDefaultFromEnv(envName string) string {
 	value := os.Getenv(envName)
