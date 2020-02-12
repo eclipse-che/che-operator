@@ -61,8 +61,8 @@ rules:
     resources:
       - clusterroles
     verbs:
-      - create
       - list
+      - create
       - watch
   - apiGroups:
       - authorization.openshift.io
@@ -79,156 +79,132 @@ rules:
       - rolebindings
     verbs:
       - get
-      - update
       - create
+      - update
   - apiGroups:
-    - org.eclipse.che
+      - org.eclipse.che
     resources:
-    - checlusters/finalizers
+      - checlusters/finalizers
     verbs:
-    - '*'
-# Create namespaces rules. Needed to delegate them to Che server.
-  - verbs:
-      - create
-      - update
-    apiGroups:
+      - '*'
+  - apiGroups:
       - project.openshift.io
     resources:
       - projectrequests
+    verbs:
+      - create
+      - update
   - apiGroups:
       - ""
     resources:
       - namespaces
     verbs:
+      - get
       - create
       - update
-# Manage namespace rules.Needed to delegate them to Che server.
-  - verbs:
-      - get
-      - create
-    apiGroups:
-      - authorization.openshift.io
-      - rbac.authorization.k8s.io
-    resources:
-      - roles
-  - verbs:
-      - get
-      # check it
-      - update
-      - create
-    apiGroups:
-      - authorization.openshift.io
-      - rbac.authorization.k8s.io
-    resources:
-      - rolebindings
-  - verbs:
-      - get
-    apiGroups:
+  - apiGroups:
       - project.openshift.io
     resources:
       - projects
-  - verbs:
+    verbs:
       - get
-      - create
-      - watch
-    apiGroups:
+  - apiGroups:
       - ''
     resources:
       - serviceaccounts
-  - verbs:
+    verbs:
+      - get
       - create
-    apiGroups:
+      - watch
+  - apiGroups:
       - ''
     resources:
       - pods/exec
-  - verbs:
-      - list
-    apiGroups:
-      - ''
-    resources:
-      - persistentvolumeclaims
-      - configmaps
-  - verbs:
-      - list
-    apiGroups:
+    verbs:
+      - create
+  - apiGroups:
       - apps
     resources:
       - secrets
-  - verbs:
+    verbs:
       - list
-      - create
-      - delete
-    apiGroups:
+  - apiGroups:
       - ''
     resources:
       - secrets
-  - verbs:
+    verbs:
+      - list
       - create
-      - get
-      - watch
-    apiGroups:
+      - delete
+  - apiGroups:
       - ''
     resources:
       - persistentvolumeclaims
-  - verbs:
+    verbs:
+      - create
       - get
       - list
-      - create
       - watch
-      - delete
-    apiGroups:
+  - apiGroups:
       - ''
     resources:
       - pods
-  - verbs:
+    verbs:
       - get
       - list
       - create
-      - patch
       - watch
       - delete
-    apiGroups:
+  - apiGroups:
       - apps
     resources:
       - deployments
-  - verbs:
+    verbs:
+      - get
       - list
       - create
+      - patch
+      - watch
       - delete
-    apiGroups:
+  - apiGroups:
       - ''
     resources:
       - services
-  - verbs:
-      - create
-      - delete
-    apiGroups:
-      - ''
-    resources:
-      - configmaps
-  - verbs:
+    verbs:
       - list
       - create
       - delete
-    apiGroups:
+  - apiGroups:
+      - ''
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - delete
+      - list
+  - apiGroups:
       - route.openshift.io
     resources:
       - routes
-  - verbs:
-      - watch
-    apiGroups:
+    verbs:
+      - list
+      - create
+      - delete
+  - apiGroups:
       - ''
     resources:
       - events
-  - verbs:
+    verbs:
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets
+    verbs:
       - list
       - get
       - patch
       - delete
-    apiGroups:
-      - apps
-    resources:
-      - replicasets
   - apiGroups:
       - extensions
     resources:
@@ -239,9 +215,3 @@ rules:
       - watch
       - get
       - delete
-  - apiGroups:
-      - ''
-    resources:
-      - namespaces
-    verbs:
-      - get
