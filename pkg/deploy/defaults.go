@@ -90,22 +90,22 @@ const (
 )
 
 func InitDefaultsFromEnv() {
-	defaultCheServerImageRepo           = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_REPO") // = "quay.io/eclipse/che-server"
-	defaultCheServerImageTag            = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_TAG") // "7.8.0"
-	defaultPluginRegistryImage          = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_IMAGE") // "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1"
-	defaultDevfileRegistryImage         = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_IMAGE") // "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1"
-	defaultPvcJobsImage                 = getDefaultFromEnv("DEFAULT_PVC_JOBS_IMAGE") // "registry.redhat.io/ubi8-minimal:8.0-213"
-	defaultPostgresImage                = getDefaultFromEnv("DEFAULT_POSTGRES_IMAGE") // "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
-	defaultKeycloakImage                = getDefaultFromEnv("DEFAULT_KEYCLOAK_IMAGE") // "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
+	defaultCheServerImageRepo           = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_REPO")
+	defaultCheServerImageTag            = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_TAG")
+	defaultPluginRegistryImage          = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_IMAGE")
+	defaultDevfileRegistryImage         = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_IMAGE")
+	defaultPvcJobsImage                 = getDefaultFromEnv("DEFAULT_PVC_JOBS_IMAGE")
+	defaultPostgresImage                = getDefaultFromEnv("DEFAULT_POSTGRES_IMAGE")
+	defaultKeycloakImage                = getDefaultFromEnv("DEFAULT_KEYCLOAK_IMAGE")
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
 	// The upstream equivalent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE") // "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
-	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE") // "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
-	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE") // "quay.io/crw/jwtproxy-rhel8:2.1"
+	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE")
+	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE")
+	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE")
 }
 
 func getDefaultFromEnv(envName string) string {

@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: aandrienko/che-operator:imageTagIssue
+          image: quay.io/eclipse/che-operator:nightly
           ports:
           - containerPort: 60000
             name: metrics
