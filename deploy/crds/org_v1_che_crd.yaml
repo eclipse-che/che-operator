@@ -393,6 +393,10 @@ spec:
                     clusters that have not been setup with a valid certificate for
                     the routes. This is disabled by default.
                   type: boolean
+                customPublicCert:
+                  description: If enabled, then the certificate from `custom-public-cert`
+                    config map will be added to Java trust store of Che server.
+                  type: boolean
                 serverMemoryLimit:
                   description: Overrides the memory limit used in the Che server deployment.
                     Defaults to 1Gi.

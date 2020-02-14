@@ -32,6 +32,10 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
+	customPublicCertEnv := corev1.EnvVar{
+        Name:  "CHE_CUSTOM_PUBLIC_CERT",
+        Value: "",
+    }
 	gitSelfSignedCertEnv := corev1.EnvVar{
         Name:  "CHE_GIT_SELF__SIGNED__CERT",
         Value: "",
@@ -54,6 +58,20 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 			},
 		}
 	}
+	if cr.Spec.Server.CustomPublicCert {
+        customPublicCertEnv = corev1.EnvVar{
+            Name: "CHE_CUSTOM_PUBLIC_CERT",
+            ValueFrom: &corev1.EnvVarSource{
+                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+                    Key: "ca.crt",
+                    LocalObjectReference: corev1.LocalObjectReference{
+                        Name: "custom-public-cert",
+                    },
+                    Optional: &optionalEnv,
+                },
+            },
+        }
+    }
 	if cr.Spec.Server.GitSelfSignedCert {
         gitSelfSignedCertEnv = corev1.EnvVar{
             Name: "CHE_GIT_SELF__SIGNED__CERT",
@@ -171,6 +189,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRe
 											FieldPath: "metadata.namespace"}},
 								},
 								selfSignedCertEnv,
+								customPublicCertEnv,
 								gitSelfSignedCertEnv,
 								gitSelfSignedCertHostEnv,
 							}},
