@@ -978,10 +978,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
 	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
+
+	cheImageAndTag := GetFullCheServerImageLink(instance)
+	cheVersion := EvaluateCheServerVersion(instance)
+
 	// create Che deployment
-	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo(instance))
-	cheImageTag := util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCheServerImageTag())
-	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -1030,9 +1032,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
-				if instance.Status.CheVersion != cheImageTag {
-					instance.Status.CheVersion = cheImageTag
-					if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
+				if instance.Status.CheVersion != cheVersion {
+					instance.Status.CheVersion = cheVersion
+					if err := r.UpdateCheCRStatus(instance, "version", cheVersion); err != nil {
 						instance, _ = r.GetCR(request)
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 					}
@@ -1051,9 +1053,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := controllerutil.SetControllerReference(instance, cheDeploymentToCreate, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
-		logrus.Infof("Updating %s %s with image %s:%s", cheDeploymentToCreate.Name, cheDeploymentToCreate.Kind, cheImageRepo, cheImageTag)
-		instance.Status.CheVersion = cheImageTag
-		if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
+		logrus.Infof("Updating %s %s with image %s", cheDeploymentToCreate.Name, cheDeploymentToCreate.Kind, cheImageAndTag)
+		instance.Status.CheVersion = cheVersion
+		if err := r.UpdateCheCRStatus(instance, "version", cheVersion); err != nil {
 			instance, _ = r.GetCR(request)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
@@ -1130,7 +1132,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		time.Sleep(time.Duration(1) * time.Second)
 		cm := r.GetEffectiveConfigMap(instance, cheConfigMap.Name)
 		cmResourceVersion := cm.ResourceVersion
-		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 		if err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
@@ -1154,7 +1156,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Wrong quantity for Che deployment Memory Limit: %s", err)
 		return reconcile.Result{}, err
 	}
-	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo+":"+cheImageTag))
+	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag))
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
 	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
@@ -1165,7 +1167,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		effectiveImagePullPolicy != desiredImagePullPolicy ||
 		effectiveSelfSignedCert != desiredSelfSignedCert ||
 		effectiveGitSelfSignedCert != desiredGitSelfSignedCert {
-		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 		if err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
@@ -1253,4 +1255,26 @@ func hasConsolelinkObject() bool {
 		}
 	}
 	return false
+}
+
+// GetFullCheServerImageLink evaluate full cheImage link(with repo and tag)
+// based on Checluster information and image defaults from env variables
+func GetFullCheServerImageLink(cr *orgv1.CheCluster) string {
+	cheImageRepo := cr.Spec.Server.CheImage
+
+	cheTag := util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+
+	if len(cr.Spec.Server.CheImage) > 0 {
+		return cheImageRepo + ":" + cheTag
+	}
+
+	// Todo: what should be if user don't set up in the cheCluster cheImage, but set up CheImageTag?
+
+	return deploy.DefaultCheServerImage(cr)
+}
+
+// EvaluateCheServerVersion evaluate che version
+// based on Checluster information and image defaults from env variables
+func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
+	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
 }

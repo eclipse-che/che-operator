@@ -22,11 +22,10 @@ import (
 	"strconv"
 )
 
-func NewCheDeployment(cr *orgv1.CheCluster, cheImage string, cheTag string, cmRevision string, isOpenshift bool) (*appsv1.Deployment, error) {
+func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision string, isOpenshift bool) (*appsv1.Deployment, error) {
 	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
 	optionalEnv := true
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
-	cheImageAndTag := cheImage + ":" + cheTag
 	memRequest := util.GetValue(cr.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
 	selfSignedCertEnv := corev1.EnvVar{
 		Name:  "CHE_SELF__SIGNED__CERT",

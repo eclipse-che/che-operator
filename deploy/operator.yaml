@@ -53,10 +53,10 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "che-operator"
-            - name: DEFAULT_CHE_SERVER_IMAGE_REPO
-              value: "quay.io/eclipse/che-server"
-            - name: DEFAULT_CHE_SERVER_IMAGE_TAG
+            - name: CHE_VERSION
               value: "7.8.0"
+            - name: IMAGE_default_che_server
+              value: "quay.io/eclipse/che-server"
             - name: IMAGE_default_plugin_registry
               value: "quay.io/eclipse/che-plugin-registry:7.8.0"
             - name: IMAGE_default_devfile_registry

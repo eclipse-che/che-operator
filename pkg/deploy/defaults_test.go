@@ -20,23 +20,23 @@ import (
 )
 
 const (
-	cheServerImageTag    = "7.8.0"
-	cheServerImage       = "quay.io/eclipse/che-server"
-	pluginRegistryImage  = "quay.io/eclipse/che-plugin-registry:7.8.0"
-	devfileRegistryImage = "quay.io/eclipse/che-devfile-registry:7.8.0"
-	pvcJobsImage         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
-	postgresImage        = "centos/postgresql-96-centos7:9.6"
-	keycloakImage        = "quay.io/eclipse/che-keycloak:7.8.0"
+	cheVersionTest           = "7.8.0"
+	cheServerImageTest       = "quay.io/eclipse/che-server"
+	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.8.0"
+	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.8.0"
+	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
+	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
+	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.8.0"
 )
 
 func init() {
-	os.Setenv("DEFAULT_CHE_SERVER_IMAGE_TAG", cheServerImageTag)
-	os.Setenv("DEFAULT_CHE_SERVER_IMAGE_REPO", cheServerImage)
-	os.Setenv("IMAGE_default_plugin_registry", pluginRegistryImage)
-	os.Setenv("IMAGE_default_devfile_registry", devfileRegistryImage)
-	os.Setenv("IMAGE_default_pvc_jobs", pvcJobsImage)
-	os.Setenv("IMAGE_default_postgres", postgresImage)
-	os.Setenv("IMAGE_default_keycloak", keycloakImage)
+	os.Setenv("CHE_VERSION", cheVersionTest)
+	os.Setenv("IMAGE_default_che_server", cheServerImageTest)
+	os.Setenv("IMAGE_default_plugin_registry", pluginRegistryImageTest)
+	os.Setenv("IMAGE_default_devfile_registry", devfileRegistryImageTest)
+	os.Setenv("IMAGE_default_pvc_jobs", pvcJobsImageTest)
+	os.Setenv("IMAGE_default_postgres", postgresImageTest)
+	os.Setenv("IMAGE_default_keycloak", keycloakImageTest)
 	os.Setenv("IMAGE_default_che_workspace_plugin_broker_metadata", "quay.io/crw/pluginbroker-metadata-rhel8:2.1")
 	os.Setenv("IMAGE_default_che_workspace_plugin_broker_artifacts", "quay.io/crw/pluginbroker-artifacts-rhel8:2.1")
 	os.Setenv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image", "quay.io/crw/jwtproxy-rhel8:2.1")
@@ -45,8 +45,8 @@ func init() {
 }
 
 func TestDefaultFromEnv(t *testing.T) {
-	if DefaultCheServerImageTag() != cheServerImageTag {
-		t.Errorf("Expected %s but was %s", cheServerImageTag, DefaultCheServerImageTag())
+	if DefaultCheVersion() != cheVersionTest {
+		t.Errorf("Expected %s but was %s", cheVersionTest, DefaultCheVersion())
 	}
 
 	cheCluster := &orgv1.CheCluster{
@@ -56,28 +56,28 @@ func TestDefaultFromEnv(t *testing.T) {
 	}
 	cheFlavor := "che"
 
-	if DefaultCheServerImageRepo(cheCluster) != cheServerImage {
-		t.Errorf("Expected %s but was %s", cheServerImage, DefaultCheServerImageRepo(cheCluster))
+	if DefaultCheServerImage(cheCluster) != cheServerImageTest {
+		t.Errorf("Expected %s but was %s", cheServerImageTest, DefaultCheServerImage(cheCluster))
 	}
 
-	if DefaultPluginRegistryImage(cheCluster) != pluginRegistryImage {
-		t.Errorf("Expected %s but was %s", pluginRegistryImage, DefaultPluginRegistryImage(cheCluster))
+	if DefaultPluginRegistryImage(cheCluster) != pluginRegistryImageTest {
+		t.Errorf("Expected %s but was %s", pluginRegistryImageTest, DefaultPluginRegistryImage(cheCluster))
 	}
 
-	if DefaultDevfileRegistryImage(cheCluster) != devfileRegistryImage {
-		t.Errorf("Expected %s but was %s", devfileRegistryImage, DefaultDevfileRegistryImage(cheCluster))
+	if DefaultDevfileRegistryImage(cheCluster) != devfileRegistryImageTest {
+		t.Errorf("Expected %s but was %s", devfileRegistryImageTest, DefaultDevfileRegistryImage(cheCluster))
 	}
 
-	if DefaultPvcJobsImage(cheCluster) != pvcJobsImage {
-		t.Errorf("Expected %s but was %s", pvcJobsImage, DefaultPvcJobsImage(cheCluster))
+	if DefaultPvcJobsImage(cheCluster) != pvcJobsImageTest {
+		t.Errorf("Expected %s but was %s", pvcJobsImageTest, DefaultPvcJobsImage(cheCluster))
 	}
 
-	if DefaultPostgresImage(cheCluster) != postgresImage {
-		t.Errorf("Expected %s but was %s", postgresImage, DefaultPostgresImage(cheCluster))
+	if DefaultPostgresImage(cheCluster) != postgresImageTest {
+		t.Errorf("Expected %s but was %s", postgresImageTest, DefaultPostgresImage(cheCluster))
 	}
 
-	if DefaultKeycloakImage(cheCluster) != keycloakImage {
-		t.Errorf("Expected %s but was %s", keycloakImage, DefaultKeycloakImage(cheCluster))
+	if DefaultKeycloakImage(cheCluster) != keycloakImageTest {
+		t.Errorf("Expected %s but was %s", keycloakImageTest, DefaultKeycloakImage(cheCluster))
 	}
 
 	if DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster, cheFlavor) != "" {

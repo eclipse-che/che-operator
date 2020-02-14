@@ -14,40 +14,40 @@ package deploy
 
 import (
 	"fmt"
-	"os"
 	"github.com/sirupsen/logrus"
+	"os"
 	"strings"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
 var (
-	defaultCheServerImageRepo string
-	defaultCheServerImageTag string
-	defaultPluginRegistryImage string
+	defaultCheServerImage       string
+	defaultCheVersion           string
+	defaultPluginRegistryImage  string
 	defaultDevfileRegistryImage string
-	defaultPvcJobsImage string
-	defaultPostgresImage string
-	defaultKeycloakImage string
+	defaultPvcJobsImage         string
+	defaultPostgresImage        string
+	defaultKeycloakImage        string
 
-	defaultCheWorkspacePluginBrokerMetadataImage string
+	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
-	defaultCheServerSecureExposerJwtProxyImage string
+	defaultCheServerSecureExposerJwtProxyImage    string
 )
 
 const (
-	DefaultCheFlavor                    = "che"
-	DefaultChePostgresUser              = "pgche"
-	DefaultChePostgresHostName          = "postgres"
-	DefaultChePostgresPort              = "5432"
-	DefaultChePostgresDb                = "dbche"
-	DefaultPvcStrategy                  = "common"
-	DefaultPvcClaimSize                 = "1Gi"
-	DefaultIngressStrategy              = "multi-host"
-	DefaultIngressClass                 = "nginx"
+	DefaultCheFlavor           = "che"
+	DefaultChePostgresUser     = "pgche"
+	DefaultChePostgresHostName = "postgres"
+	DefaultChePostgresPort     = "5432"
+	DefaultChePostgresDb       = "dbche"
+	DefaultPvcStrategy         = "common"
+	DefaultPvcClaimSize        = "1Gi"
+	DefaultIngressStrategy     = "multi-host"
+	DefaultIngressClass        = "nginx"
 
-	DefaultPluginRegistryMemoryLimit    = "256Mi"
-	DefaultPluginRegistryMemoryRequest  = "16Mi"
+	DefaultPluginRegistryMemoryLimit   = "256Mi"
+	DefaultPluginRegistryMemoryRequest = "16Mi"
 
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
@@ -57,7 +57,7 @@ const (
 	DefaultCheMetricsPort               = int32(8087)
 	DefaultCheDebugPort                 = int32(8000)
 
-	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
+	DefaultJavaOpts = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
 		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
 		"-Dsun.zip.disableMemoryMapping=true -Xms20m"
@@ -90,22 +90,22 @@ const (
 )
 
 func InitDefaultsFromEnv() {
-	defaultCheServerImageRepo           = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_REPO")
-	defaultCheServerImageTag            = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_TAG")
-	defaultPluginRegistryImage          = getDefaultFromEnv("IMAGE_default_plugin_registry")
-	defaultDevfileRegistryImage         = getDefaultFromEnv("IMAGE_default_devfile_registry")
-	defaultPvcJobsImage                 = getDefaultFromEnv("IMAGE_default_pvc_jobs")
-	defaultPostgresImage                = getDefaultFromEnv("IMAGE_default_postgres")
-	defaultKeycloakImage                = getDefaultFromEnv("IMAGE_default_keycloak")
+	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
+	defaultCheServerImage = getDefaultFromEnv("IMAGE_default_che_server")
+	defaultPluginRegistryImage = getDefaultFromEnv("IMAGE_default_plugin_registry")
+	defaultDevfileRegistryImage = getDefaultFromEnv("IMAGE_default_devfile_registry")
+	defaultPvcJobsImage = getDefaultFromEnv("IMAGE_default_pvc_jobs")
+	defaultPostgresImage = getDefaultFromEnv("IMAGE_default_postgres")
+	defaultKeycloakImage = getDefaultFromEnv("IMAGE_default_keycloak")
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
 	// The upstream equivalent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_metadata")
-	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_artifacts")
-	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_metadata")
+	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_artifacts")
+	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
 }
 
 func getDefaultFromEnv(envName string) string {
@@ -121,7 +121,7 @@ func getDefaultFromEnv(envName string) string {
 func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	if cr.Spec.Server.CheFlavor == "codeready" &&
 		strings.HasPrefix(cr.Status.CheVersion, "1.2") &&
-		strings.HasPrefix(defaultCheServerImageTag, "2.0") {
+		strings.HasPrefix(defaultCheVersion, "2.0") {
 		return true
 	}
 	return false
@@ -134,12 +134,12 @@ func DefaultConsoleLinkDisplayName(cheFlavor string) string {
 	return defaultConsoleLinkUpstreamDisplayName
 }
 
-func DefaultCheServerImageTag() string {
-	return defaultCheServerImageTag
+func DefaultCheVersion() string {
+	return defaultCheVersion
 }
 
-func DefaultCheServerImageRepo(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultCheServerImageRepo)
+func DefaultCheServerImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultCheServerImage)
 }
 
 func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
