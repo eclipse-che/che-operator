@@ -92,20 +92,20 @@ const (
 func InitDefaultsFromEnv() {
 	defaultCheServerImageRepo           = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_REPO")
 	defaultCheServerImageTag            = getDefaultFromEnv("DEFAULT_CHE_SERVER_IMAGE_TAG")
-	defaultPluginRegistryImage          = getDefaultFromEnv("DEFAULT_PLUGIN_REGISTRY_IMAGE")
-	defaultDevfileRegistryImage         = getDefaultFromEnv("DEFAULT_DEVFILE_REGISTRY_IMAGE")
-	defaultPvcJobsImage                 = getDefaultFromEnv("DEFAULT_PVC_JOBS_IMAGE")
-	defaultPostgresImage                = getDefaultFromEnv("DEFAULT_POSTGRES_IMAGE")
-	defaultKeycloakImage                = getDefaultFromEnv("DEFAULT_KEYCLOAK_IMAGE")
+	defaultPluginRegistryImage          = getDefaultFromEnv("IMAGE_default_plugin_registry")
+	defaultDevfileRegistryImage         = getDefaultFromEnv("IMAGE_default_devfile_registry")
+	defaultPvcJobsImage                 = getDefaultFromEnv("IMAGE_default_pvc_jobs")
+	defaultPostgresImage                = getDefaultFromEnv("IMAGE_default_postgres")
+	defaultKeycloakImage                = getDefaultFromEnv("IMAGE_default_keycloak")
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
 	// instead of being synced by script with the content of the upstream `che.properties` file
 	// NB:
 	// The upstream equivalent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE")
-	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE")
-	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE")
+	defaultCheWorkspacePluginBrokerMetadataImage    = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_metadata")
+	defaultCheWorkspacePluginBrokerArtifactsImage   = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_artifacts")
+	defaultCheServerSecureExposerJwtProxyImage      = getDefaultFromEnv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
 }
 
 func getDefaultFromEnv(envName string) string {

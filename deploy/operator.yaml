@@ -57,21 +57,21 @@ spec:
               value: "quay.io/eclipse/che-server"
             - name: DEFAULT_CHE_SERVER_IMAGE_TAG
               value: "7.8.0"
-            - name: DEFAULT_PLUGIN_REGISTRY_IMAGE
+            - name: IMAGE_default_plugin_registry
               value: "quay.io/eclipse/che-plugin-registry:7.8.0"
-            - name: DEFAULT_DEVFILE_REGISTRY_IMAGE
+            - name: IMAGE_default_devfile_registry
               value: "quay.io/eclipse/che-devfile-registry:7.8.0"
-            - name: "DEFAULT_PVC_JOBS_IMAGE"
+            - name: "IMAGE_default_pvc_jobs"
               value: "registry.access.redhat.com/ubi8-minimal:8.0-213"
-            - name: "DEFAULT_POSTGRES_IMAGE"
+            - name: "IMAGE_default_postgres"
               value: "centos/postgresql-96-centos7:9.6"
-            - name: "DEFAULT_KEYCLOAK_IMAGE"
+            - name: "IMAGE_default_keycloak"
               value: "quay.io/eclipse/che-keycloak:7.8.0"
-            - name: "DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE"
+            - name: "IMAGE_default_che_workspace_plugin_broker_metadata"
               value: "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
-            - name: "DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE"
+            - name: "IMAGE_default_che_workspace_plugin_broker_artifacts"
               value: "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
-            - name: "DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE"
+            - name: "IMAGE_default_che_server_secure_exposer_jwt_proxy_image"
               value: "quay.io/crw/jwtproxy-rhel8:2.1"
       restartPolicy: Always
       serviceAccountName: che-operator
