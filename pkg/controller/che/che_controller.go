@@ -14,6 +14,7 @@ package che
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -1262,15 +1263,31 @@ func hasConsolelinkObject() bool {
 func GetFullCheServerImageLink(cr *orgv1.CheCluster) string {
 	cheImageRepo := cr.Spec.Server.CheImage
 
-	cheTag := util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+	cheImageTag := util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
 
 	if len(cr.Spec.Server.CheImage) > 0 {
-		return cheImageRepo + ":" + cheTag
+		return cheImageRepo + ":" + cheImageTag
 	}
 
-	// Todo: what should be if user don't set up in the cheCluster cheImage, but set up CheImageTag?
+	defaultCheServerImage := deploy.DefaultCheServerImage(cr)
 
-	return deploy.DefaultCheServerImage(cr)
+	if !strings.Contains(defaultCheServerImage, "@") {
+		imageParts := strings.Split(defaultCheServerImage, ":")
+		if len(imageParts) == 2 {
+			cheImageRepo := imageParts[0]
+			// For back compatibility with version < 7.9.0:
+			// if cr.Spec.Server.CheImage is empty, but cr.Spec.Server.CheImageTag is not empty,
+			// parse from default Che image(value comes from env variable) "Che image repository"
+			// and return "Che image", like concatenation: "cheImageRepo:cheImageTag"
+			return cheImageRepo + ":" + cheImageTag
+		}
+	}
+
+	// Todo: is it correct logic?
+	// Do nothing if defaultCheServerImage has digest with separator "@"
+	// For example: docker.io/ubuntu@sha256:45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2
+
+	return defaultCheServerImage
 }
 
 // EvaluateCheServerVersion evaluate che version
