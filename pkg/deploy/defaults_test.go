@@ -14,9 +14,84 @@ package deploy
 import (
 	"fmt"
 	"testing"
+	"os"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
+
+const (
+	cheServerImageTag = "7.8.0"
+	cheServerImage = "quay.io/eclipse/che-server"
+	pluginRegistryImage = "quay.io/eclipse/che-plugin-registry:7.8.0"
+	devfileRegistryImage = "quay.io/eclipse/che-devfile-registry:7.8.0"
+	pvcJobsImage = "registry.access.redhat.com/ubi8-minimal:8.0-213"
+	postgresImage = "centos/postgresql-96-centos7:9.6"
+	keycloakImage = "quay.io/eclipse/che-keycloak:7.8.0"
+)
+
+func init() {
+	os.Setenv("DEFAULT_CHE_SERVER_IMAGE_TAG", cheServerImageTag)
+	os.Setenv("DEFAULT_CHE_SERVER_IMAGE_REPO", cheServerImage)
+	os.Setenv("DEFAULT_PLUGIN_REGISTRY_IMAGE", pluginRegistryImage)
+	os.Setenv("DEFAULT_DEVFILE_REGISTRY_IMAGE", devfileRegistryImage)
+	os.Setenv("DEFAULT_PVC_JOBS_IMAGE", pvcJobsImage)
+	os.Setenv("DEFAULT_POSTGRES_IMAGE", postgresImage)
+	os.Setenv("DEFAULT_KEYCLOAK_IMAGE", keycloakImage)
+	os.Setenv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_METADATA_IMAGE", "quay.io/crw/pluginbroker-metadata-rhel8:2.1")
+	os.Setenv("DEFAULT_CHE_WORKSPACE_PLUGIN_BROKER_ARTIFACTS_IMAGE", "quay.io/crw/pluginbroker-artifacts-rhel8:2.1")
+	os.Setenv("DEFAULT_CHE_SERVER_SECURE_EXPOSER_JWT_PROXY_IMAGE", "quay.io/crw/jwtproxy-rhel8:2.1")
+
+	InitDefaultsFromEnv()
+}
+
+func TestDefaultFromEnv(t *testing.T) {
+	if DefaultCheServerImageTag() != cheServerImageTag {
+		t.Errorf("Expected %s but was %s", cheServerImageTag, DefaultCheServerImageTag())
+	}
+
+	cheCluster := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{},
+		},
+	}
+	cheFlavor := "che"
+
+	if DefaultCheServerImageRepo(cheCluster) != cheServerImage {
+		t.Errorf("Expected %s but was %s", cheServerImage, DefaultCheServerImageRepo(cheCluster))
+	}
+
+	if DefaultPluginRegistryImage(cheCluster) != pluginRegistryImage {
+		t.Errorf("Expected %s but was %s", pluginRegistryImage, DefaultPluginRegistryImage(cheCluster))
+	}
+
+	if DefaultDevfileRegistryImage(cheCluster) != devfileRegistryImage {
+		t.Errorf("Expected %s but was %s", devfileRegistryImage, DefaultDevfileRegistryImage(cheCluster))
+	}
+
+	if DefaultPvcJobsImage(cheCluster) != pvcJobsImage {
+		t.Errorf("Expected %s but was %s", pvcJobsImage, DefaultPvcJobsImage(cheCluster))
+	}
+
+	if DefaultPostgresImage(cheCluster) != postgresImage {
+		t.Errorf("Expected %s but was %s", postgresImage, DefaultPostgresImage(cheCluster))
+	}
+
+	if DefaultKeycloakImage(cheCluster) != keycloakImage {
+		t.Errorf("Expected %s but was %s", keycloakImage, DefaultKeycloakImage(cheCluster))
+	}
+
+	if DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster, cheFlavor) != "" {
+		t.Errorf("Expected empty value for cheFlavor '%s', but was %s", cheFlavor, DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster, cheFlavor))
+	}
+
+	if DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster, cheFlavor) != "" {
+		t.Errorf("Expected empty value for cheFlavor '%s', but was %s", cheFlavor, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster, cheFlavor))
+	}
+
+	if DefaultCheServerSecureExposerJwtProxyImage(cheCluster, cheFlavor) != "" {
+		t.Errorf("Expected empty value for cheFlavor '%s', but was %s", cheFlavor, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster, cheFlavor))
+	}
+}
 
 func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
@@ -44,11 +119,11 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	var (
 		airGapRegistryHostname                                   = "myregistry.org"
 		airGapRegistryOrganization                               = "myorg"
-		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresUpstreamImage))
-		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresUpstreamImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresUpstreamImage))
+		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
 		expectedAirGapCRWPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
 		expectedAirGapCRWPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapKeyCloakImageOnlyHostnameChanged           = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultKeycloakUpstreamImage), getImageNameFromFullImage(defaultKeycloakUpstreamImage))
+		expectedAirGapKeyCloakImageOnlyHostnameChanged           = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultKeycloakImage), getImageNameFromFullImage(defaultKeycloakImage))
 		expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
 	)
 
@@ -113,13 +188,13 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	testCases := map[string]testcase{
-		"upstream default postgres":                           {image: defaultPostgresUpstreamImage, expected: defaultPostgresUpstreamImage, cr: upstream},
-		"airgap upstream postgres":                            {image: defaultPostgresUpstreamImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
-		"upstream with only the org changed":                  {image: defaultPostgresUpstreamImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
+		"default postgres":                           {image: defaultPostgresImage, expected: defaultPostgresImage, cr: upstream},
+		"airgap postgres":                            {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
+		"with only the org changed":                  {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
 		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: expectedAirGapCRWPluginRegistryOnlyOrgChanged, cr: crwOnlyOrg},
 		"CRW postgres":                                        {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
 		"CRW airgap postgres":                                 {image: defaultPostgresImage, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
-		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: expectedAirGapKeyCloakImageOnlyHostnameChanged, cr: upstreamOnlyHostname},
+		"airgap with only hostname defined":          {image: defaultKeycloakImage, expected: expectedAirGapKeyCloakImageOnlyHostnameChanged, cr: upstreamOnlyHostname},
 		"crw airgap with only hostname defined":               {image: defaultDevfileRegistryImage, expected: expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged, cr: crwOnlyHostname},
 	}
 	for name, tc := range testCases {
