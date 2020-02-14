@@ -30,10 +30,19 @@ cd "${BASE_DIR}"
 echo
 echo "## Creating release '${RELEASE}' of the Che operator docker image"
 
-lastDefaultCheVersion=$(grep -e '^[^a-zA-Z]*defaultCheServerImageTag' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultCheServerImageTag *= *"\([^"]*\)"/\1/')
-lastDefaultKeycloakVersion=$(grep -e '^[^a-zA-Z]*defaultKeycloakUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultKeycloakUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
-lastDefaultPluginRegistryVersion=$(grep -e '^[^a-zA-Z]*defaultPluginRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultPluginRegistryUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
-lastDefaultDevfileRegistryVersion=$(grep -e '^[^a-zA-Z]*defaultDevfileRegistryUpstreamImage' "pkg/deploy/defaults.go" | sed -e 's/^[^a-zA-Z]*defaultDevfileRegistryUpstreamImage *= *"[^":]*:\([^"]*\)"/\1/')
+OPERATOR_YAML="${BASE_DIR}"/deploy/operator.yaml
+
+lastDefaultCheVersion=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"CHE_VERSION\") | .value" "${OPERATOR_YAML}")
+
+lastDefaultKeycloakImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"IMAGE_default_keycloak\") | .value" "${OPERATOR_YAML}")
+lastDefaultKeycloakVersion=$(echo ${lastDefaultKeycloakImage} | sed -e 's/^[^a-zA-Z]*[^:]*:\([^"]*\)/\1/')
+
+lastDefaultPluginRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"IMAGE_default_plugin_registry\") | .value" "${OPERATOR_YAML}")
+lastDefaultPluginRegistryVersion=$(echo ${lastDefaultPluginRegistryImage} | sed -e 's/^[^a-zA-Z]*[^:]*:\([^"]*\)/\1/')
+
+lastDefaultDevfileRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"IMAGE_default_devfile_registry\") | .value" "${OPERATOR_YAML}")
+lastDefaultDevfileRegistryVersion=$(echo ${lastDefaultDevfileRegistryImage} | sed -e 's/^[^a-zA-Z]*[^:]*:\([^"]*\)/\1/')
+
 if [ "${lastDefaultCheVersion}" != "${lastDefaultKeycloakVersion}" ]
 then
   echo "#### ERROR ####"
@@ -57,14 +66,25 @@ fi
 
 echo "     => will update default Eclipse Che Keycloak docker image tags from '${lastDefaultVersion}' to '${RELEASE}'"
 
-sed \
--e "s/\(.*defaultCheServerImageTag *= *\"\)[^\"]*\"/\1${RELEASE}\"/" \
--e "s/\(.*defaultKeycloakUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
--e "s/\(.*defaultPluginRegistryUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
--e "s/\(.*defaultDevfileRegistryUpstreamImage *= *\"[^\":]*:\)[^\"]*\"/\1${RELEASE}\"/" \
-pkg/deploy/defaults.go \
-> pkg/deploy/defaults.go.new
-mv pkg/deploy/defaults.go.new pkg/deploy/defaults.go
+function replaceImageTag() {
+    echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
+}
+
+KEYCLOAK_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultKeycloakImage}" "${RELEASE}")
+PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
+DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
+
+NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
+# copy licence header
+eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
+
+cat "${OPERATOR_YAML}" | \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE}\"" | \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
+>> "${OPERATOR_YAML}.new"
+mv "${OPERATOR_YAML}.new" "${OPERATOR_YAML}"
 
 wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 latestCheWorkspacePluginBrokerMetadataImage=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
