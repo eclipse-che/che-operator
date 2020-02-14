@@ -21,7 +21,7 @@ import (
 
 const (
 	cheVersionTest           = "7.8.0"
-	cheServerImageTest       = "quay.io/eclipse/che-server"
+	cheServerImageTest       = "quay.io/eclipse/che-server:7.8.0"
 	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.8.0"
 	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.8.0"
 	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
