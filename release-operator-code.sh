@@ -70,9 +70,14 @@ function replaceImageTag() {
     echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
 }
 
+wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+PLUGIN_BROKER_METADATA_IMAGE_RELEASE=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
+PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
+JWT_PROXY_IMAGE_RELEASE=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
 KEYCLOAK_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultKeycloakImage}" "${RELEASE}")
 PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
 DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
+rm /tmp/che.properties
 
 NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
 # copy licence header
@@ -83,27 +88,11 @@ yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE_RELEASE}\"" \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE}\"" \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE_RELEASE}\"" \
 >> "${OPERATOR_YAML}.new"
 mv "${OPERATOR_YAML}.new" "${OPERATOR_YAML}"
-
-wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
-latestCheWorkspacePluginBrokerMetadataImage=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
-latestCheWorkspacePluginBrokerArtifactsImage=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
-latestCheServerSecureExposerJwtProxyImage=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
-
-cat << EOF > pkg/deploy/extra_images.go
-// This file is generated, and contains the latest versions of certain properties from che.properties
-package deploy
-
-const (
-	defaultCheWorkspacePluginBrokerMetadataUpstreamImage    = "${latestCheWorkspacePluginBrokerMetadataImage}"
-	defaultCheWorkspacePluginBrokerArtifactsUpstreamImage = "${latestCheWorkspacePluginBrokerArtifactsImage}"
-	defaultCheServerSecureExposerJwtProxyUpstreamImage  = "${latestCheServerSecureExposerJwtProxyImage}"
-)
-EOF
-
-gofmt -w pkg/deploy/extra_images.go
-rm /tmp/che.properties
 
 dockerImage="quay.io/eclipse/che-operator:${RELEASE}"
 echo "   - Building Che Operator docker image for new release ${RELEASE}"

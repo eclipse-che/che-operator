@@ -98,7 +98,6 @@ releaseOperatorCode() {
 
   if [[ $result == 0 ]]; then
     local defaultsgo=$BASE_DIR/pkg/deploy/defaults.go
-    local extraimagesgo=$BASE_DIR/pkg/deploy/extra_images.go
 
     echo -e $GREEN"3.1 Launch 'release-operator-code.sh' script"$NC
     . ${BASE_DIR}/release-operator-code.sh $RELEASE
@@ -109,12 +108,7 @@ releaseOperatorCode() {
     [[ \"quay.io/eclipse/che-plugin-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultPluginRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
     [[ \"quay.io/eclipse/che-keycloak:$RELEASE\" != $(getPropertyValue $defaultsgo defaultKeycloakUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
 
-    echo -e $GREEN"3.3 Validate changes for $extraimagesgo"$NC
-    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheWorkspacePluginBrokerMetadataUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheWorkspacePluginBrokerArtifactsUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheServerSecureExposerJwtProxyUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
-
-    echo -e $GREEN"3.4 Validate number of changed files"$NC
+    echo -e $GREEN"3.3 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
     [[ $changes -gt 2 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
