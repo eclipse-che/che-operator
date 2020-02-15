@@ -27,6 +27,9 @@ const (
 	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
 	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
 	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.8.0"
+	brokerMetadataTest		 = "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
+	brokerArtifactsTest		 = "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
+	jwtProxyTest		 	 = "quay.io/crw/jwtproxy-rhel8:2.1"
 )
 
 func init() {
@@ -37,9 +40,9 @@ func init() {
 	os.Setenv("IMAGE_default_pvc_jobs", pvcJobsImageTest)
 	os.Setenv("IMAGE_default_postgres", postgresImageTest)
 	os.Setenv("IMAGE_default_keycloak", keycloakImageTest)
-	os.Setenv("IMAGE_default_che_workspace_plugin_broker_metadata", "quay.io/crw/pluginbroker-metadata-rhel8:2.1")
-	os.Setenv("IMAGE_default_che_workspace_plugin_broker_artifacts", "quay.io/crw/pluginbroker-artifacts-rhel8:2.1")
-	os.Setenv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image", "quay.io/crw/jwtproxy-rhel8:2.1")
+	os.Setenv("IMAGE_default_che_workspace_plugin_broker_metadata", brokerMetadataTest)
+	os.Setenv("IMAGE_default_che_workspace_plugin_broker_artifacts", brokerArtifactsTest)
+	os.Setenv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image", jwtProxyTest)
 
 	InitDefaultsFromEnv()
 }
@@ -54,7 +57,6 @@ func TestDefaultFromEnv(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{},
 		},
 	}
-	cheFlavor := "che"
 
 	if DefaultCheServerImage(cheCluster) != cheServerImageTest {
 		t.Errorf("Expected %s but was %s", cheServerImageTest, DefaultCheServerImage(cheCluster))
@@ -80,16 +82,16 @@ func TestDefaultFromEnv(t *testing.T) {
 		t.Errorf("Expected %s but was %s", keycloakImageTest, DefaultKeycloakImage(cheCluster))
 	}
 
-	if DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster, cheFlavor) != "" {
-		t.Errorf("Expected empty value for cheFlavor '%s', but was %s", cheFlavor, DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster, cheFlavor))
+	if DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster) != brokerMetadataTest {
+		t.Errorf("Expected '%s', but was %s", brokerMetadataTest, DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster))
 	}
 
-	if DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster, cheFlavor) != "" {
-		t.Errorf("Expected empty value for cheFlavor '%s', but was %s", cheFlavor, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster, cheFlavor))
+	if DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster) != brokerArtifactsTest {
+		t.Errorf("Expected '%s', but was %s", brokerArtifactsTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
 	}
 
-	if DefaultCheServerSecureExposerJwtProxyImage(cheCluster, cheFlavor) != "" {
-		t.Errorf("Expected empty value for cheFlavor '%s', but was %s", cheFlavor, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster, cheFlavor))
+	if DefaultCheServerSecureExposerJwtProxyImage(cheCluster) != jwtProxyTest {
+		t.Errorf("Expected '%s', but was %s", jwtProxyTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
 	}
 }
 

@@ -97,18 +97,33 @@ releaseOperatorCode() {
   set -e
 
   if [[ $result == 0 ]]; then
-    local defaultsgo=$BASE_DIR/pkg/deploy/defaults.go
+    local operatoryaml=$BASE_DIR/deploy/operator.yaml
 
     echo -e $GREEN"3.1 Launch 'release-operator-code.sh' script"$NC
     . ${BASE_DIR}/release-operator-code.sh $RELEASE
 
-    echo -e $GREEN"3.2 Validate changes for $defaultsgo"$NC
-    [[ \"$RELEASE\" != $(getPropertyValue $defaultsgo defaultCheServerImageTag) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"quay.io/eclipse/che-devfile-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultDevfileRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"quay.io/eclipse/che-plugin-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultPluginRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"quay.io/eclipse/che-keycloak:$RELEASE\" != $(getPropertyValue $defaultsgo defaultKeycloakUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
+    echo -e $GREEN"3.2 Validate changes for $operatoryaml"$NC
+    grep -q "\"$RELEASE\"" $operatoryaml
+    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
+    grep -q "\"quay.io/eclipse/che-plugin-registry:$RELEASE\"" $operatoryaml
+    grep -q "\"quay.io/eclipse/che-dvfile-registry:$RELEASE\"" $operatoryaml
+    grep -q "\"quay.io/eclipse/che-keycloak:$RELEASE\"" $operatoryaml
 
-    echo -e $GREEN"3.3 Validate number of changed files"$NC
+    wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+    image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
+    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
+
+    image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
+    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
+
+    image=$(cat /tmp/che.properties | grep  cche.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
+    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
+
+    echo -e $GREEN"3.3 It is needed to check file manully"$NC
+    echo $operatoryaml
+    read -p "Press enter to continue"
+
+    echo -e $GREEN"3.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
     [[ $changes -gt 2 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
