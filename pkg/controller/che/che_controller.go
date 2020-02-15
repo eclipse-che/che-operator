@@ -1261,33 +1261,23 @@ func hasConsolelinkObject() bool {
 // GetFullCheServerImageLink evaluate full cheImage link(with repo and tag)
 // based on Checluster information and image defaults from env variables
 func GetFullCheServerImageLink(cr *orgv1.CheCluster) string {
-	cheImageRepo := cr.Spec.Server.CheImage
-
-	cheImageTag := util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
-
 	if len(cr.Spec.Server.CheImage) > 0 {
-		return cheImageRepo + ":" + cheImageTag
+		cheServerImageTag := util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+		return cr.Spec.Server.CheImage + ":" + cheServerImageTag
 	}
 
 	defaultCheServerImage := deploy.DefaultCheServerImage(cr)
-
-	if !strings.Contains(defaultCheServerImage, "@") {
-		imageParts := strings.Split(defaultCheServerImage, ":")
-		if len(imageParts) == 2 {
-			cheImageRepo := imageParts[0]
-			// For back compatibility with version < 7.9.0:
-			// if cr.Spec.Server.CheImage is empty, but cr.Spec.Server.CheImageTag is not empty,
-			// parse from default Che image(value comes from env variable) "Che image repository"
-			// and return "Che image", like concatenation: "cheImageRepo:cheImageTag"
-			return cheImageRepo + ":" + cheImageTag
-		}
+	if len(cr.Spec.Server.CheImageTag) == 0 {
+		return defaultCheServerImage
 	}
 
-	// Todo: is it correct logic?
-	// Do nothing if defaultCheServerImage has digest with separator "@"
-	// For example: docker.io/ubuntu@sha256:45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2
-
-	return defaultCheServerImage
+	// For back compatibility with version < 7.9.0:
+	// if cr.Spec.Server.CheImage is empty, but cr.Spec.Server.CheImageTag is not empty,
+	// parse from default Che image(value comes from env variable) "Che image repository"
+	// and return "Che image", like concatenation: "cheImageRepo:cheImageTag"
+	separator := map[bool]string{true: "@", false: ":"}[strings.Contains(defaultCheServerImage, "@")]
+	imageParts := strings.Split(defaultCheServerImage, separator)
+	return imageParts[0] + ":" + cr.Spec.Server.CheImageTag
 }
 
 // EvaluateCheServerVersion evaluate che version
