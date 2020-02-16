@@ -103,21 +103,43 @@ releaseOperatorCode() {
     . ${BASE_DIR}/release-operator-code.sh $RELEASE
 
     echo -e $GREEN"3.2 Validate changes for $operatoryaml"$NC
-    grep -q "\"$RELEASE\"" $operatoryaml
-    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
-    grep -q "\"quay.io/eclipse/che-plugin-registry:$RELEASE\"" $operatoryaml
-    grep -q "\"quay.io/eclipse/che-dvfile-registry:$RELEASE\"" $operatoryaml
-    grep -q "\"quay.io/eclipse/che-keycloak:$RELEASE\"" $operatoryaml
+
+    if ! grep -q "value: ${RELEASE}" $operatoryaml; then
+      echo -e $RED" Unable to find Che version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-server:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find Che server image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-plugin-registry:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find plugin registry image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-devfile-registry:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find devfile registry image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-keycloak:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find che-keycloak image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
 
     wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
-    image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
-    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
 
-    image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
-    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
+    plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
+    if ! grep -q "value: $plugin_broker_meta_image" $operatoryaml; then
+      echo -e $RED" Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $operatoryaml"$NC; exit 1
+    fi
 
-    image=$(cat /tmp/che.properties | grep  cche.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
-    grep -q "\"quay.io/eclipse/che-server:$RELEASE\"" $operatoryaml
+    plugin_broker_artifacts_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
+    if ! grep -q "value: $plugin_broker_artifacts_image" $operatoryaml; then
+      echo -e $RED" Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $operatoryaml"$NC; exit 1
+    fi
+
+    jwt_proxy_image=$(cat /tmp/che.properties | grep  che.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
+    if ! grep -q "value: $jwt_proxy_image" $operatoryaml; then
+      echo -e $RED" Unable to find jwt proxy image $jwt_proxy_image in the $operatoryaml"$NC; exit 1
+    fi
 
     echo -e $GREEN"3.3 It is needed to check file manully"$NC
     echo $operatoryaml
