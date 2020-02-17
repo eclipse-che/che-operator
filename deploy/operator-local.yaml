@@ -69,9 +69,9 @@ spec:
             - name: "IMAGE_default_keycloak"
               value: "quay.io/eclipse/che-keycloak:7.8.0"
             - name: "IMAGE_default_che_workspace_plugin_broker_metadata"
-              value: "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
+              value: "quay.io/eclipse/che-plugin-metadata-broker:v3.1.0"
             - name: "IMAGE_default_che_workspace_plugin_broker_artifacts"
-              value: "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
+              value: "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.0"
             - name: "IMAGE_default_che_server_secure_exposer_jwt_proxy_image"
-              value: "quay.io/crw/jwtproxy-rhel8:2.1"
+              value: "quay.io/eclipse/che-jwtproxy:dbd0578"
 
