@@ -11,7 +11,7 @@
 //
 package v1
 
-// Important: You should regenerate some generated code after modifying this file. At the root o fthe project:
+// Important: You should regenerate some generated code after modifying this file. At the root of the project:
 // - Run "operator-sdk generate k8s": this will perform required changes in the "pkg/apis/org/v1/zz_generatedxxx" files
 // - Run "operator-sdk generate openapi": this will generate the "deploy/crds/org_v1_checluster_crd.yaml" file
 // - In the updated "deploy/crds/org_v1_checluster_crd.yaml": Delete all the `required:` openAPI rules in the CRD OpenApi schema.
