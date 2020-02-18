@@ -26,9 +26,10 @@ installStartDocker() {
 
 install_required_packages() {
     # Install EPEL repo
+    yum install epel-release
     # Get all the deps in
-    yum -y install libvirt qemu-kvm
-  echo '[INFO]CICO: Required virtualization packages installed'
+    sudo yum -y install libvirt qemu-kvm
+    echo '[INFO]CICO: Required virtualization packages installed'
 }
 
 start_libvirt() {
@@ -66,4 +67,8 @@ generate_self_signed_certs() {
                 -days 365 \
                 -subj "/CN=*.${IP_ADDRESS}.nip.io" \
                 -nodes && cat cert.pem key.pem > ca.crt    
+}
+
+install_minikube() {
+  minikube start --memory=4096
 }

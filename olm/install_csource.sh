@@ -25,6 +25,12 @@ if [ -z "${Namespace}" ]
     echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>] [<platform>]"
     exit 1
 fi
+Platform=$3
+if [ -z "${Platform}" ]
+  then
+    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>] [<platform>]"
+    exit 1
+fi
 
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 
@@ -39,7 +45,11 @@ check_oc_cluster() {
     printf "[ERROR] oc client is required, please install oc client in your PATH."
     exit 1
   fi
-
+  # minikube installed
+  if ! which minikube; then
+    printf "[ERROR] Minikube installation are required."
+    exit 1
+  fi
   # oc logged in
   if ! oc whoami; then
     printf "[ERROR] Please login into your oc cluster."
@@ -49,7 +59,7 @@ check_oc_cluster() {
 
 create_csource_image() {
   docker build -t ${CATALOG_IMAGENAME} -f ${BASE_DIR}/eclipse-che-preview-openshift/Dockerfile \
-        ${BASE_DIR}/eclipse-che-preview-openshift
+        ${BASE_DIR}/eclipse-che-preview-${Platform}
   docker login -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD} quay.io
   docker push ${CATALOG_IMAGENAME}
   echo "[INFO] Successfully builded docker catalogSource image."
@@ -110,7 +120,7 @@ do
 done
   if [ $i -gt 720 ]
   then
-    echo "[ERROR] Che operator install did't start"
+    echo "[ERROR] Che operator install didn't start"
     exit 1
   fi
 }
