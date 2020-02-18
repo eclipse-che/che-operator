@@ -97,22 +97,53 @@ releaseOperatorCode() {
   set -e
 
   if [[ $result == 0 ]]; then
-    local defaultsgo=$BASE_DIR/pkg/deploy/defaults.go
-    local extraimagesgo=$BASE_DIR/pkg/deploy/extra_images.go
+    local operatoryaml=$BASE_DIR/deploy/operator.yaml
 
     echo -e $GREEN"3.1 Launch 'release-operator-code.sh' script"$NC
     . ${BASE_DIR}/release-operator-code.sh $RELEASE
 
-    echo -e $GREEN"3.2 Validate changes for $defaultsgo"$NC
-    [[ \"$RELEASE\" != $(getPropertyValue $defaultsgo defaultCheServerImageTag) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"quay.io/eclipse/che-devfile-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultDevfileRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"quay.io/eclipse/che-plugin-registry:$RELEASE\" != $(getPropertyValue $defaultsgo defaultPluginRegistryUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"quay.io/eclipse/che-keycloak:$RELEASE\" != $(getPropertyValue $defaultsgo defaultKeycloakUpstreamImage) ]] && { echo -e $RED"$defaultsgo cotains unexpected changes"$NC; exit 1; }
+    echo -e $GREEN"3.2 Validate changes for $operatoryaml"$NC
 
-    echo -e $GREEN"3.3 Validate changes for $extraimagesgo"$NC
-    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheWorkspacePluginBrokerMetadataUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheWorkspacePluginBrokerArtifactsUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
-    [[ \"\" == $(getPropertyValue $extraimagesgo defaultCheServerSecureExposerJwtProxyUpstreamImage) ]] && { echo $RED"$extraimagesgo cotains unexpected changes"$NC; exit 1; }
+    if ! grep -q "value: ${RELEASE}" $operatoryaml; then
+      echo -e $RED" Unable to find Che version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-server:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find Che server image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-plugin-registry:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find plugin registry image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-devfile-registry:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find devfile registry image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    if ! grep -q "value: quay.io/eclipse/che-keycloak:$RELEASE" $operatoryaml; then
+      echo -e $RED" Unable to find che-keycloak image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
+    fi
+
+    wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+
+    plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
+    if ! grep -q "value: $plugin_broker_meta_image" $operatoryaml; then
+      echo -e $RED" Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $operatoryaml"$NC; exit 1
+    fi
+
+    plugin_broker_artifacts_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
+    if ! grep -q "value: $plugin_broker_artifacts_image" $operatoryaml; then
+      echo -e $RED" Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $operatoryaml"$NC; exit 1
+    fi
+
+    jwt_proxy_image=$(cat /tmp/che.properties | grep  che.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
+    if ! grep -q "value: $jwt_proxy_image" $operatoryaml; then
+      echo -e $RED" Unable to find jwt proxy image $jwt_proxy_image in the $operatoryaml"$NC; exit 1
+    fi
+
+    echo -e $GREEN"3.3 It is needed to check file manully"$NC
+    echo $operatoryaml
+    read -p "Press enter to continue"
 
     echo -e $GREEN"3.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)

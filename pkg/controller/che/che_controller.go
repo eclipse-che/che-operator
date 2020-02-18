@@ -14,6 +14,7 @@ package che
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -470,7 +471,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(instance, cheFlavor))
+			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(instance))
 			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
@@ -646,7 +647,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance, cheFlavor))
+			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance))
 			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
 			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
 			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
@@ -874,7 +875,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(instance, cheFlavor))
+		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(instance))
 		result, err := addRegistryDeployment(
 			"devfile",
 			devfileRegistryImage,
@@ -945,7 +946,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			pluginRegistryURL = guessedPluginRegistryURL
 		}
 
-		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(instance, cheFlavor))
+		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(instance))
 		result, err := addRegistryDeployment(
 			"plugin",
 			pluginRegistryImage,
@@ -978,10 +979,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
 	// which will automatically trigger Che rolling update
 	cmResourceVersion := cheConfigMap.ResourceVersion
+
+	cheImageAndTag := GetFullCheServerImageLink(instance)
+	cheVersion := EvaluateCheServerVersion(instance)
+
 	// create Che deployment
-	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo(instance, cheFlavor))
-	cheImageTag := util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCheServerImageTag(cheFlavor))
-	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -1030,9 +1033,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					instance, _ = r.GetCR(request)
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
-				if instance.Status.CheVersion != cheImageTag {
-					instance.Status.CheVersion = cheImageTag
-					if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
+				if instance.Status.CheVersion != cheVersion {
+					instance.Status.CheVersion = cheVersion
+					if err := r.UpdateCheCRStatus(instance, "version", cheVersion); err != nil {
 						instance, _ = r.GetCR(request)
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 					}
@@ -1051,9 +1054,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := controllerutil.SetControllerReference(instance, cheDeploymentToCreate, r.scheme); err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
-		logrus.Infof("Updating %s %s with image %s:%s", cheDeploymentToCreate.Name, cheDeploymentToCreate.Kind, cheImageRepo, cheImageTag)
-		instance.Status.CheVersion = cheImageTag
-		if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
+		logrus.Infof("Updating %s %s with image %s", cheDeploymentToCreate.Name, cheDeploymentToCreate.Kind, cheImageAndTag)
+		instance.Status.CheVersion = cheVersion
+		if err := r.UpdateCheCRStatus(instance, "version", cheVersion); err != nil {
 			instance, _ = r.GetCR(request)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
@@ -1130,7 +1133,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		time.Sleep(time.Duration(1) * time.Second)
 		cm := r.GetEffectiveConfigMap(instance, cheConfigMap.Name)
 		cmResourceVersion := cm.ResourceVersion
-		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 		if err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
@@ -1154,7 +1157,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Wrong quantity for Che deployment Memory Limit: %s", err)
 		return reconcile.Result{}, err
 	}
-	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo+":"+cheImageTag))
+	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag))
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
 	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
@@ -1165,7 +1168,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		effectiveImagePullPolicy != desiredImagePullPolicy ||
 		effectiveSelfSignedCert != desiredSelfSignedCert ||
 		effectiveGitSelfSignedCert != desiredGitSelfSignedCert {
-		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
+		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 		if err != nil {
 			logrus.Errorf("An error occurred: %s", err)
 		}
@@ -1253,4 +1256,32 @@ func hasConsolelinkObject() bool {
 		}
 	}
 	return false
+}
+
+// GetFullCheServerImageLink evaluate full cheImage link(with repo and tag)
+// based on Checluster information and image defaults from env variables
+func GetFullCheServerImageLink(cr *orgv1.CheCluster) string {
+	if len(cr.Spec.Server.CheImage) > 0 {
+		cheServerImageTag := util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+		return cr.Spec.Server.CheImage + ":" + cheServerImageTag
+	}
+
+	defaultCheServerImage := deploy.DefaultCheServerImage(cr)
+	if len(cr.Spec.Server.CheImageTag) == 0 {
+		return defaultCheServerImage
+	}
+
+	// For back compatibility with version < 7.9.0:
+	// if cr.Spec.Server.CheImage is empty, but cr.Spec.Server.CheImageTag is not empty,
+	// parse from default Che image(value comes from env variable) "Che image repository"
+	// and return "Che image", like concatenation: "cheImageRepo:cheImageTag"
+	separator := map[bool]string{true: "@", false: ":"}[strings.Contains(defaultCheServerImage, "@")]
+	imageParts := strings.Split(defaultCheServerImage, separator)
+	return imageParts[0] + ":" + cr.Spec.Server.CheImageTag
+}
+
+// EvaluateCheServerVersion evaluate che version
+// based on Checluster information and image defaults from env variables
+func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
+	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
 }
