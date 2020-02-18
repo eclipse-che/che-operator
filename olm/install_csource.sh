@@ -26,13 +26,6 @@ if [ -z "${Namespace}" ]
     exit 1
 fi
 
-Platform=$2
-if [ -z "${Platform}" ]
-  then
-    echo "[ERROR] Please run the script like install_csource.sh [<channel>] [<namespace>] [<platform>]"
-    exit 1
-fi
-
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 
 init() {
@@ -59,10 +52,11 @@ create_csource_image() {
         ${BASE_DIR}/eclipse-che-preview-openshift
   docker login -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD} quay.io
   docker push ${CATALOG_IMAGENAME}
+  echo "[INFO] Successfully builded docker catalogSource image."
 }
 
 install_che_csource() {
-  oc apply -f - <<EOF
+  kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
