@@ -99,6 +99,10 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		if isOpenshift4 {
 			openShiftIdentityProviderId = "openshift-v4"
 		}
+	} else {
+		// This should probably be removed when PR https://github.com/eclipse/che-operator/pull/166 is merged
+		defaultTargetNamespace = cr.Namespace
+		namespaceAllowUserDefined = "false"	
 	}
 	tlsSupport := cr.Spec.Server.TlsSupport
 	protocol := "http"
