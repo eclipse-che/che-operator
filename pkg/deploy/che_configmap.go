@@ -134,7 +134,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	pvcClaimSize := util.GetValue(cr.Spec.Storage.PvcClaimSize, DefaultPvcClaimSize)
 	workspacePvcStorageClassName := cr.Spec.Storage.WorkspacePVCStorageClassName
 
-	defaultPVCJobsImage := DefaultPvcJobsImage(cr, cheFlavor)
+	defaultPVCJobsImage := DefaultPvcJobsImage(cr)
 	pvcJobsImage := util.GetValue(cr.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
 	preCreateSubPaths := "true"
 	if !cr.Spec.Storage.PreCreateSubPaths {
@@ -191,9 +191,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
 		PluginRegistryUrl:                      pluginRegistryUrl,
 		DevfileRegistryUrl:                     devfileRegistryUrl,
-		CheWorkspacePluginBrokerMetadataImage:  DefaultCheWorkspacePluginBrokerMetadataImage(cr, cheFlavor),
-		CheWorkspacePluginBrokerArtifactsImage: DefaultCheWorkspacePluginBrokerArtifactsImage(cr, cheFlavor),
-		CheServerSecureExposerJwtProxyImage:    DefaultCheServerSecureExposerJwtProxyImage(cr, cheFlavor),
+		CheWorkspacePluginBrokerMetadataImage:  DefaultCheWorkspacePluginBrokerMetadataImage(cr),
+		CheWorkspacePluginBrokerArtifactsImage: DefaultCheWorkspacePluginBrokerArtifactsImage(cr),
+		CheServerSecureExposerJwtProxyImage:    DefaultCheServerSecureExposerJwtProxyImage(cr),
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
 	}
