@@ -31,9 +31,12 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
-	customPublicCertEnv := corev1.EnvVar{
-        Name:  "CHE_CUSTOM_PUBLIC_CERT",
-        Value: "",
+	customPublicCertsVolume := corev1.Volume{
+        Name: "che-public-certs",
+    }
+    customPublicCertsVolumeMount := corev1.VolumeMount{
+        Name: "che-public-certs",
+        MountPath: "/public-certs",
     }
 	gitSelfSignedCertEnv := corev1.EnvVar{
         Name:  "CHE_GIT_SELF__SIGNED__CERT",
@@ -57,16 +60,14 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 			},
 		}
 	}
-	if cr.Spec.Server.CustomPublicCert {
-        customPublicCertEnv = corev1.EnvVar{
-            Name: "CHE_CUSTOM_PUBLIC_CERT",
-            ValueFrom: &corev1.EnvVarSource{
-                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-                    Key: "ca.crt",
+	if cr.Spec.Server.CustomPublicCerts {
+        customPublicCertsVolume = corev1.Volume{
+            Name: "che-public-certs",
+            VolumeSource: corev1.VolumeSource{
+                ConfigMap: &corev1.ConfigMapVolumeSource{
                     LocalObjectReference: corev1.LocalObjectReference{
-                        Name: "custom-public-cert",
+                        Name: "che-public-certs",
                     },
-                    Optional: &optionalEnv,
                 },
             },
         }
@@ -122,6 +123,9 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "che",
+					Volumes: []corev1.Volume{
+					    customPublicCertsVolume,
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            cheFlavor,
@@ -176,6 +180,9 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 									},
 								},
 							},
+							VolumeMounts: []corev1.VolumeMount{
+                                customPublicCertsVolumeMount,
+                            },
 							Env: []corev1.EnvVar{
 								{
 									Name:  "CM_REVISION",
@@ -188,7 +195,6 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 											FieldPath: "metadata.namespace"}},
 								},
 								selfSignedCertEnv,
-								customPublicCertEnv,
 								gitSelfSignedCertEnv,
 								gitSelfSignedCertHostEnv,
 							}},

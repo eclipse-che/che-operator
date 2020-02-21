@@ -120,3 +120,15 @@ func (r *ReconcileChe)GetDeploymentEnvVarSource(deployment *appsv1.Deployment, k
 	}
 	return valueFrom
 }
+
+func (r *ReconcileChe)GetDeploymentVolume(deployment *appsv1.Deployment, key string) (volume corev1.Volume) {
+	volumes := deployment.Spec.Template.Spec.Volumes
+	for i := range volumes {
+		name := volumes[i].Name
+		if name == key {
+			volume = volumes[i]
+			break
+		}
+	}
+	return volume
+}

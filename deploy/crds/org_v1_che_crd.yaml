@@ -293,11 +293,13 @@ spec:
                     config map from other CR fields, then the value defined in the
                     `customCheProperties` will be used instead.
                   type: object
-                customPublicCert:
-                  description: If enabled, then the certificate from `custom-public-cert`
-                    config map will be added to Java trust store of Che server. This
-                    is usually required when adding the OpenShift OAuth provider which
-                    can receive unrecognized http requests. This is disabled by default.
+                customPublicCerts:
+                  description: If enabled then the certificates from `che-public-certs`
+                    config map will be added to Java trust store of the Che server.
+                    This is usually required when adding the OpenShift OAuth provider
+                    which has https endpoint signed with self-signed cert. So, Che
+                    server must be aware of its CA cert to be able to request it.
+                    This is disabled by default.
                   type: boolean
                 devfileRegistryImage:
                   description: Overrides the container image used in the Devfile registry

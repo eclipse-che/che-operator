@@ -441,9 +441,9 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"customPublicCert": {
+					"customPublicCerts": {
 						SchemaProps: spec.SchemaProps{
-							Description: "If enabled, then the certificate from `custom-public-cert` config map will be added to Java trust store of Che server. This is usually required when adding the OpenShift OAuth provider which can receive unrecognized http requests. This is disabled by default.",
+							Description: "If enabled then the certificates from `che-public-certs` config map will be added to Java trust store of the Che server. This is usually required when adding the OpenShift OAuth provider which has https endpoint signed with self-signed cert. So, Che server must be aware of its CA cert to be able to request it. This is disabled by default.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
