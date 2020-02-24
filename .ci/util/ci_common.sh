@@ -70,5 +70,7 @@ generate_self_signed_certs() {
 }
 
 install_minikube() {
-  minikube start --memory=4096
+  curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+  && chmod +x minikube
+  install minikube /usr/local/bin/
 }
