@@ -12,10 +12,13 @@
 #
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
-
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 
 source ${BASE_DIR}/check-yq.sh
+
+SOURCE_INSTALL=$4
+
+if [ -z ${SOURCE_INSTALL} ]; then SOURCE_INSTALL="Marketplace"; fi
 
 platform=$1
 if [ "${platform}" == "" ]; then
@@ -59,12 +62,31 @@ then
   exit 1
 fi
 
+catalog_source() {
+  echo "--- Use default eclipse che application registry ---"
+  echo $SOURCE_INSTALL
+    if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
+    marketplaceNamespace=${namespace};
+      kubectl apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${packageName}
+  namespace: ${namespace}
+spec:
+  sourceType: grpc
+  image: ${CATALOG_IMAGENAME}
+EOF
+    else
+    cat ${platformPath}/operator-source.yaml
+      kubectl apply -f ${platformPath}/operator-source.yaml
+    fi
+}
+
 applyCheOperatorSource() {
   echo "Apply che-operator source"
   if [ "${APPLICATION_REGISTRY}" == "" ]; then
-    echo "--- Use default eclipse che application registry ---"
-
-    kubectl apply -f ${platformPath}/operator-source.yaml
+    catalog_source
   else
     echo "---- Use non default application registry ${APPLICATION_REGISTRY} ---"
 
@@ -76,23 +98,31 @@ applyCheOperatorSource() {
 
 installOperatorMarketPlace() {
   echo "Installing test pre-requisistes"
+  kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+EOF
 
-  marketplaceNamespace="marketplace"
-  if [ "${platform}" == "openshift" ]
+  if [ "${platform}" == "openshift" ];
   then
-    marketplaceNamespace="openshift-marketplace"
+    marketplaceNamespace="openshift-marketplace";
     applyCheOperatorSource
   else
     curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.12.0/install.sh | bash -s 0.12.0
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/02_catalogsourceconfig.crd.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/03_operatorsource.crd.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/04_service_account.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/05_role.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/06_role_binding.yaml
-    sleep 1
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+    if [ "${SOURCE_INSTALL}" == "Marketplace" ]; then
+      marketplaceNamespace="marketplace"
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/02_catalogsourceconfig.crd.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/03_operatorsource.crd.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/04_service_account.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/05_role.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/06_role_binding.yaml
+      sleep 1
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+    fi
 
     applyCheOperatorSource
 
@@ -117,13 +147,10 @@ installOperatorMarketPlace() {
     marketplaceNamespace="olm"
   fi
 
+  echo "Subscribing to version: ${CSV}"
+
   kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace}
----
-apiVersion: operators.coreos.com/v1alpha2
+apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: operatorgroup
@@ -131,11 +158,7 @@ metadata:
 spec:
   targetNamespaces:
   - ${namespace}
-EOF
-
-  echo "Subscribing to version: ${CSV}"
-
-  kubectl apply -f - <<EOF
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -160,6 +183,7 @@ EOF
   fi
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
+
 }
 
 installPackage() {
@@ -209,4 +233,12 @@ waitCheServerDeploy() {
     echo "Che server did't start after 6 minutes"
     exit 1
   fi
+}
+
+build_Catalog_Image() {
+  docker build -t ${CATALOG_IMAGENAME} -f ${BASE_DIR}/eclipse-che-preview-openshift/Dockerfile \
+      ${BASE_DIR}/eclipse-che-preview-${platform}
+
+  docker login -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD} quay.io
+  docker push ${CATALOG_IMAGENAME}
 }
