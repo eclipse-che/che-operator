@@ -117,14 +117,14 @@ type CheClusterSpecServer struct {
 	// This is disabled by default.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
-	// If enabled then the certificates from `che-public-certs`
-	// config map will be added to Java trust store of the Che server.
+	// Name of the config-map with public certificates
+	// to add to Java trust store of the Che server.
 	// This is usually required when adding the OpenShift OAuth provider
 	// which has https endpoint signed with self-signed cert. So,
 	// Che server must be aware of its CA cert to be able to request it.
 	// This is disabled by default.
 	// +optional
-	CustomPublicCerts bool `json:"customPublicCerts"`
+	CustomPublicCertsConfigMapName string `json:"customPublicCertsConfigMapName,omitempty"`
 	// If enabled, then the certificate from `che-git-self-signed-cert`
 	// config map will be propagated to the Che components and provide particular
 	// configuration for Git.

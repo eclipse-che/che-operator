@@ -31,8 +31,19 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
+	customPublicCertsVolumeSource := corev1.VolumeSource{}
+	if cr.Spec.Server.CustomPublicCertsConfigMapName != "" {
+	    customPublicCertsVolumeSource = corev1.VolumeSource{
+            ConfigMap: &corev1.ConfigMapVolumeSource{
+                LocalObjectReference: corev1.LocalObjectReference{
+                    Name: cr.Spec.Server.CustomPublicCertsConfigMapName,
+                },
+            },
+        }
+	}
 	customPublicCertsVolume := corev1.Volume{
         Name: "che-public-certs",
+        VolumeSource: customPublicCertsVolumeSource,
     }
     customPublicCertsVolumeMount := corev1.VolumeMount{
         Name: "che-public-certs",
@@ -60,18 +71,6 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 			},
 		}
 	}
-	if cr.Spec.Server.CustomPublicCerts {
-        customPublicCertsVolume = corev1.Volume{
-            Name: "che-public-certs",
-            VolumeSource: corev1.VolumeSource{
-                ConfigMap: &corev1.ConfigMapVolumeSource{
-                    LocalObjectReference: corev1.LocalObjectReference{
-                        Name: "che-public-certs",
-                    },
-                },
-            },
-        }
-    }
 	if cr.Spec.Server.GitSelfSignedCert {
         gitSelfSignedCertEnv = corev1.EnvVar{
             Name: "CHE_GIT_SELF__SIGNED__CERT",

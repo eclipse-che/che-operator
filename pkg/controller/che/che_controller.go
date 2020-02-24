@@ -1160,7 +1160,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag))
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
-	desiredCustomPublicCerts := instance.Spec.Server.CustomPublicCerts
+	desiredCustomPublicCerts := instance.Spec.Server.CustomPublicCertsConfigMapName != ""
 	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
 	effectiveSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
 	effectiveCustomPublicCerts := r.GetDeploymentVolume(effectiveCheDeployment, "che-public-certs").ConfigMap != nil
