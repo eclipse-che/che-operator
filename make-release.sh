@@ -266,7 +266,6 @@ releaseOlmFiles() {
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml.diff
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml.diff
-    read -p "Press enter to continue"
 
     echo -e $GREEN"8.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
