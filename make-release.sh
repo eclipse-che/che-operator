@@ -64,8 +64,13 @@ resetLocalChanges() {
   set -e
 
   if [[ $result == 0 ]]; then
-    git fetch ${GIT_REMOTE_UPSTREAM}
+    git reset --hard
+    git checkout master
+    git fetch ${GIT_REMOTE_UPSTREAM} --prune
     git pull ${GIT_REMOTE_UPSTREAM} master
+
+    local changes=$(git status -s | wc -l)
+    [[ $changes -gt 0 ]] && { echo -e $RED"The number of changes are greated then 0. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -147,7 +152,7 @@ releaseOperatorCode() {
 
     echo -e $GREEN"3.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    [[ $changes -gt 2 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
+    [[ $changes -gt 1 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
