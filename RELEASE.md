@@ -2,6 +2,10 @@
 
 ## 1. Release files
 
+### Prerequisites
+- export environment variables `QUAY_USERNAME` and `QUAY_PASSWORD`
+
+
 ```bash
 ./make-release.sh <RELEASE_VERSION>
 ```
