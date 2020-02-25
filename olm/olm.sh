@@ -78,7 +78,7 @@ spec:
 EOF
   else
     cat ${platformPath}/operator-source.yaml
-      kubectl apply -f ${platformPath}/operator-source.yaml
+    kubectl apply -f ${platformPath}/operator-source.yaml
   fi
 }
 
