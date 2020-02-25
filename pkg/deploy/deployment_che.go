@@ -33,30 +33,30 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 	}
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
 	if cr.Spec.Server.CustomPublicCertsConfigMapName != "" {
-	    customPublicCertsVolumeSource = corev1.VolumeSource{
-            ConfigMap: &corev1.ConfigMapVolumeSource{
-                LocalObjectReference: corev1.LocalObjectReference{
-                    Name: cr.Spec.Server.CustomPublicCertsConfigMapName,
-                },
-            },
-        }
+		customPublicCertsVolumeSource = corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: cr.Spec.Server.CustomPublicCertsConfigMapName,
+				},
+			},
+		}
 	}
 	customPublicCertsVolume := corev1.Volume{
-        Name: "che-public-certs",
-        VolumeSource: customPublicCertsVolumeSource,
-    }
-    customPublicCertsVolumeMount := corev1.VolumeMount{
-        Name: "che-public-certs",
-        MountPath: "/public-certs",
-    }
+		Name: "che-public-certs",
+		VolumeSource: customPublicCertsVolumeSource,
+	}
+	customPublicCertsVolumeMount := corev1.VolumeMount{
+		Name: "che-public-certs",
+		MountPath: "/public-certs",
+	}
 	gitSelfSignedCertEnv := corev1.EnvVar{
-        Name:  "CHE_GIT_SELF__SIGNED__CERT",
-        Value: "",
-    }
-    gitSelfSignedCertHostEnv := corev1.EnvVar{
-        Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
-        Value: "",
-    }
+		Name:  "CHE_GIT_SELF__SIGNED__CERT",
+		Value: "",
+	}
+	gitSelfSignedCertHostEnv := corev1.EnvVar{
+		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
+		Value: "",
+	}
 	if cr.Spec.Server.SelfSignedCert {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
@@ -72,31 +72,31 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		}
 	}
 	if cr.Spec.Server.GitSelfSignedCert {
-        gitSelfSignedCertEnv = corev1.EnvVar{
-            Name: "CHE_GIT_SELF__SIGNED__CERT",
-            ValueFrom: &corev1.EnvVarSource{
-                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-                    Key: "ca.crt",
-                    LocalObjectReference: corev1.LocalObjectReference{
-                        Name: "che-git-self-signed-cert",
-                    },
-                    Optional: &optionalEnv,
-                },
-            },
-        }
-        gitSelfSignedCertHostEnv = corev1.EnvVar{
-            Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
-            ValueFrom: &corev1.EnvVarSource{
-                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-                    Key: "githost",
-                    LocalObjectReference: corev1.LocalObjectReference{
-                        Name: "che-git-self-signed-cert",
-                    },
-                    Optional: &optionalEnv,
-                },
-            },
-        }
-    }
+		gitSelfSignedCertEnv = corev1.EnvVar{
+			Name: "CHE_GIT_SELF__SIGNED__CERT",
+			ValueFrom: &corev1.EnvVarSource{
+				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					Key: "ca.crt",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-git-self-signed-cert",
+					},
+					Optional: &optionalEnv,
+				},
+			},
+		}
+		gitSelfSignedCertHostEnv = corev1.EnvVar{
+			Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
+			ValueFrom: &corev1.EnvVarSource{
+				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					Key: "githost",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-git-self-signed-cert",
+					},
+					Optional: &optionalEnv,
+				},
+			},
+		}
+	}
 
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
@@ -123,7 +123,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "che",
 					Volumes: []corev1.Volume{
-					    customPublicCertsVolume,
+						customPublicCertsVolume,
 					},
 					Containers: []corev1.Container{
 						{
