@@ -32,11 +32,11 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		Value: "",
 	}
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if cr.Spec.Server.CustomPublicCertsConfigMapName != "" {
+	if cr.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		customPublicCertsVolumeSource = corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: cr.Spec.Server.CustomPublicCertsConfigMapName,
+					Name: cr.Spec.Server.ServerTrustStoreConfigMapName,
 				},
 			},
 		}

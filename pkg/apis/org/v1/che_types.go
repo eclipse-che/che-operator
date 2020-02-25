@@ -124,7 +124,7 @@ type CheClusterSpecServer struct {
 	// Che server must be aware of its CA cert to be able to request it.
 	// This is disabled by default.
 	// +optional
-	CustomPublicCertsConfigMapName string `json:"customPublicCertsConfigMapName,omitempty"`
+	ServerTrustStoreConfigMapName string `json:"serverTrustStoreConfigMapName,omitempty"`
 	// If enabled, then the certificate from `che-git-self-signed-cert`
 	// config map will be propagated to the Che components and provide particular
 	// configuration for Git.
