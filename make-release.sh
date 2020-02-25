@@ -64,8 +64,13 @@ resetLocalChanges() {
   set -e
 
   if [[ $result == 0 ]]; then
-    git fetch ${GIT_REMOTE_UPSTREAM}
+    git reset --hard
+    git checkout master
+    git fetch ${GIT_REMOTE_UPSTREAM} --prune
     git pull ${GIT_REMOTE_UPSTREAM} master
+
+    local changes=$(git status -s | wc -l)
+    [[ $changes -gt 0 ]] && { echo -e $RED"The number of changes are greated then 0. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -90,6 +95,47 @@ getPropertyValue() {
   echo $(cat $file | grep -m1 "$key" | tr -d ' ' | tr -d '\t' | cut -d = -f2)
 }
 
+checkImageReferences() {
+  local filename=$1
+
+  if ! grep -q "value: ${RELEASE}" $filename; then
+    echo -e $RED" Unable to find Che version ${RELEASE} in the $filename"$NC; exit 1
+  fi
+
+  if ! grep -q "value: quay.io/eclipse/che-server:$RELEASE" $filename; then
+    echo -e $RED" Unable to find Che server image with version ${RELEASE} in the $filename"$NC; exit 1
+  fi
+
+  if ! grep -q "value: quay.io/eclipse/che-plugin-registry:$RELEASE" $filename; then
+    echo -e $RED" Unable to find plugin registry image with version ${RELEASE} in the $filename"$NC; exit 1
+  fi
+
+  if ! grep -q "value: quay.io/eclipse/che-devfile-registry:$RELEASE" $filename; then
+    echo -e $RED" Unable to find devfile registry image with version ${RELEASE} in the $filename"$NC; exit 1
+  fi
+
+  if ! grep -q "value: quay.io/eclipse/che-keycloak:$RELEASE" $filename; then
+    echo -e $RED" Unable to find che-keycloak image with version ${RELEASE} in the $filename"$NC; exit 1
+  fi
+
+  wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+
+  plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
+  if ! grep -q "value: $plugin_broker_meta_image" $filename; then
+    echo -e $RED" Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $filename"$NC; exit 1
+  fi
+
+  plugin_broker_artifacts_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
+  if ! grep -q "value: $plugin_broker_artifacts_image" $filename; then
+    echo -e $RED" Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $filename"$NC; exit 1
+  fi
+
+  jwt_proxy_image=$(cat /tmp/che.properties | grep  che.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
+  if ! grep -q "value: $jwt_proxy_image" $filename; then
+    echo -e $RED" Unable to find jwt proxy image $jwt_proxy_image in the $filename"$NC; exit 1
+  fi
+}
+
 releaseOperatorCode() {
   set +e
   ask "3. Release operator code?"
@@ -103,43 +149,7 @@ releaseOperatorCode() {
     . ${BASE_DIR}/release-operator-code.sh $RELEASE
 
     echo -e $GREEN"3.2 Validate changes for $operatoryaml"$NC
-
-    if ! grep -q "value: ${RELEASE}" $operatoryaml; then
-      echo -e $RED" Unable to find Che version ${RELEASE} in the $operatoryaml"$NC; exit 1
-    fi
-
-    if ! grep -q "value: quay.io/eclipse/che-server:$RELEASE" $operatoryaml; then
-      echo -e $RED" Unable to find Che server image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
-    fi
-
-    if ! grep -q "value: quay.io/eclipse/che-plugin-registry:$RELEASE" $operatoryaml; then
-      echo -e $RED" Unable to find plugin registry image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
-    fi
-
-    if ! grep -q "value: quay.io/eclipse/che-devfile-registry:$RELEASE" $operatoryaml; then
-      echo -e $RED" Unable to find devfile registry image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
-    fi
-
-    if ! grep -q "value: quay.io/eclipse/che-keycloak:$RELEASE" $operatoryaml; then
-      echo -e $RED" Unable to find che-keycloak image with version ${RELEASE} in the $operatoryaml"$NC; exit 1
-    fi
-
-    wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
-
-    plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
-    if ! grep -q "value: $plugin_broker_meta_image" $operatoryaml; then
-      echo -e $RED" Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $operatoryaml"$NC; exit 1
-    fi
-
-    plugin_broker_artifacts_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
-    if ! grep -q "value: $plugin_broker_artifacts_image" $operatoryaml; then
-      echo -e $RED" Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $operatoryaml"$NC; exit 1
-    fi
-
-    jwt_proxy_image=$(cat /tmp/che.properties | grep  che.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
-    if ! grep -q "value: $jwt_proxy_image" $operatoryaml; then
-      echo -e $RED" Unable to find jwt proxy image $jwt_proxy_image in the $operatoryaml"$NC; exit 1
-    fi
+    checkImageReferences $operatoryaml
 
     echo -e $GREEN"3.3 It is needed to check file manully"$NC
     echo $operatoryaml
@@ -147,7 +157,7 @@ releaseOperatorCode() {
 
     echo -e $GREEN"3.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    [[ $changes -gt 2 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
+    [[ $changes -gt 1 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -180,14 +190,62 @@ pushImage() {
   fi
 }
 
-releaseOlmFiles() {
+updateNightlyOlmFiles() {
   set +e
-  ask "6. Release OLM files?"
+  ask "6. Update nighlty OLM files?"
   result=$?
   set -e
 
   if [[ $result == 0 ]]; then
-    echo -e $GREEN"6.1 Launch 'olm/release-olm-files.sh' script"$NC
+    echo -e $GREEN"6.1 Launch 'update-nightly-olm-files.sh' script"$NC
+    cd $BASE_DIR/olm
+    . $BASE_DIR/olm/update-nightly-olm-files.sh
+    cd $CURRENT_DIR
+
+    echo -e $GREEN"6.2 Validate changes"$NC
+    lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
+    csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
+    checkImageReferences $csvFile
+
+    lastNightlyOpenshiftDir=$(ls -dt $BASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
+    csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
+    checkImageReferences $csvFile
+
+    echo -e $GREEN"6.3 It is needed to check file manully"$NC
+    for diff in $(ls ${lastKubernetesNightlyDir}/*.diff); do echo $diff; done
+    for diff in $(ls ${lastNightlyOpenshiftDir}/*.diff); do echo $diff; done
+
+    echo -e $GREEN"6.4 Validate number of changed files"$NC
+    local changes=$(git status -s | wc -l)
+    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes are greated then 4. Check 'git status'."$NC; return 1; }
+
+  elif [[ $result == 1 ]]; then
+    echo -e $YELLOW"> SKIPPED"$NC
+  fi
+}
+
+commitNightlyOlmFiles() {
+  set +e
+  ask "7. Commit changes?"
+  result=$?
+  set -e
+
+  if [[ $result == 0 ]]; then
+    git add -A
+    git commit -m "Update nightly olm files" --signoff
+  elif [[ $result == 1 ]]; then
+    echo -e $YELLOW"> SKIPPED"$NC
+  fi
+}
+
+releaseOlmFiles() {
+  set +e
+  ask "8. Release OLM files?"
+  result=$?
+  set -e
+
+  if [[ $result == 0 ]]; then
+    echo -e $GREEN"8.1 Launch 'olm/release-olm-files.sh' script"$NC
     cd $BASE_DIR/olm
     . $BASE_DIR/olm/release-olm-files.sh $RELEASE
     cd $CURRENT_DIR
@@ -195,7 +253,7 @@ releaseOlmFiles() {
     local openshift=$BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
     local kubernetes=$BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
 
-    echo -e $GREEN"6.2 Validate files"$NC
+    echo -e $GREEN"8.2 Validate files"$NC
     grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
     grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
     grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
@@ -203,14 +261,13 @@ releaseOlmFiles() {
     test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
     test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
 
-    echo -e $GREEN"6.3 It is needed to check diff files manully"$NC
+    echo -e $GREEN"8.3 It is needed to check diff files manully"$NC
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml.diff
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml.diff
-    read -p "Press enter to continue"
 
-    echo -e $GREEN"6.4 Validate number of changed files"$NC
+    echo -e $GREEN"8.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
     [[ $changes -gt 4 ]] && { echo -e $RED"The number of changed files are greated then 4. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
@@ -220,7 +277,7 @@ releaseOlmFiles() {
 
 commitOlmChanges() {
   set +e
-  ask "7. Commit changes?"
+  ask "9. Commit changes?"
   result=$?
   set -e
 
@@ -234,7 +291,7 @@ commitOlmChanges() {
 
 pushOlmFiles() {
   set +e
-  ask "8. Push OLM files to quay.io?"
+  ask "10. Push OLM files to quay.io?"
   result=$?
   set -e
 
@@ -257,7 +314,7 @@ pushOlmFiles() {
 
 pushChanges() {
   set +e
-  ask "9. Push changes?"
+  ask "11. Push changes?"
   result=$?
   set -e
 
@@ -276,6 +333,8 @@ run() {
   releaseOperatorCode
   commitDefaultsGoChanges
   pushImage
+  updateNightlyOlmFiles
+  commitNightlyOlmFiles
   releaseOlmFiles
   commitOlmChanges
   pushOlmFiles
