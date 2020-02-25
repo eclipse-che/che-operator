@@ -64,10 +64,9 @@ fi
 
 catalog_source() {
   echo "--- Use default eclipse che application registry ---"
-  echo $SOURCE_INSTALL
-    if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
+  if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
     marketplaceNamespace=${namespace};
-      kubectl apply -f - <<EOF
+    kubectl apply -f - <<EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -77,10 +76,10 @@ spec:
   sourceType: grpc
   image: ${CATALOG_IMAGENAME}
 EOF
-    else
+  else
     cat ${platformPath}/operator-source.yaml
       kubectl apply -f ${platformPath}/operator-source.yaml
-    fi
+  fi
 }
 
 applyCheOperatorSource() {

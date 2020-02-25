@@ -11,24 +11,42 @@
 
 set -e
 
+printInfo() {
+  set +x
+  echo ""
+  echo "[=============== [INFO] $1 ===============]"
+}
+
+printWarn() {
+  set +x
+  echo ""
+  echo "[=============== [WARN] $1 ===============]"
+}
+
+printError() {
+  set +x
+  echo ""
+  echo "[=============== [ERROR] $1 ===============]"
+}
+
 installStartDocker() {
   if [ -x "$(command -v docker)" ]; then
-    echo "[INFO] Docker already installed"
+    printWarn "Docker already installed"
   else
-    echo "[INFO] Installing docker..."
+    printInfo "Installing docker..."
     yum install --assumeyes -d1 yum-utils device-mapper-persistent-data lvm2
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    
+    printInfo "Starting docker service..."
     yum install --assumeyes -d1 docker-ce
     systemctl start docker
     docker version
   fi
 }
 
-install_required_packages() {
-    # Install EPEL repo
-    # Get all the deps in
-    yum -y install libvirt qemu-kvm
-  echo '[INFO]CICO: Required virtualization packages installed'
+install_VirtPackages() {
+  printInfo 'Installing required virtualization packages installed'
+  yum -y install libvirt qemu-kvm
 }
 
 start_libvirt() {
@@ -36,7 +54,7 @@ start_libvirt() {
 }
 
 setup_kvm_machine_driver() {
-    echo "[INFO] Installing docker machine kvm drivers..."
+    printInfo "Installing docker machine kvm drivers"
     curl -L https://github.com/dhiltgen/docker-machine-kvm/releases/download/v0.10.0/docker-machine-driver-kvm-centos7 -o /usr/bin/docker-machine-driver-kvm
     chmod +x /usr/bin/docker-machine-driver-kvm
     check_libvirtd=$(systemctl is-active libvirtd)
@@ -47,14 +65,15 @@ setup_kvm_machine_driver() {
 
 minishift_installation() {
   MSFT_RELEASE="1.34.2"
-  echo "[INFO] Downloading Minishift binaries..."
+  printInfo "Downloading Minishift binaries"
   if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
   curl -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
     -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/bin --strip-components=1
-  echo "[INFO] Starting a new OC cluster."
+  printInfo "Starting a new OC cluster."
   minishift start --memory=4096 && eval $(minishift oc-env)
   oc login -u system:admin
   oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
+  printInfo "Successfully started OCv3.X on minishift machine"
 }
 
 generate_self_signed_certs() {
@@ -66,4 +85,30 @@ generate_self_signed_certs() {
                 -days 365 \
                 -subj "/CN=*.${IP_ADDRESS}.nip.io" \
                 -nodes && cat cert.pem key.pem > ca.crt    
+}
+
+minikube_installation() {
+  start_libvirt
+  curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+  && chmod +x minikube
+  sudo install minikube /usr/local/bin/ && rm -rf minikube
+}
+
+installEpelRelease() {
+  if yum repolist | grep epel; then
+    printWarn "Epel already installed, skipping instalation."
+  else
+    #excluding mirror1.ci.centos.org 
+    echo "exclude=mirror1.ci.centos.org" >> /etc/yum/pluginconf.d/fastestmirror.conf
+    printInfo "Installing epel..."
+    yum install -d1 --assumeyes epel-release
+    yum update --assumeyes -d1
+  fi
+}
+
+installYQ() {
+  printInfo "Installing yq portable command-line YAML processor..."
+  sudo yum install --assumeyes -d1 python3-pip
+  pip3 install --upgrade setuptools
+  pip3 install yq
 }
