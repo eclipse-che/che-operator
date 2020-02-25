@@ -38,7 +38,7 @@ previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${
 previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
 # $3 -> namespace
-source olm.sh ${platform} ${previousPackageVersion} $3
+source ${BASE_DIR}/olm.sh ${platform} ${previousPackageVersion} $3
 
 installOperatorMarketPlace
 installPackage

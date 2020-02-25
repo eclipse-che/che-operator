@@ -64,6 +64,7 @@ fi
 
 catalog_source() {
   echo "--- Use default eclipse che application registry ---"
+  echo ${CATALOG_IMAGENAME}
   if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
     marketplaceNamespace=${namespace};
     kubectl apply -f - <<EOF
@@ -121,6 +122,9 @@ EOF
       sleep 1
       kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
       kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+
+      kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}" -o json | jq '.metadata.namespace = "olm" | del(.metadata.creationTimestamp) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.generation) | del(.metadata.selfLink) | del(.status)' | kubectl apply -f -
+      marketplaceNamespace="olm"
     fi
 
     applyCheOperatorSource
@@ -141,9 +145,6 @@ EOF
       echo "Catalog source not created after 2 minutes"
       exit 1
     fi
-
-    kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}" -o json | jq '.metadata.namespace = "olm" | del(.metadata.creationTimestamp) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.generation) | del(.metadata.selfLink) | del(.status)' | kubectl apply -f -
-    marketplaceNamespace="olm"
   fi
 
   echo "Subscribing to version: ${CSV}"
@@ -232,12 +233,4 @@ waitCheServerDeploy() {
     echo "Che server did't start after 6 minutes"
     exit 1
   fi
-}
-
-build_Catalog_Image() {
-  docker build -t ${CATALOG_IMAGENAME} -f ${BASE_DIR}/eclipse-che-preview-openshift/Dockerfile \
-      ${BASE_DIR}/eclipse-che-preview-${platform}
-
-  docker login -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD} quay.io
-  docker push ${CATALOG_IMAGENAME}
 }

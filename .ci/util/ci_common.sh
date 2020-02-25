@@ -44,9 +44,9 @@ installStartDocker() {
   fi
 }
 
-install_required_packages() {
+install_VirtPackages() {
   printInfo 'Installing required virtualization packages installed'
-  yum -y install libvirt qemu-kvm
+  sudo yum -y install libvirt qemu-kvm
 }
 
 start_libvirt() {

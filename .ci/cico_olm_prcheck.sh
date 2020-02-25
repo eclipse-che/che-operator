@@ -14,7 +14,7 @@ trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minikube VM.
 Catch_Finish() {
-  rm -rf ~/.kube && yes | minikube delete
+  rm -rf ~/.kube && yes | minikube delete | minishift delete
 }
 
 init() {
@@ -23,6 +23,7 @@ init() {
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
   MINIKUBE_MEMORY=8192
   NAMESPACE="che-default"
+  CHANNEL="stable"
 }
 
 install_Dependencies() {
@@ -35,9 +36,8 @@ install_Dependencies() {
 run_olm_tests() {
   printInfo "Starting minikube VM to test kubernetes olm files..."
   minikube start --memory=${MINIKUBE_MEMORY}
-  minikube addons enable ingress
   printInfo "Running olm files tests on Kubernetes"
-  sh ${OPERATOR_REPO}/olm/testCatalogSource.sh kubernetes stable ${NAMESPACE}
+  sh ${OPERATOR_REPO}/olm/testCatalogSource.sh kubernetes ${CHANNEL} ${NAMESPACE}
 }
 
 init

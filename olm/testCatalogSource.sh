@@ -10,13 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-BASE_DIR=$(cd "$(dirname "$0")" && pwd)
-
-Install_Type="LocalCatalog"
-QUAY_PROJECT=catalogsource
-CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/${QUAY_PROJECT}"
-
-source ${BASE_DIR}/check-yq.sh
 
 platform=$1
 if [ "${platform}" == "" ]; then
@@ -31,17 +24,53 @@ if [ "${channel}" == "" ]; then
   channel="nightly"
 fi
 
-packageName=eclipse-che-preview-${platform}
-packageFolderPath="${BASE_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/${packageName}"
-packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+#Check if minikube is installed.
+if ! hash minikube 2>/dev/null; then
+  echo "Minikube is not installed."
+fi
 
-CSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
-PackageVersion=$(echo "${CSV}" | sed -e "s/${packageName}.v//")
+init() {
+  #Setting current directory
+  BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 
+  # Setting The catalog image and the image and tag; and install type
+  Install_Type="LocalCatalog"
+  CATALOG_IMAGENAME="testing_catalog:0.0.1"
+  
+  # GET the package version to apply
+  packageName=eclipse-che-preview-${platform}
+  packageFolderPath="${BASE_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/${packageName}"
+  packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  CSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
+  PackageVersion=$(echo "${CSV}" | sed -e "s/${packageName}.v//")
+}
+
+set_docker_registry() {
+  if [ "${platform}" == "kubernetes" ]; then
+    eval $(minikube -p minikube docker-env)
+    minikube addons enable ingress
+  else
+    echo "Openshift docker registry not available yet."
+    #exit 1
+fi
+}
+
+build_Catalog_Image() {
+  set_docker_registry
+  docker build -t ${CATALOG_IMAGENAME} -f ${BASE_DIR}/eclipse-che-preview-${platform}/Dockerfile \
+    ${BASE_DIR}/eclipse-che-preview-${platform}
+}
+
+run_olm_functions() {
+  build_Catalog_Image
+  installOperatorMarketPlace
+  installPackage
+  applyCRCheCluster
+  waitCheServerDeploy
+}
+
+init
 # $3 -> namespace
+source ${BASE_DIR}/check-yq.sh
 source ${BASE_DIR}/olm.sh ${platform} ${PackageVersion} $3 ${Install_Type}
-build_Catalog_Image
-installOperatorMarketPlace
-installPackage
-applyCRCheCluster
-waitCheServerDeploy
+run_olm_functions

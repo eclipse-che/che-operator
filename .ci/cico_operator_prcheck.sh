@@ -64,7 +64,7 @@ init
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
 
 installStartDocker
-install_required_packages
+install_VirtPackages
 start_libvirt
 setup_kvm_machine_driver
 minishift_installation
