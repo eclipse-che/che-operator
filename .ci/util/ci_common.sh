@@ -99,7 +99,6 @@ installEpelRelease() {
     printWarn "Epel already installed, skipping instalation."
   else
     #excluding mirror1.ci.centos.org 
-    echo "exclude=mirror1.ci.centos.org" >> /etc/yum/pluginconf.d/fastestmirror.conf
     printInfo "Installing epel..."
     yum install -d1 --assumeyes epel-release
     yum update --assumeyes -d1

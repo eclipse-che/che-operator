@@ -21,9 +21,9 @@ init() {
   SCRIPT=$(readlink -f "$0")
   SCRIPTPATH=$(dirname "$SCRIPT")
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
-  MINIKUBE_MEMORY=8192
+  RAM_MEMORY=8192
   NAMESPACE="che-default"
-  CHANNEL="nightly"
+  CHANNEL="stable"
 }
 
 install_Dependencies() {
@@ -34,14 +34,29 @@ install_Dependencies() {
 }
 
 run_olm_tests() {
-  printInfo "Starting minikube VM to test kubernetes olm files..."
-  minikube start --memory=${MINIKUBE_MEMORY}
-  printInfo "Running olm files tests on Kubernetes"
-  sh ${OPERATOR_REPO}/olm/testCatalogSource.sh kubernetes ${CHANNEL} ${NAMESPACE}
-  printInfo "Successfully verified olm files on kubernetes platform."
+  for platform in 'openshift' 'kubernetes'
+  do
+    if [[ ${platform} == 'openshift' ]]; then
+      printInfo "Starting minishift VM to test openshift olm files..."
+      minishift start --memory=${RAM_MEMORY}
+      oc login -u system:admin
+      oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
+
+      sh "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${platform} ${CHANNEL} ${NAMESPACE}
+      printInfo "Successfully verified olm files on openshift platform."
+      rm -rf ~/.kube .minishift && yes | minishift delete --force --clear-cache
+    fi
+    if [[ ${platform} == 'kubernetes' ]]; then
+      printInfo "Starting minikube VM to test kubernetes olm files..."
+      minikube start --memory=${RAM_MEMORY}
+      sh "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${platform} ${CHANNEL} ${NAMESPACE}
+      printInfo "Successfully verified olm files on kubernetes platform."
+      rm -rf ~/.kube && yes | minikube delete
+    fi
+  done
 }
 
 init
-source ${OPERATOR_REPO}/.ci/util/ci_common.sh
+source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 install_Dependencies
 run_olm_tests

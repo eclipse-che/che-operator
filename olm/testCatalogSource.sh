@@ -27,6 +27,7 @@ fi
 #Check if minikube is installed.
 if ! hash minikube 2>/dev/null; then
   echo "Minikube is not installed."
+  exit 1
 fi
 
 init() {
@@ -45,20 +46,23 @@ init() {
   PackageVersion=$(echo "${CSV}" | sed -e "s/${packageName}.v//")
 }
 
-set_docker_registry() {
-  if [ "${platform}" == "kubernetes" ]; then
-    eval $(minikube -p minikube docker-env)
-    minikube addons enable ingress
-  else
-    echo "Openshift docker registry not available yet."
-    #exit 1
-fi
+docker_build() {
+  docker build -t ${CATALOG_IMAGENAME} -f "${BASE_DIR}"/eclipse-che-preview-"${platform}"/Dockerfile \
+    "${BASE_DIR}"/eclipse-che-preview-"${platform}"
 }
 
 build_Catalog_Image() {
-  set_docker_registry
-  docker build -t ${CATALOG_IMAGENAME} -f ${BASE_DIR}/eclipse-che-preview-${platform}/Dockerfile \
-    ${BASE_DIR}/eclipse-che-preview-${platform}
+  if [ "${platform}" == "kubernetes" ]; then
+    eval "$(minikube -p minikube docker-env)"
+    docker_build
+    minikube addons enable ingress
+  else
+    docker_build
+    curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.12.0/install.sh | bash -s 0.12.0
+    docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
+    eval "$(minishift docker-env)"
+    docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
+  fi
 }
 
 run_olm_functions() {
