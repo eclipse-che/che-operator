@@ -14,7 +14,7 @@ trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minikube VM.
 Catch_Finish() {
-  rm -rf ~/.kube && yes | minikube delete
+  rm -rf ~/.kube && yes | minikube delete && yes | minishift delete --force --clear-cache
 }
 
 init() {
@@ -23,7 +23,7 @@ init() {
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
   RAM_MEMORY=8192
   NAMESPACE="che-default"
-  CHANNEL="nighlty"
+  CHANNEL="nightly"
 }
 
 install_Dependencies() {
