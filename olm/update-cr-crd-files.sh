@@ -10,6 +10,9 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+# This script updates deploy/crds/org_v1_che_cr.yaml and
+# deploy/crds/org_v1_che_crd.yaml files when `che_types.go` is changed.
+
 set -e
 
 init() {
@@ -18,7 +21,7 @@ init() {
 
 check() {
   local operatorVersion=$(operator-sdk version)
-  [[ $operatorVersion =~ .*v0.10.0.* ]] || { echo -e $RED"operator-sdk v0.10.0 is required"$NC; exit 1; }
+  [[ $operatorVersion =~ .*v0.10.0.* ]] || { echo "operator-sdk v0.10.0 is required"; exit 1; }
 }
 
 updateFiles() {
