@@ -23,7 +23,7 @@ init() {
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
   RAM_MEMORY=8192
   NAMESPACE="che-default"
-  CHANNEL="stable"
+  CHANNEL="nighlty"
 }
 
 install_Dependencies() {
