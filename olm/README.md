@@ -70,4 +70,12 @@ Where are:
  - `package_version` - your generated che-operator package version(for example: `7.8.0` or `9.9.9-nightly.1562083645`)
  - `optional-namespace` - kubernetes namespace to deploy che-operator. Optional parameter, by default operator will be deployed to the namespace `eclipse-che-preview-test`
 
-This script should install che-operator using OLM and check that the Che server was deployed.
+To test che-operator with OLM files without push to a related Quay.io application, we can build a required docker image of a dedicated catalog,
+in order to install directly through a CatalogSource. To test this options start minikube and after that launch
+test script in the olm folder:
+
+```shell
+$ ./testCatalogSource.sh sh {platform} ${channel} ${namespace}
+```
+
+This scripts should install che-operator using OLM and check that the Che server was deployed.
