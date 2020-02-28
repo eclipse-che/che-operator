@@ -1161,8 +1161,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
 	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
-	effectiveSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
-	effectiveGitSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_GIT_SELF__SIGNED__CERT") != nil
+	effectiveSelfSignedCert := util.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
+	effectiveGitSelfSignedCert := util.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_GIT_SELF__SIGNED__CERT") != nil
 	if desiredMemRequest.Cmp(effectiveMemRequest) != 0 ||
 		desiredMemLimit.Cmp(effectiveMemLimit) != 0 ||
 		effectiveImagePullPolicy != desiredImagePullPolicy ||

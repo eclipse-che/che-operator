@@ -23,8 +23,8 @@ import (
 	"runtime"
 
 	"github.com/eclipse/che-operator/pkg/apis"
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/controller"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
@@ -34,6 +34,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	//logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var (
+	defaultsPath string
+)
+
+func init() {
+	flag.StringVar(&defaultsPath, "defaultsPath", "", "Path to file with operator deployment defaults. This option is useful for local development.")
+}
 
 func setLogLevel() {
 	logLevel, isFound := os.LookupEnv("LOG_LEVEL")
@@ -76,7 +84,8 @@ func printVersion() {
 
 func main() {
 	flag.Parse()
-	deploy.InitDefaultsFromEnv()
+	logrus.Println(os.Args)
+	deploy.InitDefaults(defaultsPath)
 	//logf.SetLogger(logf.ZapLogger(false))
 	printVersion()
 	namespace, err := k8sutil.GetWatchNamespace()

@@ -24,6 +24,8 @@ import (
 	"net/http"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"time"
 	"bytes"
@@ -262,4 +264,28 @@ func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string,
 	noProxy = strings.Replace(nonProxyHosts, "|", ",", -1)
 
 	return proxyUrl, noProxy
+}
+
+func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
+	for i := range env {
+		name := env[i].Name
+		if name == key {
+			value = env[i].Value
+			break
+		}
+	}
+	return value
+}
+
+func GetDeploymentEnvVarSource(deployment *appsv1.Deployment, key string) (valueFrom *corev1.EnvVarSource) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
+	for i := range env {
+		name := env[i].Name
+		if name == key {
+			valueFrom = env[i].ValueFrom
+			break
+		}
+	}
+	return valueFrom
 }
