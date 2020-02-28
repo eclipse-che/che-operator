@@ -51,7 +51,7 @@ spec:
             - name: IMAGE_default_devfile_registry
               value: quay.io/eclipse/che-devfile-registry:7.9.0
             - name: IMAGE_default_pvc_jobs
-              value: registry.access.redhat.com/ubi8-minimal:8.0-213
+              value: registry.access.redhat.com/ubi8-minimal:8.1-398
             - name: IMAGE_default_postgres
               value: centos/postgresql-96-centos7:9.6
             - name: IMAGE_default_keycloak
