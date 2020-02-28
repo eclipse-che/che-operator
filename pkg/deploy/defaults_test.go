@@ -97,7 +97,7 @@ func TestDefaultFromEnv(t *testing.T) {
 
 func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
-		"registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.1": "che-operator:latest"
+		"registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.1": "che-operator:latest",
 	}
 	for k, v := range testCases {
 		t.Run(k, func(*testing.T) {
