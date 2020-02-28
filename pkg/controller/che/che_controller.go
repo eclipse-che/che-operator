@@ -966,6 +966,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
+	
+	if serverTrustStoreConfigMapName := instance.Spec.Server.ServerTrustStoreConfigMapName; serverTrustStoreConfigMapName != "" {
+		certMap := r.GetEffectiveConfigMap(instance, serverTrustStoreConfigMapName)
+		if err := controllerutil.SetControllerReference(instance, certMap, r.scheme); err != nil {
+		   logrus.Errorf("An error occurred: %s", err)
+		}
+	}
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
