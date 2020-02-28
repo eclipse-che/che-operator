@@ -24,24 +24,13 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: quay.io/eclipse/che-operator:nightly
+          image: registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.1
           ports:
           - containerPort: 60000
             name: metrics
           command:
           - /usr/local/bin/che-operator
           imagePullPolicy: Always
-#          TODO: to be uncommented when issue
-#          https://github.com/operator-framework/operator-sdk/issues/1234
-#          is fixed
-#          readinessProbe:
-#            exec:
-#              command:
-#                - stat
-#                - /tmp/operator-sdk-ready
-#            initialDelaySeconds: 4
-#            periodSeconds: 10
-#            failureThreshold: 1
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -52,7 +41,27 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "che-operator"
+              value: che-operator
+            - name: CHE_VERSION
+              value: '2.1'
+            - name: IMAGE_default_che_server
+              value: registry.redhat.io/codeready-workspaces/server-rhel8:2.1
+            - name: IMAGE_default_plugin_registry
+              value: registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1
+            - name: IMAGE_default_devfile_registry
+              value: registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1
+            - name: IMAGE_default_pvc_jobs
+              value: registry.access.redhat.com/ubi8-minimal:8.1-398
+            - name: IMAGE_default_postgres
+              value: registry.redhat.io/rhscl/postgresql-96-rhel7:1-47
+            - name: IMAGE_default_keycloak
+              value: registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15
+            - name: IMAGE_default_che_workspace_plugin_broker_metadata
+              value: registry.redhat.io/codeready-workspaces/pluginbroker-metadata-rhel8:2.1
+            - name: IMAGE_default_che_workspace_plugin_broker_artifacts
+              value: registry.redhat.io/codeready-workspaces/pluginbroker-artifacts-rhel8:2.1
+            - name: IMAGE_default_che_server_secure_exposer_jwt_proxy_image
+              value: registry.redhat.io/codeready-workspaces/jwtproxy-rhel8:2.1
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5
