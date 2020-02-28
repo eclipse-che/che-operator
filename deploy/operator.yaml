@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.1
+          image: registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:latest
           ports:
           - containerPort: 60000
             name: metrics
