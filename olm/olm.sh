@@ -12,10 +12,13 @@
 #
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
-
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 
 source ${BASE_DIR}/check-yq.sh
+
+SOURCE_INSTALL=$4
+
+if [ -z ${SOURCE_INSTALL} ]; then SOURCE_INSTALL="Marketplace"; fi
 
 platform=$1
 if [ "${platform}" == "" ]; then
@@ -59,12 +62,30 @@ then
   exit 1
 fi
 
+catalog_source() {
+  echo "--- Use default eclipse che application registry ---"
+  if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
+    marketplaceNamespace=${namespace};
+    kubectl apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${packageName}
+  namespace: ${namespace}
+spec:
+  sourceType: grpc
+  image: ${CATALOG_IMAGENAME}
+EOF
+  else
+    cat ${platformPath}/operator-source.yaml
+    kubectl apply -f ${platformPath}/operator-source.yaml
+  fi
+}
+
 applyCheOperatorSource() {
   echo "Apply che-operator source"
   if [ "${APPLICATION_REGISTRY}" == "" ]; then
-    echo "--- Use default eclipse che application registry ---"
-
-    kubectl apply -f ${platformPath}/operator-source.yaml
+    catalog_source
   else
     echo "---- Use non default application registry ${APPLICATION_REGISTRY} ---"
 
@@ -76,11 +97,16 @@ applyCheOperatorSource() {
 
 installOperatorMarketPlace() {
   echo "Installing test pre-requisistes"
-
+  kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+EOF
   marketplaceNamespace="marketplace"
-  if [ "${platform}" == "openshift" ]
+  if [ "${platform}" == "openshift" ];
   then
-    marketplaceNamespace="openshift-marketplace"
+    marketplaceNamespace="openshift-marketplace";
     applyCheOperatorSource
   else
     curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.12.0/install.sh | bash -s 0.12.0
@@ -112,18 +138,16 @@ installOperatorMarketPlace() {
       echo "Catalog source not created after 2 minutes"
       exit 1
     fi
-
-    kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}" -o json | jq '.metadata.namespace = "olm" | del(.metadata.creationTimestamp) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.generation) | del(.metadata.selfLink) | del(.status)' | kubectl apply -f -
-    marketplaceNamespace="olm"
+    if [ "${SOURCE_INSTALL}" == "Marketplace" ]; then
+      kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}" -o json | jq '.metadata.namespace = "olm" | del(.metadata.creationTimestamp) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.generation) | del(.metadata.selfLink) | del(.status)' | kubectl apply -f -
+      marketplaceNamespace="olm"
+    fi
   fi
 
+  echo "Subscribing to version: ${CSV}"
+
   kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace}
----
-apiVersion: operators.coreos.com/v1alpha2
+apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: operatorgroup
@@ -131,11 +155,7 @@ metadata:
 spec:
   targetNamespaces:
   - ${namespace}
-EOF
-
-  echo "Subscribing to version: ${CSV}"
-
-  kubectl apply -f - <<EOF
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -160,6 +180,7 @@ EOF
   fi
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
+
 }
 
 installPackage() {
