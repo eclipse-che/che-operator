@@ -14,9 +14,14 @@ package deploy
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"os"
 	"strings"
+
+	util "github.com/eclipse/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
@@ -89,6 +94,14 @@ const (
 	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )
 
+func InitDefaults(defaultsPath string) {
+	if defaultsPath == "" {
+		InitDefaultsFromEnv()
+	} else {
+		InitDefaultsFromFile(defaultsPath)
+	}
+}
+
 func InitDefaultsFromEnv() {
 	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
 	defaultCheServerImage = getDefaultFromEnv("IMAGE_default_che_server")
@@ -104,6 +117,41 @@ func InitDefaultsFromEnv() {
 	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_metadata")
 	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_artifacts")
 	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+}
+
+func InitDefaultsFromFile(defaultsPath string) {
+	operatorDeployment := getDefaultsFromFile(defaultsPath)
+
+	defaultCheVersion = util.GetDeploymentEnv(operatorDeployment, "CHE_VERSION")
+	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server")
+	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_plugin_registry")
+	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_devfile_registry")
+	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_pvc_jobs")
+	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_postgres")
+	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_keycloak")
+	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_workspace_plugin_broker_metadata")
+	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_workspace_plugin_broker_artifacts")
+	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+}
+
+func getDefaultsFromFile(defaultsPath string) *v1.Deployment {
+	bytes, err := ioutil.ReadFile(defaultsPath)
+	if err != nil {
+		logrus.Fatalf("Unable to read file with defaults by path %s", defaultsPath)
+	}
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, err := decode(bytes, nil, nil)
+	if err != nil {
+		logrus.Fatalf(fmt.Sprintf("Error while decoding YAML object with defaults. Err was: %s", err))
+	}
+
+	deployment, ok := obj.(*v1.Deployment)
+	if ok {
+		return deployment
+	}
+	logrus.Fatalf("File %s doesn't contains real deployment.", defaultsPath)
+	return nil
 }
 
 func getDefaultFromEnv(envName string) string {

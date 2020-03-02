@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Che Operator",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/manager/main.go",
+      "env": {
+        "WATCH_NAMESPACE": "che"
+      },
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--defaults-path",
+        "deploy/operator.yaml"
+      ]
+    }
+  ]
+}

@@ -294,6 +294,7 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 			return err
 		}
 	}
+
 	keycloakURL := instance.Spec.Auth.IdentityProviderURL
 	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
@@ -367,7 +368,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		if err != nil {
 			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
 		} else {
-			keycloakPostgresPassword = r.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
+			keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
 		}
 		if err := r.UpdateCheCRSpec(instance, "auto-generated Keycloak DB password", "password-hidden"); err != nil {
 			return err
@@ -379,7 +380,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		if err != nil {
 			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
 		} else {
-			keycloakAdminPassword = r.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
+			keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
 		}
 		instance.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
 		if err := r.UpdateCheCRSpec(instance, "Keycloak admin password", "password hidden"); err != nil {
@@ -392,7 +393,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		if err != nil {
 			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating admin username")
 		} else {
-			keycloakAdminUserName = r.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
+			keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
 		}
 		instance.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
 		if err := r.UpdateCheCRSpec(instance, "Keycloak admin username", keycloakAdminUserName); err != nil {
