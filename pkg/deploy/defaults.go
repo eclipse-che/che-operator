@@ -94,7 +94,6 @@ const (
 )
 
 func InitDefaults(defaultsPath string) {
-	defaultsPath = "/home/user/GoWorkSpace/src/github.com/eclipse/che-operator/deploy/operator.yaml"
 	if defaultsPath == "" {
 		defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
 		defaultCheServerImage = getDefaultFromEnv("IMAGE_default_che_server")
@@ -103,7 +102,7 @@ func InitDefaults(defaultsPath string) {
 		defaultPvcJobsImage = getDefaultFromEnv("IMAGE_default_pvc_jobs")
 		defaultPostgresImage = getDefaultFromEnv("IMAGE_default_postgres")
 		defaultKeycloakImage = getDefaultFromEnv("IMAGE_default_keycloak")
-	
+
 		// CRW images for that are mentioned in the Che server che.properties
 		// For CRW these should be synced by hand with images stored in RH registries
 		// instead of being synced by script with the content of the upstream `che.properties` file

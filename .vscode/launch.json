@@ -10,7 +10,11 @@
       "env": {
         "WATCH_NAMESPACE": "che"
       },
-      "args": []
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--defaults-path",
+        "deploy/operator.yaml"
+      ]
     }
   ]
 }

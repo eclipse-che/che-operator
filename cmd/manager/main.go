@@ -40,7 +40,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&defaultsPath, "defaultsPath", "", "Path to file with operator deployment defaults. This option is useful for local development.")
+	flag.StringVar(&defaultsPath, "defaults-path", "", "Path to file with operator deployment defaults. This option is useful for local development.")
 }
 
 func setLogLevel() {
@@ -84,9 +84,7 @@ func printVersion() {
 
 func main() {
 	flag.Parse()
-	logrus.Println(os.Args)
 	deploy.InitDefaults(defaultsPath)
-	//logf.SetLogger(logf.ZapLogger(false))
 	printVersion()
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
