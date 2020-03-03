@@ -966,7 +966,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
-	
+
 	if serverTrustStoreConfigMapName := instance.Spec.Server.ServerTrustStoreConfigMapName; serverTrustStoreConfigMapName != "" {
 		certMap := r.GetEffectiveConfigMap(instance, serverTrustStoreConfigMapName)
 		if err := controllerutil.SetControllerReference(instance, certMap, r.scheme); err != nil {
@@ -1169,9 +1169,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
 	desiredCustomPublicCerts := instance.Spec.Server.ServerTrustStoreConfigMapName != ""
 	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
-	effectiveSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
+	effectiveSelfSignedCert := util.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
 	effectiveCustomPublicCerts := r.GetDeploymentVolume(effectiveCheDeployment, "che-public-certs").ConfigMap != nil
-	effectiveGitSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_GIT_SELF__SIGNED__CERT") != nil
+	effectiveGitSelfSignedCert := util.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_GIT_SELF__SIGNED__CERT") != nil
 	if desiredMemRequest.Cmp(effectiveMemRequest) != 0 ||
 		desiredMemLimit.Cmp(effectiveMemLimit) != 0 ||
 		effectiveImagePullPolicy != desiredImagePullPolicy ||

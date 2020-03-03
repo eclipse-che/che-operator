@@ -97,30 +97,6 @@ func (r *ReconcileChe) GetOAuthClient(oAuthClientName string) (oAuthClient *oaut
 	return oAuthClient, nil
 }
 
-func (r *ReconcileChe)GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
-	env := deployment.Spec.Template.Spec.Containers[0].Env
-	for i := range env {
-		name := env[i].Name
-		if name == key {
-			value = env[i].Value
-			break
-		}
-	}
-	return value
-}
-
-func (r *ReconcileChe)GetDeploymentEnvVarSource(deployment *appsv1.Deployment, key string) (valueFrom *corev1.EnvVarSource) {
-	env := deployment.Spec.Template.Spec.Containers[0].Env
-	for i := range env {
-		name := env[i].Name
-		if name == key {
-			valueFrom = env[i].ValueFrom
-			break
-		}
-	}
-	return valueFrom
-}
-
 func (r *ReconcileChe)GetDeploymentVolume(deployment *appsv1.Deployment, key string) (volume corev1.Volume) {
 	volumes := deployment.Spec.Template.Spec.Volumes
 	for i := range volumes {
