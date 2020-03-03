@@ -80,6 +80,7 @@ anaconda-mode/
 *.dll
 *.so
 *.dylib
+cmd/manager/__debug_bin
 
 # Test binary, build with 'go test -c'
 *.test
