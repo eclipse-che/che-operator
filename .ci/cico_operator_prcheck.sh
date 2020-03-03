@@ -61,6 +61,8 @@ run_tests() {
 }
 
 init
+load_jenkins_vars
+installJQ
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
 
 installStartDocker
