@@ -62,9 +62,8 @@ run_tests() {
 
 init
 
-installJQ
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
-
+installJQ
 load_jenkins_vars
 installStartDocker
 install_VirtPackages
