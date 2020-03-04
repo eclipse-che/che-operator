@@ -430,90 +430,118 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
 
 	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
+	cheMultiUser := deploy.GetCheMultiUser(instance)
 
-	// Create Postgres resources and provisioning unless an external DB is used
-	externalDB := instance.Spec.Database.ExternalDb
-	if !externalDB {
-		// Create a new postgres service
-		postgresLabels := deploy.GetLabels(instance, "postgres")
-		postgresService := deploy.NewService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
-		if err := r.CreateService(instance, postgresService, false); err != nil {
-			return reconcile.Result{}, err
-		}
-		// Create a new Postgres PVC object
-		pvc := deploy.NewPvc(instance, "postgres-data", "1Gi", postgresLabels)
+	if cheMultiUser == "false" {
+		cheLabels := deploy.GetLabels(instance, cheFlavor)
+		pvc := deploy.NewPvc(instance, deploy.DefaultCheVolumeName, "1Gi", cheLabels)
 		if err := r.CreatePVC(instance, pvc); err != nil {
 			return reconcile.Result{}, err
 		}
 		if !tests {
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: instance.Namespace}, pvc)
 			if pvc.Status.Phase != "Bound" {
-				k8sclient.GetPostgresStatus(pvc, instance.Namespace)
+				k8sclient.GetPVCStatus(pvc, instance.Namespace)
 			}
 		}
-		// Create a new Postgres deployment
-		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
+		if k8sclient.IsPVCExists(deploy.DefaultPostgresVolumeName, instance.Namespace) {
+			k8sclient.DeletePVC(deploy.DefaultPostgresVolumeName, instance.Namespace)
+		}
+	} else {
+		if k8sclient.IsPVCExists(deploy.DefaultCheVolumeName, instance.Namespace) {
+			k8sclient.DeletePVC(deploy.DefaultCheVolumeName, instance.Namespace)
+		}
+	}
 
-		if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
-			return reconcile.Result{}, err
-		}
-		time.Sleep(time.Duration(1) * time.Second)
-		pgDeployment, err := r.GetEffectiveDeployment(instance, postgresDeployment.Name)
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", postgresDeployment.Name, err)
-			return reconcile.Result{}, err
-		}
-		if !tests {
-			if pgDeployment.Status.AvailableReplicas != 1 {
-				scaled := k8sclient.GetDeploymentStatus("postgres", instance.Namespace)
-				if !scaled {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+	// Create Postgres resources and provisioning unless an external DB is used
+	externalDB := instance.Spec.Database.ExternalDb
+	if !externalDB {
+		if cheMultiUser == "false" {
+			if k8sclient.IsDeploymentExists("postgres", instance.Namespace) {
+				k8sclient.DeleteDeployment("postgres", instance.Namespace)
+			}
+		} else {
+			// Create a new postgres service
+			postgresLabels := deploy.GetLabels(instance, "postgres")
+			postgresService := deploy.NewService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
+			if err := r.CreateService(instance, postgresService, false); err != nil {
+				return reconcile.Result{}, err
+			}
+			// Create a new Postgres PVC object
+			pvc := deploy.NewPvc(instance, deploy.DefaultPostgresVolumeName, "1Gi", postgresLabels)
+			if err := r.CreatePVC(instance, pvc); err != nil {
+				return reconcile.Result{}, err
+			}
+			if !tests {
+				err = r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: instance.Namespace}, pvc)
+				if pvc.Status.Phase != "Bound" {
+					k8sclient.GetPVCStatus(pvc, instance.Namespace)
 				}
 			}
+			// Create a new Postgres deployment
+			postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
 
-			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(instance))
-			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
-			effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
-			if effectiveImage != desiredImage ||
-				effectiveImagePullPolicy != desiredImagePullPolicy {
-				newPostgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
-				logrus.Infof(`Updating Postgres deployment with:
+			if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
+				return reconcile.Result{}, err
+			}
+			time.Sleep(time.Duration(1) * time.Second)
+			pgDeployment, err := r.GetEffectiveDeployment(instance, postgresDeployment.Name)
+			if err != nil {
+				logrus.Errorf("Failed to get %s deployment: %s", postgresDeployment.Name, err)
+				return reconcile.Result{}, err
+			}
+			if !tests {
+				if pgDeployment.Status.AvailableReplicas != 1 {
+					scaled := k8sclient.GetDeploymentStatus("postgres", instance.Namespace)
+					if !scaled {
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					}
+				}
+
+				desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(instance))
+				effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
+				desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
+				effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+				if effectiveImage != desiredImage ||
+					effectiveImagePullPolicy != desiredImagePullPolicy {
+					newPostgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
+					logrus.Infof(`Updating Postgres deployment with:
 	- Docker Image: %s => %s
 	- Image Pull Policy: %s => %s`,
-					effectiveImage, desiredImage,
-					effectiveImagePullPolicy, desiredImagePullPolicy,
-				)
-				if err := controllerutil.SetControllerReference(instance, newPostgresDeployment, r.scheme); err != nil {
-					logrus.Errorf("An error occurred: %s", err)
-				}
-				if err := r.client.Update(context.TODO(), newPostgresDeployment); err != nil {
-					logrus.Errorf("Failed to update Postgres deployment: %s", err)
-				}
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-			}
-
-			pgCommand := deploy.GetPostgresProvisionCommand(instance)
-			dbStatus := instance.Status.DbProvisoned
-			// provision Db and users for Che and Keycloak servers
-			if !dbStatus {
-				podToExec, err := k8sclient.GetDeploymentPod(pgDeployment.Name, instance.Namespace)
-				if err != nil {
-					return reconcile.Result{}, err
-				}
-				provisioned := ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
-				if provisioned {
-					for {
-						instance.Status.DbProvisoned = true
-						if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
-							errors.IsConflict(err) {
-							instance, _ = r.GetCR(request)
-							continue
-						}
-						break
+						effectiveImage, desiredImage,
+						effectiveImagePullPolicy, desiredImagePullPolicy,
+					)
+					if err := controllerutil.SetControllerReference(instance, newPostgresDeployment, r.scheme); err != nil {
+						logrus.Errorf("An error occurred: %s", err)
 					}
-				} else {
+					if err := r.client.Update(context.TODO(), newPostgresDeployment); err != nil {
+						logrus.Errorf("Failed to update Postgres deployment: %s", err)
+					}
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+				}
+
+				pgCommand := deploy.GetPostgresProvisionCommand(instance)
+				dbStatus := instance.Status.DbProvisoned
+				// provision Db and users for Che and Keycloak servers
+				if !dbStatus {
+					podToExec, err := k8sclient.GetDeploymentPod(pgDeployment.Name, instance.Namespace)
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+					provisioned := ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
+					if provisioned {
+						for {
+							instance.Status.DbProvisoned = true
+							if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
+								errors.IsConflict(err) {
+								instance, _ = r.GetCR(request)
+								continue
+							}
+							break
+						}
+					} else {
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					}
 				}
 			}
 		}
@@ -574,125 +602,131 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	ExternalKeycloak := instance.Spec.Auth.ExternalIdentityProvider
 
 	if !ExternalKeycloak {
-		keycloakLabels := deploy.GetLabels(instance, "keycloak")
-		keycloakService := deploy.NewService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
-		if err := r.CreateService(instance, keycloakService, false); err != nil {
-			return reconcile.Result{}, err
-		}
-		// create Keycloak ingresses when on k8s
-		if !isOpenShift {
-			keycloakIngress := deploy.NewIngress(instance, "keycloak", "keycloak", 8080)
-			if err := r.CreateNewIngress(instance, keycloakIngress); err != nil {
-				return reconcile.Result{}, err
-			}
-			keycloakURL := protocol + "://" + ingressDomain
-			if ingressStrategy == "multi-host" {
-				keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
-			}
-			if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
-				instance.Spec.Auth.IdentityProviderURL = keycloakURL
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
+		if cheMultiUser == "false" {
+			if k8sclient.IsDeploymentExists("keycloak", instance.Namespace) {
+				k8sclient.DeleteDeployment("keycloak", instance.Namespace)
 			}
 		} else {
-			// create Keycloak route
-			keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak", 8080)
-			if tlsSupport {
-				keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak", 8080)
-			}
-			if err = r.CreateNewRoute(instance, keycloakRoute); err != nil {
+			keycloakLabels := deploy.GetLabels(instance, "keycloak")
+			keycloakService := deploy.NewService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
+			if err := r.CreateService(instance, keycloakService, false); err != nil {
 				return reconcile.Result{}, err
 			}
-			keycloakURL := keycloakRoute.Spec.Host
-			if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
-				instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
-				if len(keycloakURL) < 1 {
-					keycloakURL := r.GetEffectiveRoute(instance, keycloakRoute.Name).Spec.Host
+			// create Keycloak ingresses when on k8s
+			if !isOpenShift {
+				keycloakIngress := deploy.NewIngress(instance, "keycloak", "keycloak", 8080)
+				if err := r.CreateNewIngress(instance, keycloakIngress); err != nil {
+					return reconcile.Result{}, err
+				}
+				keycloakURL := protocol + "://" + ingressDomain
+				if ingressStrategy == "multi-host" {
+					keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
+				}
+				if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
+					instance.Spec.Auth.IdentityProviderURL = keycloakURL
+					if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
+						instance, _ = r.GetCR(request)
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+					}
+				}
+			} else {
+				// create Keycloak route
+				keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak", 8080)
+				if tlsSupport {
+					keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak", 8080)
+				}
+				if err = r.CreateNewRoute(instance, keycloakRoute); err != nil {
+					return reconcile.Result{}, err
+				}
+				keycloakURL := keycloakRoute.Spec.Host
+				if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
 					instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
-				}
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-				instance.Status.KeycloakURL = protocol + "://" + keycloakURL
-				if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-		}
-		keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor,
-			r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate"),
-			r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt"))
-		if err := r.CreateNewDeployment(instance, keycloakDeployment); err != nil {
-			return reconcile.Result{}, err
-		}
-		time.Sleep(time.Duration(1) * time.Second)
-		effectiveKeycloakDeployment, err := r.GetEffectiveDeployment(instance, keycloakDeployment.Name)
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", keycloakDeployment.Name, err)
-			return reconcile.Result{}, err
-		}
-		if !tests {
-			if effectiveKeycloakDeployment.Status.AvailableReplicas != 1 {
-				scaled := k8sclient.GetDeploymentStatus(keycloakDeployment.Name, instance.Namespace)
-				if !scaled {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					if len(keycloakURL) < 1 {
+						keycloakURL := r.GetEffectiveRoute(instance, keycloakRoute.Name).Spec.Host
+						instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
+					}
+					if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+					}
+					instance.Status.KeycloakURL = protocol + "://" + keycloakURL
+					if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
+						instance, _ = r.GetCR(request)
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+					}
 				}
 			}
+			keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor,
+				r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate"),
+				r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt"))
+			if err := r.CreateNewDeployment(instance, keycloakDeployment); err != nil {
+				return reconcile.Result{}, err
+			}
+			time.Sleep(time.Duration(1) * time.Second)
+			effectiveKeycloakDeployment, err := r.GetEffectiveDeployment(instance, keycloakDeployment.Name)
+			if err != nil {
+				logrus.Errorf("Failed to get %s deployment: %s", keycloakDeployment.Name, err)
+				return reconcile.Result{}, err
+			}
+			if !tests {
+				if effectiveKeycloakDeployment.Status.AvailableReplicas != 1 {
+					scaled := k8sclient.GetDeploymentStatus(keycloakDeployment.Name, instance.Namespace)
+					if !scaled {
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					}
+				}
 
-			if effectiveKeycloakDeployment.Status.Replicas > 1 {
-				logrus.Infof("Deployment %s is in the rolling update state", "keycloak")
-				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
-			}
+				if effectiveKeycloakDeployment.Status.Replicas > 1 {
+					logrus.Infof("Deployment %s is in the rolling update state", "keycloak")
+					k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
+				}
 
-			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance))
-			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
-			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
-			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
-			storedCheCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"]
-			openshiftApiCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt")
-			storedOpenshiftApiCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.openshift-api-crt.version"]
-			if effectiveImage != desiredImage ||
-				effectiveImagePullPolicy != desiredImagePullPolicy ||
-				cheCertSecretVersion != storedCheCertSecretVersion ||
-				openshiftApiCertSecretVersion != storedOpenshiftApiCertSecretVersion {
-				newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
-				logrus.Infof(`Updating Keycloak deployment with:
+				desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance))
+				effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
+				desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
+				effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+				cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
+				storedCheCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"]
+				openshiftApiCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt")
+				storedOpenshiftApiCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.openshift-api-crt.version"]
+				if effectiveImage != desiredImage ||
+					effectiveImagePullPolicy != desiredImagePullPolicy ||
+					cheCertSecretVersion != storedCheCertSecretVersion ||
+					openshiftApiCertSecretVersion != storedOpenshiftApiCertSecretVersion {
+					newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
+					logrus.Infof(`Updating Keycloak deployment with:
 	- Docker Image: %s => %s
 	- Image Pull Policy: %s => %s
 	- Self-Signed Certificate Version: %s => %s
 	- OpenShift API Certificate Version: %s => %s`,
-					effectiveImage, desiredImage,
-					effectiveImagePullPolicy, desiredImagePullPolicy,
-					cheCertSecretVersion, storedCheCertSecretVersion,
-					openshiftApiCertSecretVersion, storedOpenshiftApiCertSecretVersion,
-				)
-				if err := controllerutil.SetControllerReference(instance, newKeycloakDeployment, r.scheme); err != nil {
-					logrus.Errorf("An error occurred: %s", err)
-				}
-				if err := r.client.Update(context.TODO(), newKeycloakDeployment); err != nil {
-					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
-				}
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-			}
-			keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
-			if !keycloakRealmClientStatus {
-				if err := r.CreateKyecloakResources(instance, request, keycloakDeployment.Name); err != nil {
+						effectiveImage, desiredImage,
+						effectiveImagePullPolicy, desiredImagePullPolicy,
+						cheCertSecretVersion, storedCheCertSecretVersion,
+						openshiftApiCertSecretVersion, storedOpenshiftApiCertSecretVersion,
+					)
+					if err := controllerutil.SetControllerReference(instance, newKeycloakDeployment, r.scheme); err != nil {
+						logrus.Errorf("An error occurred: %s", err)
+					}
+					if err := r.client.Update(context.TODO(), newKeycloakDeployment); err != nil {
+						logrus.Errorf("Failed to update Keycloak deployment: %s", err)
+					}
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
-			}
-		}
-
-		if isOpenShift {
-			doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
-			if doInstallOpenShiftoAuthProvider {
-				openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
-				if !openShiftIdentityProviderStatus {
-					if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, keycloakDeployment.Name, isOpenShift4); err != nil {
+				keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
+				if !keycloakRealmClientStatus {
+					if err := r.CreateKyecloakResources(instance, request, keycloakDeployment.Name); err != nil {
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					}
+				}
+			}
+
+			if isOpenShift {
+				doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
+				if doInstallOpenShiftoAuthProvider {
+					openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
+					if !openShiftIdentityProviderStatus {
+						if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, keycloakDeployment.Name, isOpenShift4); err != nil {
+							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+						}
 					}
 				}
 			}

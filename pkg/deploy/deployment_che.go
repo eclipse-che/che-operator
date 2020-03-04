@@ -12,6 +12,8 @@
 package deploy
 
 import (
+	"strconv"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"strconv"
 )
 
 func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision string, isOpenshift bool) (*appsv1.Deployment, error) {
@@ -32,13 +33,13 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		Value: "",
 	}
 	gitSelfSignedCertEnv := corev1.EnvVar{
-        Name:  "CHE_GIT_SELF__SIGNED__CERT",
-        Value: "",
-    }
-    gitSelfSignedCertHostEnv := corev1.EnvVar{
-        Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
-        Value: "",
-    }
+		Name:  "CHE_GIT_SELF__SIGNED__CERT",
+		Value: "",
+	}
+	gitSelfSignedCertHostEnv := corev1.EnvVar{
+		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
+		Value: "",
+	}
 	if cr.Spec.Server.SelfSignedCert {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
@@ -54,31 +55,31 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		}
 	}
 	if cr.Spec.Server.GitSelfSignedCert {
-        gitSelfSignedCertEnv = corev1.EnvVar{
-            Name: "CHE_GIT_SELF__SIGNED__CERT",
-            ValueFrom: &corev1.EnvVarSource{
-                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-                    Key: "ca.crt",
-                    LocalObjectReference: corev1.LocalObjectReference{
-                        Name: "che-git-self-signed-cert",
-                    },
-                    Optional: &optionalEnv,
-                },
-            },
-        }
-        gitSelfSignedCertHostEnv = corev1.EnvVar{
-            Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
-            ValueFrom: &corev1.EnvVarSource{
-                ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-                    Key: "githost",
-                    LocalObjectReference: corev1.LocalObjectReference{
-                        Name: "che-git-self-signed-cert",
-                    },
-                    Optional: &optionalEnv,
-                },
-            },
-        }
-    }
+		gitSelfSignedCertEnv = corev1.EnvVar{
+			Name: "CHE_GIT_SELF__SIGNED__CERT",
+			ValueFrom: &corev1.EnvVarSource{
+				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					Key: "ca.crt",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-git-self-signed-cert",
+					},
+					Optional: &optionalEnv,
+				},
+			},
+		}
+		gitSelfSignedCertHostEnv = corev1.EnvVar{
+			Name: "CHE_GIT_SELF__SIGNED__CERT__HOST",
+			ValueFrom: &corev1.EnvVarSource{
+				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					Key: "githost",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-git-self-signed-cert",
+					},
+					Optional: &optionalEnv,
+				},
+			},
+		}
+	}
 
 	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
@@ -177,6 +178,24 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 				},
 			},
 		},
+	}
+
+	cheMultiUser := GetCheMultiUser(cr)
+	if cheMultiUser == "false" {
+		cheDeployment.Spec.Template.Spec.Volumes = []corev1.Volume{
+			{
+				Name: DefaultCheVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: DefaultCheVolumeName,
+					},
+				},
+			}}
+		cheDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+			{
+				MountPath: DefaultCheVolumeMountPath,
+				Name:      DefaultCheVolumeName,
+			}}
 	}
 
 	// configure readiness probe if debug isn't set

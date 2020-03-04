@@ -16,21 +16,22 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/pem"
+	"io"
+	"net/http"
+	"time"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
-	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"time"
 )
 
 type k8s struct {
@@ -56,8 +57,8 @@ func GetK8Client() *k8s {
 	return nil
 }
 
-// GetPostgresStatus waits for pvc.status.phase to be Bound
-func (cl *k8s) GetPostgresStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
+// GetPVCStatus waits for pvc.status.phase to be Bound
+func (cl *k8s) GetPVCStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
 	// short timeout if a PVC is waiting for a first consumer to be bound
 	var timeout int64 = 10
 	listOptions := metav1.ListOptions{
@@ -78,14 +79,14 @@ func (cl *k8s) GetPostgresStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
 		}
 
 		// check before watching in case pvc has been already bound
-		postgresPvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
+		chePvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
 		if err != nil {
-			logrus.Errorf("Failed to get %s pvc: %s", postgresPvc.Name, err)
+			logrus.Errorf("Failed to get %s pvc: %s", chePvc.Name, err)
 			break
 		}
-		if postgresPvc.Status.Phase == "Bound" {
-			volumeName := postgresPvc.Spec.VolumeName
-			logrus.Infof("PVC %s successfully bound to volume %s", postgresPvc.Name, volumeName)
+		if chePvc.Status.Phase == "Bound" {
+			volumeName := chePvc.Spec.VolumeName
+			logrus.Infof("PVC %s successfully bound to volume %s", chePvc.Name, volumeName)
 			break
 		}
 
@@ -93,18 +94,18 @@ func (cl *k8s) GetPostgresStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
 		case watch.Error:
 			watcher.Stop()
 		case watch.Modified:
-			if postgresPvc.Status.Phase == "Bound" {
-				volumeName := postgresPvc.Spec.VolumeName
-				logrus.Infof("PVC %s successfully bound to volume %s", postgresPvc.Name, volumeName)
+			if chePvc.Status.Phase == "Bound" {
+				volumeName := chePvc.Spec.VolumeName
+				logrus.Infof("PVC %s successfully bound to volume %s", chePvc.Name, volumeName)
 				watcher.Stop()
 			}
 
 		}
 	}
-	postgresPvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
-	if postgresPvc.Status.Phase != "Bound" {
-		currentPvcPhase := postgresPvc.Status.Phase
-		logrus.Warnf("Timeout waiting for a PVC %s to be bound. Current phase is %s", postgresPvc.Name, currentPvcPhase)
+	chePvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
+	if chePvc.Status.Phase != "Bound" {
+		currentPvcPhase := chePvc.Status.Phase
+		logrus.Warnf("Timeout waiting for a PVC %s to be bound. Current phase is %s", chePvc.Name, currentPvcPhase)
 		logrus.Warn("Sometimes PVC can be bound only when the first consumer is created")
 	}
 }
@@ -220,11 +221,40 @@ func (cl *k8s) GetEvents(deploymentName string, ns string) (list *corev1.EventLi
 	return deploymentEvents
 }
 
+func (cl *k8s) IsPVCExists(pvcName string, ns string) bool {
+	getOptions := metav1.GetOptions{}
+	_, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvcName, getOptions)
+	return err == nil
+}
+
+func (cl *k8s) DeletePVC(pvcName string, ns string) {
+	logrus.Infof("Deleting PVC: %s", pvcName)
+	deleteOptions := &metav1.DeleteOptions{}
+	err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Delete(pvcName, deleteOptions)
+	if err != nil {
+		logrus.Errorf("PVC deletion error: %v", err)
+	}
+}
+
+func (cl *k8s) IsDeploymentExists(deploymentName string, ns string) bool {
+	getOptions := metav1.GetOptions{}
+	_, err := cl.clientset.AppsV1().Deployments(ns).Get(deploymentName, getOptions)
+	return err == nil
+}
+
+func (cl *k8s) DeleteDeployment(deploymentName string, ns string) {
+	logrus.Infof("Deleting deployment: %s", deploymentName)
+	deleteOptions := &metav1.DeleteOptions{}
+	err := cl.clientset.AppsV1().Deployments(ns).Delete(deploymentName, deleteOptions)
+	if err != nil {
+		logrus.Errorf("Deployment deletion error: %v", err)
+	}
+}
+
 // GetLogs prints stderr or stdout from a selected pod. Log size is capped at 60000 bytes
-func (cl *k8s) GetPodLogs(podName string, ns string) () {
+func (cl *k8s) GetPodLogs(podName string, ns string) {
 	var limitBytes int64 = 60000
-	req := cl.clientset.CoreV1().Pods(ns).GetLogs(podName, &corev1.PodLogOptions{LimitBytes: &limitBytes},
-	)
+	req := cl.clientset.CoreV1().Pods(ns).GetLogs(podName, &corev1.PodLogOptions{LimitBytes: &limitBytes})
 	readCloser, err := req.Stream()
 	if err != nil {
 		logrus.Errorf("Pod error log: %v", err)

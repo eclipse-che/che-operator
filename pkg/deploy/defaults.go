@@ -59,8 +59,12 @@ const (
 	DefaultKeycloakAdminUserName        = "admin"
 	DefaultCheLogLevel                  = "INFO"
 	DefaultCheDebug                     = "false"
+	DefaultCheMultiUser                 = "true"
 	DefaultCheMetricsPort               = int32(8087)
 	DefaultCheDebugPort                 = int32(8000)
+	DefaultCheVolumeMountPath           = "/data"
+	DefaultCheVolumeName                = "che-data-volume"
+	DefaultPostgresVolumeName           = "postgres-data"
 
 	DefaultJavaOpts = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
@@ -230,6 +234,13 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 		return "Always"
 	}
 	return "IfNotPresent"
+}
+
+func GetCheMultiUser(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.CustomCheProperties != nil {
+		return util.GetValue(cr.Spec.Server.CustomCheProperties["CHE_MULTIUSER"], DefaultCheMultiUser)
+	}
+	return DefaultCheMultiUser
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {

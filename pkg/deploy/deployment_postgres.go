@@ -51,10 +51,10 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
-							Name: name + "-data",
+							Name: DefaultPostgresVolumeName,
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: name + "-data",
+									ClaimName: DefaultPostgresVolumeName,
 								},
 							},
 						},
@@ -81,7 +81,7 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      name + "-data",
+									Name:      DefaultPostgresVolumeName,
 									MountPath: "/var/lib/pgsql/data",
 								},
 							},
