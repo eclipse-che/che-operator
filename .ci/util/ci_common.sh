@@ -63,28 +63,49 @@ setup_kvm_machine_driver() {
     fi
 }
 
+github_token_set() {
+  #Setup GitHub token for minishift
+  if [ -z "$CHE_BOT_GITHUB_TOKEN" ]
+  then
+    printWarn "\$CHE_BOT_GITHUB_TOKEN is empty. Minishift start might fail with GitGub API rate limit reached."
+  else
+    printInfo "\$CHE_BOT_GITHUB_TOKEN is set, checking limits."
+    GITHUB_RATE_REMAINING=$(curl -slL "https://api.github.com/rate_limit?access_token=$CHE_BOT_GITHUB_TOKEN" | jq .rate.remaining)
+    if [ "$GITHUB_RATE_REMAINING" -gt 1000 ]
+    then
+      printInfo "Github rate greater than 1000. Using che-bot token for minishift startup."
+      export MINISHIFT_GITHUB_API_TOKEN=$CHE_BOT_GITHUB_TOKEN
+    else
+      printInfo "Github rate is lower than 1000. *Not* using che-bot for minishift startup."
+      printInfo "If minishift startup fails, please try again later."
+    fi
+  fi
+}
+
 minishift_installation() {
   MSFT_RELEASE="1.34.2"
   printInfo "Downloading Minishift binaries"
   if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
   curl -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
     -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/bin --strip-components=1
-  printInfo "Starting a new OC cluster."
-  minishift start --memory=4096 && eval $(minishift oc-env)
+  
+  printInfo "Setting github token and start a new minishift VM."
+  github_token_set
+  minishift start --memory=8192 && eval $(minishift oc-env)
   oc login -u system:admin
   oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
   printInfo "Successfully started OCv3.X on minishift machine"
 }
 
 generate_self_signed_certs() {
-    IP_ADDRESS="172.17.0.1"
-    openssl req -x509 \
-                -newkey rsa:4096 \
-                -keyout key.pem \
-                -out cert.pem \
-                -days 365 \
-                -subj "/CN=*.${IP_ADDRESS}.nip.io" \
-                -nodes && cat cert.pem key.pem > ca.crt    
+  IP_ADDRESS="172.17.0.1"
+  openssl req -x509 \
+              -newkey rsa:4096 \
+              -keyout key.pem \
+              -out cert.pem \
+              -days 365 \
+              -subj "/CN=*.${IP_ADDRESS}.nip.io" \
+              -nodes && cat cert.pem key.pem > ca.crt    
 }
 
 minikube_installation() {
@@ -110,4 +131,15 @@ installYQ() {
   sudo yum install --assumeyes -d1 python3-pip
   pip3 install --upgrade setuptools
   pip3 install yq
+}
+
+installJQ() {
+  installEpelRelease
+  yum install --assumeyes -d1 jq
+}
+
+load_jenkins_vars() {
+    set +x
+    eval "$(./env-toolkit load -f jenkins-env.json \
+                              CHE_BOT_GITHUB_TOKEN)"
 }

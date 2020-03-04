@@ -61,8 +61,10 @@ run_tests() {
 }
 
 init
-source ${OPERATOR_REPO}/.ci/util/ci_common.sh
 
+source ${OPERATOR_REPO}/.ci/util/ci_common.sh
+installJQ
+load_jenkins_vars
 installStartDocker
 install_VirtPackages
 start_libvirt
