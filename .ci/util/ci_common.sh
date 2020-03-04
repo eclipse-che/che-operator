@@ -134,6 +134,7 @@ installYQ() {
 }
 
 installJQ() {
+  installEpelRelease
   yum install --assumeyes -d1 jq
 }
 
