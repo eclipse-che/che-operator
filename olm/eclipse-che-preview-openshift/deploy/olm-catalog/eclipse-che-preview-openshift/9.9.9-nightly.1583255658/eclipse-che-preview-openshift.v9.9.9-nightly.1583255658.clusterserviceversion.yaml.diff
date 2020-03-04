@@ -1,0 +1,34 @@
+--- /home/nboldt/50/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1582546871/eclipse-che-preview-openshift.v9.9.9-nightly.1582546871.clusterserviceversion.yaml	2020-03-02 14:26:40.570398090 -0500
++++ /home/nboldt/50/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1583255658/eclipse-che-preview-openshift.v9.9.9-nightly.1583255658.clusterserviceversion.yaml	2020-03-03 12:14:18.371081383 -0500
+@@ -46,12 +46,12 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-02-24T12:21:11Z"
++    createdAt: "2020-03-03T17:14:18Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1582546871
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1583255658
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -296,7 +296,7 @@
+                 - name: IMAGE_default_devfile_registry
+                   value: quay.io/eclipse/che-devfile-registry:7.9.0
+                 - name: IMAGE_default_pvc_jobs
+-                  value: registry.access.redhat.com/ubi8-minimal:8.0-213
++                  value: registry.access.redhat.com/ubi8-minimal:8.1-398
+                 - name: IMAGE_default_postgres
+                   value: centos/postgresql-96-centos7:9.6
+                 - name: IMAGE_default_keycloak
+@@ -415,5 +415,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1581975497
+-  version: 9.9.9-nightly.1582546871
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1582546871
++  version: 9.9.9-nightly.1583255658

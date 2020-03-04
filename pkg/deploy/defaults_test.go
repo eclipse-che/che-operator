@@ -24,7 +24,7 @@ const (
 	cheServerImageTest       = "quay.io/eclipse/che-server:7.8.0"
 	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.8.0"
 	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.8.0"
-	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
+	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.1-398"
 	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
 	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.8.0"
 	brokerMetadataTest		 = "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
