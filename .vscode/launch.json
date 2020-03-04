@@ -2,6 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "useApiV1": false,
+      "dlvLoadConfig": {
+          "followPointers": true,
+          "maxVariableRecurse": 1,
+          "maxStringLen": 3000,
+          "maxArrayValues": 100,
+          "maxStructFields": -1
+      },
       "name": "Che Operator",
       "type": "go",
       "request": "launch",
