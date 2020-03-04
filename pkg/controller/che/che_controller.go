@@ -967,6 +967,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	if serverTrustStoreConfigMapName := instance.Spec.Server.ServerTrustStoreConfigMapName; serverTrustStoreConfigMapName != "" {
+		certMap := r.GetEffectiveConfigMap(instance, serverTrustStoreConfigMapName)
+		if err := controllerutil.SetControllerReference(instance, certMap, r.scheme); err != nil {
+		   logrus.Errorf("An error occurred: %s", err)
+		}
+	}
+
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
 	cheHost := instance.Spec.Server.CheHost
@@ -1160,13 +1167,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag))
 	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
+	desiredCustomPublicCerts := instance.Spec.Server.ServerTrustStoreConfigMapName != ""
 	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
 	effectiveSelfSignedCert := util.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
+	effectiveCustomPublicCerts := r.GetDeploymentVolume(effectiveCheDeployment, "che-public-certs").ConfigMap != nil
 	effectiveGitSelfSignedCert := util.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_GIT_SELF__SIGNED__CERT") != nil
 	if desiredMemRequest.Cmp(effectiveMemRequest) != 0 ||
 		desiredMemLimit.Cmp(effectiveMemLimit) != 0 ||
 		effectiveImagePullPolicy != desiredImagePullPolicy ||
 		effectiveSelfSignedCert != desiredSelfSignedCert ||
+		effectiveCustomPublicCerts != desiredCustomPublicCerts ||
 		effectiveGitSelfSignedCert != desiredGitSelfSignedCert {
 		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageAndTag, cmResourceVersion, isOpenShift)
 		if err != nil {

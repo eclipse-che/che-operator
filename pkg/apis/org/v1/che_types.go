@@ -11,7 +11,7 @@
 //
 package v1
 
-// Important: You should regenerate some generated code after modifying this file. At the root o fthe project:
+// Important: You should regenerate some generated code after modifying this file. At the root of the project:
 // - Run "operator-sdk generate k8s": this will perform required changes in the "pkg/apis/org/v1/zz_generatedxxx" files
 // - Run "operator-sdk generate openapi": this will generate the "deploy/crds/org_v1_checluster_crd.yaml" file
 // - In the updated "deploy/crds/org_v1_checluster_crd.yaml": Delete all the `required:` openAPI rules in the CRD OpenApi schema.
@@ -117,6 +117,14 @@ type CheClusterSpecServer struct {
 	// This is disabled by default.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
+	// Name of the config-map with public certificates
+	// to add to Java trust store of the Che server.
+	// This is usually required when adding the OpenShift OAuth provider
+	// which has https endpoint signed with self-signed cert. So,
+	// Che server must be aware of its CA cert to be able to request it.
+	// This is disabled by default.
+	// +optional
+	ServerTrustStoreConfigMapName string `json:"serverTrustStoreConfigMapName,omitempty"`
 	// If enabled, then the certificate from `che-git-self-signed-cert`
 	// config map will be propagated to the Che components and provide particular
 	// configuration for Git.
