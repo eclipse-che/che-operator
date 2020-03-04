@@ -140,5 +140,5 @@ installJQ() {
 load_jenkins_vars() {
     set +x
     eval "$(./env-toolkit load -f jenkins-env.json \
-                              CHE_BOT_GITHUB_TOKEN 
+                              CHE_BOT_GITHUB_TOKEN)"
 }
