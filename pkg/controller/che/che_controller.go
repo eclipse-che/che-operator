@@ -713,7 +713,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 				keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
 				if !keycloakRealmClientStatus {
-					if err := r.CreateKyecloakResources(instance, request, keycloakDeployment.Name); err != nil {
+					if err := r.CreateKeycloakResources(instance, request, keycloakDeployment.Name); err != nil {
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 					}
 				}
