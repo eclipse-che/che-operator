@@ -238,7 +238,10 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 
 func GetCheMultiUser(cr *orgv1.CheCluster) string {
 	if cr.Spec.Server.CustomCheProperties != nil {
-		return util.GetValue(cr.Spec.Server.CustomCheProperties["CHE_MULTIUSER"], DefaultCheMultiUser)
+		cheMultiUser := cr.Spec.Server.CustomCheProperties["CHE_MULTIUSER"]
+		if cheMultiUser == "false" {
+			return "false"
+		}
 	}
 	return DefaultCheMultiUser
 }
