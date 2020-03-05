@@ -184,17 +184,17 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 	if cheMultiUser == "false" {
 		cheDeployment.Spec.Template.Spec.Volumes = []corev1.Volume{
 			{
-				Name: DefaultCheVolumeName,
+				Name: DefaultCheVolumeClaimName,
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: DefaultCheVolumeName,
+						ClaimName: DefaultCheVolumeClaimName,
 					},
 				},
 			}}
 		cheDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
 			{
 				MountPath: DefaultCheVolumeMountPath,
-				Name:      DefaultCheVolumeName,
+				Name:      DefaultCheVolumeClaimName,
 			}}
 	}
 

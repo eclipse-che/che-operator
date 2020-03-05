@@ -63,8 +63,8 @@ const (
 	DefaultCheMetricsPort               = int32(8087)
 	DefaultCheDebugPort                 = int32(8000)
 	DefaultCheVolumeMountPath           = "/data"
-	DefaultCheVolumeName                = "che-data-volume"
-	DefaultPostgresVolumeName           = "postgres-data"
+	DefaultCheVolumeClaimName           = "che-data-volume"
+	DefaultPostgresVolumeClaimName      = "postgres-data"
 
 	DefaultJavaOpts = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
 		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +

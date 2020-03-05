@@ -434,22 +434,22 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if cheMultiUser == "false" {
 		cheLabels := deploy.GetLabels(instance, cheFlavor)
-		pvc := deploy.NewPvc(instance, deploy.DefaultCheVolumeName, "1Gi", cheLabels)
+		pvc := deploy.NewPvc(instance, deploy.DefaultCheVolumeClaimName, "1Gi", cheLabels)
 		if err := r.CreatePVC(instance, pvc); err != nil {
 			return reconcile.Result{}, err
 		}
-		if !tests {
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: instance.Namespace}, pvc)
-			if pvc.Status.Phase != "Bound" {
-				k8sclient.GetPVCStatus(pvc, instance.Namespace)
-			}
+		err = r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: instance.Namespace}, pvc)
+		if pvc.Status.Phase != "Bound" {
+			k8sclient.GetPVCStatus(pvc, instance.Namespace)
 		}
-		if k8sclient.IsPVCExists(deploy.DefaultPostgresVolumeName, instance.Namespace) {
-			k8sclient.DeletePVC(deploy.DefaultPostgresVolumeName, instance.Namespace)
+		if k8sclient.IsPVCExists(deploy.DefaultPostgresVolumeClaimName, instance.Namespace) {
+			k8sclient.DeletePVC(deploy.DefaultPostgresVolumeClaimName, instance.Namespace)
 		}
 	} else {
-		if k8sclient.IsPVCExists(deploy.DefaultCheVolumeName, instance.Namespace) {
-			k8sclient.DeletePVC(deploy.DefaultCheVolumeName, instance.Namespace)
+		if !tests {
+			if k8sclient.IsPVCExists(deploy.DefaultCheVolumeClaimName, instance.Namespace) {
+				k8sclient.DeletePVC(deploy.DefaultCheVolumeClaimName, instance.Namespace)
+			}
 		}
 	}
 
@@ -468,7 +468,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{}, err
 			}
 			// Create a new Postgres PVC object
-			pvc := deploy.NewPvc(instance, deploy.DefaultPostgresVolumeName, "1Gi", postgresLabels)
+			pvc := deploy.NewPvc(instance, deploy.DefaultPostgresVolumeClaimName, "1Gi", postgresLabels)
 			if err := r.CreatePVC(instance, pvc); err != nil {
 				return reconcile.Result{}, err
 			}
