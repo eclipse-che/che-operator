@@ -37,7 +37,7 @@ spec:
     ## will be propagated to the Che components and provide particular configuration for Git.
     gitSelfSignedCert: false
     # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
-    tlsSupport: false
+    tlsSupport: true
     # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
     # to Che server and workspaces containers
     proxyURL: ''
