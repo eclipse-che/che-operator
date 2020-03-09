@@ -48,7 +48,8 @@ run_olm_tests() {
     fi
     if [[ ${platform} == 'kubernetes' ]]; then
       printInfo "Starting minikube VM to test kubernetes olm files..."
-      minikube start --memory=${RAM_MEMORY}
+      source ${OPERATOR_REPO}/.ci/start-minikube.sh
+  
       sh "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${platform} ${CHANNEL} ${NAMESPACE}
       printInfo "Successfully verified olm files on kubernetes platform."
       rm -rf ~/.kube && yes | minikube delete
