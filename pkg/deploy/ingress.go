@@ -12,6 +12,8 @@
 package deploy
 
 import (
+	"strconv"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"k8s.io/api/extensions/v1beta1"
@@ -28,11 +30,18 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 	ingressDomain := cr.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(cr, name)
-	tlsSecretName := cr.Spec.K8s.TlsSecretName
+
 	tls := "false"
 	if tlsSupport {
 		tls = "true"
 	}
+	tlsSecretName := cr.Spec.K8s.TlsSecretName
+	// If TLS is turned on but the secret is not set, try to use Che default value as k8s cluster defaults will not work.
+	tlsFlag, _ := strconv.ParseBool(tls)
+	if tlsFlag && tlsSecretName == "" {
+		tlsSecretName = "che-tls"
+	}
+
 	host := ""
 	path := "/"
 	if name == "keycloak" && ingressStrategy != "multi-host" {
