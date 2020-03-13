@@ -130,6 +130,24 @@ func TestCheController(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
+
+	// get devfile-registry configmap
+	devfilecm := &corev1.ConfigMap{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: cheCR.Namespace}, devfilecm); err != nil {
+		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
+	}
+
+	// Check the result of reconciliation to make sure it has the desired state.
+	if ! res.Requeue {
+		t.Error("Reconcile did not requeue request as expected")
+	}
+
+	// reconcile again
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
 	// Check the result of reconciliation to make sure it has the desired state.
 	if res.Requeue {
 		t.Error("Reconcile did not requeue request as expected")
