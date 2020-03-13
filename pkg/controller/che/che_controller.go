@@ -12,6 +12,7 @@
 package che
 
 import (
+	"reflect"
 	"context"
 	"fmt"
 	"strings"
@@ -289,8 +290,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Error getting devfile-registry ConfigMap: %v", err)
 		return reconcile.Result{}, err
 	}
-	if err == nil && !instance.IsAirGapMode() {
-		logrus.Info("Found devfile-registry ConfigMap and not in airgap mode.  Deleting.")
+	if err == nil && instance.Spec.Server.ExternalDevfileRegistry {
+		logrus.Info("Found devfile-registry ConfigMap and while using an external devfile registry.  Deleting.")
 		if err = r.client.Delete(context.TODO(), devfileRegistryConfigMap); err != nil {
 			logrus.Errorf("Error deleting devfile-registry ConfigMap: %v", err)
 			return reconcile.Result{}, err
@@ -837,37 +838,37 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if devfileRegistryURL == "" {
 			devfileRegistryURL = guessedDevfileRegistryURL
 		}
-		if instance.IsAirGapMode() {
-			devFileRegistryConfigMap := &corev1.ConfigMap{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
-					err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
-					if err != nil {
-						logrus.Errorf("An error occurred: %v", err)
-						return reconcile.Result{}, err
-					}
-					logrus.Info("Creating devfile registry airgap configmap")
-					err = r.client.Create(context.TODO(), devFileRegistryConfigMap)
-					if err != nil {
-						logrus.Errorf("Error creating devfile registry configmap: %v", err)
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{Requeue: true}, nil
-				} else {
-					logrus.Errorf("Could not get devfile-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
-			} else {
+		devFileRegistryConfigMap := &corev1.ConfigMap{}
+		err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
+		if err != nil {
+			if errors.IsNotFound(err) {
 				devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
 				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
 				if err != nil {
 					logrus.Errorf("An error occurred: %v", err)
 					return reconcile.Result{}, err
 				}
+				logrus.Info("Creating devfile registry airgap configmap")
+				err = r.client.Create(context.TODO(), devFileRegistryConfigMap)
+				if err != nil {
+					logrus.Errorf("Error creating devfile registry configmap: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			} else {
+				logrus.Errorf("Could not get devfile-registry ConfigMap: %v", err)
+				return reconcile.Result{}, err
+			}
+		} else {
+			newDevFileRegistryConfigMap := deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
+			if ! reflect.DeepEqual(devFileRegistryConfigMap.Data, newDevFileRegistryConfigMap.Data) {
+				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
+				if err != nil {
+					logrus.Errorf("An error occurred: %v", err)
+					return reconcile.Result{}, err
+				}
 				logrus.Info("Updating devfile-registry ConfigMap")
-				err = r.client.Update(context.TODO(), devFileRegistryConfigMap)
+				err = r.client.Update(context.TODO(), newDevFileRegistryConfigMap)
 				if err != nil {
 					logrus.Errorf("Error updating devfile-registry ConfigMap: %v", err)
 					return reconcile.Result{}, err
