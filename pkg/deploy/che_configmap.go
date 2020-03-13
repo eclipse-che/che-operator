@@ -128,6 +128,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 
 	ingressDomain := cr.Spec.K8s.IngressDomain
 	tlsSecretName := cr.Spec.K8s.TlsSecretName
+	if tlsSupport && tlsSecretName == "" {
+		tlsSecretName = "che-tls"
+	}
 	securityContextFsGroup := util.GetValue(cr.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup)
 	securityContextRunAsUser := util.GetValue(cr.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser)
 	pvcStrategy := util.GetValue(cr.Spec.Storage.PvcStrategy, DefaultPvcStrategy)
