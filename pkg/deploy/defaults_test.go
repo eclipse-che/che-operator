@@ -99,7 +99,7 @@ func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
 		"registry.redhat.io/codeready-workspaces/server-operator-rhel8:1.2": "server-operator-rhel8:1.2",
 		"registry.redhat.io/codeready-workspaces/server-operator-rhel8:2.0": "server-operator-rhel8:2.0",
-		"registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.1": "crw-2-rhel8-operator:2.1",
+		"registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:2.1":  "crw-2-rhel8-operator:2.1",
 	}
 	for k, v := range testCases {
 		t.Run(k, func(*testing.T) {

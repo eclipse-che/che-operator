@@ -26,10 +26,10 @@ spec:
         - name: che-operator
           image: registry.redhat.io/codeready-workspaces/crw-2-rhel8-operator:latest
           ports:
-          - containerPort: 60000
-            name: metrics
+            - containerPort: 60000
+              name: metrics
           command:
-          - /usr/local/bin/che-operator
+            - /usr/local/bin/che-operator
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
@@ -41,7 +41,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: che-operator
+              value: "che-operator"
             - name: CHE_VERSION
               value: '2.1'
             - name: IMAGE_default_che_server

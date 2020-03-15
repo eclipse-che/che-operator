@@ -36,14 +36,14 @@ var (
 )
 
 const (
-	DefaultCheFlavor                    = "codeready"
-	DefaultChePostgresUser              = "pgche"
-	DefaultChePostgresHostName          = "postgres"
-	DefaultChePostgresPort              = "5432"
-	DefaultChePostgresDb                = "dbche"
-	DefaultPvcStrategy                  = "per-workspace"
-	DefaultPvcClaimSize                 = "1Gi"
-	DefaultIngressStrategy              = "multi-host"
+	DefaultCheFlavor           = "codeready"
+	DefaultChePostgresUser     = "pgche"
+	DefaultChePostgresHostName = "postgres"
+	DefaultChePostgresPort     = "5432"
+	DefaultChePostgresDb       = "dbche"
+	DefaultPvcStrategy         = "per-workspace"
+	DefaultPvcClaimSize        = "1Gi"
+	DefaultIngressStrategy     = "multi-host"
 	DefaultIngressClass        = "nginx"
 
 	DefaultPluginRegistryMemoryLimit   = "256Mi"

@@ -46,10 +46,12 @@ setup_kvm_machine_driver() {
 }
 
 minishift_installation() {
+  MSFT_RELEASE="1.34.2"
   echo "[INFO] Downloading Minishift binaries..."
-  curl -s -S -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
+  if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
+  curl -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
     -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/bin --strip-components=1
-  echo "[INFO] Sarting a new OC cluster."
+  echo "[INFO] Starting a new OC cluster."
   minishift start --memory=4096 && eval $(minishift oc-env)
   oc login -u system:admin
   oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
