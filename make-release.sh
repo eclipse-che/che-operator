@@ -201,7 +201,7 @@ updateNightlyOlmFiles() {
     echo -e $GREEN"6.1 Launch 'update-nightly-olm-files.sh' script"$NC
     cd $BASE_DIR/olm
     . $BASE_DIR/olm/update-nightly-olm-files.sh
-    cd $CURRENT_DIR
+    cd $BASE_DIR
 
     echo -e $GREEN"6.2 Validate changes"$NC
     lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
