@@ -270,7 +270,8 @@ releaseOlmFiles() {
 
     echo -e $GREEN"8.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changed files are greated then 4. Check 'git status'."$NC; return 1; }
+    echo "Number for changes: "$changes
+    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes is greater then 4. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
