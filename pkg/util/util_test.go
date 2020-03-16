@@ -31,7 +31,7 @@ const (
 
 func TestGenerateProxyEnvs(t *testing.T) {
 
-	proxyUrl, noProxy := GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword)
+	proxyUrl, noProxy, _ := GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword, "", "")
 
 	if !reflect.DeepEqual(proxyUrl, expectedProxyURLWithUsernamePassword) {
 		t.Errorf("Test failed. Expected %s but got %s", expectedProxyURLWithUsernamePassword, proxyUrl)
@@ -42,7 +42,7 @@ func TestGenerateProxyEnvs(t *testing.T) {
 
 	}
 
-	proxyUrl, _ = GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword)
+	proxyUrl, _, _ = GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword, "", "")
 	if !reflect.DeepEqual(proxyUrl, expectedProxyURLWithoutUsernamePassword) {
 		t.Errorf("Test failed. Expected %s but got %s", expectedProxyURLWithoutUsernamePassword, proxyUrl)
 	}
@@ -54,7 +54,7 @@ func TestGenerateProxyJavaOpts(t *testing.T) {
 		logrus.Errorf("Failed to set env %s", err)
 	}
 
-	javaOpts := GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword)
+	javaOpts, _ := GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword, "", "")
 	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
 		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password"
@@ -63,7 +63,7 @@ func TestGenerateProxyJavaOpts(t *testing.T) {
 
 	}
 
-	javaOpts = GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword)
+	javaOpts, _ = GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword, "", "")
 	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
 
