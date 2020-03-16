@@ -19,6 +19,7 @@ init() {
   GREEN='\e[32m'
 
   RELEASE="$1"
+  BRANCH=${2:-master}
   GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
   CURRENT_DIR=$(pwd)
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)
@@ -31,7 +32,7 @@ check() {
   echo -e $RED"##############################################"$NC
 
 
-  if [ $# -ne 1 ]; then
+  if [ $# -lt 1 ]; then
     printf "%bError: %bWrong number of parameters.\nUsage: ./make-release.sh <version>\n" "${RED}" "${NC}"
     exit 1
   fi
@@ -65,9 +66,9 @@ resetLocalChanges() {
 
   if [[ $result == 0 ]]; then
     git reset --hard
-    git checkout master
+    git checkout $BRANCH
     git fetch ${GIT_REMOTE_UPSTREAM} --prune
-    git pull ${GIT_REMOTE_UPSTREAM} master
+    git pull ${GIT_REMOTE_UPSTREAM} $BRANCH
 
     local changes=$(git status -s | wc -l)
     [[ $changes -gt 0 ]] && { echo -e $RED"The number of changes are greated then 0. Check 'git status'."$NC; return 1; }
@@ -183,7 +184,7 @@ pushImage() {
   set -e
 
   if [[ $result == 0 ]]; then
-    docker login quay.io
+    docker login quay.io -u $QUAY_USERNAME -p $QUAY_PASSWORD
     docker push quay.io/eclipse/che-operator:$RELEASE
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
@@ -200,7 +201,7 @@ updateNightlyOlmFiles() {
     echo -e $GREEN"6.1 Launch 'update-nightly-olm-files.sh' script"$NC
     cd $BASE_DIR/olm
     . $BASE_DIR/olm/update-nightly-olm-files.sh
-    cd $CURRENT_DIR
+    cd $BASE_DIR
 
     echo -e $GREEN"6.2 Validate changes"$NC
     lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
@@ -269,7 +270,8 @@ releaseOlmFiles() {
 
     echo -e $GREEN"8.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changed files are greated then 4. Check 'git status'."$NC; return 1; }
+    echo "Number for changes: "$changes
+    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes is greater then 4. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -343,4 +345,5 @@ run() {
 
 init "$@"
 check "$@"
+ask "Release '$RELEASE' from branch '$BRANCH'?"
 run "$@"
