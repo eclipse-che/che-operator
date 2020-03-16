@@ -75,4 +75,5 @@ cd olm
 ```
 
 ## 6. Prepare `che-operator` PR
-TODO 
+TODO PR
+TODO keep up to date files in https://github.com/eclipse/che-operator/pull/197
