@@ -150,6 +150,13 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 							Format:      "",
 						},
 					},
+					"identityProviderSecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The secret that contains `user` and `password` for Identity Provider. If the secret is defined then `identityProviderAdminUserName` and `identityProviderPassword` are ignored. If the value is omitted or left blank then there are two scenarios: 1. `identityProviderAdminUserName` and `identityProviderPassword` are defined, then they will be used. 2. `identityProviderAdminUserName` or `identityProviderPassword` are not defined, then a new secret with the name `che-identity-secret` will be created with default value `admin` for `user` and with an auto-generated value for `password`.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"identityProviderRealm": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Name of a Identity provider (Keycloak / RH SSO) realm that should be used for Che. This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field). If omitted or left blank, it will be set to the value of the `flavour` field.",
@@ -171,6 +178,13 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 							Format:      "",
 						},
 					},
+					"identityProviderPostgresSecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The secret that contains `password` for The Identity Provider (Keycloak / RH SSO) to connect to the database. If the secret is defined then `identityProviderPostgresPassword` will be ignored. If the value is omitted or left blank then there are two scenarios: 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database. 2. `identityProviderPostgresPassword` is not defined, then a new secret with the name `che-identity-postgres-secret` will be created with an auto-generated value for `password`.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"updateAdminPassword": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Forces the default `admin` Che user to update password on first login. Defaults to `false`.",
@@ -180,7 +194,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 					},
 					"openShiftoAuth": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth. Enabled by defaumt on OpenShift. This will allow users to directly login with their Openshift user throug the Openshift login, and have their workspaces created under personnal OpenShift namespaces. WARNING: the `kuebadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.",
+							Description: "Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth. Enabled by default on OpenShift. This will allow users to directly login with their Openshift user through the Openshift login, and have their workspaces created under personal OpenShift namespaces. WARNING: the `kubeadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -264,6 +278,13 @@ func schema_pkg_apis_org_v1_CheClusterSpecDB(ref common.ReferenceCallback) commo
 					"chePostgresDb": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Postgres database name that the Che server uses to connect to the DB. Defaults to `dbche`.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"chePostgresSecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The secret that contains Postgres `user` and `password` that the Che server should use to connect to the DB. If the secret is defined then `chePostgresUser` and `chePostgresPassword` are ignored. If the value is omitted or left blank then there are two scenarios: 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB. 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `che-postgres-secret` will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -583,14 +604,21 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"proxyUser": {
 						SchemaProps: spec.SchemaProps{
-							Description: "User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL` field).",
+							Description: "User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL` `proxySecret` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Password of the proxy server\n\nOnly use when proxy configuration is required (see also the `proxyUser` field).",
+							Description: "Password of the proxy server Only use when proxy configuration is required (see also the `proxyUser` and `proxySecret` fields).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"proxySecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The secret that contains `user` and `password` for a proxy server. If the secret is defined then `proxyUser` and `proxyPassword` are ignored",
 							Type:        []string{"string"},
 							Format:      "",
 						},

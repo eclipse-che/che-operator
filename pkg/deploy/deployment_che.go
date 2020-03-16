@@ -43,11 +43,11 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		}
 	}
 	customPublicCertsVolume := corev1.Volume{
-		Name: "che-public-certs",
+		Name:         "che-public-certs",
 		VolumeSource: customPublicCertsVolumeSource,
 	}
 	customPublicCertsVolumeMount := corev1.VolumeMount{
-		Name: "che-public-certs",
+		Name:      "che-public-certs",
 		MountPath: "/public-certs",
 	}
 	gitSelfSignedCertEnv := corev1.EnvVar{
@@ -181,8 +181,8 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-                                customPublicCertsVolumeMount,
-                            },
+								customPublicCertsVolumeMount,
+							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "CM_REVISION",
@@ -205,7 +205,33 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 	}
 
 	cheMultiUser := GetCheMultiUser(cr)
-	if cheMultiUser == "false" {
+	if cheMultiUser == "true" {
+		chePostgresSecret := cr.Spec.Database.ChePostgresSecret
+		if len(chePostgresSecret) > 0 {
+			cheDeployment.Spec.Template.Spec.Containers[0].Env = append(cheDeployment.Spec.Template.Spec.Containers[0].Env,
+				corev1.EnvVar{
+					Name: "CHE_JDBC_USERNAME",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							Key: "user",
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: chePostgresSecret,
+							},
+						},
+					},
+				}, corev1.EnvVar{
+					Name: "CHE_JDBC_PASSWORD",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							Key: "password",
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: chePostgresSecret,
+							},
+						},
+					},
+				})
+		}
+	} else {
 		cheDeployment.Spec.Template.Spec.Volumes = []corev1.Volume{
 			{
 				Name: DefaultCheVolumeClaimName,

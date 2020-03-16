@@ -46,6 +46,7 @@ const (
 	DefaultChePostgresHostName = "postgres"
 	DefaultChePostgresPort     = "5432"
 	DefaultChePostgresDb       = "dbche"
+	DefaultChePostgresSecret   = "che-postgres-secret"
 	DefaultPvcStrategy         = "common"
 	DefaultPvcClaimSize        = "1Gi"
 	DefaultIngressStrategy     = "multi-host"
@@ -94,6 +95,8 @@ const (
 	DefaultConsoleLinkName                = "che"
 	DefaultConsoleLinkSection             = "Red Hat Applications"
 	DefaultConsoleLinkImage               = "/dashboard/assets/branding/loader.svg"
+	DefaultCheIdentitySecret              = "che-identity-secret"
+	DefaultCheIdentityPostgresSecret      = "che-identity-postgres-secret"
 	defaultConsoleLinkUpstreamDisplayName = "Eclipse Che"
 	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )

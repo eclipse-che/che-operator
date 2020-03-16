@@ -22,29 +22,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetPostgresProvisionCommand(cr *orgv1.CheCluster) (command string) {
-
-	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, DefaultChePostgresUser)
-	keycloakPostgresPassword := cr.Spec.Auth.IdentityProviderPostgresPassword
-
+func GetPostgresProvisionCommand() (command string) {
 	command = "OUT=$(psql postgres -tAc \"SELECT 1 FROM pg_roles WHERE rolname='keycloak'\"); " +
 		"if [ $OUT -eq 1 ]; then echo \"DB exists\"; exit 0; fi " +
-		"&& psql -c \"CREATE USER keycloak WITH PASSWORD '" + keycloakPostgresPassword + "'\" " +
+		"&& psql -c \"CREATE USER keycloak WITH PASSWORD '${IDENTITY_POSTGRES_PASSWORD}'\" " +
 		"&& psql -c \"CREATE DATABASE keycloak\" " +
 		"&& psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak\" " +
-		"&& psql -c \"ALTER USER " + chePostgresUser + " WITH SUPERUSER\""
+		"&& psql -c \"ALTER USER ${POSTGRESQL_USER} WITH SUPERUSER\""
 
 	return command
 }
 
 func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command string) {
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, "admin")
-	keycloakAdminPassword := util.GetValue(cr.Spec.Auth.IdentityProviderPassword, "admin")
 	requiredActions := ""
 	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+	keycloakUserEnvVar := "${KEYCLOAK_USER}"
+	keycloakPasswordEnvVar := "${KEYCLOAK_PASSWORD}"
 
 	if updateAdminPassword {
 		requiredActions = "\"UPDATE_PASSWORD\""
@@ -60,12 +56,13 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command 
 		keycloakTheme = "rh-sso"
 		realmDisplayName = "CodeReady Workspaces"
 		script = "/opt/eap/bin/kcadm.sh"
-
+		keycloakUserEnvVar = "${SSO_ADMIN_USERNAME}"
+		keycloakPasswordEnvVar = "${SSO_ADMIN_PASSWORD}"
 	}
 	str := string(file)
 	r := strings.NewReplacer("$script", script,
-		"$keycloakAdminUserName", keycloakAdminUserName,
-		"$keycloakAdminPassword", keycloakAdminPassword,
+		"$keycloakAdminUserName", keycloakUserEnvVar,
+		"$keycloakAdminPassword", keycloakPasswordEnvVar,
 		"$keycloakRealm", keycloakRealm,
 		"$realmDisplayName", realmDisplayName,
 		"$keycloakClientId", keycloakClientId,
@@ -80,7 +77,7 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command 
 	return command
 }
 
-func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthClientName string, oauthSecret string, keycloakAdminPassword string, isOpenShift4 bool) (command string, err error) {
+func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthClientName string, oauthSecret string, isOpenShift4 bool) (command string, err error) {
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
 	openShiftApiUrl, err := util.GetClusterPublicHostname(isOpenShift4)
 	if err != nil {
@@ -88,12 +85,14 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 		return "", err
 	}
 
+	keycloakUserEnvVar := "${KEYCLOAK_USER}"
+	keycloakPasswordEnvVar := "${KEYCLOAK_PASSWORD}"
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	script := "/opt/jboss/keycloak/bin/kcadm.sh"
 	if cheFlavor == "codeready" {
 		script = "/opt/eap/bin/kcadm.sh"
-
+		keycloakUserEnvVar = "${SSO_ADMIN_USERNAME}"
+		keycloakPasswordEnvVar = "${SSO_ADMIN_PASSWORD}"
 	}
 	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 
@@ -133,8 +132,8 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 			KeycloakClientId      string
 		}{
 			script,
-			keycloakAdminUserName,
-			keycloakAdminPassword,
+			keycloakUserEnvVar,
+			keycloakPasswordEnvVar,
 			keycloakRealm,
 			providerId,
 			oAuthClientName,
@@ -154,14 +153,16 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 	return command, nil
 }
 
-func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, keycloakAdminPassword string, isOpenShift4 bool) (command string) {
+func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, isOpenShift4 bool) (command string) {
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	script := "/opt/jboss/keycloak/bin/kcadm.sh"
+	keycloakUserEnvVar := "${KEYCLOAK_USER}"
+	keycloakPasswordEnvVar := "${KEYCLOAK_PASSWORD}"
 	if cheFlavor == "codeready" {
 		script = "/opt/eap/bin/kcadm.sh"
-
+		keycloakUserEnvVar = "${SSO_ADMIN_USERNAME}"
+		keycloakPasswordEnvVar = "${SSO_ADMIN_PASSWORD}"
 	}
 
 	providerName := "openshift-v3"
@@ -170,7 +171,7 @@ func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, ke
 	}
 	deleteOpenShiftIdentityProviderCommand :=
 		script + " config credentials --server http://0.0.0.0:8080/auth " +
-			"--realm master --user " + keycloakAdminUserName + " --password " + keycloakAdminPassword + " && " +
+			"--realm master --user " + keycloakUserEnvVar + " --password " + keycloakPasswordEnvVar + " && " +
 			"if " + script + " get identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; then " +
 			script + " delete identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; fi"
 	command = deleteOpenShiftIdentityProviderCommand
