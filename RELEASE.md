@@ -10,14 +10,15 @@
 ./make-release.sh <RELEASE_VERSION>
 ```
 
-## 2. Testing release on crc
+## 2. Testing release on openshift
 
 Start a cluster using `cluster-bot` application.
 
 To be able to test update it is needed to created some user before. Login as `kubeadmin`. Click `Update the cluster OAuth configuration` at the middle of the dashboard, then `Identity providers` -> `Add` -> `HTPassword` and upload a htpassword file (can be created with HTPassword utility). Logout and login using HTPassword, then logout and login as `kubeadmin`. Go to `kube:admin` -> `Copy Login Command` -> `Display Token` and launch showing command in the terminal. Now it is possible to test update:
 
 ```bash
-olm/testUpdate.sh openshift stable
+cd olm
+./testUpdate.sh openshift stable
 ```
 
 Open Eclipse Che dashboard in an anonymous tab:
@@ -33,7 +34,8 @@ Login using HTPassword then allow selected permissions. Validate that the releas
 Run script to test updates:
 
 ```bash
-olm/testUpdate.sh kubernetes stable
+cd olm
+./testUpdate.sh kubernetes stable
 ```
 
 Open Eclipse Che dashboard:
@@ -68,7 +70,10 @@ xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $
 ## 5. Prepare community operator PR
 
 ```bash
-olm/prepare-community-operators-update.sh
+cd olm
+./prepare-community-operators-update.sh
 ```
 
-TODO automate creating PRs
+## 6. Prepare `che-operator` PR
+TODO PR
+TODO keep up to date files in https://github.com/eclipse/che-operator/pull/197
