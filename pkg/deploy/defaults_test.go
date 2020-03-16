@@ -20,16 +20,16 @@ import (
 )
 
 const (
-	cheVersionTest           = "7.8.0"
-	cheServerImageTest       = "quay.io/eclipse/che-server:7.8.0"
-	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.8.0"
-	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.8.0"
-	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
+	cheVersionTest           = "7.9.1"
+	cheServerImageTest       = "quay.io/eclipse/che-server:7.9.1"
+	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.9.1"
+	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.9.1"
+	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.1-398"
 	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
-	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.8.0"
-	brokerMetadataTest		 = "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
-	brokerArtifactsTest		 = "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
-	jwtProxyTest		 	 = "quay.io/crw/jwtproxy-rhel8:2.1"
+	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.9.1"
+	brokerMetadataTest		 = "quay.io/eclipse/che-plugin-metadata-broker:v3.1.1"
+	brokerArtifactsTest		 = "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.1"
+	jwtProxyTest		 	 = "quay.io/eclipse/che-jwtproxy:810d89c"
 )
 
 func init() {
@@ -98,8 +98,8 @@ func TestDefaultFromEnv(t *testing.T) {
 func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
 		"docker.io/eclipse/che-operator:latest": "che-operator:latest",
-		"eclipse/che-operator:7.1.0":            "che-operator:7.1.0",
-		"che-operator:7.2.0":                    "che-operator:7.2.0",
+		"quay.io/eclipse/che-operator:7.9.1":    "che-operator:7.9.1",
+		"che-operator:7.9.1":                    "che-operator:7.9.1",
 	}
 	for k, v := range testCases {
 		t.Run(k, func(*testing.T) {
