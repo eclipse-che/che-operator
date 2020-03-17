@@ -61,6 +61,8 @@ run_tests() {
 }
 
 install_minikube() {
+    set -x
+
   export MINIKUBE_VERSION=v1.5.2
   export KUBERNETES_VERSION=v1.14.5
   # Download minikube binary
@@ -74,21 +76,19 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
   sudo mv minikube /usr/local/bin/
 
   adduser kubernetes
-
-  sudo -u kubernetes bash -c 'minikube start --memory=8192'
   sudo -u kubernetes bash -c 'minikube version'
 
 }
 
 init
 
-source ${OPERATOR_REPO}/.ci/util/ci_common.sh
-installJQ
-load_jenkins_vars
-installStartDocker
-install_VirtPackages
-start_libvirt
-setup_kvm_machine_driver
+#source ${OPERATOR_REPO}/.ci/util/ci_common.sh
+#installJQ
+#load_jenkins_vars
+#installStartDocker
+#install_VirtPackages
+#start_libvirt
+#setup_kvm_machine_driver
 install_minikube
 #minishift_installation
 #run_tests
