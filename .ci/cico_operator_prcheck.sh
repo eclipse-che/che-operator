@@ -88,6 +88,7 @@ installStartDocker
 install_VirtPackages
 start_libvirt
 setup_kvm_machine_driver
+installYQ
 install_minikube
 #minishift_installation
 #run_tests
