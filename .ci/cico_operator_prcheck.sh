@@ -73,7 +73,7 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
   sudo mv minikube /usr/local/bin/
 
   sudo -u kubernetes bash -c 'ls /usr/local/bin'
-  sudo -u kubernetes bash -c 'minikube version'
+  sudo -u kubernetes bash -c '/usr/local/bin/minikube version'
 
 }
 
