@@ -80,7 +80,7 @@ curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBE
 sudo mv kubectl /usr/local/bin/
 
   sudo -u kubernetes bash -c '/usr/local/bin/minikube start --memory=8192'
-  sh olm/testCatalogSource.sh kubernetes nightly poc
+  sudo -u kubernetes bash -c 'sh olm/testCatalogSource.sh kubernetes nightly poc'
 
 }
 
