@@ -62,6 +62,7 @@ run_tests() {
 
 install_minikube() {
     set -x
+  adduser kubernetes
 
   export MINIKUBE_VERSION=v1.5.2
   export KUBERNETES_VERSION=v1.14.5
@@ -75,7 +76,6 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
   chmod +x minikube && \
   sudo mv minikube /usr/local/bin/
 
-  adduser kubernetes
   sudo -u kubernetes bash -c 'minikube version'
 
 }
