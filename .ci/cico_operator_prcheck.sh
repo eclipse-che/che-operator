@@ -73,19 +73,19 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
   sudo mv minikube /usr/local/bin/
 
   sudo -u kubernetes bash -c 'ls /usr/local/bin'
-  sudo -u kubernetes bash -c '/usr/local/bin/minikube version'
+  sudo -u kubernetes bash -c '/usr/local/bin/minikube start --memory=8192'
 
 }
 
 init
 
-#source ${OPERATOR_REPO}/.ci/util/ci_common.sh
-#installJQ
-#load_jenkins_vars
-#installStartDocker
-#install_VirtPackages
-#start_libvirt
-#setup_kvm_machine_driver
+source ${OPERATOR_REPO}/.ci/util/ci_common.sh
+installJQ
+load_jenkins_vars
+installStartDocker
+install_VirtPackages
+start_libvirt
+setup_kvm_machine_driver
 install_minikube
 #minishift_installation
 #run_tests
