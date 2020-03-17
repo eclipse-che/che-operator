@@ -63,8 +63,7 @@ run_tests() {
 install_minikube() {
     set -x
   adduser kubernetes
-  sudo usermod -a -G libvirt kubernetes
-  newgrp libvirt
+  usermod --append --groups libvirt kubernetes
   echo 'kubernetes  ALL=(ALL:ALL) ALL' >> /etc/sudoers
   export MINIKUBE_VERSION=v1.5.2
   # Download minikube binary
