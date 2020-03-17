@@ -28,7 +28,7 @@ fi
 
 init() {
   #Setting current directory
-  BASE_DIR=$PWD
+  BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 
   # Setting The catalog image and the image and tag; and install type
   Install_Type="LocalCatalog"
