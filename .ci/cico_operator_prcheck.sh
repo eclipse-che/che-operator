@@ -65,6 +65,7 @@ install_minikube() {
   adduser kubernetes
   usermod --append --groups libvirt kubernetes
   echo 'kubernetes  ALL=(ALL:ALL) ALL' >> /etc/sudoers
+  chown -R kubernetes *
   export MINIKUBE_VERSION=v1.5.2
   # Download minikube binary
 
