@@ -67,14 +67,14 @@ install_minikube() {
   export MINIKUBE_VERSION=v1.5.2
   export KUBERNETES_VERSION=v1.14.5
   # Download minikube binary
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/amd64/kubectl && \
+sudo -u kubernetes bash -c 'curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.14.5/bin/linux/amd64/kubectl && \
   chmod +x kubectl &&  \
-sudo mv kubectl /usr/bin/
+sudo mv kubectl /usr/local/bin/'
 
 # Download minikube binary
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-linux-amd64 && \
+sudo -u kubernetes bash -c 'curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.5.2/minikube-linux-amd64 && \
   chmod +x minikube && \
-  sudo mv minikube /usr/bin/
+  sudo mv minikube /usr/local/bin/'
 
   sudo -u kubernetes bash -c 'minikube version'
 
