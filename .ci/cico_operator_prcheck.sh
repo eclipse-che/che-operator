@@ -75,6 +75,7 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
 
   sudo -u kubernetes bash -c 'ls /usr/local/bin'
   sudo -u kubernetes bash -c '/usr/local/bin/minikube start --memory=8192'
+  sudo -u kubernetes bash -c 'sh olm/testCatalogSource.sh kubernetes nightly poc '
 
 }
 

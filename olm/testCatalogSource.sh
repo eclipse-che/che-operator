@@ -53,9 +53,9 @@ docker_build() {
 
 build_Catalog_Image() {
   if [ "${platform}" == "kubernetes" ]; then
-    eval "$(minikube -p minikube docker-env)"
+    eval "$(/usr/local/bin/minikube -p minikube docker-env)"
     docker_build
-    minikube addons enable ingress
+    /usr/local/bin/minikube addons enable ingress
   else
     docker_build
     curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.12.0/install.sh | bash -s 0.12.0
