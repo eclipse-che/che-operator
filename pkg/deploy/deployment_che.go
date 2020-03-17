@@ -12,6 +12,8 @@
 package deploy
 
 import (
+	"strconv"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"strconv"
 )
 
 func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision string, isOpenshift bool) (*appsv1.Deployment, error) {
@@ -201,6 +202,24 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 				},
 			},
 		},
+	}
+
+	cheMultiUser := GetCheMultiUser(cr)
+	if cheMultiUser == "false" {
+		cheDeployment.Spec.Template.Spec.Volumes = []corev1.Volume{
+			{
+				Name: DefaultCheVolumeClaimName,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: DefaultCheVolumeClaimName,
+					},
+				},
+			}}
+		cheDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+			{
+				MountPath: DefaultCheVolumeMountPath,
+				Name:      DefaultCheVolumeClaimName,
+			}}
 	}
 
 	// configure readiness probe if debug isn't set

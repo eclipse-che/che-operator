@@ -252,7 +252,7 @@ func TestCheController(t *testing.T) {
 		t.Fatalf("Failed to update %s CR: %s", cheCR.Name, err)
 	}
 	pvc := &corev1.PersistentVolumeClaim{}
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres-data", Namespace: cheCR.Namespace}, pvc); err != nil {
+	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: cheCR.Namespace}, pvc); err != nil {
 		t.Fatalf("Failed to get PVC: %s", err)
 	}
 	if err = r.client.Delete(context.TODO(), pvc); err != nil {
@@ -263,7 +263,7 @@ func TestCheController(t *testing.T) {
 		t.Fatalf("reconcile: (%v)", err)
 	}
 	pvc = &corev1.PersistentVolumeClaim{}
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres-data", Namespace: cheCR.Namespace}, pvc); err != nil {
+	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: cheCR.Namespace}, pvc); err != nil {
 		t.Fatalf("Failed to get PVC: %s", err)
 	}
 	actualStorageClassName := pvc.Spec.StorageClassName

@@ -78,7 +78,7 @@ func (cl *k8s) RunExec(command []string, podName, namespace string) (string, str
 	return stdout.String(), stderr.String(), nil
 }
 
-func (r *ReconcileChe) CreateKyecloakResources(instance *orgv1.CheCluster, request reconcile.Request, deploymentName string) (err error) {
+func (r *ReconcileChe) CreateKeycloakResources(instance *orgv1.CheCluster, request reconcile.Request, deploymentName string) (err error) {
 	cheHost := instance.Spec.Server.CheHost
 	keycloakProvisionCommand := deploy.GetKeycloakProvisionCommand(instance, cheHost)
 	podToExec, err := k8sclient.GetDeploymentPod(deploymentName, instance.Namespace)

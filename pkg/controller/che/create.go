@@ -353,81 +353,6 @@ func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, n
 
 func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
 
-	chePostgresPassword := util.GetValue(instance.Spec.Database.ChePostgresPassword, util.GeneratePasswd(12))
-	if len(instance.Spec.Database.ChePostgresPassword) < 1 {
-		instance.Spec.Database.ChePostgresPassword = chePostgresPassword
-		if err := r.UpdateCheCRSpec(instance, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
-			return err
-		}
-
-	}
-	keycloakPostgresPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPostgresPassword, util.GeneratePasswd(12))
-	if len(instance.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
-		instance.Spec.Auth.IdentityProviderPostgresPassword = keycloakPostgresPassword
-		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-		if err != nil {
-			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
-		} else {
-			keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
-		}
-		if err := r.UpdateCheCRSpec(instance, "auto-generated Keycloak DB password", "password-hidden"); err != nil {
-			return err
-		}
-	}
-	if len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
-		keycloakAdminPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
-		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-		if err != nil {
-			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
-		} else {
-			keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
-		}
-		instance.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
-		if err := r.UpdateCheCRSpec(instance, "Keycloak admin password", "password hidden"); err != nil {
-			return err
-		}
-	}
-	if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 {
-		keycloakAdminUserName := util.GetValue(instance.Spec.Auth.IdentityProviderAdminUserName, "admin")
-		keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-		if err != nil {
-			logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating admin username")
-		} else {
-			keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
-		}
-		instance.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
-		if err := r.UpdateCheCRSpec(instance, "Keycloak admin username", keycloakAdminUserName); err != nil {
-			return err
-		}
-	}
-	chePostgresUser := util.GetValue(instance.Spec.Database.ChePostgresUser, "pgche")
-	if len(instance.Spec.Database.ChePostgresUser) < 1 {
-		instance.Spec.Database.ChePostgresUser = chePostgresUser
-		if err := r.UpdateCheCRSpec(instance, "Postgres User", chePostgresUser); err != nil {
-			return err
-		}
-	}
-	chePostgresDb := util.GetValue(instance.Spec.Database.ChePostgresDb, "dbche")
-	if len(instance.Spec.Database.ChePostgresDb) < 1 {
-		instance.Spec.Database.ChePostgresDb = chePostgresDb
-		if err := r.UpdateCheCRSpec(instance, "Postgres DB", chePostgresDb); err != nil {
-			return err
-		}
-	}
-	chePostgresHostName := util.GetValue(instance.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
-	if len(instance.Spec.Database.ChePostgresHostName) < 1 {
-		instance.Spec.Database.ChePostgresHostName = chePostgresHostName
-		if err := r.UpdateCheCRSpec(instance, "Postgres hostname", chePostgresHostName); err != nil {
-			return err
-		}
-	}
-	chePostgresPort := util.GetValue(instance.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
-	if len(instance.Spec.Database.ChePostgresPort) < 1 {
-		instance.Spec.Database.ChePostgresPort = chePostgresPort
-		if err := r.UpdateCheCRSpec(instance, "Postgres port", chePostgresPort); err != nil {
-			return err
-		}
-	}
 	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
 	if len(instance.Spec.Server.CheFlavor) < 1 {
 		instance.Spec.Server.CheFlavor = cheFlavor
@@ -435,19 +360,98 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			return err
 		}
 	}
-	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	if len(instance.Spec.Auth.IdentityProviderRealm) < 1 {
-		instance.Spec.Auth.IdentityProviderRealm = keycloakRealm
-		if err := r.UpdateCheCRSpec(instance, "Keycloak realm", keycloakRealm); err != nil {
-			return err
-		}
-	}
-	keycloakClientId := util.GetValue(instance.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-	if len(instance.Spec.Auth.IdentityProviderClientId) < 1 {
-		instance.Spec.Auth.IdentityProviderClientId = keycloakClientId
 
-		if err := r.UpdateCheCRSpec(instance, "Keycloak client ID", keycloakClientId); err != nil {
-			return err
+	cheMultiUser := deploy.GetCheMultiUser(instance)
+	if cheMultiUser == "true" {
+		chePostgresPassword := util.GetValue(instance.Spec.Database.ChePostgresPassword, util.GeneratePasswd(12))
+		if len(instance.Spec.Database.ChePostgresPassword) < 1 {
+			instance.Spec.Database.ChePostgresPassword = chePostgresPassword
+			if err := r.UpdateCheCRSpec(instance, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
+				return err
+			}
+
+		}
+		keycloakPostgresPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPostgresPassword, util.GeneratePasswd(12))
+		if len(instance.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
+			instance.Spec.Auth.IdentityProviderPostgresPassword = keycloakPostgresPassword
+			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
+			if err != nil {
+				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
+			} else {
+				keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
+			}
+			if err := r.UpdateCheCRSpec(instance, "auto-generated Keycloak DB password", "password-hidden"); err != nil {
+				return err
+			}
+		}
+		if len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
+			keycloakAdminPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
+			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
+			if err != nil {
+				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
+			} else {
+				keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
+			}
+			instance.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
+			if err := r.UpdateCheCRSpec(instance, "Keycloak admin password", "password hidden"); err != nil {
+				return err
+			}
+		}
+		if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 {
+			keycloakAdminUserName := util.GetValue(instance.Spec.Auth.IdentityProviderAdminUserName, "admin")
+			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
+			if err != nil {
+				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating admin username")
+			} else {
+				keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
+			}
+			instance.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
+			if err := r.UpdateCheCRSpec(instance, "Keycloak admin username", keycloakAdminUserName); err != nil {
+				return err
+			}
+		}
+		chePostgresUser := util.GetValue(instance.Spec.Database.ChePostgresUser, "pgche")
+		if len(instance.Spec.Database.ChePostgresUser) < 1 {
+			instance.Spec.Database.ChePostgresUser = chePostgresUser
+			if err := r.UpdateCheCRSpec(instance, "Postgres User", chePostgresUser); err != nil {
+				return err
+			}
+		}
+		chePostgresDb := util.GetValue(instance.Spec.Database.ChePostgresDb, "dbche")
+		if len(instance.Spec.Database.ChePostgresDb) < 1 {
+			instance.Spec.Database.ChePostgresDb = chePostgresDb
+			if err := r.UpdateCheCRSpec(instance, "Postgres DB", chePostgresDb); err != nil {
+				return err
+			}
+		}
+		chePostgresHostName := util.GetValue(instance.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
+		if len(instance.Spec.Database.ChePostgresHostName) < 1 {
+			instance.Spec.Database.ChePostgresHostName = chePostgresHostName
+			if err := r.UpdateCheCRSpec(instance, "Postgres hostname", chePostgresHostName); err != nil {
+				return err
+			}
+		}
+		chePostgresPort := util.GetValue(instance.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
+		if len(instance.Spec.Database.ChePostgresPort) < 1 {
+			instance.Spec.Database.ChePostgresPort = chePostgresPort
+			if err := r.UpdateCheCRSpec(instance, "Postgres port", chePostgresPort); err != nil {
+				return err
+			}
+		}
+		keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
+		if len(instance.Spec.Auth.IdentityProviderRealm) < 1 {
+			instance.Spec.Auth.IdentityProviderRealm = keycloakRealm
+			if err := r.UpdateCheCRSpec(instance, "Keycloak realm", keycloakRealm); err != nil {
+				return err
+			}
+		}
+		keycloakClientId := util.GetValue(instance.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+		if len(instance.Spec.Auth.IdentityProviderClientId) < 1 {
+			instance.Spec.Auth.IdentityProviderClientId = keycloakClientId
+
+			if err := r.UpdateCheCRSpec(instance, "Keycloak client ID", keycloakClientId); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -510,7 +514,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 	}
 
 	if deploy.MigratingToCRW2_0(instance) &&
-		! instance.Spec.Server.ExternalPluginRegistry &&
+		!instance.Spec.Server.ExternalPluginRegistry &&
 		instance.Spec.Server.PluginRegistryUrl == deploy.OldCrwPluginRegistryUrl {
 		instance.Spec.Server.PluginRegistryUrl = ""
 		if err := r.UpdateCheCRSpec(instance, "plugin registry url", instance.Spec.Server.PluginRegistryUrl); err != nil {
