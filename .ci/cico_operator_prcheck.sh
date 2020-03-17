@@ -67,14 +67,18 @@ install_minikube() {
   echo 'kubernetes  ALL=(ALL:ALL) ALL' >> /etc/sudoers
   chown -R kubernetes *
   export MINIKUBE_VERSION=v1.5.2
+  export KUBERNETES_VERSION=v1.14.5
+
   # Download minikube binary
 
 # Download minikube binary
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-linux-amd64 && \
   chmod +x minikube && \
   sudo mv minikube /usr/local/bin/
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/amd64/kubectl && \
+  chmod +x kubectl &&  \
+sudo mv kubectl /usr/local/bin/
 
-  sudo -u kubernetes bash -c 'ls /usr/local/bin'
   sudo -u kubernetes bash -c '/usr/local/bin/minikube start --memory=8192'
   sh olm/testCatalogSource.sh kubernetes nightly poc
 
