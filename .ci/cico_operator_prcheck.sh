@@ -63,20 +63,16 @@ run_tests() {
 install_minikube() {
     set -x
   adduser kubernetes
-
+  echo 'kubernetes  ALL=(ALL:ALL) ALL' >> /etc/sudoers
   export MINIKUBE_VERSION=v1.5.2
-  export KUBERNETES_VERSION=v1.14.5
   # Download minikube binary
-sudo -u kubernetes bash -c 'curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.14.5/bin/linux/amd64/kubectl && \
-  chmod +x kubectl &&  \
-sudo mv kubectl /usr/local/bin/'
 
 # Download minikube binary
-sudo -u kubernetes bash -c 'curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.5.2/minikube-linux-amd64 && \
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-linux-amd64 && \
   chmod +x minikube && \
-  sudo mv minikube /usr/local/bin/'
+  sudo mv minikube /usr/local/bin/
 
-  sudo -u kubernetes bash -c 'minikube version'
+  sudo -u kubernetes bash -c 'ls /usr/local/bin'
 
 }
 
