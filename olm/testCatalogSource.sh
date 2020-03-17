@@ -25,10 +25,6 @@ if [ "${channel}" == "" ]; then
 fi
 
 #Check if minikube is installed.
-if ! hash minikube 2>/dev/null; then
-  echo "Minikube is not installed."
-  exit 1
-fi
 
 init() {
   #Setting current directory
