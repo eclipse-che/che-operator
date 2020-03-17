@@ -60,6 +60,26 @@ run_tests() {
   ${OPERATOR_REPO}/tmp/run-tests
 }
 
+install_minikube() {
+  export MINIKUBE_VERSION=v1.5.2
+  export KUBERNETES_VERSION=v1.14.5
+  # Download minikube binary
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/amd64/kubectl && \
+  chmod +x kubectl &&  \
+sudo mv kubectl /usr/local/bin/
+
+# Download minikube binary
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-linux-amd64 && \
+  chmod +x minikube && \
+  sudo mv minikube /usr/local/bin/
+
+  adduser kubernetes
+
+  sudo -u kubernetes bash -c 'minikube start --memory=8192'
+  sudo -u kubernetes bash -c 'minikube version'
+
+}
+
 init
 
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
@@ -69,5 +89,6 @@ installStartDocker
 install_VirtPackages
 start_libvirt
 setup_kvm_machine_driver
-minishift_installation
-run_tests
+install_minikube
+#minishift_installation
+#run_tests
