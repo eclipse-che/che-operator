@@ -151,26 +151,6 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, isOpenshift bool, cheFlavor str
 			})
 	}
 
-	identityProviderPostgresSecret := cr.Spec.Auth.IdentityProviderPostgresSecret
-	if len(identityProviderPostgresSecret) > 0 {
-		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name: "IDENTITY_POSTGRES_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "password",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: identityProviderPostgresSecret,
-					},
-				},
-			},
-		})
-	} else {
-		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name:  "IDENTITY_POSTGRES_PASSWORD",
-			Value: cr.Spec.Auth.IdentityProviderPostgresPassword,
-		})
-	}
-
 	if !isOpenshift {
 		var runAsUser int64 = 26
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{

@@ -22,10 +22,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetPostgresProvisionCommand() (command string) {
+func GetPostgresProvisionCommand(identityProviderPostgresSecret string) (command string) {
 	command = "OUT=$(psql postgres -tAc \"SELECT 1 FROM pg_roles WHERE rolname='keycloak'\"); " +
 		"if [ $OUT -eq 1 ]; then echo \"DB exists\"; exit 0; fi " +
-		"&& psql -c \"CREATE USER keycloak WITH PASSWORD '${IDENTITY_POSTGRES_PASSWORD}'\" " +
+		"&& psql -c \"CREATE USER keycloak WITH PASSWORD '" + identityProviderPostgresSecret + "'\" " +
 		"&& psql -c \"CREATE DATABASE keycloak\" " +
 		"&& psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak\" " +
 		"&& psql -c \"ALTER USER ${POSTGRESQL_USER} WITH SUPERUSER\""

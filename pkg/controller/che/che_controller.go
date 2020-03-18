@@ -520,7 +520,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 				}
 
-				pgCommand := deploy.GetPostgresProvisionCommand()
+				identityProviderPostgresSecret := instance.Spec.Auth.IdentityProviderPostgresSecret
+				if len(identityProviderPostgresSecret) > 0 {
+					_, password, err := k8sclient.ReadSecret(identityProviderPostgresSecret, instance.Namespace)
+					if err != nil {
+						logrus.Errorf("Failed to read '%s' secret: %s", identityProviderPostgresSecret, err)
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					}
+					identityProviderPostgresSecret = password
+				}
+				pgCommand := deploy.GetPostgresProvisionCommand(identityProviderPostgresSecret)
 				dbStatus := instance.Status.DbProvisoned
 				// provision Db and users for Che and Keycloak servers
 				if !dbStatus {
