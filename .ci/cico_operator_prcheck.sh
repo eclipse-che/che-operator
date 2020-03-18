@@ -20,7 +20,7 @@ Catch_Finish() {
 }
 
 init() {
-  GO_TOOLSET_VERSION="1.11.5-3"
+  GO_TOOLSET_VERSION="1.12.12-4"
   SCRIPT=$(readlink -f "$0") # this script's absolute path
   SCRIPTPATH=$(dirname "$SCRIPT") # /path/to/e2e/ folder
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
