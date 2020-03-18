@@ -337,7 +337,7 @@ func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, n
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret); err != nil && errors.IsNotFound(err) {
 		crt, err := r.GetEndpointTlsCrt(instance, url)
 		if err != nil {
-			logrus.Errorf("Failed to extract crt. Failed to create a secret with a self signed crt: %s", err)
+			logrus.Errorf("Failed to extract crt for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
 			return err
 		} else {
 			secret := deploy.NewSecret(instance, name, crt)
