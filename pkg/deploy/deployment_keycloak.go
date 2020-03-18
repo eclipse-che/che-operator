@@ -12,6 +12,9 @@
 package deploy
 
 import (
+	"regexp"
+	"strings"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -59,7 +62,6 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 
 	addCertToTrustStoreCommand := addRouterCrt + " && " + addOpenShiftAPICrt + " && " + addMountedCrt + " && " + addMountedServiceCrt + " && " + importJavaCacerts
 
-	startCommand := "sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	// upstream Keycloak has a bit different mechanism of adding jks
 	changeConfigCommand := "echo Installing certificates into Keycloak && " +
 		"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
@@ -68,6 +70,50 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 		"\"" + jbossDir + "/openshift.jks\", password => \"" + trustpass + "\", disabled => \"false\" },enabled=true) \n" +
 		"stop-embedded-server\" > /scripts/add_openshift_certificate.cli && " +
 		"/opt/jboss/keycloak/bin/jboss-cli.sh --file=/scripts/add_openshift_certificate.cli"
+
+	addProxyCliCommand := ""
+	applyProxyCliCommand := ""
+	proxyEnvVars := []corev1.EnvVar{}
+
+	if len(cr.Spec.Server.ProxyURL) > 1 {
+		cheWorkspaceHttpProxy, cheWorkspaceNoProxy := util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, cr.Spec.Server.ProxyUser, cr.Spec.Server.ProxyPassword)
+
+		proxyEnvVars = []corev1.EnvVar{
+			corev1.EnvVar{
+				Name:  "HTTP_PROXY",
+				Value: cheWorkspaceHttpProxy,
+			},
+			corev1.EnvVar{
+				Name:  "HTTPS_PROXY",
+				Value: cheWorkspaceHttpProxy,
+			},
+			corev1.EnvVar{
+				Name:  "NO_PROXY",
+				Value: cheWorkspaceNoProxy,
+			},
+		}
+
+		cheWorkspaceNoProxy = strings.ReplaceAll(regexp.QuoteMeta(cheWorkspaceNoProxy), "\\", "\\\\\\")
+
+		jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"
+		serverConfig := "standalone.xml"
+		if cheFlavor == "codeready" {
+			jbossCli = "/opt/eap/bin/jboss-cli.sh"
+			serverConfig = "standalone-openshift.xml"
+		}
+		addProxyCliCommand = " && echo Configuring Proxy && " +
+			"echo -e 'embed-server --server-config=" + serverConfig + " --std-out=echo \n" +
+			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[\"" + cheWorkspaceNoProxy + ";NO_PROXY\",\".*;" + cheWorkspaceHttpProxy + "\"]) \n" +
+			"stop-embedded-server' > " + jbossDir + "/setup-http-proxy.cli"
+
+		applyProxyCliCommand = " && " + jbossCli + " --file=" + jbossDir + "/setup-http-proxy.cli"
+		if cheFlavor == "codeready" {
+			applyProxyCliCommand = " && mkdir -p " + jbossDir + "/extensions && echo '#!/bin/bash\n" +
+				"" + jbossDir + "/bin/jboss-cli.sh --file=" + jbossDir + "/setup-http-proxy.cli' > " + jbossDir + "/extensions/postconfigure.sh && " +
+				"chmod a+x " + jbossDir + "/extensions/postconfigure.sh "
+		}
+	}
+
 	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	keycloakEnv := []corev1.EnvVar{
 		{
@@ -215,12 +261,18 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			},
 		}
 	}
-	command := addCertToTrustStoreCommand + " && " + changeConfigCommand + " && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
+
+	for _, envvar := range proxyEnvVars {
+		keycloakEnv = append(keycloakEnv, envvar)
+	}
+
+	command := addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand + " && " + changeConfigCommand +
+		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
 	if cheFlavor == "codeready" {
-		command = addCertToTrustStoreCommand +
-		" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties && " +
-		startCommand
+		command = addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
+			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties" +
+			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
 
 	return &appsv1.Deployment{
