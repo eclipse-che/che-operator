@@ -9,7 +9,7 @@ if [[ ! $1 ]]; then
   exit
 fi
 
-PODMAN=podman # or user docker
+PODMAN=docker # or user podman
 
 container="$1"; shift 1
 tmpcontainer="$(echo $container | tr "/:" "--")-$(date +%s)"
