@@ -12,12 +12,13 @@
 package che
 
 import (
-	"reflect"
 	"context"
 	"crypto/tls"
 	"encoding/pem"
 	"fmt"
 	"net/http"
+	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/http/httpproxy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -903,7 +905,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		} else {
 			newDevFileRegistryConfigMap := deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
-			if ! reflect.DeepEqual(devFileRegistryConfigMap.Data, newDevFileRegistryConfigMap.Data) {
+			if !reflect.DeepEqual(devFileRegistryConfigMap.Data, newDevFileRegistryConfigMap.Data) {
 				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
 				if err != nil {
 					logrus.Errorf("An error occurred: %v", err)
@@ -1361,7 +1363,7 @@ func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, endpointUrl
 	return certificate, nil
 }
 
-func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *http.Transport) () {
+func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *http.Transport) {
 	proxyParts := strings.Split(instance.Spec.Server.ProxyURL, "://")
 	proxyProtocol := ""
 	proxyHost := ""
@@ -1378,8 +1380,19 @@ func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *htt
 	if instance.Spec.Server.ProxyPort != "" {
 		proxyURL = proxyURL + ":" + instance.Spec.Server.ProxyPort
 	}
-	if len(instance.Spec.Server.ProxyUser) > 1 && len(instance.Spec.Server.ProxyPassword) > 1 {
-		proxyURL = instance.Spec.Server.ProxyUser + ":" + instance.Spec.Server.ProxyPassword + "@" + proxyURL
+
+	proxyUser := instance.Spec.Server.ProxyUser
+	proxyPassword := instance.Spec.Server.ProxyPassword
+	proxySecret := instance.Spec.Server.ProxySecret
+	user, password, err := k8sclient.ReadSecret(proxySecret, instance.Namespace)
+	if err == nil {
+		proxyUser = user
+		proxyPassword = password
+	} else {
+		logrus.Errorf("Failed to read '%s' secret: %s", proxySecret, err)
+	}
+	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
+		proxyURL = proxyUser + ":" + proxyPassword + "@" + proxyURL
 	}
 
 	if proxyProtocol != "" {

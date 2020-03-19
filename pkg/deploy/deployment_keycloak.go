@@ -17,6 +17,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -76,7 +77,11 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, cheFlavor string, cheCertSecret
 	proxyEnvVars := []corev1.EnvVar{}
 
 	if len(cr.Spec.Server.ProxyURL) > 1 {
-		cheWorkspaceHttpProxy, cheWorkspaceNoProxy := util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, cr.Spec.Server.ProxyUser, cr.Spec.Server.ProxyPassword)
+		proxySecret := cr.Spec.Server.ProxySecret
+		cheWorkspaceHttpProxy, cheWorkspaceNoProxy, err := util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, cr.Spec.Server.ProxyUser, cr.Spec.Server.ProxyPassword, proxySecret, cr.Namespace)
+		if err != nil {
+			logrus.Errorf("Failed to read '%s' secret: %v", proxySecret, err)
+		}
 
 		proxyEnvVars = []corev1.EnvVar{
 			corev1.EnvVar{
@@ -356,9 +361,9 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, cheFlavor string, cheCertSecret
 		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
 	if cheFlavor == "codeready" {
-		command = addCertToTrustStoreCommand +addProxyCliCommand + applyProxyCliCommand +
-		" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties  " +
-		" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
+		command = addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
+			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties  " +
+			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
 
 	return &appsv1.Deployment{
