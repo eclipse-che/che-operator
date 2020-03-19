@@ -18,6 +18,8 @@ import (
 	"encoding/pem"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -25,6 +27,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/http/httpproxy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -286,10 +289,10 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 // GetEndpointTlsCrt creates a test TLS route and gets it to extract certificate chain
 // There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
 // which however requires extra privileges for operator service account
-func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string) (certificate []byte, err error) {
+func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, endpointUrl string) (certificate []byte, err error) {
 	testRoute := &routev1.Route{}
 	var requestURL string
-	if len(url) < 1 {
+	if len(endpointUrl) < 1 {
 		testRoute = deploy.NewTlsRoute(instance, "test", "test", 8080)
 		logrus.Infof("Creating a test route %s to extract router crt", testRoute.Name)
 		if err := r.CreateNewRoute(instance, testRoute); err != nil {
@@ -299,16 +302,26 @@ func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string)
 		// sometimes timing conditions apply, and host isn't available right away
 		if len(testRoute.Spec.Host) < 1 {
 			time.Sleep(time.Duration(1) * time.Second)
-			testRoute := r.GetEffectiveRoute(instance, "test")
-			requestURL = "https://" + testRoute.Spec.Host
+			testRoute = r.GetEffectiveRoute(instance, "test")
 		}
 		requestURL = "https://" + testRoute.Spec.Host
 
 	} else {
-		requestURL = url
+		requestURL = endpointUrl
 	}
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
+
+	//adding the proxy settings to the Transport object
+	transport := &http.Transport{}
+
+	if instance.Spec.Server.ProxyURL != "" {
+		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", instance.Spec.Server.ProxyURL, requestURL)
+		r.configureProxy(instance, transport)
+	}
+
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{
+		Transport: transport,
+	}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -329,11 +342,51 @@ func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, url string)
 		certificate = append(certificate, crt...)
 	}
 
-	if len(url) < 1 {
+	if len(endpointUrl) < 1 {
 		logrus.Infof("Deleting a test route %s to extract routes crt", testRoute.Name)
 		if err := r.client.Delete(context.TODO(), testRoute); err != nil {
 			logrus.Errorf("Failed to delete test route %s: %s", testRoute.Name, err)
 		}
 	}
 	return certificate, nil
+}
+
+func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *http.Transport) () {
+	proxyParts := strings.Split(instance.Spec.Server.ProxyURL, "://")
+	proxyProtocol := ""
+	proxyHost := ""
+	if len(proxyParts) == 1 {
+		proxyProtocol = ""
+		proxyHost = proxyParts[0]
+	} else {
+		proxyProtocol = proxyParts[0]
+		proxyHost = proxyParts[1]
+
+	}
+
+	proxyURL := proxyHost
+	if instance.Spec.Server.ProxyPort != "" {
+		proxyURL = proxyURL + ":" + instance.Spec.Server.ProxyPort
+	}
+	if len(instance.Spec.Server.ProxyUser) > 1 && len(instance.Spec.Server.ProxyPassword) > 1 {
+		proxyURL = instance.Spec.Server.ProxyUser + ":" + instance.Spec.Server.ProxyPassword + "@" + proxyURL
+	}
+
+	if proxyProtocol != "" {
+		proxyURL = proxyProtocol + "://" + proxyURL
+	}
+	config := httpproxy.Config{
+		HTTPProxy:  proxyURL,
+		HTTPSProxy: proxyURL,
+		NoProxy:    strings.Replace(instance.Spec.Server.NonProxyHosts, "|", ",", -1),
+	}
+	proxyFunc := config.ProxyFunc()
+	transport.Proxy = func(r *http.Request) (*url.URL, error) {
+		theProxyUrl, err := proxyFunc(r.URL)
+		if err != nil {
+			logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
+		}
+		logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
+		return theProxyUrl, err
+	}
 }

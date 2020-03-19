@@ -123,7 +123,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheWorkspaceHttpProxy := ""
 	cheWorkspaceNoProxy := ""
 	if len(cr.Spec.Server.ProxyURL) > 1 {
-		cheWorkspaceHttpProxy, cheWorkspaceNoProxy = util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, proxyUser, proxyPassword)
+		cheWorkspaceHttpProxy, cheWorkspaceNoProxy = util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword)
 	}
 
 	ingressDomain := cr.Spec.K8s.IngressDomain
