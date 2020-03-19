@@ -28,7 +28,7 @@ ${PODMAN} create --name="${tmpcontainer}" $container sh 2>&1 >/dev/null || ${POD
 ${PODMAN} export "${tmpcontainer}" > /tmp/${tmpcontainer}.tar
 rm -fr "$unpackdir"; mkdir -p "$unpackdir"
 echo "[INFO] Extract from container ..."
-tar xf /tmp/${tmpcontainer}.tar -C "$unpackdir" $*
+tar xf /tmp/${tmpcontainer}.tar --wildcards -C "$unpackdir" $*
 
 # cleanup
 ${PODMAN} rm -f "${tmpcontainer}" 2>&1 >/dev/null || true
