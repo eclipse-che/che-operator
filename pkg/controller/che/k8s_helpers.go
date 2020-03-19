@@ -315,44 +315,9 @@ func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, endpointUrl
 
 	if instance.Spec.Server.ProxyURL != "" {
 		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", instance.Spec.Server.ProxyURL, requestURL)
-		proxyParts := strings.Split(instance.Spec.Server.ProxyURL, "://")
-		proxyProtocol := ""
-		proxyHost := ""
-		if len(proxyParts) == 1 {
-			proxyProtocol = ""
-			proxyHost = proxyParts[0]
-		} else {
-			proxyProtocol = proxyParts[0]
-			proxyHost = proxyParts[1]
-
-		}
-
-		proxyURL := proxyHost
-		if instance.Spec.Server.ProxyPort != "" {
-			proxyURL = proxyURL + ":" + instance.Spec.Server.ProxyPort
-		}
-		if len(instance.Spec.Server.ProxyUser) > 1 && len(instance.Spec.Server.ProxyPassword) > 1 {
-			proxyURL = instance.Spec.Server.ProxyUser + ":" + instance.Spec.Server.ProxyPassword + "@" + proxyURL
-		}
-
-		if proxyProtocol != "" {
-			proxyURL = proxyProtocol + "://" + proxyURL
-		}
-		config := httpproxy.Config{
-			HTTPProxy:  proxyURL,
-			HTTPSProxy: proxyURL,
-			NoProxy:    strings.Replace(instance.Spec.Server.NonProxyHosts, "|", ",", -1),
-		}
-		proxyFunc := config.ProxyFunc()
-		transport.Proxy = func(r *http.Request) (*url.URL, error) {
-			theProxyUrl, err := proxyFunc(r.URL)
-			if err != nil {
-				logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
-			}
-			logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
-			return theProxyUrl, err
-		}
+		r.configureProxy(instance, transport)
 	}
+
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
 		Transport: transport,
@@ -384,4 +349,44 @@ func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, endpointUrl
 		}
 	}
 	return certificate, nil
+}
+
+func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *http.Transport) () {
+	proxyParts := strings.Split(instance.Spec.Server.ProxyURL, "://")
+	proxyProtocol := ""
+	proxyHost := ""
+	if len(proxyParts) == 1 {
+		proxyProtocol = ""
+		proxyHost = proxyParts[0]
+	} else {
+		proxyProtocol = proxyParts[0]
+		proxyHost = proxyParts[1]
+
+	}
+
+	proxyURL := proxyHost
+	if instance.Spec.Server.ProxyPort != "" {
+		proxyURL = proxyURL + ":" + instance.Spec.Server.ProxyPort
+	}
+	if len(instance.Spec.Server.ProxyUser) > 1 && len(instance.Spec.Server.ProxyPassword) > 1 {
+		proxyURL = instance.Spec.Server.ProxyUser + ":" + instance.Spec.Server.ProxyPassword + "@" + proxyURL
+	}
+
+	if proxyProtocol != "" {
+		proxyURL = proxyProtocol + "://" + proxyURL
+	}
+	config := httpproxy.Config{
+		HTTPProxy:  proxyURL,
+		HTTPSProxy: proxyURL,
+		NoProxy:    strings.Replace(instance.Spec.Server.NonProxyHosts, "|", ",", -1),
+	}
+	proxyFunc := config.ProxyFunc()
+	transport.Proxy = func(r *http.Request) (*url.URL, error) {
+		theProxyUrl, err := proxyFunc(r.URL)
+		if err != nil {
+			logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
+		}
+		logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
+		return theProxyUrl, err
+	}
 }
