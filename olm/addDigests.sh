@@ -12,7 +12,8 @@
 
 SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
 BASE_DIR="$(pwd)"
-
+command -v podman >/dev/null 2>&1 || { echo "podman is not installed. Aborting."; exit 1; }
+command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -s [SOURCE_PATH] -n [csv name] -v [VERSION] "
 	echo "Example: $0 -w $(pwd) -s eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift -n eclipse-che-preview-openshift -v 7.9.0"
