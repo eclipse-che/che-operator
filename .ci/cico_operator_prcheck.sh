@@ -89,7 +89,7 @@ install_minikube() {
     minikube version
     sudo systemctl start libvirtd
     minikube delete
-    minikube start --memory=4096 --vm-driver=kvm2
+    minikube start --memory=8192 --vm-driver=kvm2
     sleep 120
     sh olm/testCatalogSource.sh kubernetes stable flaxius
     kubectl get pods --all-namespaces
