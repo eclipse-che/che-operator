@@ -94,9 +94,8 @@ install_minikube() {
     sh olm/testCatalogSource.sh kubernetes stable flaxius
     kubectl get pods --all-namespaces
     minikube delete
-    
-    
 EOF
+  userdel -r kubernetes
 }
 
 init
