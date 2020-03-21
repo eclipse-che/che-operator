@@ -61,34 +61,44 @@ run_tests() {
 }
 
 install_minikube() {
-    set -x
+  set -x
   adduser kubernetes
+  passwd -f -u kubernetes
   usermod --append --groups libvirt kubernetes
+  usermod --append --groups docker kubernetes
+  sudo systemctl start libvirtd
   echo 'kubernetes  ALL=(ALL:ALL) ALL' >> /etc/sudoers
-  chown -R kubernetes *
-  export MINIKUBE_VERSION=v1.5.2
-  export KUBERNETES_VERSION=v1.14.5
 
-  # Download minikube binary
+  su kubernetes <<'EOF'
+    mkdir -p /usr/local/bin
 
-# Download minikube binary
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-linux-amd64 && \
-  chmod +x minikube && \
-  sudo mv minikube /usr/local/bin/
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/amd64/kubectl && \
-  chmod +x kubectl &&  \
-sudo mv kubectl /usr/local/bin/
+    export PATH=/usr/local/bin:$PATH
+    export MINIKUBE_VERSION=v1.5.2
+    export KUBERNETES_VERSION=v1.14.5
 
-  sudo -u kubernetes bash -c '/usr/local/bin/minikube start --memory=8192'
-  sudo -u kubernetes bash -c 'sh olm/testCatalogSource.sh kubernetes nightly poc'
+    sudo curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-linux-amd64 && \
+        sudo chmod +x minikube && \
+        sudo mv minikube /usr/local/bin/
 
+    sudo curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/amd64/kubectl && \
+        sudo chmod +x kubectl &&  \
+        sudo mv kubectl /usr/local/bin/
+
+    minikube version
+    sudo systemctl start libvirtd
+    minikube delete
+    minikube start --memory=4096 --vm-driver=kvm2
+    kubectl get pods --all-namespaces
+    minikube delete
+    
+EOF
 }
 
 init
 
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
 installJQ
-load_jenkins_vars
+#load_jenkins_vars
 installStartDocker
 install_VirtPackages
 start_libvirt
