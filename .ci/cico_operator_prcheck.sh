@@ -62,6 +62,7 @@ run_tests() {
 
 install_minikube() {
   set -x
+  userdel -r kubernetes
   adduser kubernetes
   passwd -f -u kubernetes
   usermod --append --groups libvirt kubernetes
