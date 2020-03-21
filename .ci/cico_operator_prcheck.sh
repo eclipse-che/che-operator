@@ -17,7 +17,7 @@ trap 'Catch_Finish $?' EXIT SIGINT
 # Catch errors and force to delete minishift VM.
 Catch_Finish() {
   set +e
-  rm -rf ${OPERATOR_REPO}/tmp ~/.minishift && yes | minishift delete
+  rm -rf ${OPERATOR_REPO}/tmp ~/.minishift
 }
 
 init() {
