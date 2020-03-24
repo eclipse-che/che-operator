@@ -73,7 +73,8 @@ install_minikube() {
 
   su kubernetes <<'EOF'
     mkdir -p /usr/local/bin
-
+    ls -lrtha
+    if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
     export PATH=/usr/local/bin:$PATH
     export MINIKUBE_VERSION=v1.5.2
     export KUBERNETES_VERSION=v1.14.5
