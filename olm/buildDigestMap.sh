@@ -35,13 +35,14 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
     '-c') CSV="$2"; shift 1;;
+    '-v') VERSION="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
     '--help'|'-h') usage; exit;;
   esac
   shift 1
 done
 
-if [[ ! $CSV ]]; then usage; exit 1; fi
+if [[ ! $CSV ]] || [[ ! $VERSION ]]; then usage; exit 1; fi
 
 mkdir -p ${BASE_DIR}/generated
 
@@ -53,6 +54,7 @@ OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.cont
 REGISTRY_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("IMAGE_default_.*_registry"; "g")) | .value' "${CSV}")
 REGISTRY_IMAGES_ALL=""
 for registry in ${REGISTRY_LIST}; do
+  registry="${registry/\@sha256:*/:${VERSION}}" # remove possible existing @sha256:... and use current version instead
   # echo -n "[INFO] Pull container ${registry} ..."
   ${PODMAN} pull ${registry} ${QUIET}
 
