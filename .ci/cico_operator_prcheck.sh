@@ -68,6 +68,7 @@ install_minikube() {
   usermod --append --groups libvirt kubernetes
   usermod --append --groups docker kubernetes
   sudo systemctl start libvirtd
+  sudo chown -R kubernetes olm/*
   echo 'kubernetes  ALL=(ALL:ALL) ALL' >> /etc/sudoers
 
   su kubernetes <<'EOF'
