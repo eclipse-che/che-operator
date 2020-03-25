@@ -224,6 +224,7 @@ const (
 	failedNoOpenshiftUserReason  = "InstallOrUpdateFailed"
 	failedNoOpenshiftUserMessage = "No real user exists in the OpenShift cluster." +
 		" Either disable OpenShift OAuth integration or add at least one user (details in the Help link)"
+	failedUnableToGetOpenshiftUsers = "Unable to get users on the openshift."
 	howToCreateAUserLinkOS4 = "https://docs.openshift.com/container-platform/4.1/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
 	howToCreateAUserLinkOS3 = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
 )
@@ -352,8 +353,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			users := &userv1.UserList{}
 			listOptions := &client.ListOptions{}
 			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
+				getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
+				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getUsersErrMsg, ""); err != nil {
+					return reconcile.Result{}, err
+				}
 				return reconcile.Result{}, err
 			}
+
 			if len(users.Items) < 1 {
 				helpLink := ""
 				if isOpenShift4 {
