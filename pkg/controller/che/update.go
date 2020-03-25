@@ -31,7 +31,7 @@ func (r *ReconcileChe) UpdateCheCRStatus(instance *orgv1.CheCluster, updatedFiel
 	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
 	err = r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		logrus.Warnf("Failed to update %s CR. Fetching the latest CR version: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR. Fetching the latest CR version: %s", instance.Name, err)
 		return err
 	}
 	logrus.Infof("Custom resource %s updated", instance.Name)
@@ -42,7 +42,7 @@ func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField 
 	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
 	err = r.client.Update(context.TODO(), instance)
 	if err != nil {
-		logrus.Warnf("Failed to update %s CR: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
 		return err
 	}
 	logrus.Infof("Custom resource %s updated", instance.Name)
