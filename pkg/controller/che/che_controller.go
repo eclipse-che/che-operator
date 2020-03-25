@@ -224,7 +224,7 @@ const (
 	failedNoOpenshiftUserReason  = "InstallOrUpdateFailed"
 	failedNoOpenshiftUserMessage = "No real user exists in the OpenShift cluster." +
 		" Either disable OpenShift OAuth integration or add at least one user (details in the Help link)"
-	failedUnableToGetOpenshiftUsers = "Unable to get users on the openshift."
+	failedUnableToGetOpenshiftUsers = "Unable to get users on the OpenShift cluster."
 	howToCreateAUserLinkOS4 = "https://docs.openshift.com/container-platform/4.1/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
 	howToCreateAUserLinkOS3 = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
 )
@@ -354,6 +354,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			listOptions := &client.ListOptions{}
 			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
 				getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
+				logrus.Errorf(getUsersErrMsg)
 				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getUsersErrMsg, ""); err != nil {
 					return reconcile.Result{}, err
 				}
