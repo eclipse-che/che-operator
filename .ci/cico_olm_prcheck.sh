@@ -14,7 +14,7 @@ trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minikube VM.
 Catch_Finish() {
-  rm -rf ~/.kube && yes | minikube delete && yes | minishift delete --force --clear-cache
+  rm -rf ~/.kube && yes | minikube delete
 }
 
 init() {
@@ -39,8 +39,6 @@ install_Dependencies() {
   installYQ
   install_VirtPackages
   installStartDocker
-  setup_kvm_machine_driver
-  minishift_olm_installation
 }
 
 run_olm_tests() {
