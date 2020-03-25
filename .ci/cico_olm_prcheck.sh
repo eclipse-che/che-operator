@@ -36,9 +36,9 @@ minishift_olm_installation() {
 }
 
 install_Dependencies() {
-  #installYQ
-  #install_VirtPackages
-  #installStartDocker
+  installYQ
+  install_VirtPackages
+  installStartDocker
   setup_kvm_machine_driver
   minishift_olm_installation
 }
@@ -46,16 +46,6 @@ install_Dependencies() {
 run_olm_tests() {
   for platform in 'openshift' 'kubernetes'
   do
-    if [[ ${platform} == 'openshift' ]]; then
-      printInfo "Starting minishift VM to test openshift olm files..."
-      minishift start --memory=${RAM_MEMORY}
-      oc login -u system:admin
-      oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
-
-      sh "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${platform} ${CHANNEL} ${NAMESPACE}
-      printInfo "Successfully verified olm files on openshift platform."
-      rm -rf ~/.kube .minishift && yes | minishift delete --force --clear-cache
-    fi
     if [[ ${platform} == 'kubernetes' ]]; then
       printInfo "Starting minikube VM to test kubernetes olm files..."
       source ${OPERATOR_REPO}/.ci/start-minikube.sh
