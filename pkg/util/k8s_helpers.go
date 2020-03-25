@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 type k8s struct {
@@ -322,4 +323,19 @@ func (cl *k8s) RunExec(command []string, podName, namespace string) (string, str
 	}
 
 	return stdout.String(), stderr.String(), nil
+}
+
+func (cl *k8s) IsResourceOperationPermitted(resourceAttr *authorizationv1.ResourceAttributes) (ok bool, err error) {
+	lsar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: resourceAttr,
+		}, 
+	}
+	
+	ssar, err := cl.clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(lsar)
+	if err != nil {
+		return false, err
+	}
+
+	return ssar.Status.Allowed, nil
 }
