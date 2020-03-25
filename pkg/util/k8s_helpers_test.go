@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package che
+package util
 
 import (
 	"github.com/sirupsen/logrus"

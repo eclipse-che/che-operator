@@ -12,17 +12,10 @@
 package che
 
 import (
-	"bytes"
-	"fmt"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
-	"io"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -39,43 +32,6 @@ func ExecIntoPod(podName string, provisionCommand string, reason string, ns stri
 	}
 	logrus.Info("Exec successfully completed")
 	return true
-}
-
-func (cl *k8s) RunExec(command []string, podName, namespace string) (string, string, error) {
-
-	req := cl.clientset.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(podName).
-		Namespace(namespace).
-		SubResource("exec")
-
-	req.VersionedParams(&corev1.PodExecOptions{
-		Command: command,
-		Stdin:   false,
-		Stdout:  true,
-		Stderr:  true,
-		TTY:     false,
-	}, scheme.ParameterCodec)
-
-	cfg, _ := config.GetConfig()
-	exec, err := remotecommand.NewSPDYExecutor(cfg, "POST", req.URL())
-	if err != nil {
-		return "", "", fmt.Errorf("error while creating executor: %v", err)
-	}
-
-	var stdout, stderr bytes.Buffer
-	var stdin io.Reader
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  stdin,
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Tty:    false,
-	})
-	if err != nil {
-		return stdout.String(), stderr.String(), err
-	}
-
-	return stdout.String(), stderr.String(), nil
 }
 
 func (r *ReconcileChe) CreateKeycloakResources(instance *orgv1.CheCluster, request reconcile.Request, deploymentName string) (err error) {
@@ -99,7 +55,7 @@ func (r *ReconcileChe) CreateKeycloakResources(instance *orgv1.CheCluster, reque
 		for {
 			instance.Status.KeycloakProvisoned = true
 			if err := r.UpdateCheCRStatus(instance, "status: provisioned with Keycloak", "true"); err != nil &&
-			errors.IsConflict(err) {
+				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
 			}

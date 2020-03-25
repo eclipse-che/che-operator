@@ -208,15 +208,18 @@ type CheClusterSpecServer struct {
 	NonProxyHosts string `json:"nonProxyHosts,omitempty"`
 	// User name of the proxy server.
 	// Only use when configuring a proxy is required
-	// (see also the `proxyURL` field).
+	// (see also the `proxyURL` `proxySecret` fields).
 	// +optional
 	ProxyUser string `json:"proxyUser,omitempty"`
 	// Password of the proxy server
-	//
 	// Only use when proxy configuration is required
-	// (see also the `proxyUser` field).
+	// (see also the `proxyUser` and `proxySecret` fields).
 	// +optional
 	ProxyPassword string `json:"proxyPassword,omitempty"`
+	// The secret that contains `user` and `password` for a proxy server.
+	// If the secret is defined then `proxyUser` and `proxyPassword` are ignored
+	// +optional
+	ProxySecret string `json:"proxySecret,omitempty"`
 	// Overrides the memory request used in the Che server deployment. Defaults to 512Mi.
 	// +optional
 	ServerMemoryRequest string `json:"serverMemoryRequest,omitempty"`
@@ -255,6 +258,14 @@ type CheClusterSpecDB struct {
 	// Postgres database name that the Che server uses to connect to the DB. Defaults to `dbche`.
 	// +optional
 	ChePostgresDb string `json:"chePostgresDb,omitempty"`
+	// The secret that contains Postgres `user` and `password` that the Che server should use to connect to the DB.
+	// If the secret is defined then `chePostgresUser` and `chePostgresPassword` are ignored.
+	// If the value is omitted or left blank then there are two scenarios:
+	// 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB.
+	// 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `che-postgres-secret`
+	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
+	// +optional
+	ChePostgresSecret string `json:"chePostgresSecret,omitempty"`
 	// Overrides the container image used in the Postgres database deployment. This includes the image tag.
 	// Omit it or leave it empty to use the defaut container image provided by the operator.
 	// +optional
@@ -288,6 +299,15 @@ type CheClusterSpecAuth struct {
 	// If omitted or left blank, it will be set to an auto-generated password.
 	// +optional
 	IdentityProviderPassword string `json:"identityProviderPassword,omitempty"`
+	// The secret that contains `user` and `password` for Identity Provider.
+	// If the secret is defined then `identityProviderAdminUserName` and `identityProviderPassword` are ignored.
+	// If the value is omitted or left blank then there are two scenarios:
+	// 1. `identityProviderAdminUserName` and `identityProviderPassword` are defined, then they will be used.
+	// 2. `identityProviderAdminUserName` or `identityProviderPassword` are not defined, then a new secret
+	// with the name `che-identity-secret` will be created with default value `admin` for `user` and
+	// with an auto-generated value for `password`.
+	// +optional
+	IdentityProviderSecret string `json:"identityProviderSecret,omitempty"`
 	// Name of a Identity provider (Keycloak / RH SSO) realm that should be used for Che.
 	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
 	// If omitted or left blank, it will be set to the value of the `flavour` field.
@@ -303,13 +323,21 @@ type CheClusterSpecAuth struct {
 	// If omitted or left blank, it will be set to an auto-generated password.
 	// +optional
 	IdentityProviderPostgresPassword string `json:"identityProviderPostgresPassword,omitempty"`
+	// The secret that contains `password` for The Identity Provider (Keycloak / RH SSO) to connect to the database.
+	// If the secret is defined then `identityProviderPostgresPassword` will be ignored.
+	// If the value is omitted or left blank then there are two scenarios:
+	// 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database.
+	// 2. `identityProviderPostgresPassword` is not defined, then a new secret with the name `che-identity-postgres-secret`
+	// will be created with an auto-generated value for `password`.
+	// +optional
+	IdentityProviderPostgresSecret string `json:"identityProviderPostgresSecret,omitempty"`
 	// Forces the default `admin` Che user to update password on first login. Defaults to `false`.
 	// +optional
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
-	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth. Enabled by defaumt on OpenShift.
-	// This will allow users to directly login with their Openshift user throug the Openshift login,
-	// and have their workspaces created under personnal OpenShift namespaces.
-	// WARNING: the `kuebadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.
+	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth. Enabled by default on OpenShift.
+	// This will allow users to directly login with their Openshift user through the Openshift login,
+	// and have their workspaces created under personal OpenShift namespaces.
+	// WARNING: the `kubeadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.
 	// +optional
 	OpenShiftoAuth bool `json:"openShiftoAuth"`
 	// Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank.
@@ -448,8 +476,8 @@ type CheCluster struct {
 	// the various components of the Che installation.
 	// These generated config maps should NOT be updated manually.
 	Spec   CheClusterSpec   `json:"spec,omitempty"`
-	
-	// CheClusterStatus defines the observed state of Che installation	
+
+	// CheClusterStatus defines the observed state of Che installation
 	Status CheClusterStatus `json:"status,omitempty"`
 }
 

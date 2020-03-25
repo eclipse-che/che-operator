@@ -236,12 +236,11 @@ func (r *ReconcileChe) ReconcileTLSObjects(instance *orgv1.CheCluster, request r
 
 func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isOpenShift4 bool) (deleted bool, err error) {
 	if instance.Spec.Auth.OpenShiftoAuth == false && instance.Status.OpenShiftoAuthProvisioned == true {
-		keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
 		keycloakDeployment := &appsv1.Deployment{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: instance.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
 		}
-		deleteOpenShiftIdentityProviderProvisionCommand := deploy.GetDeleteOpenShiftIdentityProviderProvisionCommand(instance, keycloakAdminPassword, isOpenShift4)
+		deleteOpenShiftIdentityProviderProvisionCommand := deploy.GetDeleteOpenShiftIdentityProviderProvisionCommand(instance, isOpenShift4)
 		podToExec, err := k8sclient.GetDeploymentPod(keycloakDeployment.Name, instance.Namespace)
 		if err != nil {
 			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")

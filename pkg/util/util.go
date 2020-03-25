@@ -12,26 +12,30 @@
 package util
 
 import (
-	"sort"
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"io/ioutil"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"math/rand"
 	"net/http"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"sort"
 	"strings"
 	"time"
-	"bytes"
-	"fmt"
+
+	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
+var (
+	k8sclient = GetK8Client()
+)
 
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {
@@ -86,7 +90,7 @@ func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 	tests := IsTestMode()
 	if !tests {
 		apiGroups, err := getApiList()
-		if err != nil{
+		if err != nil {
 			return false, false, err
 		}
 		for _, apiGroup := range apiGroups {
@@ -201,7 +205,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	token := string(file)
 
 	req.Header = http.Header{
-		"Authorization": []string{ "Bearer " + token },
+		"Authorization": []string{"Bearer " + token},
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -209,7 +213,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode / 100 != 2 {
+	if resp.StatusCode/100 != 2 {
 		message := url + " - " + resp.Status
 		logrus.Errorf("An error occurred when getting API public hostname: %s", message)
 		return "", errors.New(message)
@@ -229,7 +233,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	switch status := jsonData["status"].(type) {
 	case map[string]interface{}:
 		hostname = status["apiServerURL"].(string)
-	default:	
+	default:
 		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", body)
 		return "", errors.New(string(body))
 	}
@@ -237,7 +241,16 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	return hostname, nil
 }
 
-func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string) (javaOpts string) {
+func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string, proxySecret string, namespace string) (javaOpts string, err error) {
+	if len(proxySecret) > 0 {
+		user, password, err := k8sclient.ReadSecret(proxySecret, namespace)
+		if err == nil {
+			proxyUser = user
+			proxyPassword = password
+		} else {
+			return "", err
+		}
+	}
 
 	proxyHost := strings.TrimLeft(proxyURL, "https://")
 	proxyUserPassword := ""
@@ -250,10 +263,20 @@ func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts stri
 		" -Dhttp.proxyHost=" + proxyHost + " -Dhttp.proxyPort=" + proxyPort +
 			" -Dhttps.proxyHost=" + proxyHost + " -Dhttps.proxyPort=" + proxyPort +
 			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "'" + proxyUserPassword
-	return javaOpts
+	return javaOpts, nil
 }
 
-func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string) (proxyUrl string, noProxy string) {
+func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string, proxySecret string, namespace string) (proxyUrl string, noProxy string, err error) {
+	if len(proxySecret) > 0 {
+		user, password, err := k8sclient.ReadSecret(proxySecret, namespace)
+		if err == nil {
+			proxyUser = user
+			proxyPassword = password
+		} else {
+			return "", "", err
+		}
+	}
+
 	proxyUrl = proxyHost + ":" + proxyPort
 	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
 		protocol := strings.Split(proxyHost, "://")[0]
@@ -263,7 +286,7 @@ func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string,
 
 	noProxy = strings.Replace(nonProxyHosts, "|", ",", -1)
 
-	return proxyUrl, noProxy
+	return proxyUrl, noProxy, nil
 }
 
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {

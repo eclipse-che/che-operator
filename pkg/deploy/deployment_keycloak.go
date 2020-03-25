@@ -17,6 +17,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -24,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string, keycloakAdminPassword string, cheFlavor string, cheCertSecretVersion string, openshiftCertSecretVersion string) *appsv1.Deployment {
+func NewKeycloakDeployment(cr *orgv1.CheCluster, cheFlavor string, cheCertSecretVersion string, openshiftCertSecretVersion string) *appsv1.Deployment {
 	optionalEnv := true
 	keycloakName := "keycloak"
 	labels := GetLabels(cr, keycloakName)
@@ -76,7 +77,11 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	proxyEnvVars := []corev1.EnvVar{}
 
 	if len(cr.Spec.Server.ProxyURL) > 1 {
-		cheWorkspaceHttpProxy, cheWorkspaceNoProxy := util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, cr.Spec.Server.ProxyUser, cr.Spec.Server.ProxyPassword)
+		proxySecret := cr.Spec.Server.ProxySecret
+		cheWorkspaceHttpProxy, cheWorkspaceNoProxy, err := util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, cr.Spec.Server.ProxyUser, cr.Spec.Server.ProxyPassword, proxySecret, cr.Namespace)
+		if err != nil {
+			logrus.Errorf("Failed to read '%s' secret: %v", proxySecret, err)
+		}
 
 		proxyEnvVars = []corev1.EnvVar{
 			corev1.EnvVar{
@@ -114,19 +119,10 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 		}
 	}
 
-	keycloakAdminUserName := util.GetValue(cr.Spec.Auth.IdentityProviderAdminUserName, DefaultKeycloakAdminUserName)
 	keycloakEnv := []corev1.EnvVar{
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
 			Value: "true",
-		},
-		{
-			Name:  "KEYCLOAK_USER",
-			Value: keycloakAdminUserName,
-		},
-		{
-			Name:  "KEYCLOAK_PASSWORD",
-			Value: keycloakAdminPassword,
 		},
 		{
 			Name:  "DB_VENDOR",
@@ -153,10 +149,6 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			Value: "keycloak",
 		},
 		{
-			Name:  "POSTGRES_PASSWORD",
-			Value: keycloakPostgresPassword,
-		},
-		{
 			Name: "CHE_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
@@ -181,6 +173,62 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			},
 		},
 	}
+
+	identityProviderPostgresSecret := cr.Spec.Auth.IdentityProviderPostgresSecret
+	if len(identityProviderPostgresSecret) > 0 {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name: "POSTGRES_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "password",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: identityProviderPostgresSecret,
+					},
+				},
+			},
+		})
+	} else {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name:  "POSTGRES_PASSWORD",
+			Value: cr.Spec.Auth.IdentityProviderPostgresPassword,
+		})
+	}
+
+	identityProviderSecret := cr.Spec.Auth.IdentityProviderSecret
+	if len(identityProviderSecret) > 0 {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name: "KEYCLOAK_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "password",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: identityProviderSecret,
+					},
+				},
+			},
+		},
+			corev1.EnvVar{
+				Name: "KEYCLOAK_USER",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "user",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: identityProviderSecret,
+						},
+					},
+				},
+			})
+	} else {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name:  "KEYCLOAK_PASSWORD",
+			Value: cr.Spec.Auth.IdentityProviderPassword,
+		},
+			corev1.EnvVar{
+				Name:  "KEYCLOAK_USER",
+				Value: cr.Spec.Auth.IdentityProviderAdminUserName,
+			})
+	}
+
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
 			{
@@ -206,18 +254,6 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 			{
 				Name:  "DB_USERNAME",
 				Value: keycloakName,
-			},
-			{
-				Name:  "DB_PASSWORD",
-				Value: keycloakPostgresPassword,
-			},
-			{
-				Name:  "SSO_ADMIN_USERNAME",
-				Value: keycloakAdminUserName,
-			},
-			{
-				Name:  "SSO_ADMIN_PASSWORD",
-				Value: keycloakAdminPassword,
 			},
 			{
 				Name:  "DB_VENDOR",
@@ -260,6 +296,61 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 				},
 			},
 		}
+
+		identityProviderPostgresSecret := cr.Spec.Auth.IdentityProviderPostgresSecret
+		if len(identityProviderPostgresSecret) > 0 {
+			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+				Name: "DB_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "password",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: identityProviderPostgresSecret,
+						},
+					},
+				},
+			})
+		} else {
+			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+				Name:  "DB_PASSWORD",
+				Value: cr.Spec.Auth.IdentityProviderPostgresPassword,
+			})
+		}
+
+		identityProviderSecret := cr.Spec.Auth.IdentityProviderSecret
+		if len(identityProviderSecret) > 0 {
+			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+				Name: "SSO_ADMIN_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "password",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: identityProviderSecret,
+						},
+					},
+				},
+			},
+				corev1.EnvVar{
+					Name: "SSO_ADMIN_USERNAME",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							Key: "user",
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: identityProviderSecret,
+							},
+						},
+					},
+				})
+		} else {
+			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+				Name:  "SSO_ADMIN_PASSWORD",
+				Value: cr.Spec.Auth.IdentityProviderPassword,
+			},
+				corev1.EnvVar{
+					Name:  "SSO_ADMIN_USERNAME",
+					Value: cr.Spec.Auth.IdentityProviderAdminUserName,
+				})
+		}
 	}
 
 	for _, envvar := range proxyEnvVars {
@@ -271,7 +362,7 @@ func NewKeycloakDeployment(cr *orgv1.CheCluster, keycloakPostgresPassword string
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
 	if cheFlavor == "codeready" {
 		command = addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
-			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties" +
+			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties  " +
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
 
