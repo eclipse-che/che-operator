@@ -19,6 +19,7 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
+
 const (
 	cheVersionTest           = "2.1"
 	cheServerImageTest       = "registry.redhat.io/codeready-workspaces/server-rhel8:2.1"

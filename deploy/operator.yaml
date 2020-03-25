@@ -41,7 +41,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "che-operator"
+              value: che-operator
             - name: CHE_VERSION
               value: '2.1'
             - name: IMAGE_default_che_server
