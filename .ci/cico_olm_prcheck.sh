@@ -36,9 +36,9 @@ minishift_olm_installation() {
 }
 
 install_Dependencies() {
-  installYQ
-  install_VirtPackages
-  installStartDocker
+  #installYQ
+  #install_VirtPackages
+  #installStartDocker
   setup_kvm_machine_driver
   minishift_olm_installation
 }
