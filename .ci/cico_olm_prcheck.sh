@@ -31,7 +31,8 @@ install_Dependencies() {
   installYQ
   install_VirtPackages
   installStartDocker
-  minikube_installation
+  setup_kvm_machine_driver
+  minishift_installation
 }
 
 run_olm_tests() {
