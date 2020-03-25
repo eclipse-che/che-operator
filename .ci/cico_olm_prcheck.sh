@@ -23,8 +23,7 @@ init() {
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
   RAM_MEMORY=8192
   NAMESPACE="che-default"
-  #Temporal stable waiting to fix tls in nightly
-  CHANNEL="stable"
+  CHANNEL="nightly"
 }
 
 minishift_olm_installation() {
