@@ -37,6 +37,7 @@ minishift_olm_installation() {
 
 install_Dependencies() {
   installYQ
+  installJQ
   install_VirtPackages
   installStartDocker
 }
