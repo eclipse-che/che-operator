@@ -49,13 +49,13 @@ type CheConfigMap struct {
 	PreCreateSubPaths                      string `json:"CHE_INFRA_KUBERNETES_PVC_PRECREATE__SUBPATHS"`
 	TlsSupport                             string `json:"CHE_INFRA_OPENSHIFT_TLS__ENABLED"`
 	K8STrustCerts                          string `json:"CHE_INFRA_KUBERNETES_TRUST__CERTS"`
-	DatabaseURL                            string `json:"CHE_JDBC_URL"`
-	DbUserName                             string `json:"CHE_JDBC_USERNAME"`
-	DbPassword                             string `json:"CHE_JDBC_PASSWORD"`
+	DatabaseURL                            string `json:"CHE_JDBC_URL,omitempty"`
+	DbUserName                             string `json:"CHE_JDBC_USERNAME,omitempty"`
+	DbPassword                             string `json:"CHE_JDBC_PASSWORD,omitempty"`
 	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
-	KeycloakURL                            string `json:"CHE_KEYCLOAK_AUTH__SERVER__URL"`
-	KeycloakRealm                          string `json:"CHE_KEYCLOAK_REALM"`
-	KeycloakClientId                       string `json:"CHE_KEYCLOAK_CLIENT__ID"`
+	KeycloakURL                            string `json:"CHE_KEYCLOAK_AUTH__SERVER__URL,omitempty"`
+	KeycloakRealm                          string `json:"CHE_KEYCLOAK_REALM,omitempty"`
+	KeycloakClientId                       string `json:"CHE_KEYCLOAK_CLIENT__ID,omitempty"`
 	OpenShiftIdentityProvider              string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
 	JavaOpts                               string `json:"JAVA_OPTS"`
 	WorkspaceJavaOpts                      string `json:"CHE_WORKSPACE_JAVA__OPTIONS"`
@@ -83,7 +83,6 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}
 	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
-	chePostgresPassword := cr.Spec.Database.ChePostgresPassword
 	infra := "kubernetes"
 	if isOpenShift {
 		infra = "openshift"
@@ -111,6 +110,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	proxyJavaOpts := ""
 	proxyUser := cr.Spec.Server.ProxyUser
 	proxyPassword := cr.Spec.Server.ProxyPassword
+	proxySecret := cr.Spec.Server.ProxySecret
+
 	nonProxyHosts := cr.Spec.Server.NonProxyHosts
 	if len(nonProxyHosts) < 1 && len(cr.Spec.Server.ProxyURL) > 1 {
 		nonProxyHosts = os.Getenv("KUBERNETES_SERVICE_HOST")
@@ -118,16 +119,25 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		nonProxyHosts = nonProxyHosts + "|" + os.Getenv("KUBERNETES_SERVICE_HOST")
 	}
 	if len(cr.Spec.Server.ProxyURL) > 1 {
-		proxyJavaOpts = util.GenerateProxyJavaOpts(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword)
+		proxyJavaOpts, err = util.GenerateProxyJavaOpts(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword, proxySecret, cr.Namespace)
+		if err != nil {
+			logrus.Errorf("Failed to generate java proxy options: %v", err)
+		}
 	}
 	cheWorkspaceHttpProxy := ""
 	cheWorkspaceNoProxy := ""
 	if len(cr.Spec.Server.ProxyURL) > 1 {
-		cheWorkspaceHttpProxy, cheWorkspaceNoProxy = util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, cr.Spec.Server.NonProxyHosts, proxyUser, proxyPassword)
+		cheWorkspaceHttpProxy, cheWorkspaceNoProxy, err = util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword, proxySecret, cr.Namespace)
+		if err != nil {
+			logrus.Errorf("Failed to generate proxy env variables: %v", err)
+		}
 	}
 
 	ingressDomain := cr.Spec.K8s.IngressDomain
 	tlsSecretName := cr.Spec.K8s.TlsSecretName
+	if tlsSupport && tlsSecretName == "" {
+		tlsSecretName = "che-tls"
+	}
 	securityContextFsGroup := util.GetValue(cr.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup)
 	securityContextRunAsUser := util.GetValue(cr.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser)
 	pvcStrategy := util.GetValue(cr.Spec.Storage.PvcStrategy, DefaultPvcStrategy)
@@ -141,7 +151,6 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		preCreateSubPaths = "false"
 	}
 	chePostgresHostName := util.GetValue(cr.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName)
-	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, DefaultChePostgresUser)
 	chePostgresPort := util.GetValue(cr.Spec.Database.ChePostgresPort, DefaultChePostgresPort)
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, DefaultChePostgresDb)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
@@ -154,9 +163,10 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)))
+	cheMultiUser := GetCheMultiUser(cr)
 
 	data := &CheConfigMap{
-		CheMultiUser:                           "true",
+		CheMultiUser:                           cheMultiUser,
 		CheHost:                                cheHost,
 		ChePort:                                "8080",
 		CheApi:                                 protocol + "://" + cheHost + "/api",
@@ -174,13 +184,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		PreCreateSubPaths:                      preCreateSubPaths,
 		TlsSupport:                             tls,
 		K8STrustCerts:                          tls,
-		DatabaseURL:                            "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb,
-		DbUserName:                             chePostgresUser,
-		DbPassword:                             chePostgresPassword,
 		CheLogLevel:                            cheLogLevel,
-		KeycloakURL:                            keycloakURL + "/auth",
-		KeycloakRealm:                          keycloakRealm,
-		KeycloakClientId:                       keycloakClientId,
 		OpenShiftIdentityProvider:              openShiftIdentityProviderId,
 		JavaOpts:                               DefaultJavaOpts + " " + proxyJavaOpts,
 		WorkspaceJavaOpts:                      DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
@@ -196,6 +200,17 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		CheServerSecureExposerJwtProxyImage:    DefaultCheServerSecureExposerJwtProxyImage(cr),
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
+	}
+
+	if cheMultiUser == "true" {
+		data.KeycloakURL = keycloakURL + "/auth"
+		data.KeycloakRealm = keycloakRealm
+		data.KeycloakClientId = keycloakClientId
+		data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
+		if len(cr.Spec.Database.ChePostgresSecret) < 1 {
+			data.DbUserName = cr.Spec.Database.ChePostgresUser
+			data.DbPassword = cr.Spec.Database.ChePostgresPassword
+		}
 	}
 
 	out, err := json.Marshal(data)

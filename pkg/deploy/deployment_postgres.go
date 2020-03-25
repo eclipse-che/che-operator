@@ -20,8 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isOpenshift bool, cheFlavor string) *appsv1.Deployment {
-	chePostgresUser := util.GetValue(cr.Spec.Database.ChePostgresUser, "pgche")
+func NewPostgresDeployment(cr *orgv1.CheCluster, isOpenshift bool, cheFlavor string) *appsv1.Deployment {
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, "dbche")
 	postgresAdminPassword := util.GeneratePasswd(12)
 	postgresImage := util.GetValue(cr.Spec.Database.PostgresImage, DefaultPostgresImage(cr))
@@ -51,10 +50,10 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
-							Name: name + "-data",
+							Name: DefaultPostgresVolumeClaimName,
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: name + "-data",
+									ClaimName: DefaultPostgresVolumeClaimName,
 								},
 							},
 						},
@@ -81,7 +80,7 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      name + "-data",
+									Name:      DefaultPostgresVolumeClaimName,
 									MountPath: "/var/lib/pgsql/data",
 								},
 							},
@@ -92,7 +91,7 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 											"/bin/sh",
 											"-i",
 											"-c",
-											"psql -h 127.0.0.1 -U " + chePostgresUser + " -q -d " + chePostgresDb + " -c 'SELECT 1'",
+											"psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d " + chePostgresDb + " -c 'SELECT 1'",
 										},
 									},
 								},
@@ -102,14 +101,6 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 								TimeoutSeconds:      5,
 							},
 							Env: []corev1.EnvVar{
-								{
-									Name:  "POSTGRESQL_USER",
-									Value: chePostgresUser,
-								},
-								{
-									Name:  "POSTGRESQL_PASSWORD",
-									Value: chePostgresPassword,
-								},
 								{
 									Name:  "POSTGRESQL_DATABASE",
 									Value: chePostgresDb,
@@ -124,6 +115,42 @@ func NewPostgresDeployment(cr *orgv1.CheCluster, chePostgresPassword string, isO
 			},
 		},
 	}
+
+	chePostgresSecret := cr.Spec.Database.ChePostgresSecret
+	if len(chePostgresSecret) > 0 {
+		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
+			corev1.EnvVar{
+				Name: "POSTGRESQL_USER",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "user",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: chePostgresSecret,
+						},
+					},
+				},
+			}, corev1.EnvVar{
+				Name: "POSTGRESQL_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "password",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: chePostgresSecret,
+						},
+					},
+				},
+			})
+	} else {
+		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
+			corev1.EnvVar{
+				Name:  "POSTGRESQL_USER",
+				Value: cr.Spec.Database.ChePostgresUser,
+			}, corev1.EnvVar{
+				Name:  "POSTGRESQL_PASSWORD",
+				Value: cr.Spec.Database.ChePostgresPassword,
+			})
+	}
+
 	if !isOpenshift {
 		var runAsUser int64 = 26
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{

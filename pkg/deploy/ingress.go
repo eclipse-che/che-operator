@@ -28,11 +28,17 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 	ingressDomain := cr.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(cr, name)
+
 	tlsSecretName := cr.Spec.K8s.TlsSecretName
 	tls := "false"
 	if tlsSupport {
 		tls = "true"
+		// If TLS is turned on but the secret name is not set, try to use Che default value as k8s cluster defaults will not work.
+		if tlsSecretName == "" {
+			tlsSecretName = "che-tls"
+		}
 	}
+
 	host := ""
 	path := "/"
 	if name == "keycloak" && ingressStrategy != "multi-host" {
