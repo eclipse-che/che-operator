@@ -12,6 +12,17 @@
 
 SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
 BASE_DIR="$1"
+QUIET=""
+
+PODMAN=$(command -v podman)
+if [[ ! -x $PODMAN ]]; then
+  echo "[WARNING] podman is not installed."
+  PODMAN=$(command -v docker)
+  if [[ ! -x $PODMAN ]]; then
+    echo "[ERROR] docker is not installed. Aborting."; exit 1
+  fi
+fi
+command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] "
@@ -24,12 +35,14 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
     '-c') CSV="$2"; shift 1;;
-	'--help'|'-h') usage; exit;;
+    '-v') VERSION="$2"; shift 1;;
+    '-q') QUIET="-q"; shift 0;;
+    '--help'|'-h') usage; exit;;
   esac
   shift 1
 done
 
-if [[ ! $CSV ]]; then usage; exit 1; fi
+if [[ ! $CSV ]] || [[ ! $VERSION ]]; then usage; exit 1; fi
 
 mkdir -p ${BASE_DIR}/generated
 
@@ -39,33 +52,36 @@ IMAGE_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containe
 OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].image' "${CSV}")
 
 REGISTRY_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("IMAGE_default_.*_registry"; "g")) | .value' "${CSV}")
-REGISTRY_IMAGES=""
+REGISTRY_IMAGES_ALL=""
 for registry in ${REGISTRY_LIST}; do
-  extracted=$(${SCRIPTS_DIR}/dockerContainerExtract.sh ${registry} var/www/html/*/external_images.txt | tail -n 1)
+  registry="${registry/\@sha256:*/:${VERSION}}" # remove possible existing @sha256:... and use current version instead
+  # echo -n "[INFO] Pull container ${registry} ..."
+  ${PODMAN} pull ${registry} ${QUIET}
 
-  # Container quay.io/eclipse/che-devfile-registry:7.9.0 unpacked to /tmp/quay.io-eclipse-che-devfile-registry-7.9.0-1584588272
-  extracted=${extracted##* } # the last token in the above line is the path we want
-
-  echo -n "[INFO] Extract images from registry ${registry} ... "
-  if [[ -d ${extracted} ]]; then
-    # cat ${extracted}/var/www/html/*/external_images.txt
-    REGISTRY_IMAGES="${REGISTRY_IMAGES} $(cat ${extracted}/var/www/html/*/external_images.txt)"
-  fi
-  echo "found $(cat ${extracted}/var/www/html/*/external_images.txt | wc -l)"
-  rm -fr ${extracted} 2>&1 >/dev/null
+  REGISTRY_IMAGES="$(${PODMAN} run --rm  --entrypoint /bin/sh  ${registry} -c "cat /var/www/html/*/external_images.txt")"
+  echo "[INFO] Found $(echo "${REGISTRY_IMAGES}" | wc -l) images in registry"
+  REGISTRY_IMAGES_ALL="${REGISTRY_IMAGES_ALL} ${REGISTRY_IMAGES}"
 done
 
 rm -Rf ${BASE_DIR}/generated/digests-mapping.txt
 touch ${BASE_DIR}/generated/digests-mapping.txt
-for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES}; do
+for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
   case ${image} in
     *@sha256:*)
       withDigest="${image}";;
     *@)
       continue;;
     *)
-      echo "[INFO] Get digest from ${image}"
-      digest="$(skopeo inspect docker://${image} | jq -r '.Digest')"
+      digest="$(skopeo inspect docker://${image} 2>/dev/null | jq -r '.Digest')"
+      if [[ ${digest} ]]; then
+        if [[ ! "${QUIET}" ]]; then echo -n "[INFO] Got digest"; fi
+        echo "    $digest # ${image}"
+      else
+        # for other build methods or for falling back to other registries when not found, can apply transforms here
+        if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
+          . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
+        fi
+      fi
       withoutTag="$(echo "${image}" | sed -e 's/^\(.*\):[^:]*$/\1/')"
       withDigest="${withoutTag}@${digest}";;
   esac

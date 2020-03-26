@@ -9,7 +9,14 @@ if [[ ! $1 ]]; then
   exit
 fi
 
-PODMAN=docker # or user podman
+PODMAN=$(command -v podman)
+if [[ ! -x $PODMAN ]]; then
+  echo "[WARNING] podman is not installed."
+  PODMAN=$(command -v docker)
+  if [[ ! -x $PODMAN ]]; then
+    echo "[ERROR] docker is not installed. Aborting."; exit 1
+  fi
+fi
 
 container="$1"; shift 1
 tmpcontainer="$(echo $container | tr "/:" "--")-$(date +%s)"
@@ -17,7 +24,7 @@ unpackdir="/tmp/${tmpcontainer}"
 
 # get remote image
 echo "[INFO] Pulling $container ..."
-${PODMAN} pull $container 2>&1 >/dev/null
+${PODMAN} pull $container 2>&1
 
 # create local container
 ${PODMAN} rm -f "${tmpcontainer}" 2>&1 >/dev/null || true
