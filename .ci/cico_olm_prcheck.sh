@@ -14,7 +14,7 @@ trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minikube VM.
 Catch_Finish() {
-  rm -rf ~/.kube && yes | minikube delete && yes | minishift delete --force --clear-cache
+  rm -rf ~/.kube && yes | minikube delete
 }
 
 init() {
@@ -23,30 +23,27 @@ init() {
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then OPERATOR_REPO=${WORKSPACE}; else OPERATOR_REPO=$(dirname "$SCRIPTPATH"); fi
   RAM_MEMORY=8192
   NAMESPACE="che-default"
-  #Temporal stable waiting to fix tls in nightly
-  CHANNEL="stable"
+  CHANNEL="nightly"
+}
+
+minishift_olm_installation() {
+  MSFT_RELEASE="1.34.2"
+  printInfo "Downloading Minishift binaries"
+  if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
+  curl -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
+    -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/bin --strip-components=1
 }
 
 install_Dependencies() {
   installYQ
+  installJQ
   install_VirtPackages
   installStartDocker
-  minikube_installation
 }
 
 run_olm_tests() {
   for platform in 'openshift' 'kubernetes'
   do
-    if [[ ${platform} == 'openshift' ]]; then
-      printInfo "Starting minishift VM to test openshift olm files..."
-      minishift start --memory=${RAM_MEMORY}
-      oc login -u system:admin
-      oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer
-
-      sh "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${platform} ${CHANNEL} ${NAMESPACE}
-      printInfo "Successfully verified olm files on openshift platform."
-      rm -rf ~/.kube .minishift && yes | minishift delete --force --clear-cache
-    fi
     if [[ ${platform} == 'kubernetes' ]]; then
       printInfo "Starting minikube VM to test kubernetes olm files..."
       source ${OPERATOR_REPO}/.ci/start-minikube.sh

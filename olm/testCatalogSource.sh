@@ -51,6 +51,19 @@ docker_build() {
     "${BASE_DIR}"/eclipse-che-preview-"${platform}"
 }
 
+add_Che_Cluster() {
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PackageVersion}/${packageName}.v${PackageVersion}.clusterserviceversion.yaml")
+  CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(echo "$CR" | jq '.spec.server.tlsSupport = false')
+  
+  if [ "${platform}" == "kubernetes" ]
+  then
+    CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
+  fi
+
+  echo "$CR" | kubectl apply -n "${namespace}" -f -
+}
+
 build_Catalog_Image() {
   if [ "${platform}" == "kubernetes" ]; then
     eval "$(minikube -p minikube docker-env)"
@@ -69,7 +82,7 @@ run_olm_functions() {
   build_Catalog_Image
   installOperatorMarketPlace
   installPackage
-  applyCRCheCluster
+  add_Che_Cluster
   waitCheServerDeploy
 }
 
