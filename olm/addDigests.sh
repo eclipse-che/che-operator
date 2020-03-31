@@ -57,6 +57,7 @@ ${SCRIPTS_DIR}/buildDigestMap.sh -w ${BASE_DIR} -c ${CSV_FILE} -v ${VERSION} ${Q
 names=" "
 count=1
 RELATED_IMAGES='. * { spec : { relatedImages: [ '
+if [[ ! "${QUIET}" ]]; then cat ${BASE_DIR}/generated/digests-mapping.txt; fi
 for mapping in $(cat ${BASE_DIR}/generated/digests-mapping.txt)
 do
   source=$(echo "${mapping}" | sed -e 's/\(.*\)=.*/\1/')
@@ -64,15 +65,13 @@ do
   sed -i -e "s;${source};${dest};" ${CSV_FILE}
   name=$(echo "${dest}" | sed -e 's;.*/\([^\/][^\/]*\)@.*;\1;')
   nameWithSpaces=" ${name} "
-  if [[ "${names}" == *${nameWithSpaces}* ]]; then
-    name="${name}-${count}"
-    count=$(($count+1))
+  if [[ "${names}" != *${nameWithSpaces}* ]]; then
+    if [ "${names}" != " " ]; then
+      RELATED_IMAGES="${RELATED_IMAGES},"
+    fi
+    RELATED_IMAGES="${RELATED_IMAGES} { name: \"${name}\", image: \"${dest}\", tag: \"${source}\"}"
+    names="${names} ${name} "
   fi
-  if [ "${names}" != " " ]; then
-    RELATED_IMAGES="${RELATED_IMAGES},"
-  fi
-  RELATED_IMAGES="${RELATED_IMAGES} { name: \"${name}\", image: \"${dest}\", tag: \"${source}\"}"
-  names="${names} ${name} "
 done
 RELATED_IMAGES="${RELATED_IMAGES} ] } }"
 mv ${CSV_FILE} ${CSV_FILE}.old
