@@ -72,7 +72,7 @@ for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
     *@)
       continue;;
     *)
-      digest="$(skopeo inspect docker://${image} 2>/dev/null | jq -r '.Digest')"
+      digest="$(skopeo inspect --tls-verify=false docker://${image} 2>/dev/null | jq -r '.Digest')"
       if [[ ${digest} ]]; then
         if [[ ! "${QUIET}" ]]; then echo -n "[INFO] Got digest"; fi
         echo "    $digest # ${image}"
