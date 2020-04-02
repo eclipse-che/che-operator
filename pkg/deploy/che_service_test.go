@@ -13,9 +13,10 @@ package deploy
 
 import (
 	"fmt"
+	"testing"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
-	"testing"
 )
 
 type DummyServiceCreator struct {
@@ -39,7 +40,7 @@ func TestCreateCheDefaultService(t *testing.T) {
 		},
 	}
 
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
+	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
 
 	if service == nil || err != nil {
 		t.Error("service should be created witn no error")
@@ -60,7 +61,7 @@ func TestCreateCheServerDebug(t *testing.T) {
 		},
 	}
 
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
+	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
 
 	if service == nil || err != nil {
 		t.Error("service should be created without error")
@@ -82,7 +83,7 @@ func TestCreateCheServiceEnableMetrics(t *testing.T) {
 		},
 	}
 
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
+	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
 
 	if service == nil || err != nil {
 		t.Error("service should be created witn no error")
@@ -103,7 +104,7 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 		},
 	}
 
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyServiceCreator{})
+	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
 
 	if service == nil || err != nil {
 		t.Error("service should be created witn no error")
@@ -114,20 +115,6 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 	}
 	checkPort(ports[0], "http", 8080, t)
 	checkPort(ports[1], "metrics", DefaultCheMetricsPort, t)
-}
-
-func TestFailWhenCantCreateService(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{},
-		},
-	}
-
-	service, err := NewCheService(cheCluster, map[string]string{}, &DummyFailingServiceCreator{})
-
-	if service != nil || err == nil {
-		t.Errorf("expected error and service to be nil. Actual service:`%s` err:`%s`", service, err)
-	}
 }
 
 func checkPort(actualPort corev1.ServicePort, expectedName string, expectedPort int32, t *testing.T) {

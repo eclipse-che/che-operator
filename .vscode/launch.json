@@ -1,14 +1,25 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
+    {
+      "name": "Launch Current File",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${file}",
+      "env": {
+        "MOCK_API": true
+      },
+    },
     {
       "useApiV1": false,
       "dlvLoadConfig": {
-          "followPointers": true,
-          "maxVariableRecurse": 1,
-          "maxStringLen": 3000,
-          "maxArrayValues": 100,
-          "maxStructFields": -1
+        "followPointers": true,
+        "maxVariableRecurse": 1,
+        "maxStringLen": 3000,
+        "maxArrayValues": 100,
+        "maxStructFields": -1
       },
       "name": "Che Operator",
       "type": "go",

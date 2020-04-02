@@ -19,62 +19,14 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
-	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-func (r *ReconcileChe) CreateNewDeployment(instance *orgv1.CheCluster, deployment *appsv1.Deployment) error {
-	if err := controllerutil.SetControllerReference(instance, deployment, r.scheme); err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	deploymentFound := &appsv1.Deployment{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: deployment.Name, Namespace: deployment.Namespace}, deploymentFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", deployment.Kind, deployment.Name)
-		err = r.client.Create(context.TODO(), deployment)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", deployment.Kind, deployment.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateNewConfigMap(instance *orgv1.CheCluster, configMap *corev1.ConfigMap) error {
-	if err := controllerutil.SetControllerReference(instance, configMap, r.scheme); err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	configMapFound := &corev1.ConfigMap{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", configMap.Kind, configMap.Name)
-		err = r.client.Create(context.TODO(), configMap)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", configMap.Kind, configMap.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-
-		return err
-	}
-	return nil
-}
 
 func (r *ReconcileChe) CreateServiceAccount(cr *orgv1.CheCluster, serviceAccount *corev1.ServiceAccount) error {
 	if err := controllerutil.SetControllerReference(cr, serviceAccount, r.scheme); err != nil {
@@ -112,51 +64,6 @@ func (r *ReconcileChe) CreateNewRole(instance *orgv1.CheCluster, role *rbac.Role
 		return nil
 	} else if err != nil {
 		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateNewIngress(instance *orgv1.CheCluster, ingress *v1beta1.Ingress) error {
-	if err := controllerutil.SetControllerReference(instance, ingress, r.scheme); err != nil {
-		logrus.Errorf("An error occurred %s", err)
-		return err
-	}
-	ingressFound := &v1beta1.Ingress{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}, ingressFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object %s, name: %s", ingress.Kind, ingress.Name)
-		if err := r.client.Create(context.TODO(), ingress); err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", ingress.Kind, ingress.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred %s", err)
-
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateNewRoute(instance *orgv1.CheCluster, route *routev1.Route) error {
-	if err := controllerutil.SetControllerReference(instance, route, r.scheme); err != nil {
-		logrus.Errorf("An error occurred %s", err)
-		return err
-	}
-	routeFound := &routev1.Route{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: route.Name, Namespace: route.Namespace}, routeFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object %s, name: %s", route.Kind, route.Name)
-		err = r.client.Create(context.TODO(), route)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", route.Kind, route.Name, err)
-			return err
-		}
-		// Route created successfully - don't requeue
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred %s", err)
 		return err
 	}
 	return nil
@@ -202,56 +109,6 @@ func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthCli
 		return err
 	}
 	return nil
-}
-
-// CreateService creates a service with a given name, port, selector and labels
-func (r *ReconcileChe) CreateService(cr *orgv1.CheCluster, service *corev1.Service, updateIfExists bool) error {
-	if err := controllerutil.SetControllerReference(cr, service, r.scheme); err != nil {
-		logrus.Errorf("An error occurred %s", err)
-		return err
-	}
-	serviceFound := &corev1.Service{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: service.Name, Namespace: service.Namespace}, serviceFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object %s, name: %s", service.Kind, service.Name)
-		err = r.client.Create(context.TODO(), service)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", service.Kind, service.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred %s", err)
-		return err
-	} else if updateIfExists {
-		deploy.MergeServices(serviceFound, service)
-		if err := r.client.Update(context.TODO(), serviceFound); err != nil {
-			logrus.Errorf("Failed to update %s %s: %s", service.Kind, service.Name, err)
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreatePVC(instance *orgv1.CheCluster, pvc *corev1.PersistentVolumeClaim) error {
-	// Set CheCluster instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pvc, r.scheme); err != nil {
-		return err
-	}
-	pvcFound := &corev1.PersistentVolumeClaim{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, pvcFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object %s, name: %s", pvc.Kind, pvc.Name)
-		err = r.client.Create(context.TODO(), pvc)
-		if err != nil {
-			return err
-		}
-		return nil
-	} else if err != nil {
-		return err
-	}
-	return nil
-
 }
 
 func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBinding *rbac.RoleBinding) error {
@@ -341,13 +198,13 @@ func (r *ReconcileChe) CreateSecret(instance *orgv1.CheCluster, m map[string][]b
 	return nil
 }
 
-func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, name string) (err error) {
+func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, name string, clusterAPI deploy.ClusterAPI) (err error) {
 	// create a secret with either router tls cert (or OpenShift API crt) when on OpenShift infra
 	// and router is configured with a self signed certificate
 	// this secret is used by CRW server to reach RH SSO TLS endpoint
 	secret := &corev1.Secret{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crt, err := r.GetEndpointTlsCrt(instance, url)
+		crt, err := r.GetEndpointTlsCrt(instance, url, clusterAPI)
 		if err != nil {
 			logrus.Errorf("Failed to extract crt for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
 			return err

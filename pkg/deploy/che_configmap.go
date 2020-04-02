@@ -12,6 +12,7 @@
 package deploy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,9 +20,18 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+const (
+	CheConfigMapName = "che"
 )
 
 func addMap(a map[string]string, b map[string]string) {
@@ -71,6 +81,51 @@ type CheConfigMap struct {
 	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
 	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
+}
+
+type ConfigMapProvisioningStatus struct {
+	ProvisioningStatus
+	ConfigMap *corev1.ConfigMap
+}
+
+func SyncConfigMapToCluster(checluster *orgv1.CheCluster, cheEnv map[string]string, clusterAPI ClusterAPI) ConfigMapProvisioningStatus {
+	specConfigMap, err := GetSpecConfigMap(checluster, cheEnv, clusterAPI)
+	if err != nil {
+		return ConfigMapProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, clusterAPI.Client)
+	if err != nil {
+		return ConfigMapProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	if clusterConfigMap == nil {
+		logrus.Infof("Creating a new object: %s, name %s", specConfigMap.Kind, specConfigMap.Name)
+		err := clusterAPI.Client.Create(context.TODO(), specConfigMap)
+		return ConfigMapProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	diff := cmp.Diff(clusterConfigMap.Data, specConfigMap.Data)
+	if len(diff) > 0 {
+		logrus.Infof("Updating existed object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
+		fmt.Printf("Difference:\n%s", diff)
+		clusterConfigMap.Data = specConfigMap.Data
+		err := clusterAPI.Client.Update(context.TODO(), clusterConfigMap)
+		return ConfigMapProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	return ConfigMapProvisioningStatus{
+		ProvisioningStatus: ProvisioningStatus{Continue: true},
+		ConfigMap:          clusterConfigMap,
+	}
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
@@ -238,18 +293,44 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	return cheEnv
 }
 
-func NewCheConfigMap(cr *orgv1.CheCluster, cheEnv map[string]string) *corev1.ConfigMap {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
-	return &corev1.ConfigMap{
+func GetSpecConfigMap(checluster *orgv1.CheCluster, cheEnv map[string]string, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
+	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
+	labels := GetLabels(checluster, cheFlavor)
+	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che",
-			Namespace: cr.Namespace,
+			Name:      CheConfigMapName,
+			Namespace: checluster.Namespace,
 			Labels:    labels,
 		},
 		Data: cheEnv,
 	}
+
+	if !util.IsTestMode() {
+		err := controllerutil.SetControllerReference(checluster, configMap, clusterAPI.Scheme)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return configMap, nil
+}
+
+func getClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
+	pvc := &corev1.ConfigMap{}
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := client.Get(context.TODO(), namespacedName, pvc)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return pvc, nil
 }

@@ -12,24 +12,110 @@
 package deploy
 
 import (
+	"context"
+	"fmt"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sirupsen/logrus"
 	"k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int) *v1beta1.Ingress {
-	tlsSupport := cr.Spec.Server.TlsSupport
-	ingressStrategy := cr.Spec.K8s.IngressStrategy
+type IngressProvisioningStatus struct {
+	ProvisioningStatus
+}
+
+var ingressDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "ObjectMeta", "Status"),
+}
+
+func SyncIngressToCluster(
+	checluster *orgv1.CheCluster,
+	name string,
+	serviceName string,
+	port int,
+	clusterAPI ClusterAPI) IngressProvisioningStatus {
+
+	specIngress, err := getSpecIngress(checluster, name, serviceName, port, clusterAPI)
+	if err != nil {
+		return IngressProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	clusterIngress, err := getClusterIngress(specIngress.Name, specIngress.Namespace, clusterAPI.Client)
+	if err != nil {
+		return IngressProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	if clusterIngress == nil {
+		logrus.Infof("Creating a new object: %s, name %s", specIngress.Kind, specIngress.Name)
+		err := clusterAPI.Client.Create(context.TODO(), specIngress)
+		return IngressProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	diff := cmp.Diff(clusterIngress, specIngress, ingressDiffOpts)
+	if len(diff) > 0 {
+		logrus.Infof("Updating existed object: %s, name: %s", clusterIngress.Kind, clusterIngress.Name)
+		fmt.Printf("Difference:\n%s", diff)
+
+		err := clusterAPI.Client.Delete(context.TODO(), clusterIngress)
+		if err != nil {
+			return IngressProvisioningStatus{
+				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+			}
+		}
+
+		err = clusterAPI.Client.Create(context.TODO(), specIngress)
+		return IngressProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	return IngressProvisioningStatus{
+		ProvisioningStatus: ProvisioningStatus{Continue: true},
+	}
+}
+
+func getClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
+	ingress := &v1beta1.Ingress{}
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := client.Get(context.TODO(), namespacedName, ingress)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return ingress, nil
+}
+
+func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName string, port int, clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
+	tlsSupport := checluster.Spec.Server.TlsSupport
+	ingressStrategy := checluster.Spec.K8s.IngressStrategy
 	if len(ingressStrategy) < 1 {
 		ingressStrategy = "multi-host"
 	}
-	ingressDomain := cr.Spec.K8s.IngressDomain
-	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
-	labels := GetLabels(cr, name)
+	ingressDomain := checluster.Spec.K8s.IngressDomain
+	ingressClass := util.GetValue(checluster.Spec.K8s.IngressClass, DefaultIngressClass)
+	labels := GetLabels(checluster, name)
 
-	tlsSecretName := cr.Spec.K8s.TlsSecretName
+	tlsSecretName := checluster.Spec.K8s.TlsSecretName
 	tls := "false"
 	if tlsSupport {
 		tls = "true"
@@ -45,30 +131,19 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 		path = "/auth"
 	}
 	if ingressStrategy == "multi-host" {
-		host = name + "-" + cr.Namespace + "." + ingressDomain
+		host = name + "-" + checluster.Namespace + "." + ingressDomain
 	} else if ingressStrategy == "single-host" {
 		host = ingressDomain
 	}
-	tlsIngress := []v1beta1.IngressTLS{}
-	if tlsSupport {
-		tlsIngress = []v1beta1.IngressTLS{
-			{
-				Hosts: []string{
-					ingressDomain,
-				},
-				SecretName: tlsSecretName,
-			},
-		}
-	}
 
-	return &v1beta1.Ingress{
+	ingress := &v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: v1beta1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: cr.Namespace,
+			Namespace: checluster.Namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
 				"kubernetes.io/ingress.class":                       ingressClass,
@@ -78,7 +153,6 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 			},
 		},
 		Spec: v1beta1.IngressSpec{
-			TLS: tlsIngress,
 			Rules: []v1beta1.IngressRule{
 				{
 					Host: host,
@@ -100,4 +174,22 @@ func NewIngress(cr *orgv1.CheCluster, name string, serviceName string, port int)
 			},
 		},
 	}
+
+	if tlsSupport {
+		ingress.Spec.TLS = []v1beta1.IngressTLS{
+			{
+				Hosts: []string{
+					ingressDomain,
+				},
+				SecretName: tlsSecretName,
+			},
+		}
+	}
+
+	err := controllerutil.SetControllerReference(checluster, ingress, clusterAPI.Scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	return ingress, nil
 }

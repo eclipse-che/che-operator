@@ -27,7 +27,7 @@ kubectl create namespace $CHE_NAMESPACE
 set -e
 
 kubectl apply -f deploy/crds/org_v1_che_crd.yaml
-kubectl apply -f $1 -n che
+kubectl apply -f $1 -n $CHE_NAMESPACE
 cp templates/keycloak_provision /tmp/keycloak_provision
 
 operator-sdk up local --namespace=${CHE_NAMESPACE} --enable-delve

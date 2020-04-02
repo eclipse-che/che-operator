@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"strconv"
+	"strings"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -21,23 +22,49 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision string, isOpenshift bool) (*appsv1.Deployment, error) {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+func SyncCheDeploymentToCluster(checluster *orgv1.CheCluster, cmResourceVersion string, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
+	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
+	clusterDeployment, err := getClusterDeployment(cheFlavor, checluster.Namespace, clusterAPI.Client)
+	if err != nil {
+		return DeploymentProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	specDeployment, err := getSpecCheDeployment(checluster, cmResourceVersion, clusterAPI)
+	if err != nil {
+		return DeploymentProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, nil, nil, clusterAPI)
+}
+
+func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string, clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
+	isOpenShift, _, err := util.DetectOpenShift()
+	if err != nil {
+		return nil, err
+	}
+
+	terminationGracePeriodSeconds := int64(30)
+	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
 	optionalEnv := true
-	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
-	memRequest := util.GetValue(cr.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
+	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
+	memRequest := util.GetValue(checluster.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
 	selfSignedCertEnv := corev1.EnvVar{
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if cr.Spec.Server.ServerTrustStoreConfigMapName != "" {
+	if checluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		customPublicCertsVolumeSource = corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: cr.Spec.Server.ServerTrustStoreConfigMapName,
+					Name: checluster.Spec.Server.ServerTrustStoreConfigMapName,
 				},
 			},
 		}
@@ -58,7 +85,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
 		Value: "",
 	}
-	if cr.Spec.Server.SelfSignedCert {
+	if checluster.Spec.Server.SelfSignedCert {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
@@ -72,7 +99,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 			},
 		}
 	}
-	if cr.Spec.Server.GitSelfSignedCert {
+	if checluster.Spec.Server.GitSelfSignedCert {
 		gitSelfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_GIT_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
@@ -99,17 +126,18 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 		}
 	}
 
-	memLimit := util.GetValue(cr.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(cr.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
+	memLimit := util.GetValue(checluster.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
+	cheImageAndTag := GetFullCheServerImageLink(checluster)
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(checluster.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
 
-	cheDeployment := appsv1.Deployment{
+	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cheFlavor,
-			Namespace: cr.Namespace,
+			Namespace: checluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -122,7 +150,8 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "che",
+					ServiceAccountName:       "che",
+					DeprecatedServiceAccount: "che",
 					Volumes: []corev1.Volume{
 						customPublicCertsVolume,
 					},
@@ -172,6 +201,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 								FailureThreshold:    3,
 								TimeoutSeconds:      3,
 								PeriodSeconds:       10,
+								SuccessThreshold:    1,
 							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
@@ -186,29 +216,32 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 							Env: []corev1.EnvVar{
 								{
 									Name:  "CM_REVISION",
-									Value: cmRevision,
+									Value: cmResourceVersion,
 								},
 								{
 									Name: "KUBERNETES_NAMESPACE",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace"}},
+											APIVersion: "v1",
+											FieldPath:  "metadata.namespace"}},
 								},
 								selfSignedCertEnv,
 								gitSelfSignedCertEnv,
 								gitSelfSignedCertHostEnv,
 							}},
 					},
+					RestartPolicy:                 "Always",
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 				},
 			},
 		},
 	}
 
-	cheMultiUser := GetCheMultiUser(cr)
+	cheMultiUser := GetCheMultiUser(checluster)
 	if cheMultiUser == "true" {
-		chePostgresSecret := cr.Spec.Database.ChePostgresSecret
+		chePostgresSecret := checluster.Spec.Database.ChePostgresSecret
 		if len(chePostgresSecret) > 0 {
-			cheDeployment.Spec.Template.Spec.Containers[0].Env = append(cheDeployment.Spec.Template.Spec.Containers[0].Env,
+			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
 				corev1.EnvVar{
 					Name: "CHE_JDBC_USERNAME",
 					ValueFrom: &corev1.EnvVarSource{
@@ -232,7 +265,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 				})
 		}
 	} else {
-		cheDeployment.Spec.Template.Spec.Volumes = []corev1.Volume{
+		deployment.Spec.Template.Spec.Volumes = []corev1.Volume{
 			{
 				Name: DefaultCheVolumeClaimName,
 				VolumeSource: corev1.VolumeSource{
@@ -241,7 +274,7 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 					},
 				},
 			}}
-		cheDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		deployment.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
 			{
 				MountPath: DefaultCheVolumeMountPath,
 				Name:      DefaultCheVolumeClaimName,
@@ -249,9 +282,9 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 	}
 
 	// configure readiness probe if debug isn't set
-	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
+	cheDebug := util.GetValue(checluster.Spec.Server.CheDebug, DefaultCheDebug)
 	if cheDebug != "true" {
-		cheDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+		deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/api/system/state",
@@ -268,23 +301,53 @@ func NewCheDeployment(cr *orgv1.CheCluster, cheImageAndTag string, cmRevision st
 			FailureThreshold:    18,
 			TimeoutSeconds:      5,
 			PeriodSeconds:       10,
+			SuccessThreshold:    1,
 		}
 	}
 
-	if !isOpenshift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(cr.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser), 10, 64)
+	if !isOpenShift {
+		runAsUser, err := strconv.ParseInt(util.GetValue(checluster.Spec.K8s.SecurityContextRunAsUser, DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(cr.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup), 10, 64)
+		fsGroup, err := strconv.ParseInt(util.GetValue(checluster.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		cheDeployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
+		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
 			RunAsUser: &runAsUser,
 			FSGroup:   &fsGroup,
 		}
 	}
 
-	return &cheDeployment, nil
+	if !util.IsTestMode() {
+		err = controllerutil.SetControllerReference(checluster, deployment, clusterAPI.Scheme)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return deployment, nil
+}
+
+// GetFullCheServerImageLink evaluate full cheImage link(with repo and tag)
+// based on Checluster information and image defaults from env variables
+func GetFullCheServerImageLink(checluster *orgv1.CheCluster) string {
+	if len(checluster.Spec.Server.CheImage) > 0 {
+		cheServerImageTag := util.GetValue(checluster.Spec.Server.CheImageTag, DefaultCheVersion())
+		return checluster.Spec.Server.CheImage + ":" + cheServerImageTag
+	}
+
+	defaultCheServerImage := DefaultCheServerImage(checluster)
+	if len(checluster.Spec.Server.CheImageTag) == 0 {
+		return defaultCheServerImage
+	}
+
+	// For back compatibility with version < 7.9.0:
+	// if cr.Spec.Server.CheImage is empty, but cr.Spec.Server.CheImageTag is not empty,
+	// parse from default Che image(value comes from env variable) "Che image repository"
+	// and return "Che image", like concatenation: "cheImageRepo:cheImageTag"
+	separator := map[bool]string{true: "@", false: ":"}[strings.Contains(defaultCheServerImage, "@")]
+	imageParts := strings.Split(defaultCheServerImage, separator)
+	return imageParts[0] + ":" + checluster.Spec.Server.CheImageTag
 }
