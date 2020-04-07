@@ -183,7 +183,7 @@ pushImage() {
   set -e
 
   if [[ $result == 0 ]]; then
-    docker login quay.io -u $QUAY_USERNAME -p $QUAY_PASSWORD
+    docker login quay.io -u $QUAY_USERNAME
     docker push quay.io/eclipse/che-operator:$RELEASE
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
@@ -203,11 +203,11 @@ updateNightlyOlmFiles() {
     cd $BASE_DIR
 
     echo -e $GREEN"5.2 Validate changes"$NC
-    lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
+    lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
     csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
     checkImageReferences $csvFile
 
-    lastNightlyOpenshiftDir=$(ls -dt $BASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
+    lastNightlyOpenshiftDir=$(ls -dt $BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
     csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
     checkImageReferences $csvFile
 
