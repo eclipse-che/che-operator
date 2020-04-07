@@ -56,11 +56,12 @@ echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
 echo -e "\u001b[32m Channel=${channel} \u001b[0m"
 echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 
-if kubectl get namespace "${namespace}" >/dev/null 2>&1
-then
-  echo "You should delete namespace '${namespace}' before running the update test first."
-  exit 1
-fi
+# We don't need to delete ${namepsace} anymore since tls secret is precreated there.
+# if kubectl get namespace "${namespace}" >/dev/null 2>&1
+# then
+#   echo "You should delete namespace '${namespace}' before running the update test first."
+#   exit 1
+# fi
 
 catalog_source() {
   echo "--- Use default eclipse che application registry ---"
