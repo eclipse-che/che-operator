@@ -203,6 +203,7 @@ applyCRCheCluster() {
 
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml")
   CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(echo "$CR" | yq -r ".spec.server.tlsSupport = false")
   if [ "${platform}" == "kubernetes" ]
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")

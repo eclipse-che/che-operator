@@ -328,6 +328,19 @@ pushChanges() {
   fi
 }
 
+createPR() {
+  set +e
+  ask "11. Create PR?"
+  result=$?
+  set -e
+
+  if [[ $result == 0 ]]; then
+    hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
+  elif [[ $result == 1 ]]; then
+    echo -e $YELLOW"> SKIPPED"$NC
+  fi
+}
+
 run() {
   resetLocalChanges
   releaseOperatorCode
@@ -339,6 +352,7 @@ run() {
   commitOlmChanges
   pushOlmFiles
   pushChanges
+  createPR
 }
 
 init "$@"

@@ -73,7 +73,3 @@ xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $
 cd olm
 ./prepare-community-operators-update.sh
 ```
-
-## 6. Prepare `che-operator` PR
-TODO PR
-TODO keep up to date files in https://github.com/eclipse/che-operator/pull/197
