@@ -20,16 +20,16 @@ import (
 )
 
 const (
-	cheVersionTest           = "7.8.0"
-	cheServerImageTest       = "quay.io/eclipse/che-server:7.8.0"
-	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.8.0"
-	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.8.0"
-	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.1-398"
+	cheVersionTest           = "7.11.0"
+	cheServerImageTest       = "quay.io/eclipse/che-server:7.11.0"
+	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.11.0"
+	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.11.0"
+	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.1-407"
 	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
-	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.8.0"
-	brokerMetadataTest		 = "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
-	brokerArtifactsTest		 = "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
-	jwtProxyTest		 	 = "quay.io/crw/jwtproxy-rhel8:2.1"
+	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.11.0"
+	brokerMetadataTest       = "quay.io/eclipse/che-plugin-metadata-broker:v3.1.2"
+	brokerArtifactsTest      = "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2"
+	jwtProxyTest             = "quay.io/eclipse/che-jwtproxy:fd94e60"
 )
 
 func init() {
