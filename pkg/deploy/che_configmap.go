@@ -88,18 +88,21 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if isOpenShift {
 		infra = "openshift"
 	}
-	defaultTargetNamespace := util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, cr.Namespace)
-	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
 	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
+	defaultTargetNamespaceDefault := cr.Namespace  // By default Che SA has right in the namespace where Che in installed ...
 	if openshiftOAuth && isOpenShift {
-		defaultTargetNamespace = "<username>-" + cheFlavor
+		// ... But if the workspace is created under the openshift identity of the end-user,
+		// Then we'll have rights to create any new namespace 
+		defaultTargetNamespaceDefault = "<username>-" + cheFlavor
 		openShiftIdentityProviderId = "openshift-v3"
 		if isOpenshift4 {
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
+	defaultTargetNamespace := util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, defaultTargetNamespaceDefault)
+	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tlsSupport := cr.Spec.Server.TlsSupport
 	protocol := "http"
 	wsprotocol := "ws"
