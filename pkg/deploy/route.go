@@ -34,6 +34,10 @@ type RouteProvisioningStatus struct {
 	Route *routev1.Route
 }
 
+const (
+	CheRouteName = "che-host"
+)
+
 var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
@@ -133,31 +137,21 @@ func getSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string,
 		},
 	}
 
+	route.Spec = routev1.RouteSpec{
+		To: routev1.RouteTargetReference{
+			Kind:   "Service",
+			Name:   serviceName,
+			Weight: &weight,
+		},
+		Port: &routev1.RoutePort{
+			TargetPort: targetPort,
+		},
+	}
+
 	if tlsSupport {
-		route.Spec = routev1.RouteSpec{
-			To: routev1.RouteTargetReference{
-				Kind: "Service",
-				Name: serviceName,
-				Weight: &weight,
-			},
-			Port: &routev1.RoutePort{
-				TargetPort: targetPort,
-			},
-			TLS: &routev1.TLSConfig{
-				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-				Termination:                   routev1.TLSTerminationEdge,
-			},
-		}
-	} else {
-		route.Spec = routev1.RouteSpec{
-			To: routev1.RouteTargetReference{
-				Kind:   "Service",
-				Name:   serviceName,
-				Weight: &weight,
-			},
-			Port: &routev1.RoutePort{
-				TargetPort: targetPort,
-			},
+		route.Spec.TLS = &routev1.TLSConfig{
+			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+			Termination:                   routev1.TLSTerminationEdge,
 		}
 	}
 

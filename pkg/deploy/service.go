@@ -33,6 +33,10 @@ type ServiceProvisioningStatus struct {
 	ProvisioningStatus
 }
 
+const (
+	CheServiceHame = "che-host"
+)
+
 var portsDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort"),
 }
@@ -45,11 +49,10 @@ func SyncCheServiceToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		}
 	}
 
-	return syncServiceToCluster(checluster, specService, clusterAPI)
+	return doSyncServiceToCluster(checluster, specService, clusterAPI)
 }
 
 func GetSpecCheService(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (*corev1.Service, error) {
-	name := "che-host"
 	portName := []string{"http"}
 	portNumber := []int32{8080}
 	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
@@ -65,7 +68,7 @@ func GetSpecCheService(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (*co
 		portNumber = append(portNumber, DefaultCheDebugPort)
 	}
 
-	return getSpecService(checluster, name, portName, portNumber, labels, clusterAPI)
+	return getSpecService(checluster, CheServiceHame, portName, portNumber, labels, clusterAPI)
 }
 
 func SyncServiceToCluster(
@@ -82,10 +85,10 @@ func SyncServiceToCluster(
 		}
 	}
 
-	return syncServiceToCluster(checluster, specService, clusterAPI)
+	return doSyncServiceToCluster(checluster, specService, clusterAPI)
 }
 
-func syncServiceToCluster(
+func doSyncServiceToCluster(
 	checluster *orgv1.CheCluster,
 	specService *corev1.Service,
 	clusterAPI ClusterAPI) ServiceProvisioningStatus {

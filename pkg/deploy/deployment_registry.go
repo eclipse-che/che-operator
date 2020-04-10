@@ -22,6 +22,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	PluginRegistryDeploymentName  = "plugin-registry"
+	DevfileRegistryDeploymentName = "devfile-registry"
+)
+
 func SyncPluginRegistryDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
 	registryType := "plugin"
 	registryImage := util.GetValue(checluster.Spec.Server.PluginRegistryImage, DefaultPluginRegistryImage(checluster))
@@ -30,7 +35,7 @@ func SyncPluginRegistryDeploymentToCluster(checluster *orgv1.CheCluster, cluster
 	registryMemoryRequest := util.GetValue(string(checluster.Spec.Server.PluginRegistryMemoryRequest), DefaultPluginRegistryMemoryRequest)
 	probePath := "/v3/plugins/"
 
-	clusterDeployment, err := getClusterDeployment("plugin-registry", checluster.Namespace, clusterAPI.Client)
+	clusterDeployment, err := getClusterDeployment(PluginRegistryDeploymentName, checluster.Namespace, clusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -64,7 +69,7 @@ func SyncDevfileRegistryDeploymentToCluster(checluster *orgv1.CheCluster, cluste
 	registryMemoryRequest := util.GetValue(string(checluster.Spec.Server.DevfileRegistryMemoryRequest), DefaultDevfileRegistryMemoryRequest)
 	probePath := "/devfiles/"
 
-	clusterDeployment, err := getClusterDeployment("devfile-registry", checluster.Namespace, clusterAPI.Client)
+	clusterDeployment, err := getClusterDeployment(DevfileRegistryDeploymentName, checluster.Namespace, clusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},

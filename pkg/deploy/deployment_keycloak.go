@@ -42,7 +42,7 @@ var (
 				x.Annotations["che.openshift-api-crt.version"] == y.Annotations["che.openshift-api-crt.version"]
 		}),
 	}
-	keycloakCustomDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
+	keycloakAdditionalDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
 		clusterDeployment.Spec = specDeployment.Spec
 		clusterDeployment.Annotations["che.self-signed-certificate.version"] = specDeployment.Annotations["che.self-signed-certificate.version"]
 		clusterDeployment.Annotations["che.openshift-api-crt.version"] = specDeployment.Annotations["che.openshift-api-crt.version"]
@@ -65,7 +65,7 @@ func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI Cl
 		}
 	}
 
-	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakCustomDeploymentMerge, clusterAPI)
+	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge, clusterAPI)
 }
 
 func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *appsv1.Deployment, clusterAPI ClusterAPI) (*appsv1.Deployment, error) {

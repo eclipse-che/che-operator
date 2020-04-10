@@ -320,17 +320,17 @@ func GetSpecConfigMap(checluster *orgv1.CheCluster, cheEnv map[string]string, cl
 }
 
 func getClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
-	pvc := &corev1.ConfigMap{}
+	configMap := &corev1.ConfigMap{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := client.Get(context.TODO(), namespacedName, pvc)
+	err := client.Get(context.TODO(), namespacedName, configMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return pvc, nil
+	return configMap, nil
 }

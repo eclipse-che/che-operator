@@ -48,8 +48,8 @@ func SyncDeploymentToCluster(
 	checluster *orgv1.CheCluster,
 	specDeployment *appsv1.Deployment,
 	clusterDeployment *appsv1.Deployment,
-	customDeploymentDiffOpts cmp.Options,
-	customDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment,
+	additionalDeploymentDiffOpts cmp.Options,
+	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment,
 	clusterAPI ClusterAPI) DeploymentProvisioningStatus {
 
 	clusterDeployment, err := getClusterDeployment(specDeployment.Name, specDeployment.Namespace, clusterAPI.Client)
@@ -67,12 +67,12 @@ func SyncDeploymentToCluster(
 		}
 	}
 
-	if customDeploymentDiffOpts != nil {
-		diff := cmp.Diff(clusterDeployment, specDeployment, customDeploymentDiffOpts)
+	if additionalDeploymentDiffOpts != nil {
+		diff := cmp.Diff(clusterDeployment, specDeployment, additionalDeploymentDiffOpts)
 		if len(diff) > 0 {
 			logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
 			fmt.Printf("Difference:\n%s", diff)
-			clusterDeployment = customDeploymentMerge(specDeployment, clusterDeployment)
+			clusterDeployment = additionalDeploymentMerge(specDeployment, clusterDeployment)
 			err := clusterAPI.Client.Update(context.TODO(), clusterDeployment)
 			return DeploymentProvisioningStatus{
 				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},

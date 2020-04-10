@@ -441,15 +441,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 
 	if cheMultiUser == "false" {
-		lables := deploy.GetLabels(instance, cheFlavor)
-		pvcStatus := deploy.SyncPVCToCluster(instance, deploy.DefaultCheVolumeClaimName, "1Gi", lables, clusterAPI)
+		labels := deploy.GetLabels(instance, cheFlavor)
+		pvcStatus := deploy.SyncPVCToCluster(instance, deploy.DefaultCheVolumeClaimName, "1Gi", labels, clusterAPI)
 		if !tests {
 			if !pvcStatus.Continue {
-				logrus.Infof("Waiting on pvc '%s' to be bound", deploy.DefaultCheVolumeClaimName)
+				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
 				if pvcStatus.Err != nil {
 					logrus.Error(pvcStatus.Err)
 				}
-				return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 10}, pvcStatus.Err
+				return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 1}, pvcStatus.Err
 			}
 		}
 
@@ -491,12 +491,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			pvcStatus := deploy.SyncPVCToCluster(instance, deploy.DefaultPostgresVolumeClaimName, "1Gi", postgresLabels, clusterAPI)
 			if !tests {
 				if !pvcStatus.Continue {
-					logrus.Infof("Waiting on pvc '%s' to be bound", deploy.DefaultPostgresVolumeClaimName)
+					logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
 					if pvcStatus.Err != nil {
 						logrus.Error(pvcStatus.Err)
 					}
 
-					return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 10}, pvcStatus.Err
+					return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 1}, pvcStatus.Err
 				}
 			}
 
@@ -562,7 +562,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	serviceStatus := deploy.SyncCheServiceToCluster(instance, clusterAPI)
 	if !tests {
 		if !serviceStatus.Continue {
-			logrus.Info("Waiting on service 'che-host' to be ready")
+			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceHame)
 			if serviceStatus.Err != nil {
 				logrus.Error(serviceStatus.Err)
 			}
@@ -572,10 +572,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !isOpenShift {
-		ingressStatus := deploy.SyncIngressToCluster(instance, cheFlavor, "che-host", 8080, clusterAPI)
+		ingressStatus := deploy.SyncIngressToCluster(instance, cheFlavor, deploy.CheIngressName, 8080, clusterAPI)
 		if !tests {
 			if !ingressStatus.Continue {
-				logrus.Info("Waiting on ingress 'che-host' to be ready")
+				logrus.Infof("Waiting on ingress '%s' to be ready", deploy.CheIngressName)
 				if ingressStatus.Err != nil {
 					logrus.Error(ingressStatus.Err)
 				}
@@ -596,10 +596,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	} else {
-		routeStatus := deploy.SyncRouteToCluster(instance, cheFlavor, "che-host", 8080, clusterAPI)
+		routeStatus := deploy.SyncRouteToCluster(instance, cheFlavor, deploy.CheRouteName, 8080, clusterAPI)
 		if !tests {
 			if !routeStatus.Continue {
-				logrus.Info("Waiting on route 'che-host' to be ready")
+				logrus.Infof("Waiting on route '%s' to be ready", deploy.CheRouteName)
 				if routeStatus.Err != nil {
 					logrus.Error(routeStatus.Err)
 				}

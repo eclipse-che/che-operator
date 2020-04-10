@@ -33,6 +33,10 @@ type IngressProvisioningStatus struct {
 	ProvisioningStatus
 }
 
+const (
+	CheIngressName = "che-host"
+)
+
 var ingressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "ObjectMeta", "Status"),
 }
