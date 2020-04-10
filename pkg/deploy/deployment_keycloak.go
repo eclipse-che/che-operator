@@ -80,6 +80,16 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		jbossDir = "/scripts"
 	}
 
+	if clusterDeployment != nil {
+		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
+		for _, e := range env {
+			if "TRUSTPASS" == e.Name {
+				trustpass = e.Value
+				break
+			}
+		}
+	}
+
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", checluster.Namespace, clusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", checluster.Namespace, clusterAPI)
@@ -193,6 +203,10 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		{
 			Name:  "POSTGRES_USER",
 			Value: "keycloak",
+		},
+		{
+			Name:  "TRUSTPASS",
+			Value: trustpass,
 		},
 		{
 			Name: "CHE_SELF__SIGNED__CERT",
@@ -412,10 +426,6 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
 	args := []string{"-c", command}
-
-	if clusterDeployment != nil {
-		args = clusterDeployment.Spec.Template.Spec.Containers[0].Args
-	}
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{

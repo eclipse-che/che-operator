@@ -67,6 +67,9 @@ func SyncDeploymentToCluster(
 		}
 	}
 
+	// 2-step comparation process
+	// Firstly compare fields (and update the object if necessary) specifc to deployment
+	// And only then compare common deployment fields
 	if additionalDeploymentDiffOpts != nil {
 		diff := cmp.Diff(clusterDeployment, specDeployment, additionalDeploymentDiffOpts)
 		if len(diff) > 0 {
