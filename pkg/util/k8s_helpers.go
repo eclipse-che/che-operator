@@ -16,13 +16,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -50,163 +47,6 @@ func GetK8Client() *k8s {
 		return &client
 	}
 	return nil
-}
-
-// GetPVCStatus waits for pvc.status.phase to be Bound
-func (cl *k8s) GetPVCStatus(pvc *corev1.PersistentVolumeClaim, ns string) {
-	// short timeout if a PVC is waiting for a first consumer to be bound
-	var timeout int64 = 10
-	listOptions := metav1.ListOptions{
-		FieldSelector:  fields.OneTermEqualSelector("metadata.name", pvc.Name).String(),
-		TimeoutSeconds: &timeout,
-	}
-	watcher, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Watch(listOptions)
-	if err != nil {
-		log.Error(err, "An error occurred")
-	}
-	ch := watcher.ResultChan()
-	logrus.Infof("Waiting for PVC %s to be bound. Default timeout: %v seconds", pvc.Name, timeout)
-
-	for event := range ch {
-		pvc, ok := event.Object.(*corev1.PersistentVolumeClaim)
-		if !ok {
-			log.Error(err, "Unexpected type")
-		}
-
-		// check before watching in case pvc has been already bound
-		chePvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
-		if err != nil {
-			logrus.Errorf("Failed to get %s pvc: %s", chePvc.Name, err)
-			break
-		}
-		if chePvc.Status.Phase == "Bound" {
-			volumeName := chePvc.Spec.VolumeName
-			logrus.Infof("PVC %s successfully bound to volume %s", chePvc.Name, volumeName)
-			break
-		}
-
-		switch event.Type {
-		case watch.Error:
-			watcher.Stop()
-		case watch.Modified:
-			if chePvc.Status.Phase == "Bound" {
-				volumeName := chePvc.Spec.VolumeName
-				logrus.Infof("PVC %s successfully bound to volume %s", chePvc.Name, volumeName)
-				watcher.Stop()
-			}
-
-		}
-	}
-	chePvc, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
-	if chePvc.Status.Phase != "Bound" {
-		currentPvcPhase := chePvc.Status.Phase
-		logrus.Warnf("Timeout waiting for a PVC %s to be bound. Current phase is %s", chePvc.Name, currentPvcPhase)
-		logrus.Warn("Sometimes PVC can be bound only when the first consumer is created")
-	}
-}
-
-func (cl *k8s) GetDeploymentRollingUpdateStatus(name string, ns string) {
-	api := cl.clientset.AppsV1()
-	var timeout int64 = 420
-	listOptions := metav1.ListOptions{
-		FieldSelector:  fields.OneTermEqualSelector("metadata.name", name).String(),
-		TimeoutSeconds: &timeout,
-	}
-	watcher, err := api.Deployments(ns).Watch(listOptions)
-	if err != nil {
-		log.Error(err, "An error occurred")
-	}
-	ch := watcher.ResultChan()
-	logrus.Infof("Waiting for a successful rolling update of deployment %s. Default timeout: %v seconds", name, timeout)
-	for event := range ch {
-		dc, ok := event.Object.(*appsv1.Deployment)
-		if !ok {
-			log.Error(err, "Unexpected type")
-		}
-		// check before watching in case the deployment is already scaled to 1
-		deployment, err := cl.clientset.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", deployment.Name, err)
-			break
-		}
-		if deployment.Status.Replicas == 1 {
-			logrus.Infof("Rolling update of '%s' deployment finished", deployment.Name)
-			break
-		}
-		switch event.Type {
-		case watch.Error:
-			watcher.Stop()
-		case watch.Modified:
-			if dc.Status.Replicas == 1 {
-				logrus.Infof("Rolling update of '%s' deployment finished", deployment.Name)
-				watcher.Stop()
-			}
-
-		}
-	}
-}
-
-// GetDeploymentStatus listens to deployment events and checks replicas once MODIFIED event is received
-func (cl *k8s) GetDeploymentStatus(name string, ns string) (scaled bool) {
-	api := cl.clientset.AppsV1()
-	var timeout int64 = 420
-	listOptions := metav1.ListOptions{
-		FieldSelector:  fields.OneTermEqualSelector("metadata.name", name).String(),
-		TimeoutSeconds: &timeout,
-	}
-	watcher, err := api.Deployments(ns).Watch(listOptions)
-	if err != nil {
-		log.Error(err, "An error occurred")
-	}
-	ch := watcher.ResultChan()
-	logrus.Infof("Waiting for deployment %s. Default timeout: %v seconds", name, timeout)
-	for event := range ch {
-		dc, ok := event.Object.(*appsv1.Deployment)
-		if !ok {
-			log.Error(err, "Unexpected type")
-		}
-		// check before watching in case the deployment is already scaled to 1
-		deployment, err := cl.clientset.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", deployment.Name, err)
-			return false
-		}
-		if deployment.Status.AvailableReplicas == 1 {
-			logrus.Infof("Deployment '%s' successfully scaled to %v", deployment.Name, deployment.Status.AvailableReplicas)
-			return true
-		}
-		switch event.Type {
-		case watch.Error:
-			watcher.Stop()
-		case watch.Modified:
-			if dc.Status.AvailableReplicas == 1 {
-				logrus.Infof("Deployment '%s' successfully scaled to %v", deployment.Name, dc.Status.AvailableReplicas)
-				watcher.Stop()
-				return true
-
-			}
-		}
-	}
-	dc, _ := cl.clientset.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
-	if dc.Status.AvailableReplicas != 1 {
-		logrus.Errorf("Failed to verify a successful %s deployment", name)
-		eventList := cl.GetEvents(name, ns).Items
-		for i := range eventList {
-			logrus.Errorf("Event message: %v", eventList[i].Message)
-		}
-		deploymentPod, err := cl.GetDeploymentPod(name, ns)
-		if err != nil {
-			return false
-		}
-		cl.GetPodLogs(deploymentPod, ns)
-		logrus.Errorf("Command to get deployment logs: kubectl logs deployment/%s -n=%s", name, ns)
-		logrus.Errorf("Get k8s events: kubectl get events "+
-			"--field-selector "+
-			"involvedObject.name=$(kubectl get pods -l=component=%s -n=%s"+
-			" -o=jsonpath='{.items[0].metadata.name}') -n=%s", name, ns, ns)
-		return false
-	}
-	return true
 }
 
 // GetEvents returns a list of events filtered by involvedObject

@@ -12,9 +12,10 @@
 package che
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"context"
 	"time"
+
+	"github.com/eclipse/che-operator/pkg/deploy"
 
 	console "github.com/openshift/api/console/v1"
 
@@ -138,7 +139,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// Check the result of reconciliation to make sure it has the desired state.
-	if ! res.Requeue {
+	if !res.Requeue {
 		t.Error("Reconcile did not requeue request as expected")
 	}
 
