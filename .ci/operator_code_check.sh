@@ -54,20 +54,19 @@ function check_deploy_folder() {
     local CR_CRD_REGEX="\b$CR_CRD_FOLDER.*?\b"
 
     # Define olm-catalog folder and regexp to check if exist nightly files for kubernetes
-    local OLM_OPENSHIFT="olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/"
-    local OLM_OC="\b$OLM_OPENSHIFT.*?\b"
+    local OLM_KUBERNETES='olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/'
+    local OLM_K8S="\b$OLM_KUBERNETES.*?\b"
 
-    # Define olm-catalog folder and regexp to check if exist nightly files for kubernetes
-    local OLM_OPENSHIFT="olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/"
-    local OLM_OC="\b$OLM_OPENSHIFT.*?\b"
+    # Define olm-catalog folder and regexp to check if exist nightly files for openshift
+    local OLM_OPENSHIFT='olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/'
+    local OLM_OCP="\b$OLM_OPENSHIFT.*?\b"
 
     # Checking if exist modifications in deploy folder
     if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ $CR_CRD_REGEX ]]; then
         echo "[INFO] Deploy Folder suffer modifications"
 
-        if [[ " ${PR_FILES_CHANGED[@]} " =~ $OLM_KUBERNETES || " ${PR_FILES_CHANGED[@]} " =~ $OLM_OPENSHIFT ]]; then
+        if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ $OLM_K8S && " ${FILES_CHANGED_ARRAY[@]} " =~ $OLM_OCP ]]; then
             echo "[INFO] Nightly files for kubernetes and openshift platform was created."
-
         else
             echo "[ERROR] Nightly files for kubernetes and openshift platform not created."
             exit 1
