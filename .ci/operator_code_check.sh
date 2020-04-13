@@ -58,7 +58,7 @@ function check_deploy_folder() {
     local OLM_OC="\b$OLM_OPENSHIFT.*?\b"
 
     # Define olm-catalog folder and regexp to check if exist nightly files for kubernetes
-    local OLM_OPENSHIFT="olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/"
+    local OLM_OPENSHIFT="olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/"
     local OLM_OC="\b$OLM_OPENSHIFT.*?\b"
 
     # Checking if exist modifications in deploy folder
