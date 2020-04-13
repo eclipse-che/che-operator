@@ -273,6 +273,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	// Handle Che TLS certificates on Kubernetes like infrastructures
+	if instance.Spec.Server.TlsSupport && instance.Spec.Server.SelfSignedCert && !isOpenShift {
+		shouldReturn, reconsileResult, err := HandleCheTLSSecrets(instance, r)
+		if shouldReturn {
+			return reconsileResult, err
+		}
+	}
+
 	// Get custom ConfigMap
 	// if it exists, add the data into CustomCheProperties
 	customConfigMap := &corev1.ConfigMap{}

@@ -50,6 +50,8 @@ spec:
               value: quay.io/eclipse/che-plugin-registry:7.12.0
             - name: IMAGE_default_devfile_registry
               value: quay.io/eclipse/che-devfile-registry:7.12.0
+            - name: IMAGE_default_che_tls_secrets_creation_job
+              value: quay.io/eclipse/che-tls-secret-creator:alpine-08c8aee
             - name: IMAGE_default_pvc_jobs
               value: registry.access.redhat.com/ubi8-minimal:8.1-409
             - name: IMAGE_default_postgres
