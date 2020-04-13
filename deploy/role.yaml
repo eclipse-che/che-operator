@@ -21,6 +21,12 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
   - route.openshift.io
   resources:
   - routes

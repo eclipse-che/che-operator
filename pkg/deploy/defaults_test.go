@@ -20,16 +20,17 @@ import (
 )
 
 const (
-	cheVersionTest           = "7.11.0"
-	cheServerImageTest       = "quay.io/eclipse/che-server:7.11.0"
-	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.11.0"
-	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.11.0"
-	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.1-407"
-	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
-	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.11.0"
-	brokerMetadataTest       = "quay.io/eclipse/che-plugin-metadata-broker:v3.1.2"
-	brokerArtifactsTest      = "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2"
-	jwtProxyTest             = "quay.io/eclipse/che-jwtproxy:fd94e60"
+	cheVersionTest                   = "7.11.0"
+	cheServerImageTest               = "quay.io/eclipse/che-server:7.11.0"
+	pluginRegistryImageTest          = "quay.io/eclipse/che-plugin-registry:7.11.0"
+	devfileRegistryImageTest         = "quay.io/eclipse/che-devfile-registry:7.11.0"
+	cheTLSSecretsCeationJobImageTest = "quay.io/eclipse/che-tls-secrets-creation-job:7.11.0"
+	pvcJobsImageTest                 = "registry.access.redhat.com/ubi8-minimal:8.1-407"
+	postgresImageTest                = "centos/postgresql-96-centos7:9.6"
+	keycloakImageTest                = "quay.io/eclipse/che-keycloak:7.11.0"
+	brokerMetadataTest               = "quay.io/eclipse/che-plugin-metadata-broker:v3.1.2"
+	brokerArtifactsTest              = "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2"
+	jwtProxyTest                     = "quay.io/eclipse/che-jwtproxy:fd94e60"
 )
 
 func init() {
@@ -37,6 +38,7 @@ func init() {
 	os.Setenv("IMAGE_default_che_server", cheServerImageTest)
 	os.Setenv("IMAGE_default_plugin_registry", pluginRegistryImageTest)
 	os.Setenv("IMAGE_default_devfile_registry", devfileRegistryImageTest)
+	os.Setenv("IMAGE_default_che_tls_secrets_creation_job", cheTLSSecretsCeationJobImageTest)
 	os.Setenv("IMAGE_default_pvc_jobs", pvcJobsImageTest)
 	os.Setenv("IMAGE_default_postgres", postgresImageTest)
 	os.Setenv("IMAGE_default_keycloak", keycloakImageTest)
