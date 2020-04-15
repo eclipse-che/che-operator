@@ -22,35 +22,12 @@ import (
 // - configurations which miss required field(s) to deploy Che
 // - self-contradictory configurations
 // - configurations with which it is impossible to deploy Che
-func ValidateCheCR(checluster *orgv1.CheCluster, isOpenshift bool) (bool, string) {
-	var isValid bool
-	var errorMessage string
-
+func ValidateCheCR(checluster *orgv1.CheCluster, isOpenshift bool) error {
 	if !isOpenshift {
 		if checluster.Spec.K8s.IngressDomain == "" {
-			return false, fmt.Sprintf("Required parameter \"Spec.K8s.IngressDomain\" is not set.")
+			return fmt.Errorf("Required field \"spec.K8s.IngressDomain\" is not set")
 		}
 	}
 
-	isValid, errorMessage = checkTLSConfiguration(checluster, isOpenshift)
-	if !isValid {
-		return isValid, errorMessage
-	}
-
-	return true, ""
-}
-
-func checkTLSConfiguration(checluster *orgv1.CheCluster, isOpenshift bool) (bool, string) {
-	if !checluster.Spec.Server.TlsSupport {
-		return true, ""
-	}
-
-	if !isOpenshift {
-		// Check TLS secret name is set
-		if checluster.Spec.K8s.TlsSecretName == "" {
-			return false, fmt.Sprintf("TLS is enabled, but required parameter \"Spec.K8s.TlsSecretName\" is not set.")
-		}
-	}
-
-	return true, ""
+	return nil
 }

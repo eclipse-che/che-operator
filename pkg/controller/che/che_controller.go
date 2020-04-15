@@ -256,10 +256,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Check Che CR correctness
-	if isValid, errorMessage := ValidateCheCR(instance, isOpenShift); !isValid {
+	if err := ValidateCheCR(instance, isOpenShift); err != nil {
 		// Che cannot be deployed with current configuration.
-		// Print error message in logs  and wait until the configuration is changed.
-		logrus.Errorf(errorMessage)
+		// Print error message in logs and wait until the configuration is changed.
+		logrus.Error(err)
 		return reconcile.Result{}, nil
 	}
 
