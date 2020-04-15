@@ -255,6 +255,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
 
+	// Check Che CR correctness
+	if isValid, errorMessage := ValidateCheCR(instance, isOpenShift); !isValid {
+		// Che cannot be deployed with current configuration.
+		// Print error message in logs  and wait until the configuration is changed.
+		logrus.Errorf(errorMessage)
+		return reconcile.Result{}, nil
+	}
+
 	if isOpenShift {
 		// delete oAuthClient before CR is deleted
 		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
