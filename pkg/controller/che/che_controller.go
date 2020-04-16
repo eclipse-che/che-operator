@@ -267,6 +267,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Handle Che TLS certificates on Kubernetes like infrastructures
 	if instance.Spec.Server.TlsSupport && instance.Spec.Server.SelfSignedCert && !isOpenShift {
+		// Ensure TLS configuration is correct
+		if err := CheckAndCorrectTLSConfiguration(instance, r); err != nil {
+			return reconcile.Result{}, err
+		}
+		// Create TLS secrets if needed
 		shouldReturn, reconsileResult, err := HandleCheTLSSecrets(instance, r)
 		if shouldReturn {
 			return reconsileResult, err

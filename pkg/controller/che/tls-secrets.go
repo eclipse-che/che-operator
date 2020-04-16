@@ -48,7 +48,7 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading secret info
-			logrus.Errorf("Error getting Che secert \"%s\": %v", cheTLSSecretName, err)
+			logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
 			return reconcile.Result{}, err
 		}
 
@@ -60,14 +60,14 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				// Error reading secret info
-				logrus.Errorf("Error getting Che secert \"%s\": %v", cheTLSSecretName, err)
+				logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", cheTLSSelfSignedCertificateSecretName, err)
 				return reconcile.Result{}, err
 			}
 			// Che CA certificate doesn't exists (that's expected at this point), do nothing
 		} else {
 			// Remove Che CA secret because Che TLS secret is missing (they should be generated together).
 			if err = r.client.Delete(context.TODO(), cheCASelfSignedCertificateSecret); err != nil {
-				logrus.Errorf("Error deleting Che TLS secret: %v", err)
+				logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", cheTLSSelfSignedCertificateSecretName, err)
 				return reconcile.Result{}, err
 			}
 		}
@@ -130,7 +130,7 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 		cheTLSJob := &batchv1.Job{}
 		err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: checluster.Namespace, Name: cheTLSJobName}, cheTLSJob)
 		if err != nil && !errors.IsNotFound(err) {
-			logrus.Errorf("Error gitting Che TLS job \"%s\": %v", cheTLSJobRoleBindingName, err)
+			logrus.Errorf("Error getting Che TLS job \"%s\": %v", cheTLSJobRoleBindingName, err)
 			return reconcile.Result{}, err
 		}
 		if err == nil {
@@ -168,7 +168,7 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 		}
 		// Create and run the job
 		cheTLSJob = deploy.NewJob(checluster, cheTLSJobName, checluster.Namespace, cheTLSSecretsCreationJobImage, cheTLSJobServiceAccountName, jobEnvVars, 1)
-		err = r.CreateNewJob(checluster, cheTLSJob)
+		err = deploy.SyncJobToCluster(checluster, cheTLSJob, deploy.ClusterAPI{Client: r.client, Scheme: r.scheme})
 		if err != nil {
 			logrus.Errorf("Error creating Che TLS job \"%s\": %v", cheTLSJobName, err)
 			return reconcile.Result{}, err
@@ -182,10 +182,10 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 	// Che TLS certificate exists, check for required data fields
 	if !isCheTLSSecretValid(cheTLSSecret) {
 		// The secret is invalid because required field(s) missing.
-		logrus.Infof("Che TLS secret \"%s\" is invalid. Recrating...", cheTLSSecretName)
+		logrus.Infof("Che TLS secret \"%s\" is invalid. Recreating...", cheTLSSecretName)
 		// Delete old invalid secret
 		if err = r.client.Delete(context.TODO(), cheTLSSecret); err != nil {
-			logrus.Errorf("Error deleting Che TLS secret: %v", err)
+			logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
 			return reconcile.Result{}, err
 		}
 		// Recreate the secret
@@ -196,11 +196,11 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 	if cheTLSSecret.ObjectMeta.OwnerReferences == nil {
 		// Set owner Che cluster as Che TLS secret owner
 		if err := controllerutil.SetControllerReference(checluster, cheTLSSecret, r.scheme); err != nil {
-			logrus.Errorf("Failed to set owner for \"%s\" secret. Error: %s", cheTLSSecretName, err)
+			logrus.Errorf("Failed to set owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
 			return reconcile.Result{}, err
 		}
 		if err := r.client.Update(context.TODO(), cheTLSSecret); err != nil {
-			logrus.Errorf("Failed to update owner for \"%s\" secret. Error: %s", cheTLSSecretName, err)
+			logrus.Errorf("Failed to update owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -212,7 +212,7 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading Che self-signed secret info
-			logrus.Errorf("Error getting Che self-signedsecert \"%s\": %v", cheTLSSecretName, err)
+			logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", cheTLSSelfSignedCertificateSecretName, err)
 			return reconcile.Result{}, err
 		}
 		// Che CA self-signed cetificate secret doesn't exist.
@@ -222,7 +222,7 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 		cheTLSSecret = &corev1.Secret{}
 		err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: checluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
 		if err != nil { // No need to check for not found error as the secret already exists at this point
-			logrus.Errorf("Error getting Che secert \"%s\": %v", cheTLSSecretName, err)
+			logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
 			return reconcile.Result{}, err
 		}
 		if err = r.client.Delete(context.TODO(), cheTLSSecret); err != nil {
@@ -235,10 +235,10 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 
 	// Che CA self-signed certificate secret exists, check for required data fields
 	if !isCheCASecretValid(cheTLSSelfSignedCertificateSecret) {
-		logrus.Infof("Che self signed certificate secret \"%s\" is invalid. Recrating...", cheTLSSelfSignedCertificateSecretName)
+		logrus.Infof("Che self-signed certificate secret \"%s\" is invalid. Recrating...", cheTLSSelfSignedCertificateSecretName)
 		// Che CA self-signed certificate secret is invalid, delete it
 		if err = r.client.Delete(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
-			logrus.Errorf("Error deleting Che self-signed secret \"%s\": %v", cheTLSSelfSignedCertificateSecretName, err)
+			logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", cheTLSSelfSignedCertificateSecretName, err)
 			return reconcile.Result{}, err
 		}
 		// Also delete Che TLS as the certificates should be created together
@@ -255,11 +255,11 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 	if cheTLSSelfSignedCertificateSecret.ObjectMeta.OwnerReferences == nil {
 		// Set owner Che cluster as Che TLS secret owner
 		if err := controllerutil.SetControllerReference(checluster, cheTLSSelfSignedCertificateSecret, r.scheme); err != nil {
-			logrus.Errorf("Failed to set owner for \"%s\" secret. Error: %s", cheTLSSelfSignedCertificateSecretName, err)
+			logrus.Errorf("Failed to set owner for Che self-signed certificate secret \"%s\". Error: %s", cheTLSSelfSignedCertificateSecretName, err)
 			return reconcile.Result{}, err
 		}
 		if err := r.client.Update(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
-			logrus.Errorf("Failed to update owner for \"%s\" secret. Error: %s", cheTLSSelfSignedCertificateSecretName, err)
+			logrus.Errorf("Failed to update owner for Che self-signed certificate secret \"%s\". Error: %s", cheTLSSelfSignedCertificateSecretName, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -284,4 +284,25 @@ func isCheCASecretValid(cheCASelfSignedCertificateSecret *corev1.Secret) bool {
 		return false
 	}
 	return true
+}
+
+// CheckAndCorrectTLSConfiguration validates TLS configuration and precreated objects if any
+// If configuration is wrong it will guess most common use cases and will make changes in Che CR accordingly to the assumption.
+func CheckAndCorrectTLSConfiguration(checluster *orgv1.CheCluster, r *ReconcileChe) error {
+	cheCRNeedUpdate := false
+
+	if checluster.Spec.K8s.TlsSecretName == "" {
+		logrus.Warnf("Parameter \"Spec.K8s.TlsSecretName\" is not specified. Falling back to default value: \"che-tls\"")
+		checluster.Spec.K8s.TlsSecretName = "che-tls"
+		cheCRNeedUpdate = true
+	}
+
+	if cheCRNeedUpdate {
+		if err := r.client.Update(context.TODO(), checluster); err != nil {
+			logrus.Errorf("Error updating CheCluster: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }
