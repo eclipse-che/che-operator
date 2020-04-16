@@ -20,7 +20,6 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -123,29 +122,6 @@ func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBind
 		err = r.client.Create(context.TODO(), roleBinding)
 		if err != nil {
 			logrus.Errorf("Failed to create %s %s: %s", roleBinding.Name, roleBinding.Kind, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	return nil
-}
-
-// CreateNewJob deploys new instance of given job
-func (r *ReconcileChe) CreateNewJob(instance *orgv1.CheCluster, job *batchv1.Job) error {
-	if err := controllerutil.SetControllerReference(instance, job, r.scheme); err != nil {
-		return err
-	}
-
-	jobFound := &batchv1.Job{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, jobFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", job.Kind, job.Name)
-		err = r.client.Create(context.TODO(), job)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", job.Name, job.Kind, err)
 			return err
 		}
 		return nil
