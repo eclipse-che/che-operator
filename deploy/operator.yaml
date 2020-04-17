@@ -43,7 +43,7 @@ spec:
             - name: OPERATOR_NAME
               value: che-operator
             - name: CHE_VERSION
-              value: '2.1'
+              value: '2.1.1'
             - name: IMAGE_default_che_server
               value: registry.redhat.io/codeready-workspaces/server-rhel8:2.1
             - name: IMAGE_default_plugin_registry
