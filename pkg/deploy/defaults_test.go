@@ -21,13 +21,13 @@ import (
 
 
 const (
-	cheVersionTest           = "7.9.2"
-	cheServerImageTest       = "quay.io/eclipse/che-server:7.9.2"
-	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.9.2"
-	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.9.2"
+	cheVersionTest           = "7.9.3"
+	cheServerImageTest       = "quay.io/eclipse/che-server:7.9.3"
+	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.9.3"
+	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.9.3"
 	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.1-398"
 	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
-	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.9.2"
+	keycloakImageTest        = "quay.io/eclipse/che-keycloak:7.9.3"
 	brokerMetadataTest		 = "quay.io/eclipse/che-plugin-metadata-broker:v3.1.1"
 	brokerArtifactsTest		 = "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.1"
 	jwtProxyTest		 	 = "quay.io/eclipse/che-jwtproxy:810d89c"
