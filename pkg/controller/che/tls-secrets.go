@@ -125,15 +125,17 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 			}
 		}
 
+		clusterAPI := deploy.ClusterAPI{Client: r.client, Scheme: r.scheme}
+
 		// Check Che TLS job existence
 		const cheTLSJobName string = "che-tls-job"
 		cheTLSJob := &batchv1.Job{}
-		err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: checluster.Namespace, Name: cheTLSJobName}, cheTLSJob)
-		if err != nil && !errors.IsNotFound(err) {
+		cheTLSJob, err := deploy.GetClusterJob(cheTLSJobName, checluster.Namespace, clusterAPI)
+		if err != nil {
 			logrus.Errorf("Error getting Che TLS job \"%s\": %v", cheTLSJobRoleBindingName, err)
 			return reconcile.Result{}, err
 		}
-		if err == nil {
+		if cheTLSJob != nil {
 			// Che TLS job has been created before
 
 			// Check the job status
@@ -167,8 +169,11 @@ func processCheTLSSecrets(checluster *orgv1.CheCluster, r *ReconcileChe) (reconc
 			"CHE_CA_CERTIFICATE_SECRET_NAME": cheTLSSelfSignedCertificateSecretName,
 		}
 		// Create and run the job
-		cheTLSJob = deploy.NewJob(checluster, cheTLSJobName, checluster.Namespace, cheTLSSecretsCreationJobImage, cheTLSJobServiceAccountName, jobEnvVars, 1)
-		err = deploy.SyncJobToCluster(checluster, cheTLSJob, deploy.ClusterAPI{Client: r.client, Scheme: r.scheme})
+		cheTLSJob, err = deploy.GetSpecJob(checluster, cheTLSJobName, checluster.Namespace, cheTLSSecretsCreationJobImage, cheTLSJobServiceAccountName, jobEnvVars, 1, clusterAPI)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		err = deploy.SyncJobToCluster(checluster, cheTLSJob, clusterAPI)
 		if err != nil {
 			logrus.Errorf("Error creating Che TLS job \"%s\": %v", cheTLSJobName, err)
 			return reconcile.Result{}, err
