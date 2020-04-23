@@ -12,22 +12,83 @@
 package deploy
 
 import (
+	"context"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func NewRole(cr *orgv1.CheCluster, name string, resources []string, verbs []string) *rbac.Role {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
-	return &rbac.Role{
+type RoleProvisioningStatus struct {
+	ProvisioningStatus
+}
+
+func SyncRoleToCluster(
+	checluster *orgv1.CheCluster,
+	name string,
+	resources []string,
+	verbs []string,
+	clusterAPI ClusterAPI) RoleProvisioningStatus {
+
+	specRole, err := getSpecRole(checluster, name, resources, verbs, clusterAPI)
+	if err != nil {
+		return RoleProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	clusterRole, err := getClusterRole(specRole.Name, specRole.Namespace, clusterAPI.Client)
+	if err != nil {
+		return RoleProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	if clusterRole == nil {
+		logrus.Infof("Creating a new object: %s, name %s", specRole.Kind, specRole.Name)
+		err := clusterAPI.Client.Create(context.TODO(), specRole)
+		return RoleProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	return RoleProvisioningStatus{
+		ProvisioningStatus: ProvisioningStatus{Continue: true},
+	}
+}
+
+func getClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
+	role := &rbac.Role{}
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := client.Get(context.TODO(), namespacedName, role)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return role, nil
+}
+
+func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, verbs []string, clusterAPI ClusterAPI) (*rbac.Role, error) {
+	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
+	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Role",
 			APIVersion: rbac.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: cr.Namespace,
+			Namespace: checluster.Namespace,
 			Labels:    labels,
 		},
 		Rules: []rbac.PolicyRule{
@@ -40,7 +101,11 @@ func NewRole(cr *orgv1.CheCluster, name string, resources []string, verbs []stri
 			},
 		},
 	}
+
+	err := controllerutil.SetControllerReference(checluster, role, clusterAPI.Scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	return role, nil
 }
-
-
-
