@@ -14,6 +14,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -22,6 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,50 +32,93 @@ import (
 
 var jobDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(batchv1.JobSpec{}, "Selector", "TTLSecondsAfterFinished"),
+	cmpopts.IgnoreFields(v1.PodTemplateSpec{}, "ObjectMeta"),
+	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
+	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext"),
+	cmp.Comparer(func(x, y []corev1.EnvVar) bool {
+		xMap := make(map[string]string)
+		yMap := make(map[string]string)
+		for _, env := range x {
+			xMap[env.Name] = env.Value
+		}
+		for _, env := range y {
+			yMap[env.Name] = env.Value
+		}
+		return reflect.DeepEqual(xMap, yMap)
+	}),
 }
 
-// SyncJobToCluster deploys new instance of given job
-func SyncJobToCluster(instance *orgv1.CheCluster, job *batchv1.Job, clusterAPI ClusterAPI) error {
-	jobFound, err := GetClusterJob(job.ObjectMeta.Name, job.ObjectMeta.Namespace, clusterAPI)
-	if jobFound == nil && err == nil {
-		logrus.Infof("Creating a new object: %s, name: %s", job.Kind, job.Name)
-		err = clusterAPI.Client.Create(context.TODO(), job)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", job.Name, job.Kind, err)
-			return err
+type JobProvisioningStatus struct {
+	ProvisioningStatus
+	Job *batchv1.Job
+}
+
+func SyncJobToCluster(
+	checluster *orgv1.CheCluster,
+	name string,
+	image string,
+	serviceAccountName string,
+	env map[string]string,
+	clusterAPI ClusterAPI) JobProvisioningStatus {
+
+	specJob, err := getSpecJob(checluster, name, image, serviceAccountName, env, clusterAPI)
+	if err != nil {
+		return JobProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
 	}
 
-	diff := cmp.Diff(job, jobFound, jobDiffOpts)
+	clusterJob, err := getClusterJob(specJob.Name, specJob.Namespace, clusterAPI)
+	if err != nil {
+		return JobProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	if clusterJob == nil {
+		logrus.Infof("Creating a new object: %s, name %s", specJob.Kind, specJob.Name)
+		err := clusterAPI.Client.Create(context.TODO(), specJob)
+		return JobProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	diff := cmp.Diff(clusterJob, specJob, jobDiffOpts)
 	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", job.Kind, job.Name)
+		logrus.Infof("Updating existed object: %s, name: %s", clusterJob.Kind, clusterJob.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		err := clusterAPI.Client.Delete(context.TODO(), jobFound)
+		err := clusterAPI.Client.Delete(context.TODO(), clusterJob)
 		if err != nil {
-			logrus.Errorf("Failed to update %s %s: %s", jobFound.Name, job.Kind, err)
-			return err
+			return JobProvisioningStatus{
+				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+			}
 		}
 
-		err = clusterAPI.Client.Create(context.TODO(), job)
-		if err != nil {
-			logrus.Errorf("Failed to update %s %s: %s", job.Name, job.Kind, err)
-			return err
+		err = clusterAPI.Client.Create(context.TODO(), specJob)
+		return JobProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}
 	}
 
-	return nil
+	return JobProvisioningStatus{
+		ProvisioningStatus: ProvisioningStatus{Continue: clusterJob.Status.Succeeded >= 1},
+		Job:                clusterJob,
+	}
 }
 
-// GetSpecJob creates new job configuration by giben parameters.
-func GetSpecJob(checluster *orgv1.CheCluster, name string, namespace string, image string, serviceAccountName string, env map[string]string, backoffLimit int32, clusterAPI ClusterAPI) (*batchv1.Job, error) {
+// GetSpecJob creates new job configuration by given parameters.
+func getSpecJob(checluster *orgv1.CheCluster, name string, image string, serviceAccountName string, env map[string]string, clusterAPI ClusterAPI) (*batchv1.Job, error) {
 	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
 	labels["component"] = "che-create-tls-secret-job"
+	labels["job-name"] = name
 
+	backoffLimit := int32(3)
+	parallelism := int32(1)
+	comletions := int32(1)
+	terminationGracePeriodSeconds := int64(30)
+	ttlSecondsAfterFinished := int32(30)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(checluster.Spec.Server.CheImagePullPolicy), "IfNotPresent"))
 
 	var jobEnvVars []corev1.EnvVar
@@ -97,8 +142,10 @@ func GetSpecJob(checluster *orgv1.CheCluster, name string, namespace string, ima
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: serviceAccountName,
-					RestartPolicy:      "Never",
+					ServiceAccountName:            serviceAccountName,
+					DeprecatedServiceAccount:      serviceAccountName,
+					RestartPolicy:                 "Never",
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
 							Name:            name + "-job-container",
@@ -109,7 +156,10 @@ func GetSpecJob(checluster *orgv1.CheCluster, name string, namespace string, ima
 					},
 				},
 			},
-			BackoffLimit: &backoffLimit,
+			TTLSecondsAfterFinished: &ttlSecondsAfterFinished,
+			Parallelism:             &parallelism,
+			BackoffLimit:            &backoffLimit,
+			Completions:             &comletions,
 		},
 	}
 
@@ -121,9 +171,9 @@ func GetSpecJob(checluster *orgv1.CheCluster, name string, namespace string, ima
 }
 
 // GetClusterJob gets and returns specified job
-func GetClusterJob(name string, namespace string, clusterAPI ClusterAPI) (*batchv1.Job, error) {
+func getClusterJob(name string, namespace string, clusterAPI ClusterAPI) (*batchv1.Job, error) {
 	job := &batchv1.Job{}
-	err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, job)
+	err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
