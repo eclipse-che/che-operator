@@ -48,10 +48,7 @@ func SyncRoleToCluster(
 	if clusterRole == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRole.Kind, specRole.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specRole)
-		if err != nil {
-			return nil, reconcile.Result{RequeueAfter: time.Second}, err
-		}
-		return nil, reconcile.Result{Requeue: true}, nil
+		return nil, reconcile.Result{Requeue: true}, err
 	}
 
 	return clusterRole, reconcile.Result{}, nil

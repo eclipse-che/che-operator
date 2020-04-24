@@ -95,8 +95,8 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
 		}
-		_, result, err = SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
-		if result.Requeue || result.RequeueAfter > 0 {
+		job, result, err := SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
+		if job == nil || job.Status.Succeeded == 0 {
 			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
 			return result, err
 		}
