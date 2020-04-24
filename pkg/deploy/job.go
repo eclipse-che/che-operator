@@ -80,10 +80,7 @@ func SyncJobToCluster(
 	if clusterJob == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specJob.Kind, specJob.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specJob)
-		if err != nil {
-			return nil, reconcile.Result{RequeueAfter: time.Second}, err
-		}
-		return nil, reconcile.Result{Requeue: true}, nil
+		return nil, reconcile.Result{Requeue: true}, err
 	}
 
 	diff := cmp.Diff(clusterJob, specJob, jobDiffOpts)
@@ -97,13 +94,10 @@ func SyncJobToCluster(
 		}
 
 		err = clusterAPI.Client.Create(context.TODO(), specJob)
-		if err != nil {
-			return nil, reconcile.Result{RequeueAfter: time.Second}, err
-		}
-		return nil, reconcile.Result{Requeue: true}, nil
+		return nil, reconcile.Result{Requeue: true}, err
 	}
 
-	return nil, reconcile.Result{Requeue: clusterJob.Status.Succeeded == 0}, nil
+	return clusterJob, reconcile.Result{Requeue: true}, nil
 }
 
 // GetSpecJob creates new job configuration by given parameters.

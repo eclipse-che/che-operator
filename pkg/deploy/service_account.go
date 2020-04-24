@@ -41,10 +41,7 @@ func SyncServiceAccountToCluster(checluster *orgv1.CheCluster, name string, clus
 	if clusterSA == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specSA.Kind, specSA.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specSA)
-		if err != nil {
-			return nil, reconcile.Result{RequeueAfter: time.Second}, err
-		}
-		return nil, reconcile.Result{Requeue: true}, nil
+		return nil, reconcile.Result{Requeue: true}, err
 	}
 
 	return clusterSA, reconcile.Result{}, nil
