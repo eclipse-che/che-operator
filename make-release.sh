@@ -72,9 +72,6 @@ resetLocalChanges() {
     git fetch ${GIT_REMOTE_UPSTREAM} --prune
     git pull ${GIT_REMOTE_UPSTREAM} $BRANCH
     git checkout -B $RELEASE
-
-    local changes=$(git status -s | wc -l)
-    [[ $changes -gt 0 ]] && { echo -e $RED"The number of changes are greated then 0. Check 'git status'."$NC; return 1; }
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -155,9 +152,9 @@ releaseOperatorCode() {
     echo $operatorlocalyaml
     read -p "Press enter to continue"
 
-    echo -e $GREEN"2.6 Validate number of changed files"$NC
+    echo -e $GREEN"2.5 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    [[ $changes -gt 1 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; }
+    [[ $changes -gt 1 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; } || true
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -217,7 +214,7 @@ updateNightlyOlmFiles() {
 
     echo -e $GREEN"5.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes are greated then 4. Check 'git status'."$NC; return 1; }
+    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes are greated then 4. Check 'git status'."$NC; return 1; } || true
 
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
@@ -269,8 +266,7 @@ releaseOlmFiles() {
 
     echo -e $GREEN"7.4 Validate number of changed files"$NC
     local changes=$(git status -s | wc -l)
-    echo "Number for changes: "$changes
-    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes is greater then 4. Check 'git status'."$NC; return 1; }
+    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes is greater then 4. Check 'git status'."$NC; return 1; } || true
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
