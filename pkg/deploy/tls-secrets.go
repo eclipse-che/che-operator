@@ -73,19 +73,19 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 		}
 
 		// Prepare permissions for the certificate generation job
-		sa, result, err := SyncServiceAccountToCluster(checluster, CheTLSJobServiceAccountName, clusterAPI)
+		sa, err := SyncServiceAccountToCluster(checluster, CheTLSJobServiceAccountName, clusterAPI)
 		if sa == nil {
-			return result, err
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		role, result, err := SyncRoleToCluster(checluster, CheTLSJobRoleName, []string{"secrets"}, []string{"create"}, clusterAPI)
+		role, err := SyncRoleToCluster(checluster, CheTLSJobRoleName, []string{"secrets"}, []string{"create"}, clusterAPI)
 		if role == nil {
-			return result, err
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		roleBiding, result, err := SyncRoleBindingToCluster(checluster, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role", clusterAPI)
+		roleBiding, err := SyncRoleBindingToCluster(checluster, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role", clusterAPI)
 		if roleBiding == nil {
-			return result, err
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
 		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
@@ -95,10 +95,13 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
 		}
-		job, result, err := SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
-		if job == nil || job.Status.Succeeded == 0 {
+		job, err := SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
+		if err != nil || job == nil || job.Status.Succeeded == 0 {
 			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
-			return result, err
+			if err != nil {
+				logrus.Error(err)
+			}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 

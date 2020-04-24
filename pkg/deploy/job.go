@@ -15,9 +15,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
-
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -65,22 +62,22 @@ func SyncJobToCluster(
 	image string,
 	serviceAccountName string,
 	env map[string]string,
-	clusterAPI ClusterAPI) (*batchv1.Job, reconcile.Result, error) {
+	clusterAPI ClusterAPI) (*batchv1.Job, error) {
 
 	specJob, err := getSpecJob(checluster, name, component, image, serviceAccountName, env, clusterAPI)
 	if err != nil {
-		return nil, reconcile.Result{}, err
+		return nil, err
 	}
 
 	clusterJob, err := getClusterJob(specJob.Name, specJob.Namespace, clusterAPI)
 	if err != nil {
-		return nil, reconcile.Result{RequeueAfter: time.Second}, err
+		return nil, err
 	}
 
 	if clusterJob == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specJob.Kind, specJob.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specJob)
-		return nil, reconcile.Result{Requeue: true}, err
+		return nil, err
 	}
 
 	diff := cmp.Diff(clusterJob, specJob, jobDiffOpts)
@@ -88,16 +85,15 @@ func SyncJobToCluster(
 		logrus.Infof("Updating existed object: %s, name: %s", clusterJob.Kind, clusterJob.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		err := clusterAPI.Client.Delete(context.TODO(), clusterJob)
-		if err != nil {
-			return nil, reconcile.Result{RequeueAfter: time.Second}, err
+		if err := clusterAPI.Client.Delete(context.TODO(), clusterJob); err != nil {
+			return nil, err
 		}
 
-		err = clusterAPI.Client.Create(context.TODO(), specJob)
-		return nil, reconcile.Result{Requeue: true}, err
+		err := clusterAPI.Client.Create(context.TODO(), specJob)
+		return nil, err
 	}
 
-	return clusterJob, reconcile.Result{Requeue: true}, nil
+	return clusterJob, nil
 }
 
 // GetSpecJob creates new job configuration by given parameters.

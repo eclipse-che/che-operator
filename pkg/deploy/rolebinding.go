@@ -13,7 +13,6 @@ package deploy
 
 import (
 	"context"
-	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -24,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func SyncRoleBindingToCluster(
@@ -33,25 +31,25 @@ func SyncRoleBindingToCluster(
 	serviceAccountName string,
 	roleName string,
 	roleKind string,
-	clusterAPI ClusterAPI) (*rbac.RoleBinding, reconcile.Result, error) {
+	clusterAPI ClusterAPI) (*rbac.RoleBinding, error) {
 
 	specRB, err := getSpecRoleBinding(checluster, name, serviceAccountName, roleName, roleKind, clusterAPI)
 	if err != nil {
-		return nil, reconcile.Result{}, err
+		return nil, err
 	}
 
 	clusterRB, err := getClusterRoleBiding(specRB.Name, specRB.Namespace, clusterAPI.Client)
 	if err != nil {
-		return nil, reconcile.Result{RequeueAfter: time.Second}, err
+		return nil, err
 	}
 
 	if clusterRB == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRB.Kind, specRB.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specRB)
-		return nil, reconcile.Result{Requeue: true}, err
+		return nil, err
 	}
 
-	return clusterRB, reconcile.Result{}, nil
+	return clusterRB, nil
 }
 
 func getClusterRoleBiding(name string, namespace string, client runtimeClient.Client) (*rbac.RoleBinding, error) {
