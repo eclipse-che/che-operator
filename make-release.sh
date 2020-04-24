@@ -236,8 +236,8 @@ releaseOlmFiles() {
   if [[ $result == 0 ]]; then
     echo -e $GREEN"7.1 Launch 'olm/release-olm-files.sh' script"$NC
     cd $BASE_DIR/olm
-    . $BASE_DIR/olm/release-olm-files.sh $RELEASE
-    cd $CURRENT_DIR
+    . release-olm-files.sh $RELEASE
+    cd $BASE_DIR
 
     local openshift=$BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
     local kubernetes=$BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
