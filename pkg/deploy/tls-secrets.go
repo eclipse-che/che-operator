@@ -13,13 +13,16 @@ package deploy
 
 import (
 	"context"
+	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -30,12 +33,8 @@ const (
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 )
 
-type TLSSecretsProvisioningStatus struct {
-	ProvisioningStatus
-}
-
 // HandleCheTLSSecrets handles TLS secrets required for Che deployment
-func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) TLSSecretsProvisioningStatus {
+func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (reconcile.Result, error) {
 	cheTLSSecretName := checluster.Spec.K8s.TlsSecretName
 
 	// ===== Check Che TLS certificate ===== //
@@ -45,7 +44,7 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		if !errors.IsNotFound(err) {
 			// Error reading secret info
 			logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
 		// Che TLS secret doesn't exist, generate a new one
@@ -57,31 +56,31 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 			if !errors.IsNotFound(err) {
 				// Error reading secret info
 				logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", CheTLSSelfSignedCertificateSecretName, err)
-				return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			// Che CA certificate doesn't exists (that's expected at this point), do nothing
 		} else {
 			// Remove Che CA secret because Che TLS secret is missing (they should be generated together).
 			if err = clusterAPI.Client.Delete(context.TODO(), cheCASelfSignedCertificateSecret); err != nil {
 				logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", CheTLSSelfSignedCertificateSecretName, err)
-				return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 		}
 
 		// Prepare permissions for the certificate generation job
-		saStatus := SyncServiceAccountToCluster(checluster, CheTLSJobServiceAccountName, clusterAPI)
-		if !saStatus.Continue {
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: saStatus.ProvisioningStatus}
+		sa, result, err := SyncServiceAccountToCluster(checluster, CheTLSJobServiceAccountName, clusterAPI)
+		if sa == nil {
+			return result, err
 		}
 
-		roleStatus := SyncRoleToCluster(checluster, CheTLSJobRoleName, []string{"secrets"}, []string{"create"}, clusterAPI)
-		if !roleStatus.Continue {
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: roleStatus.ProvisioningStatus}
+		role, result, err := SyncRoleToCluster(checluster, CheTLSJobRoleName, []string{"secrets"}, []string{"create"}, clusterAPI)
+		if role == nil {
+			return result, err
 		}
 
-		roleBindingStatus := SyncRoleBindingToCluster(checluster, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role", clusterAPI)
-		if !roleBindingStatus.Continue {
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: roleBindingStatus.ProvisioningStatus}
+		roleBiding, result, err := SyncRoleBindingToCluster(checluster, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role", clusterAPI)
+		if roleBiding == nil {
+			return result, err
 		}
 
 		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
@@ -91,20 +90,24 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
 		}
-		jobStatus := SyncJobToCluster(checluster, CheTLSJobName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
-		if !jobStatus.Continue {
+		job, result, err := SyncTlsJobToCluster(checluster, CheTLSJobName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
+		if job == nil {
 			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
-			if jobStatus.Err != nil {
-				logrus.Error(jobStatus.Err)
-			}
-
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: jobStatus.ProvisioningStatus}
+			return result, err
 		}
+	}
 
-		// cleanup job
-		if err = clusterAPI.Client.Delete(context.TODO(), jobStatus.Job); err != nil {
+	// cleanup job
+	job := &batchv1.Job{}
+	err = clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: checluster.Namespace}, job)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	} else {
+		if err = clusterAPI.Client.Delete(context.TODO(), job); err != nil {
 			logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -115,10 +118,10 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		// Delete old invalid secret
 		if err = clusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
 			logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Recreate the secret
-		return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Requeue: true}}
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	// Check owner reference
@@ -126,11 +129,11 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		// Set owner Che cluster as Che TLS secret owner
 		if err := controllerutil.SetControllerReference(checluster, cheTLSSecret, clusterAPI.Scheme); err != nil {
 			logrus.Errorf("Failed to set owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		if err := clusterAPI.Client.Update(context.TODO(), cheTLSSecret); err != nil {
 			logrus.Errorf("Failed to update owner for Che TLS secret \"%s\". Error: %s", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -142,7 +145,7 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		if !errors.IsNotFound(err) {
 			// Error reading Che self-signed secret info
 			logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", CheTLSSelfSignedCertificateSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Che CA self-signed cetificate secret doesn't exist.
 		// Such situation could happen between reconcile loops, when CA cert is deleted.
@@ -152,14 +155,14 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		err = clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: checluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
 		if err != nil { // No need to check for not found error as the secret already exists at this point
 			logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		if err = clusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
 			logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Invalid secrets cleaned up, recreate them now
-		return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Requeue: true}}
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	// Che CA self-signed certificate secret exists, check for required data fields
@@ -168,16 +171,16 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		// Che CA self-signed certificate secret is invalid, delete it
 		if err = clusterAPI.Client.Delete(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
 			logrus.Errorf("Error deleting Che self-signed certificate secret \"%s\": %v", CheTLSSelfSignedCertificateSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Also delete Che TLS as the certificates should be created together
 		// Here it is not mandatory to check Che TLS secret existence as it is handled above
 		if err = clusterAPI.Client.Delete(context.TODO(), cheTLSSecret); err != nil {
 			logrus.Errorf("Error deleting Che TLS secret \"%s\": %v", cheTLSSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// Regenerate Che TLS certicates and recreate secrets
-		return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Requeue: true}}
+		return reconcile.Result{RequeueAfter: time.Second}, nil
 	}
 
 	// Check owner reference
@@ -185,16 +188,16 @@ func SyncTLSSecretsToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 		// Set owner Che cluster as Che TLS secret owner
 		if err := controllerutil.SetControllerReference(checluster, cheTLSSelfSignedCertificateSecret, clusterAPI.Scheme); err != nil {
 			logrus.Errorf("Failed to set owner for Che self-signed certificate secret \"%s\". Error: %s", CheTLSSelfSignedCertificateSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		if err := clusterAPI.Client.Update(context.TODO(), cheTLSSelfSignedCertificateSecret); err != nil {
 			logrus.Errorf("Failed to update owner for Che self-signed certificate secret \"%s\". Error: %s", CheTLSSelfSignedCertificateSecretName, err)
-			return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Err: err}}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
 	// Both secrets are ok, go further in reconcile loop
-	return TLSSecretsProvisioningStatus{ProvisioningStatus: ProvisioningStatus{Continue: true}}
+	return reconcile.Result{}, nil
 }
 
 func isCheTLSSecretValid(cheTLSSecret *corev1.Secret) bool {
@@ -218,10 +221,8 @@ func isCheCASecretValid(cheCASelfSignedCertificateSecret *corev1.Secret) bool {
 // If configuration is wrong it will guess most common use cases and will make changes in Che CR accordingly to the assumption.
 func CheckAndUpdateTLSConfiguration(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	if checluster.Spec.K8s.TlsSecretName == "" {
-		logrus.Warnf("Field 'Spec.K8s.TlsSecretName' is empty. Setting default value: 'che-tls'")
 		checluster.Spec.K8s.TlsSecretName = "che-tls"
-		if err := clusterAPI.Client.Update(context.TODO(), checluster); err != nil {
-			logrus.Errorf("Error updating CheCluster: %v", err)
+		if err := UpdateCheCRSpec(checluster, "TlsSecretName", checluster.Spec.K8s.TlsSecretName, clusterAPI); err != nil {
 			return err
 		}
 	}
