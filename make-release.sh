@@ -283,8 +283,8 @@ pushOlmFiles() {
 
   if [[ $result == 0 ]]; then
     cd $BASE_DIR/olm
-    . $BASE_DIR/olm/push-olm-files-to-quay.sh
-    cd $CURRENT_DIR
+    . push-olm-files-to-quay.sh
+    cd $BASE_DIR
     xdg-open https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes
     xdg-open https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift
   elif [[ $result == 1 ]]; then
