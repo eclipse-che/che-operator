@@ -96,37 +96,18 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
 		}
 		job, err := SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
-		if err != nil || job == nil || job.Status.Succeeded == 0 {
-			if err != nil {
-				logrus.Error(err)
-			} else {
-				logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
-			}
+		if err != nil {
+			logrus.Error(err)
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+		if job == nil || job.Status.Succeeded == 0 {
+			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
 	// cleanup job
-	job := &batchv1.Job{}
-	err = clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: checluster.Namespace}, job)
-	if err == nil {
-		podName, err := k8sclient.GetDeploymentPod(CheTlsJobComponentName, checluster.Namespace)
-		if len(podName) > 0 {
-			pod := &corev1.Pod{}
-			err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: checluster.Namespace}, pod)
-			if err == nil {
-				// delete pod (for some reasons pod isn't removed when job is removed)
-				if err = clusterAPI.Client.Delete(context.TODO(), pod); err != nil {
-					logrus.Errorf("Error deleting pod: '%s', error: %v", podName, err)
-				}
-			}
-		}
-
-		// delete job
-		if err = clusterAPI.Client.Delete(context.TODO(), job); err != nil {
-			logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
-		}
-	}
+	deleteJob(checluster, clusterAPI)
 
 	// Che TLS certificate exists, check for required data fields
 	if !isCheTLSSecretValid(cheTLSSecret) {
@@ -245,4 +226,26 @@ func CheckAndUpdateTLSConfiguration(checluster *orgv1.CheCluster, clusterAPI Clu
 	}
 
 	return nil
+}
+
+func deleteJob(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) {
+	job := &batchv1.Job{}
+	err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: checluster.Namespace}, job)
+	if err == nil {
+		names := k8sclient.GetPodsByComponent(CheTlsJobComponentName, checluster.Namespace)
+		for _, podName := range names {
+			pod := &corev1.Pod{}
+			err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: checluster.Namespace}, pod)
+			if err == nil {
+				// delete pod (for some reasons pod isn't removed when job is removed)
+				if err = clusterAPI.Client.Delete(context.TODO(), pod); err != nil {
+					logrus.Errorf("Error deleting pod: '%s', error: %v", podName, err)
+				}
+			}
+		}
+
+		if err = clusterAPI.Client.Delete(context.TODO(), job); err != nil {
+			logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
+		}
+	}
 }

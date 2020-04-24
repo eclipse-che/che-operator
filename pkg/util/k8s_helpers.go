@@ -118,6 +118,20 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 	return podName, nil
 }
 
+func (cl *k8s) GetPodsByComponent(name string, ns string) []string {
+	names := []string{}
+	api := cl.clientset.CoreV1()
+	listOptions := metav1.ListOptions{
+		LabelSelector: "component=" + name,
+	}
+	podList, _ := api.Pods(ns).List(listOptions)
+	for _, pod := range podList.Items {
+		names = append(names, pod.Name)
+	}
+
+	return names
+}
+
 // Reads 'user' and 'password' from the given secret
 func (cl *k8s) ReadSecret(name string, ns string) (user string, password string, err error) {
 	secret, err := cl.clientset.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
