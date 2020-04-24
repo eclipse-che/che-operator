@@ -109,7 +109,7 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 	podList, _ := api.Pods(ns).List(listOptions)
 	podListItems := podList.Items
 	if len(podListItems) == 0 {
-		logrus.Errorf("Failed to find pod to exec into. List of pods: %v", podListItems)
+		logrus.Errorf("Failed to find pod for component %s. List of pods: %v", name, podListItems)
 		return "", err
 	}
 	// expecting only one pod to be there so, taking the first one
