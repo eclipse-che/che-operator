@@ -148,13 +148,9 @@ releaseOperatorCode() {
     checkImageReferences $operatorlocalyaml
 
     echo -e $GREEN"2.4 It is needed to check files manully:"$NC
+    git status -s
     echo $operatoryaml
     echo $operatorlocalyaml
-    read -p "Press enter to continue"
-
-    echo -e $GREEN"2.5 Validate number of changed files"$NC
-    local changes=$(git status -s | wc -l)
-    [[ $changes -gt 1 ]] && { echo -e $RED"The number of changes are greated then 2. Check 'git status'."$NC; return 1; } || true
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -209,13 +205,9 @@ updateNightlyOlmFiles() {
     checkImageReferences $csvFile
 
     echo -e $GREEN"5.3 It is needed to check file manully"$NC
+    git status -s
     for diff in $(ls ${lastKubernetesNightlyDir}/*.diff); do echo $diff; done
     for diff in $(ls ${lastNightlyOpenshiftDir}/*.diff); do echo $diff; done
-
-    echo -e $GREEN"5.4 Validate number of changed files"$NC
-    local changes=$(git status -s | wc -l)
-    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes are greated then 4. Check 'git status'."$NC; return 1; } || true
-
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -259,14 +251,11 @@ releaseOlmFiles() {
     test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
 
     echo -e $GREEN"7.3 It is needed to check diff files manully"$NC
+    echo git status -s
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml.diff
     echo $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml.diff
     echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml.diff
-
-    echo -e $GREEN"7.4 Validate number of changed files"$NC
-    local changes=$(git status -s | wc -l)
-    [[ $changes -gt 4 ]] && { echo -e $RED"The number of changes is greater then 4. Check 'git status'."$NC; return 1; } || true
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
@@ -296,14 +285,8 @@ pushOlmFiles() {
     cd $BASE_DIR/olm
     . $BASE_DIR/olm/push-olm-files-to-quay.sh
     cd $CURRENT_DIR
-
-    read -p "Validate RELEASES page on quay.io. Press enter to open the browser"
     xdg-open https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes
-
-    read -p "Validate RELEASES page on quay.io. Press enter to open the browser"
     xdg-open https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift
-
-    read -p "Press enter to continue"
   elif [[ $result == 1 ]]; then
     echo -e $YELLOW"> SKIPPED"$NC
   fi
