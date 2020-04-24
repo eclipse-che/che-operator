@@ -58,16 +58,6 @@ var (
 	}
 )
 
-func SyncTlsJobToCluster(
-	checluster *orgv1.CheCluster,
-	name string,
-	image string,
-	serviceAccountName string,
-	env map[string]string,
-	clusterAPI ClusterAPI) (*batchv1.Job, reconcile.Result, error) {
-	return SyncJobToCluster(checluster, name, CheTlsJobComponentName, image, serviceAccountName, env, clusterAPI)
-}
-
 func SyncJobToCluster(
 	checluster *orgv1.CheCluster,
 	name string,
