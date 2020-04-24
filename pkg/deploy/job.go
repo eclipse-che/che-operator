@@ -15,6 +15,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -30,58 +33,67 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var jobDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),
-	cmpopts.IgnoreFields(batchv1.JobSpec{}, "Selector", "TTLSecondsAfterFinished"),
-	cmpopts.IgnoreFields(v1.PodTemplateSpec{}, "ObjectMeta"),
-	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
-	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext"),
-	cmp.Comparer(func(x, y []corev1.EnvVar) bool {
-		xMap := make(map[string]string)
-		yMap := make(map[string]string)
-		for _, env := range x {
-			xMap[env.Name] = env.Value
-		}
-		for _, env := range y {
-			yMap[env.Name] = env.Value
-		}
-		return reflect.DeepEqual(xMap, yMap)
-	}),
-}
+const (
+	CheTlsJobComponentName = "che-create-tls-secret-job"
+)
 
-type JobProvisioningStatus struct {
-	ProvisioningStatus
-	Job *batchv1.Job
-}
+var (
+	jobDiffOpts = cmp.Options{
+		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),
+		cmpopts.IgnoreFields(batchv1.JobSpec{}, "Selector", "TTLSecondsAfterFinished"),
+		cmpopts.IgnoreFields(v1.PodTemplateSpec{}, "ObjectMeta"),
+		cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
+		cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext"),
+		cmp.Comparer(func(x, y []corev1.EnvVar) bool {
+			xMap := make(map[string]string)
+			yMap := make(map[string]string)
+			for _, env := range x {
+				xMap[env.Name] = env.Value
+			}
+			for _, env := range y {
+				yMap[env.Name] = env.Value
+			}
+			return reflect.DeepEqual(xMap, yMap)
+		}),
+	}
+)
 
-func SyncJobToCluster(
+func SyncTlsJobToCluster(
 	checluster *orgv1.CheCluster,
 	name string,
 	image string,
 	serviceAccountName string,
 	env map[string]string,
-	clusterAPI ClusterAPI) JobProvisioningStatus {
+	clusterAPI ClusterAPI) (*batchv1.Job, reconcile.Result, error) {
+	return SyncJobToCluster(checluster, name, CheTlsJobComponentName, image, serviceAccountName, env, clusterAPI)
+}
 
-	specJob, err := getSpecJob(checluster, name, image, serviceAccountName, env, clusterAPI)
+func SyncJobToCluster(
+	checluster *orgv1.CheCluster,
+	name string,
+	component string,
+	image string,
+	serviceAccountName string,
+	env map[string]string,
+	clusterAPI ClusterAPI) (*batchv1.Job, reconcile.Result, error) {
+
+	specJob, err := getSpecJob(checluster, name, component, image, serviceAccountName, env, clusterAPI)
 	if err != nil {
-		return JobProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, reconcile.Result{}, err
 	}
 
 	clusterJob, err := getClusterJob(specJob.Name, specJob.Namespace, clusterAPI)
 	if err != nil {
-		return JobProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	if clusterJob == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specJob.Kind, specJob.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specJob)
-		return JobProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		if err != nil {
+			return nil, reconcile.Result{RequeueAfter: time.Second}, err
 		}
+		return nil, reconcile.Result{Requeue: true}, nil
 	}
 
 	diff := cmp.Diff(clusterJob, specJob, jobDiffOpts)
@@ -91,28 +103,33 @@ func SyncJobToCluster(
 
 		err := clusterAPI.Client.Delete(context.TODO(), clusterJob)
 		if err != nil {
-			return JobProvisioningStatus{
-				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-			}
+			return nil, reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
 		err = clusterAPI.Client.Create(context.TODO(), specJob)
-		return JobProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		if err != nil {
+			return nil, reconcile.Result{RequeueAfter: time.Second}, err
 		}
+		return nil, reconcile.Result{Requeue: true}, nil
 	}
 
-	return JobProvisioningStatus{
-		ProvisioningStatus: ProvisioningStatus{Continue: clusterJob.Status.Succeeded >= 1},
-		Job:                clusterJob,
+	if clusterJob.Status.Succeeded >= 1 {
+		return clusterJob, reconcile.Result{}, nil
 	}
+	return nil, reconcile.Result{Requeue: true}, nil
 }
 
 // GetSpecJob creates new job configuration by given parameters.
-func getSpecJob(checluster *orgv1.CheCluster, name string, image string, serviceAccountName string, env map[string]string, clusterAPI ClusterAPI) (*batchv1.Job, error) {
+func getSpecJob(
+	checluster *orgv1.CheCluster,
+	name string,
+	component string,
+	image string,
+	serviceAccountName string,
+	env map[string]string,
+	clusterAPI ClusterAPI) (*batchv1.Job, error) {
 	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
-	labels["component"] = "che-create-tls-secret-job"
-	labels["job-name"] = name
+	labels["component"] = component
 
 	backoffLimit := int32(3)
 	parallelism := int32(1)

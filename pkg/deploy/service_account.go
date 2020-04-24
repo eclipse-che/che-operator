@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"context"
+	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -23,38 +24,30 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type ServiceAccountProvisioningStatus struct {
-	ProvisioningStatus
-}
-
-func SyncServiceAccountToCluster(checluster *orgv1.CheCluster, name string, clusterAPI ClusterAPI) ServiceAccountProvisioningStatus {
+func SyncServiceAccountToCluster(checluster *orgv1.CheCluster, name string, clusterAPI ClusterAPI) (*corev1.ServiceAccount, reconcile.Result, error) {
 	specSA, err := getSpecServiceAccount(checluster, name, clusterAPI)
 	if err != nil {
-		return ServiceAccountProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, reconcile.Result{}, err
 	}
 
 	clusterSA, err := getClusterServiceAccount(specSA.Name, specSA.Namespace, clusterAPI.Client)
 	if err != nil {
-		return ServiceAccountProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	if clusterSA == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specSA.Kind, specSA.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specSA)
-		return ServiceAccountProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		if err != nil {
+			return nil, reconcile.Result{RequeueAfter: time.Second}, err
 		}
+		return nil, reconcile.Result{Requeue: true}, nil
 	}
 
-	return ServiceAccountProvisioningStatus{
-		ProvisioningStatus: ProvisioningStatus{Continue: true},
-	}
+	return clusterSA, reconcile.Result{}, nil
 }
 
 func getClusterServiceAccount(name string, namespace string, client runtimeClient.Client) (*corev1.ServiceAccount, error) {
