@@ -16,6 +16,7 @@ import (
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +32,10 @@ const (
 	CheTLSJobRoleBindingName              = "che-tls-job-role-binding"
 	CheTLSJobName                         = "che-tls-job"
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
+)
+
+var (
+	k8sclient = util.GetK8Client()
 )
 
 // HandleCheTLSSecrets handles TLS secrets required for Che deployment
@@ -100,14 +105,22 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 	// cleanup job
 	job := &batchv1.Job{}
 	err = clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: checluster.Namespace}, job)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+	if err == nil {
+		podName, err := k8sclient.GetDeploymentPod(CheTlsJobComponentName, checluster.Namespace)
+		if len(podName) > 0 {
+			pod := &corev1.Pod{}
+			err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: checluster.Namespace}, pod)
+			if err == nil {
+				// delete pod (for some reasons pod isn't removed when job is removed)
+				if err = clusterAPI.Client.Delete(context.TODO(), pod); err != nil {
+					logrus.Errorf("Error deleting pod: '%s', error: %v", podName, err)
+				}
+			}
 		}
-	} else {
+
+		// delete job
 		if err = clusterAPI.Client.Delete(context.TODO(), job); err != nil {
 			logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
-			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
