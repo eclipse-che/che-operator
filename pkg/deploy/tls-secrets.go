@@ -97,9 +97,10 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 		}
 		job, err := SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
 		if err != nil || job == nil || job.Status.Succeeded == 0 {
-			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
 			if err != nil {
 				logrus.Error(err)
+			} else {
+				logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
 			}
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
