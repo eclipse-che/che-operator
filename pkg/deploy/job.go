@@ -113,10 +113,7 @@ func SyncJobToCluster(
 		return nil, reconcile.Result{Requeue: true}, nil
 	}
 
-	if clusterJob.Status.Succeeded >= 1 {
-		return clusterJob, reconcile.Result{}, nil
-	}
-	return nil, reconcile.Result{Requeue: true}, nil
+	return nil, reconcile.Result{Requeue: clusterJob.Status.Succeeded == 0}, nil
 }
 
 // GetSpecJob creates new job configuration by given parameters.
