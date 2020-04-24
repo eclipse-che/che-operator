@@ -236,8 +236,8 @@ releaseOlmFiles() {
   if [[ $result == 0 ]]; then
     echo -e $GREEN"7.1 Launch 'olm/release-olm-files.sh' script"$NC
     cd $BASE_DIR/olm
-    . $BASE_DIR/olm/release-olm-files.sh $RELEASE
-    cd $CURRENT_DIR
+    . release-olm-files.sh $RELEASE
+    cd $BASE_DIR
 
     local openshift=$BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
     local kubernetes=$BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
@@ -283,8 +283,8 @@ pushOlmFiles() {
 
   if [[ $result == 0 ]]; then
     cd $BASE_DIR/olm
-    . $BASE_DIR/olm/push-olm-files-to-quay.sh
-    cd $CURRENT_DIR
+    . push-olm-files-to-quay.sh
+    cd $BASE_DIR
     xdg-open https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes
     xdg-open https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift
   elif [[ $result == 1 ]]; then
