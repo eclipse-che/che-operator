@@ -30,10 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const (
-	CheTlsJobComponentName = "che-create-tls-secret-job"
-)
-
 var (
 	jobDiffOpts = cmp.Options{
 		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),

@@ -9,14 +9,14 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package che
 
 import (
 	"context"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,15 +31,12 @@ const (
 	CheTLSJobRoleName                     = "che-tls-job-role"
 	CheTLSJobRoleBindingName              = "che-tls-job-role-binding"
 	CheTLSJobName                         = "che-tls-job"
+	CheTlsJobComponentName                = "che-create-tls-secret-job"
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 )
 
-var (
-	k8sclient = util.GetK8Client()
-)
-
 // HandleCheTLSSecrets handles TLS secrets required for Che deployment
-func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (reconcile.Result, error) {
+func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) (reconcile.Result, error) {
 	cheTLSSecretName := checluster.Spec.K8s.TlsSecretName
 
 	// ===== Check Che TLS certificate ===== //
@@ -73,29 +70,29 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (r
 		}
 
 		// Prepare permissions for the certificate generation job
-		sa, err := SyncServiceAccountToCluster(checluster, CheTLSJobServiceAccountName, clusterAPI)
+		sa, err := deploy.SyncServiceAccountToCluster(checluster, CheTLSJobServiceAccountName, clusterAPI)
 		if sa == nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		role, err := SyncRoleToCluster(checluster, CheTLSJobRoleName, []string{"secrets"}, []string{"create"}, clusterAPI)
+		role, err := deploy.SyncRoleToCluster(checluster, CheTLSJobRoleName, []string{"secrets"}, []string{"create"}, clusterAPI)
 		if role == nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		roleBiding, err := SyncRoleBindingToCluster(checluster, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role", clusterAPI)
+		roleBiding, err := deploy.SyncRoleBindingToCluster(checluster, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role", clusterAPI)
 		if roleBiding == nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
+		cheTLSSecretsCreationJobImage := deploy.DefaultCheTLSSecretsCreationJobImage()
 		jobEnvVars := map[string]string{
 			"DOMAIN":                         checluster.Spec.K8s.IngressDomain,
 			"CHE_NAMESPACE":                  checluster.Namespace,
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
 		}
-		job, err := SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
+		job, err := deploy.SyncJobToCluster(checluster, CheTLSJobName, CheTlsJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars, clusterAPI)
 		if err != nil {
 			logrus.Error(err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
@@ -217,10 +214,10 @@ func isCheCASecretValid(cheCASelfSignedCertificateSecret *corev1.Secret) bool {
 
 // CheckAndUpdateTLSConfiguration validates TLS configuration and precreated objects if any
 // If configuration is wrong it will guess most common use cases and will make changes in Che CR accordingly to the assumption.
-func CheckAndUpdateTLSConfiguration(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) error {
+func CheckAndUpdateTLSConfiguration(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) error {
 	if checluster.Spec.K8s.TlsSecretName == "" {
 		checluster.Spec.K8s.TlsSecretName = "che-tls"
-		if err := UpdateCheCRSpec(checluster, "TlsSecretName", checluster.Spec.K8s.TlsSecretName, clusterAPI); err != nil {
+		if err := deploy.UpdateCheCRSpec(checluster, "TlsSecretName", checluster.Spec.K8s.TlsSecretName, clusterAPI); err != nil {
 			return err
 		}
 	}
@@ -228,7 +225,7 @@ func CheckAndUpdateTLSConfiguration(checluster *orgv1.CheCluster, clusterAPI Clu
 	return nil
 }
 
-func deleteJob(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) {
+func deleteJob(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) {
 	job := &batchv1.Job{}
 	err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: checluster.Namespace}, job)
 	if err == nil {
@@ -237,7 +234,7 @@ func deleteJob(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) {
 			pod := &corev1.Pod{}
 			err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: checluster.Namespace}, pod)
 			if err == nil {
-				// delete pod (for some reasons pod isn't removed when job is removed)
+				// Delete pod (for some reasons pod isn't removed when job is removed)
 				if err = clusterAPI.Client.Delete(context.TODO(), pod); err != nil {
 					logrus.Errorf("Error deleting pod: '%s', error: %v", podName, err)
 				}
