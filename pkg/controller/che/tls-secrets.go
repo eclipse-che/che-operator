@@ -97,6 +97,7 @@ func HandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI deploy.Cluster
 			logrus.Error(err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
+		logrus.Infof("Import public part of Eclipse Che self-signed CA certificvate from \"%s\" secret into your browser.", CheTLSSelfSignedCertificateSecretName)
 		if job == nil || job.Status.Succeeded == 0 {
 			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
 			return reconcile.Result{RequeueAfter: time.Second}, err
