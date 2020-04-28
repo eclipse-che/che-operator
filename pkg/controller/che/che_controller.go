@@ -782,10 +782,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 		guessedDevfileRegistryURL := protocol + "://" + host
-
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 		if devfileRegistryURL == "" {
 			devfileRegistryURL = guessedDevfileRegistryURL
 		}
@@ -942,9 +938,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		guessedPluginRegistryURL := protocol + "://" + host
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 		guessedPluginRegistryURL += "/v3"
 		if pluginRegistryURL == "" {
 			pluginRegistryURL = guessedPluginRegistryURL
