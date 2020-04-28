@@ -109,13 +109,27 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 	podList, _ := api.Pods(ns).List(listOptions)
 	podListItems := podList.Items
 	if len(podListItems) == 0 {
-		logrus.Errorf("Failed to find pod to exec into. List of pods: %v", podListItems)
+		logrus.Errorf("Failed to find pod for component %s. List of pods: %v", name, podListItems)
 		return "", err
 	}
 	// expecting only one pod to be there so, taking the first one
 	// todo maybe add a unique label to deployments?
 	podName = podListItems[0].Name
 	return podName, nil
+}
+
+func (cl *k8s) GetPodsByComponent(name string, ns string) []string {
+	names := []string{}
+	api := cl.clientset.CoreV1()
+	listOptions := metav1.ListOptions{
+		LabelSelector: "component=" + name,
+	}
+	podList, _ := api.Pods(ns).List(listOptions)
+	for _, pod := range podList.Items {
+		names = append(names, pod.Name)
+	}
+
+	return names
 }
 
 // Reads 'user' and 'password' from the given secret

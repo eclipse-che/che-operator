@@ -273,6 +273,26 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	// Handle Che TLS certificates on Kubernetes like infrastructures
+	if instance.Spec.Server.TlsSupport && instance.Spec.Server.SelfSignedCert && !isOpenShift {
+		// Ensure TLS configuration is correct
+		if err := CheckAndUpdateTLSConfiguration(instance, clusterAPI); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
+
+		// Create TLS secrets if needed
+		result, err := HandleCheTLSSecrets(instance, clusterAPI)
+		if result.Requeue || result.RequeueAfter > 0 {
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return result, err
+			}
+		}
+	}
+
 	// Get custom ConfigMap
 	// if it exists, add the data into CustomCheProperties
 	customConfigMap := &corev1.ConfigMap{}
@@ -401,44 +421,97 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create service accounts:
 	// che is the one which token is used to create workspace objects
 	// che-workspace is SA used by plugins like exec and terminal with limited privileges
-	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
-	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
-		return reconcile.Result{}, err
+	cheSA, err := deploy.SyncServiceAccountToCluster(instance, "che", clusterAPI)
+	if cheSA == nil {
+		logrus.Info("Waiting on service account 'che' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
-	workspaceServiceAccount := deploy.NewServiceAccount(instance, "che-workspace")
-	if err := r.CreateServiceAccount(instance, workspaceServiceAccount); err != nil {
-		return reconcile.Result{}, err
+
+	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(instance, "che-workspace", clusterAPI)
+	if cheWorkspaceSA == nil {
+		logrus.Info("Waiting on service account 'che-workspace' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
+
 	// create exec and view roles for CheCluster server and workspaces
-	execRole := deploy.NewRole(instance, "exec", []string{"pods/exec"}, []string{"*"})
-	if err := r.CreateNewRole(instance, execRole); err != nil {
-		return reconcile.Result{}, err
+	role, err := deploy.SyncRoleToCluster(instance, "exec", []string{"pods/exec"}, []string{"*"}, clusterAPI)
+	if role == nil {
+		logrus.Info("Waiting on role 'exec' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
-	viewRole := deploy.NewRole(instance, "view", []string{"pods"}, []string{"list"})
-	if err := r.CreateNewRole(instance, viewRole); err != nil {
-		return reconcile.Result{}, err
+
+	viewRole, err := deploy.SyncRoleToCluster(instance, "view", []string{"pods"}, []string{"list"}, clusterAPI)
+	if viewRole == nil {
+		logrus.Info("Waiting on role 'view' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
-	// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-	cheRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, "edit", "ClusterRole")
-	if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
-		return reconcile.Result{}, err
+
+	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che", "che", "edit", "ClusterRole", clusterAPI)
+	if cheRoleBinding == nil {
+		logrus.Info("Waiting on role binding 'che' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
-	execRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-exec", workspaceServiceAccount.Name, execRole.Name, "Role")
-	if err = r.CreateNewRoleBinding(instance, execRoleBinding); err != nil {
-		return reconcile.Result{}, err
+
+	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che-workspace-exec", "che-workspace", "exec", "Role", clusterAPI)
+	if cheWSExecRoleBinding == nil {
+		logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
-	viewRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-view", workspaceServiceAccount.Name, viewRole.Name, "Role")
-	if err := r.CreateNewRoleBinding(instance, viewRoleBinding); err != nil {
-		return reconcile.Result{}, err
+
+	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che-workspace-view", "che-workspace", "view", "Role", clusterAPI)
+	if cheWSViewRoleBinding == nil {
+		logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
 
 	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
 	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
 	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
 	if workspaceClusterRole != "" {
-		customRoleBinding := deploy.NewRoleBinding(instance, "che-workspace-custom", workspaceServiceAccount.Name, workspaceClusterRole, "ClusterRole")
-		if err = r.CreateNewRoleBinding(instance, customRoleBinding); err != nil {
-			return reconcile.Result{}, err
+		cheWSCustomRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole", clusterAPI)
+		if cheWSCustomRoleBinding == nil {
+			logrus.Info("Waiting on role binding 'che-workspace-custom' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
 	}
 
@@ -782,10 +855,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 		guessedDevfileRegistryURL := protocol + "://" + host
-
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 		if devfileRegistryURL == "" {
 			devfileRegistryURL = guessedDevfileRegistryURL
 		}
@@ -942,9 +1011,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		guessedPluginRegistryURL := protocol + "://" + host
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 		guessedPluginRegistryURL += "/v3"
 		if pluginRegistryURL == "" {
 			pluginRegistryURL = guessedPluginRegistryURL

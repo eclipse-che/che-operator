@@ -21,53 +21,11 @@ import (
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-func (r *ReconcileChe) CreateServiceAccount(cr *orgv1.CheCluster, serviceAccount *corev1.ServiceAccount) error {
-	if err := controllerutil.SetControllerReference(cr, serviceAccount, r.scheme); err != nil {
-		return err
-	}
-	serviceAccountFound := &corev1.ServiceAccount{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: serviceAccount.Name, Namespace: serviceAccount.Namespace}, serviceAccountFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", serviceAccount.Kind, serviceAccount.Name)
-		err = r.client.Create(context.TODO(), serviceAccount)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", serviceAccount.Name, serviceAccount.Kind, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateNewRole(instance *orgv1.CheCluster, role *rbac.Role) error {
-	if err := controllerutil.SetControllerReference(instance, role, r.scheme); err != nil {
-		return err
-	}
-	roleFound := &rbac.Role{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: role.Name, Namespace: role.Namespace}, roleFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", role.Kind, role.Name)
-		err = r.client.Create(context.TODO(), role)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", role.Name, role.Kind, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	return nil
-}
 
 func (r *ReconcileChe) CreateNewSecret(instance *orgv1.CheCluster, secret *corev1.Secret) error {
 	if err := controllerutil.SetControllerReference(instance, secret, r.scheme); err != nil {
@@ -106,27 +64,6 @@ func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthCli
 	} else if err != nil {
 		logrus.Errorf("An error occurred: %s", err)
 
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateNewRoleBinding(instance *orgv1.CheCluster, roleBinding *rbac.RoleBinding) error {
-	if err := controllerutil.SetControllerReference(instance, roleBinding, r.scheme); err != nil {
-		return err
-	}
-	roleBindingFound := &rbac.RoleBinding{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: roleBinding.Name, Namespace: roleBinding.Namespace}, roleBindingFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", roleBinding.Kind, roleBinding.Name)
-		err = r.client.Create(context.TODO(), roleBinding)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", roleBinding.Name, roleBinding.Kind, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
 		return err
 	}
 	return nil

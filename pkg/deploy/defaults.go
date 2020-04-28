@@ -27,13 +27,14 @@ import (
 )
 
 var (
-	defaultCheServerImage       string
-	defaultCheVersion           string
-	defaultPluginRegistryImage  string
-	defaultDevfileRegistryImage string
-	defaultPvcJobsImage         string
-	defaultPostgresImage        string
-	defaultKeycloakImage        string
+	defaultCheServerImage                string
+	defaultCheVersion                    string
+	defaultPluginRegistryImage           string
+	defaultDevfileRegistryImage          string
+	defaultCheTLSSecretsCreationJobImage string
+	defaultPvcJobsImage                  string
+	defaultPostgresImage                 string
+	defaultKeycloakImage                 string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
@@ -114,6 +115,7 @@ func InitDefaultsFromEnv() {
 	defaultCheServerImage = getDefaultFromEnv("IMAGE_default_che_server")
 	defaultPluginRegistryImage = getDefaultFromEnv("IMAGE_default_plugin_registry")
 	defaultDevfileRegistryImage = getDefaultFromEnv("IMAGE_default_devfile_registry")
+	defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv("IMAGE_default_che_tls_secrets_creation_job")
 	defaultPvcJobsImage = getDefaultFromEnv("IMAGE_default_pvc_jobs")
 	defaultPostgresImage = getDefaultFromEnv("IMAGE_default_postgres")
 	defaultKeycloakImage = getDefaultFromEnv("IMAGE_default_keycloak")
@@ -133,6 +135,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server")
 	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_plugin_registry")
 	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_devfile_registry")
+	defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_tls_secrets_creation_job")
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_pvc_jobs")
 	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_postgres")
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_keycloak")
@@ -193,6 +196,10 @@ func DefaultCheVersion() string {
 
 func DefaultCheServerImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultCheServerImage)
+}
+
+func DefaultCheTLSSecretsCreationJobImage() string {
+	return defaultCheTLSSecretsCreationJobImage
 }
 
 func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
