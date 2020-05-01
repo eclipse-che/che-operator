@@ -13,68 +13,64 @@
 set -e
 
 init() {
-  RED='\e[31m'
-  NC='\e[0m'
-  YELLOW='\e[33m'
-  GREEN='\e[32m'
-
   RELEASE="$1"
-  BRANCH=${2:-master}
+  BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
-  CURRENT_DIR=$(pwd)
+  PULL_REQUEST=false
+  PUSH_OLM_FILES=false
+  PUSH_GIT_CHANGES=false
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+
+  if [[ $# -lt 1 ]]; then usage; exit; fi
+
+  while [[ "$#" -gt 0 ]]; do
+    case $1 in
+      '--branch') BRANCH="$2"; shift 1;;
+      '--pr') PULL_REQUEST=true; shift 0;;
+      '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
+      '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
+    '--help'|'-h') usage; exit;;
+    esac
+    shift 1
+  done
+
+  [ -z "$QUAY_USERNAME" ] && echo "[ERROR] QUAY_USERNAME is not set" && exit 1
+  [ -z "$QUAY_PASSWORD" ] && echo "[ERROR] QUAY_PASSWORD is not set" && exit 1
+  command -v operator-courier >/dev/null 2>&1 || { echo "[ERROR] operator-courier is not installed. Aborting."; exit 1; }
+  command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Aborting."; exit 1; }
+  command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Aborting."; exit 1; }
+  [[ $(operator-sdk version) =~ .*v0.10.0.* ]] || { echo "[ERROR] operator-sdk v0.10.0 is required. Aborting."; exit 1; }
 
   local ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
   local ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
   UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:"$ubiMinimal8Version"-"$ubiMinimal8Release
-  local test=$(skopeo inspect docker://$UBI8_MINIMAL_IMAGE)
+  skopeo inspect docker://$UBI8_MINIMAL_IMAGE > /dev/null
 }
 
-check() {
-  if [ $# -lt 1 ]; then
-    printf "%bError: %bWrong number of parameters.\nUsage: ./make-release.sh <version>\n" "${RED}" "${NC}"
-    exit 1
+usage () {
+	echo "Usage:   $0 [RELEASE_VERSION] --branch [SOURCE_PATH] --pr "
+}
+
+resetChanges() {
+  echo "[INFO] Reseting changes in $1 branch"
+  git reset --hard
+  git checkout $1
+  git fetch ${GIT_REMOTE_UPSTREAM} --prune
+  git pull ${GIT_REMOTE_UPSTREAM} $1
+}
+
+checkoutToReleaseBranch() {
+  echo "[INFO] Checking out to $BRANCH branch."
+  local branchExist=$(git ls-remote -q --heads | grep $BRANCH | wc -l)
+  if [[ $branchExist == 1 ]]; then
+    echo "[INFO] $BRANCH exists."
+    resetChanges $BRANCH
+  else
+    echo "[INFO] $BRANCH does not exist. Will be created a new one from master."
+    resetChanges master
+    git push origin master:$BRANCH
   fi
-
-  [ -z "$QUAY_USERNAME" ] && echo -e $RED"QUAY_USERNAME is not set"$NC && exit 1
-  [ -z "$QUAY_PASSWORD" ] && echo -e $RED"QUAY_PASSWORD is not set"$NC && exit 1
-  command -v operator-courier >/dev/null 2>&1 || { echo -e $RED"operator-courier is not installed. Aborting."$NC; exit 1; }
-  command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
-  command -v skopeo >/dev/null 2>&1 || { echo -e $RED"skopeo is not installed. Aborting."$NC; exit 1; }
-
-  local operatorVersion=$(operator-sdk version)
-  [[ $operatorVersion =~ .*v0.10.0.* ]] || { echo -e $RED"operator-sdk v0.10.0 is required"$NC; exit 1; }
-
-  echo "Release '$RELEASE' from branch '$BRANCH'"
-}
-
-ask() {
-  while true; do
-    echo -e -n $GREEN$@$NC" (Y)es or (N)o "
-    read -r yn
-    case $yn in
-      [Yy]* ) return 0;;
-      [Nn]* ) return 1;;
-      * ) echo "Please answer (Y)es or (N)o. ";;
-    esac
-  done
-}
-
-resetLocalChanges() {
-  set +e
-  ask "1. Reset local changes?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    git reset --hard
-    git checkout $BRANCH
-    git fetch ${GIT_REMOTE_UPSTREAM} --prune
-    git pull ${GIT_REMOTE_UPSTREAM} $BRANCH
-    git checkout -B $RELEASE
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+  git checkout -B $RELEASE
 }
 
 getPropertyValue() {
@@ -87,253 +83,160 @@ checkImageReferences() {
   local filename=$1
 
   if ! grep -q "value: ${RELEASE}" $filename; then
-    echo -e $RED" Unable to find Che version ${RELEASE} in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find Che version ${RELEASE} in the $filename"; exit 1
   fi
 
   if ! grep -q "value: quay.io/eclipse/che-server:$RELEASE" $filename; then
-    echo -e $RED" Unable to find Che server image with version ${RELEASE} in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find Che server image with version ${RELEASE} in the $filename"; exit 1
   fi
 
   if ! grep -q "value: quay.io/eclipse/che-plugin-registry:$RELEASE" $filename; then
-    echo -e $RED" Unable to find plugin registry image with version ${RELEASE} in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find plugin registry image with version ${RELEASE} in the $filename"; exit 1
   fi
 
   if ! grep -q "value: quay.io/eclipse/che-devfile-registry:$RELEASE" $filename; then
-    echo -e $RED" Unable to find devfile registry image with version ${RELEASE} in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find devfile registry image with version ${RELEASE} in the $filename"; exit 1
   fi
 
   if ! grep -q "value: quay.io/eclipse/che-keycloak:$RELEASE" $filename; then
-    echo -e $RED" Unable to find che-keycloak image with version ${RELEASE} in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find che-keycloak image with version ${RELEASE} in the $filename"; exit 1
   fi
 
   if ! grep -q "value: $IMAGE_default_pvc_jobs" $filename; then
-    echo -e $RED" Unable to find ubi8_minimal image in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 
   wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
   if ! grep -q "value: $plugin_broker_meta_image" $filename; then
-    echo -e $RED" Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find plugin broker meta image '$plugin_broker_meta_image' in the $filename"; exit 1
   fi
 
   plugin_broker_artifacts_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.artifacts.image | cut -d '=' -f2)
   if ! grep -q "value: $plugin_broker_artifacts_image" $filename; then
-    echo -e $RED" Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find plugin broker artifacts image '$plugin_broker_artifacts_image' in the $filename"; exit 1
   fi
 
   jwt_proxy_image=$(cat /tmp/che.properties | grep  che.server.secure_exposer.jwtproxy.image | cut -d '=' -f2)
   if ! grep -q "value: $jwt_proxy_image" $filename; then
-    echo -e $RED" Unable to find jwt proxy image $jwt_proxy_image in the $filename"$NC; exit 1
+    echo "[ERROR] Unable to find jwt proxy image $jwt_proxy_image in the $filename"; exit 1
   fi
 }
 
 releaseOperatorCode() {
-  set +e
-  ask "2. Release operator code?"
-  result=$?
-  set -e
+  echo "[INFO] Releasing operator code"
+  echo "[INFO] Launching 'release-operator-code.sh' script"
+  . ${BASE_DIR}/release-operator-code.sh $RELEASE $UBI8_MINIMAL_IMAGE
 
-  if [[ $result == 0 ]]; then
+  local operatoryaml=$BASE_DIR/deploy/operator.yaml
+  echo "[INFO] Validating changes for $operatoryaml"
+  checkImageReferences $operatoryaml
 
-    echo -e $GREEN"2.1 Launch 'release-operator-code.sh' script"$NC
-    . ${BASE_DIR}/release-operator-code.sh $RELEASE $UBI8_MINIMAL_IMAGE
+  local operatorlocalyaml=$BASE_DIR/deploy/operator-local.yaml
+  echo "[INFO] Validating changes for $operatorlocalyaml"
+  checkImageReferences $operatorlocalyaml
 
-    local operatoryaml=$BASE_DIR/deploy/operator.yaml
-    echo -e $GREEN"2.2 Validate changes for $operatoryaml"$NC
-    checkImageReferences $operatoryaml
+  echo "[INFO] List of changed files:"
+  git status -s
 
-    local operatorlocalyaml=$BASE_DIR/deploy/operator-local.yaml
-    echo -e $GREEN"2.2 Validate changes for $operatorlocalyaml"$NC
-    checkImageReferences $operatorlocalyaml
+  echo "[INFO] Commiting changes"
+  git commit -am "Update defaults tags to "$RELEASE --signoff
 
-    echo -e $GREEN"2.4 It is needed to check files manully:"$NC
-    git status -s
-    echo $operatoryaml
-    echo $operatorlocalyaml
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
-}
-
-commitDefaultsGoChanges() {
-  set +e
-  ask "3. Commit changes?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    git commit -am "Update defaults tags to "$RELEASE --signoff
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
-}
-
-pushImage() {
-  set +e
-  ask "4. Push image to quay.io?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    docker login quay.io -u $QUAY_USERNAME
-    docker push quay.io/eclipse/che-operator:$RELEASE
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+  echo "[INFO] Pushing image to quay.io"
+  docker login quay.io -u $QUAY_USERNAME
+  docker push quay.io/eclipse/che-operator:$RELEASE
 }
 
 updateNightlyOlmFiles() {
-  set +e
-  ask "5. Update nighlty OLM files?"
-  result=$?
-  set -e
+  echo "[INFO] Updateing nighlty OLM files"
+  echo "[INFO] Launching 'update-nightly-olm-files.sh' script"
+  cd $BASE_DIR/olm
+  . $BASE_DIR/olm/update-nightly-olm-files.sh
 
-  if [[ $result == 0 ]]; then
-    echo -e $GREEN"5.1 Launch 'update-nightly-olm-files.sh' script"$NC
-    cd $BASE_DIR/olm
-    . $BASE_DIR/olm/update-nightly-olm-files.sh
-    cd $BASE_DIR
+  echo "[INFO] Validating changes"
+  lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
+  csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
+  checkImageReferences $csvFile
 
-    echo -e $GREEN"5.2 Validate changes"$NC
-    lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
-    csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
-    checkImageReferences $csvFile
+  lastNightlyOpenshiftDir=$(ls -dt $BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
+  csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
+  checkImageReferences $csvFile
 
-    lastNightlyOpenshiftDir=$(ls -dt $BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
-    csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
-    checkImageReferences $csvFile
+  echo "[INFO] List of changed files:"
+  git status -s
 
-    echo -e $GREEN"5.3 It is needed to check file manully"$NC
-    git status -s
-    for diff in $(ls ${lastKubernetesNightlyDir}/*.diff); do echo $diff; done
-    for diff in $(ls ${lastNightlyOpenshiftDir}/*.diff); do echo $diff; done
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
-}
-
-commitNightlyOlmFiles() {
-  set +e
-  ask "6. Commit changes?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    git add -A
-    git commit -m "Update nightly olm files" --signoff
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+  echo "[INFO] Commiting changes"
+  git add -A
+  git commit -m "Update nightly olm files" --signoff
 }
 
 releaseOlmFiles() {
-  set +e
-  ask "7. Release OLM files?"
-  result=$?
-  set -e
+  echo "[INFO] Releasing OLM files"
+  echo "[INFO] Launching 'olm/release-olm-files.sh' script"
+  cd $BASE_DIR/olm
+  . release-olm-files.sh $RELEASE
+  cd $BASE_DIR
 
-  if [[ $result == 0 ]]; then
-    echo -e $GREEN"7.1 Launch 'olm/release-olm-files.sh' script"$NC
-    cd $BASE_DIR/olm
-    . release-olm-files.sh $RELEASE
-    cd $BASE_DIR
+  local openshift=$BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
+  local kubernetes=$BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
 
-    local openshift=$BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
-    local kubernetes=$BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
+  echo "[INFO] Validating changes"
+  grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
+  grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
+  grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
+  grep -q "version: "$RELEASE $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml
+  test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
+  test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
 
-    echo -e $GREEN"7.2 Validate files"$NC
-    grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
-    grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
-    grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
-    grep -q "version: "$RELEASE $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml
-    test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
-    test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
+  echo "[INFO] List of changed files:"
+  git status -s
+  echo git status -s
 
-    echo -e $GREEN"7.3 It is needed to check diff files manully"$NC
-    echo git status -s
-    echo $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml.diff
-    echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml.diff
-    echo $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml.diff
-    echo $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml.diff
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+  echo "[INFO] Commiting changes"
+  git add -A
+  git commit -m "Release OLM files to "$RELEASE --signoff
 }
 
-commitOlmChanges() {
-  set +e
-  ask "8. Commit changes?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    git add -A
-    git commit -m "Release OLM files to "$RELEASE --signoff
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+pushOlmFilesToQuayIo() {
+  echo "[INFO] Pushing OLM files to quay.io"
+  cd $BASE_DIR/olm
+  . push-olm-files-to-quay.sh
+  cd $BASE_DIR
 }
 
-pushOlmFiles() {
-  set +e
-  ask "9. Push OLM files to quay.io?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    cd $BASE_DIR/olm
-    . push-olm-files-to-quay.sh
-    cd $BASE_DIR
-    xdg-open https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes
-    xdg-open https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+pushGitChanges() {
+  echo "[INFO] Pushing git changes into $RELEASE branch"
+  git push origin $RELEASE
+  git tag -a $RELEASE -m $RELEASE
+  git push --tags origin
 }
 
-pushChanges() {
-  set +e
-  ask "10. Push changes?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    git push origin $RELEASE
-    git tag -a $RELEASE -m $RELEASE
-    git push --tags origin
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
-}
-
-createPR() {
-  set +e
-  ask "11. Create PR?"
-  result=$?
-  set -e
-
-  if [[ $result == 0 ]]; then
-    hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
-  elif [[ $result == 1 ]]; then
-    echo -e $YELLOW"> SKIPPED"$NC
-  fi
+createPRInCheOperatorRepository() {
+  echo "[INFO] Creating pull request into $GIT_REMOTE_UPSTREAM repository"
+  hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
 }
 
 run() {
-  resetLocalChanges
+  checkoutToReleaseBranch
   releaseOperatorCode
-  commitDefaultsGoChanges
-  pushImage
   updateNightlyOlmFiles
-  commitNightlyOlmFiles
   releaseOlmFiles
-  commitOlmChanges
-  pushOlmFiles
-  pushChanges
-  createPR
+
+  if [[ $PUSH_OLM_FILES == "true" ]]; then
+    pushOlmFilesToQuayIo
+  fi
+
+  if [[ $PUSH_GIT_CHANGES == "true" ]]; then
+    pushGitChanges
+  fi
 }
 
 init "$@"
-check "$@"
-run "$@"
+
+if [[ $PULL_REQUEST == "true" ]]; then
+  createPRInCheOperatorRepository
+else
+  echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
+  run "$@"
+fi
