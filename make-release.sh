@@ -150,9 +150,10 @@ releaseOperatorCode() {
 
 updateNightlyOlmFiles() {
   echo "[INFO] Updateing nighlty OLM files"
-  echo "[INFO] Launching 'update-nightly-olm-files.sh' script"
+  echo "[INFO] Launching 'olm/update-nightly-olm-files.sh' script"
   cd $BASE_DIR/olm
   . $BASE_DIR/olm/update-nightly-olm-files.sh
+  cd $BASE_DIR
 
   echo "[INFO] Validating changes"
   lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
