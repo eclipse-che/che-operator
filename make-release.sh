@@ -19,7 +19,7 @@ init() {
   PULL_REQUEST=false
   PUSH_OLM_FILES=false
   PUSH_GIT_CHANGES=false
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -127,13 +127,13 @@ checkImageReferences() {
 releaseOperatorCode() {
   echo "[INFO] Releasing operator code"
   echo "[INFO] Launching 'release-operator-code.sh' script"
-  . ${BASE_DIR}/release-operator-code.sh $RELEASE $UBI8_MINIMAL_IMAGE
+  . ${RELEASE_DIR}/release-operator-code.sh $RELEASE $UBI8_MINIMAL_IMAGE
 
-  local operatoryaml=$BASE_DIR/deploy/operator.yaml
+  local operatoryaml=$RELEASE_DIR/deploy/operator.yaml
   echo "[INFO] Validating changes for $operatoryaml"
   checkImageReferences $operatoryaml
 
-  local operatorlocalyaml=$BASE_DIR/deploy/operator-local.yaml
+  local operatorlocalyaml=$RELEASE_DIR/deploy/operator-local.yaml
   echo "[INFO] Validating changes for $operatorlocalyaml"
   checkImageReferences $operatorlocalyaml
 
@@ -151,16 +151,16 @@ releaseOperatorCode() {
 updateNightlyOlmFiles() {
   echo "[INFO] Updateing nighlty OLM files"
   echo "[INFO] Launching 'olm/update-nightly-olm-files.sh' script"
-  cd $BASE_DIR/olm
-  . $BASE_DIR/olm/update-nightly-olm-files.sh
-  cd $BASE_DIR
+  cd $RELEASE_DIR/olm
+  . update-nightly-olm-files.sh
+  cd $RELEASE_DIR
 
   echo "[INFO] Validating changes"
-  lastKubernetesNightlyDir=$(ls -dt $BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
+  lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
   csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
   checkImageReferences $csvFile
 
-  lastNightlyOpenshiftDir=$(ls -dt $BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
+  lastNightlyOpenshiftDir=$(ls -dt $RELEASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
   csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
   checkImageReferences $csvFile
 
@@ -175,12 +175,12 @@ updateNightlyOlmFiles() {
 releaseOlmFiles() {
   echo "[INFO] Releasing OLM files"
   echo "[INFO] Launching 'olm/release-olm-files.sh' script"
-  cd $BASE_DIR/olm
+  cd $RELEASE_DIR/olm
   . release-olm-files.sh $RELEASE
-  cd $BASE_DIR
+  cd $RELEASE_DIR
 
-  local openshift=$BASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
-  local kubernetes=$BASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
+  local openshift=$RELEASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
+  local kubernetes=$RELEASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
 
   echo "[INFO] Validating changes"
   grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
@@ -201,9 +201,9 @@ releaseOlmFiles() {
 
 pushOlmFilesToQuayIo() {
   echo "[INFO] Pushing OLM files to quay.io"
-  cd $BASE_DIR/olm
+  cd $RELEASE_DIR/olm
   . push-olm-files-to-quay.sh
-  cd $BASE_DIR
+  cd $RELEASE_DIR
 }
 
 pushGitChanges() {
