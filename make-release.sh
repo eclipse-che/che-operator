@@ -11,6 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
+set -x
 
 init() {
   RELEASE="$1"
@@ -184,8 +185,8 @@ releaseOlmFiles() {
   . release-olm-files.sh $RELEASE
   cd $RELEASE_DIR
 
-  local openshift=$RELEASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
-  local kubernetes=$RELEASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
+  local openshift=$RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
+  local kubernetes=$RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
 
   echo "[INFO] Validating changes"
   grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
