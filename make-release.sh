@@ -45,6 +45,11 @@ init() {
   local ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
   UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:"$ubiMinimal8Version"-"$ubiMinimal8Release
   skopeo inspect docker://$UBI8_MINIMAL_IMAGE > /dev/null
+
+  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* -maxdepth 0 -empty | wc -l)
+  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1
+  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* -maxdepth 0 -empty | wc -l)
+  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1
 }
 
 usage () {
@@ -156,11 +161,11 @@ updateNightlyOlmFiles() {
   cd $RELEASE_DIR
 
   echo "[INFO] Validating changes"
-  lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
+  lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
   csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
   checkImageReferences $csvFile
 
-  lastNightlyOpenshiftDir=$(ls -dt $RELEASE_DIR/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
+  lastNightlyOpenshiftDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
   csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
   checkImageReferences $csvFile
 
