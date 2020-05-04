@@ -21,6 +21,7 @@ import (
 
 const (
 	cheVersionTest           = "7.12.1"
+	cheOperatorImageTest     = "quay.io/eclipse/che-operator:7.12.1"
 	cheServerImageTest       = "quay.io/eclipse/che-server:7.12.1"
 	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:7.12.1"
 	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:7.12.1"
