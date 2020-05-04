@@ -73,7 +73,7 @@ spec:
     chePostgresPassword: ''
     # Postgres database name that Che server uses to connect to. Defaults to dbche
     chePostgresDb: ''
-    # Postgres deployment in format image:tag. Defaults to registry.redhat.io/rhscl/postgresql-96-rhel7 (see operator metadata CSV yaml environment variable IMAGE_default_postgres for tag or digest used)
+    # Postgres deployment in format image:tag. Default in https://github.com/eclipse/che-operator/blob/master/deploy/operator.yaml#L57-L58 or operator metadata CSV environment variable IMAGE_default_postgres)
     postgresImage: ''
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
