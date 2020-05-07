@@ -10,11 +10,11 @@ Export environment variables:
 ./make-release.sh <RELEASE_VERSION> --push-olm-files --push-git-changes
 ```
 
-```bash
-Usage:   ./make-release.sh [RELEASE_VERSION] --branch [SOURCE_PATH] --push-olm-files --push-git-changes
+```
+Usage:   ./make-release.sh [RELEASE_VERSION] --push-olm-files --push-git-changes
         --push-olm-files: to push OLM files to quay.io. This flag should be omitted
                 if already a greater version released. For instance, we are releasing 7.9.3 version but
-                7.10.0 alread exists. Otherwise it breaks the linear update path of the stable channel.
+                7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel.
         --push-git-changes: to create release branch and push changes into.
 ```
 
@@ -54,7 +54,11 @@ xdg-open http://$(kubectl get ingress -n eclipse-che-preview-test | grep ^che | 
 
 Validate that the release version is installed and workspace can be created:
 
-## 4. Testing release on minishift (when chectl is released)
+## 4. Merge pull requests
+
+Merge pull request into .x and master branches.
+
+## 5. Testing release on minishift (when chectl is released)
 
 Login to local minishift cluster:
 
@@ -65,7 +69,7 @@ oc login <LOCAL_MINISHIFT_CLUSTER_ADDRESS>
 Install the previous version of Eclipse Che using the corresponding version of `chectl`:
 
 ```bash
-chectl server:start --platform=minishift  --installer=operator --che-operator-image=quay.io/eclipse/che-operator:<PREVIOUS_RELEASE_VERSION>
+chectl server:start --platform=minishift  --installer=operator
 ```
 
 Update Eclipse Che to the latest version. Validate that the correct version is installed and workspace can be created:
@@ -76,7 +80,7 @@ chectl server:update --platform=minishift  --installer=operator
 xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $2 }')
 ```
 
-## 5. Prepare community operator PR
+## 6. Prepare community operator PR
 
 ```bash
 cd olm
