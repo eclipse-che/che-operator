@@ -121,6 +121,7 @@ mv "${NEW_OPERATOR_LOCAL_YAML}" "${OPERATOR_LOCAL_YAML}"
 defaulTest=${BASE_DIR}/pkg/deploy/defaults_test.go
 sed -i 's|cheVersionTest           = ".*"|cheVersionTest           = "'${RELEASE}'"|g'  $defaulTest
 sed -i 's|cheServerImageTest       = ".*"|cheServerImageTest       = "'"$CHE_SERVER_IMAGE_REALEASE"'"|g'  $defaulTest
+sed -i 's|cheOperatorImageTest     = ".*"|cheOperatorImageTest     = "'"quay.io/eclipse/che-operator:${RELEASE}"'"|g'  $defaulTest
 sed -i 's|pluginRegistryImageTest  = ".*"|pluginRegistryImageTest  = "'${PLUGIN_REGISTRY_IMAGE_RELEASE}'"|g'  $defaulTest
 sed -i 's|devfileRegistryImageTest = ".*"|devfileRegistryImageTest = "'${DEVFILE_REGISTRY_IMAGE_RELEASE}'"|g'  $defaulTest
 sed -i 's|pvcJobsImageTest         = ".*"|pvcJobsImageTest         = "'${UBI8_MINIMAL_IMAGE}'"|g'  $defaulTest
