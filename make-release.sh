@@ -27,7 +27,6 @@ init() {
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
-      '--branch') BRANCH="$2"; shift 1;;
       '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
     '--help'|'-h') usage; exit;;
@@ -54,10 +53,10 @@ init() {
 }
 
 usage () {
-	echo "Usage:   $0 [RELEASE_VERSION] --branch [SOURCE_PATH] --push-olm-files --push-git-changes"
+	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
   echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
   echo -e "\t\tif already a greater version released. For instance, we are releasing 7.9.3 version but"
-  echo -e "\t\t7.10.0 alread exists. Otherwise it breaks the linear update path of the stable channel."
+  echo -e "\t\t7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel."
   echo -e "\t--push-git-changes: to create release branch and push changes into."
 }
 
@@ -140,8 +139,8 @@ checkImageReferences() {
 
 releaseOperatorCode() {
   echo "[INFO] Releasing operator code"
-  echo "[INFO] Launching 'release-operator-code.sh' script"
-  . ${RELEASE_DIR}/release-operator-code.sh $RELEASE $UBI8_MINIMAL_IMAGE
+  echo "[INFO] Launching 'replace-images-tags.sh' script"
+  . ${RELEASE_DIR}/replace-images-tags.sh $RELEASE $RELEASE
 
   local operatoryaml=$RELEASE_DIR/deploy/operator.yaml
   echo "[INFO] Validating changes for $operatoryaml"
@@ -156,6 +155,9 @@ releaseOperatorCode() {
 
   echo "[INFO] Commiting changes"
   git commit -am "Update defaults tags to "$RELEASE --signoff
+
+  echo "[INFO] Building operator image"
+  docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
 
   echo "[INFO] Pushing image to quay.io"
   docker login quay.io -u $QUAY_USERNAME
@@ -233,9 +235,26 @@ createPRToXBranch() {
 }
 
 createPRToMasterBranch() {
-  echo "[INFO] Creating pull request into master branch"
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE}
-  hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
+  echo "[INFO] Creating pull request into master branch to copy csv"
+  resetChanges master
+  local tmpBranch=${RELEASE}-to-master
+  git checkout -B $tmpBranch
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' ':(exclude)pkg/deploy/defaults_test.go'
+  git add -A
+  git commit -m "Copy "$RELEASE" csv to master" --signoff
+  git push origin $tmpBranch
+  hub pull-request --base master --head ${tmpBranch} --browse -m "Copy "$RELEASE" csv to master"
+
+  echo "[INFO] Creating pull request into master branch to update images"
+  resetChanges master
+  local tmpBranch="update-images-to-master"
+  . ${RELEASE_DIR}/replace-images-tags.sh nightly master
+  git add deploy/operator.yaml
+  git add deploy/operator-local.yaml
+  git add pkg/deploy/defaults_test.go
+  git commit -m "Update images tags" --signoff
+  git push origin $tmpBranch
+  hub pull-request --base master --head ${tmpBranch} --browse -m "Update images tags in master branch"
 }
 
 run() {
@@ -251,7 +270,7 @@ run() {
   if [[ $PUSH_GIT_CHANGES == "true" ]]; then
     pushGitChanges
     createPRToXBranch
-    # createPRToMasterBranch
+    createPRToMasterBranch
   fi
 }
 
