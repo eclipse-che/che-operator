@@ -219,7 +219,7 @@ pushOlmFilesToQuayIo() {
 pushGitChanges() {
   echo "[INFO] Pushing git changes into $RELEASE branch"
   git push origin $RELEASE
-  git tag -a $RELEASE -m $RELEASE
+  git tag -a v$RELEASE -m $RELEASE
   git push --tags origin
 }
 
