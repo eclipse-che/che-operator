@@ -17,7 +17,8 @@ init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
-  PULL_REQUEST=false
+  PULL_REQUEST_TO_X_BRANCH=false
+  PULL_REQUEST_TO_X_MASTER=false
   PUSH_OLM_FILES=false
   PUSH_GIT_CHANGES=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
@@ -27,7 +28,6 @@ init() {
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--branch') BRANCH="$2"; shift 1;;
-      '--pr') PULL_REQUEST=true; shift 0;;
       '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
     '--help'|'-h') usage; exit;;
@@ -54,7 +54,11 @@ init() {
 }
 
 usage () {
-	echo "Usage:   $0 [RELEASE_VERSION] --branch [SOURCE_PATH] --pr "
+	echo "Usage:   $0 [RELEASE_VERSION] --branch [SOURCE_PATH] --push-olm-files --push-git-changes"
+  echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
+  echo -e "\t\tif already a greater version released. For instance, we are releasing 7.9.3 version but"
+  echo -e "\t\t7.10.0 alread exists. Otherwise it breaks the linear update path of the stable channel."
+  echo -e "\t--push-git-changes: to create release branch and push changes into."
 }
 
 resetChanges() {
@@ -223,8 +227,14 @@ pushGitChanges() {
   git push --tags origin
 }
 
-createPRInCheOperatorRepository() {
-  echo "[INFO] Creating pull request into $GIT_REMOTE_UPSTREAM repository"
+createPRToXBranch() {
+  echo "[INFO] Creating pull request into ${BRANCH} branch"
+  hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
+}
+
+createPRToMasterBranch() {
+  echo "[INFO] Creating pull request into master branch"
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE}
   hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
 }
 
@@ -240,14 +250,11 @@ run() {
 
   if [[ $PUSH_GIT_CHANGES == "true" ]]; then
     pushGitChanges
+    createPRToXBranch
+    # createPRToMasterBranch
   fi
 }
 
 init "$@"
-
-if [[ $PULL_REQUEST == "true" ]]; then
-  createPRInCheOperatorRepository
-else
-  echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
-  run "$@"
-fi
+echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
+run "$@"
