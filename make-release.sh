@@ -92,7 +92,7 @@ checkImageReferences() {
     echo "[ERROR] Unable to find Che version ${RELEASE} in the $filename"; exit 1
   fi
 
-  if ! grep -q "value: quay.io/eclipse/che-operator:$RELEASE" $filename; then
+  if ! grep -q "image: quay.io/eclipse/che-operator:$RELEASE" $filename; then
     echo "[ERROR] Unable to find Che operator image with version ${RELEASE} in the $filename"; exit 1
   fi
 
