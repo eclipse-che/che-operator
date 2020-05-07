@@ -91,6 +91,7 @@ eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
 eval head -10 "${OPERATOR_LOCAL_YAML}" > ${NEW_OPERATOR_LOCAL_YAML}
 
 cat "${OPERATOR_YAML}" | \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"quay.io/eclipse/che-operator:${RELEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
@@ -104,6 +105,7 @@ yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").
 mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
 
 cat "${OPERATOR_LOCAL_YAML}" | \
+yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"quay.io/eclipse/che-operator:${RELEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
@@ -119,6 +121,7 @@ mv "${NEW_OPERATOR_LOCAL_YAML}" "${OPERATOR_LOCAL_YAML}"
 defaulTest=${BASE_DIR}/pkg/deploy/defaults_test.go
 sed -i 's|cheVersionTest           = ".*"|cheVersionTest           = "'${RELEASE}'"|g'  $defaulTest
 sed -i 's|cheServerImageTest       = ".*"|cheServerImageTest       = "'"$CHE_SERVER_IMAGE_REALEASE"'"|g'  $defaulTest
+sed -i 's|cheOperatorImageTest     = ".*"|cheOperatorImageTest     = "'"quay.io/eclipse/che-operator:${RELEASE}"'"|g'  $defaulTest
 sed -i 's|pluginRegistryImageTest  = ".*"|pluginRegistryImageTest  = "'${PLUGIN_REGISTRY_IMAGE_RELEASE}'"|g'  $defaulTest
 sed -i 's|devfileRegistryImageTest = ".*"|devfileRegistryImageTest = "'${DEVFILE_REGISTRY_IMAGE_RELEASE}'"|g'  $defaulTest
 sed -i 's|pvcJobsImageTest         = ".*"|pvcJobsImageTest         = "'${UBI8_MINIMAL_IMAGE}'"|g'  $defaulTest
