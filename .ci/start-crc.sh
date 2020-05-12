@@ -15,6 +15,8 @@
 export CRC_VERSION=1.10.0
 export SecretFile=pull-secrets.txt
 export RAM_MEMORY=16384
+export CPUS=4
+
 set -e -x
 curl -SLO  https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz
 tar -xvf crc-linux-amd64.tar.xz --strip-components=1
