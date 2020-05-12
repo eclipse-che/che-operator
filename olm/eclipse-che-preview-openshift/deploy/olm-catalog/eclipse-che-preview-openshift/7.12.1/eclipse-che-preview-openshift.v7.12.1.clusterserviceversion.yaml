@@ -15,7 +15,7 @@ metadata:
                 "cheImageTag": "",
                 "devfileRegistryImage": "",
                 "pluginRegistryImage": "",
-                "tlsSupport": true,
+                "tlsSupport": false,
                 "selfSignedCert": false
              },
              "database": {
@@ -27,7 +27,7 @@ metadata:
                 "chePostgresDb": ""
              },
              "auth": {
-                "openShiftoAuth": true,
+                "openShiftoAuth": false,
                 "identityProviderImage": "",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",

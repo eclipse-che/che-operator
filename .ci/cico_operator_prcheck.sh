@@ -41,19 +41,14 @@ oc_tls_mode() {
 }
 
 run_tests() {
-  set -x
   echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
-  short=$(echo "${CRW_BOTS_PULL_SECRETS}" | cut -c1-4)
-  echo "First characters"
-  echo $short
-  
-  echo "Echo last 7 characters"
-  echo "${CRW_BOTS_PULL_SECRETS: -7}"
-  
-  echo "Finish add secrets"
+
   source ${OPERATOR_REPO}/.ci/start-crc.sh
 
- 
+  eval $( crc oc-env )
+  oc login -u kubeadmin -p $(cat ~/.crc/cache/*/kubeadmin-password) https://api.crc.testing:6443
+
+  ${OPERATOR_REPO}/olm/testUpdate.sh openshift stable che
 
 }
 

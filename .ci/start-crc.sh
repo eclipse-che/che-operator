@@ -27,4 +27,4 @@ crc version
 crc config set skip-check-root-user true
 crc setup
 crc start --cpus=${CPUS} --memory=${RAM_MEMORY} --pull-secret-file=${SecretFile} -n 8.8.8.8 --log-level debug
-crc delete
+y | crc delete
