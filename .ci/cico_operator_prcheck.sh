@@ -46,7 +46,7 @@ run_tests() {
   source ${OPERATOR_REPO}/.ci/start-crc.sh
 
   eval $( crc oc-env )
-  oc login -u kubeadmin -p $(cat ~/.crc/cache/*/kubeadmin-password) https://api.crc.testing:6443
+  oc login -u kubeadmin -p $(cat ~/.crc/cache/*/kubeadmin-password) https://api.crc.testing:6443 --insecure-skip-tls-verify
 
   ${OPERATOR_REPO}/olm/testUpdate.sh openshift stable che
 
