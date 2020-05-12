@@ -25,6 +25,7 @@ mv ./crc /usr/local/bin/crc
 
 crc version
 crc config set skip-check-root-user true
+crc config set nameserver 8.8.8.8
 crc setup
-crc start --cpus=${CPUS} --memory=${RAM_MEMORY} --pull-secret-file=${SecretFile} -n 8.8.8.8 --log-level debug
+crc start --cpus=${CPUS} --memory=${RAM_MEMORY} --pull-secret-file=${SecretFile} --log-level debug
 y | crc delete
