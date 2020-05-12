@@ -17,7 +17,7 @@ trap 'Catch_Finish $?' EXIT SIGINT
 # Catch errors and force to delete minishift VM.
 Catch_Finish() {
   virsh console crc
-  rm -rf ${OPERATOR_REPO}/tmp ~/.minishift && yes | minishift delete
+  rm -rf ${OPERATOR_REPO}/tmp ~/.minishift && yes | minikube delete
 }
 
 init() {
@@ -55,6 +55,12 @@ run_tests() {
   oc login -u kubeadmin -p $(cat ~/.crc/cache/*/kubeadmin-password) https://api.crc.testing:6443 --insecure-skip-tls-verify
 
   ${OPERATOR_REPO}/olm/testUpdate.sh openshift stable che
+
+  yes | crc delete
+  rm -rf  ~/.crc && rm -rf ~/.kube
+
+  source ${OPERATOR_REPO}/.ci/start-minikube.sh
+  ${OPERATOR_REPO}/olm/testUpdate.sh kubernetes stable che
 
 }
 
