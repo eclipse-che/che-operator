@@ -28,4 +28,3 @@ crc config set skip-check-root-user true
 crc config set nameserver 8.8.8.8
 crc setup
 crc start --cpus=${CPUS} --memory=${RAM_MEMORY} --pull-secret-file=${SecretFile} --log-level debug
-y | crc delete
