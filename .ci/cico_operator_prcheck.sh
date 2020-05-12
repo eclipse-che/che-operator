@@ -42,7 +42,7 @@ oc_tls_mode() {
 
 run_tests() {
   echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
-
+  yum install --assumeyes NetworkManager
   source ${OPERATOR_REPO}/.ci/start-crc.sh
 
   eval $( crc oc-env )
