@@ -41,8 +41,10 @@ oc_tls_mode() {
 }
 
 run_tests() {
+  print "Add Secrets"
   echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
   cat pull-secrets.txt
+  print "Finish add secrets"
   source ${OPERATOR_REPO}/.ci/start-crc.sh
 
  
