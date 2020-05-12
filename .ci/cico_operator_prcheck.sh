@@ -10,7 +10,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set -e -x
+set -e
 
 trap 'Catch_Finish $?' EXIT SIGINT
 
@@ -41,9 +41,15 @@ oc_tls_mode() {
 }
 
 run_tests() {
-  echo "Add Secrets"
+  set -x
   echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
-  cat pull-secrets.txt
+  short=$(echo "${CRW_BOTS_PULL_SECRETS}" | cut -c1-4)
+  echo "First characters"
+  echo $short
+  
+  echo "Echo last 7 characters"
+  echo "${CRW_BOTS_PULL_SECRETS: -7}"
+  
   echo "Finish add secrets"
   source ${OPERATOR_REPO}/.ci/start-crc.sh
 
