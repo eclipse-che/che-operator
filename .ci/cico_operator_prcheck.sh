@@ -42,6 +42,13 @@ oc_tls_mode() {
 }
 
 run_tests() {
+# Download minikube binary
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBERNETES_VERSION/bin/linux/amd64/kubectl && \
+  chmod +x kubectl &&  \
+sudo mv kubectl /usr/local/bin/
+
+kubectl version
+
   echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
   yum install --assumeyes NetworkManager
   source ${OPERATOR_REPO}/.ci/start-crc.sh
