@@ -12,7 +12,7 @@
 
 # CRC environments config
 
-export CRC_VERSION=1.9.0
+export CRC_VERSION=latest
 export SecretFile=pull-secrets.txt
 export RAM_MEMORY=16384
 export CPUS=4
