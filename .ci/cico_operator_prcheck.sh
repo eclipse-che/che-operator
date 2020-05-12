@@ -42,13 +42,13 @@ oc_tls_mode() {
 
 run_tests() {
   set -x
-  echo "${CRW-BOTS-PULL-SECRETS}" >> pull-secrets.txt
-  short=$(echo "${CRW-BOTS-PULL-SECRETS}" | cut -c1-4)
+  echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
+  short=$(echo "${CRW_BOTS_PULL_SECRETS}" | cut -c1-4)
   echo "First characters"
   echo $short
   
   echo "Echo last 7 characters"
-  echo "${CRW-BOTS-PULL-SECRETS: -7}"
+  echo "${CRW_BOTS_PULL_SECRETS: -7}"
   
   echo "Finish add secrets"
   source ${OPERATOR_REPO}/.ci/start-crc.sh
