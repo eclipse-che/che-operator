@@ -143,4 +143,6 @@ load_jenkins_vars() {
     eval "$(./env-toolkit load -r jenkins-env.json \
                               CHE_BOT_GITHUB_TOKEN \
                               CRW_BOTS_PULL_SECRETS)"
+    echo "Secrets length..."
+    echo ${#CRW_BOTS_PULL_SECRETS}
 }
