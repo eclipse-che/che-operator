@@ -42,7 +42,7 @@ oc_tls_mode() {
 
 run_tests() {
   set -x
-  echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
+  echo "${CRW-BOTS-PULL-SECRETS}" >> pull-secrets.txt
   short=$(echo "${CRW-BOTS-PULL-SECRETS}" | cut -c1-4)
   echo "First characters"
   echo $short
