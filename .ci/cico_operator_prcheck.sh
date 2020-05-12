@@ -57,6 +57,7 @@ init
 
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
 installJQ
+installYQ
 load_jenkins_vars
 installStartDocker
 install_VirtPackages
