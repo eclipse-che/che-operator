@@ -16,7 +16,6 @@ trap 'Catch_Finish $?' EXIT SIGINT
 
 # Catch errors and force to delete minishift VM.
 Catch_Finish() {
-  virsh console crc
   rm -rf ${OPERATOR_REPO}/tmp ~/.minishift && yes | minikube delete
 }
 
