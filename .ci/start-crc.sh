@@ -13,6 +13,7 @@
 # CRC environments config
 
 export CRC_VERSION=1.10.0
+export SecretFile=pull-secrets.txt
 set -e -x
 curl -SLO  https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz
 tar -xvf crc-linux-amd64.tar.xz --strip-components=1
@@ -21,3 +22,6 @@ mv ./crc /usr/local/bin/crc
 
 crc version
 crc config set skip-check-root-user true
+crc setup
+crc start --cpus=${CPUS} --memory=${RAM_MEMORY} --pull-secret-file=${SecretFile}
+crc delete
