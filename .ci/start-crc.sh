@@ -12,11 +12,12 @@
 
 # CRC environments config
 
-export CRC_VERSION=1.10
-
-curl -Lo https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz
-tar -xvf minishift.tgz --strip-components=1
+export CRC_VERSION=1.10.0
+set -e -x
+curl -SLO  https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz
+tar -xvf crc-linux-amd64.tar.xz --strip-components=1
 chmod +x ./crc
 mv ./crc /usr/local/bin/crc
 
 crc version
+crc config set skip-check-root-user true
