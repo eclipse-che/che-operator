@@ -11,8 +11,8 @@
 #   Red Hat, Inc. - initial API and implementation
 
 # Minikube environments config
-export MINIKUBE_VERSION=v1.2.0
-export KUBERNETES_VERSION=v1.14.5
+export MINIKUBE_VERSION=v1.8.2
+export KUBERNETES_VERSION=v1.16.2
 export MINIKUBE_HOME=$HOME
 export CHANGE_MINIKUBE_NONE_USER=true
 export KUBECONFIG=$HOME/.kube/config
@@ -54,12 +54,6 @@ minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver
 
 # waiting for node(s) to be ready
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
-
-# waiting for kube-addon-manager to be ready
-JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done
-
-# waiting for kube-dns to be ready
-JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lk8s-app=kube-dns -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-dns to be available"; kubectl get pods --all-namespaces; done
 
 #Give god access to the k8s API
 kubectl apply -f - <<EOF
