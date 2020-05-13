@@ -55,8 +55,7 @@ func SyncCheServiceToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI
 func GetSpecCheService(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (*corev1.Service, error) {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
-	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
-	labels := GetLabels(checluster, cheFlavor)
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 
 	if checluster.Spec.Metrics.Enable {
 		portName = append(portName, "metrics")

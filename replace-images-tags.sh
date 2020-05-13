@@ -13,7 +13,6 @@
 # Updates images into:
 # - deploy/operator.yaml
 # - deploy/operator-local.yaml
-# - pkg/deploy/defaults_test.go
 # Usage:
 #   ./release-operator-code.sh <RELEASE> <CHE_RELEASE_BRANCH>
 
@@ -89,19 +88,6 @@ replaceImagesTags() {
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"IMAGE_default_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE_RELEASE}\"" \
   >> "${NEW_OPERATOR_LOCAL_YAML}"
   mv "${NEW_OPERATOR_LOCAL_YAML}" "${OPERATOR_LOCAL_YAML}"
-
-  defaulTest=${BASE_DIR}/pkg/deploy/defaults_test.go
-  sed -i 's|cheVersionTest.*= ".*"|cheVersionTest           = "'${RELEASE}'"|g'  $defaulTest
-  sed -i 's|cheServerImageTest.*= ".*"|cheServerImageTest       = "'"$CHE_SERVER_IMAGE_REALEASE"'"|g'  $defaulTest
-  sed -i 's|cheOperatorImageTest.*= ".*"|cheOperatorImageTest     = "'"quay.io/eclipse/che-operator:${RELEASE}"'"|g'  $defaulTest
-  sed -i 's|pluginRegistryImageTest.*= ".*"|pluginRegistryImageTest  = "'${PLUGIN_REGISTRY_IMAGE_RELEASE}'"|g'  $defaulTest
-  sed -i 's|devfileRegistryImageTest.*= ".*"|devfileRegistryImageTest = "'${DEVFILE_REGISTRY_IMAGE_RELEASE}'"|g'  $defaulTest
-  sed -i 's|pvcJobsImageTest.*= ".*"|pvcJobsImageTest         = "'${UBI8_MINIMAL_IMAGE}'"|g'  $defaulTest
-  sed -i 's|keycloakImageTest.*= ".*"|keycloakImageTest        = "'${KEYCLOAK_IMAGE_RELEASE}'"|g'  $defaulTest
-  sed -i 's|brokerMetadataTest.*= ".*"|brokerMetadataTest       = "'${PLUGIN_BROKER_METADATA_IMAGE_RELEASE}'"|g'  $defaulTest
-  sed -i 's|brokerArtifactsTest.*= ".*"|brokerArtifactsTest      = "'${PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE}'"|g'  $defaulTest
-  sed -i 's|jwtProxyTest.*= ".*"|jwtProxyTest             = "'${JWT_PROXY_IMAGE_RELEASE}'"|g'  $defaulTest
-  sed -i 's|cheVersionTest           = ".*"|cheVersionTest           = "nightly"|g' /home/tolusha/gocode/src/github.com/eclipse/che-operator/pkg/deploy/defaults_test.go
 }
 
 init "$@"

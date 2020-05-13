@@ -14,7 +14,7 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/util"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -33,7 +33,7 @@ type PluginRegistryConfigMap struct {
 }
 
 func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster, endpoint string) *corev1.ConfigMap {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(cr, DefaultCheFlavor(cr))
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -49,7 +49,7 @@ func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster, endpoint string) *core
 }
 
 func CreatePluginRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(cr, DefaultCheFlavor(cr))
 	fmt.Println("Cr namespace " + cr.Namespace)
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{

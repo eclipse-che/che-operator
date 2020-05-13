@@ -157,8 +157,7 @@ func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, n
 }
 
 func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
-
-	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
+	cheFlavor := deploy.DefaultCheFlavor(instance)
 	if len(instance.Spec.Server.CheFlavor) < 1 {
 		instance.Spec.Server.CheFlavor = cheFlavor
 		if err := r.UpdateCheCRSpec(instance, "installation flavor", cheFlavor); err != nil {
@@ -170,7 +169,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 	if cheMultiUser == "true" {
 		if len(instance.Spec.Database.ChePostgresSecret) < 1 {
 			if len(instance.Spec.Database.ChePostgresUser) < 1 || len(instance.Spec.Database.ChePostgresPassword) < 1 {
-				chePostgresSecret := deploy.DefaultChePostgresSecret
+				chePostgresSecret := deploy.DefaultChePostgresSecret()
 				r.CreateSecret(instance, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))}, chePostgresSecret)
 				instance.Spec.Database.ChePostgresSecret = chePostgresSecret
 				if err := r.UpdateCheCRSpec(instance, "Postgres Secret", chePostgresSecret); err != nil {
@@ -201,7 +200,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			}
 
 			if len(instance.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
-				identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret
+				identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
 				r.CreateSecret(instance, map[string][]byte{"password": []byte(keycloakPostgresPassword)}, identityPostgresSecret)
 				instance.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
 				if err := r.UpdateCheCRSpec(instance, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
@@ -223,7 +222,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			}
 
 			if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
-				identityProviderSecret := deploy.DefaultCheIdentitySecret
+				identityProviderSecret := deploy.DefaultCheIdentitySecret()
 				r.CreateSecret(instance, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)}, identityProviderSecret)
 				instance.Spec.Auth.IdentityProviderSecret = identityProviderSecret
 				if err := r.UpdateCheCRSpec(instance, "Identity Provider Secret", identityProviderSecret); err != nil {

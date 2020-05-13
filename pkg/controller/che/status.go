@@ -14,7 +14,6 @@ package che
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -26,7 +25,7 @@ const (
 )
 
 func (r *ReconcileChe) SetCheAvailableStatus(instance *orgv1.CheCluster, request reconcile.Request, protocol string, cheHost string) (err error) {
-	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
+	cheFlavor := deploy.DefaultCheFlavor(instance)
 	name := "Eclipse Che"
 	if cheFlavor == "codeready" {
 		name = "CodeReady Workspaces"

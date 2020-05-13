@@ -71,7 +71,7 @@ func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI Cl
 func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *appsv1.Deployment, clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
 	optionalEnv := true
 	labels := GetLabels(checluster, KeycloakDeploymentName)
-	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
+	cheFlavor := DefaultCheFlavor(checluster)
 	keycloakImage := util.GetValue(checluster.Spec.Auth.IdentityProviderImage, DefaultKeycloakImage(checluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(checluster.Spec.Auth.IdentityProviderImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
 	jbossDir := "/opt/eap"

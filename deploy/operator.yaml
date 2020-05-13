@@ -64,6 +64,22 @@ spec:
               value: quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2
             - name: IMAGE_default_che_server_secure_exposer_jwt_proxy_image
               value: quay.io/eclipse/che-jwtproxy:fd94e60
+            - name: CHE_FLAVOR
+              value: che
+            - name: CONSOLE_LINK_NAME
+              value: che
+            - name: CONSOLE_LINK_DISPLAY_NAME
+              value: "Eclipse Che"
+            - name: CONSOLE_LINK_SECTION
+              value: "Red Hat Applications"
+            - name: CONSOLE_LINK_IMAGE
+              value: "/dashboard/assets/branding/loader.svg"
+            - name: CHE_IDENTITY_SECRET
+              value: che-identity-secret
+            - name: CHE_IDENTITY_POSTGRES_SECRET
+              value: che-identity-postgres-secret
+            - name: CHE_POSTGRES_SECRET
+              value: che-postgres-secret
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5
