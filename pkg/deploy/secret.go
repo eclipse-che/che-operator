@@ -13,13 +13,12 @@ package deploy
 
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func NewSecret(cr *orgv1.CheCluster, name string, data map[string][]byte) *corev1.Secret {
-	labels := GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(cr, DefaultCheFlavor(cr))
 	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",

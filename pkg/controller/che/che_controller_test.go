@@ -13,6 +13,8 @@ package che
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -25,6 +27,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacapi "k8s.io/api/rbac/v1"
@@ -40,8 +43,18 @@ import (
 	"testing"
 )
 
-func TestCheController(t *testing.T) {
+func init() {
+	operator := &appsv1.Deployment{}
+	data, err := ioutil.ReadFile("../../../deploy/operator.yaml")
+	yaml.Unmarshal(data, operator)
+	if err == nil {
+		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
+			os.Setenv(env.Name, env.Value)
+		}
+	}
+}
 
+func TestCheController(t *testing.T) {
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -196,7 +209,7 @@ func TestCheController(t *testing.T) {
 	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {
 		t.Errorf("ConfigMap wasn't updated. Extecting true, got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])
 	}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor, Namespace: cheCR.Namespace}, route); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(cheCR), Namespace: cheCR.Namespace}, route); err != nil {
 		t.Errorf("Route %s not found: %s", cm.Name, err)
 	}
 	if route.Spec.TLS.Termination != "edge" {

@@ -1,7 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
-    
+
     {
       "name": "Launch Current File",
       "type": "go",
@@ -27,7 +27,15 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/manager/main.go",
       "env": {
-        "WATCH_NAMESPACE": "che"
+        "WATCH_NAMESPACE": "che",
+        "CHE_FLAVOR": "che",
+        "CONSOLE_LINK_NAME": "che",
+        "CONSOLE_LINK_DISPLAY_NAME": "Eclipse Che",
+        "CONSOLE_LINK_SECTION": "Red Hat Applications",
+        "CONSOLE_LINK_IMAGE": "/dashboard/assets/branding/loader.svg",
+        "CHE_IDENTITY_SECRET": "che-identity-secret",
+        "CHE_IDENTITY_POSTGRES_SECRET": "che-identity-postgres-secret",
+        "CHE_POSTGRES_SECRET": "che-postgres-secret"
       },
       "cwd": "${workspaceFolder}",
       "args": [

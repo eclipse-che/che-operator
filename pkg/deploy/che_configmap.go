@@ -137,7 +137,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}
-	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
+	cheFlavor := DefaultCheFlavor(cr)
 	infra := "kubernetes"
 	if isOpenShift {
 		infra = "openshift"
@@ -145,10 +145,10 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
 	openshiftOAuth := cr.Spec.Auth.OpenShiftoAuth
-	defaultTargetNamespaceDefault := cr.Namespace  // By default Che SA has right in the namespace where Che in installed ...
+	defaultTargetNamespaceDefault := cr.Namespace // By default Che SA has right in the namespace where Che in installed ...
 	if openshiftOAuth && isOpenShift {
 		// ... But if the workspace is created under the openshift identity of the end-user,
-		// Then we'll have rights to create any new namespace 
+		// Then we'll have rights to create any new namespace
 		defaultTargetNamespaceDefault = "<username>-" + cheFlavor
 		openShiftIdentityProviderId = "openshift-v3"
 		if isOpenshift4 {
@@ -220,7 +220,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
-	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)))
+	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, cheFlavor))
 	cheMultiUser := GetCheMultiUser(cr)
 
 	data := &CheConfigMap{
@@ -297,8 +297,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 }
 
 func GetSpecConfigMap(checluster *orgv1.CheCluster, cheEnv map[string]string, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
-	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
-	labels := GetLabels(checluster, cheFlavor)
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",

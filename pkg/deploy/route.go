@@ -16,7 +16,6 @@ import (
 	"fmt"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -113,9 +112,8 @@ func getClusterRoute(name string, namespace string, client runtimeClient.Client)
 }
 
 func getSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string, port int32, clusterAPI ClusterAPI) (*routev1.Route, error) {
-	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
 	tlsSupport := checluster.Spec.Server.TlsSupport
-	labels := GetLabels(checluster, cheFlavor)
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	weight := int32(100)
 
 	if name == "keycloak" {

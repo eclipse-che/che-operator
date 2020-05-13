@@ -239,7 +239,7 @@ createPRToMasterBranch() {
   resetChanges master
   local tmpBranch=${RELEASE}-to-master
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' ':(exclude)pkg/deploy/defaults_test.go'
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml'
   git add -A
   git commit -m "Copy "$RELEASE" csv to master" --signoff
   git push origin $tmpBranch
@@ -251,7 +251,6 @@ createPRToMasterBranch() {
   . ${RELEASE_DIR}/replace-images-tags.sh nightly master
   git add deploy/operator.yaml
   git add deploy/operator-local.yaml
-  git add pkg/deploy/defaults_test.go
   git commit -m "Update images tags" --signoff
   git push origin $tmpBranch
   hub pull-request --base master --head ${tmpBranch} --browse -m "Update images tags in master branch"

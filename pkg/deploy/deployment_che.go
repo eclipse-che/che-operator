@@ -26,8 +26,7 @@ import (
 )
 
 func SyncCheDeploymentToCluster(checluster *orgv1.CheCluster, cmResourceVersion string, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
-	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
-	clusterDeployment, err := getClusterDeployment(cheFlavor, checluster.Namespace, clusterAPI.Client)
+	clusterDeployment, err := getClusterDeployment(DefaultCheFlavor(checluster), checluster.Namespace, clusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -51,9 +50,9 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
+	cheFlavor := DefaultCheFlavor(checluster)
+	labels := GetLabels(checluster, cheFlavor)
 	optionalEnv := true
-	cheFlavor := util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor)
 	memRequest := util.GetValue(checluster.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
 	selfSignedCertEnv := corev1.EnvVar{
 		Name:  "CHE_SELF__SIGNED__CERT",

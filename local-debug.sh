@@ -22,6 +22,8 @@ command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not in
 
 CHE_NAMESPACE=che
 
+
+
 set +e
 kubectl create namespace $CHE_NAMESPACE
 set -e

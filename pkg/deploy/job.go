@@ -101,7 +101,7 @@ func getSpecJob(
 	serviceAccountName string,
 	env map[string]string,
 	clusterAPI ClusterAPI) (*batchv1.Job, error) {
-	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	labels["component"] = component
 
 	backoffLimit := int32(3)

@@ -352,7 +352,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
+	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheDeploymentName := cheFlavor
 	if isOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
@@ -1185,27 +1185,26 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 		// console link is supported only with https
 		return nil
 	}
-	cheFlavor := instance.Spec.Server.CheFlavor
 	cheHost := instance.Spec.Server.CheHost
 	preparedConsoleLink := &consolev1.ConsoleLink{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: deploy.DefaultConsoleLinkName,
+			Name: deploy.DefaultConsoleLinkName(),
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
 				Href: protocol + "://" + cheHost,
-				Text: deploy.DefaultConsoleLinkDisplayName(cheFlavor)},
+				Text: deploy.DefaultConsoleLinkDisplayName()},
 			Location: consolev1.ApplicationMenu,
 			ApplicationMenu: &consolev1.ApplicationMenuSpec{
-				Section:  deploy.DefaultConsoleLinkSection,
-				ImageURL: fmt.Sprintf("%s://%s%s", protocol, cheHost, deploy.DefaultConsoleLinkImage),
+				Section:  deploy.DefaultConsoleLinkSection(),
+				ImageURL: fmt.Sprintf("%s://%s%s", protocol, cheHost, deploy.DefaultConsoleLinkImage()),
 			},
 		},
 	}
 
 	existingConsoleLink := &consolev1.ConsoleLink{}
 
-	if getErr := r.nonCachedClient.Get(context.TODO(), client.ObjectKey{Name: deploy.DefaultConsoleLinkName}, existingConsoleLink); getErr == nil {
+	if getErr := r.nonCachedClient.Get(context.TODO(), client.ObjectKey{Name: deploy.DefaultConsoleLinkName()}, existingConsoleLink); getErr == nil {
 		// if found, update existing one. We need ResourceVersion from current one.
 		preparedConsoleLink.ResourceVersion = existingConsoleLink.ResourceVersion
 		logrus.Debugf("Updating the object: ConsoleLink, name: %s", existingConsoleLink.Name)

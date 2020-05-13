@@ -42,12 +42,10 @@ var (
 )
 
 const (
-	DefaultCheFlavor           = "che"
 	DefaultChePostgresUser     = "pgche"
 	DefaultChePostgresHostName = "postgres"
 	DefaultChePostgresPort     = "5432"
 	DefaultChePostgresDb       = "dbche"
-	DefaultChePostgresSecret   = "che-postgres-secret"
 	DefaultPvcStrategy         = "common"
 	DefaultPvcClaimSize        = "1Gi"
 	DefaultIngressStrategy     = "multi-host"
@@ -68,7 +66,7 @@ const (
 	DefaultCheVolumeClaimName           = "che-data-volume"
 	DefaultPostgresVolumeClaimName      = "postgres-data"
 
-	DefaultJavaOpts = "-XX:MaxRAMPercentage=85.0"
+	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
 	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
@@ -88,15 +86,6 @@ const (
 	OldDefaultCodeReadyServerImageRepo = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	OldDefaultCodeReadyServerImageTag  = "1.2"
 	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
-
-	// ConsoleLink default
-	DefaultConsoleLinkName                = "che"
-	DefaultConsoleLinkSection             = "Red Hat Applications"
-	DefaultConsoleLinkImage               = "/dashboard/assets/branding/loader.svg"
-	DefaultCheIdentitySecret              = "che-identity-secret"
-	DefaultCheIdentityPostgresSecret      = "che-identity-postgres-secret"
-	defaultConsoleLinkUpstreamDisplayName = "Eclipse Che"
-	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
 )
 
 func InitDefaults(defaultsPath string) {
@@ -180,11 +169,36 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	return false
 }
 
-func DefaultConsoleLinkDisplayName(cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return defaultConsoleLinkDisplayName
-	}
-	return defaultConsoleLinkUpstreamDisplayName
+func DefaultCheFlavor(cr *orgv1.CheCluster) string {
+	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
+}
+
+func DefaultConsoleLinkName() string {
+	return getDefaultFromEnv("CONSOLE_LINK_NAME")
+}
+
+func DefaultConsoleLinkDisplayName() string {
+	return getDefaultFromEnv("CONSOLE_LINK_DISPLAY_NAME")
+}
+
+func DefaultConsoleLinkSection() string {
+	return getDefaultFromEnv("CONSOLE_LINK_SECTION")
+}
+
+func DefaultConsoleLinkImage() string {
+	return getDefaultFromEnv("CONSOLE_LINK_IMAGE")
+}
+
+func DefaultCheIdentitySecret() string {
+	return getDefaultFromEnv("CHE_IDENTITY_SECRET")
+}
+
+func DefaultCheIdentityPostgresSecret() string {
+	return getDefaultFromEnv("CHE_IDENTITY_POSTGRES_SECRET")
+}
+
+func DefaultChePostgresSecret() string {
+	return getDefaultFromEnv("CHE_POSTGRES_SECRET")
 }
 
 func DefaultCheVersion() string {

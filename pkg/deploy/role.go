@@ -15,7 +15,6 @@ import (
 	"context"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -68,7 +67,7 @@ func getClusterRole(name string, namespace string, client runtimeClient.Client) 
 }
 
 func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, verbs []string, clusterAPI ClusterAPI) (*rbac.Role, error) {
-	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Role",

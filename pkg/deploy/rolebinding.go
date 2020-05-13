@@ -15,7 +15,6 @@ import (
 	"context"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -76,7 +75,7 @@ func getSpecRoleBinding(
 	roleKind string,
 	clusterAPI ClusterAPI) (*rbac.RoleBinding, error) {
 
-	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	roleBinding := &rbac.RoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "RoleBinding",

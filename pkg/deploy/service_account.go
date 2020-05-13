@@ -15,7 +15,6 @@ import (
 	"context"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -62,7 +61,7 @@ func getClusterServiceAccount(name string, namespace string, client runtimeClien
 }
 
 func getSpecServiceAccount(checluster *orgv1.CheCluster, name string, clusterAPI ClusterAPI) (*corev1.ServiceAccount, error) {
-	labels := GetLabels(checluster, util.GetValue(checluster.Spec.Server.CheFlavor, DefaultCheFlavor))
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	serviceAccount := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",

@@ -13,38 +13,62 @@ package deploy
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"gopkg.in/yaml.v2"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
-const (
-	cheVersionTest           = "nightly"
-	cheServerImageTest       = "quay.io/eclipse/che-server:nightly"
-	pluginRegistryImageTest  = "quay.io/eclipse/che-plugin-registry:nightly"
-	devfileRegistryImageTest = "quay.io/eclipse/che-devfile-registry:nightly"
-	pvcJobsImageTest         = "registry.access.redhat.com/ubi8-minimal:8.2-267"
-	postgresImageTest        = "centos/postgresql-96-centos7:9.6"
-	keycloakImageTest        = "quay.io/eclipse/che-keycloak:nightly"
-	brokerMetadataTest       = "quay.io/eclipse/che-plugin-metadata-broker:v3.1.2"
-	brokerArtifactsTest      = "quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2"
-	jwtProxyTest             = "quay.io/eclipse/che-jwtproxy:fd94e60"
-	tlsJobImageTest          = "quay.io/eclipse/che-tls-secret-creator:alpine-3029769"
+var (
+	cheVersionTest           string
+	cheServerImageTest       string
+	pluginRegistryImageTest  string
+	devfileRegistryImageTest string
+	pvcJobsImageTest         string
+	postgresImageTest        string
+	keycloakImageTest        string
+	brokerMetadataTest       string
+	brokerArtifactsTest      string
+	jwtProxyTest             string
+	tlsJobImageTest          string
 )
 
 func init() {
-	os.Setenv("CHE_VERSION", cheVersionTest)
-	os.Setenv("IMAGE_default_che_server", cheServerImageTest)
-	os.Setenv("IMAGE_default_plugin_registry", pluginRegistryImageTest)
-	os.Setenv("IMAGE_default_devfile_registry", devfileRegistryImageTest)
-	os.Setenv("IMAGE_default_che_tls_secrets_creation_job", tlsJobImageTest)
-	os.Setenv("IMAGE_default_pvc_jobs", pvcJobsImageTest)
-	os.Setenv("IMAGE_default_postgres", postgresImageTest)
-	os.Setenv("IMAGE_default_keycloak", keycloakImageTest)
-	os.Setenv("IMAGE_default_che_workspace_plugin_broker_metadata", brokerMetadataTest)
-	os.Setenv("IMAGE_default_che_workspace_plugin_broker_artifacts", brokerArtifactsTest)
-	os.Setenv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image", jwtProxyTest)
+	operator := &appsv1.Deployment{}
+	data, err := ioutil.ReadFile("../../deploy/operator.yaml")
+	yaml.Unmarshal(data, operator)
+	if err == nil {
+		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
+			os.Setenv(env.Name, env.Value)
+			switch env.Name {
+			case "CHE_VERSION":
+				cheVersionTest = env.Value
+			case "IMAGE_default_che_server":
+				cheServerImageTest = env.Value
+			case "IMAGE_default_plugin_registry":
+				pluginRegistryImageTest = env.Value
+			case "IMAGE_default_devfile_registry":
+				devfileRegistryImageTest = env.Value
+			case "IMAGE_default_che_tls_secrets_creation_job":
+				tlsJobImageTest = env.Value
+			case "IMAGE_default_pvc_jobs":
+				pvcJobsImageTest = env.Value
+			case "IMAGE_default_postgres":
+				postgresImageTest = env.Value
+			case "IMAGE_default_keycloak":
+				keycloakImageTest = env.Value
+			case "IMAGE_default_che_workspace_plugin_broker_metadata":
+				brokerMetadataTest = env.Value
+			case "IMAGE_default_che_workspace_plugin_broker_artifacts":
+				brokerArtifactsTest = env.Value
+			case "IMAGE_default_che_server_secure_exposer_jwt_proxy_image":
+				jwtProxyTest = env.Value
+			}
+		}
+	}
 
 	InitDefaultsFromEnv()
 }
