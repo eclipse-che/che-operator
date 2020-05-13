@@ -24,6 +24,8 @@ if [ "${channel}" == "" ]; then
   channel="nightly"
 fi
 
+NAMESPACE=$3
+
 #Check if minikube is installed.
 if ! hash minikube 2>/dev/null; then
   echo "Minikube is not installed."
@@ -71,11 +73,41 @@ build_Catalog_Image() {
     minikube addons enable ingress
   else
     docker_build
-    curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.12.0/install.sh | bash -s 0.12.0
+    curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.14.1/install.sh | bash -s 0.14.1
     docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
     eval "$(minishift docker-env)"
     docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
   fi
+}
+
+function getCheClusterLogs() {
+  mkdir -p /root/payload/report/che-logs
+  cd /root/payload/report/che-logs
+  for POD in $(kubectl get pods -o name -n ${NAMESPACE}); do
+    for CONTAINER in $(kubectl get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+      echo ""
+      echo "<=========================Getting logs from $POD==================================>"
+      echo ""
+      kubectl logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+    done
+  done
+  echo "======== kubectl get events ========"
+  kubectl get events -n ${NAMESPACE}| tee get_events.log
+  echo "======== kubectl get all ========"
+  kubectl get all | tee get_all.log
+}
+
+function getOlmPodLogs() {
+  mkdir -p /root/payload/report/olm-logs
+  cd /root/payload/report/olm-logs
+  for POD in $(kubectl get pods -o name -n olm); do
+    for CONTAINER in $(kubectl get -n olm ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+      echo ""
+      echo "<=========================Getting logs from $POD==================================>"
+      echo ""
+      kubectl logs ${POD} -c ${CONTAINER} -n olm |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+    done
+  done
 }
 
 run_olm_functions() {
@@ -84,6 +116,8 @@ run_olm_functions() {
   installPackage
   add_Che_Cluster
   waitCheServerDeploy
+  getOlmPodLogs
+  getCheClusterLogs
 }
 
 init
