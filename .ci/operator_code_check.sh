@@ -77,6 +77,11 @@ function check_deploy_folder() {
     fi
 }
 
+install_deps() {
+    yum -y install git
+}
+
+install_deps
 transform_files
 check_che_types
 check_deploy_folder
