@@ -23,6 +23,7 @@ ADD . /go/src/github.com/eclipse/che-operator
 RUN case $(uname -m) in \
        x86_64) ARCH="amd64" ;; \
        s390x) ARCH="s390x";; \
+       ppc64le) ARCH="ppc64le";; \
 esac
 
 # do no break RUN lines when building with UBI base images. https://projects.engineering.redhat.com/browse/OSBS-7398 & OSBS-7399
