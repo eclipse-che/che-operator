@@ -41,7 +41,7 @@ oc_tls_mode() {
 }
 
 run_tests() {
-  ${OPERATOR_REPO}/.ci/operator_code_check.sh
+  source ${OPERATOR_REPO}/.ci/operator_code_check.sh
 }
 
 init
