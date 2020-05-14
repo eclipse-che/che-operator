@@ -10,10 +10,10 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set -e
+set -e -x
 
 # PR_FILES_CHANGED store all Modified/Created files in Pull Request.
-export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD master))
+export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD origin/master))
 
 # transform_files function transform PR_FILES_CHANGED into a new array => FILES_CHANGED_ARRAY.
 function transform_files() {
