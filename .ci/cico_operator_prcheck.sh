@@ -43,6 +43,7 @@ oc_tls_mode() {
 run_tests() {
   yum -y install git
   git status
+  git rev-parse HEAD
   source ${OPERATOR_REPO}/.ci/operator_code_check.sh
 }
 
