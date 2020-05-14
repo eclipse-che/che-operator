@@ -41,25 +41,7 @@ oc_tls_mode() {
 }
 
 run_tests() {
-  # Download minikube binary
-  curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
-  chmod +x ./kubectl
-  sudo mv ./kubectl /usr/local/bin/kubectl
-
-  echo $CRW_BOTS_PULL_SECRETS >> pull-secrets.txt
-  yum install --assumeyes NetworkManager
-  source ${OPERATOR_REPO}/.ci/start-crc.sh
-
-  eval $( crc oc-env )
-  oc login -u kubeadmin -p $(cat ~/.crc/cache/*/kubeadmin-password) https://api.crc.testing:6443 --insecure-skip-tls-verify
-
-  ${OPERATOR_REPO}/olm/testUpdate.sh openshift stable che
-
-  yes | crc delete
-  rm -rf  ~/.crc && rm -rf ~/.kube
-
-  source ${OPERATOR_REPO}/.ci/start-minikube.sh
-  ${OPERATOR_REPO}/olm/testUpdate.sh kubernetes stable che
+  ${OPERATOR_REPO}/.ci/operator_code_check.sh
 
 }
 
