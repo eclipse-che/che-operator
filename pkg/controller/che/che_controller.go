@@ -271,6 +271,37 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if isOpenShift {
+		if isOpenShift4 {
+			oauthv1 := &oauthv1.OAuth{}
+			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
+				getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
+				logrus.Errorf(getOAuthV1ErrMsg)
+				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getOAuthV1ErrMsg, ""); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{}, err
+			}
+			if len(oauthv1.Spec.IdentityProviders) < 1 {
+				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
+				r.backOffOAuth(request, instance)
+			}
+		} else {
+			users := &userv1.UserList{}
+			listOptions := &client.ListOptions{}
+			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
+				getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
+				logrus.Errorf(getUsersErrMsg)
+				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getUsersErrMsg, ""); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{}, err
+			}
+			if len(users.Items) < 1 {
+				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+				r.backOffOAuth(request, instance)
+			}
+		}
+
 		// delete oAuthClient before CR is deleted
 		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
 		if doInstallOpenShiftoAuthProvider {
@@ -384,37 +415,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		if instance.Spec.Auth.OpenShiftoAuth {
-			if isOpenShift4 {
-				oauthv1 := &oauthv1.OAuth{}
-				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
-					getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
-					logrus.Errorf(getOAuthV1ErrMsg)
-					if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getOAuthV1ErrMsg, ""); err != nil {
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{}, err
-				}
-				if len(oauthv1.Spec.IdentityProviders) < 1 {
-					logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
-					r.backOffOAuth(request, instance)
-				}
-			} else {
-				users := &userv1.UserList{}
-				listOptions := &client.ListOptions{}
-				if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
-					getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
-					logrus.Errorf(getUsersErrMsg)
-					if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getUsersErrMsg, ""); err != nil {
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{}, err
-				}
-				if len(users.Items) < 1 {
-					logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
-					r.backOffOAuth(request, instance)
-				}
-			}
-
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
 			if err != nil {
