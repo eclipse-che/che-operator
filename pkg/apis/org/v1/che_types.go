@@ -52,6 +52,7 @@ type CheClusterSpec struct {
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
 }
 
+// TEST
 // +k8s:openapi-gen=true
 // General configuration settings related to the Che server
 // and the plugin and devfile registries.
@@ -475,7 +476,7 @@ type CheCluster struct {
 	// several config maps that will contain the appropriate environment variables
 	// the various components of the Che installation.
 	// These generated config maps should NOT be updated manually.
-	Spec   CheClusterSpec   `json:"spec,omitempty"`
+	Spec CheClusterSpec `json:"spec,omitempty"`
 
 	// CheClusterStatus defines the observed state of Che installation
 	Status CheClusterStatus `json:"status,omitempty"`
