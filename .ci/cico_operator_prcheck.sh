@@ -41,33 +41,8 @@ oc_tls_mode() {
 }
 
 run_tests() {
-  printInfo "Register a custom resource definition"
-  oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
-
-  oc_tls_mode
-    
-  printInfo "Starting to compile e2e tests binary"
-  docker run -t \
-              -v ${OPERATOR_REPO}/tmp:/operator \
-              -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.access.redhat.com/devtools/go-toolset-rhel7:${GO_TOOLSET_VERSION} \
-              sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /operator/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
-  
-  printInfo "Build operator docker image and load in to minishift VM..."
-  cd "$OPERATOR_REPO" && docker build -t che/operator -f Dockerfile . && docker save che/operator > operator.tar
-  eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
-  
-  printInfo "Runing e2e tests..."
-  ${OPERATOR_REPO}/tmp/run-tests
+  ${OPERATOR_REPO}/.ci/operator_code_check.sh
 }
 
 init
-
-source ${OPERATOR_REPO}/.ci/util/ci_common.sh
-installJQ
-load_jenkins_vars
-installStartDocker
-install_VirtPackages
-start_libvirt
-setup_kvm_machine_driver
-minishift_installation
 run_tests
