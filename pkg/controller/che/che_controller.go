@@ -432,6 +432,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {	
+		return reconcile.Result{}, err	
+	}
+
 	// create service accounts:
 	// che is the one which token is used to create workspace objects
 	// che-workspace is SA used by plugins like exec and terminal with limited privileges
