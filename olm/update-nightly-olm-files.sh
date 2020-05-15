@@ -62,8 +62,7 @@ do
 
   if [[ ! -z "$TAG" ]]; then
     echo "[INFO] Set tags in nighlty OLM files"
-    lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
-    csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
+    csvFile="${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml"
     sed -i 's/'$RELEASE'/'$TAG'/g' $csvFile
   fi
 
