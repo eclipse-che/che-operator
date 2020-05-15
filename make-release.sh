@@ -20,6 +20,7 @@ init() {
   RUN_RELEASE=false
   PUSH_OLM_FILES=false
   PUSH_GIT_CHANGES=false
+  CREATE_PULL_REQUESTS=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -29,6 +30,7 @@ init() {
       '--release') RUN_RELEASE=true; shift 0;;
       '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
+      '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -267,6 +269,9 @@ fi
 
 if [[ $PUSH_GIT_CHANGES == "true" ]]; then
   pushGitChanges
+fi
+
+if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
   createPRToXBranch
   createPRToMasterBranch
 fi
