@@ -17,8 +17,7 @@ init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
-  PULL_REQUEST_TO_X_BRANCH=false
-  PULL_REQUEST_TO_X_MASTER=false
+  RUN_RELEASE=false
   PUSH_OLM_FILES=false
   PUSH_GIT_CHANGES=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
@@ -27,6 +26,7 @@ init() {
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
+      '--release') RUN_RELEASE=true; shift 0;;
       '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
     '--help'|'-h') usage; exit;;
@@ -174,11 +174,11 @@ updateNightlyOlmFiles() {
   echo "[INFO] Set nightly tags in nighlty OLM files"
   lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
   csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
-  sed -i 's/'$RELEASE'/nightly/g' csvFile
+  sed -i 's/'$RELEASE'/nightly/g' $csvFile
 
   lastNightlyOpenshiftDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
   csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
-  sed -i 's/'$RELEASE'/nightly/g' csvFile
+  sed -i 's/'$RELEASE'/nightly/g' $csvFile
 
   echo "[INFO] List of changed files:"
   git status -s
@@ -261,18 +261,21 @@ run() {
   releaseOperatorCode
   updateNightlyOlmFiles
   releaseOlmFiles
-
-  if [[ $PUSH_OLM_FILES == "true" ]]; then
-    pushOlmFilesToQuayIo
-  fi
-
-  if [[ $PUSH_GIT_CHANGES == "true" ]]; then
-    pushGitChanges
-    createPRToXBranch
-    createPRToMasterBranch
-  fi
 }
 
 init "$@"
 echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
-run "$@"
+
+if [[ $RUN_RELEASE == "true" ]]; then
+  run "$@"
+fi
+
+if [[ $PUSH_OLM_FILES == "true" ]]; then
+  pushOlmFilesToQuayIo
+fi
+
+if [[ $PUSH_GIT_CHANGES == "true" ]]; then
+  pushGitChanges
+  createPRToXBranch
+  createPRToMasterBranch
+fi
