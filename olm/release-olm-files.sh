@@ -61,6 +61,7 @@ do
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
   -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${lastPackagePreReleaseVersion}" \
+  -e "s/: nightly/: ${RELEASE}/" \
   -e "s/:nightly/:${RELEASE}/" \
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" \

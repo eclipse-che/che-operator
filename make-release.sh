@@ -17,18 +17,20 @@ init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
-  PULL_REQUEST_TO_X_BRANCH=false
-  PULL_REQUEST_TO_X_MASTER=false
+  RUN_RELEASE=false
   PUSH_OLM_FILES=false
   PUSH_GIT_CHANGES=false
+  CREATE_PULL_REQUESTS=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
+      '--release') RUN_RELEASE=true; shift 0;;
       '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
+      '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -165,20 +167,11 @@ releaseOperatorCode() {
 }
 
 updateNightlyOlmFiles() {
-  echo "[INFO] Updateing nighlty OLM files"
+  echo "[INFO] Updating nighlty OLM files"
   echo "[INFO] Launching 'olm/update-nightly-olm-files.sh' script"
   cd $RELEASE_DIR/olm
-  . update-nightly-olm-files.sh
+  . update-nightly-olm-files.sh nightly
   cd $RELEASE_DIR
-
-  echo "[INFO] Validating changes"
-  lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
-  csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
-  checkImageReferences $csvFile
-
-  lastNightlyOpenshiftDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
-  csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
-  checkImageReferences $csvFile
 
   echo "[INFO] List of changed files:"
   git status -s
@@ -237,23 +230,14 @@ createPRToXBranch() {
 createPRToMasterBranch() {
   echo "[INFO] Creating pull request into master branch to copy csv"
   resetChanges master
-  local tmpBranch=${RELEASE}-to-master
+  local tmpBranch="update-images-to-master"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml'
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply
+  . ${RELEASE_DIR}/replace-images-tags.sh nightly master
   git add -A
   git commit -m "Copy "$RELEASE" csv to master" --signoff
-  git push origin $tmpBranch
+  git push origin $tmpBranch -f
   hub pull-request --base master --head ${tmpBranch} --browse -m "Copy "$RELEASE" csv to master"
-
-  echo "[INFO] Creating pull request into master branch to update images"
-  resetChanges master
-  local tmpBranch="update-images-to-master"
-  . ${RELEASE_DIR}/replace-images-tags.sh nightly master
-  git add deploy/operator.yaml
-  git add deploy/operator-local.yaml
-  git commit -m "Update images tags" --signoff
-  git push origin $tmpBranch
-  hub pull-request --base master --head ${tmpBranch} --browse -m "Update images tags in master branch"
 }
 
 run() {
@@ -261,18 +245,24 @@ run() {
   releaseOperatorCode
   updateNightlyOlmFiles
   releaseOlmFiles
-
-  if [[ $PUSH_OLM_FILES == "true" ]]; then
-    pushOlmFilesToQuayIo
-  fi
-
-  if [[ $PUSH_GIT_CHANGES == "true" ]]; then
-    pushGitChanges
-    createPRToXBranch
-    createPRToMasterBranch
-  fi
 }
 
 init "$@"
 echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
-run "$@"
+
+if [[ $RUN_RELEASE == "true" ]]; then
+  run "$@"
+fi
+
+if [[ $PUSH_OLM_FILES == "true" ]]; then
+  pushOlmFilesToQuayIo
+fi
+
+if [[ $PUSH_GIT_CHANGES == "true" ]]; then
+  pushGitChanges
+fi
+
+if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
+  createPRToXBranch
+  createPRToMasterBranch
+fi
