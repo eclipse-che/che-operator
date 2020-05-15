@@ -23,6 +23,7 @@ ADD . /che-operator
 RUN case $(uname -m) in \
        x86_64) ARCH="amd64" ;; \
        s390x) ARCH="s390x";; \
+       ppc64le) ARCH="ppc64le";; \
 esac
 
 WORKDIR /che-operator
