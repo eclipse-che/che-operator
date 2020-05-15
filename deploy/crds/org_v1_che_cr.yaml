@@ -95,8 +95,6 @@ spec:
     externalIdentityProvider: false
     # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
     identityProviderURL: ''
-    # password for keycloak database user. Auto generated if left blank
-    keycloakPostgresPassword: ''
     # desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
     identityProviderAdminUserName: ''
     # desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
