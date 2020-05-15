@@ -21,6 +21,7 @@ init() {
   PUSH_OLM_FILES=false
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
+  RELEASE_OLM_FILES=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -31,6 +32,7 @@ init() {
       '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
+      '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -244,7 +246,9 @@ run() {
   checkoutToReleaseBranch
   releaseOperatorCode
   updateNightlyOlmFiles
-  releaseOlmFiles
+  if [[ $RELEASE_OLM_FILES == "true" ]]; then
+    releaseOlmFiles
+  fi
 }
 
 init "$@"
