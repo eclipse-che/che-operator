@@ -270,7 +270,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, nil
 	}
 
-	if isOpenShift {
+	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth {
 		if isOpenShift4 {
 			oauthv1 := &oauthv1.OAuth{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
@@ -283,7 +283,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			if len(oauthv1.Spec.IdentityProviders) < 1 {
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
-				r.backOffOAuth(request, instance)
+				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
 			}
 		} else {
 			users := &userv1.UserList{}
@@ -298,13 +300,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			if len(users.Items) < 1 {
 				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
-				r.backOffOAuth(request, instance)
+				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
 			}
 		}
 
 		// delete oAuthClient before CR is deleted
-		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
-		if doInstallOpenShiftoAuthProvider {
+		if instance.Spec.Auth.OpenShiftoAuth {
 			if err := r.ReconcileFinalizer(instance); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -1364,17 +1367,4 @@ func hasConsolelinkObject() bool {
 // based on Checluster information and image defaults from env variables
 func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
-}
-
-func (r *ReconcileChe) backOffOAuth(request reconcile.Request, instance *orgv1.CheCluster) {
-	instance.Spec.Auth.OpenShiftoAuth = false
-	for {
-		if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(instance.Spec.Auth.OpenShiftoAuth)); err != nil {
-			if errors.IsConflict(err) {
-				instance, _ = r.GetCR(request)
-				continue
-			}
-		}
-		break
-	}
 }
