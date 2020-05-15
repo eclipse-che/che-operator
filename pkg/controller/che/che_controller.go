@@ -283,6 +283,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			if len(oauthv1.Spec.IdentityProviders) < 1 {
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
+				instance.Spec.Auth.OpenShiftoAuth = false
 				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
@@ -300,6 +301,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			if len(users.Items) < 1 {
 				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+				instance.Spec.Auth.OpenShiftoAuth = false
 				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
 					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
