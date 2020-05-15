@@ -75,7 +75,7 @@ in order to install directly through a CatalogSource. To test this options start
 test script in the olm folder:
 
 ```shell
-$ ./testCatalogSource.sh sh {platform} ${channel} ${namespace}
+$ ./testCatalogSource.sh {platform} ${channel} ${namespace}
 ```
 
 This scripts should install che-operator using OLM and check that the Che server was deployed.

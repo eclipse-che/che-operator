@@ -18,22 +18,24 @@ ENV PATH=/opt/rh/go-toolset-1.12/root/usr/bin:$PATH \
     GOPATH=/go/
 
 USER root
-ADD . /go/src/github.com/eclipse/che-operator
+ADD . /che-operator
 
 RUN case $(uname -m) in \
        x86_64) ARCH="amd64" ;; \
        s390x) ARCH="s390x";; \
 esac
 
+WORKDIR /che-operator
+
 # do no break RUN lines when building with UBI base images. https://projects.engineering.redhat.com/browse/OSBS-7398 & OSBS-7399
-RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go test -v ./... && OOS=linux GOARCH=$ARCH CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator /go/src/github.com/eclipse/che-operator/cmd/manager/main.go && cd ..
+RUN export MOCK_API=true && go test -mod=vendor -v ./... && OOS=linux GOARCH=$ARCH CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.1-409
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
-COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/keycloak_provision /tmp/keycloak_provision
-COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/oauth_provision /tmp/oauth_provision
+COPY --from=builder /che-operator/templates/keycloak_provision /tmp/keycloak_provision
+COPY --from=builder /che-operator/templates/oauth_provision /tmp/oauth_provision
 # apply CVE fixes, if required
 RUN microdnf update -y libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
