@@ -165,20 +165,20 @@ releaseOperatorCode() {
 }
 
 updateNightlyOlmFiles() {
-  echo "[INFO] Updateing nighlty OLM files"
+  echo "[INFO] Updating nighlty OLM files"
   echo "[INFO] Launching 'olm/update-nightly-olm-files.sh' script"
   cd $RELEASE_DIR/olm
   . update-nightly-olm-files.sh
   cd $RELEASE_DIR
 
-  echo "[INFO] Validating changes"
+  echo "[INFO] Set nightly tags in nighlty OLM files"
   lastKubernetesNightlyDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* | head -1)
   csvFile=$(ls ${lastKubernetesNightlyDir}/*.clusterserviceversion.yaml)
-  checkImageReferences $csvFile
+  sed -i 's/'$RELEASE'/nightly/g' csvFile
 
   lastNightlyOpenshiftDir=$(ls -dt $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* | head -1)
   csvFile=$(ls ${lastNightlyOpenshiftDir}/*.clusterserviceversion.yaml)
-  checkImageReferences $csvFile
+  sed -i 's/'$RELEASE'/nightly/g' csvFile
 
   echo "[INFO] List of changed files:"
   git status -s
