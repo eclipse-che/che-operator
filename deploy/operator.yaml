@@ -59,9 +59,9 @@ spec:
             - name: IMAGE_default_keycloak
               value: quay.io/eclipse/che-keycloak:nightly
             - name: IMAGE_default_che_workspace_plugin_broker_metadata
-              value: quay.io/eclipse/che-plugin-metadata-broker:v3.1.2
+              value: quay.io/eclipse/che-plugin-metadata-broker:v3.2.0
             - name: IMAGE_default_che_workspace_plugin_broker_artifacts
-              value: quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2
+              value: quay.io/eclipse/che-plugin-artifacts-broker:v3.2.0
             - name: IMAGE_default_che_server_secure_exposer_jwt_proxy_image
               value: quay.io/eclipse/che-jwtproxy:fd94e60
             - name: CHE_FLAVOR
@@ -69,11 +69,11 @@ spec:
             - name: CONSOLE_LINK_NAME
               value: che
             - name: CONSOLE_LINK_DISPLAY_NAME
-              value: "Eclipse Che"
+              value: Eclipse Che
             - name: CONSOLE_LINK_SECTION
-              value: "Red Hat Applications"
+              value: Red Hat Applications
             - name: CONSOLE_LINK_IMAGE
-              value: "/dashboard/assets/branding/loader.svg"
+              value: /dashboard/assets/branding/loader.svg
             - name: CHE_IDENTITY_SECRET
               value: che-identity-secret
             - name: CHE_IDENTITY_POSTGRES_SECRET
