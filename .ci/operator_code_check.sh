@@ -12,6 +12,9 @@
 
 set -e -x
 
+# Perform git installation before execute.
+yum -y install git
+
 # PR_FILES_CHANGED store all Modified/Created files in Pull Request.
 export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD origin/master))
 
@@ -77,11 +80,6 @@ function check_deploy_folder() {
     fi
 }
 
-install_deps() {
-    yum -y install git
-}
-
-install_deps
 transform_files
 check_che_types
 check_deploy_folder
