@@ -1,0 +1,13 @@
+--- /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.12.2/eclipse-che-preview-openshift.crd.yaml	2020-05-15 13:45:57.344217424 +0300
++++ /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.13.1/eclipse-che-preview-openshift.crd.yaml	2020-05-21 08:38:59.428474725 +0300
+@@ -22,8 +22,10 @@
+   scope: Namespaced
+   subresources:
+     status: {}
++  preserveUnknownFields: false
+   validation:
+     openAPIV3Schema:
++      type: object
+       properties:
+         apiVersion:
+           description: 'APIVersion defines the versioned schema of this representation
