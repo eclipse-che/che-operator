@@ -65,6 +65,7 @@ replace (
 )
 
 require (
+	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/docker/spdystream v0.0.0-00010101000000-000000000000 // indirect
 	github.com/elazarl/goproxy v0.0.0-20200426045556-49ad98f6dac1 // indirect
 	github.com/go-logr/logr v0.0.0-00010101000000-000000000000 // indirect
@@ -78,6 +79,7 @@ require (
 	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/openshift/api v0.0.0-00010101000000-000000000000
 	github.com/operator-framework/operator-sdk v0.0.0-00010101000000-000000000000
+	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/peterbourgon/diskv v0.0.0-00010101000000-000000000000 // indirect
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
