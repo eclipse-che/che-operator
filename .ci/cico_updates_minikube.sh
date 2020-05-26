@@ -23,7 +23,7 @@ catchFinish() {
     printInfo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
     exit 1
     getCheClusterLogs
-    archiveArtifacts "minikube-updates"
+    archiveArtifacts "che-eclipse-minikube-updates"
   fi
   minikube delete && yes | kubeadm reset
   rm -rf ~/.kube ~/.minikube
