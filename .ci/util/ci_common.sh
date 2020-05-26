@@ -138,6 +138,18 @@ installJQ() {
   yum install --assumeyes -d1 jq
 }
 
+installChectl() {
+  printInfo "Installing chectl"
+  bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+
+}
+
+getCheAcessToken() {
+  KEYCLOAK_HOSTNAME=keycloak-che.$(minikube ip).nip.io
+  TOKEN_ENDPOINT="https://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
+  export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
+}
+
 load_jenkins_vars() {
     set +x
     eval "$(./env-toolkit load -f jenkins-env.json \

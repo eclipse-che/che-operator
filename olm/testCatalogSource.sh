@@ -10,7 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-
 platform=$1
 if [ "${platform}" == "" ]; then
   echo "Please specify platform ('openshift' or 'kubernetes') as the first argument."

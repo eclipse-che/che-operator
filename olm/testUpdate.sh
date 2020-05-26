@@ -46,8 +46,31 @@ applyCRCheCluster
 waitCheServerDeploy
 
 echo -e "\u001b[32m Installation of the previous che-operator version: ${previousCSV} succesfully completed \u001b[0m"
-echo -e "\u001b[34m Check installation last version che-operator... \u001b[0m"
 
 installPackage
 
-echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
+waitCheUpdateInstall() {
+  set +x
+  echo -e "\u001b[34m Check installation last version che-operator...$lastPackageVersion \u001b[0m"
+
+  i=0
+  while [ $i -le 360 ]
+  do
+    cheVersion=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheVersion})
+    if [ "${cheVersion}" == $lastPackageVersion ]
+    then
+      echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
+      break
+    fi
+    sleep 3
+    ((i++))
+  done
+
+  if [ $i -gt 360 ]
+  then
+    echo "Che server did't start after 6 minutes"
+    exit 1
+  fi
+}
+
+waitCheUpdateInstall
