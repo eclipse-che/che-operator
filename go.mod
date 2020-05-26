@@ -4,7 +4,6 @@ go 1.12
 
 replace (
 	cloud.google.com/go => cloud.google.com/go v0.34.0 // indirect
-	github.com/PuerkitoBio/purell => github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc => github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/docker/spdystream => github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96 // indirect
 	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.8.0+incompatible // indirect
@@ -79,7 +78,6 @@ require (
 	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/openshift/api v0.0.0-00010101000000-000000000000
 	github.com/operator-framework/operator-sdk v0.0.0-00010101000000-000000000000
-	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/peterbourgon/diskv v0.0.0-00010101000000-000000000000 // indirect
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
