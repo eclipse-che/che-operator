@@ -45,7 +45,7 @@ function check_che_types() {
             exit 1
         fi
     else
-        echo "[INFO] ${CHE_TYPES_FILE} didn't have any modification."
+        echo "[INFO] ${CHE_TYPES_FILE} don't have any modification."
     fi
 }
 
@@ -83,6 +83,8 @@ function check_deploy_folder() {
             check_nightly_files
         fi
     done
+
+    echo "[INFO] ${CR_CRD_FOLDER} don't have any modification."
 }
 
 transform_files
