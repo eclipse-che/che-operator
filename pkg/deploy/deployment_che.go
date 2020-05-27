@@ -54,10 +54,6 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 	labels := GetLabels(checluster, cheFlavor)
 	optionalEnv := true
 	memRequest := util.GetValue(checluster.Spec.Server.ServerMemoryRequest, DefaultServerMemoryRequest)
-	selfSignedCertEnv := corev1.EnvVar{
-		Name:  "CHE_SELF__SIGNED__CERT",
-		Value: "",
-	}
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
 	if checluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		customPublicCertsVolumeSource = corev1.VolumeSource{
@@ -84,19 +80,19 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
 		Value: "",
 	}
-	if checluster.Spec.Server.SelfSignedCert {
-		selfSignedCertEnv = corev1.EnvVar{
-			Name: "CHE_SELF__SIGNED__CERT",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "ca.crt",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "self-signed-certificate",
-					},
-					Optional: &optionalEnv,
+	selfSignedCertEnv := corev1.EnvVar{
+		// Propagete router certificate anyway. This allows to avoid reqesting flag from user.
+		// TODO rename to CHE_CERT
+		Name: "CHE_SELF__SIGNED__CERT",
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				Key: "ca.crt",
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "self-signed-certificate",
 				},
+				Optional: &optionalEnv,
 			},
-		}
+		},
 	}
 	if checluster.Spec.Server.GitSelfSignedCert {
 		gitSelfSignedCertEnv = corev1.EnvVar{

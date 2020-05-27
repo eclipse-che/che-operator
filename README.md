@@ -47,14 +47,11 @@ Make sure your current user has cluster-admin privileges.
 
 #### OpenShift
 
-When using self-signed certificates make sure you set `server.selfSignedCert` to true
-or create a secret called `self-signed-certificate` in a target namespace with ca.crt holding your OpenShift router crt body.
-When `server.selfSignedCert` the operator will create a test TLS route, GET it, extract certificate chain, convert to a secret `self-signed-certificate`,
-and Che/CRW server will automatically add it to Java trust store.
+TLS enabled and handled automatically by adding router certificate into trust store.
 
 #### K8S
 
-When enabling TLS, make sure you create a secret with crt and key, and let the Operator know about it in `k8s.tlsSecretName`
+TLS enabled by default. If secrets is missing, self-signed certificate will be generated. If it is needed to provide own certificate, just create a secret with `tls.crt` and `tls.key` keys in `data`(and `self-signed-certificate` secret in case of using one), and let the Operator know about the certificate for Che server in `k8s.tlsSecretName` field of Che custom resource (`che-tls` by default).
 
 ## How to Configure
 
@@ -164,4 +161,4 @@ TODO: add more scenarios
 
 
 
-   
+

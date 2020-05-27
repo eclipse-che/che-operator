@@ -314,7 +314,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Handle Che TLS certificates on Kubernetes like infrastructures
-	if instance.Spec.Server.TlsSupport && instance.Spec.Server.SelfSignedCert && !isOpenShift {
+	if instance.Spec.Server.TlsSupport && !isOpenShift {
 		// Ensure TLS configuration is correct
 		if err := CheckAndUpdateTLSConfiguration(instance, clusterAPI); err != nil {
 			instance, _ = r.GetCR(request)
@@ -395,18 +395,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheDeploymentName := cheFlavor
 	if isOpenShift {
-		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-		if instance.Spec.Server.SelfSignedCert ||
-			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
-			// and NOT from the Openshift API Master URL (as in v3)
-			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
+		if !tests {
+			// Create a secret with router tls certificate. If routes cert id self-signed it is required to propogate it to Che server and some other components.
 			if err := r.CreateTLSSecret(instance, "", "self-signed-certificate", clusterAPI); err != nil {
 				return reconcile.Result{}, err
 			}
-		}
 
-		if !tests {
 			deployment := &appsv1.Deployment{}
 			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentName, Namespace: instance.Namespace}, deployment)
 			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
