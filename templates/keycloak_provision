@@ -2,6 +2,7 @@ $script config credentials --server http://0.0.0.0:8080/auth \
                                         --realm master \
                                         --user $keycloakAdminUserName \
                                         --password $keycloakAdminPassword \
+&& $script update realms/master -s sslRequired=none \
 && $script get realms/$keycloakRealm; \
 if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
 && $script create realms  -s realm='$keycloakRealm' \
