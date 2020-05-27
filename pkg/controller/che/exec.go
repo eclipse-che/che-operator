@@ -19,8 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func ExecIntoPod(podName string, provisionCommand string, reason string, ns string) (provisioned bool) {
-
+func ExecIntoPod(podName string, provisionCommand string, reason string, ns string) error {
 	command := []string{"/bin/bash", "-c", provisionCommand}
 	logrus.Infof("Running exec to %s in pod %s", reason, podName)
 	// print std if operator is run in debug mode (TODO)
@@ -28,21 +27,39 @@ func ExecIntoPod(podName string, provisionCommand string, reason string, ns stri
 	if err != nil {
 		logrus.Errorf("Error exec'ing into pod: %v: , command: %s", err, command)
 		logrus.Errorf(stderr)
-		return false
+		return err
 	}
 	logrus.Info("Exec successfully completed")
-	return true
+	return nil
 }
 
 func (r *ReconcileChe) CreateKeycloakResources(instance *orgv1.CheCluster, request reconcile.Request, deploymentName string) (err error) {
+	command := deploy.GetSwitchSslRequiredToNoneCommand()
+	podToExec, err := k8sclient.GetDeploymentPod(deploy.PostgresDeploymentName, instance.Namespace)
+	if err != nil {
+		return err
+	}
+
+	err = ExecIntoPod(podToExec, command, "Set sslRequired=none for master realm.", instance.Namespace)
+	if err != nil {
+		return err
+	}
+
+	podToExec, err = k8sclient.GetDeploymentPod(deploymentName, instance.Namespace)
+	if err != nil {
+		return err
+	}
+
+	command = deploy.GetKeycloakReloadCommand(instance)
+	err = ExecIntoPod(podToExec, command, "Reload keycloak", instance.Namespace)
+	if err != nil {
+		return err
+	}
+
 	cheHost := instance.Spec.Server.CheHost
 	keycloakProvisionCommand := deploy.GetKeycloakProvisionCommand(instance, cheHost)
-	podToExec, err := k8sclient.GetDeploymentPod(deploymentName, instance.Namespace)
-	if err != nil {
-		logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
-	}
-	provisioned := ExecIntoPod(podToExec, keycloakProvisionCommand, "create realm, client and user", instance.Namespace)
-	if provisioned {
+	err = ExecIntoPod(podToExec, keycloakProvisionCommand, "create realm, client and user", instance.Namespace)
+	if err == nil {
 		instance, err := r.GetCR(request)
 		if err != nil {
 			if errors.IsNotFound(err) {

@@ -33,6 +33,18 @@ func GetPostgresProvisionCommand(identityProviderPostgresSecret string) (command
 	return command
 }
 
+func GetSwitchSslRequiredToNoneCommand() string {
+	return "psql keycloak -c \"update REALM set ssl_required='NONE' where id = 'master'\""
+}
+
+func GetKeycloakReloadCommand(cr *orgv1.CheCluster) string {
+	jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"
+	if DefaultCheFlavor(cr) == "codeready" {
+		jbossCli = "/opt/eap/bin/jboss-cli.sh"
+	}
+	return jbossCli + " --connect command=:reload"
+}
+
 func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command string) {
 	requiredActions := ""
 	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
