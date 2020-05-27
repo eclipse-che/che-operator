@@ -630,8 +630,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					if err != nil {
 						return reconcile.Result{}, err
 					}
-					err = ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
-					if err == nil {
+					provisioned := ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
+					if provisioned {
 						for {
 							instance.Status.DbProvisoned = true
 							if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
@@ -809,7 +809,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
 				if !keycloakRealmClientStatus {
 					if err := r.CreateKeycloakResources(instance, request, deploy.KeycloakDeploymentName); err != nil {
-						logrus.Error(err)
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 					}
 				}
@@ -821,7 +820,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
 					if !openShiftIdentityProviderStatus {
 						if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, deploy.KeycloakDeploymentName, isOpenShift4); err != nil {
-							logrus.Error(err)
 							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 						}
 					}

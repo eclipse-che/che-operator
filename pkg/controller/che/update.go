@@ -53,10 +53,10 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isO
 		deleteOpenShiftIdentityProviderProvisionCommand := deploy.GetDeleteOpenShiftIdentityProviderProvisionCommand(instance, isOpenShift4)
 		podToExec, err := k8sclient.GetDeploymentPod(keycloakDeployment.Name, instance.Namespace)
 		if err != nil {
-			return false, err
+			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
 		}
-		err = ExecIntoPod(podToExec, deleteOpenShiftIdentityProviderProvisionCommand, "delete OpenShift identity provider", instance.Namespace)
-		if err == nil {
+		provisioned := ExecIntoPod(podToExec, deleteOpenShiftIdentityProviderProvisionCommand, "delete OpenShift identity provider", instance.Namespace)
+		if provisioned {
 			oAuthClient := &oauth.OAuthClient{}
 			oAuthClientName := instance.Spec.Auth.OAuthClientName
 			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
