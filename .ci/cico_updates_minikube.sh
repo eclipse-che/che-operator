@@ -23,7 +23,7 @@ catchFinish() {
     printInfo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
     exit 1
     getCheClusterLogs
-    archiveArtifacts "che-eclipse-minikube-updates"
+    archiveArtifacts "che-operator-minikube-updates"
   fi
   minikube delete && yes | kubeadm reset
   rm -rf ~/.kube ~/.minikube
@@ -52,49 +52,57 @@ installDependencies() {
   install_VirtPackages
   installStartDocker
   source ${OPERATOR_REPO}/.ci/start-minikube.sh
+  installChectl
+}
+
+waitCheUpdateInstall() {
+  export packageName=eclipse-che-preview-${PLATFORM}
+  export platformPath=${OPERATOR_REPO}/olm/${packageName}
+  export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+  export packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+
+  export lastCSV=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${packageFilePath}")
+  export lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
+
+  echo -e "\u001b[34m Check installation last version che-operator...$lastPackageVersion \u001b[0m"
+
+  export n=0
+
+  while [ $n -le 360 ]
+  do
+    cheVersion=$(kubectl get checluster/eclipse-che -n "${NAMESPACE}" -o jsonpath={.status.cheVersion})
+    if [ "${cheVersion}" == $lastPackageVersion ]
+    then
+      echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
+      break
+    fi
+    sleep 3
+    n=$(( n+1 ))
+  done
+
+  if [ $n -gt 360 ]
+  then
+    echo "Latest version install for Eclipse che failed."
+    exit 1
+  fi
 }
 
 testUpdates() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
-  printInfo "Successfully verified updates on kubernetes platform."
-  installChectl
+  printInfo "Successfully installed Eclipse Che previous version."
+
   getCheAcessToken
-  chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
-  chectl workspace:list
+  chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+
+  waitCheUpdateInstall
+  getCheAcessToken
+
+  workspaceList=$(chectl workspace:list)
+  workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
+  chectl workspace:start $workspaceID
 }
 
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 installDependencies
 testUpdates
-
-getCheClusterLogs() {
-  mkdir -p /root/payload/report/che-logs
-  cd /root/payload/report/che-logs
-  for POD in $(kubectl get pods -o name -n ${NAMESPACE}); do
-    for CONTAINER in $(kubectl get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
-      echo ""
-      printInfo "Getting logs from $POD"
-      echo ""
-      kubectl logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
-    done
-  done
-  printInfo "kubectl get events"
-  kubectl get events -n ${NAMESPACE}| tee get_events.log
-  printInfo "kubectl get all"
-  kubectl get all | tee get_all.log
-}
-
-## $1 = name of subdirectory into which the artifacts will be archived. Commonly it's job name.
-archiveArtifacts() {
-  JOB_NAME=$1
-  DATE=$(date +"%m-%d-%Y-%H-%M")
-  echo "Archiving artifacts from ${DATE} for ${JOB_NAME}/${BUILD_NUMBER}"
-  cd /root/payload
-  ls -la ./artifacts.key
-  chmod 600 ./artifacts.key
-  chown $(whoami) ./artifacts.key
-  mkdir -p ./che/${JOB_NAME}/${BUILD_NUMBER}
-  cp -R ./report ./che/${JOB_NAME}/${BUILD_NUMBER}/ | true
-  rsync --password-file=./artifacts.key -Hva --partial --relative ./che/${JOB_NAME}/${BUILD_NUMBER} devtools@artifacts.ci.centos.org::devtools/
-}
