@@ -59,3 +59,4 @@ init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 install_Dependencies
 run_olm_tests
+#TEST
