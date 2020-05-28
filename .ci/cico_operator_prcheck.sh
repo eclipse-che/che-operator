@@ -61,7 +61,7 @@ run_tests() {
 }
 
 init
-
+#TEST
 source ${OPERATOR_REPO}/.ci/util/ci_common.sh
 installJQ
 load_jenkins_vars
