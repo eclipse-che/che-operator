@@ -123,7 +123,7 @@ EOF
     applyCheOperatorSource
 
     i=0
-    while [ $i -le 120 ]
+    while [ $i -le 240 ]
     do
       if kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}"  >/dev/null 2>&1
       then
@@ -133,9 +133,9 @@ EOF
       ((i++))
     done
 
-    if [ $i -gt 120 ]
+    if [ $i -gt 240 ]
     then
-      echo "Catalog source not created after 2 minutes"
+      echo "Catalog source not created after 4 minutes"
       exit 1
     fi
     if [ "${SOURCE_INSTALL}" == "Marketplace" ]; then
