@@ -215,7 +215,7 @@ waitCheServerDeploy() {
   echo "Waiting for Che server to be deployed"
 
   i=0
-  while [ $i -le 360 ]
+  while [ $i -le 480 ]
   do
     status=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheClusterRunning})
     if [ "${status}" == "Available" ]
@@ -226,9 +226,9 @@ waitCheServerDeploy() {
     ((i++))
   done
 
-  if [ $i -gt 360 ]
+  if [ $i -gt 480 ]
   then
-    echo "Che server did't start after 6 minutes"
+    echo "Che server did't start after 8 minutes"
     exit 1
   fi
 }
