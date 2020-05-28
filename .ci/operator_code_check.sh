@@ -10,7 +10,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set -e -x
+set -e
 
 # Perform git installation before execute.
 yum -y install git
@@ -45,17 +45,12 @@ function check_che_types() {
             exit 1
         fi
     else
-        echo "[INFO] ${CHE_TYPES_FILE} didn't have any modification."
+        echo "[INFO] ${CHE_TYPES_FILE} don't have any modification."
     fi
 }
 
-#check_deploy_folder check first if files under deploy/* folder have modifications and in case of modification
-# check if exist nightly files for kubernetes and openshift platform.
-function check_deploy_folder() {
-    # Define deploy folder and regexp to search all under deploy/*
-    local CR_CRD_FOLDER="deploy/"
-    local CR_CRD_REGEX="\b$CR_CRD_FOLDER.*?\b"
-
+# check_nightly_files checks if exist nightly files after checking if exist any changes in deploy folder
+function check_nightly_files() {
     # Define olm-catalog folder and regexp to check if exist nightly files for kubernetes
     local OLM_KUBERNETES='olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/'
     local OLM_K8S="\b$OLM_KUBERNETES.*?\b"
@@ -64,20 +59,32 @@ function check_deploy_folder() {
     local OLM_OPENSHIFT='olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/'
     local OLM_OCP="\b$OLM_OPENSHIFT.*?\b"
 
-    # Checking if exist modifications in deploy folder
-    if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ $CR_CRD_REGEX ]]; then
-        echo "[INFO] Deploy Folder suffer modifications"
-
-        if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ $OLM_K8S && " ${FILES_CHANGED_ARRAY[@]} " =~ $OLM_OCP ]]; then
-            echo "[INFO] Nightly files for kubernetes and openshift platform was created."
-        else
-            echo "[ERROR] Nightly files for kubernetes and openshift platform not created."
-            exit 1
-
-        fi
+    # Match if exist nightly files in PR
+    if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ $OLM_K8S && " ${FILES_CHANGED_ARRAY[@]} " =~ $OLM_OCP ]]; then
+        echo "[INFO] Nightly files for kubernetes and openshift platform was created."
+        exit 0
     else
-        echo "[INFO] ${CR_CRD_FOLDER} didn't have any modification...Skipping verification for nightly files creation."
+        echo "[ERROR] Nightly files for kubernetes and openshift platform not created."
+        exit 1
     fi
+}
+
+#check_deploy_folder check first if files under deploy/* folder have modifications and in case of modification
+# check if exist nightly files for kubernetes and openshift platform.
+function check_deploy_folder() {
+    # Define deploy folder and regexp to search all under deploy/*
+    local CR_CRD_FOLDER="deploy/"
+
+    # Checking if exist modifications in deploy folder
+    for files in ${FILES_CHANGED_ARRAY[@]}
+    do
+        if [[ $files =~ ^$CR_CRD_FOLDER.*? ]]; then
+            echo "[INFO] Deploy Folder suffer modifications. Checking if exist nightly files..."
+            check_nightly_files
+        fi
+    done
+
+    echo "[INFO] ${CR_CRD_FOLDER} don't have any modification."
 }
 
 transform_files

@@ -138,6 +138,49 @@ installJQ() {
   yum install --assumeyes -d1 jq
 }
 
+installChectl() {
+  printInfo "Installing chectl"
+  bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+
+}
+
+getCheAcessToken() {
+  KEYCLOAK_HOSTNAME=keycloak-che.$(minikube ip).nip.io
+  TOKEN_ENDPOINT="https://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
+  export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
+}
+
+getCheClusterLogs() {
+  mkdir -p /root/payload/report/che-logs
+  cd /root/payload/report/che-logs
+  for POD in $(kubectl get pods -o name -n ${NAMESPACE}); do
+    for CONTAINER in $(kubectl get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+      echo ""
+      printInfo "Getting logs from $POD"
+      echo ""
+      kubectl logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+    done
+  done
+  printInfo "kubectl get events"
+  kubectl get events -n ${NAMESPACE}| tee get_events.log
+  printInfo "kubectl get all"
+  kubectl get all | tee get_all.log
+}
+
+## $1 = name of subdirectory into which the artifacts will be archived. Commonly it's job name.
+archiveArtifacts() {
+  JOB_NAME=$1
+  DATE=$(date +"%m-%d-%Y-%H-%M")
+  echo "Archiving artifacts from ${DATE} for ${JOB_NAME}/${BUILD_NUMBER}"
+  cd /root/payload
+  ls -la ./artifacts.key
+  chmod 600 ./artifacts.key
+  chown $(whoami) ./artifacts.key
+  mkdir -p ./che/${JOB_NAME}/${BUILD_NUMBER}
+  cp -R ./report ./che/${JOB_NAME}/${BUILD_NUMBER}/ | true
+  rsync --password-file=./artifacts.key -Hva --partial --relative ./che/${JOB_NAME}/${BUILD_NUMBER} devtools@artifacts.ci.centos.org::devtools/
+}
+
 load_jenkins_vars() {
     set +x
     eval "$(./env-toolkit load -f jenkins-env.json \

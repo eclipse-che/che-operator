@@ -19,11 +19,11 @@ spec:
     # server image used in Che deployment
     cheImage: ''
     # tag of an image used in Che deployment
-    cheImageTag: 'nightly'
+    cheImageTag: ''
     # image:tag used in Devfile registry deployment
-    devfileRegistryImage: 'quay.io/eclipse/che-devfile-registry:nightly'
+    devfileRegistryImage: ''
     # image:tag used in plugin registry deployment
-    pluginRegistryImage: 'quay.io/eclipse/che-plugin-registry:nightly'
+    pluginRegistryImage: ''
     # defaults to `che`. When set to `codeready`, CodeReady Workspaces is deployed
     # the difference is in images, labels, exec commands
     cheFlavor: ''
@@ -95,8 +95,6 @@ spec:
     externalIdentityProvider: false
     # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
     identityProviderURL: ''
-    # password for keycloak database user. Auto generated if left blank
-    keycloakPostgresPassword: ''
     # desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
     identityProviderAdminUserName: ''
     # desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
@@ -113,7 +111,7 @@ spec:
     # secret used in oAuthClient. Auto generated if left blank
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
-    identityProviderImage: 'quay.io/eclipse/che-keycloak:nightly'
+    identityProviderImage: ''
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'

@@ -1,0 +1,93 @@
+--- /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.12.2/eclipse-che-preview-kubernetes.v7.12.2.clusterserviceversion.yaml	2020-05-15 13:45:57.336217439 +0300
++++ /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.13.1/eclipse-che-preview-kubernetes.v7.13.1.clusterserviceversion.yaml	2020-05-21 08:12:56.918599772 +0300
+@@ -48,13 +48,13 @@
+     capabilities: Seamless Upgrades
+     categories: Developer Tools
+     certified: "false"
+-    containerImage: quay.io/eclipse/che-operator:7.12.2
+-    createdAt: "2020-05-07T06:24:44Z"
++    containerImage: quay.io/eclipse/che-operator:7.13.1
++    createdAt: "2020-05-21T05:12:56Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces.
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-kubernetes.v7.12.2
++  name: eclipse-che-preview-kubernetes.v7.13.1
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -248,26 +248,44 @@
+                 - name: OPERATOR_NAME
+                   value: che-operator
+                 - name: CHE_VERSION
+-                  value: 7.12.2
++                  value: 7.13.1
+                 - name: IMAGE_default_che_server
+-                  value: quay.io/eclipse/che-server:7.12.2
++                  value: quay.io/eclipse/che-server:7.13.1
+                 - name: IMAGE_default_plugin_registry
+-                  value: quay.io/eclipse/che-plugin-registry:7.12.2
++                  value: quay.io/eclipse/che-plugin-registry:7.13.1
+                 - name: IMAGE_default_devfile_registry
+-                  value: quay.io/eclipse/che-devfile-registry:7.12.2
++                  value: quay.io/eclipse/che-devfile-registry:7.13.1
++                - name: IMAGE_default_che_tls_secrets_creation_job
++                  value: quay.io/eclipse/che-tls-secret-creator:alpine-3029769
+                 - name: IMAGE_default_pvc_jobs
+                   value: registry.access.redhat.com/ubi8-minimal:8.2-267
+                 - name: IMAGE_default_postgres
+                   value: centos/postgresql-96-centos7:9.6
+                 - name: IMAGE_default_keycloak
+-                  value: quay.io/eclipse/che-keycloak:7.12.2
++                  value: quay.io/eclipse/che-keycloak:7.13.1
+                 - name: IMAGE_default_che_workspace_plugin_broker_metadata
+-                  value: quay.io/eclipse/che-plugin-metadata-broker:v3.1.2
++                  value: quay.io/eclipse/che-plugin-metadata-broker:v3.2.0
+                 - name: IMAGE_default_che_workspace_plugin_broker_artifacts
+-                  value: quay.io/eclipse/che-plugin-artifacts-broker:v3.1.2
++                  value: quay.io/eclipse/che-plugin-artifacts-broker:v3.2.0
+                 - name: IMAGE_default_che_server_secure_exposer_jwt_proxy_image
+                   value: quay.io/eclipse/che-jwtproxy:fd94e60
+-                image: quay.io/eclipse/che-operator:7.12.2
++                - name: CHE_FLAVOR
++                  value: che
++                - name: CONSOLE_LINK_NAME
++                  value: che
++                - name: CONSOLE_LINK_DISPLAY_NAME
++                  value: Eclipse Che
++                - name: CONSOLE_LINK_SECTION
++                  value: Red Hat Applications
++                - name: CONSOLE_LINK_IMAGE
++                  value: /dashboard/assets/branding/loader.svg
++                - name: CHE_IDENTITY_SECRET
++                  value: che-identity-secret
++                - name: CHE_IDENTITY_POSTGRES_SECRET
++                  value: che-identity-postgres-secret
++                - name: CHE_POSTGRES_SECRET
++                  value: che-postgres-secret
++                image: quay.io/eclipse/che-operator:7.13.1
+                 imagePullPolicy: IfNotPresent
+                 name: che-operator
+                 ports:
+@@ -286,6 +304,12 @@
+           verbs:
+           - '*'
+         - apiGroups:
++          - batch
++          resources:
++          - jobs
++          verbs:
++          - '*'
++        - apiGroups:
+           - rbac.authorization.k8s.io
+           resources:
+           - roles
+@@ -370,5 +394,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-kubernetes.v7.12.1
+-  version: 7.12.2
++  replaces: eclipse-che-preview-kubernetes.v7.12.2
++  version: 7.13.1
