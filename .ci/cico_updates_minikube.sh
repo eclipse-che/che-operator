@@ -25,7 +25,6 @@ catchFinish() {
     getCheClusterLogs
     archiveArtifacts "che-operator-minikube-updates"
   fi
-  minikube delete && yes | kubeadm reset
   rm -rf ~/.kube ~/.minikube
   exit $result
 }

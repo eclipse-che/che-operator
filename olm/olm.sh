@@ -123,7 +123,7 @@ EOF
     applyCheOperatorSource
 
     i=0
-    while [ $i -le 120 ]
+    while [ $i -le 240 ]
     do
       if kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}"  >/dev/null 2>&1
       then
@@ -133,9 +133,9 @@ EOF
       ((i++))
     done
 
-    if [ $i -gt 120 ]
+    if [ $i -gt 240 ]
     then
-      echo "Catalog source not created after 2 minutes"
+      echo "Catalog source not created after 4 minutes"
       exit 1
     fi
     if [ "${SOURCE_INSTALL}" == "Marketplace" ]; then
@@ -215,7 +215,7 @@ waitCheServerDeploy() {
   echo "Waiting for Che server to be deployed"
 
   i=0
-  while [ $i -le 360 ]
+  while [ $i -le 480 ]
   do
     status=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheClusterRunning})
     if [ "${status}" == "Available" ]
@@ -226,9 +226,9 @@ waitCheServerDeploy() {
     ((i++))
   done
 
-  if [ $i -gt 360 ]
+  if [ $i -gt 480 ]
   then
-    echo "Che server did't start after 6 minutes"
+    echo "Che server did't start after 8 minutes"
     exit 1
   fi
 }
