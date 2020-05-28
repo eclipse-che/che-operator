@@ -10,9 +10,11 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+SCRIPT=$(readlink -f "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT")
+BASE_DIR=$(dirname "$SCRIPT_DIR");
 
-source ${BASE_DIR}/check-yq.sh
+source ${BASE_DIR}/olm/check-yq.sh
 
 platform=$1
 if [ "${platform}" == "" ]; then
@@ -28,7 +30,7 @@ if [ "${channel}" == "" ]; then
 fi
 
 packageName=eclipse-che-preview-${platform}
-platformPath=${BASE_DIR}/${packageName}
+platformPath=${BASE_DIR}/olm/${packageName}
 packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
 packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
 
@@ -38,7 +40,7 @@ previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${
 previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
 # $3 -> namespace
-source ${BASE_DIR}/olm.sh ${platform} ${previousPackageVersion} $3
+source ${BASE_DIR}/olm/olm.sh ${platform} ${previousPackageVersion} $3
 
 installOperatorMarketPlace
 installPackage
@@ -46,8 +48,5 @@ applyCRCheCluster
 waitCheServerDeploy
 
 echo -e "\u001b[32m Installation of the previous che-operator version: ${previousCSV} succesfully completed \u001b[0m"
-echo -e "\u001b[34m Check installation last version che-operator... \u001b[0m"
 
 installPackage
-
-echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
