@@ -15,6 +15,8 @@ trap 'Catch_Finish $?' EXIT SIGINT
 # Catch errors and force to delete minikube VM.
 Catch_Finish() {
   rm -rf ~/.kube && yes | minikube delete
+  printInfo "http://artifacts.ci.centos.org/devtools/che/che-operator-olm-pr-check/report/"
+  archiveArtifacts "che-operator-olm-pr-check"
 }
 
 init() {
