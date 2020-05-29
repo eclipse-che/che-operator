@@ -89,7 +89,8 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 	if clusterDeployment != nil {
 		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
 		for _, e := range env {
-			if "TRUSTPASS" == e.Name {
+			// To be compatible with prev deployments when "TRUSTPASS" env was used
+			if "TRUSTPASS" == e.Name || "SSO_TRUSTSTORE_PASSWORD" == e.Name {
 				trustpass = e.Value
 				break
 			}
@@ -124,7 +125,31 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		" -destkeystore " + jbossDir + "/openshift.jks" +
 		" -srcstorepass changeit -deststorepass " + trustpass
 
-	addCertToTrustStoreCommand := addRouterCrt + " && " + addOpenShiftAPICrt + " && " + addMountedCrt + " && " + addMountedServiceCrt + " && " + importJavaCacerts
+	customPublicCertsDir := "/public-certs"
+	customPublicCertsVolumeSource := corev1.VolumeSource{}
+	if checluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
+		customPublicCertsVolumeSource = corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: checluster.Spec.Server.ServerTrustStoreConfigMapName,
+				},
+			},
+		}
+	}
+	customPublicCertsVolume := corev1.Volume{
+		Name:         "che-public-certs",
+		VolumeSource: customPublicCertsVolumeSource,
+	}
+	customPublicCertsVolumeMount := corev1.VolumeMount{
+		Name:      "che-public-certs",
+		MountPath: customPublicCertsDir,
+	}
+	addCustomPublicCertsCommand := "if [[ -d \"" + customPublicCertsDir + "\" && -n \"$(find " + customPublicCertsDir + " -type f)\" ]]; then " +
+		"for certfile in " + customPublicCertsDir + "/* ; do " +
+		"keytool -importcert -alias CERT_$(basename $certfile) -keystore " + jbossDir + "/openshift.jks -file $certfile -storepass " + trustpass + " -noprompt; " +
+		"done; fi"
+
+	addCertToTrustStoreCommand := addRouterCrt + " && " + addOpenShiftAPICrt + " && " + addMountedCrt + " && " + addMountedServiceCrt + " && " + importJavaCacerts + " && " + addCustomPublicCertsCommand
 
 	// upstream Keycloak has a bit different mechanism of adding jks
 	changeConfigCommand := "echo Installing certificates into Keycloak && " +
@@ -212,7 +237,15 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 			Value: "keycloak",
 		},
 		{
-			Name:  "TRUSTPASS",
+			Name:  "SSO_TRUSTSTORE",
+			Value: "openshift.jks",
+		},
+		{
+			Name:  "SSO_TRUSTSTORE_DIR",
+			Value: jbossDir,
+		},
+		{
+			Name:  "SSO_TRUSTSTORE_PASSWORD",
 			Value: trustpass,
 		},
 		{
@@ -464,6 +497,9 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						customPublicCertsVolume,
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            KeycloakDeploymentName,
@@ -506,6 +542,9 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 								SuccessThreshold:    1,
 							},
 							Env: keycloakEnv,
+							VolumeMounts: []corev1.VolumeMount{
+								customPublicCertsVolumeMount,
+							},
 						},
 					},
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,

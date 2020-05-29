@@ -33,6 +33,7 @@ var deploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
 	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
 	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext"),
+	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
 	cmpopts.IgnoreFields(corev1.VolumeSource{}, "EmptyDir"),
 	cmp.Comparer(func(x, y resource.Quantity) bool {
 		return x.Cmp(y) == 0
