@@ -33,7 +33,7 @@ func GetPostgresProvisionCommand(identityProviderPostgresSecret string) (command
 	return command
 }
 
-func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command string) {
+func GetKeycloakProvisionCommand(cr *orgv1.CheCluster) (command string) {
 	requiredActions := ""
 	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
 	cheFlavor := DefaultCheFlavor(cr)
@@ -67,7 +67,7 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster, cheHost string) (command 
 		"$realmDisplayName", realmDisplayName,
 		"$keycloakClientId", keycloakClientId,
 		"$keycloakTheme", keycloakTheme,
-		"$cheHost", cheHost,
+		"$cheHost", cr.Spec.Server.CheHost,
 		"$requiredActions", requiredActions)
 	createRealmClientUserCommand := r.Replace(str)
 	command = createRealmClientUserCommand

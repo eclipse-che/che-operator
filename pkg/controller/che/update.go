@@ -16,6 +16,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -51,12 +52,12 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isO
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
 		}
 		deleteOpenShiftIdentityProviderProvisionCommand := deploy.GetDeleteOpenShiftIdentityProviderProvisionCommand(instance, isOpenShift4)
-		podToExec, err := k8sclient.GetDeploymentPod(keycloakDeployment.Name, instance.Namespace)
+		podToExec, err := util.K8sclient.GetDeploymentPod(keycloakDeployment.Name, instance.Namespace)
 		if err != nil {
 			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
 		}
-		provisioned := ExecIntoPod(podToExec, deleteOpenShiftIdentityProviderProvisionCommand, "delete OpenShift identity provider", instance.Namespace)
-		if provisioned {
+		_, err = util.K8sclient.ExecIntoPod(podToExec, deleteOpenShiftIdentityProviderProvisionCommand, "delete OpenShift identity provider", instance.Namespace)
+		if err == nil {
 			oAuthClient := &oauth.OAuthClient{}
 			oAuthClientName := instance.Spec.Auth.OAuthClientName
 			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
