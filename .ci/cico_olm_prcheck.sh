@@ -40,7 +40,7 @@ install_Dependencies() {
   install_VirtPackages
   installStartDocker
 }
-
+#TEST
 run_olm_tests() {
   for platform in 'openshift' 'kubernetes'
   do
