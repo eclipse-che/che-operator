@@ -1,0 +1,39 @@
+Checking devfile /var/www/html/devfiles/php-laravel/devfile.yaml
+Checking devfile /var/www/html/devfiles/php-symfony/devfile.yaml
+Checking devfile /var/www/html/devfiles/quarkus/devfile.yaml
+Checking devfile /var/www/html/devfiles/angular/devfile.yaml
+Checking devfile /var/www/html/devfiles/python/devfile.yaml
+Checking devfile /var/www/html/devfiles/java-mongo/devfile.yaml
+Checking devfile /var/www/html/devfiles/python-django/devfile.yaml
+Checking devfile /var/www/html/devfiles/cpp/devfile.yaml
+Checking devfile /var/www/html/devfiles/java-mysql/devfile.yaml
+Checking devfile /var/www/html/devfiles/nodejs-react/devfile.yaml
+Checking devfile /var/www/html/devfiles/php-mysql/devfile.yaml
+Checking devfile /var/www/html/devfiles/php-web-simple/devfile.yaml
+Checking devfile /var/www/html/devfiles/go/devfile.yaml
+Checking devfile /var/www/html/devfiles/java-web-spring/devfile.yaml
+Checking devfile /var/www/html/devfiles/java-gradle/devfile.yaml
+Checking devfile /var/www/html/devfiles/apache-camel-springboot/devfile.yaml
+Checking devfile /var/www/html/devfiles/nodejs-mongo/devfile.yaml
+Checking devfile /var/www/html/devfiles/java-maven/devfile.yaml
+Checking devfile /var/www/html/devfiles/nodejs-yarn/devfile.yaml
+Checking devfile /var/www/html/devfiles/rust/devfile.yaml
+Checking devfile /var/www/html/devfiles/dotnet/devfile.yaml
+Checking devfile /var/www/html/devfiles/che4z/devfile.yaml
+Checking devfile /var/www/html/devfiles/nodejs/devfile.yaml
+Checking devfile /var/www/html/devfiles/java-web-vertx/devfile.yaml
+Checking devfile /var/www/html/devfiles/dotnet-asp.net/devfile.yaml
+Checking devfile /var/www/html/devfiles/apache-camel-k/devfile.yaml
+Updating devfiles to point at internal project zip files
+[Fri May 29 06:38:40.760724 2020] [mpm_event:notice] [pid 1:tid 140457279540552] AH00489: Apache/2.4.43 (Unix) configured -- resuming normal operations
+[Fri May 29 06:38:40.760759 2020] [core:notice] [pid 1:tid 140457279540552] AH00094: Command line: 'httpd -D FOREGROUND'
+172.17.0.1 - - [29/May/2020:06:38:49 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:38:59 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:09 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:16 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:19 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:26 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:29 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:36 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:39 +0000] "GET /devfiles/ HTTP/1.1" 200 9248
+172.17.0.1 - - [29/May/2020:06:39:46 +0000] "GET /devfiles/ HTTP/1.1" 200 9248

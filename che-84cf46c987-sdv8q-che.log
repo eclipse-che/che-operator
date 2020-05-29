@@ -1,0 +1,147 @@
+Using embedded assembly.
+29-May-2020 06:39:15.439 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/8.5.51
+29-May-2020 06:39:15.442 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Feb 5 2020 22:26:25 UTC
+29-May-2020 06:39:15.442 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 8.5.51.0
+29-May-2020 06:39:15.442 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Linux
+29-May-2020 06:39:15.442 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            4.19.88
+29-May-2020 06:39:15.442 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+29-May-2020 06:39:15.443 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             /usr/local/openjdk-8
+29-May-2020 06:39:15.443 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           1.8.0_252-b09
+29-May-2020 06:39:15.443 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Oracle Corporation
+29-May-2020 06:39:15.443 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         /home/user/eclipse-che/tomcat
+29-May-2020 06:39:15.443 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         /home/user/eclipse-che/tomcat
+29-May-2020 06:39:15.444 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=/home/user/eclipse-che//tomcat/conf/logging.properties
+29-May-2020 06:39:15.444 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+29-May-2020 06:39:15.444 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -XX:MaxRAMPercentage=85.0
+29-May-2020 06:39:15.444 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dche.docker.network=bridge
+29-May-2020 06:39:15.445 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dport.http=8080
+29-May-2020 06:39:15.445 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dche.home=/home/user/eclipse-che/
+29-May-2020 06:39:15.445 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dche.logs.dir=/logs/
+29-May-2020 06:39:15.445 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dche.logs.level=INFO
+29-May-2020 06:39:15.446 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djuli-logback.configurationFile=file:/home/user/eclipse-che//tomcat/conf/tomcat-logger.xml
+29-May-2020 06:39:15.447 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+29-May-2020 06:39:15.447 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+29-May-2020 06:39:15.447 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dorg.apache.catalina.security.SecurityListener.UMASK=0022
+29-May-2020 06:39:15.450 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dche.local.conf.dir=/home/user/eclipse-che//tomcat/conf/
+29-May-2020 06:39:15.450 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+29-May-2020 06:39:15.450 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=/home/user/eclipse-che//tomcat
+29-May-2020 06:39:15.450 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=/home/user/eclipse-che//tomcat
+29-May-2020 06:39:15.450 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=/home/user/eclipse-che//tomcat/temp
+29-May-2020 06:39:15.527 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+29-May-2020 06:39:15.535 INFO [main] org.apache.tomcat.util.net.NioSelectorPool.getSharedSelector Using a shared selector for servlet write/read
+29-May-2020 06:39:15.559 INFO [main] org.apache.catalina.startup.Catalina.load Initialization processed in 387 ms
+29-May-2020 06:39:15.566 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+29-May-2020 06:39:15.571 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet Engine: Apache Tomcat/8.5.51
+29-May-2020 06:39:15.595 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deploying web application archive [/home/user/eclipse-che/tomcat/webapps/api.war]
+2020-05-29 06:39:19,294[ost-startStop-1]  [INFO ] [.e.c.c.d.JNDIDataSourceFactory 63]   - This=org.eclipse.che.core.db.postgresql.PostgreSQLJndiDataSourceFactory@7fdf9774 obj=ResourceRef[className=javax.sql.DataSource,factoryClassLocation=null,factoryClassName=org.apache.naming.factory.ResourceFactory,{type=scope,content=Shareable},{type=auth,content=Container},{type=singleton,content=true},{type=factory,content=org.eclipse.che.api.CommonJndiDataSourceFactory}] name=che Context=org.apache.naming.NamingContext@6869dd13 environment={}
+2020-05-29 06:39:22,395[ost-startStop-1]  [INFO ] [o.j.p.kubernetes.KUBE_PING 131]      - namespace che set; clustering enabled
+
+-------------------------------------------------------------------
+GMS: address=che-84cf46c987-sdv8q-2684, cluster=RemoteSubscriptionChannel, physical address=172.17.0.18:7800
+-------------------------------------------------------------------
+2020-05-29 06:39:25,561[ost-startStop-1]  [INFO ] [o.jgroups.protocols.pbcast.GMS 125]  - che-84cf46c987-sdv8q-2684: no members discovered after 3137 ms: creating cluster as coordinator
+2020-05-29 06:39:25,605[ost-startStop-1]  [INFO ] [o.j.p.kubernetes.KUBE_PING 131]      - namespace che set; clustering enabled
+
+-------------------------------------------------------------------
+GMS: address=che-84cf46c987-sdv8q-22882, cluster=WorkspaceLocks, physical address=172.17.0.18:7801
+-------------------------------------------------------------------
+2020-05-29 06:39:28,637[ost-startStop-1]  [INFO ] [o.jgroups.protocols.pbcast.GMS 125]  - che-84cf46c987-sdv8q-22882: no members discovered after 3020 ms: creating cluster as coordinator
+2020-05-29 06:39:28,663[ost-startStop-1]  [INFO ] [o.j.p.kubernetes.KUBE_PING 131]      - namespace che set; clustering enabled
+
+-------------------------------------------------------------------
+GMS: address=che-84cf46c987-sdv8q-39021, cluster=WorkspaceStateCache, physical address=172.17.0.18:7802
+-------------------------------------------------------------------
+2020-05-29 06:39:31,718[ost-startStop-1]  [INFO ] [o.jgroups.protocols.pbcast.GMS 125]  - che-84cf46c987-sdv8q-39021: no members discovered after 3042 ms: creating cluster as coordinator
+2020-05-29 06:39:31,872[ost-startStop-1]  [INFO ] [o.f.c.i.d.DbSupportFactory 44]       - Database: jdbc:postgresql://postgres:5432/dbche (PostgreSQL 9.6)
+2020-05-29 06:39:31,902[ost-startStop-1]  [INFO ] [o.f.c.i.util.VersionPrinter 44]      - Flyway 4.2.0 by Boxfuse
+2020-05-29 06:39:31,907[ost-startStop-1]  [INFO ] [o.f.c.i.d.DbSupportFactory 44]       - Database: jdbc:postgresql://postgres:5432/dbche (PostgreSQL 9.6)
+2020-05-29 06:39:31,957[ost-startStop-1]  [INFO ] [i.f.CustomSqlMigrationResolver 158]  - Searching for sql scripts in locations [classpath:che-schema]
+2020-05-29 06:39:32,016[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbValidate 44]       - Successfully validated 58 migrations (execution time 00:00.061s)
+2020-05-29 06:39:32,027[ost-startStop-1]  [INFO ] [o.f.c.i.m.MetaDataTableImpl 44]      - Creating Metadata table: "public"."schema_version"
+2020-05-29 06:39:32,049[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Current version of schema "public": << Empty Schema >>
+2020-05-29 06:39:32,084[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.0.0.8.1 - 1__init.sql
+2020-05-29 06:39:32,247[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.0.0.9.1 - 1__add_index_on_workspace_temporary.sql
+2020-05-29 06:39:32,260[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.0.0.9.2 - 2__update_local_links_in_environments.sql
+2020-05-29 06:39:32,271[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.2.0.1 - 1__increase_project_attributes_values_length.sql
+2020-05-29 06:39:32,281[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.4.0.1 - 1__drop_user_to_account_relation.sql
+2020-05-29 06:39:32,296[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.4.0.2 - 2__create_missed_account_indexes.sql
+2020-05-29 06:39:32,309[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.6.0.1 - 1__add_exec_agent_where_terminal_agent_is_present.sql
+2020-05-29 06:39:32,329[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.7.0.1 - 1__add_factory.sql
+2020-05-29 06:39:32,399[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.7.0.2 - 2__remove_match_policy.sql
+2020-05-29 06:39:32,410[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.8.0.1 - 1__add_foreigh_key_indexes.sql
+2020-05-29 06:39:32,490[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.11.0.1 - 1__optimize_user_search.sql
+2020-05-29 06:39:32,513[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.19.0.0.1 - 0.1__add_permissions.sql
+2020-05-29 06:39:32,595[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.19.0.0.2 - 0.2__add_resources.sql
+2020-05-29 06:39:32,618[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 5.19.0.0.3 - 0.3__add_organization.sql
+2020-05-29 06:39:32,661[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.1 - 1__add_path_to_serverconf.sql
+2020-05-29 06:39:32,669[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.2 - 2__rename_agents_to_installers.sql
+2020-05-29 06:39:32,687[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.3 - 3__add_installer.sql
+2020-05-29 06:39:32,718[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.3.1 - 3.1__remove_old_recipe_permissions.sql
+2020-05-29 06:39:32,729[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.4 - 4__remove_old_recipe.sql
+2020-05-29 06:39:32,736[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.5 - 5__add_machine_env.sql
+2020-05-29 06:39:32,749[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.6 - 6__remove_snapshots.sql
+2020-05-29 06:39:32,762[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.7 - 7__add_machine_volumes.sql
+2020-05-29 06:39:32,780[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.8 - 8__add_serverconf_attributes.sql
+2020-05-29 06:39:32,799[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.9 - 9__increase_externalmachine_env_value_length.sql
+2020-05-29 06:39:32,820[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.10 - 10__move_dockerimage_recipe_location_to_content.sql
+2020-05-29 06:39:32,826[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.11 - 11__increase_workspace_attributes_values_length.sql
+2020-05-29 06:39:32,831[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.0.0.12 - 12__remove_stack_sources.sql
+2020-05-29 06:39:32,836[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.3.0.1 - 1__add_fk_indexes.sql
+2020-05-29 06:39:32,847[ost-startStop-1]  [WARN ] [o.f.c.i.dbsupport.JdbcTemplate 48]   - DB: identifier "che_index_factory_on_projects_loaded_action_value_action_entity_id" will be truncated to "che_index_factory_on_projects_loaded_action_value_action_entity" (SQL State: 42622 - Error Code: 0)
+2020-05-29 06:39:32,852[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.3.0.1.1 - 1.1__add_fk_indexes.sql
+2020-05-29 06:39:32,875[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.4.0.1 - 1__add_workspace_expirations.sql
+2020-05-29 06:39:32,890[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.4.0.2 - 2__add_signature_key.sql
+2020-05-29 06:39:32,912[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.4.0.3 - 3__add_k8s_runtimes.sql
+2020-05-29 06:39:32,943[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.10.0.1 - 1__add_workspace_cfg_attributes.sql
+2020-05-29 06:39:32,954[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.10.0.2 - 2__change_signature_key_pair_id.sql
+2020-05-29 06:39:32,966[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.11.0.1 - 1__add_signature_key_constraints.sql
+2020-05-29 06:39:32,979[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.12.0.1 - 1__rename_project_attributes_values_field.sql
+2020-05-29 06:39:32,985[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.15.0.1 - 1__remove_not_null_constraint_from_env_name_fields.sql
+2020-05-29 06:39:32,999[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.15.0.2 - 2__add_commands_to_k8s_runtime.sql
+2020-05-29 06:39:33,017[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.16.0.1 - 1__increase_workspace_config_attributes_values_length.sql
+2020-05-29 06:39:33,024[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.16.0.2 - 2__create_workspace_activity_table.sql
+2020-05-29 06:39:33,049[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.16.0.3 - 3__bootstrap_ws_activity_data.sql
+2020-05-29 06:39:33,055[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 6.17.0.1 - 1__convert_enums_to_strings.sql
+2020-05-29 06:39:33,069[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.0.0.4.0.1 - 1__add_devfile.sql
+2020-05-29 06:39:33,194[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.0.0.5.0.1 - 1__devfile_command_reference.sql
+2020-05-29 06:39:33,199[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.0.0.6.0.1 - 1__add_devfile_component_prefs.sql
+2020-05-29 06:39:33,211[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.0.0.7.0.1 - 1__add_registry_url_to_devfile_component.sql
+2020-05-29 06:39:33,220[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.0.0.8.0.2.0.1 - 1__devfile_metadata.sql
+2020-05-29 06:39:33,225[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.0.0.8.0.2.0.2 - 2__devfile_make_some_fields_optional.sql
+2020-05-29 06:39:33,240[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.1.0.1 - 1__change_devfile_component_preferences_type.sql
+2020-05-29 06:39:33,252[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.1.0.1.1 - 1.1__remove_stack_permissions.sql
+2020-05-29 06:39:33,263[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.1.0.2 - 2__remove_stacks.sql
+2020-05-29 06:39:33,271[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.2.0.1 - 1__remove_installers.sql
+2020-05-29 06:39:33,280[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.4.0.1 - 1__add_devfile_source_sparse_checkout_dir.sql
+2020-05-29 06:39:33,285[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.4.0.2 - 2__add_preview_url_to_devfile_command.sql
+2020-05-29 06:39:33,293[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.6.0.1 - 1__drop_che_workspace_expiration.sql
+2020-05-29 06:39:33,299[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.10.0.1 - 1__add_devfile_plugin_editor_component_cpu_limit_request.sql
+2020-05-29 06:39:33,307[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.10.0.2 - 2__add_devfile_plugin_editor_component_ram_request.sql
+2020-05-29 06:39:33,317[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Migrating schema "public" to version 7.11.0.1 - 1__update_inconsistent_stopped_workspace_activities.sql
+2020-05-29 06:39:33,322[ost-startStop-1]  [INFO ] [o.f.c.i.command.DbMigrate 44]        - Successfully applied 58 migrations to schema "public" (execution time 00:01.296s).
+2020-05-29 06:39:34,663[ost-startStop-1]  [INFO ] [o.j.p.kubernetes.KUBE_PING 131]      - namespace che set; clustering enabled
+
+-------------------------------------------------------------------
+GMS: address=che-84cf46c987-sdv8q-32025, cluster=EclipseLinkCommandChannel, physical address=172.17.0.18:7803
+-------------------------------------------------------------------
+2020-05-29 06:39:37,719[ost-startStop-1]  [INFO ] [o.jgroups.protocols.pbcast.GMS 125]  - che-84cf46c987-sdv8q-32025: no members discovered after 3049 ms: creating cluster as coordinator
+2020-05-29 06:39:37,788[ost-startStop-1]  [INFO ] [o.e.c.m.k.s.KeycloakSettings 91]     - Retrieving OpenId configuration from endpoint: http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/.well-known/openid-configuration
+2020-05-29 06:39:37,914[ost-startStop-1]  [INFO ] [o.e.c.m.k.s.KeycloakSettings 108]    - openid configuration = {issuer=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che, authorization_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/auth, token_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/token, token_introspection_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/token/introspect, userinfo_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/userinfo, end_session_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/logout, jwks_uri=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/certs, check_session_iframe=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/login-status-iframe.html, grant_types_supported=[authorization_code, implicit, refresh_token, password, client_credentials], response_types_supported=[code, none, id_token, token, id_token token, code id_token, code token, code id_token token], subject_types_supported=[public, pairwise], id_token_signing_alg_values_supported=[PS384, ES384, RS384, HS256, HS512, ES256, RS256, HS384, ES512, PS256, PS512, RS512], userinfo_signing_alg_values_supported=[PS384, ES384, RS384, HS256, HS512, ES256, RS256, HS384, ES512, PS256, PS512, RS512, none], request_object_signing_alg_values_supported=[PS384, ES384, RS384, ES256, RS256, ES512, PS256, PS512, RS512, none], response_modes_supported=[query, fragment, form_post], registration_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/clients-registrations/openid-connect, token_endpoint_auth_methods_supported=[private_key_jwt, client_secret_basic, client_secret_post, client_secret_jwt], token_endpoint_auth_signing_alg_values_supported=[RS256], claims_supported=[aud, sub, iss, auth_time, name, given_name, family_name, preferred_username, email], claim_types_supported=[normal], claims_parameter_supported=false, scopes_supported=[openid, microprofile-jwt, web-origins, roles, phone, address, email, profile, offline_access], request_parameter_supported=true, request_uri_parameter_supported=true, code_challenge_methods_supported=[plain, S256], tls_client_certificate_bound_access_tokens=true, introspection_endpoint=http://keycloak-che.192.168.39.161.nip.io/auth/realms/che/protocol/openid-connect/token/introspect}
+2020-05-29 06:39:37,928[ost-startStop-1]  [INFO ] [o.e.c.a.w.s.WorkspaceRuntimes 174]   - Configured factories for environments: '[kubernetes, no-environment]'
+2020-05-29 06:39:37,929[ost-startStop-1]  [INFO ] [o.e.c.a.w.s.WorkspaceRuntimes 175]   - Registered infrastructure 'kubernetes'
+2020-05-29 06:39:38,001[ost-startStop-1]  [INFO ] [o.e.c.a.w.s.WorkspaceRuntimes 661]   - Infrastructure is tracking 0 active runtimes
+2020-05-29 06:39:38,064[ost-startStop-1]  [INFO ] [o.e.c.a.c.u.ApiInfoLogInformer 36]   - Eclipse Che Api Core: Build info '7.14.0-SNAPSHOT' scmRevision '74b3dc18e9a11efccd208a4eb8f10850d5a233dc' implementationVersion '7.14.0-SNAPSHOT'
+2020-05-29 06:39:38,100[ost-startStop-1]  [WARN ] [p.s.AdminPermissionInitializer 69]   - Admin admin not found yet.
+2020-05-29 06:39:38,129[ost-startStop-1]  [WARN ] [o.e.c.a.c.u.ApiInfoLogInformer 39]   - Eclipse Che deployed on non-TLS mode. This may cause client-side problems opening workspaces on multi-cluster installations. See https://eclipse.org/che/docs/che-7/introduction-to-eclipse-che/#problems-opening-workspace-in-newest-chrome-versions-on-non-tls-installations-on-distributed-clusters for details.
+29-May-2020 06:39:38.356 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deployment of web application archive [/home/user/eclipse-che/tomcat/webapps/api.war] has finished in [22,760] ms
+29-May-2020 06:39:38.358 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deploying web application archive [/home/user/eclipse-che/tomcat/webapps/ROOT.war]
+29-May-2020 06:39:39.486 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deployment of web application archive [/home/user/eclipse-che/tomcat/webapps/ROOT.war] has finished in [1,128] ms
+29-May-2020 06:39:39.489 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deploying web application archive [/home/user/eclipse-che/tomcat/webapps/swagger.war]
+29-May-2020 06:39:39.538 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deployment of web application archive [/home/user/eclipse-che/tomcat/webapps/swagger.war] has finished in [48] ms
+29-May-2020 06:39:39.540 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/user/eclipse-che/tomcat/webapps/dashboard]
+29-May-2020 06:39:39.558 INFO [localhost-startStop-1] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+29-May-2020 06:39:39.564 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/user/eclipse-che/tomcat/webapps/dashboard] has finished in [24] ms
+29-May-2020 06:39:39.565 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/user/eclipse-che/tomcat/webapps/workspace-loader]
+29-May-2020 06:39:39.582 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/user/eclipse-che/tomcat/webapps/workspace-loader] has finished in [18] ms
+29-May-2020 06:39:39.594 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+29-May-2020 06:39:39.641 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in 24081 ms

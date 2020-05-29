@@ -1,0 +1,213 @@
+time="2020-05-29T06:35:07Z" level=info msg="log level info"
+time="2020-05-29T06:35:07Z" level=info msg="TLS keys not set, using non-https for metrics"
+W0529 06:35:07.043407       1 client_config.go:541] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+time="2020-05-29T06:35:07Z" level=info msg="Using in-cluster kube client config"
+time="2020-05-29T06:35:07Z" level=info msg="Using in-cluster kube client config"
+time="2020-05-29T06:35:07Z" level=info msg="connection established. cluster-version: v1.17.2"
+time="2020-05-29T06:35:07Z" level=info msg="operator ready"
+time="2020-05-29T06:35:07Z" level=info msg="starting informers..."
+time="2020-05-29T06:35:07Z" level=info msg="informers started"
+time="2020-05-29T06:35:07Z" level=info msg="waiting for caches to sync..."
+time="2020-05-29T06:35:07Z" level=info msg="starting workers..."
+time="2020-05-29T06:35:07Z" level=info msg="Labels updated!" labels="olm.api.4bca9f23e412d79d=provided,olm.version=0.14.1"
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1alpha1.operators.coreos.com id=pBqVB
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.apiextensions.k8s.io id=C058i
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.autoscaling id=OhsdS
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.networking.k8s.io id=lVyEh
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.scheduling.k8s.io id=YyUlP
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.storage.k8s.io id=c43Xq
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.apiextensions.k8s.io id=i/khE
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.authentication.k8s.io id=Fg8HA
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.rbac.authorization.k8s.io id=hhW72
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.admissionregistration.k8s.io id=MT9qj
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.authorization.k8s.io id=aNIL9
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.batch id=mHWSH
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.discovery.k8s.io id=ilvfL
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.networking.k8s.io id=xIRFk
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.rbac.authorization.k8s.io id=VyvNB
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.policy id=0tbFL
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.apps id=VOLQg
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v2beta2.autoscaling id=+Exxd
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.storage.k8s.io id=dHY2T
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1. id=29los
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v2beta1.autoscaling id=Fy7YV
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.coordination.k8s.io id=uzWLD
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.extensions id=Ul2he
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.events.k8s.io id=n/8JQ
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.admissionregistration.k8s.io id=2xlE6
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.authorization.k8s.io id=oZ0Pe
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.batch id=y+AlW
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.certificates.k8s.io id=t9RL7
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.node.k8s.io id=+EyJK
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.authentication.k8s.io id=/9Q2K
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1beta1.scheduling.k8s.io id=Ijvup
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.operators.coreos.com id=90OR9
+time="2020-05-29T06:35:07Z" level=info msg="syncing APIService" apiService=v1.coordination.k8s.io id=0Vr9Q
+time="2020-05-29T06:35:07Z" level=warning msg="error adding operatorgroup annotations" csv=packageserver error="Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"packageserver\": the object has been modified; please apply your changes to the latest version and try again" id=IbbZV namespace=olm opgroup=olm-operators phase=
+time="2020-05-29T06:35:07Z" level=info msg="operatorgroup incorrect" csv=packageserver error="Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"packageserver\": the object has been modified; please apply your changes to the latest version and try again" id=IbbZV namespace=olm phase=
+time="2020-05-29T06:35:07Z" level=info msg="not in operatorgroup namespace" csv=packageserver id=C62zf namespace=olm phase=
+E0529 06:35:07.252512       1 queueinformer_operator.go:282] sync {"update" "olm/packageserver"} failed: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "packageserver": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:35:07Z" level=info msg="csv in operatorgroup" csv=packageserver id=S5jL+ namespace=olm opgroup=olm-operators phase=
+time="2020-05-29T06:35:07Z" level=info msg="csv in operatorgroup" csv=packageserver id=jQGRk namespace=olm opgroup=olm-operators phase=
+time="2020-05-29T06:35:07Z" level=info msg="scheduling ClusterServiceVersion for requirement verification" csv=packageserver id=jQGRk namespace=olm phase=
+I0529 06:35:07.260704       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"695", FieldPath:""}): type: 'Normal' reason: 'RequirementsUnknown' requirements not yet checked
+time="2020-05-29T06:35:07Z" level=info msg="csv in operatorgroup" csv=packageserver id=yuOmH namespace=olm opgroup=olm-operators phase=
+time="2020-05-29T06:35:07Z" level=info msg="scheduling ClusterServiceVersion for requirement verification" csv=packageserver id=yuOmH namespace=olm phase=
+I0529 06:35:07.459644       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"695", FieldPath:""}): type: 'Normal' reason: 'RequirementsUnknown' requirements not yet checked
+time="2020-05-29T06:35:07Z" level=info msg="error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"packageserver\": the object has been modified; please apply your changes to the latest version and try again" csv=packageserver id=QiTiy namespace=olm phase=
+E0529 06:35:07.660202       1 queueinformer_operator.go:282] sync {"update" "olm/packageserver"} failed: error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "packageserver": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:35:07Z" level=info msg="csv in operatorgroup" csv=packageserver id=vI+ef namespace=olm opgroup=olm-operators phase=Pending
+time="2020-05-29T06:35:07Z" level=info msg="scheduling ClusterServiceVersion for install" csv=packageserver id=vI+ef namespace=olm phase=Pending
+I0529 06:35:07.721989       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"701", FieldPath:""}): type: 'Normal' reason: 'AllRequirementsMet' all requirements found, attempting install
+time="2020-05-29T06:35:07Z" level=info msg="csv in operatorgroup" csv=packageserver id=k5M76 namespace=olm opgroup=olm-operators phase=InstallReady
+time="2020-05-29T06:35:09Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=Wzr23
+time="2020-05-29T06:35:09Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=dDZsR
+I0529 06:35:09.330408       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"706", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' waiting for install components to report healthy
+time="2020-05-29T06:35:09Z" level=info msg="csv in operatorgroup" csv=packageserver id=ibx/A namespace=olm opgroup=olm-operators phase=InstallReady
+time="2020-05-29T06:35:09Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=9XOYF
+time="2020-05-29T06:35:09Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=pE/xe
+time="2020-05-29T06:35:09Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=chWjt
+time="2020-05-29T06:35:10Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=6x5YS
+I0529 06:35:10.915698       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"706", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' waiting for install components to report healthy
+time="2020-05-29T06:35:10Z" level=info msg="error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"packageserver\": the object has been modified; please apply your changes to the latest version and try again" csv=packageserver id=5DobB namespace=olm phase=InstallReady
+E0529 06:35:10.924097       1 queueinformer_operator.go:282] sync {"update" "olm/packageserver"} failed: error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "packageserver": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:35:10Z" level=info msg="csv in operatorgroup" csv=packageserver id=9XF6K namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:10Z" level=info msg="updated annotations to match current operatorgroup" csv=packageserver id=9XF6K namespace=olm phase=Installing
+I0529 06:35:10.955203       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"737", FieldPath:""}): type: 'Normal' reason: 'InstallWaiting' APIServices not installed
+time="2020-05-29T06:35:10Z" level=info msg="csv in operatorgroup" csv=packageserver id=gZmOv namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:10Z" level=info msg="updated annotations to match current operatorgroup" csv=packageserver id=gZmOv namespace=olm phase=Installing
+I0529 06:35:10.967859       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"737", FieldPath:""}): type: 'Normal' reason: 'InstallWaiting' APIServices not installed
+time="2020-05-29T06:35:10Z" level=info msg="error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"packageserver\": the object has been modified; please apply your changes to the latest version and try again" csv=packageserver id=Jm+XZ namespace=olm phase=Installing
+E0529 06:35:10.970285       1 queueinformer_operator.go:282] sync {"update" "olm/packageserver"} failed: error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "packageserver": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:35:10Z" level=info msg="csv in operatorgroup" csv=packageserver id=cBFeg namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:10Z" level=info msg="csv in operatorgroup" csv=packageserver id=cxHk1 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:11Z" level=info msg="csv in operatorgroup" csv=packageserver id=eGZn9 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:12Z" level=info msg="csv in operatorgroup" csv=packageserver id=99+Ga namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:12Z" level=info msg="csv in operatorgroup" csv=packageserver id=YUXeH namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:13Z" level=info msg="csv in operatorgroup" csv=packageserver id=vfiIO namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:13Z" level=info msg="csv in operatorgroup" csv=packageserver id=sEiD5 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:14Z" level=info msg="csv in operatorgroup" csv=packageserver id=r6Rn1 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:15Z" level=info msg="csv in operatorgroup" csv=packageserver id=0AfwM namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:15Z" level=info msg="csv in operatorgroup" csv=packageserver id=6qWfj namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:16Z" level=info msg="csv in operatorgroup" csv=packageserver id=DQspa namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:16Z" level=info msg="csv in operatorgroup" csv=packageserver id=ypk26 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:17Z" level=info msg="csv in operatorgroup" csv=packageserver id=6oCnp namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:18Z" level=info msg="csv in operatorgroup" csv=packageserver id=fz39J namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:18Z" level=info msg="csv in operatorgroup" csv=packageserver id=DyZob namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:19Z" level=info msg="csv in operatorgroup" csv=packageserver id=/zVM3 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:19Z" level=info msg="csv in operatorgroup" csv=packageserver id=8yt8e namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:20Z" level=info msg="csv in operatorgroup" csv=packageserver id=PKDG5 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:21Z" level=info msg="csv in operatorgroup" csv=packageserver id=kENBe namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:21Z" level=info msg="csv in operatorgroup" csv=packageserver id=AS25L namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:22Z" level=info msg="csv in operatorgroup" csv=packageserver id=/1cWQ namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:22Z" level=info msg="csv in operatorgroup" csv=packageserver id=+SsMO namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:22Z" level=info msg="syncing APIService" apiService=v1.packages.operators.coreos.com id=yQKL6
+I0529 06:35:23.337849       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"792", FieldPath:""}): type: 'Normal' reason: 'InstallWaiting' installing: Waiting: waiting for deployment packageserver to become ready: Waiting for rollout to finish: 1 old replicas are pending termination...
+time="2020-05-29T06:35:23Z" level=info msg="csv in operatorgroup" csv=packageserver id=k0eAC namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:24Z" level=info msg="csv in operatorgroup" csv=packageserver id=pUw96 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:24Z" level=info msg="csv in operatorgroup" csv=packageserver id=r76Pt namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:25Z" level=info msg="csv in operatorgroup" csv=packageserver id=Um8YF namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:25Z" level=info msg="csv in operatorgroup" csv=packageserver id=OTXzH namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:26Z" level=info msg="csv in operatorgroup" csv=packageserver id=rveK4 namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:27Z" level=info msg="csv in operatorgroup" csv=packageserver id=NrcHW namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:27Z" level=info msg="csv in operatorgroup" csv=packageserver id=o3A5N namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:28Z" level=info msg="csv in operatorgroup" csv=packageserver id=l13tp namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:28Z" level=info msg="csv in operatorgroup" csv=packageserver id=/kE2q namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:29Z" level=info msg="csv in operatorgroup" csv=packageserver id=A+lEs namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:30Z" level=info msg="csv in operatorgroup" csv=packageserver id=X479a namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:30Z" level=info msg="csv in operatorgroup" csv=packageserver id=y1U9d namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:31Z" level=info msg="csv in operatorgroup" csv=packageserver id=6kBrM namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:31Z" level=info msg="csv in operatorgroup" csv=packageserver id=9X43y namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:32Z" level=info msg="csv in operatorgroup" csv=packageserver id=Y6OZQ namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:33Z" level=info msg="csv in operatorgroup" csv=packageserver id=Z4onT namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:33Z" level=info msg="csv in operatorgroup" csv=packageserver id=bvv+X namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:34Z" level=info msg="csv in operatorgroup" csv=packageserver id=O1YGY namespace=olm opgroup=olm-operators phase=Installing
+time="2020-05-29T06:35:34Z" level=info msg="install strategy successful" csv=packageserver id=O1YGY namespace=olm phase=Installing strategy=deployment
+I0529 06:35:34.734927       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"889", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' install strategy completed with no errors
+time="2020-05-29T06:35:34Z" level=info msg="csv in operatorgroup" csv=packageserver id=KV19O namespace=olm opgroup=olm-operators phase=Installing
+I0529 06:35:35.356110       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"olm", Name:"packageserver", UID:"4de3f01f-c48e-40c8-b97d-3377b9e3edeb", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"889", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' install strategy completed with no errors
+time="2020-05-29T06:35:35Z" level=info msg="install strategy successful" csv=packageserver id=KV19O namespace=olm phase=Installing strategy=deployment
+time="2020-05-29T06:35:35Z" level=info msg="error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"packageserver\": the object has been modified; please apply your changes to the latest version and try again" csv=packageserver id=K/AAb namespace=olm phase=Installing
+E0529 06:35:35.369573       1 queueinformer_operator.go:282] sync {"update" "olm/packageserver"} failed: error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "packageserver": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:35:35Z" level=info msg="csv in operatorgroup" csv=packageserver id=NlhUw namespace=olm opgroup=olm-operators phase=Succeeded
+time="2020-05-29T06:35:35Z" level=info msg="updated annotations to match current operatorgroup" csv=packageserver id=NlhUw namespace=olm phase=Succeeded
+time="2020-05-29T06:35:35Z" level=info msg="checking packageserver"
+time="2020-05-29T06:35:36Z" level=info msg="csv in operatorgroup" csv=packageserver id=+Suaj namespace=olm opgroup=olm-operators phase=Succeeded
+time="2020-05-29T06:35:36Z" level=info msg="updated annotations to match current operatorgroup" csv=packageserver id=+Suaj namespace=olm phase=Succeeded
+time="2020-05-29T06:35:36Z" level=info msg="checking packageserver"
+time="2020-05-29T06:36:36Z" level=info msg="Labels updated!" labels="olm.api.88e59d93b69fa367=provided"
+time="2020-05-29T06:36:36Z" level=info msg="syncing APIService" apiService=v1.org.eclipse.che id=sGIFV
+time="2020-05-29T06:36:36Z" level=info msg="operatorgroup incorrect" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 error="<nil>" id=/zMvd namespace=che phase=
+time="2020-05-29T06:36:36Z" level=info msg="not in operatorgroup namespace" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=9BJXM namespace=che phase=
+time="2020-05-29T06:36:36Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=wo0M6 namespace=che opgroup=operatorgroup phase=
+time="2020-05-29T06:36:36Z" level=warning msg="error adding operatorgroup annotations" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 error="Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464\": the object has been modified; please apply your changes to the latest version and try again" namespace=che operatorGroup=operatorgroup
+time="2020-05-29T06:36:36Z" level=warning msg="failed to annotate CSVs in operatorgroup after group change" error="Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464\": the object has been modified; please apply your changes to the latest version and try again" namespace=che operatorGroup=operatorgroup
+E0529 06:36:36.055021       1 queueinformer_operator.go:282] sync {"update" "che/operatorgroup"} failed: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:36:36Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=Dahco namespace=che opgroup=operatorgroup phase=
+time="2020-05-29T06:36:36Z" level=info msg="scheduling ClusterServiceVersion for requirement verification" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=Dahco namespace=che phase=
+I0529 06:36:36.069188       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1314", FieldPath:""}): type: 'Normal' reason: 'RequirementsUnknown' requirements not yet checked
+time="2020-05-29T06:36:36Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=xsbvg namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:36Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=xsbvg namespace=che phase=Pending
+I0529 06:36:36.095071       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1318", FieldPath:""}): type: 'Normal' reason: 'RequirementsNotMet' one or more requirements couldn't be found
+E0529 06:36:36.126191       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:36Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=Cdb8J namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:36Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=Cdb8J namespace=che phase=Pending
+E0529 06:36:36.232213       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:36Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=rKqKL namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:36Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=rKqKL namespace=che phase=Pending
+E0529 06:36:36.445930       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:36Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=q3BbG namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:36Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=q3BbG namespace=che phase=Pending
+E0529 06:36:36.921350       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:37Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=FD5jQ namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:37Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=FD5jQ namespace=che phase=Pending
+E0529 06:36:37.270144       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:37Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=rhej9 namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:37Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=rhej9 namespace=che phase=Pending
+E0529 06:36:37.648270       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:37Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=NdYEL namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:38Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=NdYEL namespace=che phase=Pending
+E0529 06:36:38.043225       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:38Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=qfP7T namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:38Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=qfP7T namespace=che phase=Pending
+E0529 06:36:38.469544       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: requirements were not met
+time="2020-05-29T06:36:38Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=IrX/o namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:38Z" level=info msg="requirements were not met" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=IrX/o namespace=che phase=Pending
+time="2020-05-29T06:36:39Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=ZxCnl namespace=che opgroup=operatorgroup phase=Pending
+time="2020-05-29T06:36:39Z" level=info msg="scheduling ClusterServiceVersion for install" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=ZxCnl namespace=che phase=Pending
+I0529 06:36:39.232499       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1326", FieldPath:""}): type: 'Normal' reason: 'AllRequirementsMet' all requirements found, attempting install
+time="2020-05-29T06:36:39Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=w/Ugy namespace=che opgroup=operatorgroup phase=InstallReady
+I0529 06:36:39.867839       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1343", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' waiting for install components to report healthy
+time="2020-05-29T06:36:40Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=tXx2A namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:40Z" level=info msg="updated annotations to match current operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=tXx2A namespace=che phase=Installing
+I0529 06:36:40.434269       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1352", FieldPath:""}): type: 'Normal' reason: 'InstallWaiting' installing: Waiting: waiting for deployment che-operator to become ready: Waiting for rollout to finish: 0 of 1 updated replicas are available...
+time="2020-05-29T06:36:40Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=qdbiY namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:40Z" level=info msg="updated annotations to match current operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=qdbiY namespace=che phase=Installing
+I0529 06:36:41.033126       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1352", FieldPath:""}): type: 'Normal' reason: 'InstallWaiting' installing: Waiting: waiting for deployment che-operator to become ready: Waiting for rollout to finish: 0 of 1 updated replicas are available...
+time="2020-05-29T06:36:41Z" level=info msg="error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464\": the object has been modified; please apply your changes to the latest version and try again" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=LVibr namespace=che phase=Installing
+E0529 06:36:41.043593       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:36:41Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=bGLLu namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:41Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=faQas namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:42Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=zc8jN namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:43Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=cJpPC namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:43Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=7FXrI namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:44Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=eFa1R namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:44Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=wOBUR namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:45Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=vP3sk namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:46Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=9SLip namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:46Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=4g+qv namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:47Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=OnSKW namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:47Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=iSGiZ namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:48Z" level=info msg="install strategy successful" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=iSGiZ namespace=che phase=Installing strategy=deployment
+I0529 06:36:48.236398       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1366", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' install strategy completed with no errors
+time="2020-05-29T06:36:48Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=/lK6U namespace=che opgroup=operatorgroup phase=Installing
+time="2020-05-29T06:36:48Z" level=info msg="install strategy successful" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=/lK6U namespace=che phase=Installing strategy=deployment
+I0529 06:36:48.835662       1 event.go:255] Event(v1.ObjectReference{Kind:"ClusterServiceVersion", Namespace:"che", Name:"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464", UID:"80de9b67-6735-4ac2-bfcd-479eb9ff1f0e", APIVersion:"operators.coreos.com/v1alpha1", ResourceVersion:"1366", FieldPath:""}): type: 'Normal' reason: 'InstallSucceeded' install strategy completed with no errors
+time="2020-05-29T06:36:48Z" level=info msg="error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com \"eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464\": the object has been modified; please apply your changes to the latest version and try again" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=HQ8zT namespace=che phase=Installing
+E0529 06:36:48.840226       1 queueinformer_operator.go:282] sync {"update" "che/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"} failed: error updating ClusterServiceVersion status: Operation cannot be fulfilled on clusterserviceversions.operators.coreos.com "eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464": the object has been modified; please apply your changes to the latest version and try again
+time="2020-05-29T06:36:49Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=i2Vw/ namespace=che opgroup=operatorgroup phase=Succeeded
+time="2020-05-29T06:36:49Z" level=info msg="updated annotations to match current operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=i2Vw/ namespace=che phase=Succeeded
+time="2020-05-29T06:36:49Z" level=info msg="checking eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"
+time="2020-05-29T06:36:49Z" level=info msg="csv in operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=CteX3 namespace=che opgroup=operatorgroup phase=Succeeded
+time="2020-05-29T06:36:49Z" level=info msg="updated annotations to match current operatorgroup" csv=eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464 id=CteX3 namespace=che phase=Succeeded
+time="2020-05-29T06:36:49Z" level=info msg="checking eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464"

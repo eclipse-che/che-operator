@@ -1,0 +1,67 @@
+LAST SEEN   TYPE      REASON                  OBJECT                                                                           MESSAGE
+42s         Normal    Scheduled               pod/che-84cf46c987-sdv8q                                                         Successfully assigned che/che-84cf46c987-sdv8q to minikube
+42s         Normal    Pulling                 pod/che-84cf46c987-sdv8q                                                         Pulling image "quay.io/eclipse/che-server:nightly"
+33s         Normal    Pulled                  pod/che-84cf46c987-sdv8q                                                         Successfully pulled image "quay.io/eclipse/che-server:nightly"
+33s         Normal    Created                 pod/che-84cf46c987-sdv8q                                                         Created container che
+32s         Normal    Started                 pod/che-84cf46c987-sdv8q                                                         Started container che
+42s         Normal    SuccessfulCreate        replicaset/che-84cf46c987                                                        Created pod: che-84cf46c987-sdv8q
+3m8s        Normal    Scheduled               pod/che-operator-79789ccbb-96bsw                                                 Successfully assigned che/che-operator-79789ccbb-96bsw to minikube
+3m6s        Normal    Pulling                 pod/che-operator-79789ccbb-96bsw                                                 Pulling image "quay.io/eclipse/che-operator:nightly"
+3m          Normal    Pulled                  pod/che-operator-79789ccbb-96bsw                                                 Successfully pulled image "quay.io/eclipse/che-operator:nightly"
+3m          Normal    Created                 pod/che-operator-79789ccbb-96bsw                                                 Created container che-operator
+3m          Normal    Started                 pod/che-operator-79789ccbb-96bsw                                                 Started container che-operator
+3m8s        Normal    SuccessfulCreate        replicaset/che-operator-79789ccbb                                                Created pod: che-operator-79789ccbb-96bsw
+3m8s        Normal    ScalingReplicaSet       deployment/che-operator                                                          Scaled up replica set che-operator-79789ccbb to 1
+2m29s       Normal    CREATE                  ingress/che                                                                      Ingress che/che
+92s         Normal    UPDATE                  ingress/che                                                                      Ingress che/che
+42s         Normal    ScalingReplicaSet       deployment/che                                                                   Scaled up replica set che-84cf46c987 to 1
+73s         Normal    Scheduled               pod/devfile-registry-79945cb69f-5ptjh                                            Successfully assigned che/devfile-registry-79945cb69f-5ptjh to minikube
+72s         Normal    Pulling                 pod/devfile-registry-79945cb69f-5ptjh                                            Pulling image "quay.io/eclipse/che-devfile-registry:nightly"
+67s         Normal    Pulled                  pod/devfile-registry-79945cb69f-5ptjh                                            Successfully pulled image "quay.io/eclipse/che-devfile-registry:nightly"
+67s         Normal    Created                 pod/devfile-registry-79945cb69f-5ptjh                                            Created container che-devfile-registry
+67s         Normal    Started                 pod/devfile-registry-79945cb69f-5ptjh                                            Started container che-devfile-registry
+73s         Normal    SuccessfulCreate        replicaset/devfile-registry-79945cb69f                                           Created pod: devfile-registry-79945cb69f-5ptjh
+73s         Normal    CREATE                  ingress/devfile-registry                                                         Ingress che/devfile-registry
+73s         Normal    ScalingReplicaSet       deployment/devfile-registry                                                      Scaled up replica set devfile-registry-79945cb69f to 1
+32s         Normal    UPDATE                  ingress/devfile-registry                                                         Ingress che/devfile-registry
+4m6s        Normal    Scheduled               pod/eclipse-che-preview-kubernetes-5pzd8                                         Successfully assigned che/eclipse-che-preview-kubernetes-5pzd8 to minikube
+4m5s        Normal    Pulled                  pod/eclipse-che-preview-kubernetes-5pzd8                                         Container image "testing_catalog:0.0.1" already present on machine
+4m5s        Normal    Created                 pod/eclipse-che-preview-kubernetes-5pzd8                                         Created container registry-server
+4m5s        Normal    Started                 pod/eclipse-che-preview-kubernetes-5pzd8                                         Started container registry-server
+4m7s        Normal    Scheduled               pod/eclipse-che-preview-kubernetes-trvdc                                         Successfully assigned che/eclipse-che-preview-kubernetes-trvdc to minikube
+4m5s        Normal    Pulled                  pod/eclipse-che-preview-kubernetes-trvdc                                         Container image "testing_catalog:0.0.1" already present on machine
+4m5s        Warning   Failed                  pod/eclipse-che-preview-kubernetes-trvdc                                         Error: cannot find volume "default-token-j8mwf" to mount into container "registry-server"
+3m11s       Normal    RequirementsUnknown     clusterserviceversion/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464   requirements not yet checked
+3m11s       Normal    RequirementsNotMet      clusterserviceversion/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464   one or more requirements couldn't be found
+3m8s        Normal    AllRequirementsMet      clusterserviceversion/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464   all requirements found, attempting install
+3m8s        Normal    InstallSucceeded        clusterserviceversion/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464   waiting for install components to report healthy
+3m6s        Normal    InstallWaiting          clusterserviceversion/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464   installing: Waiting: waiting for deployment che-operator to become ready: Waiting for rollout to finish: 0 of 1 updated replicas are available...
+2m59s       Normal    InstallSucceeded        clusterserviceversion/eclipse-che-preview-kubernetes.v9.9.9-nightly.1590584464   install strategy completed with no errors
+2m29s       Normal    Scheduled               pod/keycloak-95949f685-wqfvz                                                     Successfully assigned che/keycloak-95949f685-wqfvz to minikube
+2m29s       Normal    Pulling                 pod/keycloak-95949f685-wqfvz                                                     Pulling image "quay.io/eclipse/che-keycloak:nightly"
+2m1s        Normal    Pulled                  pod/keycloak-95949f685-wqfvz                                                     Successfully pulled image "quay.io/eclipse/che-keycloak:nightly"
+2m          Normal    Created                 pod/keycloak-95949f685-wqfvz                                                     Created container keycloak
+2m          Normal    Started                 pod/keycloak-95949f685-wqfvz                                                     Started container keycloak
+2m29s       Normal    SuccessfulCreate        replicaset/keycloak-95949f685                                                    Created pod: keycloak-95949f685-wqfvz
+2m29s       Normal    CREATE                  ingress/keycloak                                                                 Ingress che/keycloak
+2m29s       Normal    ScalingReplicaSet       deployment/keycloak                                                              Scaled up replica set keycloak-95949f685 to 1
+92s         Normal    UPDATE                  ingress/keycloak                                                                 Ingress che/keycloak
+58s         Normal    Scheduled               pod/plugin-registry-658bb57ff5-fs9qc                                             Successfully assigned che/plugin-registry-658bb57ff5-fs9qc to minikube
+57s         Normal    Pulling                 pod/plugin-registry-658bb57ff5-fs9qc                                             Pulling image "quay.io/eclipse/che-plugin-registry:nightly"
+54s         Normal    Pulled                  pod/plugin-registry-658bb57ff5-fs9qc                                             Successfully pulled image "quay.io/eclipse/che-plugin-registry:nightly"
+54s         Normal    Created                 pod/plugin-registry-658bb57ff5-fs9qc                                             Created container che-plugin-registry
+54s         Normal    Started                 pod/plugin-registry-658bb57ff5-fs9qc                                             Started container che-plugin-registry
+58s         Normal    SuccessfulCreate        replicaset/plugin-registry-658bb57ff5                                            Created pod: plugin-registry-658bb57ff5-fs9qc
+58s         Normal    CREATE                  ingress/plugin-registry                                                          Ingress che/plugin-registry
+58s         Normal    ScalingReplicaSet       deployment/plugin-registry                                                       Scaled up replica set plugin-registry-658bb57ff5 to 1
+32s         Normal    UPDATE                  ingress/plugin-registry                                                          Ingress che/plugin-registry
+2m58s       Normal    Scheduled               pod/postgres-6649ddcd77-9twdm                                                    Successfully assigned che/postgres-6649ddcd77-9twdm to minikube
+2m57s       Normal    Pulling                 pod/postgres-6649ddcd77-9twdm                                                    Pulling image "centos/postgresql-96-centos7:9.6"
+2m46s       Normal    Pulled                  pod/postgres-6649ddcd77-9twdm                                                    Successfully pulled image "centos/postgresql-96-centos7:9.6"
+2m46s       Normal    Created                 pod/postgres-6649ddcd77-9twdm                                                    Created container postgres
+2m46s       Normal    Started                 pod/postgres-6649ddcd77-9twdm                                                    Started container postgres
+2m58s       Normal    SuccessfulCreate        replicaset/postgres-6649ddcd77                                                   Created pod: postgres-6649ddcd77-9twdm
+2m58s       Normal    ExternalProvisioning    persistentvolumeclaim/postgres-data                                              waiting for a volume to be created, either by external provisioner "k8s.io/minikube-hostpath" or manually created by system administrator
+2m58s       Normal    Provisioning            persistentvolumeclaim/postgres-data                                              External provisioner is provisioning volume for claim "che/postgres-data"
+2m58s       Normal    ProvisioningSucceeded   persistentvolumeclaim/postgres-data                                              Successfully provisioned volume pvc-2f8b020d-0c4a-4356-ac3f-8425bb12780e
+2m58s       Normal    ScalingReplicaSet       deployment/postgres                                                              Scaled up replica set postgres-6649ddcd77 to 1

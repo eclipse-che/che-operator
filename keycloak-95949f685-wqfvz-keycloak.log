@@ -1,0 +1,315 @@
+Certificate was added to keystore
+Importing keystore /usr/lib/jvm/java/jre/lib/security/cacerts to /scripts/openshift.jks...
+Entry for alias digicertassuredidrootca successfully imported.
+Entry for alias trktrustelektroniksertifikahizmetsalaycsh5 successfully imported.
+Entry for alias affirmtrustcommercial successfully imported.
+Entry for alias t-telesecglobalrootclass3 successfully imported.
+Entry for alias certinomis-rootca successfully imported.
+Entry for alias t-telesecglobalrootclass2 successfully imported.
+Entry for alias comodoecccertificationauthority successfully imported.
+Entry for alias swisssignsilverca-g2 successfully imported.
+Entry for alias cadisigrootr2 successfully imported.
+Entry for alias securetrustca successfully imported.
+Entry for alias accvraiz1 successfully imported.
+Entry for alias staatdernederlandenrootca-g3 successfully imported.
+Entry for alias staatdernederlandenrootca-g2 successfully imported.
+Entry for alias entrustrootcertificationauthority successfully imported.
+Entry for alias identrustpublicsectorrootca1 successfully imported.
+Entry for alias entrust.netpremium2048secureserverca successfully imported.
+Entry for alias secureglobalca successfully imported.
+Entry for alias opentrustrootcag3 successfully imported.
+Entry for alias netlockarany(classgold)ftanstvny successfully imported.
+Entry for alias eecertificationcentrerootca successfully imported.
+Entry for alias teliasonerarootcav1 successfully imported.
+Entry for alias opentrustrootcag2 successfully imported.
+Entry for alias autoridaddecertificacionfirmaprofesionalcifa62634068 successfully imported.
+Entry for alias opentrustrootcag1 successfully imported.
+Entry for alias acraizfnmt-rcm successfully imported.
+Entry for alias gdcatrustauthr5root successfully imported.
+Entry for alias izenpe.com successfully imported.
+Entry for alias e-tugracertificationauthority successfully imported.
+Entry for alias quovadisrootca3 successfully imported.
+Entry for alias quovadisrootca2 successfully imported.
+Entry for alias entrustrootcertificationauthority-ec1 successfully imported.
+Entry for alias oistewisekeyglobalrootgbca successfully imported.
+Entry for alias addtrustexternalroot successfully imported.
+Entry for alias digicertglobalrootg3 successfully imported.
+Entry for alias swisssigngoldca-g2 successfully imported.
+Entry for alias comodoaaaservicesroot successfully imported.
+Entry for alias digicertglobalrootg2 successfully imported.
+Entry for alias oistewisekeyglobalrootgaca successfully imported.
+Entry for alias dstrootcax3 successfully imported.
+Entry for alias certigna successfully imported.
+Entry for alias digicerthighassuranceevrootca successfully imported.
+Entry for alias chambersofcommerceroot-2008 successfully imported.
+Entry for alias soneraclass2rootca successfully imported.
+Entry for alias usertrustrsacertificationauthority successfully imported.
+Entry for alias geotrustuniversalca successfully imported.
+Entry for alias certsignrootca successfully imported.
+Entry for alias amazonrootca4 successfully imported.
+Entry for alias amazonrootca3 successfully imported.
+Entry for alias amazonrootca2 successfully imported.
+Entry for alias verisignuniversalrootcertificationauthority successfully imported.
+Entry for alias trustcorrootcertca-2 successfully imported.
+Entry for alias amazonrootca1 successfully imported.
+Entry for alias trustcorrootcertca-1 successfully imported.
+Entry for alias ssl.comrootcertificationauthorityecc successfully imported.
+Entry for alias ssl.comrootcertificationauthorityrsa successfully imported.
+Entry for alias d-trustrootclass3ca2ev2009 successfully imported.
+Entry for alias networksolutionscertificateauthority successfully imported.
+Entry for alias affirmtrustnetworking successfully imported.
+Entry for alias deutschetelekomrootca2 successfully imported.
+Entry for alias globalsigneccrootca-r5 successfully imported.
+Entry for alias globalsigneccrootca-r4 successfully imported.
+Entry for alias szafirrootca2 successfully imported.
+Entry for alias globalsignrootca-r3 successfully imported.
+Entry for alias globalsignrootca-r2 successfully imported.
+Entry for alias buypassclass3rootca successfully imported.
+Entry for alias comodorsacertificationauthority successfully imported.
+Entry for alias securitycommunicationrootca2 successfully imported.
+Entry for alias starfieldclass2ca successfully imported.
+Entry for alias actalisauthenticationrootca successfully imported.
+Entry for alias cfcaevroot successfully imported.
+Entry for alias digicerttrustedrootg4 successfully imported.
+Entry for alias certumtrustednetworkca2 successfully imported.
+Entry for alias entrustrootcertificationauthority-g2 successfully imported.
+Entry for alias taiwangrca successfully imported.
+Entry for alias hellenicacademicandresearchinstitutionseccrootca2015 successfully imported.
+Entry for alias twcarootcertificationauthority successfully imported.
+Entry for alias certplusrootcag2 successfully imported.
+Entry for alias twcaglobalrootca successfully imported.
+Entry for alias certplusrootcag1 successfully imported.
+Entry for alias geotrustuniversalca2 successfully imported.
+Entry for alias thawteprimaryrootca-g3 successfully imported.
+Entry for alias thawteprimaryrootca-g2 successfully imported.
+Entry for alias baltimorecybertrustroot successfully imported.
+Entry for alias buypassclass2rootca successfully imported.
+Entry for alias digicertassuredidrootg3 successfully imported.
+Entry for alias certumtrustednetworkca successfully imported.
+Entry for alias geotrustprimarycertificationauthority-g3 successfully imported.
+Entry for alias digicertassuredidrootg2 successfully imported.
+Entry for alias geotrustprimarycertificationauthority-g2 successfully imported.
+Entry for alias isrgrootx1 successfully imported.
+Entry for alias ec-acc successfully imported.
+Entry for alias ssl.comevrootcertificationauthorityecc successfully imported.
+Entry for alias certplusclass2primaryca successfully imported.
+Entry for alias globalchambersignroot-2008 successfully imported.
+Entry for alias digicertglobalrootca successfully imported.
+Entry for alias d-trustrootclass3ca22009 successfully imported.
+Entry for alias starfieldservicesrootcertificateauthority-g2 successfully imported.
+Entry for alias thawteprimaryrootca successfully imported.
+Entry for alias atostrustedroot2011 successfully imported.
+Entry for alias luxtrustglobalroot2 successfully imported.
+Entry for alias geotrustglobalca successfully imported.
+Entry for alias visaecommerceroot successfully imported.
+Entry for alias quovadisrootca successfully imported.
+Entry for alias identrustcommercialrootca1 successfully imported.
+Entry for alias staatdernederlandenevrootca successfully imported.
+Entry for alias tubitakkamusmsslkoksertifikasi-surum1 successfully imported.
+Entry for alias trustcoreca-1 successfully imported.
+Entry for alias securitycommunicationrootca successfully imported.
+Entry for alias comodocertificationauthority successfully imported.
+Entry for alias verisignclass3publicprimarycertificationauthority-g5 successfully imported.
+Entry for alias xrampglobalcaroot successfully imported.
+Entry for alias verisignclass3publicprimarycertificationauthority-g4 successfully imported.
+Entry for alias quovadisrootca3g3 successfully imported.
+Entry for alias verisignclass3publicprimarycertificationauthority-g3 successfully imported.
+Entry for alias securesignrootca11 successfully imported.
+Entry for alias affirmtrustpremium successfully imported.
+Entry for alias globalsignrootca successfully imported.
+Entry for alias quovadisrootca2g3 successfully imported.
+Entry for alias geotrustprimarycertificationauthority successfully imported.
+Entry for alias affirmtrustpremiumecc successfully imported.
+Entry for alias quovadisrootca1g3 successfully imported.
+Entry for alias hongkongpostrootca1 successfully imported.
+Entry for alias usertrustecccertificationauthority successfully imported.
+Entry for alias cybertrustglobalroot successfully imported.
+Entry for alias godaddyclass2ca successfully imported.
+Entry for alias microsece-szignorootca2009 successfully imported.
+Entry for alias hellenicacademicandresearchinstitutionsrootca2015 successfully imported.
+Entry for alias hellenicacademicandresearchinstitutionsrootca2011 successfully imported.
+Entry for alias godaddyrootcertificateauthority-g2 successfully imported.
+Entry for alias trustisfpsrootca successfully imported.
+Entry for alias epkirootcertificationauthority successfully imported.
+Entry for alias starfieldrootcertificateauthority-g2 successfully imported.
+Entry for alias ssl.comevrootcertificationauthorityrsar2 successfully imported.
+Import command completed:  133 entries successfully imported, 0 entries failed or cancelled
+Installing certificates into Keycloak
+[0m06:37:49,175 INFO  [org.jboss.modules] (CLI command executor) JBoss Modules version 1.9.0.Final
+[0m[0m06:37:49,228 INFO  [org.jboss.msc] (CLI command executor) JBoss MSC version 1.4.5.Final
+[0m[0m06:37:49,263 INFO  [org.jboss.threads] (CLI command executor) JBoss Threads version 2.3.3.Final
+[0m[0m06:37:49,390 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0049: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) starting
+[0m[0m06:37:49,475 INFO  [org.jboss.vfs] (MSC service thread 1-2) VFS000002: Failed to clean existing content for temp file provider of type temp. Enable DEBUG level log to find what caused this
+[0m[0m06:37:50,304 INFO  [org.wildfly.security] (ServerService Thread Pool -- 18) ELY00001: WildFly Elytron version 1.8.0.Final
+[0m[0m06:37:51,032 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:37:51,206 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:37:51,398 INFO  [org.jboss.as.patching] (MSC service thread 1-2) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m06:37:51,420 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-2) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m06:37:51,498 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m06:37:51,500 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) started in 2319ms - Started 64 of 78 services (25 services are lazy, passive or on-demand)
+[0m{"outcome" => "success"}
+{"outcome" => "success"}
+[0m06:37:51,675 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0050: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) stopped in 17ms
+[0mAdded 'admin' to '/opt/jboss/keycloak/standalone/configuration/keycloak-add-user.json', restart server to load user
+WARNING: POSTGRES_DATABASE variable name is DEPRECATED replace with DB_DATABASE
+WARNING: POSTGRES_USER variable name is DEPRECATED replace with DB_USER
+WARNING: POSTGRES_PASSWORD variable name is DEPRECATED replace with DB_PASSWORD
+WARNING: POSTGRES_PORT variable name is DEPRECATED replace with DB_PORT
+=========================================================================
+
+  Using PostgreSQL database
+
+=========================================================================
+
+[0m06:37:54,578 INFO  [org.jboss.modules] (CLI command executor) JBoss Modules version 1.9.0.Final
+[0m[0m06:37:54,653 INFO  [org.jboss.msc] (CLI command executor) JBoss MSC version 1.4.5.Final
+[0m[0m06:37:54,668 INFO  [org.jboss.threads] (CLI command executor) JBoss Threads version 2.3.3.Final
+[0m[0m06:37:54,837 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) starting
+[0m[0m06:37:54,933 INFO  [org.jboss.vfs] (MSC service thread 1-1) VFS000002: Failed to clean existing content for temp file provider of type temp. Enable DEBUG level log to find what caused this
+[0m[0m06:37:55,808 INFO  [org.wildfly.security] (ServerService Thread Pool -- 19) ELY00001: WildFly Elytron version 1.8.0.Final
+[0m[0m06:37:56,551 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:37:56,664 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:37:56,848 INFO  [org.jboss.as.patching] (MSC service thread 1-1) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m06:37:56,869 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-2) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m06:37:56,967 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m06:37:56,976 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) started in 2383ms - Started 64 of 78 services (25 services are lazy, passive or on-demand)
+[0mThe batch executed successfully
+[0m06:37:57,174 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0050: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) stopped in 11ms
+[0m[0m06:37:58,532 INFO  [org.jboss.modules] (CLI command executor) JBoss Modules version 1.9.0.Final
+[0m[0m06:37:58,615 INFO  [org.jboss.msc] (CLI command executor) JBoss MSC version 1.4.5.Final
+[0m[0m06:37:58,623 INFO  [org.jboss.threads] (CLI command executor) JBoss Threads version 2.3.3.Final
+[0m[0m06:37:58,797 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) starting
+[0m[0m06:37:58,882 INFO  [org.jboss.vfs] (MSC service thread 1-1) VFS000002: Failed to clean existing content for temp file provider of type temp. Enable DEBUG level log to find what caused this
+[0m[0m06:37:59,775 INFO  [org.wildfly.security] (ServerService Thread Pool -- 20) ELY00001: WildFly Elytron version 1.8.0.Final
+[0m[0m06:38:00,761 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:38:00,832 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:38:01,046 INFO  [org.jboss.as.patching] (MSC service thread 1-2) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m06:38:01,070 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-2) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m06:38:01,201 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m06:38:01,203 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) started in 2664ms - Started 64 of 83 services (30 services are lazy, passive or on-demand)
+[0mThe batch executed successfully
+[0m06:38:01,349 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0050: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) stopped in 22ms
+[0m=========================================================================
+
+  JBoss Bootstrap Environment
+
+  JBOSS_HOME: /opt/jboss/keycloak
+
+  JAVA: /usr/lib/jvm/java/bin/java
+
+  JAVA_OPTS:  -server -Xms64m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true 
+
+=========================================================================
+
+[0m06:38:01,818 INFO  [org.jboss.modules] (main) JBoss Modules version 1.9.0.Final
+[0m[0m06:38:02,224 INFO  [org.jboss.msc] (main) JBoss MSC version 1.4.5.Final
+[0m[0m06:38:02,233 INFO  [org.jboss.threads] (main) JBoss Threads version 2.3.3.Final
+[0m[0m06:38:02,363 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) starting
+[0m[0m06:38:02,469 INFO  [org.jboss.vfs] (MSC service thread 1-1) VFS000002: Failed to clean existing content for temp file provider of type temp. Enable DEBUG level log to find what caused this
+[0m[0m06:38:03,320 INFO  [org.wildfly.security] (ServerService Thread Pool -- 19) ELY00001: WildFly Elytron version 1.8.0.Final
+[0m[0m06:38:04,082 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:38:04,148 INFO  [org.jboss.as.repository] (ServerService Thread Pool -- 20) WFLYDR0001: Content added at location /opt/jboss/keycloak/standalone/data/content/43/baa2f4a0b4a5ddd4bce681fd554f4676ad7892/content
+[0m[0m06:38:04,169 INFO  [org.jboss.as.controller.management-deprecated] (ServerService Thread Pool -- 27) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m06:38:04,273 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0039: Creating http management service using socket-binding (management-http)
+[0m[0m06:38:04,289 INFO  [org.xnio] (MSC service thread 1-1) XNIO version 3.6.5.Final
+[0m[0m06:38:04,294 INFO  [org.xnio.nio] (MSC service thread 1-1) XNIO NIO Implementation Version 3.6.5.Final
+[0m[0m06:38:04,325 INFO  [org.jboss.remoting] (MSC service thread 1-2) JBoss Remoting version 5.0.8.Final
+[0m[0m06:38:04,417 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 36) WFLYCLINF0001: Activating Infinispan subsystem.
+[0m[0m06:38:04,418 INFO  [org.jboss.as.connector.subsystems.datasources] (ServerService Thread Pool -- 31) WFLYJCA0004: Deploying JDBC-compliant driver class org.h2.Driver (version 1.4)
+[0m[0m06:38:04,446 INFO  [org.wildfly.extension.io] (ServerService Thread Pool -- 37) WFLYIO001: Worker 'default' has auto-configured to 2 core threads with 16 task threads based on your 1 available processors
+[0m[0m06:38:04,457 INFO  [org.jboss.as.connector.subsystems.datasources] (ServerService Thread Pool -- 31) WFLYJCA0005: Deploying non-JDBC-compliant driver class org.postgresql.Driver (version 42.2)
+[0m[0m06:38:04,475 INFO  [org.jboss.as.jaxrs] (ServerService Thread Pool -- 38) WFLYRS0016: RESTEasy version 3.6.3.Final
+[0m[0m06:38:04,480 INFO  [org.wildfly.extension.microprofile.config.smallrye._private] (ServerService Thread Pool -- 44) WFLYCONF0001: Activating WildFly MicroProfile Config Subsystem
+[0m[0m06:38:04,487 INFO  [org.jboss.as.naming] (ServerService Thread Pool -- 47) WFLYNAM0001: Activating Naming Subsystem
+[0m[0m06:38:04,526 INFO  [org.wildfly.extension.microprofile.health.smallrye] (ServerService Thread Pool -- 45) WFLYHEALTH0001: Activating Eclipse MicroProfile Health Subsystem
+[0m[0m06:38:04,528 INFO  [org.wildfly.extension.microprofile.metrics.smallrye] (ServerService Thread Pool -- 46) WFLYMETRICS0001: Activating Eclipse MicroProfile Metrics Subsystem
+[0m[0m06:38:04,540 INFO  [org.jboss.as.security] (ServerService Thread Pool -- 50) WFLYSEC0002: Activating Security Subsystem
+[0m[0m06:38:04,569 INFO  [org.jboss.as.connector] (MSC service thread 1-2) WFLYJCA0009: Starting JCA Subsystem (WildFly/IronJacamar 1.4.12.Final)
+[0m[33m06:38:04,582 WARN  [org.jboss.as.txn] (ServerService Thread Pool -- 52) WFLYTX0013: The node-identifier attribute on the /subsystem=transactions is set to the default value. This is a danger for environments running multiple servers. Please make sure the attribute value is unique.
+[0m[0m06:38:04,658 INFO  [org.jboss.as.mail.extension] (MSC service thread 1-1) WFLYMAIL0002: Unbound mail session [java:jboss/mail/Default]
+[0m[0m06:38:04,667 INFO  [org.jboss.as.security] (MSC service thread 1-2) WFLYSEC0001: Current PicketBox version=5.0.3.Final
+[0m[0m06:38:04,701 INFO  [org.jboss.as.connector.deployers.jdbc] (MSC service thread 1-2) WFLYJCA0018: Started Driver service with driver-name = h2
+[0m[0m06:38:04,703 INFO  [org.jboss.as.connector.deployers.jdbc] (MSC service thread 1-2) WFLYJCA0018: Started Driver service with driver-name = postgresql
+[0m[0m06:38:04,839 INFO  [io.smallrye.metrics] (MSC service thread 1-1) Converted [2] config entries and added [4] replacements
+[0m[0m06:38:04,854 INFO  [io.smallrye.metrics] (MSC service thread 1-1) Converted [3] config entries and added [14] replacements
+[0m[0m06:38:04,861 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-1) WFLYJCA0010: Unbound data source [java:jboss/datasources/KeycloakDS]
+[0m[0m06:38:04,862 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-2) WFLYJCA0010: Unbound data source [java:jboss/datasources/ExampleDS]
+[0m[0m06:38:04,893 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0003: Undertow 2.0.19.Final starting
+[0m[0m06:38:04,927 INFO  [org.jboss.as.naming] (MSC service thread 1-1) WFLYNAM0003: Starting Naming Service
+[0m[0m06:38:05,039 INFO  [org.jboss.as.ejb3] (MSC service thread 1-2) WFLYEJB0482: Strict pool mdb-strict-max-pool is using a max instance size of 4 (per class), which is derived from the number of CPUs on this host.
+[0m[0m06:38:05,040 INFO  [org.jboss.as.ejb3] (MSC service thread 1-1) WFLYEJB0481: Strict pool slsb-strict-max-pool is using a max instance size of 16 (per class), which is derived from thread worker pool sizing.
+[0m[0m06:38:05,048 INFO  [org.jboss.as.mail.extension] (MSC service thread 1-1) WFLYMAIL0001: Bound mail session [java:jboss/mail/Default]
+[0m[0m06:38:05,096 INFO  [org.wildfly.extension.undertow] (ServerService Thread Pool -- 53) WFLYUT0014: Creating file handler for path '/opt/jboss/keycloak/welcome-content' with options [directory-listing: 'false', follow-symlink: 'false', case-sensitive: 'true', safe-symlink-paths: '[]']
+[0m[0m06:38:05,343 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0012: Started server default-server.
+[0m[0m06:38:05,345 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0018: Host default-host starting
+[0m[0m06:38:05,409 INFO  [org.jboss.as.ejb3] (MSC service thread 1-1) WFLYEJB0493: EJB subsystem suspension complete
+[0m[0m06:38:05,469 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0006: Undertow HTTP listener default listening on 0.0.0.0:8080
+[0m[0m06:38:05,571 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-1) WFLYJCA0001: Bound data source [java:jboss/datasources/KeycloakDS]
+[0m[0m06:38:05,571 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-1) WFLYJCA0001: Bound data source [java:jboss/datasources/ExampleDS]
+[0m[0m06:38:05,575 INFO  [org.jboss.as.patching] (MSC service thread 1-2) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m06:38:05,595 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-1) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m06:38:05,611 INFO  [org.jboss.as.server.deployment.scanner] (MSC service thread 1-2) WFLYDS0013: Started FileSystemDeploymentService for directory /opt/jboss/keycloak/standalone/deployments
+[0m[0m06:38:05,630 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0027: Starting deployment of "openshift4-extension-6.0.1.jar" (runtime-name: "openshift4-extension-6.0.1.jar")
+[0m[0m06:38:05,633 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0027: Starting deployment of "keycloak-server.war" (runtime-name: "keycloak-server.war")
+[0m[0m06:38:05,779 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-1) WFLYUT0006: Undertow HTTPS listener https listening on 0.0.0.0:8443
+[0m[33m06:38:05,866 WARN  [org.jboss.as.dependency.private] (MSC service thread 1-1) WFLYSRV0018: Deployment "deployment.openshift4-extension-6.0.1.jar" is using a private module ("org.keycloak.keycloak-server-spi-private") which may be changed or removed in future versions without notice.
+[0m[33m06:38:05,869 WARN  [org.jboss.as.dependency.private] (MSC service thread 1-1) WFLYSRV0018: Deployment "deployment.openshift4-extension-6.0.1.jar" is using a private module ("org.keycloak.keycloak-services") which may be changed or removed in future versions without notice.
+[0m[0m06:38:05,879 INFO  [org.keycloak.subsystem.server.extension.KeycloakProviderDeploymentProcessor] (MSC service thread 1-1) Deploying Keycloak provider: openshift4-extension-6.0.1.jar
+[0m[33m06:38:06,382 WARN  [org.jboss.as.dependency.private] (MSC service thread 1-1) WFLYSRV0018: Deployment "deployment.keycloak-server.war" is using a private module ("org.kie") which may be changed or removed in future versions without notice.
+[0m[0m06:38:06,592 INFO  [org.infinispan.factories.GlobalComponentRegistry] (MSC service thread 1-2) ISPN000128: Infinispan version: Infinispan 'Infinity Minus ONE +2' 9.4.8.Final
+[0m[0m06:38:06,997 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 61) WFLYCLINF0002: Started actionTokens cache from keycloak container
+[0m[0m06:38:06,998 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 58) WFLYCLINF0002: Started offlineClientSessions cache from keycloak container
+[0m[0m06:38:06,998 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 64) WFLYCLINF0002: Started authenticationSessions cache from keycloak container
+[0m[0m06:38:06,998 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 62) WFLYCLINF0002: Started clientSessions cache from keycloak container
+[0m[0m06:38:06,998 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 55) WFLYCLINF0002: Started offlineSessions cache from keycloak container
+[0m[0m06:38:07,000 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 57) WFLYCLINF0002: Started sessions cache from keycloak container
+[0m[0m06:38:07,001 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 65) WFLYCLINF0002: Started work cache from keycloak container
+[0m[0m06:38:07,001 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 59) WFLYCLINF0002: Started realms cache from keycloak container
+[0m[0m06:38:07,001 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 63) WFLYCLINF0002: Started users cache from keycloak container
+[0m[0m06:38:07,002 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 54) WFLYCLINF0002: Started authorization cache from keycloak container
+[0m[0m06:38:07,002 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 56) WFLYCLINF0002: Started loginFailures cache from keycloak container
+[0m[0m06:38:07,002 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 60) WFLYCLINF0002: Started keys cache from keycloak container
+[0m[33m06:38:07,308 WARN  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0273: Excluded subsystem weld via jboss-deployment-structure.xml does not exist.
+[0m[33m06:38:07,308 WARN  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0273: Excluded subsystem webservices via jboss-deployment-structure.xml does not exist.
+[0m[0m06:38:07,322 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 66) WFLYCLINF0002: Started client-mappings cache from ejb container
+[0m[0m06:38:08,179 INFO  [org.keycloak.services] (ServerService Thread Pool -- 66) KC-SERVICES0001: Loading config from standalone.xml or domain.xml
+[0m[0m06:38:08,239 INFO  [org.keycloak.common.Profile] (ServerService Thread Pool -- 66) Preview feature enabled: admin_fine_grained_authz
+[0m[0m06:38:08,240 INFO  [org.keycloak.common.Profile] (ServerService Thread Pool -- 66) Preview feature enabled: token_exchange
+[0m[0m06:38:08,630 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 66) WFLYCLINF0002: Started realmRevisions cache from keycloak container
+[0m[0m06:38:08,634 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 66) WFLYCLINF0002: Started userRevisions cache from keycloak container
+[0m[0m06:38:08,642 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 66) WFLYCLINF0002: Started authorizationRevisions cache from keycloak container
+[0m[0m06:38:08,644 INFO  [org.keycloak.connections.infinispan.DefaultInfinispanConnectionProviderFactory] (ServerService Thread Pool -- 66) Node name: keycloak-95949f685-wqfvz, Site name: null
+[0m[0m06:38:11,894 INFO  [org.keycloak.connections.jpa.updater.liquibase.LiquibaseJpaUpdaterProvider] (ServerService Thread Pool -- 66) Initializing database schema. Using changelog META-INF/jpa-changelog-master.xml
+[0m[0m06:38:14,229 INFO  [org.hibernate.jpa.internal.util.LogHelper] (ServerService Thread Pool -- 66) HHH000204: Processing PersistenceUnitInfo [
+	name: keycloak-default
+	...]
+[0m[0m06:38:14,288 INFO  [org.hibernate.Version] (ServerService Thread Pool -- 66) HHH000412: Hibernate Core {5.3.9.Final}
+[0m[0m06:38:14,290 INFO  [org.hibernate.cfg.Environment] (ServerService Thread Pool -- 66) HHH000206: hibernate.properties not found
+[0m[0m06:38:14,405 INFO  [org.hibernate.annotations.common.Version] (ServerService Thread Pool -- 66) HCANN000001: Hibernate Commons Annotations {5.0.5.Final}
+[0m[0m06:38:14,578 INFO  [org.hibernate.dialect.Dialect] (ServerService Thread Pool -- 66) HHH000400: Using dialect: org.hibernate.dialect.PostgreSQL95Dialect
+[0m[0m06:38:14,723 INFO  [org.hibernate.engine.jdbc.env.internal.LobCreatorBuilderImpl] (ServerService Thread Pool -- 66) HHH000424: Disabling contextual LOB creation as createClob() method threw error : java.lang.reflect.InvocationTargetException
+[0m[0m06:38:14,728 INFO  [org.hibernate.type.BasicTypeRegistry] (ServerService Thread Pool -- 66) HHH000270: Type registration [java.util.UUID] overrides previous : org.hibernate.type.UUIDBinaryType@67a7b9d3
+[0m[0m06:38:14,733 INFO  [org.hibernate.envers.boot.internal.EnversServiceImpl] (ServerService Thread Pool -- 66) Envers integration enabled? : true
+[0m[0m06:38:15,338 INFO  [org.hibernate.orm.beans] (ServerService Thread Pool -- 66) HHH10005002: No explicit CDI BeanManager reference was passed to Hibernate, but CDI is available on the Hibernate ClassLoader.
+[0m[0m06:38:15,397 INFO  [org.hibernate.validator.internal.util.Version] (ServerService Thread Pool -- 66) HV000001: Hibernate Validator 6.0.15.Final
+[0m[0m06:38:17,076 INFO  [org.hibernate.hql.internal.QueryTranslatorFactoryInitiator] (ServerService Thread Pool -- 66) HHH000397: Using ASTQueryTranslatorFactory
+[0m[0m06:38:17,614 INFO  [org.keycloak.services] (ServerService Thread Pool -- 66) KC-SERVICES0050: Initializing master realm
+[0m[0m06:38:19,095 INFO  [org.keycloak.services] (ServerService Thread Pool -- 66) KC-SERVICES0006: Importing users from '/opt/jboss/keycloak/standalone/configuration/keycloak-add-user.json'
+[0m[0m06:38:19,527 INFO  [org.keycloak.services] (ServerService Thread Pool -- 66) KC-SERVICES0009: Added user 'admin' to realm 'master'
+[0m[0m06:38:19,569 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002225: Deploying javax.ws.rs.core.Application: class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,571 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002200: Adding class resource org.keycloak.services.resources.ThemeResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,571 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002200: Adding class resource org.keycloak.services.resources.JsResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,571 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002205: Adding provider class org.keycloak.services.filters.KeycloakTransactionCommitter from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,572 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002205: Adding provider class org.keycloak.services.error.KeycloakErrorHandler from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,572 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.RobotsResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,572 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.admin.AdminRoot from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,572 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.RealmsResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,573 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.WelcomeResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,573 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 66) RESTEASY002210: Adding provider singleton org.keycloak.services.util.ObjectMapperResolver from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m06:38:19,661 INFO  [org.wildfly.extension.undertow] (ServerService Thread Pool -- 66) WFLYUT0021: Registered web context: '/auth' for server 'default-server'
+[0m[0m06:38:19,733 INFO  [org.jboss.as.server] (ServerService Thread Pool -- 32) WFLYSRV0010: Deployed "openshift4-extension-6.0.1.jar" (runtime-name : "openshift4-extension-6.0.1.jar")
+[0m[0m06:38:19,734 INFO  [org.jboss.as.server] (ServerService Thread Pool -- 42) WFLYSRV0010: Deployed "keycloak-server.war" (runtime-name : "keycloak-server.war")
+[0m[0m06:38:19,821 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m06:38:19,824 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0060: Http management interface listening on http://127.0.0.1:9990/management
+[0m[0m06:38:19,825 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0051: Admin console listening on http://127.0.0.1:9990
+[0m[0m06:38:19,826 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 6.0.1 (WildFly Core 8.0.0.Final) started in 18333ms - Started 617 of 880 services (563 services are lazy, passive or on-demand)
