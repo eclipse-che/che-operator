@@ -52,9 +52,6 @@ import (
 )
 
 var log = logf.Log.WithName("controller_che")
-var (
-	k8sclient = util.GetK8Client()
-)
 
 // Add creates a new CheCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -552,13 +549,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		if k8sclient.IsPVCExists(deploy.DefaultPostgresVolumeClaimName, instance.Namespace) {
-			k8sclient.DeletePVC(deploy.DefaultPostgresVolumeClaimName, instance.Namespace)
+		if util.K8sclient.IsPVCExists(deploy.DefaultPostgresVolumeClaimName, instance.Namespace) {
+			util.K8sclient.DeletePVC(deploy.DefaultPostgresVolumeClaimName, instance.Namespace)
 		}
 	} else {
 		if !tests {
-			if k8sclient.IsPVCExists(deploy.DefaultCheVolumeClaimName, instance.Namespace) {
-				k8sclient.DeletePVC(deploy.DefaultCheVolumeClaimName, instance.Namespace)
+			if util.K8sclient.IsPVCExists(deploy.DefaultCheVolumeClaimName, instance.Namespace) {
+				util.K8sclient.DeletePVC(deploy.DefaultCheVolumeClaimName, instance.Namespace)
 			}
 		}
 	}
@@ -567,8 +564,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	externalDB := instance.Spec.Database.ExternalDb
 	if !externalDB {
 		if cheMultiUser == "false" {
-			if k8sclient.IsDeploymentExists(deploy.PostgresDeploymentName, instance.Namespace) {
-				k8sclient.DeleteDeployment(deploy.PostgresDeploymentName, instance.Namespace)
+			if util.K8sclient.IsDeploymentExists(deploy.PostgresDeploymentName, instance.Namespace) {
+				util.K8sclient.DeleteDeployment(deploy.PostgresDeploymentName, instance.Namespace)
 			}
 		} else {
 			postgresLabels := deploy.GetLabels(instance, deploy.PostgresDeploymentName)
@@ -615,7 +612,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if !tests {
 				identityProviderPostgresSecret := instance.Spec.Auth.IdentityProviderPostgresSecret
 				if len(identityProviderPostgresSecret) > 0 {
-					_, password, err := k8sclient.ReadSecret(identityProviderPostgresSecret, instance.Namespace)
+					_, password, err := util.K8sclient.ReadSecret(identityProviderPostgresSecret, instance.Namespace)
 					if err != nil {
 						logrus.Errorf("Failed to read '%s' secret: %s", identityProviderPostgresSecret, err)
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
@@ -626,12 +623,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				dbStatus := instance.Status.DbProvisoned
 				// provision Db and users for Che and Keycloak servers
 				if !dbStatus {
-					podToExec, err := k8sclient.GetDeploymentPod(deploy.PostgresDeploymentName, instance.Namespace)
+					podToExec, err := util.K8sclient.GetDeploymentPod(deploy.PostgresDeploymentName, instance.Namespace)
 					if err != nil {
 						return reconcile.Result{}, err
 					}
-					provisioned := ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
-					if provisioned {
+					_, err = util.K8sclient.ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
+					if err == nil {
 						for {
 							instance.Status.DbProvisoned = true
 							if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
@@ -721,8 +718,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if !ExternalKeycloak {
 		if cheMultiUser == "false" {
-			if k8sclient.IsDeploymentExists("keycloak", instance.Namespace) {
-				k8sclient.DeleteDeployment("keycloak", instance.Namespace)
+			if util.K8sclient.IsDeploymentExists("keycloak", instance.Namespace) {
+				util.K8sclient.DeleteDeployment("keycloak", instance.Namespace)
 			}
 		} else {
 			keycloakLabels := deploy.GetLabels(instance, "keycloak")
@@ -806,10 +803,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			if !tests {
-				keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
-				if !keycloakRealmClientStatus {
-					if err := r.CreateKeycloakResources(instance, request, deploy.KeycloakDeploymentName); err != nil {
-						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+				if !instance.Status.KeycloakProvisoned {
+					if err := deploy.ProvisionKeycloakResources(instance, clusterAPI); err != nil {
+						logrus.Error(err)
+						return reconcile.Result{RequeueAfter: time.Second}, err
+					}
+
+					for {
+						instance.Status.KeycloakProvisoned = true
+						if err := r.UpdateCheCRStatus(instance, "status: provisioned with Keycloak", "true"); err != nil &&
+							errors.IsConflict(err) {
+							instance, _ = r.GetCR(request)
+							continue
+						}
+						break
 					}
 				}
 			}
@@ -1324,7 +1331,7 @@ func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *htt
 	proxyUser := instance.Spec.Server.ProxyUser
 	proxyPassword := instance.Spec.Server.ProxyPassword
 	proxySecret := instance.Spec.Server.ProxySecret
-	user, password, err := k8sclient.ReadSecret(proxySecret, instance.Namespace)
+	user, password, err := util.K8sclient.ReadSecret(proxySecret, instance.Namespace)
 	if err == nil {
 		proxyUser = user
 		proxyPassword = password

@@ -101,13 +101,13 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 			logrus.Errorf("Failed to build identity provider provisioning command")
 			return err
 		}
-		podToExec, err := k8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
+		podToExec, err := util.K8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
 		if err != nil {
 			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
 			return err
 		}
-		provisioned := ExecIntoPod(podToExec, openShiftIdentityProviderCommand, "create OpenShift identity provider", instance.Namespace)
-		if provisioned {
+		_, err = util.K8sclient.ExecIntoPod(podToExec, openShiftIdentityProviderCommand, "create OpenShift identity provider", instance.Namespace)
+		if err == nil {
 			for {
 				instance.Status.OpenShiftoAuthProvisioned = true
 				if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
@@ -118,7 +118,7 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 				break
 			}
 		}
-		return nil
+		return err
 	}
 	return nil
 }

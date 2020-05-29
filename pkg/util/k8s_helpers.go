@@ -30,6 +30,10 @@ type k8s struct {
 	clientset kubernetes.Interface
 }
 
+var (
+	K8sclient = GetK8Client()
+)
+
 func GetK8Client() *k8s {
 	tests := IsTestMode()
 	if !tests {
@@ -47,6 +51,25 @@ func GetK8Client() *k8s {
 		return &client
 	}
 	return nil
+}
+
+func (cl *k8s) ExecIntoPod(podName string, command string, reason string, namespace string) (string, error) {
+	if reason != "" {
+		logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
+	}
+
+	args := []string{"/bin/bash", "-c", command}
+	stdout, stderr, err := cl.RunExec(args, podName, namespace)
+	if err != nil {
+		logrus.Errorf("Error running exec: %v, command: %s", err, args)
+		logrus.Errorf("Stderr: %s", stderr)
+		return stdout, err
+	}
+
+	if reason != "" {
+		logrus.Info("Exec successfully completed.")
+	}
+	return stdout, nil
 }
 
 // GetEvents returns a list of events filtered by involvedObject
