@@ -15,6 +15,10 @@ trap 'Catch_Finish $?' EXIT SIGINT
 # Catch errors and force to delete minikube VM.
 Catch_Finish() {
   rm -rf ~/.kube && yes | minikube delete
+  printInfo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
+  printInfo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/devtools-che-operator-olm-pr-check/${ghprbPullId}/"
+  exit 1
+  archiveArtifacts "che-operator-olm-pr-check"
 }
 
 init() {
