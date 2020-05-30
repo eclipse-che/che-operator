@@ -14,7 +14,8 @@
 # NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
 FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.4-18  as builder
-ENV GOPATH=/go/
+ENV PATH=/opt/rh/go-toolset-1.13/root/usr/bin:${PATH} \
+    GOPATH=/go/
 
 USER root
 ADD . /che-operator
