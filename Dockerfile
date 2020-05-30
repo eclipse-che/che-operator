@@ -13,25 +13,19 @@
 # NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
 # NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.12.12-4  as builder
-ENV PATH=/opt/rh/go-toolset-1.12/root/usr/bin:$PATH \
-    GOPATH=/go/
+FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.4-18  as builder
+ENV GOPATH=/go/
 
 USER root
 ADD . /che-operator
-
-RUN case $(uname -m) in \
-       x86_64) ARCH="amd64" ;; \
-       s390x) ARCH="s390x";; \
-esac
-
 WORKDIR /che-operator
 
-# do no break RUN lines when building with UBI base images. https://projects.engineering.redhat.com/browse/OSBS-7398 & OSBS-7399
-RUN export MOCK_API=true && go test -mod=vendor -v ./... && OOS=linux GOARCH=$ARCH CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
+RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; fi && \
+    export MOCK_API=true && go test -mod=vendor -v ./... && \
+    GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.1-409
+FROM registry.access.redhat.com/ubi8-minimal:8.2-267
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /che-operator/templates/keycloak_provision /tmp/keycloak_provision
