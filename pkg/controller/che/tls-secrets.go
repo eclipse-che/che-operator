@@ -233,7 +233,7 @@ func CheckAndUpdateTLSConfiguration(checluster *orgv1.CheCluster, clusterAPI dep
 }
 
 func deleteJob(job *batchv1.Job, checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) {
-	names := util.K8sclient.GetPodsByComponent(CheTlsJobComponentName, checluster.Namespace)
+	names := util.K8sclient.GetPodsByComponent(CheTLSJobComponentName, checluster.Namespace)
 	for _, podName := range names {
 		pod := &corev1.Pod{}
 		err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: checluster.Namespace}, pod)
