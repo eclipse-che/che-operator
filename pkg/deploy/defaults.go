@@ -101,7 +101,6 @@ func InitDefaultsFromEnv() {
 	defaultCheServerImage = getDefaultFromEnv("IMAGE_default_che_server")
 	defaultPluginRegistryImage = getDefaultFromEnv("IMAGE_default_plugin_registry")
 	defaultDevfileRegistryImage = getDefaultFromEnv("IMAGE_default_devfile_registry")
-	defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv("IMAGE_default_che_tls_secrets_creation_job")
 	defaultPvcJobsImage = getDefaultFromEnv("IMAGE_default_pvc_jobs")
 	defaultPostgresImage = getDefaultFromEnv("IMAGE_default_postgres")
 	defaultKeycloakImage = getDefaultFromEnv("IMAGE_default_keycloak")
@@ -112,6 +111,11 @@ func InitDefaultsFromEnv() {
 	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_metadata")
 	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_artifacts")
 	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+
+	// Don't get some k8s specific env
+	if !util.IsOpenShift {
+		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv("IMAGE_default_che_tls_secrets_creation_job")
+	}
 }
 
 func InitDefaultsFromFile(defaultsPath string) {
@@ -121,13 +125,17 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server")
 	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_plugin_registry")
 	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_devfile_registry")
-	defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_tls_secrets_creation_job")
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_pvc_jobs")
 	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_postgres")
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_keycloak")
 	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_workspace_plugin_broker_metadata")
 	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_workspace_plugin_broker_artifacts")
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+
+	// Don't get some k8s specific env
+	if !util.IsOpenShift {
+		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_tls_secrets_creation_job")
+	}
 }
 
 func getDefaultsFromFile(defaultsPath string) *v1.Deployment {
