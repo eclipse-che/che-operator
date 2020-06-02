@@ -113,7 +113,7 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		"keytool -importcert -alias MOUNTEDSERVICECRT" +
 		" -keystore " + jbossDir + "/openshift.jks" +
 		" -file /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt -storepass " + trustpass + " -noprompt; fi"
-	importJavaCacerts := "keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts" +
+	importJavaCacerts := "keytool -importkeystore -srckeystore /etc/pki/ca-trust/extracted/java/cacerts" +
 		" -destkeystore " + jbossDir + "/openshift.jks" +
 		" -srcstorepass changeit -deststorepass " + trustpass
 
