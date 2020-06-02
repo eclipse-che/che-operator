@@ -34,7 +34,8 @@ import (
 )
 
 var (
-	k8sclient = GetK8Client()
+	k8sclient                    = GetK8Client()
+	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
 )
 
 func ContainsString(slice []string, s string) bool {
