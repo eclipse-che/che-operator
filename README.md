@@ -37,6 +37,44 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
     ingressDomain: '192.168.99.101.nip.io'
 ```
 
+### How to test operator via OLM
+
+The following instructions show how to test Che operator under development using OLM installer.
+Steps below are applicable to Openshift infrastructure only.
+
+1. Build your custom operator image
+```sh
+docker build -t user/che-operator .
+```
+and push it to a docker registry.
+
+2. Specify your operator image.
+Open deploy/operator.yaml, replace default operator image `quay.io/eclipse/che-operator:nightly` with yours (say, `docker.io/user/che-operator:latest`).
+
+3. Create newer OLM files by executing: `olm/update-nightly-olm-files.sh`
+
+4. Build catalog source image.
+Go to `olm/eclipse-che-preview-openshift` folder and build the image: `docker build -t user/custom-catalog-source:latest .`
+Push it into your docker registry.
+
+5. Create custom catalog source yaml:
+```yaml
+apiVersion:  operators.coreos.com/v1alpha1
+kind:         CatalogSource
+metadata:
+  name:         eclipse-che-preview-openshift
+  namespace:    che-namespace
+spec:
+  image:        docker.io/user/custom-catalog-source:latest
+  sourceType:  grpc
+```
+Replace value of `image` field with your catalog source image.
+
+6. Deploy Che using chectl:
+```sh
+chectl server:start --installer=olm --multiuser --platform=openshift -n che-namespace --catalog-source-yaml /home/user/path/to/custom-catalog-source.yaml --olm-channel=nightly --package-manifest-name=eclipse-che-preview-openshift
+```
+
 ### OpenShift oAuth
 
 Bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
@@ -164,4 +202,4 @@ TODO: add more scenarios
 
 
 
-   
+
