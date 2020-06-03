@@ -11,6 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
+set -x
 
 REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
@@ -30,8 +31,7 @@ fi
 for platform in 'kubernetes' 'openshift'
 do
   packageName="eclipse-che-preview-${platform}"
-  echo
-  echo "## Creating release '${RELEASE}' of the OperatorHub package '${packageName}' for platform '${platform}'"
+  echo "[INFO] Creating release '${RELEASE}' of the OperatorHub package '${packageName}' for platform '${platform}'"
 
   packageBaseFolderPath="${BASE_DIR}/${packageName}"
   cd "${packageBaseFolderPath}"
@@ -40,16 +40,24 @@ do
   packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
   lastPackageNightlyVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
-  echo "   - Last package nightly version: ${lastPackageNightlyVersion}"
-  echo "   - Last package pre-release version: ${lastPackagePreReleaseVersion}"
+  echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
+  echo "[INFO] Last package pre-release version: ${lastPackagePreReleaseVersion}"
+
   if [ "${lastPackagePreReleaseVersion}" == "${RELEASE}" ]
   then
-    echo "Release ${RELEASE} already exists in the package !"
-    echo "You should first remove it"
+    echo "[ERROR] Release ${RELEASE} already exists in the package !"
+    echo "[ERROR] You should first remove it"
     exit 1
   fi
 
-  echo "     => will create release '${RELEASE}' from nightly version '${lastPackageNightlyVersion}' that will replace previous release '${lastPackagePreReleaseVersion}'"
+  echo "[INFO] Will create release '${RELEASE}' from nightly version '${lastPackageNightlyVersion}' that will replace previous release '${lastPackagePreReleaseVersion}'"
+
+  LAST_NIGHTLY_CSV="${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.v${lastPackageNightlyVersion}.clusterserviceversion.yaml"
+  PRE_RELEASE_CSV="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
+  RELEASE_CSV="${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
+  LAST_NIGHTLY_CRD="${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml"
+  PRE_RELEASE_CRD="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml"
+  RELEASE_CRD="${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
 
   mkdir -p "${packageFolderPath}/${RELEASE}"
   sed \
@@ -64,23 +72,19 @@ do
   -e "s/: nightly/: ${RELEASE}/" \
   -e "s/:nightly/:${RELEASE}/" \
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
-  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" \
-  "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.v${lastPackageNightlyVersion}.clusterserviceversion.yaml" \
-  > "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
+  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" ${LAST_NIGHTLY_CSV} > ${RELEASE_CSV}
 
-  echo "   - Copying the CRD file"
-  cp "${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml" \
-  "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
-  echo "   - Updating the 'stable' channel with new release in the package descriptor: ${packageFilePath}"
+  cp ${LAST_NIGHTLY_CRD} ${RELEASE_CRD}
+  if [[ $platform == "openshift" ]]; then
+    yq -riSY  '.spec.preserveUnknownFields = false' ${RELEASE_CRD}
+    yq -riSY  '.spec.validation.openAPIV3Schema.type = "object"' ${RELEASE_CRD}
+    eval head -10 ${LAST_NIGHTLY_CRD} | cat - ${RELEASE_CRD} > tmp && mv tmp ${RELEASE_CRD}
+  fi
+
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
 
-  diff -u "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
-  "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml" \
-  > "${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml.diff" || true
-
-  diff -u "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
-  "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml" \
-  > "${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml.diff" || true
+  diff -u ${PRE_RELEASE_CSV} ${RELEASE_CSV} > ${RELEASE_CSV}".diff" || true
+  diff -u ${PRE_RELEASE_CRD} ${RELEASE_CRD} > ${RELEASE_CRD}".diff" || true
 done
 cd "${CURRENT_DIR}"
