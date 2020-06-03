@@ -83,16 +83,18 @@ Make sure your current user has cluster-admin privileges.
 
 ### TLS
 
+TLS is enabled by default.
+Turning it off is not recommended as it will cause malfunction of some components (for example Che Theia web-views).
+
 #### OpenShift
 
-When using self-signed certificates make sure you set `server.selfSignedCert` to true
-or create a secret called `self-signed-certificate` in a target namespace with ca.crt holding your OpenShift router crt body.
-When `server.selfSignedCert` the operator will create a test TLS route, GET it, extract certificate chain, convert to a secret `self-signed-certificate`,
-and Che/CRW server will automatically add it to Java trust store.
+When the cluster is configured to use self-signed certificates for the router, the certificate will be automatically propogated to Che components as trusted.
+If cluster router uses certificate signed by self-signed one, then parent/root CA certificate should be added into corresponding config map of additional trusted certificates (see `serverTrustStoreConfigMapName` option).
 
 #### K8S
 
-When enabling TLS, make sure you create a secret with crt and key, and let the Operator know about it in `k8s.tlsSecretName`
+By default self-signed certificates for Che will be generated automatically.
+If it is needed to use own certificates, create `che-tls` secret (see `k8s.tlsSecretName` option) with `key.crt` and `tls.crt` fields. In case of self-signed certificate `self-signed-certificate` secret should be created with public part of CA certificate under `ca.crt` key in secret data.
 
 ## How to Configure
 

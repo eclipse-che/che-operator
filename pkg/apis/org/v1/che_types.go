@@ -109,12 +109,9 @@ type CheClusterSpecServer struct {
 	// It's NOT RECOMMENDED to configured true without OAuth configured. This property is also used by the OpenShift infra.
 	// +optional
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
-	// Enables the support of OpenShift clusters whose router uses self-signed certificates.
-	// When enabled, the operator retrieves the default self-signed certificate of OpenShift routes
-	// and adds it to the Java trust store of the Che server.
-	// This is usually required when activating the `tlsSupport` field on demo OpenShift clusters
-	// that have not been setup with a valid certificate for the routes.
-	// This is disabled by default.
+	// Obsolete. The value of this flag is ignored.
+	// Che operator will automatically detect if router certificate is self-signed.
+	// If so it will be propagated to Che server and some other components.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// Name of the config-map with public certificates
@@ -130,9 +127,9 @@ type CheClusterSpecServer struct {
 	// configuration for Git.
 	// +optional
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
-	// Instructs the operator to deploy Che in TLS mode, ie with TLS routes or ingresses.
-	// This is disabled by default.
-	// WARNING: Enabling TLS might require enabling the `selfSignedCert` field also in some cases.
+	// Instructs the operator to deploy Che in TLS mode.
+	// This is enabled by default.
+	// Deprecated. Disabling TLS may cause malfunction of some Che components (Che Theia web-views).
 	// +optional
 	TlsSupport bool `json:"tlsSupport"`
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
@@ -475,7 +472,7 @@ type CheCluster struct {
 	// several config maps that will contain the appropriate environment variables
 	// the various components of the Che installation.
 	// These generated config maps should NOT be updated manually.
-	Spec   CheClusterSpec   `json:"spec,omitempty"`
+	Spec CheClusterSpec `json:"spec,omitempty"`
 
 	// CheClusterStatus defines the observed state of Che installation
 	Status CheClusterStatus `json:"status,omitempty"`

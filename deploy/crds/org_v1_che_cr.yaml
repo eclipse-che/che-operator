@@ -30,15 +30,12 @@ spec:
     # specifies a custom cluster role to user for the Che workspaces
     # Uses the default roles if left blank.
     cheWorkspaceClusterRole: ''
-    # when set to true the operator will attempt to get a secret in OpenShift router namespace
-    # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
-    selfSignedCert: false
     # Name of the config-map with public certificates to add to Java trust store of the Che server.
     serverTrustStoreConfigMapName: ''
     # If enabled then the certificate from `che-git-self-signed-cert` config map
     # will be propagated to the Che components and provide particular configuration for Git.
     gitSelfSignedCert: false
-    # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
+    # TLS mode for Che. It is not recommended to turn this off.
     tlsSupport: true
     # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
     # to Che server and workspaces containers
