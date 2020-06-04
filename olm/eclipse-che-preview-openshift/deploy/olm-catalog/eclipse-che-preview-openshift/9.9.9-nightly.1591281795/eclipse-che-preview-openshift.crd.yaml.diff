@@ -1,0 +1,33 @@
+--- /home/mmorhun/projects/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1590584464/eclipse-che-preview-openshift.crd.yaml	2020-05-29 13:12:52.507438707 +0300
++++ /home/mmorhun/projects/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1591281795/eclipse-che-preview-openshift.crd.yaml	2020-06-04 17:43:15.171155003 +0300
+@@ -422,13 +422,9 @@
+                     a proxy is required (see also the `proxyURL` `proxySecret` fields).
+                   type: string
+                 selfSignedCert:
+-                  description: Enables the support of OpenShift clusters whose router
+-                    uses self-signed certificates. When enabled, the operator retrieves
+-                    the default self-signed certificate of OpenShift routes and adds
+-                    it to the Java trust store of the Che server. This is usually
+-                    required when activating the `tlsSupport` field on demo OpenShift
+-                    clusters that have not been setup with a valid certificate for
+-                    the routes. This is disabled by default.
++                  description: Obsolete. The value of this flag is ignored. Che operator
++                    will automatically detect if router certificate is self-signed.
++                    If so it will be propagated to Che server and some other components.
+                   type: boolean
+                 serverMemoryLimit:
+                   description: Overrides the memory limit used in the Che server deployment.
+@@ -446,10 +442,9 @@
+                     its CA cert to be able to request it. This is disabled by default.
+                   type: string
+                 tlsSupport:
+-                  description: 'Instructs the operator to deploy Che in TLS mode,
+-                    ie with TLS routes or ingresses. This is disabled by default.
+-                    WARNING: Enabling TLS might require enabling the `selfSignedCert`
+-                    field also in some cases.'
++                  description: Instructs the operator to deploy Che in TLS mode. This
++                    is enabled by default. Deprecated. Disabling TLS may cause malfunction
++                    of some Che components.
+                   type: boolean
+                 workspaceNamespaceDefault:
+                   description: 'Defines Kubernetes default namespace in which user''s

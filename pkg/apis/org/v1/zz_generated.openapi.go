@@ -457,7 +457,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"selfSignedCert": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Enables the support of OpenShift clusters whose router uses self-signed certificates. When enabled, the operator retrieves the default self-signed certificate of OpenShift routes and adds it to the Java trust store of the Che server. This is usually required when activating the `tlsSupport` field on demo OpenShift clusters that have not been setup with a valid certificate for the routes. This is disabled by default.",
+							Description: "Obsolete. The value of this flag is ignored. Che operator will automatically detect if router certificate is self-signed. If so it will be propagated to Che server and some other components.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -478,7 +478,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"tlsSupport": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Instructs the operator to deploy Che in TLS mode, ie with TLS routes or ingresses. This is disabled by default. WARNING: Enabling TLS might require enabling the `selfSignedCert` field also in some cases.",
+							Description: "Instructs the operator to deploy Che in TLS mode. This is enabled by default. Deprecated. Disabling TLS may cause malfunction of some Che components.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
