@@ -84,7 +84,7 @@ Make sure your current user has cluster-admin privileges.
 ### TLS
 
 TLS is enabled by default.
-Turning it off is not recommended as it will cause malfunction of some components (for example Che Theia web-views).
+Turning it off is not recommended as it will cause malfunction of some components.
 
 #### OpenShift
 

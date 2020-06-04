@@ -128,7 +128,7 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, clus
 		// Cleanup route after job done.
 		defer func() {
 			logrus.Infof("Deleting a test route %s to extract routes crt", routeStatus.Route.Name)
-			if err := clusterAPI.Client.Delete(context.TODO(), routeStatus.Route); err != nil {
+			if err := clusterAPI.Client.Delete(context.TODO(), routeStatus.Route); err != nil && !errors.IsNotFound(err) {
 				logrus.Errorf("Failed to delete test route %s: %s", routeStatus.Route.Name, err)
 			}
 		}()

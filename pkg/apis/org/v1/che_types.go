@@ -129,7 +129,7 @@ type CheClusterSpecServer struct {
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Instructs the operator to deploy Che in TLS mode.
 	// This is enabled by default.
-	// Deprecated. Disabling TLS may cause malfunction of some Che components (Che Theia web-views).
+	// Deprecated. Disabling TLS may cause malfunction of some Che components.
 	// +optional
 	TlsSupport bool `json:"tlsSupport"`
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
