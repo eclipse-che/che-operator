@@ -125,11 +125,18 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, clus
 		}
 		requestURL = "https://" + routeStatus.Route.Spec.Host
 
-		// Cleanup route after job done.
+		// Cleanup route after the job done.
 		defer func() {
-			logrus.Infof("Deleting a test route %s to extract routes crt", routeStatus.Route.Name)
-			if err := clusterAPI.Client.Delete(context.TODO(), routeStatus.Route); err != nil && !errors.IsNotFound(err) {
-				logrus.Errorf("Failed to delete test route %s: %s", routeStatus.Route.Name, err)
+			// Wait before deleting the route some time.
+			// This is an optimization to avoid often route creation/deletion in case when required to test route certificates.
+			// Mostly needed for case with commonly trusted cetificates.
+			time.Sleep(time.Minute)
+			if err := clusterAPI.Client.Delete(context.TODO(), routeStatus.Route); err != nil {
+				if !errors.IsNotFound(err) {
+					logrus.Errorf("Failed to delete test route %s: %s", routeStatus.Route.Name, err)
+				}
+			} else {
+				logrus.Infof("Deleted a test route %s to extract routes crt", routeStatus.Route.Name)
 			}
 		}()
 
