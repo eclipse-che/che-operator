@@ -70,8 +70,7 @@ func IsSelfSignedCertificateUsed(checluster *orgv1.CheCluster, clusterAPI Cluste
 		}
 
 		// Check the chain if ti contains self-signed CA certificate
-		for i := range peerCertificates {
-			cert := peerCertificates[i]
+		for _, cert := range peerCertificates {
 			if cert.Subject.String() == cert.Issuer.String() {
 				// Self-signed CA certificate is found in the chain
 				return true, nil
