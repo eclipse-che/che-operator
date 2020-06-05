@@ -457,7 +457,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"selfSignedCert": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Obsolete. The value of this flag is ignored. Che operator will automatically detect if router certificate is self-signed. If so it will be propagated to Che server and some other components.",
+							Description: "Deprecated. The value of this flag is ignored. Che operator will automatically detect if router certificate is self-signed. If so it will be propagated to Che server and some other components.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -478,7 +478,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"tlsSupport": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Instructs the operator to deploy Che in TLS mode. This is enabled by default. Deprecated. Disabling TLS may cause malfunction of some Che components.",
+							Description: "Deprecated. Instructs the operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS may cause malfunction of some Che components.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

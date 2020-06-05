@@ -109,7 +109,7 @@ type CheClusterSpecServer struct {
 	// It's NOT RECOMMENDED to configured true without OAuth configured. This property is also used by the OpenShift infra.
 	// +optional
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
-	// Obsolete. The value of this flag is ignored.
+	// Deprecated. The value of this flag is ignored.
 	// Che operator will automatically detect if router certificate is self-signed.
 	// If so it will be propagated to Che server and some other components.
 	// +optional
@@ -127,9 +127,10 @@ type CheClusterSpecServer struct {
 	// configuration for Git.
 	// +optional
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
+	// Deprecated.
 	// Instructs the operator to deploy Che in TLS mode.
 	// This is enabled by default.
-	// Deprecated. Disabling TLS may cause malfunction of some Che components.
+	// Disabling TLS may cause malfunction of some Che components.
 	// +optional
 	TlsSupport bool `json:"tlsSupport"`
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
