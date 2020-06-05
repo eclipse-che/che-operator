@@ -24,6 +24,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http/httpproxy"
 	batchv1 "k8s.io/api/batch/v1"
@@ -110,35 +111,40 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, clus
 	}
 
 	var requestURL string
-
 	if len(endpointURL) < 1 {
-		var routeStatus RouteProvisioningStatus
-
-		for wait := true; wait; {
-			routeStatus = SyncRouteToCluster(instance, "test", "test", 8080, clusterAPI)
-			if routeStatus.Err != nil {
-				return nil, routeStatus.Err
-			}
-			wait = !routeStatus.Continue || len(routeStatus.Route.Spec.Host) == 0
-			time.Sleep(time.Duration(1) * time.Second)
+		// Create test route to get certificates chain.
+		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
+		routeSpec, err := GetSpecRoute(instance, "test", "test", 8080, clusterAPI)
+		if err != nil {
+			return nil, err
 		}
-		requestURL = "https://" + routeStatus.Route.Spec.Host
+		// Remove controller reference to prevent queueing new reconcile loop
+		routeSpec.SetOwnerReferences(nil)
+		// Create route manually
+		if err := clusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
+			logrus.Errorf("Failed to create test route 'test': %s", err)
+			return nil, err
+		}
 
-		// Cleanup route after the job done.
+		// Schedule test route cleanup after the job done.
 		defer func() {
-			// Wait before deleting the route some time.
-			// This is an optimization to avoid often route creation/deletion in case when required to test route certificates.
-			// Mostly needed for case with commonly trusted cetificates.
-			time.Sleep(time.Minute)
-			if err := clusterAPI.Client.Delete(context.TODO(), routeStatus.Route); err != nil {
-				if !errors.IsNotFound(err) {
-					logrus.Errorf("Failed to delete test route %s: %s", routeStatus.Route.Name, err)
-				}
-			} else {
-				logrus.Infof("Deleted a test route %s to extract routes crt", routeStatus.Route.Name)
+			if err := clusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
+				logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
 			}
 		}()
 
+		// Wait till route is ready
+		var route *routev1.Route
+		for wait := true; wait; {
+			time.Sleep(time.Duration(1) * time.Second)
+			route, err = GetClusterRoute(routeSpec.Name, routeSpec.Namespace, clusterAPI.Client)
+			if err != nil {
+				return nil, err
+			}
+			wait = len(route.Spec.Host) == 0
+		}
+
+		requestURL = "https://" + route.Spec.Host
 	} else {
 		requestURL = endpointURL
 	}
