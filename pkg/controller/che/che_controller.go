@@ -13,14 +13,9 @@ package che
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/pem"
 	"fmt"
-	"net/http"
-	"net/url"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -32,7 +27,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/http/httpproxy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -313,22 +307,68 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// Handle Che TLS certificates on Kubernetes like infrastructures
-	if instance.Spec.Server.TlsSupport && instance.Spec.Server.SelfSignedCert && !isOpenShift {
+	cheFlavor := deploy.DefaultCheFlavor(instance)
+	cheDeploymentName := cheFlavor
+
+	if !isOpenShift && instance.Spec.Server.TlsSupport {
 		// Ensure TLS configuration is correct
-		if err := CheckAndUpdateTLSConfiguration(instance, clusterAPI); err != nil {
+		if err := deploy.CheckAndUpdateK8sTLSConfiguration(instance, clusterAPI); err != nil {
 			instance, _ = r.GetCR(request)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
+	}
 
-		// Create TLS secrets if needed
-		result, err := HandleCheTLSSecrets(instance, clusterAPI)
-		if result.Requeue || result.RequeueAfter > 0 {
-			if err != nil {
-				logrus.Error(err)
+	// Detect whether self-signed certificate is used
+	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(instance, clusterAPI)
+	if err != nil {
+		logrus.Errorf("Failed to detect if self-signed certificate used. Cause: %v", err)
+		return reconcile.Result{}, err
+	}
+
+	if isOpenShift {
+		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
+		if selfSignedCertUsed ||
+			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
+			// and NOT from the Openshift API Master URL (as in v3)
+			// So we also need the self-signed certificate to access them (same as the Che server)
+			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
+			if err := deploy.CreateTLSSecretFromRoute(instance, "", deploy.CheTLSSelfSignedCertificateSecretName, clusterAPI); err != nil {
+				return reconcile.Result{}, err
 			}
-			if !tests {
-				return result, err
+		}
+
+		if !tests {
+			deployment := &appsv1.Deployment{}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentName, Namespace: instance.Namespace}, deployment)
+			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
+				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
+			}
+		}
+
+		if instance.Spec.Auth.OpenShiftoAuth {
+			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
+			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
+			if err != nil {
+				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
+			} else {
+				if err := deploy.CreateTLSSecretFromRoute(instance, baseURL, "openshift-api-crt", clusterAPI); err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+		}
+	} else {
+		// Handle Che TLS certificates on Kubernetes infrastructure
+		if instance.Spec.Server.TlsSupport {
+			result, err := deploy.K8sHandleCheTLSSecrets(instance, clusterAPI)
+			if result.Requeue || result.RequeueAfter > 0 {
+				if err != nil {
+					logrus.Error(err)
+				}
+				if !tests {
+					return result, err
+				}
 			}
 		}
 	}
@@ -390,43 +430,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil
-	}
-
-	cheFlavor := deploy.DefaultCheFlavor(instance)
-	cheDeploymentName := cheFlavor
-	if isOpenShift {
-		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-		if instance.Spec.Server.SelfSignedCert ||
-			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
-			// and NOT from the Openshift API Master URL (as in v3)
-			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
-			if err := r.CreateTLSSecret(instance, "", "self-signed-certificate", clusterAPI); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-
-		if !tests {
-			deployment := &appsv1.Deployment{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentName, Namespace: instance.Namespace}, deployment)
-			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
-				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-		}
-
-		if instance.Spec.Auth.OpenShiftoAuth {
-			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
-			if err != nil {
-				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
-			} else {
-				if err := r.CreateTLSSecret(instance, baseURL, "openshift-api-crt", clusterAPI); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
-		}
 	}
 
 	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
@@ -530,7 +533,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if err := r.GenerateAndSaveFields(instance, request); err != nil {
+	if err := r.GenerateAndSaveFields(instance, request, clusterAPI); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
@@ -1243,121 +1246,6 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 		} else {
 			return getErr
 		}
-	}
-}
-
-// GetEndpointTlsCrt creates a test TLS route and gets it to extract certificate chain
-// There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
-// which however requires extra privileges for operator service account
-func (r *ReconcileChe) GetEndpointTlsCrt(instance *orgv1.CheCluster, endpointUrl string, clusterAPI deploy.ClusterAPI) (certificate []byte, err error) {
-	var requestURL string
-	var routeStatus deploy.RouteProvisioningStatus
-
-	if len(endpointUrl) < 1 {
-		for wait := true; wait; {
-			routeStatus = deploy.SyncRouteToCluster(instance, "test", "test", 8080, clusterAPI)
-			if routeStatus.Err != nil {
-				return nil, routeStatus.Err
-			}
-			wait = !routeStatus.Continue || len(routeStatus.Route.Spec.Host) == 0
-			time.Sleep(time.Duration(1) * time.Second)
-		}
-
-		requestURL = "https://" + routeStatus.Route.Spec.Host
-
-	} else {
-		requestURL = endpointUrl
-	}
-
-	//adding the proxy settings to the Transport object
-	transport := &http.Transport{}
-
-	if instance.Spec.Server.ProxyURL != "" {
-		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", instance.Spec.Server.ProxyURL, requestURL)
-		r.configureProxy(instance, transport)
-	}
-
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{
-		Transport: transport,
-	}
-	req, err := http.NewRequest("GET", requestURL, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		logrus.Errorf("An error occurred when reaching test TLS route: %s", err)
-		if r.tests {
-			fakeCrt := make([]byte, 5)
-			return fakeCrt, nil
-		}
-		return nil, err
-	}
-
-	for i := range resp.TLS.PeerCertificates {
-		cert := resp.TLS.PeerCertificates[i].Raw
-		crt := pem.EncodeToMemory(&pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert,
-		})
-		certificate = append(certificate, crt...)
-	}
-
-	if routeStatus.Route != nil {
-		logrus.Infof("Deleting a test route %s to extract routes crt", routeStatus.Route.Name)
-		if err := r.client.Delete(context.TODO(), routeStatus.Route); err != nil {
-			logrus.Errorf("Failed to delete test route %s: %s", routeStatus.Route.Name, err)
-		}
-	}
-	return certificate, nil
-}
-
-func (r *ReconcileChe) configureProxy(instance *orgv1.CheCluster, transport *http.Transport) {
-	proxyParts := strings.Split(instance.Spec.Server.ProxyURL, "://")
-	proxyProtocol := ""
-	proxyHost := ""
-	if len(proxyParts) == 1 {
-		proxyProtocol = ""
-		proxyHost = proxyParts[0]
-	} else {
-		proxyProtocol = proxyParts[0]
-		proxyHost = proxyParts[1]
-
-	}
-
-	proxyURL := proxyHost
-	if instance.Spec.Server.ProxyPort != "" {
-		proxyURL = proxyURL + ":" + instance.Spec.Server.ProxyPort
-	}
-
-	proxyUser := instance.Spec.Server.ProxyUser
-	proxyPassword := instance.Spec.Server.ProxyPassword
-	proxySecret := instance.Spec.Server.ProxySecret
-	user, password, err := util.K8sclient.ReadSecret(proxySecret, instance.Namespace)
-	if err == nil {
-		proxyUser = user
-		proxyPassword = password
-	} else {
-		logrus.Errorf("Failed to read '%s' secret: %s", proxySecret, err)
-	}
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		proxyURL = proxyUser + ":" + proxyPassword + "@" + proxyURL
-	}
-
-	if proxyProtocol != "" {
-		proxyURL = proxyProtocol + "://" + proxyURL
-	}
-	config := httpproxy.Config{
-		HTTPProxy:  proxyURL,
-		HTTPSProxy: proxyURL,
-		NoProxy:    strings.Replace(instance.Spec.Server.NonProxyHosts, "|", ",", -1),
-	}
-	proxyFunc := config.ProxyFunc()
-	transport.Proxy = func(r *http.Request) (*url.URL, error) {
-		theProxyUrl, err := proxyFunc(r.URL)
-		if err != nil {
-			logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
-		}
-		logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
-		return theProxyUrl, err
 	}
 }
 

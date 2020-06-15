@@ -49,14 +49,14 @@ func SyncRouteToCluster(
 	port int32,
 	clusterAPI ClusterAPI) RouteProvisioningStatus {
 
-	specRoute, err := getSpecRoute(checluster, name, serviceName, port, clusterAPI)
+	specRoute, err := GetSpecRoute(checluster, name, serviceName, port, clusterAPI)
 	if err != nil {
 		return RouteProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	clusterRoute, err := getClusterRoute(specRoute.Name, specRoute.Namespace, clusterAPI.Client)
+	clusterRoute, err := GetClusterRoute(specRoute.Name, specRoute.Namespace, clusterAPI.Client)
 	if err != nil {
 		return RouteProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -95,7 +95,8 @@ func SyncRouteToCluster(
 	}
 }
 
-func getClusterRoute(name string, namespace string, client runtimeClient.Client) (*routev1.Route, error) {
+// GetClusterRoute returns existing route.
+func GetClusterRoute(name string, namespace string, client runtimeClient.Client) (*routev1.Route, error) {
 	route := &routev1.Route{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
@@ -111,7 +112,8 @@ func getClusterRoute(name string, namespace string, client runtimeClient.Client)
 	return route, nil
 }
 
-func getSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string, port int32, clusterAPI ClusterAPI) (*routev1.Route, error) {
+// GetSpecRoute returns default configuration of a route in Che namespace.
+func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string, port int32, clusterAPI ClusterAPI) (*routev1.Route, error) {
 	tlsSupport := checluster.Spec.Server.TlsSupport
 	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	weight := int32(100)

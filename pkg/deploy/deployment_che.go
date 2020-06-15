@@ -49,6 +49,11 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 		return nil, err
 	}
 
+	selfSignedCertUsed, err := IsSelfSignedCertificateUsed(checluster, clusterAPI)
+	if err != nil {
+		return nil, err
+	}
+
 	terminationGracePeriodSeconds := int64(30)
 	cheFlavor := DefaultCheFlavor(checluster)
 	labels := GetLabels(checluster, cheFlavor)
@@ -84,14 +89,14 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
 		Value: "",
 	}
-	if checluster.Spec.Server.SelfSignedCert {
+	if selfSignedCertUsed {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					Key: "ca.crt",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "self-signed-certificate",
+						Name: CheTLSSelfSignedCertificateSecretName,
 					},
 					Optional: &optionalEnv,
 				},
