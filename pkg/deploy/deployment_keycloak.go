@@ -254,7 +254,7 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 				SecretKeyRef: &corev1.SecretKeySelector{
 					Key: "ca.crt",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "self-signed-certificate",
+						Name: CheTLSSelfSignedCertificateSecretName,
 					},
 					Optional: &optionalEnv,
 				},
@@ -377,7 +377,7 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 					SecretKeyRef: &corev1.SecretKeySelector{
 						Key: "ca.crt",
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "self-signed-certificate",
+							Name: CheTLSSelfSignedCertificateSecretName,
 						},
 						Optional: &optionalEnv,
 					},
