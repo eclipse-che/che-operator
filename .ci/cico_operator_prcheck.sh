@@ -54,9 +54,7 @@ run_tests() {
   
   printInfo "Build operator docker image and load in to minishift VM..."
 
-  OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
-  cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
-  eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
+  buildCheOperatorImage "minishift"
   
   printInfo "Runing e2e tests..."
   ${OPERATOR_REPO}/tmp/run-tests

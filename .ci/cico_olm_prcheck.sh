@@ -36,16 +36,26 @@ install_Dependencies() {
 }
 
 run_olm_tests() {
-  for platform in 'openshift' 'kubernetes'
+  for platform in 'kubernetes'
   do
+    # set up ImagePullPolicy for che-operator image
+    packageName=eclipse-che-preview-${platform}
+    packageFolderPath="${OPERATOR_REPO}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/${packageName}"
+    packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+    CSV=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${packageFilePath}")
+    PackageVersion=$(echo "${CSV}" | sed -e "s/${packageName}.v//")
+    CSVBundle="${packageFolderPath}/${PackageVersion}/${packageName}.v${PackageVersion}.clusterserviceversion.yaml"
+    yq -rY '.spec.install.spec.deployments[0].spec.template.spec.containers[0].imagePullPolicy |= "IfNotPresent"' "${CSVBundle}" >> "${CSVBundle}"
     if [[ ${platform} == 'kubernetes' ]]; then
+      buildCheOperatorImage "minikube"
       printInfo "Starting minikube VM to test kubernetes olm files..."
       source ${OPERATOR_REPO}/.ci/start-minikube.sh
-  
+
       sh "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${platform} ${CHANNEL} ${NAMESPACE}
       printInfo "Successfully verified olm files on kubernetes platform."
       rm -rf ~/.kube && yes | minikube delete
     fi
+    # todo implement check on the openshift 4(crc). To delivery che-operator image we can try to use imageStream feature: https://medium.com/@adilsonbna/importing-an-external-docker-image-into-red-hat-openshift-repository-c25894cd3199
   done
 }
 
