@@ -114,7 +114,7 @@ func InitDefaultsFromEnv() {
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv("IMAGE_default_che_tls_secrets_creation_job")
+		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv("RELATED_IMAGE_che_tls_secrets_creation_job")
 	}
 }
 
@@ -134,7 +134,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_tls_secrets_creation_job")
+		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_tls_secrets_creation_job")
 	}
 }
 
