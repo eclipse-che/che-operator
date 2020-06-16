@@ -20,35 +20,10 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-func (r *ReconcileChe) CreateNewSecret(instance *orgv1.CheCluster, secret *corev1.Secret) error {
-	if err := controllerutil.SetControllerReference(instance, secret, r.scheme); err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-		return err
-	}
-	deploymentFound := &corev1.Secret{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, deploymentFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", secret.Kind, secret.Name)
-		err = r.client.Create(context.TODO(), secret)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", secret.Kind, secret.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-
-		return err
-	}
-	return nil
-}
 
 func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthClient *oauth.OAuthClient) error {
 	oAuthClientFound := &oauth.OAuthClient{}
@@ -123,40 +98,7 @@ func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, r
 	return nil
 }
 
-func (r *ReconcileChe) CreateSecret(instance *orgv1.CheCluster, m map[string][]byte, name string) (err error) {
-	secret := &corev1.Secret{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		secret := deploy.NewSecret(instance, name, m)
-		if err := r.CreateNewSecret(instance, secret); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *ReconcileChe) CreateTLSSecret(instance *orgv1.CheCluster, url string, name string, clusterAPI deploy.ClusterAPI) (err error) {
-	// create a secret with either router tls cert (or OpenShift API crt) when on OpenShift infra
-	// and router is configured with a self signed certificate
-	// this secret is used by CRW server to reach RH SSO TLS endpoint
-	secret := &corev1.Secret{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crt, err := r.GetEndpointTlsCrt(instance, url, clusterAPI)
-		if err != nil {
-			logrus.Errorf("Failed to extract crt for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
-			return err
-		} else {
-			secret := deploy.NewSecret(instance, name, map[string][]byte{"ca.crt": crt})
-			if err := r.CreateNewSecret(instance, secret); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request reconcile.Request) (err error) {
+func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request reconcile.Request, clusterAPI deploy.ClusterAPI) (err error) {
 	cheFlavor := deploy.DefaultCheFlavor(instance)
 	if len(instance.Spec.Server.CheFlavor) < 1 {
 		instance.Spec.Server.CheFlavor = cheFlavor
@@ -170,7 +112,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		if len(instance.Spec.Database.ChePostgresSecret) < 1 {
 			if len(instance.Spec.Database.ChePostgresUser) < 1 || len(instance.Spec.Database.ChePostgresPassword) < 1 {
 				chePostgresSecret := deploy.DefaultChePostgresSecret()
-				r.CreateSecret(instance, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))}, chePostgresSecret)
+				deploy.SyncSecretToCluster(instance, chePostgresSecret, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))}, clusterAPI)
 				instance.Spec.Database.ChePostgresSecret = chePostgresSecret
 				if err := r.UpdateCheCRSpec(instance, "Postgres Secret", chePostgresSecret); err != nil {
 					return err
@@ -201,7 +143,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 
 			if len(instance.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
 				identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
-				r.CreateSecret(instance, map[string][]byte{"password": []byte(keycloakPostgresPassword)}, identityPostgresSecret)
+				deploy.SyncSecretToCluster(instance, identityPostgresSecret, map[string][]byte{"password": []byte(keycloakPostgresPassword)}, clusterAPI)
 				instance.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
 				if err := r.UpdateCheCRSpec(instance, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
 					return err
@@ -223,7 +165,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 
 			if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
 				identityProviderSecret := deploy.DefaultCheIdentitySecret()
-				r.CreateSecret(instance, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)}, identityProviderSecret)
+				deploy.SyncSecretToCluster(instance, identityProviderSecret, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)}, clusterAPI)
 				instance.Spec.Auth.IdentityProviderSecret = identityProviderSecret
 				if err := r.UpdateCheCRSpec(instance, "Identity Provider Secret", identityProviderSecret); err != nil {
 					return err
