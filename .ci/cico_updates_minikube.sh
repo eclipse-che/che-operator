@@ -19,8 +19,8 @@ trap "catchFinish" EXIT SIGINT
 catchFinish() {
   result=$?
   if [ "$result" != "0" ]; then
-    #printInfo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
-    #printInfo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
+    printInfo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
+    printInfo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
     exit 1
     getCheClusterLogs
     archiveArtifacts "che-operator-minikube-updates"
