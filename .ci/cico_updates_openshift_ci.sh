@@ -25,6 +25,7 @@ catchFinish() {
     getCheClusterLogs
     archiveArtifacts "che-operator-minikube-updates"
   fi
+  minikube delete && yes | kubeadm reset
   rm -rf ~/.kube ~/.minikube
   exit $result
 }
@@ -40,16 +41,14 @@ init() {
   fi
 
   RAM_MEMORY=8192
-  PLATFORM="kubernetes"
-  NAMESPACE="che"
+  PLATFORM="openshift"
+  NAMESPACE="admin-che"
   CHANNEL="stable"
 }
 
 installDependencies() {
   installYQ
   installJQ
-  install_VirtPackages
-  installStartDocker
   source ${OPERATOR_REPO}/.ci/start-minikube.sh
   installChectl
 }
@@ -88,18 +87,11 @@ waitCheUpdateInstall() {
 
 testUpdates() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
-  #printInfo "Successfully installed Eclipse Che previous version."
 
   getCheAcessToken
-  chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+  chectl workspace:create --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
   waitCheUpdateInstall
-  getCheAcessToken
-
-  workspaceList=$(chectl workspace:list)
-  workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
-  chectl workspace:start $workspaceID
-  waitWorkspaceStart
 }
 
 init

@@ -108,13 +108,6 @@ generate_self_signed_certs() {
               -nodes && cat cert.pem key.pem > ca.crt    
 }
 
-minikube_installation() {
-  start_libvirt
-  curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
-  && chmod +x minikube
-  sudo install minikube /usr/local/bin/ && rm -rf minikube
-}
-
 installEpelRelease() {
   if yum repolist | grep epel; then
     printWarn "Epel already installed, skipping instalation."
@@ -145,9 +138,16 @@ installChectl() {
 }
 
 getCheAcessToken() {
-  KEYCLOAK_HOSTNAME=keycloak-che.$(minikube ip).nip.io
-  TOKEN_ENDPOINT="https://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
-  export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
+  if [[ ${PLATFORM} == "openshift" ]]
+  then
+    KEYCLOAK_HOSTNAME=$(kubectl get route -n ${NAMESPACE} keycloak --template={{.spec.host}})
+    TOKEN_ENDPOINT="http://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
+    export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
+  else
+    KEYCLOAK_HOSTNAME=keycloak-che.$(minikube ip).nip.io
+    TOKEN_ENDPOINT="https://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
+    export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
+  fi
 }
 
 getCheClusterLogs() {
@@ -165,6 +165,31 @@ getCheClusterLogs() {
   kubectl get events -n ${NAMESPACE}| tee get_events.log
   printInfo "kubectl get all"
   kubectl get all | tee get_all.log
+}
+
+waitWorkspaceStart() {
+  export x=0
+  set +e
+  getCheAcessToken
+  while [ $x -le 180 ]
+  do
+    workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
+    workspaceStatus=$(echo "$workspaceList" | grep -oP '\bRUNNING.*?\b')
+
+    if [ "${workspaceStatus}" == "RUNNING" ]
+    then
+      printInfo "Workspace started started successfully"
+      break
+    fi
+    sleep 3
+    x=$(( x+1 ))
+  done
+
+  if [ $x -gt 180 ]
+  then
+    echo "Workspace didn't start after 3 minutes."
+    exit 1
+  fi
 }
 
 ## $1 = name of subdirectory into which the artifacts will be archived. Commonly it's job name.
