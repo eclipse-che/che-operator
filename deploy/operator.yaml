@@ -53,7 +53,7 @@ spec:
             - name: IMAGE_default_che_tls_secrets_creation_job
               value: quay.io/eclipse/che-tls-secret-creator:alpine-3029769
             - name: IMAGE_default_pvc_jobs
-              value: registry.access.redhat.com/ubi8-minimal:8.2-267
+              value: registry.access.redhat.com/ubi8-minimal:8.2-301
             - name: IMAGE_default_postgres
               value: centos/postgresql-96-centos7:9.6
             - name: IMAGE_default_keycloak
