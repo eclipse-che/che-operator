@@ -44,6 +44,8 @@ init() {
   PLATFORM="openshift"
   NAMESPACE="admin-che"
   CHANNEL="stable"
+  # In Prow is used oc client... Add alias for oc to kubectl because our updates scripts use kubectl
+  alias oc=kubectl
 }
 
 installDependencies() {
