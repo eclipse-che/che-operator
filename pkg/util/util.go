@@ -253,7 +253,15 @@ func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts stri
 		}
 	}
 
-	proxyHost := strings.TrimLeft(proxyURL, "https://")
+	var proxyHost string
+	if strings.HasPrefix(proxyURL, "https://") {
+		proxyHost = strings.TrimPrefix(proxyURL, "https://")
+	} else if strings.HasPrefix(proxyURL, "http://") {
+		proxyHost = strings.TrimPrefix(proxyURL, "http://")
+	} else {
+		proxyHost = proxyURL
+	}
+
 	proxyUserPassword := ""
 	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
 		proxyUserPassword =

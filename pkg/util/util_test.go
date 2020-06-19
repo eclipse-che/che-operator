@@ -12,10 +12,11 @@
 package util
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -58,19 +59,24 @@ func TestGenerateProxyJavaOpts(t *testing.T) {
 	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
 		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password"
-	if !reflect.DeepEqual(javaOpts,expectedJavaOpts) {
+	if !reflect.DeepEqual(javaOpts, expectedJavaOpts) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOpts, javaOpts)
-
 	}
 
 	javaOpts, _ = GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword, "", "")
 	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
-
-	if !reflect.DeepEqual(javaOpts ,expectedJavaOptsWithoutUsernamePassword) {
+	if !reflect.DeepEqual(javaOpts, expectedJavaOptsWithoutUsernamePassword) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
-
 	}
+
+	javaOpts, _ = GenerateProxyJavaOpts("http://myproxy.com", proxyPort, nonProxyHosts, "", proxyPassword, "", "")
+	expectedJavaOptsWithoutUsernamePassword = " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
+		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
+	if !reflect.DeepEqual(javaOpts, expectedJavaOptsWithoutUsernamePassword) {
+		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
+	}
+
 }
 
 func TestGeneratePasswd(t *testing.T) {
@@ -83,7 +89,7 @@ func TestGeneratePasswd(t *testing.T) {
 	}
 
 	passwd1 := GeneratePasswd(12)
-	if reflect.DeepEqual (passwd, passwd1) {
+	if reflect.DeepEqual(passwd, passwd1) {
 		t.Errorf("Test failed. Passwords are identical, %s: %s", passwd, passwd1)
 	}
 }
