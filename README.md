@@ -10,7 +10,6 @@ The operator watches for a Custom Resource of Kind `CheCluster`, and operator co
 * updates CR spec and status (passwords, URLs, provisioning statuses etc.)
 * continuously watches CR, update Che ConfigMap accordingly and schedule a new Che deployment
 * changes state of certain objects depending on CR fields:
-    * turn on/off TLS mode (reconfigure routes, update ConfigMap)
     * turn on/off OpenShift oAuth (login with OpenShift in Che) (create identity provider, oAuth client, update Che ConfigMap)
 * updates Che deployment with a new image:tag when a new operator version brings in a new Che tag
 
@@ -72,24 +71,27 @@ Replace value of `image` field with your catalog source image.
 
 6. Deploy Che using chectl:
 ```sh
-chectl server:start --installer=olm --multiuser --platform=openshift -n che-namespace --catalog-source-yaml /home/user/path/to/custom-catalog-source.yaml --olm-channel=nightly --package-manifest-name=eclipse-che-preview-openshift
+chectl server:start --installer=olm --multiuser --platform=openshift \
+  -n che-namespace \
+  --catalog-source-yaml /home/user/path/to/custom-catalog-source.yaml \
+  --package-manifest-name=eclipse-che-preview-openshift \
+  --olm-channel=nightly 
 ```
 
 ### OpenShift oAuth
 
-Bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
-There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
-Make sure your current user has cluster-admin privileges.
+Che-operator service account needs to have cluster admin privileges so that the operator can create a cluster-wide oauthclient. 
+
+Log in using a user with cluster admin privileges, then uncomment the `oc adm` commands in both deploy scripts to enable this feature.
 
 ### TLS
 
-TLS is enabled by default.
-Turning it off is not recommended as it will cause malfunction of some components.
+TLS is enabled by default. Disabling TLS is not supported as it will cause webviews used by the default IDE, Eclipse Theia, to misbehave. Note that while Che needs to use HTTPS for its routes, an insecure HTTP proxy is still possible.
 
 #### OpenShift
 
-When the cluster is configured to use self-signed certificates for the router, the certificate will be automatically propogated to Che components as trusted.
-If cluster router uses certificate signed by self-signed one, then parent/root CA certificate should be added into corresponding config map of additional trusted certificates (see `serverTrustStoreConfigMapName` option).
+When the cluster is configured to use self-signed certificates for the router, the certificate will be automatically propagated to Che components as trusted.
+If cluster router uses certificate signed by self-signed one, the parent/root CA certificate should be added into corresponding config map of additional trusted certificates (see `serverTrustStoreConfigMapName` option).
 
 #### K8S
 
@@ -98,9 +100,9 @@ If it is needed to use own certificates, create `che-tls` secret (see `k8s.tlsSe
 
 ## How to Configure
 
-The operator watches all objects it creates and reconciles them with CR state. It means that if you edit a configMap **che**, the operator will revert changes.
+The operator watches all objects it creates and reconciles them with the CR state. This means that if you edit a **che** configMap, the operator will revert your changes.
 Since not all Che configuration properties are custom resource spec fields (there are simply too many of them), the operator creates a second configMap called **custom**
-which you can use for any environment variables not supported by CR field. The operator will not reconcile configMap custom.
+which you can use for any environment variables not supported by CR field. The operator will not reconcile the **custom** configMap.
 
 ## How to Build Operator Image
 
@@ -174,14 +176,16 @@ cp /tmp/run-tests ${OPERATOR_REPO}/run-tests
 
 ### How to run tests
 
-The resulted binary is created in the root of the repo. Make sure it is run from this location since it uses relative paths to yamls that are then deserialized.
-There's a script `run-okd-local.sh` which is more of a CI thing, however, if you can run `oc cluster up` in your environment, you are unlikely to have any issues.
+The resulting binary is created in the root of the repo. Make sure it is run from this location since it uses relative paths to yamls that are then deserialized.
+
+For CI testing, there is `run-okd-local.sh`, but if you can run `oc cluster up` in your environment, the following command should also work for tests.
 
 ```
 ./run-tests
 ```
 
 Tests create a number of k8s/OpenShift objects and generally assume that a fresh installation of OpenShift is available.
+
 TODO: handle AlreadyExists errors to either remove che namespace or create a new one with a unique name.
 
 ### What do tests check?
@@ -200,8 +204,5 @@ Once an successful installation of Che/CRW is verified, tests patch custom resou
 Subsequent checks verify that the installation is reconfigured, for example uses secure routes or ConfigMap has the right Login-with-OpenShift values
 
 TODO: add more scenarios
-
-
-
 
 
