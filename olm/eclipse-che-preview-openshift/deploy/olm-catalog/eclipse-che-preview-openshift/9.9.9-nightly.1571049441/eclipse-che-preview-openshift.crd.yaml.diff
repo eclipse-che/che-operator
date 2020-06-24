@@ -114,7 +114,7 @@
 +                  type: string
 +                openShiftoAuth:
 +                  description: 'Enables the integration of the identity provider (Keycloak
-+                    / RHSSO) with OpenShift OAuth. Enabled by defaumt on OpenShift.
++                    / RHSSO) with OpenShift OAuth. Enabled by default on OpenShift.
 +                    This will allow users to directly login with their Openshift user
 +                    throug the Openshift login, and have their workspaces created
 +                    under personnal OpenShift namespaces. WARNING: the `kuebadmin`
