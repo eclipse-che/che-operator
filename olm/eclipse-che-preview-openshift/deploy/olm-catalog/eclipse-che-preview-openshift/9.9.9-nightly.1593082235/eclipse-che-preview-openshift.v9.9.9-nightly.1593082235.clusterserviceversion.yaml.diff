@@ -1,0 +1,34 @@
+--- /home/mykhailo/projects/release/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1592203277/eclipse-che-preview-openshift.v9.9.9-nightly.1592203277.clusterserviceversion.yaml	2020-06-18 12:30:34.550966430 +0300
++++ /home/mykhailo/projects/release/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1593082235/eclipse-che-preview-openshift.v9.9.9-nightly.1593082235.clusterserviceversion.yaml	2020-06-25 13:50:36.779438713 +0300
+@@ -46,12 +46,12 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-06-15T06:41:17Z"
++    createdAt: "2020-06-25T10:50:35Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1592203277
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1593082235
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -297,7 +297,7 @@
+                       - name: IMAGE_default_devfile_registry
+                         value: quay.io/eclipse/che-devfile-registry:nightly
+                       - name: IMAGE_default_pvc_jobs
+-                        value: registry.access.redhat.com/ubi8-minimal:8.2-267
++                        value: registry.access.redhat.com/ubi8-minimal:8.2-301.1592810506
+                       - name: IMAGE_default_postgres
+                         value: centos/postgresql-96-centos7:9.6
+                       - name: IMAGE_default_keycloak
+@@ -438,5 +438,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1591794794
+-  version: 9.9.9-nightly.1592203277
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1592203277
++  version: 9.9.9-nightly.1593082235
