@@ -35,8 +35,6 @@ spec:
     # If enabled then the certificate from `che-git-self-signed-cert` config map
     # will be propagated to the Che components and provide particular configuration for Git.
     gitSelfSignedCert: false
-    # TLS mode for Che. It is not recommended to turn this off.
-    tlsSupport: true
     # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
     # to Che server and workspaces containers
     proxyURL: ''

@@ -127,10 +127,8 @@ type CheClusterSpecServer struct {
 	// configuration for Git.
 	// +optional
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
-	// Deprecated.
-	// Instructs the operator to deploy Che in TLS mode.
-	// This is enabled by default.
-	// Disabling TLS may cause malfunction of some Che components.
+	// Deprecated. The value of this flag is ignored.
+	// Operator always deploys Che in TLS mode.
 	// +optional
 	TlsSupport bool `json:"tlsSupport"`
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
@@ -401,8 +399,8 @@ type CheClusterSpecK8SOnly struct {
 	// NB: This drives the `is kubernetes.io/ingress.class` annotation on Che-related ingresses.
 	// +optional
 	IngressClass string `json:"ingressClass,omitempty"`
-	// Name of a secret that will be used to setup ingress TLS termination if TLS is enabled.
-	// See also the `tlsSupport` field.
+	// Name of a secret that will be used to setup ingress TLS termination.
+	// By default operator will look for `che-tls` secret.
 	// +optional
 	TlsSecretName string `json:"tlsSecretName,omitempty"`
 	// FSGroup the Che pod and Workspace pods containers should run in. Defaults to `1724`.

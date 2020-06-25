@@ -114,7 +114,6 @@ func GetClusterRoute(name string, namespace string, client runtimeClient.Client)
 
 // GetSpecRoute returns default configuration of a route in Che namespace.
 func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string, port int32, clusterAPI ClusterAPI) (*routev1.Route, error) {
-	tlsSupport := checluster.Spec.Server.TlsSupport
 	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	weight := int32(100)
 
@@ -148,11 +147,9 @@ func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string,
 		},
 	}
 
-	if tlsSupport {
-		route.Spec.TLS = &routev1.TLSConfig{
-			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-			Termination:                   routev1.TLSTerminationEdge,
-		}
+	route.Spec.TLS = &routev1.TLSConfig{
+		InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+		Termination:                   routev1.TLSTerminationEdge,
 	}
 
 	err := controllerutil.SetControllerReference(checluster, route, clusterAPI.Scheme)

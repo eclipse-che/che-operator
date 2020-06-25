@@ -157,14 +157,9 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	}
 	defaultTargetNamespace := util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, defaultTargetNamespaceDefault)
 	namespaceAllowUserDefined := strconv.FormatBool(cr.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
-	tlsSupport := cr.Spec.Server.TlsSupport
-	protocol := "http"
-	wsprotocol := "ws"
-	if tlsSupport {
-		protocol = "https"
-		wsprotocol = "wss"
-		tls = "true"
-	}
+	protocol := "https"
+	wsprotocol := "wss"
+
 	proxyJavaOpts := ""
 	proxyUser := cr.Spec.Server.ProxyUser
 	proxyPassword := cr.Spec.Server.ProxyPassword
@@ -193,7 +188,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 
 	ingressDomain := cr.Spec.K8s.IngressDomain
 	tlsSecretName := cr.Spec.K8s.TlsSecretName
-	if tlsSupport && tlsSecretName == "" {
+	if tlsSecretName == "" {
 		tlsSecretName = "che-tls"
 	}
 	securityContextFsGroup := util.GetValue(cr.Spec.K8s.SecurityContextFsGroup, DefaultSecurityContextFsGroup)
@@ -240,8 +235,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
 		PvcJobsImage:                           pvcJobsImage,
 		PreCreateSubPaths:                      preCreateSubPaths,
-		TlsSupport:                             tls,
-		K8STrustCerts:                          tls,
+		TlsSupport:                             "true",
+		K8STrustCerts:                          "true",
 		CheLogLevel:                            cheLogLevel,
 		OpenShiftIdentityProvider:              openShiftIdentityProviderId,
 		JavaOpts:                               DefaultJavaOpts + " " + proxyJavaOpts,

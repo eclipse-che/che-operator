@@ -310,14 +310,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheDeploymentName := cheFlavor
 
-	if !isOpenShift && instance.Spec.Server.TlsSupport {
-		// Ensure TLS configuration is correct
-		if err := deploy.CheckAndUpdateK8sTLSConfiguration(instance, clusterAPI); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
 	// Detect whether self-signed certificate is used
 	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(instance, clusterAPI)
 	if err != nil {
@@ -327,11 +319,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if isOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-		if selfSignedCertUsed ||
-			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
-			// and NOT from the Openshift API Master URL (as in v3)
-			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
+		if selfSignedCertUsed {
 			if err := deploy.CreateTLSSecretFromRoute(instance, "", deploy.CheTLSSelfSignedCertificateSecretName, clusterAPI); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -359,16 +347,19 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 	} else {
+		// Ensure Kubernetes TLS configuration is correct
+		if err := deploy.CheckAndUpdateK8sTLSConfiguration(instance, clusterAPI); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
 		// Handle Che TLS certificates on Kubernetes infrastructure
-		if instance.Spec.Server.TlsSupport {
-			result, err := deploy.K8sHandleCheTLSSecrets(instance, clusterAPI)
-			if result.Requeue || result.RequeueAfter > 0 {
-				if err != nil {
-					logrus.Error(err)
-				}
-				if !tests {
-					return result, err
-				}
+		result, err := deploy.K8sHandleCheTLSSecrets(instance, clusterAPI)
+		if result.Requeue || result.RequeueAfter > 0 {
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return result, err
 			}
 		}
 	}
@@ -651,11 +642,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	ingressStrategy := util.GetValue(instance.Spec.K8s.IngressStrategy, deploy.DefaultIngressStrategy)
 	ingressDomain := instance.Spec.K8s.IngressDomain
-	tlsSupport := instance.Spec.Server.TlsSupport
-	protocol := "http"
-	if tlsSupport {
-		protocol = "https"
-	}
+	protocol := "https"
 
 	// create Che service and route
 	serviceStatus := deploy.SyncCheServiceToCluster(instance, clusterAPI)
@@ -1208,11 +1195,6 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 		return nil
 	}
 
-	if protocol != "https" {
-		logrus.Debug("Console link won't be created. It's not supported when http connection is used")
-		// console link is supported only with https
-		return nil
-	}
 	cheHost := instance.Spec.Server.CheHost
 	preparedConsoleLink := &consolev1.ConsoleLink{
 		ObjectMeta: metav1.ObjectMeta{

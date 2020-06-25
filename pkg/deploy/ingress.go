@@ -110,7 +110,6 @@ func getClusterIngress(name string, namespace string, client runtimeClient.Clien
 }
 
 func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName string, port int, clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
-	tlsSupport := checluster.Spec.Server.TlsSupport
 	ingressStrategy := checluster.Spec.K8s.IngressStrategy
 	if len(ingressStrategy) < 1 {
 		ingressStrategy = "multi-host"
@@ -120,13 +119,9 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 	labels := GetLabels(checluster, name)
 
 	tlsSecretName := checluster.Spec.K8s.TlsSecretName
-	tls := "false"
-	if tlsSupport {
-		tls = "true"
-		// If TLS is turned on but the secret name is not set, try to use Che default value as k8s cluster defaults will not work.
-		if tlsSecretName == "" {
-			tlsSecretName = "che-tls"
-		}
+	// If TLS secret name is not set, try to use Che default value as k8s cluster defaults will not work.
+	if tlsSecretName == "" {
+		tlsSecretName = "che-tls"
 	}
 
 	host := ""
@@ -153,7 +148,7 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 				"kubernetes.io/ingress.class":                       ingressClass,
 				"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 				"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-				"nginx.ingress.kubernetes.io/ssl-redirect":          tls,
+				"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 			},
 		},
 		Spec: v1beta1.IngressSpec{
@@ -179,15 +174,13 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 		},
 	}
 
-	if tlsSupport {
-		ingress.Spec.TLS = []v1beta1.IngressTLS{
-			{
-				Hosts: []string{
-					ingressDomain,
-				},
-				SecretName: tlsSecretName,
+	ingress.Spec.TLS = []v1beta1.IngressTLS{
+		{
+			Hosts: []string{
+				ingressDomain,
 			},
-		}
+			SecretName: tlsSecretName,
+		},
 	}
 
 	err := controllerutil.SetControllerReference(checluster, ingress, clusterAPI.Scheme)

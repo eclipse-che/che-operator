@@ -168,7 +168,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Server.TlsSupport = true
+	cheCR.Spec.Server.AllowUserDefinedWorkspaceNamespaces = true
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}

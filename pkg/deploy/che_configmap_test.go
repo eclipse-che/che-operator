@@ -26,7 +26,6 @@ func TestNewCheConfigMap(t *testing.T) {
 	// and creating a CR with all spec fields pre-populated
 	cr := &orgv1.CheCluster{}
 	cr.Spec.Server.CheHost = "myhostname.com"
-	cr.Spec.Server.TlsSupport = true
 	cr.Spec.Auth.OpenShiftoAuth = true
 	cheEnv := GetConfigMapData(cr)
 	testCm, _ := GetSpecConfigMap(cr, cheEnv, ClusterAPI{})
@@ -48,7 +47,6 @@ func TestNewCheConfigMap(t *testing.T) {
 func TestConfigMapOverride(t *testing.T) {
 	cr := &orgv1.CheCluster{}
 	cr.Spec.Server.CheHost = "myhostname.com"
-	cr.Spec.Server.TlsSupport = true
 	cr.Spec.Server.CustomCheProperties = map[string]string{
 		"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 	}
