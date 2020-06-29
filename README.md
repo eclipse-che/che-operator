@@ -82,7 +82,11 @@ chectl server:start --installer=olm --multiuser --platform=openshift \
 
 Che-operator service account needs to have cluster admin privileges so that the operator can create a cluster-wide oauthclient. 
 
-Log in using a user with cluster admin privileges, then uncomment the `oc adm` commands in both deploy scripts to enable this feature.
+Log in using a user with cluster admin privileges, then to enable this feature, run:
+
+```
+chectl server:start --os-oauth ...
+```
 
 ### TLS
 
