@@ -27,3 +27,20 @@ type ClusterAPI struct {
 	Client client.Client
 	Scheme *runtime.Scheme
 }
+
+type Proxy struct {
+	HttpProxy    string
+	HttpUser     string
+	HttpPassword string
+	HttpHost     string
+	HttpPort     string
+
+	HttpsProxy    string
+	HttpsUser     string
+	HttpsPassword string
+	HttpsHost     string
+	HttpsPort     string
+
+	NoProxy          string
+	TrustedCAMapName string
+}

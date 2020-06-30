@@ -18,15 +18,12 @@ import (
 	"encoding/pem"
 	stderrors "errors"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/http/httpproxy"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +44,7 @@ const (
 )
 
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
-func IsSelfSignedCertificateUsed(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (bool, error) {
+func IsSelfSignedCertificateUsed(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) (bool, error) {
 	if util.IsTestMode() {
 		return true, nil
 	}
@@ -65,7 +62,7 @@ func IsSelfSignedCertificateUsed(checluster *orgv1.CheCluster, clusterAPI Cluste
 
 	if util.IsOpenShift {
 		// Get router TLS certificates chain
-		peerCertificates, err := GetEndpointTLSCrtChain(checluster, "", clusterAPI)
+		peerCertificates, err := GetEndpointTLSCrtChain(checluster, "", proxy, clusterAPI)
 		if err != nil {
 			return false, err
 		}
@@ -105,7 +102,7 @@ func IsSelfSignedCertificateUsed(checluster *orgv1.CheCluster, clusterAPI Cluste
 
 // GetEndpointTLSCrtChain retrieves TLS certificates chain from given endpoint.
 // If endpoint is not specified, then a test route will be created and used to get router certificates.
-func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, clusterAPI ClusterAPI) ([]*x509.Certificate, error) {
+func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, proxy *Proxy, clusterAPI ClusterAPI) ([]*x509.Certificate, error) {
 	if util.IsTestMode() {
 		return nil, stderrors.New("Not allowed for tests")
 	}
@@ -151,9 +148,9 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, clus
 
 	// Adding the proxy settings to the Transport object
 	transport := &http.Transport{}
-	if instance.Spec.Server.ProxyURL != "" {
-		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", instance.Spec.Server.ProxyURL, requestURL)
-		configureProxy(instance, transport)
+	if proxy.HttpProxy != "" {
+		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", proxy.HttpProxy, requestURL)
+		ConfigureProxy(instance, transport, proxy)
 	}
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{
@@ -173,8 +170,8 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, clus
 // GetEndpointTLSCrtBytes creates a test TLS route and gets it to extract certificate chain
 // There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
 // which however requires extra privileges for operator service account
-func GetEndpointTLSCrtBytes(instance *orgv1.CheCluster, endpointURL string, clusterAPI ClusterAPI) (certificates []byte, err error) {
-	peerCertificates, err := GetEndpointTLSCrtChain(instance, endpointURL, clusterAPI)
+func GetEndpointTLSCrtBytes(instance *orgv1.CheCluster, endpointURL string, proxy *Proxy, clusterAPI ClusterAPI) (certificates []byte, err error) {
+	peerCertificates, err := GetEndpointTLSCrtChain(instance, endpointURL, proxy, clusterAPI)
 	if err != nil {
 		if util.IsTestMode() {
 			fakeCrt := make([]byte, 5)
@@ -193,57 +190,6 @@ func GetEndpointTLSCrtBytes(instance *orgv1.CheCluster, endpointURL string, clus
 	}
 
 	return certificates, nil
-}
-
-func configureProxy(instance *orgv1.CheCluster, transport *http.Transport) {
-	proxyParts := strings.Split(instance.Spec.Server.ProxyURL, "://")
-	proxyProtocol := ""
-	proxyHost := ""
-	if len(proxyParts) == 1 {
-		proxyProtocol = ""
-		proxyHost = proxyParts[0]
-	} else {
-		proxyProtocol = proxyParts[0]
-		proxyHost = proxyParts[1]
-
-	}
-
-	proxyURL := proxyHost
-	if instance.Spec.Server.ProxyPort != "" {
-		proxyURL = proxyURL + ":" + instance.Spec.Server.ProxyPort
-	}
-
-	proxyUser := instance.Spec.Server.ProxyUser
-	proxyPassword := instance.Spec.Server.ProxyPassword
-	proxySecret := instance.Spec.Server.ProxySecret
-	user, password, err := util.K8sclient.ReadSecret(proxySecret, instance.Namespace)
-	if err == nil {
-		proxyUser = user
-		proxyPassword = password
-	} else {
-		logrus.Errorf("Failed to read '%s' secret: %s", proxySecret, err)
-	}
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		proxyURL = proxyUser + ":" + proxyPassword + "@" + proxyURL
-	}
-
-	if proxyProtocol != "" {
-		proxyURL = proxyProtocol + "://" + proxyURL
-	}
-	config := httpproxy.Config{
-		HTTPProxy:  proxyURL,
-		HTTPSProxy: proxyURL,
-		NoProxy:    strings.Replace(instance.Spec.Server.NonProxyHosts, "|", ",", -1),
-	}
-	proxyFunc := config.ProxyFunc()
-	transport.Proxy = func(r *http.Request) (*url.URL, error) {
-		theProxyURL, err := proxyFunc(r.URL)
-		if err != nil {
-			logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
-		}
-		logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyURL, r.URL)
-		return theProxyURL, err
-	}
 }
 
 // K8sHandleCheTLSSecrets handles TLS secrets required for Che deployment on Kubernetes infrastructure.

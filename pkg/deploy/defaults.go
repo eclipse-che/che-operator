@@ -177,6 +177,10 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	return false
 }
 
+func DefaultServerTrustStoreConfigMapName() string {
+	return getDefaultFromEnv("CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME")
+}
+
 func DefaultCheFlavor(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
 }

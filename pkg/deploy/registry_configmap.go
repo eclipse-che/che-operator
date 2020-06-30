@@ -50,7 +50,6 @@ func CreateDevfileRegistryConfigMap(cr *orgv1.CheCluster, endpoint string) *core
 
 func CreatePluginRegistryConfigMap(cr *orgv1.CheCluster) *corev1.ConfigMap {
 	labels := GetLabels(cr, DefaultCheFlavor(cr))
-	fmt.Println("Cr namespace " + cr.Namespace)
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",

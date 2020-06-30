@@ -105,10 +105,10 @@ func GetSpecSecret(cr *orgv1.CheCluster, name string, data map[string][]byte) *c
 // CreateTLSSecretFromRoute creates TLS secret with given name which contains certificates obtained from give url.
 // If the url is empty string, then router certificate will be obtained.
 // Works only on Openshift family infrastructures.
-func CreateTLSSecretFromRoute(checluster *orgv1.CheCluster, url string, name string, clusterAPI ClusterAPI) (err error) {
+func CreateTLSSecretFromRoute(checluster *orgv1.CheCluster, url string, name string, proxy *Proxy, clusterAPI ClusterAPI) (err error) {
 	secret := &corev1.Secret{}
 	if err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: checluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crtBytes, err := GetEndpointTLSCrtBytes(checluster, url, clusterAPI)
+		crtBytes, err := GetEndpointTLSCrtBytes(checluster, url, proxy, clusterAPI)
 		if err != nil {
 			logrus.Errorf("Failed to extract certificate for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
 			return err
