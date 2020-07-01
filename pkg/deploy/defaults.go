@@ -98,19 +98,19 @@ func InitDefaults(defaultsPath string) {
 
 func InitDefaultsFromEnv() {
 	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
-	defaultCheServerImage = getDefaultFromEnv("IMAGE_default_che_server")
-	defaultPluginRegistryImage = getDefaultFromEnv("IMAGE_default_plugin_registry")
-	defaultDevfileRegistryImage = getDefaultFromEnv("IMAGE_default_devfile_registry")
-	defaultPvcJobsImage = getDefaultFromEnv("IMAGE_default_pvc_jobs")
-	defaultPostgresImage = getDefaultFromEnv("IMAGE_default_postgres")
-	defaultKeycloakImage = getDefaultFromEnv("IMAGE_default_keycloak")
+	defaultCheServerImage = getDefaultFromEnv("RELATED_IMAGE_che_server")
+	defaultPluginRegistryImage = getDefaultFromEnv("RELATED_IMAGE_plugin_registry")
+	defaultDevfileRegistryImage = getDefaultFromEnv("RELATED_IMAGE_devfile_registry")
+	defaultPvcJobsImage = getDefaultFromEnv("RELATED_IMAGE_pvc_jobs")
+	defaultPostgresImage = getDefaultFromEnv("RELATED_IMAGE_postgres")
+	defaultKeycloakImage = getDefaultFromEnv("RELATED_IMAGE_keycloak")
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
 	// instead of being synced by script with the content of the upstream `che.properties` file
-	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_metadata")
-	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv("IMAGE_default_che_workspace_plugin_broker_artifacts")
-	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv("IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata")
+	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts")
+	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image")
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
@@ -122,15 +122,15 @@ func InitDefaultsFromFile(defaultsPath string) {
 	operatorDeployment := getDefaultsFromFile(defaultsPath)
 
 	defaultCheVersion = util.GetDeploymentEnv(operatorDeployment, "CHE_VERSION")
-	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server")
-	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_plugin_registry")
-	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_devfile_registry")
-	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_pvc_jobs")
-	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_postgres")
-	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_keycloak")
-	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_workspace_plugin_broker_metadata")
-	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_workspace_plugin_broker_artifacts")
-	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, "IMAGE_default_che_server_secure_exposer_jwt_proxy_image")
+	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_server")
+	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_plugin_registry")
+	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_devfile_registry")
+	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_pvc_jobs")
+	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_postgres")
+	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_keycloak")
+	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_workspace_plugin_broker_metadata")
+	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_workspace_plugin_broker_artifacts")
+	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image")
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {

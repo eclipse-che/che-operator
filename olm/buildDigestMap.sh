@@ -10,7 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
 BASE_DIR="$1"
 QUIET=""
 
@@ -23,6 +22,7 @@ if [[ ! -x $PODMAN ]]; then
   fi
 fi
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
+command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting."; exit 1; }
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] "
@@ -48,24 +48,24 @@ mkdir -p ${BASE_DIR}/generated
 
 echo "[INFO] Get images from CSV ${CSV}"
 
-IMAGE_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("IMAGE_default_.*"; "g")) | .value' "${CSV}")
-OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].image' "${CSV}")
+source ${BASE_DIR}/images.sh
 
-REGISTRY_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("IMAGE_default_.*_registry"; "g")) | .value' "${CSV}")
-REGISTRY_IMAGES_ALL=""
-for registry in ${REGISTRY_LIST}; do
-  registry="${registry/\@sha256:*/:${VERSION}}" # remove possible existing @sha256:... and use current version instead
-  # echo -n "[INFO] Pull container ${registry} ..."
-  ${PODMAN} pull ${registry} ${QUIET}
+# todo create init method
+setImagesFromDeploymentEnv
 
-  REGISTRY_IMAGES="$(${PODMAN} run --rm  --entrypoint /bin/sh  ${registry} -c "cat /var/www/html/*/external_images.txt")"
-  echo "[INFO] Found $(echo "${REGISTRY_IMAGES}" | wc -l) images in registry"
-  REGISTRY_IMAGES_ALL="${REGISTRY_IMAGES_ALL} ${REGISTRY_IMAGES}"
-done
+setOperatorImage
+echo ${OPERATOR_IMAGE}
 
-rm -Rf ${BASE_DIR}/generated/digests-mapping.txt
-touch ${BASE_DIR}/generated/digests-mapping.txt
-for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
+setPluginRegistryList
+echo ${PLUGIN_REGISTRY_LIST}
+
+setDevfileRegistryList
+echo ${DEVFILE_REGISTRY_LIST}
+
+writeDigest() {
+  image=$1
+  imageType=$2
+  echo ${image}
   case ${image} in
     *@sha256:*)
       withDigest="${image}";;
@@ -78,12 +78,18 @@ for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
         echo "    $digest # ${image}"
       else
         # for other build methods or for falling back to other registries when not found, can apply transforms here
-        if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
-          . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
+        if [[ -x ${BASE_DIR}/buildDigestMapAlternateURLs.sh ]]; then
+          . ${BASE_DIR}/buildDigestMapAlternateURLs.sh
         fi
       fi
-      withoutTag="$(echo "${image}" | sed -e 's/^\(.*\):[^:]*$/\1/')"
-      withDigest="${withoutTag}@${digest}";;
+      if [[ -z ${digest} ]]; then
+        echo "==================== Failed to get digest for image: ${image}======================"
+        withoutTag=""
+        withDigest=""
+      else
+        withoutTag="$(echo "${image}" | sed -e 's/^\(.*\):[^:]*$/\1/')"
+        withDigest="${withoutTag}@${digest}";
+      fi
   esac
   dots="${withDigest//[^\.]}"
   separators="${withDigest//[^\/]}"
@@ -92,5 +98,25 @@ for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
     withDigest="docker.io/${withDigest}"
   fi
 
-  echo "${image}=${withDigest}" >> ${BASE_DIR}/generated/digests-mapping.txt
+  if [[ -n ${withDigest} ]]; then
+    echo "${image}=${imageType}=${withDigest}" >> ${DIGEST_FILE}
+  fi
+}
+
+DIGEST_FILE=${BASE_DIR}/generated/digests-mapping.txt
+rm -Rf ${DIGEST_FILE}
+touch ${DIGEST_FILE}
+
+writeDigest ${OPERATOR_IMAGE} "operator-image"
+
+for image in ${REQUIRED_IMAGES}; do
+  writeDigest ${image} "required-image" 
+done
+
+for image in ${PLUGIN_REGISTRY_LIST}; do
+  writeDigest ${image} "plugin-registry-image"
+done
+
+for image in ${DEVFILE_REGISTRY_LIST}; do
+  writeDigest ${image} "devfile-registry-image"
 done

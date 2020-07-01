@@ -88,3 +88,7 @@ do
   diff -u ${PRE_RELEASE_CRD} ${RELEASE_CRD} > ${RELEASE_CRD}".diff" || true
 done
 cd "${CURRENT_DIR}"
+
+source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+                -r "eclipse-che-preview-.*\.v${RELEASE}.*yaml" \
+                -v ${RELEASE}
