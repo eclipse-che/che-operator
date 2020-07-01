@@ -99,6 +99,8 @@ testUpdates() {
   workspaceList=$(chectl workspace:list)
   workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
   chectl workspace:start $workspaceID
+
+  waitWorkspaceStart
 }
 
 init
