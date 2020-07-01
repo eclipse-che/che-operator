@@ -25,7 +25,6 @@ init() {
   RAM_MEMORY=8192
   PLATFORM="openshift"
   NAMESPACE="che"
-  CHANNEL="stable"
 }
 
 installDependencies() {
