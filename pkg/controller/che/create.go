@@ -135,9 +135,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		if len(instance.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
 			keycloakPostgresPassword := util.GeneratePasswd(12)
 			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-			if err != nil {
-				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
-			} else {
+			if err == nil {
 				keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
 			}
 
@@ -156,9 +154,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 			keycloakAdminPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
 
 			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-			if err != nil {
-				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating admin username and password")
-			} else {
+			if err == nil {
 				keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
 				keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
 			}

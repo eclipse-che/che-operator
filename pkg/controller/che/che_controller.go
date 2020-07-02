@@ -1016,7 +1016,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					logrus.Errorf("An error occurred: %v", err)
 					return reconcile.Result{}, err
 				}
-				logrus.Info(" Updating plugin-registry ConfigMap")
+				logrus.Info("Updating plugin-registry ConfigMap")
 				err = r.client.Update(context.TODO(), pluginRegistryConfigMap)
 				if err != nil {
 					logrus.Errorf("Error updating plugin-registry ConfigMap: %v", err)
