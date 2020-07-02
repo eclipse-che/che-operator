@@ -1,5 +1,0 @@
-spec:
-  server:
-    tlsSupport: false
-  auth:
-    updateAdminPassword: false
