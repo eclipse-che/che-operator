@@ -28,14 +28,6 @@ init() {
   CHANNEL="nightly"
 }
 
-minishift_olm_installation() {
-  MSFT_RELEASE="1.34.2"
-  printInfo "Downloading Minishift binaries"
-  if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
-  curl -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
-    -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/bin --strip-components=1
-}
-
 install_Dependencies() {
   installYQ
   installJQ
