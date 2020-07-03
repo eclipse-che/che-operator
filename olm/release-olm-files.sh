@@ -91,4 +91,4 @@ cd "${CURRENT_DIR}"
 
 source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
                 -r "eclipse-che-preview-.*\.v${RELEASE}.*yaml" \
-                -v ${RELEASE}
+                -t ${RELEASE}

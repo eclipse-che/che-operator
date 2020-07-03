@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020 Red Hat, Inc.
+# Copyright (c) 2019-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -34,7 +34,7 @@ setDevfileRegistryList() {
 
 setRegistryImages() {
     registry="${1}"
-    registry="${registry/\@sha256:*/:${VERSION}}" # remove possible existing @sha256:... and use current version instead
+    registry="${registry/\@sha256:*/:${IMAGE_TAG}}" # remove possible existing @sha256:... and use current tag instead
 
     echo -n "[INFO] Pull container ${registry} ..."
     ${PODMAN} pull ${registry} ${QUIET}

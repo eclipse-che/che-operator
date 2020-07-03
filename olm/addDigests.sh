@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2019-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -10,6 +10,10 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+set +x
+set -e
+
+SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
 BASE_DIR="$(pwd)"
 QUIET=""
 
@@ -24,9 +28,8 @@ fi
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 
 usage () {
-	echo "Usage:   $0 [-w WORKDIR] -s [SOURCE_PATH] -n [csv name] -v [VERSION] "
-	echo "Example: $0 -w $(pwd) -s eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift -r "${CSV_NAME}.*${VERSION}.*.yaml" -n eclipse-che-preview-openshift -v 7.9.0"
-	echo "Example: $0 -w $(pwd) -s controller-manifests -n codeready-workspaces -v 2.1.0"
+	echo "Usage:   $0 [-w WORKDIR] [-s SOURCE_PATH] -r [CSV_FILE_PATH_REGEXP] -t [IMAGE_TAG] "
+	echo "Example: $0 -w $(pwd) -r \"eclipse-che-preview-.*/eclipse-che-preview-.*\.v7.15.0.*yaml\" -t 7.15.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -34,17 +37,25 @@ if [[ $# -lt 1 ]]; then usage; exit; fi
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
-    '-v') VERSION="$2"; shift 1;;
-    '-r') CSV_FILE_NAME_REGEXP="$2"; shift 1;;
+    '-s') SRC_DIR="$2"; shift 1;;
+    '-t') IMAGE_TAG="$2"; shift 1;;
+    '-r') CSV_FILE_PATH_REGEXP="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
 	'--help'|'-h') usage; exit;;
   esac
   shift 1
 done
 
-if [[ ! ${CSV_FILE_NAME_REGEXP} ]] || [[ ! $VERSION ]]; then usage; exit 1; fi
+if [[ ! ${CSV_FILE_PATH_REGEXP} ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
 
-CSV_FILES=( $(find ${BASE_DIR}/ -regextype posix-egrep -regex "${BASE_DIR}/?${CSV_FILE_NAME_REGEXP}") )
+CSV_FILES_DIR=${BASE_DIR}
+if [ -n "${SRC_DIR}" ]; then
+  CSV_FILES_DIR="${BASE_DIR}/${SRC_DIR}"
+fi
+echo "Resolved CSV files dir: ${CSV_FILES_DIR}"
+
+echo "find ${CSV_FILES_DIR} -regextype posix-egrep -regex \"${CSV_FILES_DIR}/?${CSV_FILE_PATH_REGEXP}\""
+CSV_FILES=( $(find ${CSV_FILES_DIR} -regextype posix-egrep -regex "${CSV_FILES_DIR}/?${CSV_FILE_PATH_REGEXP}") )
 RELATED_IMAGE_PREFIX="RELATED_IMAGE_"
 
 rm -Rf ${BASE_DIR}/generated/csv
@@ -52,11 +63,12 @@ mkdir -p ${BASE_DIR}/generated/csv
 # Copy original csv files
 for CSV_FILE in ${CSV_FILES[@]}
 do
+  echo "CSV file: ${CSV_FILE}"
   cp -pR ${CSV_FILE} ${BASE_DIR}/generated/csv
 done
 
 # Collect list digest only once to save time. We expected that digest list is the same for "openshift" and "kubernetes" platforms.
-source ${BASE_DIR}/buildDigestMap.sh -w ${BASE_DIR} -c ${CSV_FILES[0]} -v ${VERSION} ${QUIET}
+source ${SCRIPTS_DIR}/buildDigestMap.sh -w ${BASE_DIR} -c ${CSV_FILES[0]} -t ${IMAGE_TAG} ${QUIET}
 
 if [[ ! "${QUIET}" ]]; then cat ${BASE_DIR}/generated/digests-mapping.txt; fi
 for CSV_FILE in ${CSV_FILES[@]}
