@@ -13,7 +13,6 @@ package che
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -96,7 +94,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := oauthv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
 		}
-		if hasConsolelinkObject() {
+		if deploy.HasConsolelinkObject() {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
 			}
@@ -1160,7 +1158,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// we can now try to create consolelink, after che instance is available
-	if err := createConsoleLink(isOpenShift4, protocol, instance, r); err != nil {
+	if err := deploy.SyncConsoleLinkToCluster(instance, clusterAPI); err != nil {
 		logrus.Errorf("An error occurred during console link provisioning: %s", err)
 		return reconcile.Result{}, err
 	}
@@ -1199,69 +1197,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCluster, r *ReconcileChe) error {
-	if !isOpenShift4 || !hasConsolelinkObject() {
-		logrus.Debug("Console link won't be created. It's not supported by cluster")
-		// console link is supported only on OpenShift >= 4.2
-		return nil
-	}
-
-	if protocol != "https" {
-		logrus.Debug("Console link won't be created. It's not supported when http connection is used")
-		// console link is supported only with https
-		return nil
-	}
-	cheHost := instance.Spec.Server.CheHost
-	preparedConsoleLink := &consolev1.ConsoleLink{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: deploy.DefaultConsoleLinkName(),
-		},
-		Spec: consolev1.ConsoleLinkSpec{
-			Link: consolev1.Link{
-				Href: protocol + "://" + cheHost,
-				Text: deploy.DefaultConsoleLinkDisplayName()},
-			Location: consolev1.ApplicationMenu,
-			ApplicationMenu: &consolev1.ApplicationMenuSpec{
-				Section:  deploy.DefaultConsoleLinkSection(),
-				ImageURL: fmt.Sprintf("%s://%s%s", protocol, cheHost, deploy.DefaultConsoleLinkImage()),
-			},
-		},
-	}
-
-	existingConsoleLink := &consolev1.ConsoleLink{}
-
-	if getErr := r.nonCachedClient.Get(context.TODO(), client.ObjectKey{Name: deploy.DefaultConsoleLinkName()}, existingConsoleLink); getErr == nil {
-		// if found, update existing one. We need ResourceVersion from current one.
-		preparedConsoleLink.ResourceVersion = existingConsoleLink.ResourceVersion
-		logrus.Debugf("Updating the object: ConsoleLink, name: %s", existingConsoleLink.Name)
-		return r.nonCachedClient.Update(context.TODO(), preparedConsoleLink)
-	} else {
-		// if not found, create new one
-		if statusError, ok := getErr.(*errors.StatusError); ok &&
-			statusError.Status().Reason == metav1.StatusReasonNotFound {
-			logrus.Infof("Creating a new object: ConsoleLink, name: %s", preparedConsoleLink.Name)
-			return r.nonCachedClient.Create(context.TODO(), preparedConsoleLink)
-		} else {
-			return getErr
-		}
-	}
-}
-
-func hasConsolelinkObject() bool {
-	resourceList, err := util.GetServerResources()
-	if err != nil {
-		return false
-	}
-	for _, res := range resourceList {
-		for _, r := range res.APIResources {
-			if r.Name == "consolelinks" {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // EvaluateCheServerVersion evaluate che version
