@@ -153,7 +153,6 @@ getCheAcessToken() {
 waitWorkspaceStart() {
   set +e
   export x=0
-  echo "Hello"
   while [ $x -le 180 ]
   do
     getCheAcessToken
