@@ -29,7 +29,6 @@
       "env": {
         "WATCH_NAMESPACE": "che",
         "CHE_FLAVOR": "che",
-        "CONSOLE_LINK_NAME": "che",
         "CONSOLE_LINK_DISPLAY_NAME": "Eclipse Che",
         "CONSOLE_LINK_SECTION": "Red Hat Applications",
         "CONSOLE_LINK_IMAGE": "/dashboard/assets/branding/loader.svg",

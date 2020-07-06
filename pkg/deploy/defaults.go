@@ -181,8 +181,8 @@ func DefaultCheFlavor(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
 }
 
-func DefaultConsoleLinkName() string {
-	return getDefaultFromEnv("CONSOLE_LINK_NAME")
+func DefaultConsoleLinkName(checluster *orgv1.CheCluster) string {
+	return DefaultCheFlavor(checluster) + "-" + checluster.Namespace
 }
 
 func DefaultConsoleLinkDisplayName() string {

@@ -60,6 +60,8 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 		return nil
 	}
 
+	// Found console links from previous deployments with different names
+	// Let's delete them all and create a proper one
 	if len(clusterConsoleLinks) != 1 {
 		for _, clusterConsoleLink := range clusterConsoleLinks {
 			logrus.Infof("Deleting existed object: %s, name %s", clusterConsoleLink.Kind, clusterConsoleLink.Name)
@@ -70,6 +72,8 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 		return clusterAPI.Client.Create(context.TODO(), specConsoleLink)
 	}
 
+	// Comparing with existed console link and recreating if necessary
+	// We have to delete existed one since the console link name might be changed (it is not possible to update)
 	diff := cmp.Diff(clusterConsoleLinks[0], specConsoleLink, consoleLinkDiffOpts)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existed object: %s, name: %s", clusterConsoleLinks[0].Kind, clusterConsoleLinks[0].Name)
@@ -87,10 +91,11 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 }
 
 /**
- * Returns all console links for the same host name.
+ * Returns all console links for the same host name or for the target console link name
  */
 func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.Client) ([]*consolev1.ConsoleLink, error) {
 	var clusterConsoleLinks []*consolev1.ConsoleLink
+	consoleLinkName := DefaultConsoleLinkName(checluster)
 
 	consoleLinks := &consolev1.ConsoleLinkList{}
 	listOptions := &runtimeClient.ListOptions{}
@@ -99,7 +104,7 @@ func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.C
 	}
 
 	for _, consoleLink := range consoleLinks.Items {
-		if strings.Contains(consoleLink.Spec.Link.Href, checluster.Spec.Server.CheHost) {
+		if strings.Contains(consoleLink.Spec.Link.Href, checluster.Spec.Server.CheHost) || consoleLinkName == consoleLink.Name {
 			clusterConsoleLinks = append(clusterConsoleLinks, &consoleLink)
 		}
 	}
@@ -114,7 +119,7 @@ func getSpecConsoleLink(checluster *orgv1.CheCluster) *consolev1.ConsoleLink {
 			Kind: "ConsoleLink",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: DefaultConsoleLinkName(),
+			Name: DefaultConsoleLinkName(checluster),
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{

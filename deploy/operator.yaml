@@ -66,8 +66,6 @@ spec:
               value: quay.io/eclipse/che-jwtproxy:fd94e60
             - name: CHE_FLAVOR
               value: che
-            - name: CONSOLE_LINK_NAME
-              value: che
             - name: CONSOLE_LINK_DISPLAY_NAME
               value: Eclipse Che
             - name: CONSOLE_LINK_SECTION
