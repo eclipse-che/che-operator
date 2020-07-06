@@ -414,7 +414,7 @@ type CheClusterSpecK8SOnly struct {
 }
 
 type CheClusterSpecMetrics struct {
-	// Enables `metrics` Che server endpoint. Default to `false`.
+	// Enables `metrics` Che server endpoint. Default to `true`.
 	// +optional
 	Enable bool `json:"enable"`
 }
