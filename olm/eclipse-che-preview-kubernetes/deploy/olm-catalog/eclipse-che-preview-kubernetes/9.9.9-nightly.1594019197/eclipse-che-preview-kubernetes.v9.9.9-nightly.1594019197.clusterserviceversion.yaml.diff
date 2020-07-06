@@ -1,6 +1,16 @@
 --- /home/ibuziuk/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1593691637/eclipse-che-preview-kubernetes.v9.9.9-nightly.1593691637.clusterserviceversion.yaml	2020-07-06 08:52:41.507665564 +0200
 +++ /home/ibuziuk/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1594019197/eclipse-che-preview-kubernetes.v9.9.9-nightly.1594019197.clusterserviceversion.yaml	2020-07-06 09:06:38.002213256 +0200
-@@ -49,12 +49,12 @@
+@@ -41,6 +41,9 @@
+                 "pvcStrategy": "per-workspace",
+                 "pvcClaimSize": "1Gi",
+                 "preCreateSubPaths": true
++             },
++             "metrics": {
++                "enable": true
+              }
+           }
+         }
+@@ -49,12 +52,12 @@
      categories: Developer Tools
      certified: "false"
      containerImage: quay.io/eclipse/che-operator:nightly
@@ -15,7 +25,7 @@
    namespace: placeholder
  spec:
    apiservicedefinitions: {}
-@@ -394,5 +394,5 @@
+@@ -394,5 +397,5 @@
    maturity: stable
    provider:
      name: Eclipse Foundation
