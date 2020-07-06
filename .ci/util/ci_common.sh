@@ -151,15 +151,16 @@ getCheAcessToken() {
 }
 
 waitWorkspaceStart() {
-  export x=0
   set +e
-  getCheAcessToken
+  export x=0
+  echo "Hello"
   while [ $x -le 180 ]
   do
+    getCheAcessToken
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep -oP '\bRUNNING.*?\b')
 
-    if [ "${workspaceStatus}" == "RUNNING" ]
+    if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
     then
       printInfo "Workspace started started successfully"
       break
