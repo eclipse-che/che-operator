@@ -67,7 +67,7 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 	if len(clusterConsoleLinks) != 1 {
 		for _, clusterConsoleLink := range clusterConsoleLinks {
 			logrus.Infof("Deleting existed object: %s, name %s", clusterConsoleLink.Kind, clusterConsoleLink.Name)
-			if err := clusterAPI.Client.Delete(context.TODO(), &clusterConsoleLink); err != nil {
+			if err := clusterAPI.Client.Delete(context.TODO(), clusterConsoleLink); err != nil {
 				return err
 			}
 		}
@@ -83,7 +83,7 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 		logrus.Infof("Updating existed object: %s, name: %s", clusterConsoleLinks[0].Kind, clusterConsoleLinks[0].Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		if err := clusterAPI.Client.Delete(context.TODO(), &clusterConsoleLinks[0]); err != nil {
+		if err := clusterAPI.Client.Delete(context.TODO(), clusterConsoleLinks[0]); err != nil {
 			return err
 		}
 		return clusterAPI.Client.Create(context.TODO(), specConsoleLink)
@@ -95,8 +95,8 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 /**
  * Returns all console links for the same host name or for the target console link name
  */
-func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.Client) ([]consolev1.ConsoleLink, error) {
-	var clusterConsoleLinks []consolev1.ConsoleLink
+func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.Client) ([]*consolev1.ConsoleLink, error) {
+	var clusterConsoleLinks []*consolev1.ConsoleLink
 	defaultConsoleLinkName := DefaultConsoleLinkName(checluster)
 
 	consoleLinks := &consolev1.ConsoleLinkList{}
@@ -105,9 +105,9 @@ func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.C
 		return nil, err
 	}
 
-	for _, consoleLink := range consoleLinks.Items {
+	for i, consoleLink := range consoleLinks.Items {
 		if strings.Contains(consoleLink.Spec.Link.Href, checluster.Spec.Server.CheHost) || consoleLink.Name == defaultConsoleLinkName {
-			clusterConsoleLinks = append(clusterConsoleLinks, consoleLink)
+			clusterConsoleLinks = append(clusterConsoleLinks, &consoleLinks.Items[i])
 		}
 	}
 
