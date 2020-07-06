@@ -1,0 +1,25 @@
+--- /home/ibuziuk/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1593691637/eclipse-che-preview-kubernetes.v9.9.9-nightly.1593691637.clusterserviceversion.yaml	2020-07-06 08:52:41.507665564 +0200
++++ /home/ibuziuk/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1594019197/eclipse-che-preview-kubernetes.v9.9.9-nightly.1594019197.clusterserviceversion.yaml	2020-07-06 09:06:38.002213256 +0200
+@@ -49,12 +49,12 @@
+     categories: Developer Tools
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-07-02T12:07:18Z"
++    createdAt: "2020-07-06T07:06:38Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces.
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1593691637
++  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1594019197
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -394,5 +394,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1593082234
+-  version: 9.9.9-nightly.1593691637
++  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1593691637
++  version: 9.9.9-nightly.1594019197
