@@ -35,14 +35,14 @@ var consoleLinkDiffOpts = cmp.Options{
 
 func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	if !util.IsOpenShift4 || !HasConsolelinkObject() {
-		logrus.Debug("Console link won't be created. It's not supported by cluster")
 		// console link is supported only on OpenShift >= 4.2
+		logrus.Debug("Console link won't be created. It's not supported by cluster")
 		return nil
 	}
 
 	if !checluster.Spec.Server.TlsSupport {
-		logrus.Debug("Console link won't be created. It's not supported when http connection is used")
 		// console link is supported only with https
+		logrus.Debug("Console link won't be created. It's not supported when http connection is used")
 		return nil
 	}
 
@@ -55,7 +55,9 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 	if !checluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		for _, clusterConsoleLink := range clusterConsoleLinks {
 			logrus.Infof("Deleting existed object: %s, name %s", clusterConsoleLink.Kind, clusterConsoleLink.Name)
-			return clusterAPI.Client.Delete(context.TODO(), clusterConsoleLink)
+			if err := clusterAPI.Client.Delete(context.TODO(), clusterConsoleLink); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -65,7 +67,9 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 	if len(clusterConsoleLinks) != 1 {
 		for _, clusterConsoleLink := range clusterConsoleLinks {
 			logrus.Infof("Deleting existed object: %s, name %s", clusterConsoleLink.Kind, clusterConsoleLink.Name)
-			return clusterAPI.Client.Delete(context.TODO(), clusterConsoleLink)
+			if err := clusterAPI.Client.Delete(context.TODO(), clusterConsoleLink); err != nil {
+				return err
+			}
 		}
 
 		logrus.Infof("Creating a new object: %s, name %s", specConsoleLink.Kind, specConsoleLink.Name)
@@ -79,11 +83,9 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 		logrus.Infof("Updating existed object: %s, name: %s", clusterConsoleLinks[0].Kind, clusterConsoleLinks[0].Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		err := clusterAPI.Client.Delete(context.TODO(), clusterConsoleLinks[0])
-		if err != nil {
+		if err := clusterAPI.Client.Delete(context.TODO(), clusterConsoleLinks[0]); err != nil {
 			return err
 		}
-
 		return clusterAPI.Client.Create(context.TODO(), specConsoleLink)
 	}
 
@@ -95,7 +97,7 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
  */
 func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.Client) ([]*consolev1.ConsoleLink, error) {
 	var clusterConsoleLinks []*consolev1.ConsoleLink
-	consoleLinkName := DefaultConsoleLinkName(checluster)
+	defaultConsoleLinkName := DefaultConsoleLinkName(checluster)
 
 	consoleLinks := &consolev1.ConsoleLinkList{}
 	listOptions := &runtimeClient.ListOptions{}
@@ -104,7 +106,7 @@ func getClusterConsoleLinks(checluster *orgv1.CheCluster, client runtimeClient.C
 	}
 
 	for _, consoleLink := range consoleLinks.Items {
-		if strings.Contains(consoleLink.Spec.Link.Href, checluster.Spec.Server.CheHost) || consoleLinkName == consoleLink.Name {
+		if strings.Contains(consoleLink.Spec.Link.Href, checluster.Spec.Server.CheHost) || consoleLink.Name == defaultConsoleLinkName {
 			clusterConsoleLinks = append(clusterConsoleLinks, &consoleLink)
 		}
 	}
