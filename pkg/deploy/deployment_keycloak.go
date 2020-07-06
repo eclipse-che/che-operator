@@ -184,7 +184,13 @@ func getSpecKeycloakDeployment(
 			},
 		}
 
-		quotedNoProxy := strings.ReplaceAll(regexp.QuoteMeta(proxy.NoProxy), "\\", "\\\\\\")
+		quotedNoProxy := ""
+		for _, noProxyHost := range strings.Split(proxy.NoProxy, ",") {
+			if len(quotedNoProxy) != 0 {
+				quotedNoProxy += ","
+			}
+			quotedNoProxy += "\"" + strings.ReplaceAll(regexp.QuoteMeta(noProxyHost), "\\", "\\\\\\") + ";NO_PROXY\""
+		}
 
 		jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"
 		serverConfig := "standalone.xml"
@@ -194,7 +200,7 @@ func getSpecKeycloakDeployment(
 		}
 		addProxyCliCommand = " && echo Configuring Proxy && " +
 			"echo -e 'embed-server --server-config=" + serverConfig + " --std-out=echo \n" +
-			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[\"" + quotedNoProxy + ";NO_PROXY\",\".*;" + proxy.HttpProxy + "\"]) \n" +
+			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[" + quotedNoProxy + ",\".*;" + proxy.HttpProxy + "\"]) \n" +
 			"stop-embedded-server' > " + jbossDir + "/setup-http-proxy.cli"
 
 		applyProxyCliCommand = " && " + jbossCli + " --file=" + jbossDir + "/setup-http-proxy.cli"
