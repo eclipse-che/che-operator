@@ -250,7 +250,7 @@ spec:
                 used by the Che installation.
               properties:
                 enable:
-                  description: Enables `metrics` Che server endpoint. Default to `false`.
+                  description: Enables `metrics` Che server endpoint. Default to `true`.
                   type: boolean
               type: object
             server:
