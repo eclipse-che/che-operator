@@ -126,4 +126,4 @@ spec:
     securityContextRunAsUser: ''
   metrics:
     # Enables '/metrics' endpoint of Che server.
-    enable: false
+    enable: true
