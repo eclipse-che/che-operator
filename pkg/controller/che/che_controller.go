@@ -94,7 +94,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := oauthv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
 		}
-		if deploy.HasConsolelinkObject() {
+		if deploy.HasConsoleLinkObject() {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
 			}

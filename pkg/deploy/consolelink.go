@@ -34,7 +34,7 @@ var consoleLinkDiffOpts = cmp.Options{
 }
 
 func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) error {
-	if !util.IsOpenShift4 || !HasConsolelinkObject() {
+	if !util.IsOpenShift4 || !HasConsoleLinkObject() {
 		// console link is supported only on OpenShift >= 4.2
 		logrus.Debug("Console link won't be created. It's not supported by cluster")
 		return nil
@@ -52,15 +52,15 @@ func SyncConsoleLinkToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAP
 		return err
 	}
 
-	if !checluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		for _, clusterConsoleLink := range clusterConsoleLinks {
-			logrus.Infof("Deleting existed object: %s, name %s", clusterConsoleLink.Kind, clusterConsoleLink.Name)
-			if err := clusterAPI.Client.Delete(context.TODO(), &clusterConsoleLink); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
+	// if !checluster.ObjectMeta.DeletionTimestamp.IsZero() {
+	// 	for _, clusterConsoleLink := range clusterConsoleLinks {
+	// 		logrus.Infof("Deleting existed object: %s, name %s", clusterConsoleLink.Kind, clusterConsoleLink.Name)
+	// 		if err := clusterAPI.Client.Delete(context.TODO(), &clusterConsoleLink); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// 	return nil
+	// }
 
 	// Found console links from previous deployments with different names
 	// Let's delete them all and create a proper one
@@ -136,7 +136,7 @@ func getSpecConsoleLink(checluster *orgv1.CheCluster) *consolev1.ConsoleLink {
 	}
 }
 
-func HasConsolelinkObject() bool {
+func HasConsoleLinkObject() bool {
 	resourceList, err := util.GetServerResources()
 	if err != nil {
 		return false
