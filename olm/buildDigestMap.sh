@@ -10,7 +10,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
+SCRIPTS_DIR=$(cd "$(dirname "$0")" || exit 1; pwd)
 BASE_DIR="$1"
 QUIET=""
 
@@ -35,7 +35,7 @@ if [[ $# -lt 1 ]]; then usage; exit; fi
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
-    '-c') CSV="$2"; shift 1;;
+    '-c') CSV="$2"; CSVS+=("${CSV}");shift 1;;
     '-t') IMAGE_TAG="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
     '--help'|'-h') usage; exit;;
@@ -45,42 +45,43 @@ done
 
 if [[ ! $CSV ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
 
-mkdir -p ${BASE_DIR}/generated
+mkdir -p "${BASE_DIR}/generated"
 
 echo "[INFO] Get images from CSV ${CSV}"
 
-source ${SCRIPTS_DIR}/images.sh
+# shellcheck source=images.sh
+. "${SCRIPTS_DIR}"/images.sh
 
 # todo create init method
 setImagesFromDeploymentEnv
 
 setOperatorImage
-echo ${OPERATOR_IMAGE}
+echo "${OPERATOR_IMAGE}"
 
 setPluginRegistryList
-echo ${PLUGIN_REGISTRY_LIST}
+echo "${PLUGIN_REGISTRY_LIST}"
 
 setDevfileRegistryList
-echo ${DEVFILE_REGISTRY_LIST}
+echo "${DEVFILE_REGISTRY_LIST}"
 
 writeDigest() {
   image=$1
   imageType=$2
-  echo ${image}
   case ${image} in
     *@sha256:*)
-      withDigest="${image}";;
+      withDigest=${image};;
     *@)
-      continue;;
+      return;;
     *)
       # for other build methods or for falling back to other registries when not found, can apply transforms here
-      orig_image="${image}"
+      orig_image=${image}
       if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
+        # shellcheck source=buildDigestMapAlternateURLs.sh
         . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
       fi
       if [[ ${digest} ]]; then
         if [[ ! "${QUIET}" ]]; then echo -n "[INFO] Got digest"; fi
-        echo "    $digest # ${image}"
+        echo "    $digest \# ${image}"
       else
       image="${orig_image}"
       digest="$(skopeo inspect --tls-verify=false docker://${image} 2>/dev/null | jq -r '.Digest')"
@@ -107,19 +108,19 @@ writeDigest() {
 }
 
 DIGEST_FILE=${BASE_DIR}/generated/digests-mapping.txt
-rm -Rf ${DIGEST_FILE}
-touch ${DIGEST_FILE}
+rm -Rf "${DIGEST_FILE}"
+touch "${DIGEST_FILE}"
 
-writeDigest ${OPERATOR_IMAGE} "operator-image"
+writeDigest "${OPERATOR_IMAGE}" "operator-image"
 
 for image in ${REQUIRED_IMAGES}; do
-  writeDigest ${image} "required-image" 
+  writeDigest "${image}" "required-image" 
 done
 
 for image in ${PLUGIN_REGISTRY_LIST}; do
-  writeDigest ${image} "plugin-registry-image"
+  writeDigest "${image}" "plugin-registry-image"
 done
 
 for image in ${DEVFILE_REGISTRY_LIST}; do
-  writeDigest ${image} "devfile-registry-image"
+  writeDigest "${image}" "devfile-registry-image"
 done

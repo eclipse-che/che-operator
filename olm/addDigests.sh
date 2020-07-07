@@ -58,20 +58,21 @@ echo "find ${CSV_FILES_DIR} -regextype posix-egrep -regex \"${CSV_FILES_DIR}/?${
 CSV_FILES=( $(find ${CSV_FILES_DIR} -regextype posix-egrep -regex "${CSV_FILES_DIR}/?${CSV_FILE_PATH_REGEXP}") )
 RELATED_IMAGE_PREFIX="RELATED_IMAGE_"
 
-rm -Rf ${BASE_DIR}/generated/csv
-mkdir -p ${BASE_DIR}/generated/csv
+rm -Rf "${BASE_DIR}/generated/csv"
+mkdir -p "${BASE_DIR}/generated/csv"
 # Copy original csv files
-for CSV_FILE in ${CSV_FILES[@]}
+for CSV_FILE in "${CSV_FILES[@]}"
 do
   echo "CSV file: ${CSV_FILE}"
-  cp -pR ${CSV_FILE} ${BASE_DIR}/generated/csv
+  cp -pR "${CSV_FILE}" "${BASE_DIR}/generated/csv"
+  csvs_args="${csvs_args} -c ${CSV_FILE}"
 done
 
-# Collect list digest only once to save time. We expected that digest list is the same for "openshift" and "kubernetes" platforms.
-source ${SCRIPTS_DIR}/buildDigestMap.sh -w ${BASE_DIR} -c ${CSV_FILES[0]} -t ${IMAGE_TAG} ${QUIET}
+# shellcheck source=buildDigestMap.sh
+eval "${SCRIPTS_DIR}/buildDigestMap.sh" -w "${BASE_DIR}" -t "${IMAGE_TAG}" "${csvs_args}" ${QUIET}
 
-if [[ ! "${QUIET}" ]]; then cat ${BASE_DIR}/generated/digests-mapping.txt; fi
-for CSV_FILE in ${CSV_FILES[@]}
+if [[ ! "${QUIET}" ]]; then cat "${BASE_DIR}"/generated/digests-mapping.txt; fi
+for CSV_FILE in "${CSV_FILES[@]}"
 do
   CSV_FILE_COPY=${BASE_DIR}/generated/csv/$(basename ${CSV_FILE})
 
@@ -97,7 +98,7 @@ do
       # Image tag could contains invalid for Env variable name characters, so let's encode it using base32.
       # But alphabet of base32 uses one invalid for env variable name character '=' at the end of the line, so let's replace it by '_'. 
       # To recovery original tag should be done opposite actions: replace '_' to '=', and decode string using 'base32 -d'.
-      encodedTag=$(echo ${tagOrDigest} | base32 -w 0 | tr = _)
+      encodedTag=$(echo "${tagOrDigest}" | base32 -w 0 | tr "=" "_")
       relatedImageEnvName=$(echo "${RELATED_IMAGE_PREFIX}${name}_${imageLabel}_${encodedTag}" | sed -r 's/[-.]/_/g')
       ENV="{ name: \"${relatedImageEnvName}\", value: \"${dest}\"}"
       if [[ -z ${RELATED_IMAGES_ENV} ]]; then
@@ -114,16 +115,16 @@ do
       RELATED_IMAGES="${RELATED_IMAGES}, ${RELATED_IMAGE}"
     fi
 
-    sed -i -e "s;${source};${dest};" ${CSV_FILE_COPY}
+    sed -i -e "s;${source};${dest};" "${CSV_FILE_COPY}"
   done
 
-  mv ${CSV_FILE_COPY} ${CSV_FILE_COPY}.old
+  mv "${CSV_FILE_COPY}" "${CSV_FILE_COPY}.old"
   yq -ryY "
   ( .spec.relatedImages ) += [${RELATED_IMAGES}] |
   ( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]
-  " ${CSV_FILE_COPY}.old > ${CSV_FILE_COPY}
-  sed -i ${CSV_FILE_COPY} -r -e "s|tag: |# tag: |"
-  rm -f ${CSV_FILE_COPY}.old
+  " "${CSV_FILE_COPY}.old" > "${CSV_FILE_COPY}"
+  sed -i "${CSV_FILE_COPY}" -r -e "s|tag: |# tag: |"
+  rm -f "${CSV_FILE_COPY}.old"
 
   # update original file with generated changes
   mv "${CSV_FILE_COPY}" "${CSV_FILE}"
@@ -131,4 +132,4 @@ do
 done
 
 # cleanup
-rm -fr ${BASE_DIR}/generated
+rm -fr "${BASE_DIR}/generated"

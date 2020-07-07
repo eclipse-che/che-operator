@@ -11,7 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 setImagesFromDeploymentEnv() {
-    REQUIRED_IMAGES=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*"; "g")) | .value' "${CSV}")
+    REQUIRED_IMAGES=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.value) | select(.name | test("RELATED_IMAGE_.*"; "g")) | .value' "${CSVS[@]}" | sort | uniq)
 }
 
 setOperatorImage() {
@@ -20,7 +20,7 @@ setOperatorImage() {
 
 setPluginRegistryList() {
     registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*plugin_registry"; "g")) | .value' "${CSV}")
-    setRegistryImages ${registry}
+    setRegistryImages "${registry}"
 
     PLUGIN_REGISTRY_LIST=${registryImages}
 }
@@ -28,7 +28,7 @@ setPluginRegistryList() {
 setDevfileRegistryList() {
     registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*devfile_registry"; "g")) | .value' "${CSV}")
 
-    setRegistryImages ${registry}
+    setRegistryImages "${registry}"
     DEVFILE_REGISTRY_LIST=${registryImages}   
 }
 
@@ -39,6 +39,6 @@ setRegistryImages() {
     echo -n "[INFO] Pull container ${registry} ..."
     ${PODMAN} pull ${registry} ${QUIET}
 
-    registryImages="$(${PODMAN} run --rm  --entrypoint /bin/sh  ${registry} -c "cat /var/www/html/*/external_images.txt")"
+    registryImages="$(${PODMAN} run --rm  --entrypoint /bin/sh "${registry}" -c "cat /var/www/html/*/external_images.txt")"
     echo "[INFO] Found $(echo "${registryImages}" | wc -l) images in registry"
 }
