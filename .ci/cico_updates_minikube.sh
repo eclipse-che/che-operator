@@ -86,7 +86,21 @@ waitCheUpdateInstall() {
   fi
 }
 
+self_signed_minikube() {
+  export DOMAIN=*.$(minikube ip).nip.io
+
+  source ${OPERATOR_REPO}/.ci/util/che-cert-generation.sh
+
+  kubectl create namespace che
+  kubectl create secret tls che-tls --key=domain.key --cert=domain.crt -n che
+  cp rootCA.crt ca.crt
+  kubectl create secret generic self-signed-certificate --from-file=ca.crt -n che
+}
+
 testUpdates() {
+  # Create certificates for tests purpose
+  self_signed_minikube
+
   "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
   printInfo "Successfully installed Eclipse Che previous version."
 

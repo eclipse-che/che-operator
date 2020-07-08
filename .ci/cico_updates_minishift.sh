@@ -62,7 +62,6 @@ installLatestCheStable() {
   export previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
   # Add stable Che images and tag to CR
-  sed -i "s/tlsSupport: true/tlsSupport: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
   sed -i "s/cheImage: ''/cheImage: quay.io\/eclipse\/che-server/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
   sed -i "s/cheImageTag: ''/cheImageTag: ${previousPackageVersion}/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
   sed -i "s/devfileRegistryImage: ''/devfileRegistryImage: quay.io\/eclipse\/che-devfile-registry:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
@@ -70,7 +69,7 @@ installLatestCheStable() {
   sed -i "s/identityProviderImage: ''/identityProviderImage: quay.io\/eclipse\/che-keycloak:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
 
   # Start last stable version of che
-  chectl server:start --platform=minishift --che-operator-cr-yaml=${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml \
+  chectl server:start --platform=minishift --skip-kubernetes-health-check --che-operator-cr-yaml=${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml \
     --che-operator-image=quay.io/eclipse/che-operator:${previousPackageVersion} --installer=operator
 }
 
@@ -98,8 +97,30 @@ waitForNewCheVersion() {
   fi
 }
 
+self_signed_minishift() {
+  export DOMAIN=*.$(minishift ip).nip.io
+
+  source ${OPERATOR_REPO}/.ci/util/che-cert-generation.sh
+
+  #Configure Router with generated certificate:
+
+  oc login -u system:admin --insecure-skip-tls-verify=true
+  oc project default
+  oc delete secret router-certs
+
+  cat domain.crt domain.key > minishift.crt
+  oc create secret tls router-certs --key=domain.key --cert=minishift.crt
+  oc rollout latest router
+
+  oc create namespace che
+
+  cp rootCA.crt ca.crt
+  oc create secret generic self-signed-certificate --from-file=ca.crt -n=che
+}
+
 testUpdates() {
   # Install previous stable version of Eclipse Che
+  self_signed_minishift
   installLatestCheStable
 
   # Create an workspace
