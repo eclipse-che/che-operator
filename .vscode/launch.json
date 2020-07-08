@@ -1,7 +1,22 @@
 {
   "version": "0.2.0",
   "configurations": [
-
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (release-olm-files.sh)",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/release-olm-files.sh",
+      "args": [
+        "7.13.2"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (simplest configuration)",
+      "program": "${file}"
+    },
     {
       "name": "Launch Current File",
       "type": "go",

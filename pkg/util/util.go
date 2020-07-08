@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -320,4 +321,17 @@ func GetDeploymentEnvVarSource(deployment *appsv1.Deployment, key string) (value
 		}
 	}
 	return valueFrom
+}
+
+func GetEnvByRegExp(regExp string) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		envName := pair[0]
+		rxp := regexp.MustCompile(regExp)
+		if rxp.MatchString(envName) {
+			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
+		}
+	}
+	return env
 }

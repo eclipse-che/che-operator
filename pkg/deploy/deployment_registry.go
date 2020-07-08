@@ -34,6 +34,7 @@ func SyncPluginRegistryDeploymentToCluster(checluster *orgv1.CheCluster, cluster
 	registryMemoryLimit := util.GetValue(string(checluster.Spec.Server.PluginRegistryMemoryLimit), DefaultPluginRegistryMemoryLimit)
 	registryMemoryRequest := util.GetValue(string(checluster.Spec.Server.PluginRegistryMemoryRequest), DefaultPluginRegistryMemoryRequest)
 	probePath := "/v3/plugins/"
+	pluginImagesEnv := util.GetEnvByRegExp("^.*plugin_registry_image.*$")
 
 	clusterDeployment, err := getClusterDeployment(PluginRegistryDeploymentName, checluster.Namespace, clusterAPI.Client)
 	if err != nil {
@@ -46,6 +47,7 @@ func SyncPluginRegistryDeploymentToCluster(checluster *orgv1.CheCluster, cluster
 		checluster,
 		registryType,
 		registryImage,
+		pluginImagesEnv,
 		registryImagePullPolicy,
 		registryMemoryLimit,
 		registryMemoryRequest,
@@ -68,6 +70,7 @@ func SyncDevfileRegistryDeploymentToCluster(checluster *orgv1.CheCluster, cluste
 	registryMemoryLimit := util.GetValue(string(checluster.Spec.Server.DevfileRegistryMemoryLimit), DefaultDevfileRegistryMemoryLimit)
 	registryMemoryRequest := util.GetValue(string(checluster.Spec.Server.DevfileRegistryMemoryRequest), DefaultDevfileRegistryMemoryRequest)
 	probePath := "/devfiles/"
+	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
 	clusterDeployment, err := getClusterDeployment(DevfileRegistryDeploymentName, checluster.Namespace, clusterAPI.Client)
 	if err != nil {
@@ -80,6 +83,7 @@ func SyncDevfileRegistryDeploymentToCluster(checluster *orgv1.CheCluster, cluste
 		checluster,
 		registryType,
 		registryImage,
+		devfileImagesEnv,
 		registryImagePullPolicy,
 		registryMemoryLimit,
 		registryMemoryRequest,
@@ -99,6 +103,7 @@ func getSpecRegistryDeployment(
 	checluster *orgv1.CheCluster,
 	registryType string,
 	registryImage string,
+	env []corev1.EnvVar,
 	registryImagePullPolicy corev1.PullPolicy,
 	registryMemoryLimit string,
 	registryMemoryRequest string,
@@ -150,6 +155,7 @@ func getSpecRegistryDeployment(
 									Protocol:      "TCP",
 								},
 							},
+							Env: env,
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{

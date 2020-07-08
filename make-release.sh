@@ -119,7 +119,7 @@ checkImageReferences() {
     echo "[ERROR] Unable to find che-keycloak image with version ${RELEASE} in the $filename"; exit 1
   fi
 
-  if ! grep -q "value: $IMAGE_default_pvc_jobs" $filename; then
+  if ! grep -q "value: $RELATED_IMAGE_pvc_jobs" $filename; then
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 

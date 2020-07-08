@@ -82,6 +82,16 @@ github_token_set() {
   fi
 }
 
+buildCheOperatorImage() {
+  if [ -z "${1}" ]; then
+    printError "Platform is required to build che operator image."
+  fi
+  PLATFORM="${1}"
+  OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
+  cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+  eval $(${PLATFORM} docker-env) && docker load -i operator.tar && rm operator.tar
+}
+
 minishift_installation() {
   MSFT_RELEASE="1.34.2"
   printInfo "Downloading Minishift binaries"

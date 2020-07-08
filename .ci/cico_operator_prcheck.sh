@@ -53,8 +53,8 @@ run_tests() {
               sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /operator/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
   
   printInfo "Build operator docker image and load in to minishift VM..."
-  cd "$OPERATOR_REPO" && docker build -t che/operator -f Dockerfile . && docker save che/operator > operator.tar
-  eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
+
+  buildCheOperatorImage "minishift"
   
   printInfo "Runing e2e tests..."
   ${OPERATOR_REPO}/tmp/run-tests

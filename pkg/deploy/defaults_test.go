@@ -46,25 +46,25 @@ func init() {
 			switch env.Name {
 			case "CHE_VERSION":
 				cheVersionTest = env.Value
-			case "IMAGE_default_che_server":
+			case "RELATED_IMAGE_che_server":
 				cheServerImageTest = env.Value
-			case "IMAGE_default_plugin_registry":
+			case "RELATED_IMAGE_plugin_registry":
 				pluginRegistryImageTest = env.Value
-			case "IMAGE_default_devfile_registry":
+			case "RELATED_IMAGE_devfile_registry":
 				devfileRegistryImageTest = env.Value
-			case "IMAGE_default_che_tls_secrets_creation_job":
+			case "RELATED_IMAGE_che_tls_secrets_creation_job":
 				tlsJobImageTest = env.Value
-			case "IMAGE_default_pvc_jobs":
+			case "RELATED_IMAGE_pvc_jobs":
 				pvcJobsImageTest = env.Value
-			case "IMAGE_default_postgres":
+			case "RELATED_IMAGE_postgres":
 				postgresImageTest = env.Value
-			case "IMAGE_default_keycloak":
+			case "RELATED_IMAGE_keycloak":
 				keycloakImageTest = env.Value
-			case "IMAGE_default_che_workspace_plugin_broker_metadata":
+			case "RELATED_IMAGE_che_workspace_plugin_broker_metadata":
 				brokerMetadataTest = env.Value
-			case "IMAGE_default_che_workspace_plugin_broker_artifacts":
+			case "RELATED_IMAGE_che_workspace_plugin_broker_artifacts":
 				brokerArtifactsTest = env.Value
-			case "IMAGE_default_che_server_secure_exposer_jwt_proxy_image":
+			case "RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image":
 				jwtProxyTest = env.Value
 			}
 		}
