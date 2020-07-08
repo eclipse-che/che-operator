@@ -21,6 +21,7 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
 	oauth "github.com/openshift/api/oauth/v1"
@@ -95,6 +96,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}
 		if err := oauthv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
+		}
+		if err := configv1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift Config to scheme: %s", err)
 		}
 		if hasConsolelinkObject() {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
@@ -307,6 +311,26 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	// Read proxy configuration
+	proxy, err := r.getProxyConfiguration(instance)
+	if err != nil {
+		logrus.Errorf("Error on reading proxy configuration: %v", err)
+		return reconcile.Result{}, err
+	}
+
+	if proxy.TrustedCAMapName != "" {
+		provisioned, err := r.putOpenShiftCertsIntoConfigMap(instance, proxy, clusterAPI)
+		if !provisioned {
+			configMapName := instance.Spec.Server.ServerTrustStoreConfigMapName
+			if err != nil {
+				logrus.Errorf("Error on provisioning config map '%s': %v", configMapName, err)
+			} else {
+				logrus.Infof("Waiting on provisioning config map '%s'", configMapName)
+			}
+			return reconcile.Result{}, err
+		}
+	}
+
 	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheDeploymentName := cheFlavor
 
@@ -319,7 +343,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Detect whether self-signed certificate is used
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(instance, clusterAPI)
+	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(instance, proxy, clusterAPI)
 	if err != nil {
 		logrus.Errorf("Failed to detect if self-signed certificate used. Cause: %v", err)
 		return reconcile.Result{}, err
@@ -332,7 +356,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
 			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
-			if err := deploy.CreateTLSSecretFromRoute(instance, "", deploy.CheTLSSelfSignedCertificateSecretName, clusterAPI); err != nil {
+			if err := deploy.CreateTLSSecretFromRoute(instance, "", deploy.CheTLSSelfSignedCertificateSecretName, proxy, clusterAPI); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -353,7 +377,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if err != nil {
 				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 			} else {
-				if err := deploy.CreateTLSSecretFromRoute(instance, baseURL, "openshift-api-crt", clusterAPI); err != nil {
+				if err := deploy.CreateTLSSecretFromRoute(instance, baseURL, "openshift-api-crt", proxy, clusterAPI); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
@@ -793,7 +817,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
-			deploymentStatus := deploy.SyncKeycloakDeploymentToCluster(instance, clusterAPI)
+			deploymentStatus := deploy.SyncKeycloakDeploymentToCluster(instance, proxy, clusterAPI)
 			if !tests {
 				if !deploymentStatus.Continue {
 					logrus.Info("Waiting on deployment 'keycloak' to be ready")
@@ -992,7 +1016,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					logrus.Errorf("An error occurred: %v", err)
 					return reconcile.Result{}, err
 				}
-				logrus.Info(" Updating plugin-registry ConfigMap")
+				logrus.Info("Updating plugin-registry ConfigMap")
 				err = r.client.Update(context.TODO(), pluginRegistryConfigMap)
 				if err != nil {
 					logrus.Errorf("Error updating plugin-registry ConfigMap: %v", err)
@@ -1088,16 +1112,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
-	cheEnv := deploy.GetConfigMapData(instance)
-	configMapStatus := deploy.SyncConfigMapToCluster(instance, cheEnv, clusterAPI)
+	cheConfigMap, err := deploy.SyncCheConfigMapToCluster(instance, proxy, clusterAPI)
 	if !tests {
-		if !configMapStatus.Continue {
-			logrus.Infof("Waiting on config map '%s' to be created", cheFlavor)
-			if configMapStatus.Err != nil {
-				logrus.Error(configMapStatus.Err)
+		if cheConfigMap == nil {
+			logrus.Infof("Waiting on config map '%s' to be created", deploy.CheConfigMapName)
+			if err != nil {
+				logrus.Error(err)
 			}
-
-			return reconcile.Result{Requeue: configMapStatus.Requeue}, configMapStatus.Err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -1107,11 +1129,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if tests {
 		cmResourceVersion = r.GetEffectiveConfigMap(instance, deploy.CheConfigMapName).ResourceVersion
 	} else {
-		cmResourceVersion = configMapStatus.ConfigMap.ResourceVersion
+		cmResourceVersion = cheConfigMap.ResourceVersion
 	}
 
 	// Create a new che deployment
-	deploymentStatus := deploy.SyncCheDeploymentToCluster(instance, cmResourceVersion, clusterAPI)
+	deploymentStatus := deploy.SyncCheDeploymentToCluster(instance, cmResourceVersion, proxy, clusterAPI)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)

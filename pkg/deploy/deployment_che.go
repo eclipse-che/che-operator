@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncCheDeploymentToCluster(checluster *orgv1.CheCluster, cmResourceVersion string, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
+func SyncCheDeploymentToCluster(checluster *orgv1.CheCluster, cmResourceVersion string, proxy *Proxy, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
 	clusterDeployment, err := getClusterDeployment(DefaultCheFlavor(checluster), checluster.Namespace, clusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
@@ -33,7 +33,7 @@ func SyncCheDeploymentToCluster(checluster *orgv1.CheCluster, cmResourceVersion 
 		}
 	}
 
-	specDeployment, err := getSpecCheDeployment(checluster, cmResourceVersion, clusterAPI)
+	specDeployment, err := getSpecCheDeployment(checluster, cmResourceVersion, proxy, clusterAPI)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -43,13 +43,13 @@ func SyncCheDeploymentToCluster(checluster *orgv1.CheCluster, cmResourceVersion 
 	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, nil, nil, clusterAPI)
 }
 
-func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string, clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
+func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string, proxy *Proxy, clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
 	}
 
-	selfSignedCertUsed, err := IsSelfSignedCertificateUsed(checluster, clusterAPI)
+	selfSignedCertUsed, err := IsSelfSignedCertificateUsed(checluster, proxy, clusterAPI)
 	if err != nil {
 		return nil, err
 	}

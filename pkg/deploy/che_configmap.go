@@ -12,7 +12,6 @@
 package deploy
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -20,14 +19,8 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
-	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -83,54 +76,19 @@ type CheConfigMap struct {
 	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
 }
 
-type ConfigMapProvisioningStatus struct {
-	ProvisioningStatus
-	ConfigMap *corev1.ConfigMap
-}
-
-func SyncConfigMapToCluster(checluster *orgv1.CheCluster, cheEnv map[string]string, clusterAPI ClusterAPI) ConfigMapProvisioningStatus {
-	specConfigMap, err := GetSpecConfigMap(checluster, cheEnv, clusterAPI)
+func SyncCheConfigMapToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
+	data := GetCheConfigMapData(checluster, proxy)
+	specConfigMap, err := GetSpecConfigMap(checluster, CheConfigMapName, data, clusterAPI)
 	if err != nil {
-		return ConfigMapProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, err
 	}
 
-	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, clusterAPI.Client)
-	if err != nil {
-		return ConfigMapProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
-	}
-
-	if clusterConfigMap == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specConfigMap.Kind, specConfigMap.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specConfigMap)
-		return ConfigMapProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
-	}
-
-	diff := cmp.Diff(clusterConfigMap.Data, specConfigMap.Data)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
-		fmt.Printf("Difference:\n%s", diff)
-		clusterConfigMap.Data = specConfigMap.Data
-		err := clusterAPI.Client.Update(context.TODO(), clusterConfigMap)
-		return ConfigMapProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
-	}
-
-	return ConfigMapProvisioningStatus{
-		ProvisioningStatus: ProvisioningStatus{Continue: true},
-		ConfigMap:          clusterConfigMap,
-	}
+	return SyncConfigMapToCluster(checluster, specConfigMap, clusterAPI)
 }
 
 // GetConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
+func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]string) {
 	cheHost := cr.Spec.Server.CheHost
 	keycloakURL := cr.Spec.Auth.IdentityProviderURL
 	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
@@ -165,29 +123,18 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		wsprotocol = "wss"
 		tls = "true"
 	}
-	proxyJavaOpts := ""
-	proxyUser := cr.Spec.Server.ProxyUser
-	proxyPassword := cr.Spec.Server.ProxyPassword
-	proxySecret := cr.Spec.Server.ProxySecret
 
-	nonProxyHosts := cr.Spec.Server.NonProxyHosts
-	if len(nonProxyHosts) < 1 && len(cr.Spec.Server.ProxyURL) > 1 {
-		nonProxyHosts = os.Getenv("KUBERNETES_SERVICE_HOST")
-	} else {
-		nonProxyHosts = nonProxyHosts + "|" + os.Getenv("KUBERNETES_SERVICE_HOST")
-	}
-	if len(cr.Spec.Server.ProxyURL) > 1 {
-		proxyJavaOpts, err = util.GenerateProxyJavaOpts(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword, proxySecret, cr.Namespace)
+	proxyJavaOpts := ""
+	cheWorkspaceNoProxy := proxy.NoProxy
+	if proxy.HttpProxy != "" {
+		if proxy.NoProxy == "" {
+			cheWorkspaceNoProxy = os.Getenv("KUBERNETES_SERVICE_HOST")
+		} else {
+			cheWorkspaceNoProxy = cheWorkspaceNoProxy + "," + os.Getenv("KUBERNETES_SERVICE_HOST")
+		}
+		proxyJavaOpts, err = GenerateProxyJavaOpts(proxy, cheWorkspaceNoProxy)
 		if err != nil {
 			logrus.Errorf("Failed to generate java proxy options: %v", err)
-		}
-	}
-	cheWorkspaceHttpProxy := ""
-	cheWorkspaceNoProxy := ""
-	if len(cr.Spec.Server.ProxyURL) > 1 {
-		cheWorkspaceHttpProxy, cheWorkspaceNoProxy, err = util.GenerateProxyEnvs(cr.Spec.Server.ProxyURL, cr.Spec.Server.ProxyPort, nonProxyHosts, proxyUser, proxyPassword, proxySecret, cr.Namespace)
-		if err != nil {
-			logrus.Errorf("Failed to generate proxy env variables: %v", err)
 		}
 	}
 
@@ -220,7 +167,7 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 	cheLogLevel := util.GetValue(cr.Spec.Server.CheLogLevel, DefaultCheLogLevel)
 	cheDebug := util.GetValue(cr.Spec.Server.CheDebug, DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
-	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, cheFlavor))
+	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, DefaultCheFlavor(cr)))
 	cheMultiUser := GetCheMultiUser(cr)
 
 	data := &CheConfigMap{
@@ -248,8 +195,8 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 		WorkspaceJavaOpts:                      DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
 		WorkspaceMavenOpts:                     DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
 		WorkspaceProxyJavaOpts:                 proxyJavaOpts,
-		WorkspaceHttpProxy:                     cheWorkspaceHttpProxy,
-		WorkspaceHttpsProxy:                    cheWorkspaceHttpProxy,
+		WorkspaceHttpProxy:                     proxy.HttpProxy,
+		WorkspaceHttpsProxy:                    proxy.HttpsProxy,
 		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
 		PluginRegistryUrl:                      pluginRegistryUrl,
 		DevfileRegistryUrl:                     devfileRegistryUrl,
@@ -294,45 +241,4 @@ func GetConfigMapData(cr *orgv1.CheCluster) (cheEnv map[string]string) {
 
 	addMap(cheEnv, cr.Spec.Server.CustomCheProperties)
 	return cheEnv
-}
-
-func GetSpecConfigMap(checluster *orgv1.CheCluster, cheEnv map[string]string, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      CheConfigMapName,
-			Namespace: checluster.Namespace,
-			Labels:    labels,
-		},
-		Data: cheEnv,
-	}
-
-	if !util.IsTestMode() {
-		err := controllerutil.SetControllerReference(checluster, configMap, clusterAPI.Scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return configMap, nil
-}
-
-func getClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
-	configMap := &corev1.ConfigMap{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, configMap)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return configMap, nil
 }

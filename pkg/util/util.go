@@ -243,62 +243,6 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	return hostname, nil
 }
 
-func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string, proxySecret string, namespace string) (javaOpts string, err error) {
-	if len(proxySecret) > 0 {
-		user, password, err := k8sclient.ReadSecret(proxySecret, namespace)
-		if err == nil {
-			proxyUser = user
-			proxyPassword = password
-		} else {
-			return "", err
-		}
-	}
-
-	var proxyHost string
-	if strings.HasPrefix(proxyURL, "https://") {
-		proxyHost = strings.TrimPrefix(proxyURL, "https://")
-	} else if strings.HasPrefix(proxyURL, "http://") {
-		proxyHost = strings.TrimPrefix(proxyURL, "http://")
-	} else {
-		proxyHost = proxyURL
-	}
-
-	proxyUserPassword := ""
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		proxyUserPassword =
-			" -Dhttp.proxyUser=" + proxyUser + " -Dhttp.proxyPassword=" + proxyPassword +
-				" -Dhttps.proxyUser=" + proxyUser + " -Dhttps.proxyPassword=" + proxyPassword
-	}
-	javaOpts =
-		" -Dhttp.proxyHost=" + proxyHost + " -Dhttp.proxyPort=" + proxyPort +
-			" -Dhttps.proxyHost=" + proxyHost + " -Dhttps.proxyPort=" + proxyPort +
-			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "'" + proxyUserPassword
-	return javaOpts, nil
-}
-
-func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string, proxySecret string, namespace string) (proxyUrl string, noProxy string, err error) {
-	if len(proxySecret) > 0 {
-		user, password, err := k8sclient.ReadSecret(proxySecret, namespace)
-		if err == nil {
-			proxyUser = user
-			proxyPassword = password
-		} else {
-			return "", "", err
-		}
-	}
-
-	proxyUrl = proxyHost + ":" + proxyPort
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		protocol := strings.Split(proxyHost, "://")[0]
-		host := strings.Split(proxyHost, "://")[1]
-		proxyUrl = protocol + "://" + proxyUser + ":" + proxyPassword + "@" + host + ":" + proxyPort
-	}
-
-	noProxy = strings.Replace(nonProxyHosts, "|", ",", -1)
-
-	return proxyUrl, noProxy, nil
-}
-
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
 	env := deployment.Spec.Template.Spec.Containers[0].Env
 	for i := range env {

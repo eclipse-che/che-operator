@@ -56,7 +56,7 @@ var (
 	}
 )
 
-func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
+func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
 	clusterDeployment, err := getClusterDeployment(KeycloakDeploymentName, checluster.Namespace, clusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
@@ -64,7 +64,7 @@ func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI Cl
 		}
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(checluster, clusterDeployment, clusterAPI)
+	specDeployment, err := getSpecKeycloakDeployment(checluster, clusterDeployment, proxy, clusterAPI)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -74,7 +74,11 @@ func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI Cl
 	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge, clusterAPI)
 }
 
-func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *appsv1.Deployment, clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
+func getSpecKeycloakDeployment(
+	checluster *orgv1.CheCluster,
+	clusterDeployment *appsv1.Deployment,
+	proxy *Proxy,
+	clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
 	optionalEnv := true
 	labels := GetLabels(checluster, KeycloakDeploymentName)
 	cheFlavor := DefaultCheFlavor(checluster)
@@ -164,29 +168,29 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 	applyProxyCliCommand := ""
 	proxyEnvVars := []corev1.EnvVar{}
 
-	if len(checluster.Spec.Server.ProxyURL) > 1 {
-		proxySecret := checluster.Spec.Server.ProxySecret
-		cheWorkspaceHttpProxy, cheWorkspaceNoProxy, err := util.GenerateProxyEnvs(checluster.Spec.Server.ProxyURL, checluster.Spec.Server.ProxyPort, checluster.Spec.Server.NonProxyHosts, checluster.Spec.Server.ProxyUser, checluster.Spec.Server.ProxyPassword, proxySecret, checluster.Namespace)
-		if err != nil {
-			logrus.Errorf("Failed to read '%s' secret: %v", proxySecret, err)
-		}
-
+	if proxy.HttpProxy != "" {
 		proxyEnvVars = []corev1.EnvVar{
 			corev1.EnvVar{
 				Name:  "HTTP_PROXY",
-				Value: cheWorkspaceHttpProxy,
+				Value: proxy.HttpProxy,
 			},
 			corev1.EnvVar{
 				Name:  "HTTPS_PROXY",
-				Value: cheWorkspaceHttpProxy,
+				Value: proxy.HttpsProxy,
 			},
 			corev1.EnvVar{
 				Name:  "NO_PROXY",
-				Value: cheWorkspaceNoProxy,
+				Value: proxy.NoProxy,
 			},
 		}
 
-		cheWorkspaceNoProxy = strings.ReplaceAll(regexp.QuoteMeta(cheWorkspaceNoProxy), "\\", "\\\\\\")
+		quotedNoProxy := ""
+		for _, noProxyHost := range strings.Split(proxy.NoProxy, ",") {
+			if len(quotedNoProxy) != 0 {
+				quotedNoProxy += ","
+			}
+			quotedNoProxy += "\"" + strings.ReplaceAll(regexp.QuoteMeta(noProxyHost), "\\", "\\\\\\") + ";NO_PROXY\""
+		}
 
 		jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"
 		serverConfig := "standalone.xml"
@@ -196,7 +200,7 @@ func getSpecKeycloakDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		}
 		addProxyCliCommand = " && echo Configuring Proxy && " +
 			"echo -e 'embed-server --server-config=" + serverConfig + " --std-out=echo \n" +
-			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[\"" + cheWorkspaceNoProxy + ";NO_PROXY\",\".*;" + cheWorkspaceHttpProxy + "\"]) \n" +
+			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[" + quotedNoProxy + ",\".*;" + proxy.HttpProxy + "\"]) \n" +
 			"stop-embedded-server' > " + jbossDir + "/setup-http-proxy.cli"
 
 		applyProxyCliCommand = " && " + jbossCli + " --file=" + jbossDir + "/setup-http-proxy.cli"
