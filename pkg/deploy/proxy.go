@@ -161,7 +161,11 @@ func ConfigureProxy(instance *orgv1.CheCluster, transport *http.Transport, proxy
 		if err != nil {
 			logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
 		}
-		logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
+		if theProxyUrl != nil {
+			logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
+		} else {
+			logrus.Infof("Proxy isn't used to access TLS endpoint URL: %s", r.URL)
+		}
 		return theProxyUrl, err
 	}
 }
