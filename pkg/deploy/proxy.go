@@ -130,7 +130,8 @@ func GenerateProxyJavaOpts(proxy *Proxy, noProxy string) (javaOpts string, err e
 	proxyUserPassword := ""
 	if len(proxy.HttpUser) > 1 && len(proxy.HttpPassword) > 1 {
 		proxyUserPassword = " -Dhttp.proxyUser=" + proxy.HttpUser + " -Dhttp.proxyPassword=" + proxy.HttpPassword +
-			" -Dhttps.proxyUser=" + proxy.HttpsUser + " -Dhttps.proxyPassword=" + proxy.HttpsPassword
+			" -Dhttps.proxyUser=" + proxy.HttpsUser + " -Dhttps.proxyPassword=" + proxy.HttpsPassword + 
+			" -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes="
 	}
 
 	javaOpts =
