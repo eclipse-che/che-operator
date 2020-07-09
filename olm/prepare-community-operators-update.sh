@@ -109,7 +109,7 @@ do
     echo "####"
     echo "#################"
   else
-    git push "https://${GIT_USER}:${GIT_PASSWORD}@github.com/che-incubator/community-operators.git" "${branch}"
+    git push "git@github.com:che-incubator/community-operators.git" "${branch}"
   fi
 done
 cd "${CURRENT_DIR}"
