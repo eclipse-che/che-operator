@@ -264,4 +264,5 @@ fi
 
 if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
   createPRToXBranch
+  createPRToMasterBranch
 fi
