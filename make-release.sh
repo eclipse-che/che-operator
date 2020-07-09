@@ -10,9 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set -e
-set -x
-
 init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
@@ -245,7 +242,6 @@ createPRToMasterBranch() {
 run() {
   checkoutToReleaseBranch
   releaseOperatorCode
-  updateNightlyOlmFiles
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
