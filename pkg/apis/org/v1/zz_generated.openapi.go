@@ -583,35 +583,35 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"proxyURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "URL (protocol+hostname) of the proxy server. This drives the appropriate changes in the `JAVA_OPTS` and `https(s)_proxy` variables in the Che server and workspaces containers. Only use when configuring a proxy is required.",
+							Description: "URL (protocol+hostname) of the proxy server. This drives the appropriate changes in the `JAVA_OPTS` and `https(s)_proxy` variables in the Che server and workspaces containers. Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `proxyUrl` in a custom resource leads to overrides the cluster proxy configuration with fields `proxyUrl`, `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource. (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyPort` and `nonProxyHosts` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyPort": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Port of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL` field).",
+							Description: "Port of the proxy server. Only use when configuring a proxy is required. (see also the `proxyURL` and `nonProxyHosts` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"nonProxyHosts": {
 						SchemaProps: spec.SchemaProps{
-							Description: "List of hosts that should not use the configured proxy. Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32` Only use when configuring a proxy is required (see also the `proxyURL` field).",
+							Description: "List of hosts that should not use the configured proxy. Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32` Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources. (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyURL` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyUser": {
 						SchemaProps: spec.SchemaProps{
-							Description: "User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL` `proxySecret` fields).",
+							Description: "User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL`, `proxyPassword` and `proxySecret` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"proxyPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Password of the proxy server Only use when proxy configuration is required (see also the `proxyUser` and `proxySecret` fields).",
+							Description: "Password of the proxy server Only use when proxy configuration is required (see also the `proxyURL`, `proxyUser` and `proxySecret` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},

@@ -191,27 +191,34 @@ type CheClusterSpecServer struct {
 	CustomCheProperties map[string]string `json:"customCheProperties,omitempty"`
 	// URL (protocol+hostname) of the proxy server.
 	// This drives the appropriate changes in the `JAVA_OPTS` and `https(s)_proxy` variables
-	// in the Che server and workspaces containers.
-	// Only use when configuring a proxy is required.
+	// in the Che server and workspaces containers. Only use when configuring a proxy is required.
+	// Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required,
+	// but defining `proxyUrl` in a custom resource leads to overrides the cluster proxy configuration with
+	// fields `proxyUrl`, `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource.
+	// (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html)
+	// (see also the `proxyPort` and `nonProxyHosts` fields).
 	// +optional
 	ProxyURL string `json:"proxyURL,omitempty"`
-	// Port of the proxy server.
-	// Only use when configuring a proxy is required
-	// (see also the `proxyURL` field).
+	// Port of the proxy server. Only use when configuring a proxy is required.
+	// (see also the `proxyURL` and `nonProxyHosts` fields).
 	// +optional
 	ProxyPort string `json:"proxyPort,omitempty"`
 	// List of hosts that should not use the configured proxy. Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
-	// Only use when configuring a proxy is required
-	// (see also the `proxyURL` field).
+	// Only use when configuring a proxy is required.
+	// Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required,
+	// but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the
+	// cluster proxy configuration and ones defined in the custom resources.
+	// (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html)
+	// (see also the `proxyURL` fields).
 	NonProxyHosts string `json:"nonProxyHosts,omitempty"`
 	// User name of the proxy server.
 	// Only use when configuring a proxy is required
-	// (see also the `proxyURL` `proxySecret` fields).
+	// (see also the `proxyURL`, `proxyPassword` and `proxySecret` fields).
 	// +optional
 	ProxyUser string `json:"proxyUser,omitempty"`
 	// Password of the proxy server
 	// Only use when proxy configuration is required
-	// (see also the `proxyUser` and `proxySecret` fields).
+	// (see also the `proxyURL`, `proxyUser` and `proxySecret` fields).
 	// +optional
 	ProxyPassword string `json:"proxyPassword,omitempty"`
 	// The secret that contains `user` and `password` for a proxy server.
