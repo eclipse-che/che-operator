@@ -51,7 +51,8 @@ func TestGenerateProxyJavaOpts(t *testing.T) {
 	javaOpts, _ := GenerateProxyJavaOpts(proxy, "")
 	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
-		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password"
+		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password " +
+		"-Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes="
 	if !reflect.DeepEqual(javaOpts, expectedJavaOpts) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOpts, javaOpts)
 
