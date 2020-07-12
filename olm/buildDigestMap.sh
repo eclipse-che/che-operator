@@ -67,6 +67,7 @@ echo "${DEVFILE_REGISTRY_LIST}"
 writeDigest() {
   image=$1
   imageType=$2
+  digest=""
   case ${image} in
     *@sha256:*)
       withDigest=${image};;
