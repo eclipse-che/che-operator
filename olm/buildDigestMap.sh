@@ -10,6 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+set -e
+
 SCRIPTS_DIR=$(cd "$(dirname "$0")" || exit 1; pwd)
 BASE_DIR="$1"
 QUIET=""
@@ -66,6 +68,17 @@ echo "${DEVFILE_REGISTRY_LIST}"
 
 writeDigest() {
   image=$1
+
+  # Check exclude image list
+  excludeFile="${SCRIPTS_DIR}/digestExcludeList"
+  if [ -f "${excludeFile}"  ]; then
+    IFS=$'\n' read -d '' -r -a excludedImages < "${excludeFile}" || true
+    if [[ " ${excludedImages[*]} " =~ ${image} ]]; then
+        echo "[INFO] Image '${image}' was excluded"
+        return
+    fi
+  fi
+
   imageType=$2
   case ${image} in
     *@sha256:*)
@@ -103,7 +116,7 @@ writeDigest() {
   fi
 
   if [[ -n ${withDigest} ]]; then
-    echo "${image}=${imageType}=${withDigest}" >> ${DIGEST_FILE}
+    echo "${image}=${imageType}=${withDigest}" >> "${DIGEST_FILE}"
   fi
 }
 
