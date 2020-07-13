@@ -1,0 +1,3 @@
+quay.io/eclipse/che-theia:next
+quay.io/eclipse/che-theia-dev:next
+quay.io/eclipse/che-theia-endpoint-runtime-binary:next
