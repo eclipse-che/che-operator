@@ -134,10 +134,10 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 		switch name {
 		case "keycloak":
 			path = "/auth"
-		case "devfile-registry":
-			path = "/devfile-registry/(.*)"
-		case "plugin-registry":
-			path = "/plugin-registry/(.*)"
+		case DevfileRegistry:
+			path = "/" + DevfileRegistry + "/(.*)"
+		case PluginRegistry:
+			path = "/" + PluginRegistry + "/(.*)"
 		}
 	}
 
@@ -154,7 +154,7 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 		"nginx.ingress.kubernetes.io/ssl-redirect":          tls,
 	}
-	if ingressStrategy != "multi-host" && (name == "devfile-registry" || name == "plugin-registry") {
+	if ingressStrategy != "multi-host" && (name == DevfileRegistry || name == PluginRegistry) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 
