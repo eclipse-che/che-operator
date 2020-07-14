@@ -45,9 +45,12 @@ then
    channel="nightly"
 fi
 
+CATALOG_BUNDLE_IMAGE_NAME_LOCAL="localhost:5000/che_operator_bundle:0.0.1"
+CATALOG_IMAGENAME="localhost:5000/testing_catalog:0.0.1"
 packageName=eclipse-che-preview-${platform}
 platformPath=${BASE_DIR}/${packageName}
 packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+# Todo check, maybe it's unused...
 packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
 CSV="eclipse-che-preview-${platform}.v${PACKAGE_VERSION}"
 
@@ -56,7 +59,7 @@ echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
 echo -e "\u001b[32m Channel=${channel} \u001b[0m"
 echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 
-# We don't need to delete ${namepsace} anymore since tls secret is precreated there.
+# We don't need to delete ${namespace} anymore since tls secret is precreated there.
 # if kubectl get namespace "${namespace}" >/dev/null 2>&1
 # then
 #   echo "You should delete namespace '${namespace}' before running the update test first."
@@ -83,18 +86,98 @@ EOF
   fi
 }
 
+# do it only when it's required or remove using deprecated operator source
 applyCheOperatorSource() {
-  echo "Apply che-operator source"
+  # echo "Apply che-operator source"
   if [ "${APPLICATION_REGISTRY}" == "" ]; then
     catalog_source
   else
     echo "---- Use non default application registry ${APPLICATION_REGISTRY} ---"
 
-    cat ${platformPath}/operator-source.yaml | \
+    cat "${platformPath}/operator-source.yaml" | \
     sed  -e "s/registryNamespace:.*$/registryNamespace: \"${APPLICATION_REGISTRY}\"/" | \
     kubectl apply -f -
   fi
- }
+}
+
+build_Bundle_Image() {
+    ${OPM_BINARY} alpha bundle build \
+      -d eclipse-che-preview-"${platform}"/deploy/olm-catalog/eclipse-che-preview-"${platform}" \
+      --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+      --package eclipse-che-preview-"${platform}" \
+      --channels "stable,nightly" \
+      --default "stable" \
+      --image-builder docker
+
+    docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+}
+
+build_Catalog_Image() {
+  if [ "${platform}" == "kubernetes" ]; then
+    minikube addons enable registry
+    minikube addons enable ingress
+
+    docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
+    docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+    # Todo drop socat container after the test...
+
+    sleep 5
+
+    build_Bundle_Image
+
+    ${OPM_BINARY} index add \
+      --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+      --tag ${CATALOG_IMAGENAME} \
+      --build-tool docker \
+      --skip-tls # local registry launched without https
+
+    docker push ${CATALOG_IMAGENAME}
+    # docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
+
+    # docker tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${CATALOG_BUNDLE_IMAGE_NAME}"
+    # docker save "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" > /tmp/bundle.tar
+    # docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+
+    # eval "$(minikube docker-env)"
+
+    # move to clean up section...
+    # docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
+    # docker load -i /tmp/bundle.tar && rm -rf /tmp/bundle.tar
+  fi
+}
+
+# docker_build() {
+#   docker build -t ${CATALOG_IMAGENAME} -f "${BASE_DIR}"/eclipse-che-preview-"${platform}"/Dockerfile \
+#     "${BASE_DIR}"/eclipse-che-preview-"${platform}"
+# }
+
+# build_Catalog_Image() {
+  # if [ "${platform}" == "kubernetes" ]; then
+    # eval "$(minikube docker-env)"
+    # docker_build
+    # It should not be here...
+    # minikube addons enable ingress
+  # else
+  #   docker_build
+  #   curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.14.1/install.sh | bash -s 0.14.1
+  #   docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
+  #   eval "$(minishift docker-env)"
+  #   docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
+  # fi
+# }
+
+installOPM() {
+  OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
+  pushd "${OPM_TEMP_DIR}" || exit
+
+  echo "----Download 'opm' cli tool...----"
+  curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/latest | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
+  export OPM_BINARY="${OPM_TEMP_DIR}/opm"
+  chmod +x "${OPM_BINARY}"
+  echo "----Download completed! 'opm' binary path: ${OPM_BINARY}----"
+
+  popd || exit
+}
 
 installOperatorMarketPlace() {
   echo "Installing test pre-requisistes"
@@ -110,15 +193,10 @@ EOF
     marketplaceNamespace="openshift-marketplace";
     applyCheOperatorSource
   else
-    curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.14.1/install.sh | bash -s 0.14.1
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/03_operatorsource.crd.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/04_service_account.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/05_role.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/06_role_binding.yaml
-    sleep 1
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+    # curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/install.sh -o install.sh
+    # chmod +x install.sh
+    # ./install.sh 0.15.1
+    # rm -rf install.sh
 
     applyCheOperatorSource
 
@@ -167,8 +245,9 @@ spec:
   name: ${packageName}
   source: ${packageName}
   sourceNamespace: ${marketplaceNamespace}
-  startingCSV: ${CSV}
 EOF
+
+# startingCSV: ${CSV}
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
 
@@ -180,7 +259,6 @@ EOF
   fi
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
-
 }
 
 installPackage() {

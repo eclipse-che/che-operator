@@ -10,6 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+set -e
+
 platform=$1
 if [ "${platform}" == "" ]; then
   echo "Please specify platform ('openshift' or 'kubernetes') as the first argument."
@@ -37,8 +39,7 @@ init() {
 
   # Setting The catalog image and the image and tag; and install type
   Install_Type="LocalCatalog"
-  CATALOG_IMAGENAME="testing_catalog:0.0.1"
-  
+
   # GET the package version to apply
   packageName=eclipse-che-preview-${platform}
   packageFolderPath="${BASE_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/${packageName}"
@@ -47,36 +48,17 @@ init() {
   PackageVersion=$(echo "${CSV}" | sed -e "s/${packageName}.v//")
 }
 
-docker_build() {
-  docker build -t ${CATALOG_IMAGENAME} -f "${BASE_DIR}"/eclipse-che-preview-"${platform}"/Dockerfile \
-    "${BASE_DIR}"/eclipse-che-preview-"${platform}"
-}
-
 add_Che_Cluster() {
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PackageVersion}/${packageName}.v${PackageVersion}.clusterserviceversion.yaml")
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${packageName}.v${PackageVersion}.clusterserviceversion.yaml")
   CR=$(echo "$CRs" | yq -r ".[0]")
   CR=$(echo "$CR" | jq '.spec.server.tlsSupport = false')
-  
+
   if [ "${platform}" == "kubernetes" ]
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
 
   echo "$CR" | kubectl apply -n "${namespace}" -f -
-}
-
-build_Catalog_Image() {
-  if [ "${platform}" == "kubernetes" ]; then
-    eval "$(minikube -p minikube docker-env)"
-    docker_build
-    minikube addons enable ingress
-  else
-    docker_build
-    curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.14.1/install.sh | bash -s 0.14.1
-    docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
-    eval "$(minishift docker-env)"
-    docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
-  fi
 }
 
 function getCheClusterLogs() {
@@ -110,6 +92,8 @@ function getOlmPodLogs() {
 }
 
 run_olm_functions() {
+  installOPM
+  # startLocalRegistry
   build_Catalog_Image
   installOperatorMarketPlace
   installPackage

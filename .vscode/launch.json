@@ -14,6 +14,50 @@
     {
       "type": "bashdb",
       "request": "launch",
+      "name": "Bash-Debug (addDigest.sh)",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/addDigests.sh",
+      "args": [
+        "-t",
+        "7.15.1",
+        "-r",
+        "eclipse-che-preview-.*\\.v7.15.1.*yaml",
+        "-w",
+        "/home/user/GoWorkSpace/src/github.com/eclipse/che-operator/olm"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh)",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "moon45"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildDigestMap.sh)",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/buildDigestMap.sh",
+      "args": [
+        "-t",
+        "7.15.1",
+        "-c",
+        "/home/user/GoWorkSpace/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.15.1/eclipse-che-preview-openshift.v7.15.1.clusterserviceversion.yaml",
+        "-c",
+        "/home/user/GoWorkSpace/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.15.1/eclipse-che-preview-kubernetes.v7.15.1.clusterserviceversion.yaml",
+        "-w",
+        "/home/user/GoWorkSpace/src/github.com/eclipse/che-operator/olm"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
       "program": "${file}"
     },
