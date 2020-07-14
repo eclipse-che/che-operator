@@ -44,6 +44,7 @@ installDependencies() {
   install_VirtPackages
   installStartDocker
   start_libvirt
+  setup_kvm_machine_driver
   minishift_installation
   installChectl
   load_jenkins_vars
