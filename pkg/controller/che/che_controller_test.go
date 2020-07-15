@@ -140,7 +140,7 @@ func TestCheController(t *testing.T) {
 			Namespace: namespace,
 		},
 	}
-	res, err := r.Reconcile(req)
+	_, err := r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -151,22 +151,6 @@ func TestCheController(t *testing.T) {
 		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
 	}
 
-	// Check the result of reconciliation to make sure it has the desired state.
-	if !res.Requeue {
-		t.Error("Reconcile did not requeue request as expected")
-	}
-
-	// reconcile again
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Check the result of reconciliation to make sure it has the desired state.
-	if res.Requeue {
-		t.Error("Reconcile did not requeue request as expected")
-	}
-
 	// update CR and make sure Che configmap has been updated
 	cheCR.Spec.Server.TlsSupport = true
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
@@ -174,7 +158,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// reconcile again
-	res, err = r.Reconcile(req)
+	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -188,7 +172,7 @@ func TestCheController(t *testing.T) {
 	customCm := &corev1.ConfigMap{}
 
 	// Reconcile to delete legacy custom configmap
-	res, err = r.Reconcile(req)
+	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -221,7 +205,7 @@ func TestCheController(t *testing.T) {
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
-	res, err = r.Reconcile(req)
+	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -267,7 +251,7 @@ func TestCheController(t *testing.T) {
 	postgresDeployment := &appsv1.Deployment{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
 	err = r.client.Delete(context.TODO(), postgresDeployment)
-	res, err = r.Reconcile(req)
+	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -290,7 +274,7 @@ func TestCheController(t *testing.T) {
 	if err = r.client.Delete(context.TODO(), pvc); err != nil {
 		t.Fatalf("Failed to delete PVC %s: %s", pvc.Name, err)
 	}
-	res, err = r.Reconcile(req)
+	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}

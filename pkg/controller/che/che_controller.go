@@ -14,7 +14,6 @@ package che
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -862,244 +861,23 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// Create devfile registry resources unless an external registry is used
-	devfileRegistryURL := instance.Spec.Server.DevfileRegistryUrl
-	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
-	if !externalDevfileRegistry {
-		registryName := "devfile-registry"
-		host := ""
-		if !isOpenShift {
-			ingressStatus := deploy.SyncIngressToCluster(instance, registryName, registryName, 8080, clusterAPI)
-			if !tests {
-				if !ingressStatus.Continue {
-					logrus.Infof("Waiting on ingress '%s' to be ready", registryName)
-					if ingressStatus.Err != nil {
-						logrus.Error(ingressStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: ingressStatus.Requeue}, ingressStatus.Err
-				}
-			}
-
-			host = ingressDomain
-			if ingressStrategy == "multi-host" {
-				host = registryName + "-" + instance.Namespace + "." + ingressDomain
-			}
-		} else {
-			routeStatus := deploy.SyncRouteToCluster(instance, registryName, registryName, 8080, clusterAPI)
-			if !tests {
-				if !routeStatus.Continue {
-					logrus.Infof("Waiting on route '%s' to be ready", registryName)
-					if routeStatus.Err != nil {
-						logrus.Error(routeStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: routeStatus.Requeue}, routeStatus.Err
-				}
-			}
-
-			if !tests {
-				host = routeStatus.Route.Spec.Host
-				if len(host) < 1 {
-					cheRoute := r.GetEffectiveRoute(instance, routeStatus.Route.Name)
-					host = cheRoute.Spec.Host
-				}
-			}
-		}
-		guessedDevfileRegistryURL := protocol + "://" + host
-		if devfileRegistryURL == "" {
-			devfileRegistryURL = guessedDevfileRegistryURL
-		}
-		devFileRegistryConfigMap := &corev1.ConfigMap{}
-		err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
-				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
-				if err != nil {
-					logrus.Errorf("An error occurred: %v", err)
-					return reconcile.Result{}, err
-				}
-				logrus.Info("Creating devfile registry airgap configmap")
-				err = r.client.Create(context.TODO(), devFileRegistryConfigMap)
-				if err != nil {
-					logrus.Errorf("Error creating devfile registry configmap: %v", err)
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{Requeue: true}, nil
-			} else {
-				logrus.Errorf("Could not get devfile-registry ConfigMap: %v", err)
-				return reconcile.Result{}, err
-			}
-		} else {
-			newDevFileRegistryConfigMap := deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
-			if !reflect.DeepEqual(devFileRegistryConfigMap.Data, newDevFileRegistryConfigMap.Data) {
-				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
-				if err != nil {
-					logrus.Errorf("An error occurred: %v", err)
-					return reconcile.Result{}, err
-				}
-				logrus.Info("Updating devfile-registry ConfigMap")
-				err = r.client.Update(context.TODO(), newDevFileRegistryConfigMap)
-				if err != nil {
-					logrus.Errorf("Error updating devfile-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
-			}
-		}
-
-		// Create a new registry service
-		registryLabels := deploy.GetLabels(instance, registryName)
-		serviceStatus := deploy.SyncServiceToCluster(instance, registryName, []string{"http"}, []int32{8080}, registryLabels, clusterAPI)
-		if !tests {
-			if !serviceStatus.Continue {
-				logrus.Info("Waiting on service '" + registryName + "' to be ready")
-				if serviceStatus.Err != nil {
-					logrus.Error(serviceStatus.Err)
-				}
-
-				return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
-			}
-		}
-
-		// Deploy devfile registry
-		deploymentStatus := deploy.SyncDevfileRegistryDeploymentToCluster(instance, clusterAPI)
-		if !tests {
-			if !deploymentStatus.Continue {
-				logrus.Info("Waiting on deployment '" + registryName + "' to be ready")
-				if deploymentStatus.Err != nil {
-					logrus.Error(deploymentStatus.Err)
-				}
-
-				return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
-			}
-		}
-	}
-	if devfileRegistryURL != instance.Status.DevfileRegistryURL {
-		instance.Status.DevfileRegistryURL = devfileRegistryURL
-		if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
-	pluginRegistryURL := instance.Spec.Server.PluginRegistryUrl
-	// Create Plugin registry resources unless an external registry is used
-	externalPluginRegistry := instance.Spec.Server.ExternalPluginRegistry
-	if !externalPluginRegistry {
-		if instance.IsAirGapMode() {
-			pluginRegistryConfigMap := &corev1.ConfigMap{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: instance.Namespace}, pluginRegistryConfigMap)
+	provisioned, err := deploy.SyncDevfileRegistryToCluster(instance, clusterAPI)
+	if !tests {
+		if !provisioned {
 			if err != nil {
-				if errors.IsNotFound(err) {
-					pluginRegistryConfigMap = deploy.CreatePluginRegistryConfigMap(instance)
-					err = controllerutil.SetControllerReference(instance, pluginRegistryConfigMap, r.scheme)
-					if err != nil {
-						logrus.Errorf("An error occurred: %v", err)
-						return reconcile.Result{}, err
-					}
-					logrus.Info("Creating plugin registry airgap configmap")
-					err = r.client.Create(context.TODO(), pluginRegistryConfigMap)
-					if err != nil {
-						logrus.Errorf("Error creating plugin registry configmap: %v", err)
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{Requeue: true}, nil
-				} else {
-					logrus.Errorf("Could not get plugin-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
-			} else {
-				pluginRegistryConfigMap = deploy.CreatePluginRegistryConfigMap(instance)
-				err = controllerutil.SetControllerReference(instance, pluginRegistryConfigMap, r.scheme)
-				if err != nil {
-					logrus.Errorf("An error occurred: %v", err)
-					return reconcile.Result{}, err
-				}
-				logrus.Info("Updating plugin-registry ConfigMap")
-				err = r.client.Update(context.TODO(), pluginRegistryConfigMap)
-				if err != nil {
-					logrus.Errorf("Error updating plugin-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistry, err)
 			}
-		}
-
-		registryName := "plugin-registry"
-		host := ""
-		if !isOpenShift {
-			ingressStatus := deploy.SyncIngressToCluster(instance, registryName, registryName, 8080, clusterAPI)
-			if !tests {
-				if !ingressStatus.Continue {
-					logrus.Infof("Waiting on ingress '%s' to be ready", registryName)
-					if ingressStatus.Err != nil {
-						logrus.Error(ingressStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: ingressStatus.Requeue}, ingressStatus.Err
-				}
-			}
-
-			host = ingressDomain
-			if ingressStrategy == "multi-host" {
-				host = registryName + "-" + instance.Namespace + "." + ingressDomain
-			}
-		} else {
-			routeStatus := deploy.SyncRouteToCluster(instance, registryName, registryName, 8080, clusterAPI)
-			if !tests {
-				if !routeStatus.Continue {
-					logrus.Infof("Waiting on route '%s' to be ready", registryName)
-					if routeStatus.Err != nil {
-						logrus.Error(routeStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: routeStatus.Requeue}, routeStatus.Err
-				}
-			}
-
-			if !tests {
-				host = routeStatus.Route.Spec.Host
-			}
-		}
-
-		guessedPluginRegistryURL := protocol + "://" + host
-		guessedPluginRegistryURL += "/v3"
-		if pluginRegistryURL == "" {
-			pluginRegistryURL = guessedPluginRegistryURL
-		}
-
-		// Create a new registry service
-		registryLabels := deploy.GetLabels(instance, registryName)
-		serviceStatus := deploy.SyncServiceToCluster(instance, registryName, []string{"http"}, []int32{8080}, registryLabels, clusterAPI)
-		if !tests {
-			if !serviceStatus.Continue {
-				logrus.Info("Waiting on service '" + registryName + "' to be ready")
-				if serviceStatus.Err != nil {
-					logrus.Error(serviceStatus.Err)
-				}
-
-				return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
-			}
-		}
-
-		// Deploy plugin registry
-		deploymentStatus := deploy.SyncPluginRegistryDeploymentToCluster(instance, clusterAPI)
-		if !tests {
-			if !deploymentStatus.Continue {
-				logrus.Info("Waiting on deployment '" + registryName + "' to be ready")
-				if deploymentStatus.Err != nil {
-					logrus.Error(deploymentStatus.Err)
-				}
-
-				return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
-			}
+			return reconcile.Result{Requeue: true}, err
 		}
 	}
-	if pluginRegistryURL != instance.Status.PluginRegistryURL {
-		instance.Status.PluginRegistryURL = pluginRegistryURL
-		if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+
+	provisioned, err = deploy.SyncPluginRegistryToCluster(instance, clusterAPI)
+	if !tests {
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistry, err)
+			}
+			return reconcile.Result{Requeue: true}, err
 		}
 	}
 
