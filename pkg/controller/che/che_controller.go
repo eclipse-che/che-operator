@@ -862,19 +862,23 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	provisioned, err := deploy.SyncDevfileRegistryToCluster(instance, clusterAPI)
-	if !provisioned {
-		if err != nil {
-			logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistry, err)
+	if !tests {
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistry, err)
+			}
+			return reconcile.Result{Requeue: true}, err
 		}
-		return reconcile.Result{Requeue: true}, err
 	}
 
 	provisioned, err = deploy.SyncPluginRegistryToCluster(instance, clusterAPI)
-	if !provisioned {
-		if err != nil {
-			logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistry, err)
+	if !tests {
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistry, err)
+			}
+			return reconcile.Result{Requeue: true}, err
 		}
-		return reconcile.Result{Requeue: true}, err
 	}
 
 	if serverTrustStoreConfigMapName := instance.Spec.Server.ServerTrustStoreConfigMapName; serverTrustStoreConfigMapName != "" {

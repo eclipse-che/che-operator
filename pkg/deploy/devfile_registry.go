@@ -72,7 +72,7 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 			}
 		}
 
-		if devfileRegistryURL != "" {
+		if devfileRegistryURL == "" {
 			if checluster.Spec.Server.TlsSupport {
 				devfileRegistryURL = "https://" + host
 			} else {

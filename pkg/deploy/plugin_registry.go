@@ -72,7 +72,7 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Cluste
 			}
 		}
 
-		if pluginRegistryURL != "" {
+		if pluginRegistryURL == "" {
 			if checluster.Spec.Server.TlsSupport {
 				pluginRegistryURL = "https://" + host + "/v3"
 			} else {
