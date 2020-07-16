@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2019-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -10,7 +10,9 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
+set -e
+
+SCRIPTS_DIR=$(cd "$(dirname "$0")" || exit 1; pwd)
 BASE_DIR="$1"
 QUIET=""
 
@@ -23,10 +25,11 @@ if [[ ! -x $PODMAN ]]; then
   fi
 fi
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
+command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting."; exit 1; }
 
 usage () {
-	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] "
-	echo "Example: $0 -w $(pwd) -c  $(pwd)/generated/eclipse-che-preview-openshift/7.9.0/eclipse-che-preview-openshift.v7.9.0.clusterserviceversion.yaml"
+	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
+	echo "Example: $0 -w $(pwd) -c $(pwd)/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.9.0/eclipse-che-preview-kubernetes.v7.9.0.clusterserviceversion.yaml -t 7.9.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -34,56 +37,77 @@ if [[ $# -lt 1 ]]; then usage; exit; fi
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
-    '-c') CSV="$2"; shift 1;;
-    '-v') VERSION="$2"; shift 1;;
+    '-c') CSV="$2"; CSVS+=("${CSV}");shift 1;;
+    '-t') IMAGE_TAG="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
     '--help'|'-h') usage; exit;;
   esac
   shift 1
 done
 
-if [[ ! $CSV ]] || [[ ! $VERSION ]]; then usage; exit 1; fi
+if [[ ! $CSV ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
 
-mkdir -p ${BASE_DIR}/generated
+mkdir -p "${BASE_DIR}/generated"
 
 echo "[INFO] Get images from CSV ${CSV}"
 
-IMAGE_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("IMAGE_default_.*"; "g")) | .value' "${CSV}")
-OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].image' "${CSV}")
+# shellcheck source=images.sh
+. "${SCRIPTS_DIR}"/images.sh
 
-REGISTRY_LIST=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("IMAGE_default_.*_registry"; "g")) | .value' "${CSV}")
-REGISTRY_IMAGES_ALL=""
-for registry in ${REGISTRY_LIST}; do
-  registry="${registry/\@sha256:*/:${VERSION}}" # remove possible existing @sha256:... and use current version instead
-  # echo -n "[INFO] Pull container ${registry} ..."
-  ${PODMAN} pull ${registry} ${QUIET}
+# todo create init method
+setImagesFromDeploymentEnv
 
-  REGISTRY_IMAGES="$(${PODMAN} run --rm  --entrypoint /bin/sh  ${registry} -c "cat /var/www/html/*/external_images.txt")"
-  echo "[INFO] Found $(echo "${REGISTRY_IMAGES}" | wc -l) images in registry"
-  REGISTRY_IMAGES_ALL="${REGISTRY_IMAGES_ALL} ${REGISTRY_IMAGES}"
-done
+setOperatorImage
+echo "${OPERATOR_IMAGE}"
 
-rm -Rf ${BASE_DIR}/generated/digests-mapping.txt
-touch ${BASE_DIR}/generated/digests-mapping.txt
-for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
+setPluginRegistryList
+echo "${PLUGIN_REGISTRY_LIST}"
+
+setDevfileRegistryList
+echo "${DEVFILE_REGISTRY_LIST}"
+
+writeDigest() {
+  image=$1
+
+  # Check exclude image list
+  excludeFile="${SCRIPTS_DIR}/digestExcludeList"
+  if [ -f "${excludeFile}"  ]; then
+    IFS=$'\n' read -d '' -r -a excludedImages < "${excludeFile}" || true
+    if [[ " ${excludedImages[*]} " =~ ${image} ]]; then
+        echo "[INFO] Image '${image}' was excluded"
+        return
+    fi
+  fi
+
+  imageType=$2
+  digest=""
   case ${image} in
     *@sha256:*)
-      withDigest="${image}";;
+      withDigest=${image};;
     *@)
-      continue;;
+      return;;
     *)
-      digest="$(skopeo inspect --tls-verify=false docker://${image} 2>/dev/null | jq -r '.Digest')"
+      # for other build methods or for falling back to other registries when not found, can apply transforms here
+      orig_image=${image}
+      if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
+        # shellcheck source=buildDigestMapAlternateURLs.sh
+        . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
+      fi
       if [[ ${digest} ]]; then
         if [[ ! "${QUIET}" ]]; then echo -n "[INFO] Got digest"; fi
-        echo "    $digest # ${image}"
+        echo "    $digest \# ${image}"
       else
-        # for other build methods or for falling back to other registries when not found, can apply transforms here
-        if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
-          . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
-        fi
+      image="${orig_image}"
+      digest="$(skopeo inspect --tls-verify=false docker://${image} 2>/dev/null | jq -r '.Digest')"
       fi
-      withoutTag="$(echo "${image}" | sed -e 's/^\(.*\):[^:]*$/\1/')"
-      withDigest="${withoutTag}@${digest}";;
+      if [[ -z ${digest} ]]; then
+        echo "==================== Failed to get digest for image: ${image}======================"
+        withoutTag=""
+        withDigest=""
+      else
+        withoutTag="$(echo "${image}" | sed -e 's/^\(.*\):[^:]*$/\1/')"
+        withDigest="${withoutTag}@${digest}";
+      fi
   esac
   dots="${withDigest//[^\.]}"
   separators="${withDigest//[^\/]}"
@@ -92,5 +116,25 @@ for image in ${OPERATOR_IMAGE} ${IMAGE_LIST} ${REGISTRY_IMAGES_ALL}; do
     withDigest="docker.io/${withDigest}"
   fi
 
-  echo "${image}=${withDigest}" >> ${BASE_DIR}/generated/digests-mapping.txt
+  if [[ -n ${withDigest} ]]; then
+    echo "${image}=${imageType}=${withDigest}" >> "${DIGEST_FILE}"
+  fi
+}
+
+DIGEST_FILE=${BASE_DIR}/generated/digests-mapping.txt
+rm -Rf "${DIGEST_FILE}"
+touch "${DIGEST_FILE}"
+
+writeDigest "${OPERATOR_IMAGE}" "operator-image"
+
+for image in ${REQUIRED_IMAGES}; do
+  writeDigest "${image}" "required-image" 
+done
+
+for image in ${PLUGIN_REGISTRY_LIST}; do
+  writeDigest "${image}" "plugin-registry-image"
+done
+
+for image in ${DEVFILE_REGISTRY_LIST}; do
+  writeDigest "${image}" "devfile-registry-image"
 done

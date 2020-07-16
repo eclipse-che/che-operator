@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2019-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,6 +9,9 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+
+set +x
+set -e
 
 SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
 BASE_DIR="$(pwd)"
@@ -25,9 +28,8 @@ fi
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 
 usage () {
-	echo "Usage:   $0 [-w WORKDIR] -s [SOURCE_PATH] -n [csv name] -v [VERSION] "
-	echo "Example: $0 -w $(pwd) -s eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift -n eclipse-che-preview-openshift -v 7.9.0"
-	echo "Example: $0 -w $(pwd) -s controller-manifests -n codeready-workspaces -v 2.1.0"
+	echo "Usage:   $0 [-w WORKDIR] [-s SOURCE_PATH] -r [CSV_FILE_PATH_REGEXP] -t [IMAGE_TAG] "
+	echo "Example: $0 -w $(pwd) -r \"eclipse-che-preview-.*/eclipse-che-preview-.*\.v7.15.0.*yaml\" -t 7.15.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -36,53 +38,98 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
     '-s') SRC_DIR="$2"; shift 1;;
-    '-n') CSV_NAME="$2"; shift 1;;
-    '-v') VERSION="$2"; shift 1;;
+    '-t') IMAGE_TAG="$2"; shift 1;;
+    '-r') CSV_FILE_PATH_REGEXP="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
 	'--help'|'-h') usage; exit;;
   esac
   shift 1
 done
 
-if [[ ! $SRC_DIR ]] || [[ ! $CSV_NAME ]] || [[ ! $VERSION ]]; then usage; exit 1; fi
+if [[ ! ${CSV_FILE_PATH_REGEXP} ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
 
-rm -Rf ${BASE_DIR}/generated/${CSV_NAME}/
-mkdir -p ${BASE_DIR}/generated/${CSV_NAME}/
-cp -R ${BASE_DIR}/${SRC_DIR}/* ${BASE_DIR}/generated/${CSV_NAME}/
+CSV_FILES_DIR=${BASE_DIR}
+if [ -n "${SRC_DIR}" ]; then
+  CSV_FILES_DIR="${BASE_DIR}/${SRC_DIR}"
+fi
+echo "Resolved CSV files dir: ${CSV_FILES_DIR}"
 
-CSV_FILE="$(find ${BASE_DIR}/generated/${CSV_NAME}/*${VERSION}/ -name "${CSV_NAME}.*${VERSION}.clusterserviceversion.yaml" | tail -1)"; # echo "[INFO] CSV = ${CSV_FILE}"
-${SCRIPTS_DIR}/buildDigestMap.sh -w ${BASE_DIR} -c ${CSV_FILE} -v ${VERSION} ${QUIET}
+echo "find ${CSV_FILES_DIR} -regextype posix-egrep -regex \"${CSV_FILES_DIR}/?${CSV_FILE_PATH_REGEXP}\""
+CSV_FILES=( $(find ${CSV_FILES_DIR} -regextype posix-egrep -regex "${CSV_FILES_DIR}/?${CSV_FILE_PATH_REGEXP}") )
+RELATED_IMAGE_PREFIX="RELATED_IMAGE_"
 
-# inject relatedImages block
-names=" "
-count=1
-RELATED_IMAGES='. * { spec : { relatedImages: [ '
-if [[ ! "${QUIET}" ]]; then cat ${BASE_DIR}/generated/digests-mapping.txt; fi
-for mapping in $(cat ${BASE_DIR}/generated/digests-mapping.txt)
+rm -Rf "${BASE_DIR}/generated/csv"
+mkdir -p "${BASE_DIR}/generated/csv"
+# Copy original csv files
+for CSV_FILE in "${CSV_FILES[@]}"
 do
-  source=$(echo "${mapping}" | sed -e 's/\(.*\)=.*/\1/')
-  dest=$(echo "${mapping}" | sed -e 's/.*=\(.*\)/\1/')
-  sed -i -e "s;${source};${dest};" ${CSV_FILE}
-  name=$(echo "${dest}" | sed -e 's;.*/\([^\/][^\/]*\)@.*;\1;')
-  nameWithSpaces=" ${name} "
-  if [[ "${names}" != *${nameWithSpaces}* ]]; then
-    if [ "${names}" != " " ]; then
-      RELATED_IMAGES="${RELATED_IMAGES},"
-    fi
-    RELATED_IMAGES="${RELATED_IMAGES} { name: \"${name}\", image: \"${dest}\", tag: \"${source}\"}"
-    names="${names} ${name} "
-  fi
+  echo "CSV file: ${CSV_FILE}"
+  cp -pR "${CSV_FILE}" "${BASE_DIR}/generated/csv"
+  csvs_args="${csvs_args} -c ${CSV_FILE}"
 done
-RELATED_IMAGES="${RELATED_IMAGES} ] } }"
-mv ${CSV_FILE} ${CSV_FILE}.old
-yq -Y "$RELATED_IMAGES" ${CSV_FILE}.old > ${CSV_FILE}
-sed -i ${CSV_FILE} -r -e "s|tag: |# tag: |" 
-rm -f ${CSV_FILE}.old
 
-# update original file with generated changes
-CSV_FILE_ORIG=$(find ${BASE_DIR} -name "${CSV_FILE##*/}" | grep -v generated | tail -1)
-mv "${CSV_FILE}" "${CSV_FILE_ORIG}"
-echo "[INFO] CSV updated: ${CSV_FILE_ORIG}"
+# shellcheck source=buildDigestMap.sh
+eval "${SCRIPTS_DIR}/buildDigestMap.sh" -w "${BASE_DIR}" -t "${IMAGE_TAG}" "${csvs_args}" ${QUIET}
+
+if [[ ! "${QUIET}" ]]; then cat "${BASE_DIR}"/generated/digests-mapping.txt; fi
+for CSV_FILE in "${CSV_FILES[@]}"
+do
+  CSV_FILE_COPY=${BASE_DIR}/generated/csv/$(basename ${CSV_FILE})
+
+  echo "[INFO] Generate digest update for CSV file ${CSV_FILE}"
+  RELATED_IMAGES=""
+  RELATED_IMAGES_ENV=""
+  for mapping in $(cat "${BASE_DIR}/generated/digests-mapping.txt")
+  do
+    source=$(echo "${mapping}" | sed -e 's;\(.*\)=.*=.*;\1;')
+    # Image with digest.
+    dest=$(echo "${mapping}" | sed -e 's;.*=.*=\(.*\);\1;')
+    # Image label to set image target. For example: 'devfile-registry-image'
+    imageLabel=$(echo "${mapping}" | sed -e 's;.*=\(.*\)=.*;\1;')
+    name=$(echo "${dest}" | sed -e 's;.*/\([^\/][^\/]*\)@.*;\1;')
+    tagOrDigest=""
+    if [[ ${source} == *"@"* ]]; then
+      tagOrDigest="@${source#*@}"
+    elif [[ ${source} == *":"* ]]; then
+      tagOrDigest="${source#*:}"
+    fi
+
+    if [[ ${imageLabel} == "plugin-registry-image" ]] || [[ ${imageLabel} == "devfile-registry-image" ]]; then
+      # Image tag could contains invalid for Env variable name characters, so let's encode it using base32.
+      # But alphabet of base32 uses one invalid for env variable name character '=' at the end of the line, so let's replace it by '_'. 
+      # To recovery original tag should be done opposite actions: replace '_' to '=', and decode string using 'base32 -d'.
+      encodedTag=$(echo "${tagOrDigest}" | base32 -w 0 | tr "=" "_")
+      relatedImageEnvName=$(echo "${RELATED_IMAGE_PREFIX}${name}_${imageLabel}_${encodedTag}" | sed -r 's/[-.]/_/g')
+      ENV="{ name: \"${relatedImageEnvName}\", value: \"${dest}\"}"
+      if [[ -z ${RELATED_IMAGES_ENV} ]]; then
+        RELATED_IMAGES_ENV="${ENV}"
+      else
+        RELATED_IMAGES_ENV="${RELATED_IMAGES_ENV}, ${ENV}"
+      fi
+    fi
+
+    RELATED_IMAGE="{ name: \"${name}-${tagOrDigest}\", image: \"${dest}\", tag: \"${source}\"}"
+    if [[ -z ${RELATED_IMAGES} ]]; then
+      RELATED_IMAGES="${RELATED_IMAGE}"
+    else
+      RELATED_IMAGES="${RELATED_IMAGES}, ${RELATED_IMAGE}"
+    fi
+
+    sed -i -e "s;${source};${dest};" "${CSV_FILE_COPY}"
+  done
+
+  mv "${CSV_FILE_COPY}" "${CSV_FILE_COPY}.old"
+  yq -ryY "
+  ( .spec.relatedImages ) += [${RELATED_IMAGES}] |
+  ( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]
+  " "${CSV_FILE_COPY}.old" > "${CSV_FILE_COPY}"
+  sed -i "${CSV_FILE_COPY}" -r -e "s|tag: |# tag: |"
+  rm -f "${CSV_FILE_COPY}.old"
+
+  # update original file with generated changes
+  mv "${CSV_FILE_COPY}" "${CSV_FILE}"
+  echo "[INFO] CSV updated: ${CSV_FILE}"
+done
 
 # cleanup
-rm -fr ${BASE_DIR}/generated
+rm -fr "${BASE_DIR}/generated"
