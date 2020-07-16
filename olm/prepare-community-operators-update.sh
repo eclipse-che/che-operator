@@ -96,20 +96,6 @@ do
   git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
   echo
   echo "   - Pushing branch ${branch} to the 'che-incubator/community-operators' GitHub repository"
-  if [ -z "${GIT_USER}" ] || [ -z "${GIT_PASSWORD}" ]
-  then
-    echo
-    echo "#### WARNING ####"
-    echo "####"
-    echo "#### You shoud define GIT_USER and GIT_PASSWORD environment variable"
-    echo "#### to be able to push release branches to the 'che-incubator/community-operators' repository"
-    echo "####"
-    echo "#### As soon as you have set them, you can push by running the following command:"
-    echo "####    cd \"${communityOperatorsLocalGitFolder}\" && git push \"https://\${GIT_USER}:\${GIT_PASSWORD}@github.com/che-incubator/community-operators.git\" \"${branch}\""
-    echo "####"
-    echo "#################"
-  else
-    git push "https://${GIT_USER}:${GIT_PASSWORD}@github.com/che-incubator/community-operators.git" "${branch}"
-  fi
+  git push "git@github.com:che-incubator/community-operators.git" "${branch}"
 done
 cd "${CURRENT_DIR}"

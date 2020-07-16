@@ -163,7 +163,7 @@ releaseOperatorCode() {
   docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
 
   echo "[INFO] Pushing image to quay.io"
-  docker login quay.io -u $QUAY_USERNAME
+  docker login quay.io -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}"
   docker push quay.io/eclipse/che-operator:$RELEASE
 }
 
@@ -225,7 +225,7 @@ pushGitChanges() {
 
 createPRToXBranch() {
   echo "[INFO] Creating pull request into ${BRANCH} branch"
-  hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
+  hub pull-request --base ${BRANCH} --head ${RELEASE} -m "Release version ${RELEASE}"
 }
 
 createPRToMasterBranch() {
@@ -238,7 +238,7 @@ createPRToMasterBranch() {
   git add -A
   git commit -m "Copy "$RELEASE" csv to master" --signoff
   git push origin $tmpBranch -f
-  hub pull-request --base master --head ${tmpBranch} --browse -m "Copy "$RELEASE" csv to master"
+  hub pull-request --base master --head ${tmpBranch} -m "Copy "$RELEASE" csv to master"
 }
 
 run() {
