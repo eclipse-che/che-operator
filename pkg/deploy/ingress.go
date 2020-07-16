@@ -111,7 +111,7 @@ func getClusterIngress(name string, namespace string, client runtimeClient.Clien
 
 func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName string, port int, clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
 	tlsSupport := checluster.Spec.Server.TlsSupport
-	ingressStrategy := checluster.Spec.K8s.IngressStrategy
+	ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy,DefaultIngressStrategy)
 	if len(ingressStrategy) < 1 {
 		ingressStrategy = "multi-host"
 	}
