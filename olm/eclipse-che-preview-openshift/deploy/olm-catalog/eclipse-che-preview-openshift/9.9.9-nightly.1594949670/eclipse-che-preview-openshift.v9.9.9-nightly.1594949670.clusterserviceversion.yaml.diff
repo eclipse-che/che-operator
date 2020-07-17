@@ -1,0 +1,36 @@
+--- /root/payload/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1594657566/eclipse-che-preview-openshift.v9.9.9-nightly.1594657566.clusterserviceversion.yaml	2020-07-17 02:32:28.879496050 +0100
++++ /root/payload/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1594949670/eclipse-che-preview-openshift.v9.9.9-nightly.1594949670.clusterserviceversion.yaml	2020-07-17 02:34:31.626491009 +0100
+@@ -49,14 +49,14 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-07-13T16:26:06Z"
++    createdAt: "2020-07-17T01:34:30Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     operatorframework.io/cluster-monitoring: "true"
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1594657566
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1594949670
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -305,7 +305,7 @@
+                       - name: RELATED_IMAGE_devfile_registry
+                         value: quay.io/eclipse/che-devfile-registry:nightly
+                       - name: RELATED_IMAGE_pvc_jobs
+-                        value: registry.access.redhat.com/ubi8-minimal:8.2-301.1592810506
++                        value: registry.access.redhat.com/ubi8-minimal:8.2-301.1593113563
+                       - name: RELATED_IMAGE_postgres
+                         value: centos/postgresql-96-centos7:9.6
+                       - name: RELATED_IMAGE_keycloak
+@@ -448,5 +448,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1594362070
+-  version: 9.9.9-nightly.1594657566
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1594657566
++  version: 9.9.9-nightly.1594949670

@@ -1,0 +1,35 @@
+--- /root/payload/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1594657565/eclipse-che-preview-kubernetes.v9.9.9-nightly.1594657565.clusterserviceversion.yaml	2020-07-17 02:32:28.852497150 +0100
++++ /root/payload/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1594949669/eclipse-che-preview-kubernetes.v9.9.9-nightly.1594949669.clusterserviceversion.yaml	2020-07-17 02:34:29.940559753 +0100
+@@ -52,13 +52,13 @@
+     categories: Developer Tools
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-07-13T16:26:06Z"
++    createdAt: "2020-07-17T01:34:29Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1594657565
++  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1594949669
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -262,7 +262,7 @@
+                 - name: RELATED_IMAGE_che_tls_secrets_creation_job
+                   value: quay.io/eclipse/che-tls-secret-creator:alpine-3029769
+                 - name: RELATED_IMAGE_pvc_jobs
+-                  value: registry.access.redhat.com/ubi8-minimal:8.2-301.1592810506
++                  value: registry.access.redhat.com/ubi8-minimal:8.2-301.1593113563
+                 - name: RELATED_IMAGE_postgres
+                   value: centos/postgresql-96-centos7:9.6
+                 - name: RELATED_IMAGE_keycloak
+@@ -400,5 +400,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1594362070
+-  version: 9.9.9-nightly.1594657565
++  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1594657565
++  version: 9.9.9-nightly.1594949669
