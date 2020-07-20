@@ -47,29 +47,29 @@ do
   "kubernetes")
     QUAY_USERNAME_PLATFORM_VAR="QUAY_USERNAME_K8S"
     QUAY_PASSWORD_PLATFORM_VAR="QUAY_PASSWORD_K8S"
-    QUAY_USERNAME=${QUAY_USERNAME_K8S:-$QUAY_USERNAME}
-    QUAY_PASSWORD=${QUAY_PASSWORD_K8S:-$QUAY_PASSWORD}
+    QUAY_ECLIPSE_CHE_USERNAME=${QUAY_USERNAME_K8S:-$QUAY_ECLIPSE_CHE_USERNAME}
+    QUAY_ECLIPSE_CHE_PASSWORD=${QUAY_PASSWORD_K8S:-$QUAY_ECLIPSE_CHE_PASSWORD}
     ;;
   "openshift")
     QUAY_USERNAME_PLATFORM_VAR="QUAY_USERNAME_OS"
     QUAY_PASSWORD_PLATFORM_VAR="QUAY_PASSWORD_OS"
-    QUAY_USERNAME=${QUAY_USERNAME_OS:-$QUAY_USERNAME}
-    QUAY_PASSWORD=${QUAY_PASSWORD_OS:-$QUAY_PASSWORD}
+    QUAY_ECLIPSE_CHE_USERNAME=${QUAY_USERNAME_OS:-$QUAY_ECLIPSE_CHE_USERNAME}
+    QUAY_ECLIPSE_CHE_PASSWORD=${QUAY_PASSWORD_OS:-$QUAY_ECLIPSE_CHE_PASSWORD}
     ;;
   esac
-  if [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]
+  if [ -z "${QUAY_ECLIPSE_CHE_USERNAME}" ] || [ -z "${QUAY_ECLIPSE_CHE_PASSWORD}" ]
   then
     echo "#### ERROR: "
     echo "You should have set ${QUAY_USERNAME_PLATFORM_VAR} and ${QUAY_PASSWORD_PLATFORM_VAR} environment variables"
     echo "with a user that has write access to the following Quay.io namespace: ${quayNamespace}"
-    echo "or QUAY_USERNAME and QUAY_PASSWORD if the same user can access both namespaces 'eclipse-che-operator-kubernetes' and 'eclipse-che-operator-openshift'"
+    echo "or QUAY_ECLIPSE_CHE_USERNAME and QUAY_ECLIPSE_CHE_PASSWORD if the same user can access both namespaces 'eclipse-che-operator-kubernetes' and 'eclipse-che-operator-openshift'"
     exit 1
   fi
   AUTH_TOKEN=$(curl -sH "Content-Type: application/json" -XPOST https://quay.io/cnr/api/v1/users/login -d '
 {
     "user": {
-        "username": "'"${QUAY_USERNAME}"'",
-        "password": "'"${QUAY_PASSWORD}"'"
+        "username": "'"${QUAY_ECLIPSE_CHE_USERNAME}"'",
+        "password": "'"${QUAY_ECLIPSE_CHE_PASSWORD}"'"
     }
 }' | jq -r '.token')
 

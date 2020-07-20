@@ -62,11 +62,9 @@ function build_and_push() {
   REGISTRY="quay.io"
   ORGANIZATION="eclipse"
   IMAGE="che-operator"
-  QUAY_USERNAME=${QUAY_ECLIPSE_CHE_USERNAME}
-  QUAY_PASSWORD=${QUAY_ECLIPSE_CHE_PASSWORD}
 
-  if [ -n "${QUAY_USERNAME}" ] && [ -n "${QUAY_PASSWORD}" ]; then
-    docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${REGISTRY}"
+  if [ -n "${QUAY_ECLIPSE_CHE_USERNAME}" ] && [ -n "${QUAY_ECLIPSE_CHE_PASSWORD}" ]; then
+    docker login -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}" "${REGISTRY}"
   else
     echo "Could not login, missing credentials for pushing to the '${ORGANIZATION}' organization"
   fi
