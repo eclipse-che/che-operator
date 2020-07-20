@@ -87,3 +87,5 @@ testUpdates() {
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 testUpdates
+
+### TEST CI PROW
