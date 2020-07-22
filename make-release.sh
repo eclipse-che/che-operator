@@ -244,7 +244,6 @@ createPRToMasterBranch() {
 run() {
   checkoutToReleaseBranch
   releaseOperatorCode
-  updateNightlyOlmFiles
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
