@@ -10,7 +10,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set +x
+set -x
 set -e
 
 SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
