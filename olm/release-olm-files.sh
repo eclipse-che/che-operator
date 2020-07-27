@@ -82,28 +82,16 @@ do
 
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
+  
+  PLATFORM_DIR=$(pwd)
+
+  cd $CURRENT_DIR
+  source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+                -r "eclipse-che-preview-${platform}.*\.v${RELEASE}.*yaml" \
+                -t ${RELEASE}
+
+  cd $PLATFORM_DIR
 
   diff -u ${PRE_RELEASE_CSV} ${RELEASE_CSV} > ${RELEASE_CSV}".diff" || true
   diff -u ${PRE_RELEASE_CRD} ${RELEASE_CRD} > ${RELEASE_CRD}".diff" || true
-done
-cd "${CURRENT_DIR}"
-source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
-                -r "eclipse-che-preview-.*\.v${RELEASE}.*yaml" \
-                -t ${RELEASE}
-
-#regenerate diffs again
-for platform in 'kubernetes' 'openshift'
-do
-  packageName="eclipse-che-preview-${platform}"
-    packageBaseFolderPath="${BASE_DIR}/${packageName}"
-  cd "${packageBaseFolderPath}"
-
-  packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
-  packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
-
-  PRE_RELEASE_CSV="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
-  RELEASE_CSV="${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
-
-  diff -u ${PRE_RELEASE_CSV} ${RELEASE_CSV} > ${RELEASE_CSV}".diff" || true
 done
