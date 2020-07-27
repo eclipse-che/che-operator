@@ -100,7 +100,6 @@ do
 
   packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
   packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-  lastPackageNightlyVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
 
   PRE_RELEASE_CSV="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
