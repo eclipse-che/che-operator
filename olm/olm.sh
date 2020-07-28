@@ -52,7 +52,7 @@ platformPath=${BASE_DIR}/${packageName}
 packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
 # Todo check, maybe it's unused...
 packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-CSV="eclipse-che-preview-${platform}.v${PACKAGE_VERSION}"
+CSV="eclipse-che-preview-${platform}.${PACKAGE_VERSION}"
 
 echo -e "\u001b[32m PACKAGE_VERSION=${PACKAGE_VERSION} \u001b[0m"
 echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
@@ -100,36 +100,46 @@ applyCheOperatorSource() {
   fi
 }
 
-build_Bundle_Image() {
-    ${OPM_BINARY} alpha bundle build \
-      -d eclipse-che-preview-"${platform}"/deploy/olm-catalog/eclipse-che-preview-"${platform}" \
-      --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-      --package eclipse-che-preview-"${platform}" \
-      --channels "stable,nightly" \
-      --default "stable" \
-      --image-builder docker
-
-    docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-}
-
-build_Catalog_Image() {
+# rename enable local image registry...
+enableDockerRegistry() {
   if [ "${platform}" == "kubernetes" ]; then
+    # check if registry addon is enabled....
     minikube addons enable registry
     minikube addons enable ingress
 
     docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
     docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
-    # Todo drop socat container after the test...
-
+  
     sleep 5
+  fi
+}
 
-    build_Bundle_Image
+build_Bundle_Image() {
+  OPM_BUNDLE_DIR="eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${PACKAGE_VERSION}/manifests"
 
+  echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_DIR}"
+
+  ${OPM_BINARY} alpha bundle build \
+    -d "${OPM_BUNDLE_DIR}" \
+    --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+    --package "eclipse-che-preview-${platform}" \
+    --channels "stable,nightly" \
+    --default "stable" \
+    --image-builder docker
+
+  opm alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" 
+
+  docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+}
+
+build_Catalog_Image() {
+  if [ "${platform}" == "kubernetes" ]; then
     ${OPM_BINARY} index add \
       --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
       --tag ${CATALOG_IMAGENAME} \
       --build-tool docker \
       --skip-tls # local registry launched without https
+      # --from-index  "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
 
     docker push ${CATALOG_IMAGENAME}
     # docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
@@ -170,11 +180,15 @@ installOPM() {
   OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
   pushd "${OPM_TEMP_DIR}" || exit
 
-  echo "----Download 'opm' cli tool...----"
-  curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/latest | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
-  export OPM_BINARY="${OPM_TEMP_DIR}/opm"
-  chmod +x "${OPM_BINARY}"
-  echo "----Download completed! 'opm' binary path: ${OPM_BINARY}----"
+  OPM_BINARY=$(command -v opm)
+  if [[ ! -x $OPM_BINARY ]]; then
+    echo "----Download 'opm' cli tool...----"
+    curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/latest | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
+    export OPM_BINARY="${OPM_TEMP_DIR}/opm"
+    chmod +x "${OPM_BINARY}"
+    echo "----Downloading completed!----"
+  fi
+  echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
 
   popd || exit
 }
@@ -262,7 +276,7 @@ EOF
 }
 
 installPackage() {
-  echo "Install operator package ${packageName} into namespace ${namespace}"
+  echo "[INFO] Install operator package ${packageName} into namespace ${namespace}"
   installPlan=$(kubectl get subscription/"${packageName}" -n "${namespace}" -o jsonpath='{.status.installplan.name}')
 
   kubectl patch installplan/"${installPlan}" -n "${namespace}" --type=merge -p '{"spec":{"approved":true}}'
@@ -278,7 +292,7 @@ installPackage() {
 applyCRCheCluster() {
   echo "Creating Custom Resource"
 
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml")
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/manifests/${packageName}.${PACKAGE_VERSION}.clusterserviceversion.yaml")
   CR=$(echo "$CRs" | yq -r ".[0]")
   if [ "${platform}" == "kubernetes" ]
   then

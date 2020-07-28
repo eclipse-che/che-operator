@@ -49,7 +49,7 @@ init() {
 }
 
 add_Che_Cluster() {
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${packageName}.v${PackageVersion}.clusterserviceversion.yaml")
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/manifests/${packageName}.${PackageVersion}.clusterserviceversion.yaml")
   CR=$(echo "$CRs" | yq -r ".[0]")
   CR=$(echo "$CR" | jq '.spec.server.tlsSupport = false')
 
@@ -93,7 +93,8 @@ function getOlmPodLogs() {
 
 run_olm_functions() {
   installOPM
-  # startLocalRegistry
+  # enableDockerRegistry
+  build_Bundle_Image
   build_Catalog_Image
   installOperatorMarketPlace
   installPackage
