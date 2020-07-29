@@ -12,6 +12,7 @@
 #
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
+
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT=$(readlink -f "$0")
 echo "[INFO] ${SCRIPT}"
@@ -49,6 +50,11 @@ then
    channel="nightly"
 fi
 
+if [ -z "${REGISTRY_NAME}" ] || [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
+  echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
+  exit 1
+fi
+
 CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
 CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/testing_catalog:0.0.1"
 packageName=eclipse-che-preview-${platform}
@@ -83,6 +89,9 @@ metadata:
 spec:
   sourceType: grpc
   image: ${CATALOG_IMAGENAME}
+  updateStrategy:
+    registryPoll:
+      interval: 5m  
 EOF
   else
     cat ${platformPath}/operator-source.yaml
@@ -134,7 +143,7 @@ buildBundleImage() {
 # It makes troubles for test scripts, because image bundle could be outdated with
 # such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
 forcePullingOlmImages() {
-  kubectl apply -f "${SCRIPT_DIR}/force-pulling-olm-images-job.yaml" -n "${namespace}"
+  yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${SCRIPT_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
 
   kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
 

@@ -1,3 +1,14 @@
+#
+#  Copyright (c) 2012-2020 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+
 kind: Job
 apiVersion: batch/v1
 metadata:
@@ -33,22 +44,13 @@ spec:
       containers:
 
         - name: pull-bundle-image
-          image: 'docker.io/aandrienko/che_operator_bundle:0.0.1'
+          image: "${BUNDLE_IMAGE_NAME}"
           command:
             - /util/echo
             - "Pull completed"
           volumeMounts:
             - name: util
               mountPath: /util
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          imagePullPolicy: Always
-
-        - name: pull-catalog-source-image
-          image: 'docker.io/aandrienko/testing_catalog:0.0.1'
-          command:
-            - echo
-            - "Pull completed"
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: Always

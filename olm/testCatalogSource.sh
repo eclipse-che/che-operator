@@ -12,11 +12,6 @@
 
 set -e
 
-# todo
-# if [ -z "${QUAY_USERNAME}"] || [] || []; then
-#   echo "[ERROR] Should be defined QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
-# fi
-
 platform=$1
 if [ "${platform}" == "" ]; then
   echo "Please specify platform ('openshift' or 'kubernetes') as the first argument."
