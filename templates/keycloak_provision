@@ -1,4 +1,4 @@
-$script config credentials --server http://localhost:8080/auth \
+$script config credentials --server http://0.0.0.0:8080/auth \
                                         --realm master \
                                         --user $keycloakAdminUserName \
                                         --password $keycloakAdminPassword \
