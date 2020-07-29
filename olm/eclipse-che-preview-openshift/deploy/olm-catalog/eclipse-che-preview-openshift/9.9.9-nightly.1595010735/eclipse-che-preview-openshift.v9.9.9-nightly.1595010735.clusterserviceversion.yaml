@@ -137,7 +137,7 @@ spec:
 
     * Auto-generated passwords
 
-    * HTTP mode (non-secure routes)
+    * TLS mode (secure routes)
 
     * Regular login extended with OpenShift OAuth authentication
 
@@ -148,8 +148,6 @@ spec:
     * Connection to external database and Keycloak
 
     * Configuration of default passwords and object names
-
-    * TLS mode
 
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
 
@@ -195,24 +193,9 @@ spec:
       `identityProviderClientId: 'myClient'`
 
 
-    ### TLS Mode
-
-    To activate TLS mode, set the respective field in the CR spec to `true` (in the `server` block):
-
-
-    ```
-    tlsSupport: true
-    ```
-
     #### Self-signed Certificates
 
-    To use Eclipse Che with TLS enabled, but the OpenShift router does not use certificates signed by a public authority, you can use self-signed certificates, which the operator can fetch for you:
-
-
-    ```
-    selfSignedCert: true
-    ```
-
+    Eclipse Che uses self-signed certificates by default.
 
     You can also manually create a secret:
 
