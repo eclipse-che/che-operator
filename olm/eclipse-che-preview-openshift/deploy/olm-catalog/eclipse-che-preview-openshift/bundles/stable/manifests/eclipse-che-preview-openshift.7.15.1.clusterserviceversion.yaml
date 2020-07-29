@@ -438,5 +438,5 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  # replaces: eclipse-che-preview-openshift.7.15.0
+  replaces: eclipse-che-preview-openshift.7.15.0
   version: 7.15.1

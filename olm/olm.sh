@@ -155,7 +155,8 @@ buildCatalogImage() {
   ${OPM_BINARY} index add \
     --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
     --tag "${CATALOG_IMAGENAME}" \
-    --build-tool docker
+    --build-tool docker \
+    --mode semver
     # --skip-tls # local registry launched without https
     # --from-index  "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
 
