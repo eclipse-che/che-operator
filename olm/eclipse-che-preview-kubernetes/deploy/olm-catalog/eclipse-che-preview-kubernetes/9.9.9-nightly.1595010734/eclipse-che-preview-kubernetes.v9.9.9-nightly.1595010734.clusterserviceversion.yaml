@@ -185,12 +185,11 @@ spec:
     * Bundled PostgreSQL and Keycloak
     * Per-Workspace PVC strategy
     * Auto-generated passwords
-    * HTTP mode (non-secure ingresses)
+    * TLS mode (secure routes)
     ## Installation Options
     Eclipse Che operator installation options include:
     * Connection to external database and Keycloak
     * Configuration of default passwords and object names
-    * TLS mode
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
     ### External Database and Keycloak
@@ -209,12 +208,11 @@ spec:
       identityProviderRealm: 'myrealm'
       identityProviderClientId: 'myClient'
       ```
-    ### TLS Mode
-    To activate TLS mode, set the respective field in the CR spec to `true` (in the `server` block):
-    ```
-    tlsSupport: true
-    ```
-    You will also need to provide name of tls secret that will be used for Eclipse Che and workspaces ingresses:
+    #### Self-signed Certificates and TLS Secrets
+
+    Eclipse Che uses self-signed certificates by default, as TLS mode is on by default.
+
+    To provide the name of the tls secret that will be used for Eclipse Che and workspaces ingresses:
     ```
     tlsSecretName: 'my-ingress-tls-secret'
     ```
