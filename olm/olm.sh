@@ -13,6 +13,10 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+SCRIPT=$(readlink -f "$0")
+echo "[INFO] ${SCRIPT}"
+SCRIPT_DIR=$(dirname "$SCRIPT");
+echo "[INFO] ${SCRIPT_DIR}"
 
 source ${BASE_DIR}/check-yq.sh
 
@@ -45,8 +49,8 @@ then
    channel="nightly"
 fi
 
-CATALOG_BUNDLE_IMAGE_NAME_LOCAL="localhost:5000/che_operator_bundle:0.0.1"
-CATALOG_IMAGENAME="localhost:5000/testing_catalog:0.0.1"
+CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
+CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/testing_catalog:0.0.1"
 packageName=eclipse-che-preview-${platform}
 platformPath=${BASE_DIR}/${packageName}
 packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
@@ -100,81 +104,54 @@ applyCheOperatorSource() {
   fi
 }
 
-# rename enable local image registry...
-enableDockerRegistry() {
-  if [ "${platform}" == "kubernetes" ]; then
-    # check if registry addon is enabled....
-    minikube addons enable registry
-    minikube addons enable ingress
-
-    docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
-    docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
-  
-    sleep 5
-  fi
+loginToImageRegistry() {
+  docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${REGISTRY_NAME}"
 }
 
-build_Bundle_Image() {
-  OPM_BUNDLE_DIR="eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${PACKAGE_VERSION}/manifests"
+buildBundleImage() {
+  OPM_BUNDLE_DIR="${SCRIPT_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/bundles"
+  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/${channel}/manifests"
+  pushd "${OPM_BUNDLE_DIR}" || exit
 
   echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_DIR}"
 
   ${OPM_BINARY} alpha bundle build \
-    -d "${OPM_BUNDLE_DIR}" \
+    -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
     --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
     --package "eclipse-che-preview-${platform}" \
     --channels "stable,nightly" \
     --default "stable" \
     --image-builder docker
 
-  opm alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" 
+  ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" 
 
   docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+
+  popd || exit
 }
 
-build_Catalog_Image() {
-  if [ "${platform}" == "kubernetes" ]; then
-    ${OPM_BINARY} index add \
-      --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-      --tag ${CATALOG_IMAGENAME} \
-      --build-tool docker \
-      --skip-tls # local registry launched without https
-      # --from-index  "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
+# It makes troubles for test scripts, because image bundle could be outdated with
+# such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
+forcePullingOlmImages() {
+  kubectl apply -f "${SCRIPT_DIR}/force-pulling-olm-images-job.yaml" -n "${namespace}"
 
-    docker push ${CATALOG_IMAGENAME}
-    # docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
+  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
 
-    # docker tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${CATALOG_BUNDLE_IMAGE_NAME}"
-    # docker save "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" > /tmp/bundle.tar
-    # docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-    # eval "$(minikube docker-env)"
-
-    # move to clean up section...
-    # docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
-    # docker load -i /tmp/bundle.tar && rm -rf /tmp/bundle.tar
-  fi
+  kubectl delete job/force-pulling-olm-images-job -n "${namespace}"
 }
 
-# docker_build() {
-#   docker build -t ${CATALOG_IMAGENAME} -f "${BASE_DIR}"/eclipse-che-preview-"${platform}"/Dockerfile \
-#     "${BASE_DIR}"/eclipse-che-preview-"${platform}"
-# }
+# Build catalog source image with index based on bundle image.
+buildCatalogImage() {
+  ${OPM_BINARY} index add \
+    --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+    --tag "${CATALOG_IMAGENAME}" \
+    --build-tool docker
+    # --skip-tls # local registry launched without https
+    # --from-index  "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
 
-# build_Catalog_Image() {
-  # if [ "${platform}" == "kubernetes" ]; then
-    # eval "$(minikube docker-env)"
-    # docker_build
-    # It should not be here...
-    # minikube addons enable ingress
-  # else
-  #   docker_build
-  #   curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.14.1/install.sh | bash -s 0.14.1
-  #   docker save ${CATALOG_IMAGENAME} > /tmp/catalog.tar
-  #   eval "$(minishift docker-env)"
-  #   docker load -i /tmp/catalog.tar && rm -rf /tmp/catalog.tar
-  # fi
-# }
+  docker push "${CATALOG_IMAGENAME}"
+}
 
 installOPM() {
   OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
@@ -182,11 +159,11 @@ installOPM() {
 
   OPM_BINARY=$(command -v opm)
   if [[ ! -x $OPM_BINARY ]]; then
-    echo "----Download 'opm' cli tool...----"
+    echo "[INFO] Download 'opm' cli tool..."
     curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/latest | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
     export OPM_BINARY="${OPM_TEMP_DIR}/opm"
     chmod +x "${OPM_BINARY}"
-    echo "----Downloading completed!----"
+    echo "[INFO] Downloading completed!"
   fi
   echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
 
@@ -207,10 +184,14 @@ EOF
     marketplaceNamespace="openshift-marketplace";
     applyCheOperatorSource
   else
-    # curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/install.sh -o install.sh
-    # chmod +x install.sh
-    # ./install.sh 0.15.1
-    # rm -rf install.sh
+    IFS=$'\n' read -d '' -r -a olmApiGroups < <( kubectl api-resources --api-group=operators.coreos.com -o name ) || true
+    if [ -z "${olmApiGroups[*]}" ]; then
+      curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/install.sh -o install.sh
+      chmod +x install.sh
+      ./install.sh 0.15.1
+      rm -rf install.sh
+      echo "Done"
+    fi
 
     applyCheOperatorSource
 

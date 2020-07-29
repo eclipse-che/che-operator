@@ -12,6 +12,11 @@
 
 set -e
 
+# todo
+# if [ -z "${QUAY_USERNAME}"] || [] || []; then
+#   echo "[ERROR] Should be defined QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
+# fi
+
 platform=$1
 if [ "${platform}" == "" ]; then
   echo "Please specify platform ('openshift' or 'kubernetes') as the first argument."
@@ -49,7 +54,7 @@ init() {
 }
 
 add_Che_Cluster() {
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/manifests/${packageName}.${PackageVersion}.clusterserviceversion.yaml")
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/bundles/${channel}/manifests/${packageName}.${PackageVersion}.clusterserviceversion.yaml")
   CR=$(echo "$CRs" | yq -r ".[0]")
   CR=$(echo "$CR" | jq '.spec.server.tlsSupport = false')
 
@@ -58,7 +63,7 @@ add_Che_Cluster() {
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
 
-  echo "$CR" | kubectl apply -n "${namespace}" -f -
+  echo "$CR" | kubectl apply -n "${NAMESPACE}" -f -
 }
 
 function getCheClusterLogs() {
@@ -73,7 +78,7 @@ function getCheClusterLogs() {
     done
   done
   echo "======== kubectl get events ========"
-  kubectl get events -n ${NAMESPACE}| tee get_events.log
+  kubectl get events -n "${NAMESPACE}" | tee get_events.log
   echo "======== kubectl get all ========"
   kubectl get all | tee get_all.log
 }
@@ -93,9 +98,10 @@ function getOlmPodLogs() {
 
 run_olm_functions() {
   installOPM
-  # enableDockerRegistry
-  build_Bundle_Image
-  build_Catalog_Image
+  loginToImageRegistry
+  buildBundleImage
+  buildCatalogImage
+  forcePullingOlmImages
   installOperatorMarketPlace
   installPackage
   add_Che_Cluster
