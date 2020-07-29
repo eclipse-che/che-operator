@@ -1,7 +1,8 @@
-$script config credentials --server http://0.0.0.0:8080/auth \
+$script config credentials --server http://localhost:8080/auth \
                                         --realm master \
                                         --user $keycloakAdminUserName \
                                         --password $keycloakAdminPassword \
+&& $script update realms/master -s sslRequired=none \
 && $script config truststore --trustpass ${SSO_TRUSTSTORE_PASSWORD} ${SSO_TRUSTSTORE_DIR}/${SSO_TRUSTSTORE} \
 && $script get realms/$keycloakRealm; \
 if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
