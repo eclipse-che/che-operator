@@ -131,12 +131,11 @@ testUpdates() {
   # Update the operator to the new release
   chectl server:update --skip-version-check --installer=operator --platform=minishift --che-operator-image=quay.io/eclipse/che-operator:${lastPackageVersion} --templates="tmp"
 
-  # Patch images and tag the latest release
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/auth/identityProviderImage", "value":"quay.io/eclipse/che-keycloak:'${lastPackageVersion}'"}]'
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/devfileRegistryImage", "value":"quay.io/eclipse/che-devfile-registry:'${lastPackageVersion}'"}]'
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/pluginRegistryImage", "value":"quay.io/eclipse/che-plugin-registry:'${lastPackageVersion}'"}]'
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/cheImageTag", "value":"'${lastPackageVersion}'"}]'
-
+# Patch images and tag the latest release
+  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/auth/identityProviderImage", "value":"quay.io/eclipse/che-keycloak:'${lastPackageVersion}'"}]' -n ${NAMESPACE}
+  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/devfileRegistryImage", "value":"quay.io/eclipse/che-devfile-registry:'${lastPackageVersion}'"}]' -n ${NAMESPACE}
+  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/pluginRegistryImage", "value":"quay.io/eclipse/che-plugin-registry:'${lastPackageVersion}'"}]' -n ${NAMESPACE}
+  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/cheImageTag", "value":"'${lastPackageVersion}'"}]' -n ${NAMESPACE}
   waitForNewCheVersion
 
   getCheAcessToken # Function from ./util/ci_common.sh
