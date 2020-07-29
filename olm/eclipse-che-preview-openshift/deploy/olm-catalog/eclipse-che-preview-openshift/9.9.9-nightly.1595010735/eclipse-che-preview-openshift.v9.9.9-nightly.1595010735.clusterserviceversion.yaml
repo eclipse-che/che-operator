@@ -195,7 +195,7 @@ spec:
 
     #### Self-signed Certificates
 
-    Eclipse Che uses self-signed certificates by default now.
+    Eclipse Che uses self-signed certificates by default.
 
     You can also manually create a secret:
 
