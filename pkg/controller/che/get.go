@@ -16,11 +16,9 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	oauth "github.com/openshift/api/oauth/v1"
-	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -28,31 +26,7 @@ import (
 func (r *ReconcileChe) GetEffectiveDeployment(instance *orgv1.CheCluster, name string) (deployment *appsv1.Deployment, err error) {
 	deployment = &appsv1.Deployment{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
-	if err != nil {
-		logrus.Errorf("Failed to get %s deployment: %s", name, err)
-		return nil, err
-	}
-	return deployment, nil
-}
-
-func (r *ReconcileChe) GetEffectiveIngress(instance *orgv1.CheCluster, name string) (ingress *v1beta1.Ingress) {
-	ingress = &v1beta1.Ingress{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, ingress)
-	if err != nil {
-		logrus.Errorf("Failed to get %s ingress: %s", name, err)
-		return nil
-	}
-	return ingress
-}
-
-func (r *ReconcileChe) GetEffectiveRoute(instance *orgv1.CheCluster, name string) (route *routev1.Route) {
-	route = &routev1.Route{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, route)
-	if err != nil {
-		logrus.Errorf("Failed to get %s route: %s", name, err)
-		return nil
-	}
-	return route
+	return deployment, err
 }
 
 func (r *ReconcileChe) GetEffectiveConfigMap(instance *orgv1.CheCluster, name string) (configMap *corev1.ConfigMap) {
@@ -83,16 +57,4 @@ func (r *ReconcileChe) GetOAuthClient(oAuthClientName string) (oAuthClient *oaut
 		return nil, err
 	}
 	return oAuthClient, nil
-}
-
-func (r *ReconcileChe) GetDeploymentVolume(deployment *appsv1.Deployment, key string) (volume corev1.Volume) {
-	volumes := deployment.Spec.Template.Spec.Volumes
-	for i := range volumes {
-		name := volumes[i].Name
-		if name == key {
-			volume = volumes[i]
-			break
-		}
-	}
-	return volume
 }
