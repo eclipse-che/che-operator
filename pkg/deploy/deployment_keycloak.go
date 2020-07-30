@@ -104,7 +104,6 @@ func getSpecKeycloakDeployment(
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", checluster.Namespace, clusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", checluster.Namespace, clusterAPI)
-	sslRequiredUpdatedForMasterRealm := isSslRequiredUpdatedForMasterRealm(checluster, clusterAPI)
 
 	// add various certificates to Java trust store so that Keycloak can connect to OpenShift API
 	// certificate that OpenShift router uses (for 4.0 only)
@@ -222,15 +221,19 @@ func getSpecKeycloakDeployment(
 		},
 		{
 			Name:  "POSTGRES_PORT_5432_TCP_ADDR",
-			Value: "postgres",
+			Value: util.GetValue(checluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
 		},
 		{
 			Name:  "POSTGRES_PORT_5432_TCP_PORT",
-			Value: "5432",
+			Value: util.GetValue(checluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
 		},
 		{
 			Name:  "POSTGRES_PORT",
-			Value: "5432",
+			Value: util.GetValue(checluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
+		},
+		{
+			Name:  "POSTGRES_ADDR",
+			Value: util.GetValue(checluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
 		},
 		{
 			Name:  "POSTGRES_DATABASE",
@@ -345,19 +348,19 @@ func getSpecKeycloakDeployment(
 			},
 			{
 				Name:  "KEYCLOAK_POSTGRESQL_SERVICE_HOST",
-				Value: "postgres",
+				Value: util.GetValue(checluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
 			},
 			{
 				Name:  "KEYCLOAK_POSTGRESQL_SERVICE_PORT",
-				Value: "5432",
+				Value: util.GetValue(checluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
 			},
 			{
 				Name:  "DB_DATABASE",
-				Value: KeycloakDeploymentName,
+				Value: "keycloak",
 			},
 			{
 				Name:  "DB_USERNAME",
-				Value: KeycloakDeploymentName,
+				Value: "keycloak",
 			},
 			{
 				Name:  "DB_VENDOR",
@@ -470,10 +473,12 @@ func getSpecKeycloakDeployment(
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
 
+	sslRequiredUpdatedForMasterRealm := isSslRequiredUpdatedForMasterRealm(checluster, clusterAPI)
 	if sslRequiredUpdatedForMasterRealm {
 		// update command to restart pod
 		command = "echo \"ssl_required WAS UPDATED for master realm.\" && " + command
 	}
+
 	args := []string{"-c", command}
 
 	deployment := &appsv1.Deployment{
@@ -581,6 +586,10 @@ func getSecretResourceVersion(name string, namespace string, clusterAPI ClusterA
 }
 
 func isSslRequiredUpdatedForMasterRealm(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) bool {
+	if checluster.Spec.Database.ExternalDb {
+		return false
+	}
+
 	if util.IsTestMode() {
 		return false
 	}
@@ -620,15 +629,17 @@ func updateSslRequiredForMasterRealm(checluster *orgv1.CheCluster) error {
 }
 
 func ProvisionKeycloakResources(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) error {
-	value, err := getSslRequiredForMasterRealm(checluster)
-	if err != nil {
-		return err
-	}
-
-	if value != "NONE" {
-		err := updateSslRequiredForMasterRealm(checluster)
+	if !checluster.Spec.Database.ExternalDb {
+		value, err := getSslRequiredForMasterRealm(checluster)
 		if err != nil {
 			return err
+		}
+
+		if value != "NONE" {
+			err := updateSslRequiredForMasterRealm(checluster)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
