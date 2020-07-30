@@ -52,8 +52,8 @@ Olm bundle packages will be generated in the folders `olm/eclipse-che-preview-${
 Push che-operator bundles to your application registry:
 
 ```shell
-$ export QUAY_USERNAME=${username} && \
-export QUAY_PASSWORD=${password} && \
+$ export QUAY_ECLIPSE_CHE_USERNAME=${username} && \
+export QUAY_ECLIPSE_CHE_PASSWORD=${password} && \
 export APPLICATION_REGISTRY=${application_registry_namespace} && \
 ./push-olm-files-to-quay.sh
 ```

@@ -111,7 +111,7 @@ func getClusterIngress(name string, namespace string, client runtimeClient.Clien
 
 func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName string, port int, clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
 	tlsSupport := checluster.Spec.Server.TlsSupport
-	ingressStrategy := checluster.Spec.K8s.IngressStrategy
+	ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy,DefaultIngressStrategy)
 	if len(ingressStrategy) < 1 {
 		ingressStrategy = "multi-host"
 	}
@@ -129,15 +129,33 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 		}
 	}
 
-	host := ""
 	path := "/"
-	if name == "keycloak" && ingressStrategy != "multi-host" {
-		path = "/auth"
+	if ingressStrategy != "multi-host" {
+		switch name {
+		case "keycloak":
+			path = "/auth"
+		case DevfileRegistry:
+			path = "/" + DevfileRegistry + "/(.*)"
+		case PluginRegistry:
+			path = "/" + PluginRegistry + "/(.*)"
+		}
 	}
+
+	host := ""
 	if ingressStrategy == "multi-host" {
 		host = name + "-" + checluster.Namespace + "." + ingressDomain
 	} else if ingressStrategy == "single-host" {
 		host = ingressDomain
+	}
+
+	annotations := map[string]string{
+		"kubernetes.io/ingress.class":                       ingressClass,
+		"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
+		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
+		"nginx.ingress.kubernetes.io/ssl-redirect":          tls,
+	}
+	if ingressStrategy != "multi-host" && (name == DevfileRegistry || name == PluginRegistry) {
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 
 	ingress := &v1beta1.Ingress{
@@ -146,15 +164,10 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 			APIVersion: v1beta1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: checluster.Namespace,
-			Labels:    labels,
-			Annotations: map[string]string{
-				"kubernetes.io/ingress.class":                       ingressClass,
-				"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-				"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-				"nginx.ingress.kubernetes.io/ssl-redirect":          tls,
-			},
+			Name:        name,
+			Namespace:   checluster.Namespace,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 		Spec: v1beta1.IngressSpec{
 			Rules: []v1beta1.IngressRule{

@@ -57,7 +57,7 @@ Open deploy/operator.yaml, replace default operator image `quay.io/eclipse/che-o
 Go to `olm/eclipse-che-preview-openshift` folder and build the image: `docker build -t user/custom-catalog-source:latest .`
 Push it into your docker registry.
 
-5. Create custom catalog source yaml:
+5. Create custom catalog source yaml(update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
 ```yaml
 apiVersion:  operators.coreos.com/v1alpha1
 kind:         CatalogSource
@@ -67,6 +67,9 @@ metadata:
 spec:
   image:        docker.io/user/custom-catalog-source:latest
   sourceType:  grpc
+  updateStrategy:
+    registryPoll:
+      interval: 5m
 ```
 Replace value of `image` field with your catalog source image.
 

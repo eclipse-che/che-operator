@@ -3,8 +3,7 @@
 ## 1. Release files
 
 Export environment variables:
-1. `QUAY_USERNAME` and `QUAY_PASSWORD` to access https://quay.io/organization/eclipse
-2. `GIT_USER` and `GIT_PASSWORD` to create PR into https://github.com/operator-framework/community-operators
+1. `QUAY_ECLIPSE_CHE_USERNAME` and `QUAY_ECLIPSE_CHE_PASSWORD` to access https://quay.io/organization/eclipse
 
 ```bash
 ./make-release.sh <RELEASE_VERSION> --release --push-olm-files --push-git-changes --pull-requests

@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 init() {
   RELEASE="$1"
@@ -38,8 +37,8 @@ init() {
     shift 1
   done
 
-  [ -z "$QUAY_USERNAME" ] && echo "[ERROR] QUAY_USERNAME is not set" && exit 1
-  [ -z "$QUAY_PASSWORD" ] && echo "[ERROR] QUAY_PASSWORD is not set" && exit 1
+  [ -z "$QUAY_ECLIPSE_CHE_USERNAME" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_USERNAME is not set" && exit 1
+  [ -z "$QUAY_ECLIPSE_CHE_PASSWORD" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_PASSWORD is not set" && exit 1
   command -v operator-courier >/dev/null 2>&1 || { echo "[ERROR] operator-courier is not installed. Aborting."; exit 1; }
   command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Aborting."; exit 1; }
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Aborting."; exit 1; }
@@ -164,7 +163,7 @@ releaseOperatorCode() {
   docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
 
   echo "[INFO] Pushing image to quay.io"
-  docker login quay.io -u $QUAY_USERNAME
+  docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   docker push quay.io/eclipse/che-operator:$RELEASE
 }
 
@@ -226,7 +225,7 @@ pushGitChanges() {
 
 createPRToXBranch() {
   echo "[INFO] Creating pull request into ${BRANCH} branch"
-  hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
+  hub pull-request --base ${BRANCH} --head ${RELEASE} -m "Release version ${RELEASE}"
 }
 
 createPRToMasterBranch() {
@@ -239,7 +238,7 @@ createPRToMasterBranch() {
   git add -A
   git commit -m "Copy "$RELEASE" csv to master" --signoff
   git push origin $tmpBranch -f
-  hub pull-request --base master --head ${tmpBranch} --browse -m "Copy "$RELEASE" csv to master"
+  hub pull-request --base master --head ${tmpBranch} -m "Copy "$RELEASE" csv to master"
 }
 
 run() {

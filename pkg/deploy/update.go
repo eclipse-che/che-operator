@@ -28,3 +28,14 @@ func UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField string, value stri
 	logrus.Infof("Custom resource %s updated", instance.Name)
 	return nil
 }
+
+func UpdateCheCRStatus(instance *orgv1.CheCluster, updatedField string, value string, clusterAPI ClusterAPI) (err error) {
+	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
+	err = clusterAPI.Client.Status().Update(context.TODO(), instance)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR. Fetching the latest CR version: %s", instance.Name, err)
+		return err
+	}
+	logrus.Infof("Custom resource %s updated", instance.Name)
+	return nil
+}

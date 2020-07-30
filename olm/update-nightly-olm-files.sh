@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)

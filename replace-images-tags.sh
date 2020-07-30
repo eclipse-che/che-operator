@@ -17,7 +17,6 @@
 #   ./release-operator-code.sh <RELEASE> <CHE_RELEASE_BRANCH>
 
 set -e
-set -x
 
 function init() {
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)

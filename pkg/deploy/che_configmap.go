@@ -74,6 +74,7 @@ type CheConfigMap struct {
 	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
 	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
+	CheTrustedCABundlesConfigMap           string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
 }
 
 func SyncCheConfigMapToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
@@ -205,6 +206,7 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 		CheServerSecureExposerJwtProxyImage:    DefaultCheServerSecureExposerJwtProxyImage(cr),
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
+		CheTrustedCABundlesConfigMap:           cr.Spec.Server.ServerTrustStoreConfigMapName,
 	}
 
 	if cheMultiUser == "true" {
