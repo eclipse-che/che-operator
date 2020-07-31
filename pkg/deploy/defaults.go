@@ -76,6 +76,11 @@ const (
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
+	DefaultServerExposureStrategy              = "multi-host"
+	DefaultSingleHostWorkspaceExposureType     = "native"
+	DefaultSingleHostGatewayImage              = "traefik:v2.2.8"
+	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:latest"
+
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
 	// That fixed bug https://github.com/eclipse/che/issues/13714

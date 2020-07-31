@@ -219,6 +219,7 @@ type ReconcileChe struct {
 }
 
 const (
+	failedValidationReason            = "InstallOrUpdateFailed"
 	failedNoOpenshiftUserReason       = "InstallOrUpdateFailed"
 	warningNoIdentityProvidersMessage = "No Openshift identity providers. Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
 	warningNoRealUsersMessage         = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
@@ -261,6 +262,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Che cannot be deployed with current configuration.
 		// Print error message in logs and wait until the configuration is changed.
 		logrus.Error(err)
+		if err := r.SetStatusDetails(instance, request, failedValidationReason, err.Error(), ""); err != nil {
+			return reconcile.Result{}, err
+		}
 		return reconcile.Result{}, nil
 	}
 
@@ -909,6 +913,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cmResourceVersion = r.GetEffectiveConfigMap(instance, deploy.CheConfigMapName).ResourceVersion
 	} else {
 		cmResourceVersion = cheConfigMap.ResourceVersion
+	}
+
+	err = deploy.SyncGatewayToCluster(instance, clusterAPI)
+	if err != nil {
+		logrus.Errorf("Failed to create the Server Gateway: %s", err)
+		return reconcile.Result{}, err
 	}
 
 	// Create a new che deployment

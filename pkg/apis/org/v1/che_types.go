@@ -231,6 +231,34 @@ type CheClusterSpecServer struct {
 	// Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
+
+	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
+	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every requied
+	// endpoint.
+	// "single-host" creates a single ingress/route and exposes workspaces on subpaths. Please read the docs
+	// to learn about the limitations of this approach.
+	// "default-host" exposes che server on the host of the cluster. Please read the docs to learn about
+	// the limitations of this approach.
+	// +optional
+	ServerExposureStrategy string `json:"serverExposureStrategy,omitempty"`
+
+	// When the serverExposureStrategy is set to "single-host", the way server and and workspaces
+	// are exposed is further configured by this property. The possible values are "native" (which means
+	// that the server and workspaces are exposed using ingresses on K8s) or "gateway" where the server
+	// and workspaces are exposed using a custom gateway based on Traefik.
+	// "native" is only supported on Kubernetes, "gateway" is supported on both openshift and kubernetes.
+	// On OpenShift, this property defaults to "gateway". On Kubernetes, it defaults to "native".
+	// +optional
+	SingleHostWorkspaceExposureType string `json:"singleHostWorkspaceExposureType,omitempty"`
+
+	// The image used for the gateway in the single host mode. Defaults to docker.io/traefik:v2.2.8.
+	// +optional
+	SingleHostGatewayImage string `json:"singleHostGatewayImage,omitempty"`
+
+	// The image used for the gateway sidecar that provides configuration to the gateway.
+	// Default to quay.io/che-incubator/configbump:latest
+	// +optional
+	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -402,6 +430,7 @@ type CheClusterSpecK8SOnly struct {
 	// Strategy for ingress creation. This can be `multi-host` (host is explicitly provided in ingress),
 	// `single-host` (host is provided, path-based rules) and `default-host.*`(no host is provided, path-based rules).
 	// Defaults to `"multi-host`
+	// Deprecated in favor of "serverExposureStrategy" in the "server" section, which defines this regardless of the cluster type.
 	// +optional
 	IngressStrategy string `json:"ingressStrategy,omitempty"`
 	// Ingress class that will define the which controler will manage ingresses. Defaults to `nginx`.

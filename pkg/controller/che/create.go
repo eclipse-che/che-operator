@@ -249,6 +249,22 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		}
 	}
 
+	serverExposureStrategy := util.GetValue(instance.Spec.Server.ServerExposureStrategy, deploy.DefaultServerExposureStrategy)
+	if len(instance.Spec.Server.ServerExposureStrategy) < 1 {
+		instance.Spec.Server.ServerExposureStrategy = serverExposureStrategy
+		if err := r.UpdateCheCRSpec(instance, "server exposure strategy", serverExposureStrategy); err != nil {
+			return err
+		}
+	}
+
+	singleHostWorkspaceExposureType := util.GetValue(instance.Spec.Server.SingleHostWorkspaceExposureType, deploy.DefaultSingleHostWorkspaceExposureType)
+	if len(instance.Spec.Server.SingleHostWorkspaceExposureType) < 1 {
+		instance.Spec.Server.SingleHostWorkspaceExposureType = singleHostWorkspaceExposureType
+		if err := r.UpdateCheCRSpec(instance, "single host workspace exposure strategy", singleHostWorkspaceExposureType); err != nil {
+			return err
+		}
+	}
+
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next
 	// version that should fixed bug https://github.com/eclipse/che/issues/13714
