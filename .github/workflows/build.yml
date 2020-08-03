@@ -30,8 +30,6 @@ jobs:
 
     - name: Build catalog source and opm bundle images
       run: |-
-        exit 1
-
         # SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
         # ROOT_PROJECT_DIR=$(dirname "$(dirname "${SCRIPTS_DIR}")")
         # echo "project root dir: ${ROOT_DIR}"
@@ -42,7 +40,7 @@ jobs:
         OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
         CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
-        pip3 install --upgrade setuptools
+        # pip3 install --upgrade setuptools
         pip3 install yq
 
         pwd && echo Hello!
