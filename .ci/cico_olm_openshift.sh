@@ -43,7 +43,7 @@ CHANNEL="nightly"
 export CHANNEL
 
 # Test nightly olm files
-NAMESPACE="eclipse-che"
+NAMESPACE="che"
 export NAMESPACE
 
 # run function run the tests in ci of custom catalog source.
