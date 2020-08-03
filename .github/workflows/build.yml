@@ -56,5 +56,7 @@ jobs:
         ls $HOME/.local/bin
 
         echo "$PATH"
-        python3 -m site --user-base
-        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
+        # python3 -m site --user-base
+
+        ls "${OPM_BUNDLE_DIR}"
+        # nightlyVersion=$(yq -r ".spec.version" "${CSV}")
