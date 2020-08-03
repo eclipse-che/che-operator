@@ -51,15 +51,15 @@ jobs:
 
         nightlyVersion=$(yq -r ".spec.version" "${CSV}")
         CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/${DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
-        echo "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+        CATALOG_IMAGENAME="docker.io/${DOCKER_USERNAME}/eclipse-che-catalog-source"
 
+        source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
+
+        # todo: install fixed version....
         installOPM
 
         opm version
 
-        source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         # todo remove namespace
         buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-        CATALOG_IMAGENAME="docker.io/${DOCKER_USERNAME}/eclipse-che-catalog-source"
