@@ -50,5 +50,4 @@ jobs:
         # python3 -m site --user-base
 
         ls "${OPM_BUNDLE_DIR}"
-        cat "${CSV}"
-        # nightlyVersion=$(yq -r ".spec.version" "${CSV}")
+        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
