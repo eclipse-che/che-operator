@@ -32,13 +32,13 @@ jobs:
       run: |-
         DOCKER_USERNAME=aandriienko
         IMAGE_REGISTRY=quay.io
-        docker login quay.io
-        docker pull alpine
-        echo "Pull done"
-        docker tag alpine "quay.io/${DOCKER_USERNAME}/alpine"
-        echo "Retag done!"
-        docker push "quay.io/${DOCKER_USERNAME}/alpine"
-        echo "Done!!!"
+        # docker login quay.io
+        # docker pull alpine
+        # echo "Pull done"
+        # docker tag alpine "quay.io/${DOCKER_USERNAME}/alpine"
+        # echo "Retag done!"
+        # docker push "quay.io/${DOCKER_USERNAME}/alpine"
+        # echo "Done!!!"
         # exit 0
 
         pip3 install wheel
@@ -61,12 +61,12 @@ jobs:
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
 
-        # todo: install fixed version....
         installOPM
 
         ${OPM_BINARY} version
 
         echo ">>>Echo: ${OPM_BUNDLE_MANIFESTS_DIR}"
+
         ls "${OPM_BUNDLE_MANIFESTS_DIR}"
         # todo remove namespace
         # buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
