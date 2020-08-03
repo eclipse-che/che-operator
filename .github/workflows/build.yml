@@ -39,7 +39,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
       run: |-
         echo ${DOCKER_USERNAME}
-        docker login -p "${DOCKER_PASSWORD}"" -u "${DOCKER_USERNAME}""
+        docker login -p "${DOCKER_PASSWORD}" -u "${DOCKER_USERNAME}" quay.io
         docker pull alpine
         echo "Pull done"
         docker tag alpine quay.io/aandrienko/alpine
