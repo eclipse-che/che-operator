@@ -30,30 +30,22 @@ jobs:
 
     - name: Build catalog source and opm bundle images
       run: |-
-        # SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
-        # ROOT_PROJECT_DIR=$(dirname "$(dirname "${SCRIPTS_DIR}")")
-        # echo "project root dir: ${ROOT_DIR}"
-        # echo "${GITHUB_WORKSPACE}"
+        pip3 install wheel
+        pip3 install --upgrade setuptools
+        pip3 install yq
+        # Make python3 installed modules "visible"
+        export PATH=$HOME/.local/bin:$PATH
+        ls $HOME/.local/bin
 
         ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
         OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
         OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
         CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
-        # sudo apt-get install python3-dev libffi-dev libssl-dev
-        pip3 install wheel
-        pip3 install --upgrade setuptools
-        pip3 install yq
-
-        pwd && echo Hello!
-        cd "${ROOT_PROJECT_DIR}"
+        platform=kubernetes
 
         CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/${DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
         echo "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-        # python
-        export PATH=$HOME/.local/bin:$PATH
-        ls $HOME/.local/bin
 
         echo "$PATH"
         # python3 -m site --user-base
