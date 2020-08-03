@@ -31,6 +31,7 @@ jobs:
     - name: Build catalog source and opm bundle images
       run: |-
         DOCKER_USERNAME=aandriienko
+        IMAGE_REGISTRY=quay.io
         # docker login quay.io
         # docker pull alpine
         # echo "Pull done"
@@ -54,8 +55,8 @@ jobs:
         CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
         nightlyVersion=$(yq -r ".spec.version" "${CSV}")
-        CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/${DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
-        CATALOG_IMAGENAME="docker.io/${DOCKER_USERNAME}/eclipse-che-catalog-source"
+        CATALOG_BUNDLE_IMAGE_NAME_LOCAL="IMAGE_REGISTRY/${DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
+        CATALOG_IMAGENAME="IMAGE_REGISTRY/${DOCKER_USERNAME}/eclipse-che-catalog-source"
 
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
