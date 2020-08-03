@@ -33,6 +33,7 @@ jobs:
         docker pull alpine
         docker tag alpine docker.io/aandrienko/alpine
         docker push docker.io/aandrienko/alpine
+        echo "Done"
         exit 0
         
         pip3 install wheel
