@@ -39,9 +39,9 @@ jobs:
         docker login quay.io
         docker pull alpine
         echo "Pull done"
-        docker tag alpine quay.io/aandrienko/alpine
+        docker tag alpine quay.io/aandriienko/alpine
         echo "Retag done!"
-        docker push quay.io/aandrienko/alpine
+        docker push quay.io/aandriienko/alpine
         echo "Done!"
         exit 0
         
