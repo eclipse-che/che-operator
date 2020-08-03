@@ -28,4 +28,5 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build catalog source and opm bundle images
-      run: echo Hello!
+      run: |-
+pwd && echo Hello!
