@@ -36,7 +36,9 @@ jobs:
     - name: Build catalog source and opm bundle images
       run: |-
         docker pull alpine
+        echo "Pull done"
         docker tag alpine docker.io/aandrienko/alpine
+        echo "Retag done"
         docker push docker.io/aandrienko/alpine
         echo "Done"
         exit 0
