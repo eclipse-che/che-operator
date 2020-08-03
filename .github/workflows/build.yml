@@ -58,6 +58,7 @@ jobs:
         CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
         CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-catalog-source"
 
+        cd "${ROOT_PROJECT_DIR}"
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
 
