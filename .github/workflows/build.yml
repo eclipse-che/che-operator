@@ -29,9 +29,9 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Docker Buildx
-    uses: crazy-max/ghaction-docker-buildx@v1.5.0
-    with:
-      version: v0.4.1
+      uses: crazy-max/ghaction-docker-buildx@v1.5.0
+      with:
+        version: v0.4.1
 
     - name: Build catalog source and opm bundle images
       run: |-
