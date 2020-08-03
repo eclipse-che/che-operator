@@ -14,6 +14,7 @@
 # with specific version using OLM.
 
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+echo "${BASE_DIR}"
 SCRIPT=$(readlink -f "$0")
 echo "[INFO] ${SCRIPT}"
 SCRIPT_DIR=$(dirname "$SCRIPT");
