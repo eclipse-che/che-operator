@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2012-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,36 +12,45 @@
 
 set -e
 
-CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
 
 for platform in 'kubernetes' 'openshift'
 do
-  packageName=eclipse-che-preview-${platform}
+  echo "[INFO] Updating OperatorHub bundle for platform '${platform}' for platform '${platform}'"
 
-  echo "[INFO] Updating OperatorHub package '${packageName}' for platform '${platform}'"
-  packageBaseFolderPath=${BASE_DIR}/${packageName}
+  pushd "${ROOT_PROJECT_DIR}" || true
 
-  cd "${packageBaseFolderPath}"
-  packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
-  packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-  lastPackageVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
+  olmCatalog=${ROOT_PROJECT_DIR}/deploy/olm-catalog
+  operatorFolder=${olmCatalog}/che-operator
+  bundleFolder=${operatorFolder}/eclipse-che-preview-${platform}
 
-  echo "[INFO] Last package version: ${lastPackageVersion}"
-  newNightlyPackageVersion="9.9.9-nightly.$(date +%s)"
+  # todo, hardcoded...
+  newNightlyBundleVersion="7.16.2-0.nightly"
+  bundleCSVName="che-operator.clusterserviceversion.yaml"
+  NEW_CSV=${bundleFolder}/manifests/${bundleCSVName}
+  echo "[INFO] Will create new nightly bundle version: ${newNightlyBundleVersion}"
 
-  PREV_CRD="${packageFolderPath}/${lastPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"
-  PREV_CSV="${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml"
-  NEW_CSV="${packageFolderPath}/${newNightlyPackageVersion}/${packageName}.v${newNightlyPackageVersion}.clusterserviceversion.yaml"
-  NEW_CRD="${packageFolderPath}/${newNightlyPackageVersion}/eclipse-che-preview-${platform}.crd.yaml"
+  "${bundleFolder}"/build-roles.sh
 
-  echo "[INFO] will create a new version: ${newNightlyPackageVersion}"
-  ./build-roles.sh
+  packageManifestFolderPath=${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/${newNightlyBundleVersion}
+  packageManifestCSVPath=${packageManifestFolderPath}/che-operator.v${newNightlyBundleVersion}.clusterserviceversion.yaml
 
-  echo "[INFO] Updating new package version with roles defined in: ${role}"
-  operator-sdk olm-catalog gen-csv --csv-version "${newNightlyPackageVersion}" --from-version="${lastPackageVersion}" 2>&1 | sed -e 's/^/      /'
+  mkdir -p "${packageManifestFolderPath}"
+  cp -rf "${NEW_CSV}" "${packageManifestCSVPath}"
+  cp -rf "${bundleFolder}/csv-config.yaml" "${olmCatalog}"
+
+  echo "[INFO] Updating new package version..."
+  operator-sdk olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
+  # After migration to the newer operator-sdk we should use:
+  # operator-sdk-v0.19.2-x86_64-linux-gnu olm-catalog gen-csv --csv-version "${newNightlySemVersion}"
+
+  cp -rf "${packageManifestCSVPath}" "${NEW_CSV}"
+
+  rm -rf "${packageManifestFolderPath}" "${packageManifestCSVPath}" "${operatorFolder}/che-operator.package.yaml" "${olmCatalog}/csv-config.yaml"
+
   containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
   createdAt=$(date -u +%FT%TZ)
 
@@ -51,14 +60,10 @@ do
   sed \
   -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
   -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" ${NEW_CSV} > ${NEW_CSV}".new"
-  mv ${NEW_CSV}".new" ${NEW_CSV}
+  mv "${NEW_CSV}.new" "${NEW_CSV}"
 
   echo "[INFO] Copying the CRD file"
-  cp "${BASE_DIR}/../deploy/crds/org_v1_che_crd.yaml" ${NEW_CRD}
-
-  echo "[INFO] Updating the 'nightly' channel with new version in the package descriptor: ${packageFilePath}"
-  sed -e "s/${lastPackageVersion}/${newNightlyPackageVersion}/" "${packageFilePath}" > "${packageFilePath}.new"
-  mv "${packageFilePath}.new" "${packageFilePath}"
+  cp "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
 
   if [[ ! -z "$TAG" ]]; then
     echo "[INFO] Set tags in nighlty OLM files"
@@ -78,7 +83,5 @@ do
     done
   fi
 
-  diff -u ${PREV_CRD} ${NEW_CRD} > ${NEW_CRD}".diff" || true
-  diff -u ${PREV_CSV} ${NEW_CSV} > ${NEW_CSV}".diff" || true
+  popd || true
 done
-cd "${CURRENT_DIR}"

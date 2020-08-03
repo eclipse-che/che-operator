@@ -110,5 +110,7 @@ tags
 build/
 bin/
 olm/generated
+deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/generated
+deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/generated
 
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode

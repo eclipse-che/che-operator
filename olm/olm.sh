@@ -50,19 +50,16 @@ then
    channel="nightly"
 fi
 
-if [ -z "${REGISTRY_NAME}" ] || [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
-  echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
-  exit 1
-fi
-
-CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
-CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/testing_catalog:0.0.1"
+# CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
 packageName=eclipse-che-preview-${platform}
 platformPath=${BASE_DIR}/${packageName}
-packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+if [ -z "${packageFolderPath}" ]; then
+  packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+fi
+
 # Todo check, maybe it's unused...
-packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-CSV="eclipse-che-preview-${platform}.${PACKAGE_VERSION}"
+# packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+# CSV="eclipse-che-preview-${platform}.${PACKAGE_VERSION}"
 
 echo -e "\u001b[32m PACKAGE_VERSION=${PACKAGE_VERSION} \u001b[0m"
 echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
@@ -75,6 +72,25 @@ echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 #   echo "You should delete namespace '${namespace}' before running the update test first."
 #   exit 1
 # fi
+
+checkImagePushTridentionals() {
+  if [ -z "${REGISTRY_NAME}" ] || [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
+    echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
+    exit 1
+  fi
+}
+
+pushImage() {
+  checkImagePushTridentionals
+
+  imageName=$1
+  if [ -z "${imageName}" ]; then
+    echo "Please specify first argument: imageName"
+    exit 1
+  fi
+
+  docker push "${imageName}"
+}
 
 catalog_source() {
   echo "--- Use default eclipse che application registry ---"
@@ -94,8 +110,8 @@ spec:
       interval: 5m  
 EOF
   else
-    cat ${platformPath}/operator-source.yaml
-    kubectl apply -f ${platformPath}/operator-source.yaml
+    cat "${platformPath}/operator-source.yaml"
+    kubectl apply -f "${platformPath}/operator-source.yaml"
   fi
 }
 
@@ -118,8 +134,20 @@ loginToImageRegistry() {
 }
 
 buildBundleImage() {
-  OPM_BUNDLE_DIR="${SCRIPT_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/bundles"
-  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/${channel}/manifests"
+  # checkImagePushTridentionals
+
+  OPM_BUNDLE_MANIFESTS_DIR=$1
+  if [ -z "${OPM_BUNDLE_MANIFESTS_DIR}" ]; then
+    echo "Please specify first argument: opm bundle manifest directory"
+    exit 1
+  fi
+
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${2}
+  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
+    echo "Please specify second argument: opm bundle image"
+    exit 1
+  fi
+
   pushd "${OPM_BUNDLE_DIR}" || exit
 
   echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_DIR}"
@@ -143,6 +171,12 @@ buildBundleImage() {
 # It makes troubles for test scripts, because image bundle could be outdated with
 # such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
 forcePullingOlmImages() {
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
+  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
+    echo "Please specify first argument: opm bundle image"
+    exit 1
+  fi
+
   yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${SCRIPT_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
 
   kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
@@ -152,6 +186,18 @@ forcePullingOlmImages() {
 
 # Build catalog source image with index based on bundle image.
 buildCatalogImage() {
+  CATALOG_IMAGENAME=${1}
+  if [ -z "${CATALOG_IMAGENAME}" ]; then
+    echo "Please specify first argument: catalog image"
+    exit 1
+  fi
+
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${2}
+  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
+    echo "Please specify second argument: opm bundle image"
+    exit 1
+  fi
+
   ${OPM_BINARY} index add \
     --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
     --tag "${CATALOG_IMAGENAME}" \
@@ -252,7 +298,7 @@ spec:
   sourceNamespace: ${marketplaceNamespace}
 EOF
 
-# startingCSV: ${CSV}
+# startingCSV: eclipse-che-preview-kubernetes.v7.16.2-0.nightly
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
 

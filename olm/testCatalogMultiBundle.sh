@@ -99,16 +99,13 @@ run_olm_functions() {
   installOPM
   loginToImageRegistry
 
-  # OPM_BUNDLE_DIR="${SCRIPT_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/bundles"
-  # OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/${channel}/manifests"
+#   OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+#   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/eclipse-che-operator-kubernetes-bundle:7.16.2-0.nightly"
+#   buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
-  OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
-  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
-  buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-  CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/testing_catalog:0.0.1"
-  buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/eclipse-che-catalog-source:0.0.1"
+#   buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
   forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
