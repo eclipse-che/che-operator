@@ -53,10 +53,16 @@ jobs:
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         # todo remove namespace
         source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
+        source ${ROOT_PROJECT_DIR}/olm/incrementNightlyBundles.sh
 
         installOPM
 
         ${OPM_BINARY} version
+
+        incrementPart=$(getNightlyVersionIncrementPart ${nightlyVersion})
+        echo ${incrementPart}
+
+        exit 0
 
         buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
