@@ -53,6 +53,3 @@ function run() {
 }
 
 run
-
-# grab che-operator namespace events after running olm nightly tests
-oc get events -n ${NAMESPACE} | tee ${ARTIFACTS_DIR}/che-operator-events.log
