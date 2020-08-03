@@ -12,7 +12,9 @@
 
 set -e
 
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+if [ -z "${BASE_DIR}" ]; then
+  BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+fi
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 
 source ${BASE_DIR}/check-yq.sh
