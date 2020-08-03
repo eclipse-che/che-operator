@@ -1,0 +1,53 @@
+#
+#  Copyright (c) 2012-2019 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+#
+
+name: Check nightly "opm" bundle
+on: [pull_request, push]
+jobs:
+
+  build:
+    name: Check nightly "opm" bundle
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: 
+      run: |-
+        set -e
+
+        ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
+
+        CSV_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+        CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+        CSV_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifestsche-operator.clusterserviceversion.yaml"
+        CRD_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+
+        cd ${ROOT_PROJECT_DIR}
+        source ${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh
+        git add .
+
+        IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
+        echo "Changed files ${changedFiles[*]}"
+
+        # ( git diff --name-only origin/master )
+
+        # PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD "$(git diff origin/master)")
+
+        # for file in "${PR_FILES_CHANGED}"
+        # do  
+        #     if [[ $file == "" ]]; then
+        #       echo "[ERROR] Nightly CSV file was changed "
+        #     fi
+        #     if [[ $file == "" ]]; then
+        #       echo "[ERROR] "
+        #     fi
+        # done
