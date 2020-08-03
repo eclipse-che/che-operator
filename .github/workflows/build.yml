@@ -55,7 +55,7 @@ jobs:
         # todo: install fixed version....
         installOPM
 
-        opm version
+        ${OPM_BINARY} version
 
         # todo remove namespace
         buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
