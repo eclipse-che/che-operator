@@ -13,7 +13,10 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+if [ -z "${BASE_DIR}" ]; then
+  BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+fi
+
 echo "${BASE_DIR}"
 SCRIPT=$(readlink -f "$0")
 echo "[INFO] ${SCRIPT}"
