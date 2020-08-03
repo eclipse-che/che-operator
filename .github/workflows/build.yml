@@ -45,9 +45,15 @@ jobs:
         pip3 install yq
 
         pwd && echo Hello!
-        ls "${ROOT_PROJECT_DIR}"
+        cd "${ROOT_PROJECT_DIR}"
 
         nightlyVersion=$(yq -r ".spec.version" "${CSV}")
 
         CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/${secrets.DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
         echo "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+
+        # python
+        export PATH=$HOME/.local/bin:$PATH
+        ls $HOME/.local/bin
+
+        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
