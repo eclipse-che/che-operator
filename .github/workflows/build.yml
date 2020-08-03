@@ -62,12 +62,11 @@ jobs:
         incrementPart=$(getNightlyVersionIncrementPart ${nightlyVersion})
         echo ${incrementPart}
 
+        buildBundleImage
+
         if [ ${incrementPart} == 0 ]; then
-          echo "yes"
+          echo "Build very first bundle."
+          buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+        else
+          buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${CATALOG_IMAGENAME}"
         fi
-
-        exit 0
-
-        buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-
