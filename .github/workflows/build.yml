@@ -38,7 +38,7 @@ jobs:
         docker tag alpine "quay.io/${DOCKER_USERNAME}/alpine"
         echo "Retag done!"
         docker push "quay.io/${DOCKER_USERNAME}/alpine"
-        echo "Done!"
+        echo "Done!!!"
         exit 0
         
         pip3 install wheel
