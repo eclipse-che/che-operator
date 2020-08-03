@@ -54,4 +54,6 @@ jobs:
         echo "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
         # todo remove namespace
-        source ${ROOT_PROJECT_DIR}/olm.sh "${platform}" "${nightlyVersion}" "che"
+        source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
+
+
