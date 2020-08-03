@@ -12,7 +12,11 @@
 #
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
-BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+
+SCRIPT=$(readlink -f "$0")
+export SCRIPT
+BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
+export BASE_DIR
 
 source ${BASE_DIR}/check-yq.sh
 
@@ -65,7 +69,7 @@ echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 
 catalog_source() {
   echo "--- Use default eclipse che application registry ---"
-  if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
+  if [ ${SOURCE_INSTALL} == "catalog" ]; then
     marketplaceNamespace=${namespace};
     kubectl apply -f - <<EOF
 apiVersion: operators.coreos.com/v1alpha1
@@ -75,7 +79,8 @@ metadata:
   namespace: ${namespace}
 spec:
   sourceType: grpc
-  image: ${CATALOG_IMAGENAME}
+  image: ${CATALOG_SOURCE_IMAGE}
+
 EOF
   else
     cat ${platformPath}/operator-source.yaml
@@ -212,16 +217,17 @@ applyCRCheCluster() {
 
 waitCheServerDeploy() {
   echo "Waiting for Che server to be deployed"
+  set +e -x
 
   i=0
-  while [ $i -le 480 ]
+  while [[ $i -le 480 ]]
   do
     status=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheClusterRunning})
-    if [ "${status}" == "Available" ]
+    if [ "${status:-UNAVAILABLE}" == "Available" ]
     then
       break
     fi
-    sleep 1
+    sleep 10
     ((i++))
   done
 
