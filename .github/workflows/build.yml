@@ -39,8 +39,8 @@ jobs:
         echo "Retag done!"
         docker push "quay.io/${DOCKER_USERNAME}/alpine"
         echo "Done!!!"
-        exit 0
-        
+        # exit 0
+
         pip3 install wheel
         pip3 install --upgrade setuptools
         pip3 install yq
