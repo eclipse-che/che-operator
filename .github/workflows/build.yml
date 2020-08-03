@@ -29,4 +29,4 @@ jobs:
 
     - name: Build catalog source and opm bundle images
       run: |-
-pwd && echo Hello!
+        pwd && echo Hello!
