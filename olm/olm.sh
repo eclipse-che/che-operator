@@ -12,7 +12,12 @@
 #
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
+
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+SCRIPT=$(readlink -f "$0")
+echo "[INFO] ${SCRIPT}"
+SCRIPT_DIR=$(dirname "$SCRIPT");
+echo "[INFO] ${SCRIPT_DIR}"
 
 source ${BASE_DIR}/check-yq.sh
 
@@ -45,18 +50,26 @@ then
    channel="nightly"
 fi
 
+if [ -z "${REGISTRY_NAME}" ] || [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
+  echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
+  exit 1
+fi
+
+CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
+CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/testing_catalog:0.0.1"
 packageName=eclipse-che-preview-${platform}
 platformPath=${BASE_DIR}/${packageName}
 packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+# Todo check, maybe it's unused...
 packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-CSV="eclipse-che-preview-${platform}.v${PACKAGE_VERSION}"
+CSV="eclipse-che-preview-${platform}.${PACKAGE_VERSION}"
 
 echo -e "\u001b[32m PACKAGE_VERSION=${PACKAGE_VERSION} \u001b[0m"
 echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
 echo -e "\u001b[32m Channel=${channel} \u001b[0m"
 echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 
-# We don't need to delete ${namepsace} anymore since tls secret is precreated there.
+# We don't need to delete ${namespace} anymore since tls secret is precreated there.
 # if kubectl get namespace "${namespace}" >/dev/null 2>&1
 # then
 #   echo "You should delete namespace '${namespace}' before running the update test first."
@@ -76,6 +89,9 @@ metadata:
 spec:
   sourceType: grpc
   image: ${CATALOG_IMAGENAME}
+  updateStrategy:
+    registryPoll:
+      interval: 5m  
 EOF
   else
     cat ${platformPath}/operator-source.yaml
@@ -83,18 +99,86 @@ EOF
   fi
 }
 
+# do it only when it's required or remove using deprecated operator source
 applyCheOperatorSource() {
-  echo "Apply che-operator source"
+  # echo "Apply che-operator source"
   if [ "${APPLICATION_REGISTRY}" == "" ]; then
     catalog_source
   else
     echo "---- Use non default application registry ${APPLICATION_REGISTRY} ---"
 
-    cat ${platformPath}/operator-source.yaml | \
+    cat "${platformPath}/operator-source.yaml" | \
     sed  -e "s/registryNamespace:.*$/registryNamespace: \"${APPLICATION_REGISTRY}\"/" | \
     kubectl apply -f -
   fi
- }
+}
+
+loginToImageRegistry() {
+  docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${REGISTRY_NAME}"
+}
+
+buildBundleImage() {
+  OPM_BUNDLE_DIR="${SCRIPT_DIR}/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/bundles"
+  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/${channel}/manifests"
+  pushd "${OPM_BUNDLE_DIR}" || exit
+
+  echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_DIR}"
+
+  ${OPM_BINARY} alpha bundle build \
+    -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
+    --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+    --package "eclipse-che-preview-${platform}" \
+    --channels "stable,nightly" \
+    --default "stable" \
+    --image-builder docker
+
+  ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" 
+
+  docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+
+  popd || exit
+}
+
+# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
+# It makes troubles for test scripts, because image bundle could be outdated with
+# such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
+forcePullingOlmImages() {
+  yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${SCRIPT_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
+
+  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
+
+  kubectl delete job/force-pulling-olm-images-job -n "${namespace}"
+}
+
+# Build catalog source image with index based on bundle image.
+buildCatalogImage() {
+  ${OPM_BINARY} index add \
+    --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+    --tag "${CATALOG_IMAGENAME}" \
+    --build-tool docker \
+    --mode semver
+    # --skip-tls # local registry launched without https
+    # --from-index  "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+
+  docker push "${CATALOG_IMAGENAME}"
+}
+
+installOPM() {
+  OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
+  pushd "${OPM_TEMP_DIR}" || exit
+
+  OPM_BINARY=$(command -v opm)
+  if [[ ! -x $OPM_BINARY ]]; then
+    echo "[INFO] Download 'opm' cli tool..."
+    curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/latest | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
+    export OPM_BINARY="${OPM_TEMP_DIR}/opm"
+    chmod +x "${OPM_BINARY}"
+    echo "[INFO] Downloading completed!"
+  fi
+  echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
+
+  popd || exit
+}
 
 installOperatorMarketPlace() {
   echo "Installing test pre-requisistes"
@@ -110,15 +194,14 @@ EOF
     marketplaceNamespace="openshift-marketplace";
     applyCheOperatorSource
   else
-    curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.14.1/install.sh | bash -s 0.14.1
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/03_operatorsource.crd.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/04_service_account.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/05_role.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/06_role_binding.yaml
-    sleep 1
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
-    kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+    IFS=$'\n' read -d '' -r -a olmApiGroups < <( kubectl api-resources --api-group=operators.coreos.com -o name ) || true
+    if [ -z "${olmApiGroups[*]}" ]; then
+      curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/install.sh -o install.sh
+      chmod +x install.sh
+      ./install.sh 0.15.1
+      rm -rf install.sh
+      echo "Done"
+    fi
 
     applyCheOperatorSource
 
@@ -167,8 +250,9 @@ spec:
   name: ${packageName}
   source: ${packageName}
   sourceNamespace: ${marketplaceNamespace}
-  startingCSV: ${CSV}
 EOF
+
+# startingCSV: ${CSV}
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
 
@@ -180,11 +264,10 @@ EOF
   fi
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
-
 }
 
 installPackage() {
-  echo "Install operator package ${packageName} into namespace ${namespace}"
+  echo "[INFO] Install operator package ${packageName} into namespace ${namespace}"
   installPlan=$(kubectl get subscription/"${packageName}" -n "${namespace}" -o jsonpath='{.status.installplan.name}')
 
   kubectl patch installplan/"${installPlan}" -n "${namespace}" --type=merge -p '{"spec":{"approved":true}}'
@@ -200,7 +283,7 @@ installPackage() {
 applyCRCheCluster() {
   echo "Creating Custom Resource"
 
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml")
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/manifests/${packageName}.${PACKAGE_VERSION}.clusterserviceversion.yaml")
   CR=$(echo "$CRs" | yq -r ".[0]")
   if [ "${platform}" == "kubernetes" ]
   then
