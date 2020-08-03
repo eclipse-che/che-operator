@@ -40,7 +40,7 @@ jobs:
         OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
         CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
-        pip install wheel
+        pip3 install wheel
         pip3 install --upgrade setuptools
         pip3 install yq
 
