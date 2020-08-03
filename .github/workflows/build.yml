@@ -24,22 +24,22 @@ jobs:
     - name: Docker login
       uses: azure/docker-login@v1
       with:
-        login-server: docker.io
+        login-server: quay.io
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Docker Buildx
-      uses: crazy-max/ghaction-docker-buildx@v1.5.0
-      with:
-        version: v0.4.1
+    # - name: Docker Buildx
+    #   uses: crazy-max/ghaction-docker-buildx@v1.5.0
+    #   with:
+    #     version: v0.4.1
 
     - name: Build catalog source and opm bundle images
       run: |-
         docker pull alpine
         echo "Pull done"
-        docker tag alpine docker.io/aandrienko/alpine
+        docker tag alpine quay.io/aandrienko/alpine
         echo "Retag done"
-        docker push docker.io/aandrienko/alpine
+        docker push quay.io/aandrienko/alpine
         echo "Done"
         exit 0
         
