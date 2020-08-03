@@ -32,13 +32,13 @@ jobs:
       run: |-
         DOCKER_USERNAME=aandriienko
         # docker login quay.io
-        docker pull alpine
-        echo "Pull done"
-        docker tag alpine quay.io/aandriienko/alpine
-        echo "Retag done!"
-        docker push quay.io/aandriienko/alpine
-        echo "Done!"
-        exit 0
+        # docker pull alpine
+        # echo "Pull done"
+        # docker tag alpine "quay.io/${DOCKER_USERNAME}/alpine"
+        # echo "Retag done!"
+        # docker push "quay.io/${DOCKER_USERNAME}/alpine"
+        # echo "Done!"
+        # exit 0
         
         pip3 install wheel
         pip3 install --upgrade setuptools
