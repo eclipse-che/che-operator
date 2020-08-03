@@ -214,20 +214,19 @@ buildCatalogImage() {
 }
 
 installOPM() {
-  OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
-  pushd "${OPM_TEMP_DIR}" || exit
-
-  OPM_BINARY=$(command -v opm)
+  OPM_BINARY=$(command -v opm) || true
   if [[ ! -x $OPM_BINARY ]]; then
+    OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
+    pushd "${OPM_TEMP_DIR}" || exit
+
     echo "[INFO] Download 'opm' cli tool..."
     curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/latest | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
     export OPM_BINARY="${OPM_TEMP_DIR}/opm"
     chmod +x "${OPM_BINARY}"
     echo "[INFO] Downloading completed!"
+    popd || exit
   fi
   echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
-
-  popd || exit
 }
 
 installOperatorMarketPlace() {
