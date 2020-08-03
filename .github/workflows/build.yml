@@ -29,6 +29,8 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build catalog source and opm bundle images
+      env:
+        - DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       run: |-
         pip3 install wheel
         pip3 install --upgrade setuptools
