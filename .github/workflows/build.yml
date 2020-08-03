@@ -30,6 +30,7 @@ jobs:
 
     - name: Build catalog source and opm bundle images
       run: |-
+        docker login
         pip3 install wheel
         pip3 install --upgrade setuptools
         pip3 install yq
