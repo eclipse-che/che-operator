@@ -168,7 +168,7 @@ buildBundleImage() {
 
   docker images
 
-  # docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
   popd || exit
 }
