@@ -35,7 +35,7 @@ INSTALLATION_TYPE="catalog"
 export INSTALLATION_TYPE
 
 # Execute olm nightly files in openshift
-PLATFORM="kubernetes"
+PLATFORM="openshift"
 export PLATFORM
 
 # Test nightly olm files
