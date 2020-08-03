@@ -81,13 +81,18 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
 	// Flavor of the installation. This is either `che` for upstream Che installations, or `codeready` for CodeReady Workspaces installation.
-	// In most cases the default value should not be overriden.
+	// In most cases the default value should not be overridden.
 	// +optional
 	CheFlavor string `json:"cheFlavor,omitempty"`
-	// Public hostname of the installed Che server. This will be automatically set by the operator.
-	// In most cases the default value set by the operator should not be overriden.
+	// Public hostname of the installed Che server.
+	// If value is omitted then it will be automatically set by the operator.
+	// (see the `cheHostTLSSecret` field).
 	// +optional
 	CheHost string `json:"cheHost,omitempty"`
+	// Name of a secret containing certificates to secure ingress/route for the custom hostname of the installed Che server.
+	// (see the `cheHost` field).
+	// +optional
+	CheHostTLSSecret string `json:"cheHostTLSSecret,omitempty"`
 	// Log level for the Che server: `INFO` or `DEBUG`. Defaults to `INFO`.
 	// +optional
 	CheLogLevel string `json:"cheLogLevel,omitempty"`

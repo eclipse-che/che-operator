@@ -18,6 +18,7 @@ import (
 	"encoding/pem"
 	stderrors "errors"
 	"net/http"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -111,7 +112,7 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 	if len(endpointURL) < 1 {
 		// Create test route to get certificates chain.
 		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-		routeSpec, err := GetSpecRoute(instance, "test", "test", 8080, clusterAPI)
+		routeSpec, err := GetSpecRoute(instance, "test", "", "test", 8080, clusterAPI)
 		if err != nil {
 			return nil, err
 		}
@@ -245,9 +246,13 @@ func K8sHandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
+		domains := checluster.Spec.K8s.IngressDomain + ",*." + checluster.Spec.K8s.IngressDomain
+		if checluster.Spec.Server.CheHostTLSSecret == "" && strings.Index(checluster.Spec.Server.CheHost, checluster.Spec.K8s.IngressDomain) == -1 {
+			domains += "," + checluster.Spec.Server.CheHost
+		}
 		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
 		jobEnvVars := map[string]string{
-			"DOMAIN":                         checluster.Spec.K8s.IngressDomain,
+			"DOMAIN":                         domains,
 			"CHE_NAMESPACE":                  checluster.Namespace,
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,

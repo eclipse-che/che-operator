@@ -29,14 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type IngressProvisioningStatus struct {
-	ProvisioningStatus
-}
-
-const (
-	CheIngressName = "che-host"
-)
-
 var ingressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "ObjectMeta", "Status"),
 }
@@ -44,30 +36,25 @@ var ingressDiffOpts = cmp.Options{
 func SyncIngressToCluster(
 	checluster *orgv1.CheCluster,
 	name string,
+	host string,
 	serviceName string,
-	port int,
-	clusterAPI ClusterAPI) IngressProvisioningStatus {
+	servicePort int,
+	clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
 
-	specIngress, err := getSpecIngress(checluster, name, serviceName, port, clusterAPI)
+	specIngress, err := getSpecIngress(checluster, name, host, serviceName, servicePort, clusterAPI)
 	if err != nil {
-		return IngressProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, err
 	}
 
 	clusterIngress, err := getClusterIngress(specIngress.Name, specIngress.Namespace, clusterAPI.Client)
 	if err != nil {
-		return IngressProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, err
 	}
 
 	if clusterIngress == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specIngress.Kind, specIngress.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specIngress)
-		return IngressProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
+		return nil, err
 	}
 
 	diff := cmp.Diff(clusterIngress, specIngress, ingressDiffOpts)
@@ -77,20 +64,14 @@ func SyncIngressToCluster(
 
 		err := clusterAPI.Client.Delete(context.TODO(), clusterIngress)
 		if err != nil {
-			return IngressProvisioningStatus{
-				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-			}
+			return nil, err
 		}
 
 		err = clusterAPI.Client.Create(context.TODO(), specIngress)
-		return IngressProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
+		return nil, err
 	}
 
-	return IngressProvisioningStatus{
-		ProvisioningStatus: ProvisioningStatus{Continue: true},
-	}
+	return clusterIngress, nil
 }
 
 func getClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
@@ -109,23 +90,34 @@ func getClusterIngress(name string, namespace string, client runtimeClient.Clien
 	return ingress, nil
 }
 
-func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName string, port int, clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
+func getSpecIngress(
+	checluster *orgv1.CheCluster,
+	name string,
+	host string,
+	serviceName string,
+	servicePort int,
+	clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
+
 	tlsSupport := checluster.Spec.Server.TlsSupport
-	ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy,DefaultIngressStrategy)
-	if len(ingressStrategy) < 1 {
-		ingressStrategy = "multi-host"
-	}
+	ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
 	ingressDomain := checluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(checluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(checluster, name)
 
-	tlsSecretName := checluster.Spec.K8s.TlsSecretName
+	if host == "" {
+		if ingressStrategy == "multi-host" {
+			host = name + "-" + checluster.Namespace + "." + ingressDomain
+		} else if ingressStrategy == "single-host" {
+			host = ingressDomain
+		}
+	}
+
 	tls := "false"
+	tlsSecretName := util.GetValue(checluster.Spec.K8s.TlsSecretName, "che-tls")
 	if tlsSupport {
 		tls = "true"
-		// If TLS is turned on but the secret name is not set, try to use Che default value as k8s cluster defaults will not work.
-		if tlsSecretName == "" {
-			tlsSecretName = "che-tls"
+		if name == DefaultCheFlavor(checluster) && checluster.Spec.Server.CheHostTLSSecret != "" {
+			tlsSecretName = checluster.Spec.Server.CheHostTLSSecret
 		}
 	}
 
@@ -139,13 +131,6 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 		case PluginRegistry:
 			path = "/" + PluginRegistry + "/(.*)"
 		}
-	}
-
-	host := ""
-	if ingressStrategy == "multi-host" {
-		host = name + "-" + checluster.Namespace + "." + ingressDomain
-	} else if ingressStrategy == "single-host" {
-		host = ingressDomain
 	}
 
 	annotations := map[string]string{
@@ -180,7 +165,7 @@ func getSpecIngress(checluster *orgv1.CheCluster, name string, serviceName strin
 								{
 									Backend: v1beta1.IngressBackend{
 										ServiceName: serviceName,
-										ServicePort: intstr.FromInt(port),
+										ServicePort: intstr.FromInt(servicePort),
 									},
 									Path: path,
 								},
