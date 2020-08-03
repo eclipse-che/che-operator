@@ -62,6 +62,10 @@ jobs:
         incrementPart=$(getNightlyVersionIncrementPart ${nightlyVersion})
         echo ${incrementPart}
 
+        if [ ${incrementPart} == 0 ]; then
+          echo "yes"
+        fi
+
         exit 0
 
         buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
