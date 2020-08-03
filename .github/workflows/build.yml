@@ -45,7 +45,7 @@ jobs:
         pip3 install yq
 
         pwd && echo Hello!
-        ls
+        ls "${ROOT_PROJECT_DIR}"
 
         nightlyVersion=$(yq -r ".spec.version" "${CSV}")
 
