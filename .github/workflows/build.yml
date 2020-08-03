@@ -69,4 +69,4 @@ jobs:
 
         ls "${OPM_BUNDLE_MANIFESTS_DIR}"
         # todo remove namespace
-        # buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+        buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
