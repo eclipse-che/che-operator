@@ -21,14 +21,12 @@ jobs:
     # - name: Build the Docker image
     #   run: docker build .
 
-    - name: Docker login
+    - name: Build catalog source and opm bundle images
       uses: azure/docker-login@v1
       with:
         login-server: docker.io
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build catalog source and opm bundle images
       run: |-
         docker login
         pip3 install wheel
