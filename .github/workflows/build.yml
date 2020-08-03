@@ -62,7 +62,7 @@ jobs:
         incrementPart=$(getNightlyVersionIncrementPart ${nightlyVersion})
         echo ${incrementPart}
 
-        buildBundleImage
+        buildBundleImage ${OPM_BUNDLE_MANIFESTS_DIR} "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
         if [ ${incrementPart} == 0 ]; then
           echo "Build very first bundle."
