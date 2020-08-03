@@ -38,9 +38,9 @@ jobs:
         docker pull alpine
         echo "Pull done"
         docker tag alpine quay.io/aandrienko/alpine
-        echo "Retag done"
+        echo "Retag done!"
         docker push quay.io/aandrienko/alpine
-        echo "Done"
+        echo "Done!"
         exit 0
         
         pip3 install wheel
