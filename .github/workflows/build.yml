@@ -57,4 +57,4 @@ jobs:
 
         echo "$PATH"
         python3 -m site --user-base
-        # nightlyVersion=$(yq -r ".spec.version" "${CSV}")
+        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
