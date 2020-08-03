@@ -34,7 +34,12 @@ jobs:
     #     version: v0.4.1
 
     - name: Build catalog source and opm bundle images
+      with: # Set the secret as an input
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
       run: |-
+        echo ${DOCKER_USERNAME}
+        docker login -p "${DOCKER_PASSWORD}"" -u "${DOCKER_USERNAME}""
         docker pull alpine
         echo "Pull done"
         docker tag alpine quay.io/aandrienko/alpine
