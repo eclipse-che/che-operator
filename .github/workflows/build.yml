@@ -43,11 +43,10 @@ jobs:
         OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
         CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
+        # echo "$PATH"
+        # python3 -m site --user-base
+        # ls "${OPM_BUNDLE_DIR}"
+
+        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
         CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/${DOCKER_USERNAME}/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
         echo "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-        echo "$PATH"
-        # python3 -m site --user-base
-
-        ls "${OPM_BUNDLE_DIR}"
-        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
