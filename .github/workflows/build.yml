@@ -32,14 +32,6 @@ jobs:
       run: |-
         DOCKER_USERNAME=aandriienko
         IMAGE_REGISTRY=quay.io
-        # docker login quay.io
-        # docker pull alpine
-        # echo "Pull done"
-        # docker tag alpine "quay.io/${DOCKER_USERNAME}/alpine"
-        # echo "Retag done!"
-        # docker push "quay.io/${DOCKER_USERNAME}/alpine"
-        # echo "Done!"
-        # exit 0
         
         pip3 install wheel
         pip3 install --upgrade setuptools
