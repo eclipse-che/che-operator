@@ -36,7 +36,7 @@ jobs:
     - name: Build catalog source and opm bundle images
       run: |-
         echo "? ${DOCKER_USERNAME}"
-        docker login quay.io
+        # docker login quay.io
         docker pull alpine
         echo "Pull done"
         docker tag alpine quay.io/aandriienko/alpine
