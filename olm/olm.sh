@@ -204,13 +204,16 @@ buildCatalogImage() {
     exit 1
   fi
 
-  ${OPM_BINARY} index add \
-    --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-    --tag "${CATALOG_IMAGENAME}" \
-    --build-tool docker \
-    --mode semver
-    # --skip-tls # local registry launched without https
-    # --from-index  "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+  FROM_INDEX=${3}
+  if [ -n "${FROM_INDEX}" ]; then
+    BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
+  fi
+
+  eval "${OPM_BINARY}" index add --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+       --tag "${CATALOG_IMAGENAME}" \
+       --build-tool docker \
+       --mode semver "${BUILD_INDEX_IMAGE_ARG}"
+  # --skip-tls # local registry launched without https
 
   docker push "${CATALOG_IMAGENAME}"
 }

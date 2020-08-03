@@ -32,14 +32,6 @@ jobs:
       run: |-
         DOCKER_USERNAME=aandriienko
         IMAGE_REGISTRY=quay.io
-        # docker login quay.io
-        # docker pull alpine
-        # echo "Pull done"
-        # docker tag alpine "quay.io/${DOCKER_USERNAME}/alpine"
-        # echo "Retag done!"
-        # docker push "quay.io/${DOCKER_USERNAME}/alpine"
-        # echo "Done!!!"
-        # exit 0
 
         pip3 install wheel
         pip3 install --upgrade setuptools
@@ -59,14 +51,13 @@ jobs:
         CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-catalog-source"
 
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
+        # todo remove namespace
         source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
 
         installOPM
 
         ${OPM_BINARY} version
 
-        echo ">>>Echo: ${OPM_BUNDLE_MANIFESTS_DIR}"
-
-        ls "${OPM_BUNDLE_MANIFESTS_DIR}"
-        # todo remove namespace
         buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+
+
