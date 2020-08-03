@@ -26,3 +26,7 @@ jobs:
         login-server: quay.io
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build catalog source and opm bundle images
+      uses: actions/checkout@v1
+      run: echo Hello!
