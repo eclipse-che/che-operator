@@ -40,7 +40,7 @@ jobs:
         OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
         CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
-        sudo apt-get install python3-dev libffi-dev libssl-dev
+        # sudo apt-get install python3-dev libffi-dev libssl-dev
         pip3 install wheel
         pip3 install --upgrade setuptools
         pip3 install yq
@@ -57,4 +57,6 @@ jobs:
         export PATH=$HOME/.local/bin:$PATH
         ls $HOME/.local/bin
 
-        nightlyVersion=$(yq -r ".spec.version" "${CSV}")
+        echo "$PATH"
+        python3 -m site --user-base
+        # nightlyVersion=$(yq -r ".spec.version" "${CSV}")
