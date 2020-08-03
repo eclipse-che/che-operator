@@ -56,7 +56,7 @@ jobs:
         echo ${ROOT_PROJECT_DIR}
         ls ${ROOT_PROJECT_DIR}
         # todo remove namespace
-        BASE_DIR="${ROOT_PROJECT_DIR}"
+        BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
 
 
