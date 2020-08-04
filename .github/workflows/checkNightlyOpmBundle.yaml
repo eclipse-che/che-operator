@@ -61,8 +61,8 @@ jobs:
         echo "======================"
         git add .
 
-        IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
-        echo "Changed files ${changedFiles[*]}"
+        # IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
+        # echo "Changed files ${changedFiles[*]}"
 
         # ( git diff --name-only origin/master )
 
