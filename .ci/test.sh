@@ -56,6 +56,7 @@ echo "Changed files ${changedFiles[*]}"
 
 # git diff
 yq --version
+sudo apt-get install jq=1.6
 jq --version
 
 # echo "======================================"
