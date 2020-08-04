@@ -77,7 +77,6 @@ do
   ls "${bundleFolder}/manifests"
   echo "-------------------------------------------"
   cat "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
-  exit 0
   echo "[INFO] Copying the CRD file"
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
 
