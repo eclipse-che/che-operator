@@ -51,10 +51,10 @@ jobs:
         echo "[INFO] Downloading completed!"
         popd || exit
 
-        CSV_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-        CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
-        CSV_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifestsche-operator.clusterserviceversion.yaml"
-        CRD_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+        CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+        CRD_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+        CSV_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifestsche-operator.clusterserviceversion.yaml"
+        CRD_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
         bundle_files=( "${CSV_FILE_KUBERNETES}" "${CRD_FILE_KUBERNETES}" "${CSV_FILE_OPENSHIFT}" "${CRD_FILE_OPENSHIFT}" )
 
         cd ${ROOT_PROJECT_DIR}
