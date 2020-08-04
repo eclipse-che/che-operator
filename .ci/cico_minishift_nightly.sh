@@ -34,6 +34,7 @@ installDependencies() {
   setup_kvm_machine_driver
   minishift_installation
   installChectl
+  installJQ
   load_jenkins_vars
 }
 
@@ -81,4 +82,5 @@ EOL
 
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+installDependencies
 run
