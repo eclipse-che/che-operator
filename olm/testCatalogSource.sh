@@ -67,7 +67,7 @@ else
   echo "[INFO]: Successfully asigned namespace ${NAMESPACE} to tests olm files."
 fi
 
-# Check if a INSTALLATION_TYPE was defined... The posible installation are marketplace or catalog source
+# Check if a INSTALLATION_TYPE was defined... The possible installation are marketplace or catalog source
 INSTALLATION_TYPE=$4
 if [ "${INSTALLATION_TYPE}" == "" ]; then
   echo "[ERROR]: Please specify a valid installation type. The valid values are: CATALOG_SOURCE or marketplace"
@@ -132,7 +132,7 @@ init() {
 
     # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
     export CATALOG_SOURCE_IMAGE=image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE}
-    echo "[INFO]: Successfully added catalog source image to crc imageregistry: ${CATALOG_SOURCE_IMAGE}"
+    echo "[INFO]: Successfully added catalog source image to crc image registry: ${CATALOG_SOURCE_IMAGE}"
 
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
