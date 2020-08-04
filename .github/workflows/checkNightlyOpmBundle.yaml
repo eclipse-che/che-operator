@@ -71,7 +71,7 @@ jobs:
         # git diff
         yq --version
 
-        for file in "${changedFiles}"
+        for file in "${changedFiles[*]}"
         do
           echo "======================================"
           cat "${file}"
