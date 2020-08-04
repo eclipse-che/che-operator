@@ -82,6 +82,8 @@ spec:
               value: che-postgres-secret
             - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
               value: ca-certs
+            - name: TEST
+              value: test
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5
