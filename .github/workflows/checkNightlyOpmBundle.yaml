@@ -62,7 +62,8 @@ jobs:
         git status
         # git diff remotes/origin/master
         git ls-files -m
-        IFS=$'\n' read -r -d '' -a changedFiles < <( git ls-files -m )
+        # IFS=$'\n' read -r -d '' -a changedFiles < <( git ls-files -m )
+        IFS=$'\n' read -d '' -r -a changedFiles < <( git diff --name-only origin/master ) || true
 
         # IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
         # echo "Changed files ${changedFiles[*]}"
