@@ -55,31 +55,23 @@ jobs:
         CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
         CSV_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifestsche-operator.clusterserviceversion.yaml"
         CRD_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+        bundle_files=( "${CSV_FILE_KUBERNETES}" "${CRD_FILE_KUBERNETES}" "${CSV_FILE_OPENSHIFT}" "${CRD_FILE_OPENSHIFT}" )
 
         cd ${ROOT_PROJECT_DIR}
         source ${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh
-        echo "======================"
-        git status
-        # git diff remotes/origin/master
-        git ls-files -m
-        # IFS=$'\n' read -r -d '' -a changedFiles < <( git ls-files -m )
-        IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
+
         echo "======================================"
+        git ls-files -m
+        echo "======================================"
+
+        IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
         echo "Changed files ${changedFiles[*]}"
 
-        # IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
-        
-
-        # ( git diff --name-only origin/master )
-
-        # PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD "$(git diff origin/master)")
-
-        # for file in "${PR_FILES_CHANGED}"
-        # do  
-        #     if [[ $file == "" ]]; then
-        #       echo "[ERROR] Nightly CSV file was changed "
-        #     fi
-        #     if [[ $file == "" ]]; then
-        #       echo "[ERROR] "
-        #     fi
-        # done
+        for file in "${changedFiles}"
+        do
+          echo "A"
+          if [[ " ${bundle_files[@]} " =~ " ${file} " ]]; then
+            echo "[ERROR] Nightly bundle file should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
+            exit 1
+          fi
+        done
