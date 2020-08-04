@@ -34,6 +34,7 @@ installDependencies() {
   setup_kvm_machine_driver
   minishift_installation
   installChectl
+  installJQ
   load_jenkins_vars
 }
 
