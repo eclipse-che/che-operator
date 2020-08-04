@@ -56,6 +56,7 @@ echo "Changed files ${changedFiles[*]}"
 
 # git diff
 yq --version
+jq --version
 
 # echo "======================================"
 # ls "${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/"
