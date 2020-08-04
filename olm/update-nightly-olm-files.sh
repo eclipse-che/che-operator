@@ -68,15 +68,15 @@ do
 
   echo "[INFO] Updating new package version fields:"
   echo "[INFO]        - containerImage => ${containerImage}"
-  echo "[INFO]        - createdAt => ${createdAt}"
-  sed \
-  -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
-  -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" \
-  "${NEW_CSV}" > "${NEW_CSV}.new"
+  sed -e "s|containerImage:.*$|containerImage: ${containerImage}|" "${NEW_CSV}" > "${NEW_CSV}.new"
   mv "${NEW_CSV}.new" "${NEW_CSV}"
 
-    # -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" \
- 
+  if [ -z "${NO_DATE_UPDATE}" ]; then
+    echo "[INFO]        - createdAt => ${createdAt}"
+    sed -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" "${NEW_CSV}" > "${NEW_CSV}.new"
+    mv "${NEW_CSV}.new" "${NEW_CSV}"
+  fi
+
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
   echo "Done for ${platform}"
 
