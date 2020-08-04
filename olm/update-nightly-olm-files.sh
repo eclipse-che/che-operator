@@ -74,7 +74,9 @@ do
   mv "${NEW_CSV}.new" "${NEW_CSV}"
  
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
-  echo "Done"
+  echo "Done ${platform}"
+
+
   # if [[ ! -z "$TAG" ]]; then
   #   echo "[INFO] Set tags in nighlty OLM files"
   #   sed -i 's/'$RELEASE'/'$TAG'/g' ${NEW_CSV}
@@ -93,5 +95,5 @@ do
   #   done
   # fi
 
-  # popd || true
+  popd || true
 done
