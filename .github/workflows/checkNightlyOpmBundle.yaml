@@ -61,7 +61,7 @@ jobs:
         echo "======================"
         git add .
         git status
-        git diff origin master
+        git diff remotes/origin/master
 
         # IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
         # echo "Changed files ${changedFiles[*]}"
