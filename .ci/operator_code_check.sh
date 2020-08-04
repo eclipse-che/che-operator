@@ -21,7 +21,7 @@ export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base 
 # transform_files function transform PR_FILES_CHANGED into a new array => FILES_CHANGED_ARRAY.
 function transform_files() {
     for files in ${PR_FILES_CHANGED} 
-    do 
+    do
         FILES_CHANGED_ARRAY+=($files)
     done 
 }

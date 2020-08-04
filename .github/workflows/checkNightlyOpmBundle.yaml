@@ -70,9 +70,9 @@ jobs:
 
         # git diff
         yq --version
-        
+
         echo "======================================"
-        ls "${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/"
+        ls "${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/"
         echo "======================================"
 
         exit 0
