@@ -22,7 +22,6 @@ echo "${GOPATH}"
 
 # install yq
 pip3 install wheel
-# pip3 install --upgrade setuptools
 pip3 install yq
 # Make python3 installed modules "visible"
 export PATH=$HOME/.local/bin:$PATH
