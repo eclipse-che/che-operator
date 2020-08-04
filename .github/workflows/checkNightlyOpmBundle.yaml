@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+      with:
+        path: /home/runner/go/src/github.com/${{ github.repository }}
 
     - name: 
       run: |-
