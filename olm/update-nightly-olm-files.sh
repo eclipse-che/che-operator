@@ -58,6 +58,7 @@ do
   # After migration to the newer operator-sdk we should use:
   # operator-sdk-v0.19.2-x86_64-linux-gnu olm-catalog gen-csv --csv-version "${newNightlySemVersion}"
 
+  ls "${packageManifestCSVPath}"
   cp -rf "${packageManifestCSVPath}" "${NEW_CSV}"
 
   rm -rf "${packageManifestFolderPath}" "${packageManifestCSVPath}" "${operatorFolder}/che-operator.package.yaml" "${olmCatalog}/csv-config.yaml"
