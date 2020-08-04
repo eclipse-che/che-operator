@@ -49,6 +49,7 @@ jobs:
         export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
         chmod +x "${OPERATOR_SDK_BINARY}"
         echo "[INFO] Downloading completed!"
+        operator-sdk version
         popd || exit
 
         CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
