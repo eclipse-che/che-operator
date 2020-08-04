@@ -26,11 +26,14 @@ jobs:
       run: |-
         set -e
         go version
+        ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
+        BASE_DIR="${ROOT_PROJECT_DIR}/olm"
+        echo ${GOPATH}
+        export GOPATH="ROOT_PROJECT_DIR/go/src/github.com/${{ github.repository }}"
         echo ${GOPATH}
         exit
 
-        ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
-        BASE_DIR="${ROOT_PROJECT_DIR}/olm"
+
 
         # install yq
         pip3 install wheel
