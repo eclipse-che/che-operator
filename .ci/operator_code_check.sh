@@ -18,7 +18,6 @@ set -e
 # PR_FILES_CHANGED store all Modified/Created files in Pull Request.
 export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD origin/master))
 echo "${PR_FILES_CHANGED}"
-exit
 
 # transform_files function transform PR_FILES_CHANGED into a new array => FILES_CHANGED_ARRAY.
 function transform_files() {
@@ -78,7 +77,7 @@ function check_deploy_folder() {
     local CR_CRD_FOLDER="deploy/"
 
     # Checking if exist modifications in deploy folder
-    for files in ${FILES_CHANGED_ARRAY[@]}
+    for files in "${FILES_CHANGED_ARRAY[@]}"
     do
         if [[ $files =~ ^$CR_CRD_FOLDER.*? ]]; then
             echo "[INFO] Deploy Folder suffer modifications. Checking if exist nightly files..."
@@ -91,4 +90,4 @@ function check_deploy_folder() {
 
 transform_files
 check_che_types
-check_deploy_folder
+# check_deploy_folder
