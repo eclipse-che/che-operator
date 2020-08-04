@@ -12,7 +12,19 @@
 
 set -e
 
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+if [ -z "${BASE_DIR}" ]; then
+  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+fi
+
+if [ -z "${OPERATOR_SDK_BINARY}" ]; then
+  OPERATOR_SDK_BINARY=$(command -v operator-sdk)
+  if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
+    echo "[ERROR] operator-sdk is not installed."
+    exit 1
+  fi
+fi
+
+# BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1

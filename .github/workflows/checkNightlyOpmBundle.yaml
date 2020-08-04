@@ -24,4 +24,5 @@ jobs:
 
     - name:
       run: |-
-        "${GITHUB_WORKSPACE}"/.ci/operator_code_check.sh
+        "${GITHUB_WORKSPACE}"/.ci/test.sh
+        # "${GITHUB_WORKSPACE}"/.ci/operator_code_check.sh

@@ -91,4 +91,4 @@ function check_deploy_folder() {
 transform_files
 check_che_types
 check_deploy_folder
-echo "Done."
+echo "[INFO] Done."
