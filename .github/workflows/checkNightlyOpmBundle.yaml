@@ -58,7 +58,7 @@ jobs:
 
         cd ${ROOT_PROJECT_DIR}
         source ${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh
-        echo "======================
+        echo "======================"
         git status
         # git diff remotes/origin/master
         git ls-files -m
