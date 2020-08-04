@@ -40,10 +40,10 @@ echo "[INFO] Downloading completed!"
 popd || exit
 
 CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-CRD_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+# CRD_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
 CSV_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-CRD_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
-bundle_files=( "${CSV_FILE_KUBERNETES}" "${CRD_FILE_KUBERNETES}" "${CSV_FILE_OPENSHIFT}" "${CRD_FILE_OPENSHIFT}" )
+# CRD_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+# bundle_files=( "${CSV_FILE_KUBERNETES}" "${CRD_FILE_KUBERNETES}" "${CSV_FILE_OPENSHIFT}" "${CRD_FILE_OPENSHIFT}" )
 
 cd ${ROOT_PROJECT_DIR}
 source ${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh
@@ -61,10 +61,10 @@ do
     echo "======================================"
     echo "${file}"
     echo "======================================"
-    # if [ "${CSV_FILE_KUBERNETES}" == "${file}" ] || [ "${CSV_FILE_OPENSHIFT}" == "${file}" ]; then
-    #     echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
-    #     exit 1
-    # fi
+    if [ "${CSV_FILE_KUBERNETES}" == "${file}" ] || [ "${CSV_FILE_OPENSHIFT}" == "${file}" ]; then
+        echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
+        exit 1
+    fi
     # for bundle_file in "${bundle_files[@]}"
     # do
     #   echo "${bundle_file} vs ${file}"
@@ -74,10 +74,10 @@ do
     #   fi
     # done
 
-    if [[ " ${bundle_files[*]} " =~ ${file} ]]; then
-      echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
-      exit 1
-    fi
+    # if [[ " ${bundle_files[*]} " =~ ${file} ]]; then
+    #   echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
+    #   exit 1
+    # fi
 
 done
 echo "[INFO] Done."
