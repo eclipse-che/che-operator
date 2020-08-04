@@ -25,7 +25,9 @@ jobs:
     - name: 
       run: |-
         set -e
-        exit 0
+        go version
+        echo ${GOPATH}
+        exit
 
         ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
