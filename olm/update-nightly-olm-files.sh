@@ -64,14 +64,13 @@ do
   rm -rf "${packageManifestFolderPath}" "${packageManifestCSVPath}" "${operatorFolder}/che-operator.package.yaml" "${olmCatalog}/csv-config.yaml"
 
   containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
-  createdAt=$(date -u +%FT%TZ)
-
   echo "[INFO] Updating new package version fields:"
   echo "[INFO]        - containerImage => ${containerImage}"
   sed -e "s|containerImage:.*$|containerImage: ${containerImage}|" "${NEW_CSV}" > "${NEW_CSV}.new"
   mv "${NEW_CSV}.new" "${NEW_CSV}"
 
   if [ -z "${NO_DATE_UPDATE}" ]; then
+    createdAt=$(date -u +%FT%TZ)
     echo "[INFO]        - createdAt => ${createdAt}"
     sed -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" "${NEW_CSV}" > "${NEW_CSV}.new"
     # mv "${NEW_CSV}.new" "${NEW_CSV}"
