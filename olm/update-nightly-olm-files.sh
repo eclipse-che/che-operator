@@ -12,17 +12,7 @@
 
 set -e
 
-if [ -z "${BASE_DIR}" ]; then
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-fi
-
-if [ -z "${OPERATOR_SDK_BINARY}" ]; then
-  OPERATOR_SDK_BINARY=$(command -v operator-sdk)
-  if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
-    echo "[ERROR] operator-sdk is not installed."
-    exit 1
-  fi
-fi
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
@@ -55,7 +45,7 @@ do
   cp -rf "${bundleFolder}/csv-config.yaml" "${olmCatalog}"
 
   echo "[INFO] Updating new package version..."
-  ${OPERATOR_SDK_BINARY} olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
+  operator-sdk olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
 
   cp -rf "${packageManifestCSVPath}" "${NEW_CSV}"
 
