@@ -74,7 +74,7 @@ do
   mv "${NEW_CSV}.new" "${NEW_CSV}"
  
   echo "-------------------------------------------"
-  ls "${packageManifestCSVPath}"
+  ls "${bundleFolder}/manifests"
   exit 0
   echo "[INFO] Copying the CRD file"
   cp "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
