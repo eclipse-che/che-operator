@@ -25,7 +25,7 @@ function transform_files() {
     for files in ${PR_FILES_CHANGED} 
     do
         FILES_CHANGED_ARRAY+=($files)
-    done 
+    done
 }
 
 # check_che_types function check first if pkg/apis/org/v1/che_types.go file suffer modifications and
