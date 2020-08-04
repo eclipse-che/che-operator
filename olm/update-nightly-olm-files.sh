@@ -71,6 +71,7 @@ do
   echo "[INFO]        - createdAt => ${createdAt}"
   sed \
   -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
+  -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" \
   "${NEW_CSV}" > "${NEW_CSV}.new"
   mv "${NEW_CSV}.new" "${NEW_CSV}"
 
