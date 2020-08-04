@@ -70,11 +70,17 @@ jobs:
 
         # git diff
         yq --version
+        
+        echo "======================================"
+        ls "${ROOT_PROJECT_DIR}"
+        echo "======================================"
+
+        exit 0
 
         for file in "${changedFiles[*]}"
         do
           echo "======================================"
-          cat "${ROOT_PROJECT_DIR}/${file}"
+          # cat "${ROOT_PROJECT_DIR}/${file}"
           echo "======================================"
           # if [[ " ${bundle_files[@]} " =~ " ${file} " ]]; then
           #   echo "[ERROR] Nightly bundle file should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
