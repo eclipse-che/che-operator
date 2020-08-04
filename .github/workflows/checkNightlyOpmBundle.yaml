@@ -29,11 +29,9 @@ jobs:
         ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         echo ${GOPATH}
-        export GOPATH="ROOT_PROJECT_DIR/go/src/github.com/${{ github.repository }}"
+        export GOPATH="${ROOT_PROJECT_DIR}/go/src/github.com/${{ github.repository }}"
         echo ${GOPATH}
         exit
-
-
 
         # install yq
         pip3 install wheel
