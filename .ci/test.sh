@@ -14,7 +14,6 @@ set -e
 go version
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 # ROOT_PROJECT_DIR=/home/user/GoWorkSpace/src/github.com/eclipse/che-operator
-BASE_DIR="${ROOT_PROJECT_DIR}/olm"
 echo "${GOPATH}"
 # Prevent failing old operator-sdk...
 export GOPATH="/home/runner/work/che-operator/go"
@@ -39,6 +38,8 @@ echo "[INFO] Downloading completed!"
 popd || exit
 
 cd "${ROOT_PROJECT_DIR}"
+BASE_DIR="${ROOT_PROJECT_DIR}/olm"
+NO_DATE_UPDATE=true
 source "${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh"
 
 CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"

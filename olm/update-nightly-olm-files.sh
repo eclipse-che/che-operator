@@ -74,7 +74,7 @@ do
   if [ -z "${NO_DATE_UPDATE}" ]; then
     echo "[INFO]        - createdAt => ${createdAt}"
     sed -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" "${NEW_CSV}" > "${NEW_CSV}.new"
-    mv "${NEW_CSV}.new" "${NEW_CSV}"
+    # mv "${NEW_CSV}.new" "${NEW_CSV}"
   fi
 
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
