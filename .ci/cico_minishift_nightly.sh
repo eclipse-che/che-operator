@@ -81,4 +81,5 @@ EOL
 
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+installDependencies
 run

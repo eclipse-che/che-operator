@@ -52,4 +52,11 @@ function run() {
     waitWorkspaceStart
 }
 
+source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+installYQ
+installJQ
+install_VirtPackages
+installStartDocker
+source ${OPERATOR_REPO}/.ci/start-minikube.sh
+installChectl
 run
