@@ -224,7 +224,7 @@ installOPM() {
     OPM_TEMP_DIR="$(mktemp -q -d -t "OPM_XXXXXX" 2>/dev/null || mktemp -q -d)"
     pushd "${OPM_TEMP_DIR}" || exit
 
-    echo "[INFO] Download 'opm' cli tool..."
+    echo "[INFO] Downloading 'opm' cli tool..."
     curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/28130850 | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
     export OPM_BINARY="${OPM_TEMP_DIR}/opm"
     chmod +x "${OPM_BINARY}"

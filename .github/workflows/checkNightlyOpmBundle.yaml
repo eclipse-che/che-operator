@@ -35,6 +35,16 @@ jobs:
         export PATH=$HOME/.local/bin:$PATH
         ls $HOME/.local/bin
 
+        # install operator SDK.
+        OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
+        pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
+        echo "[INFO] Downloading 'operator-sdk' cli tool..."
+        curl -sLo operator-sdk "$(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/20623716 | jq -r '[.assets[] | select(.name == "operator-sdk-v0.10.1-x86_64-linux-gnu")] | first | .browser_download_url')"
+        export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
+        chmod +x "${OPERATOR_SDK_BINARY}"
+        echo "[INFO] Downloading completed!"
+        popd || exit
+
         CSV_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
         CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
         CSV_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifestsche-operator.clusterserviceversion.yaml"

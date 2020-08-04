@@ -16,6 +16,14 @@ if [ -z "${BASE_DIR}" ]; then
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 fi
 
+if [ -z "${OPERATOR_SDK_BINARY}" ]; then
+  OPERATOR_SDK_BINARY=$(command -v operator-sdk)
+  if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
+    echo "[ERROR] operator-sdk is not installed."
+    exit 1
+  fi
+fi
+
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
