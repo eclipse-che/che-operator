@@ -28,6 +28,7 @@ ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
 
+# TODO check operator sdk version...
 for platform in 'kubernetes' 'openshift'
 do
   echo "[INFO] Updating OperatorHub bundle for platform '${platform}' for platform '${platform}'"
@@ -55,8 +56,6 @@ do
 
   echo "[INFO] Updating new package version..."
   ${OPERATOR_SDK_BINARY} olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
-  # After migration to the newer operator-sdk we should use:
-  # operator-sdk-v0.19.2-x86_64-linux-gnu olm-catalog gen-csv --csv-version "${newNightlySemVersion}"
 
   cp -rf "${packageManifestCSVPath}" "${NEW_CSV}"
 
@@ -76,8 +75,8 @@ do
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
   echo "Done for ${platform}"
 
-  if [[ ! -z "$TAG" ]]; then
-    echo "[INFO] Set tags in nighlty OLM files"
+  if [[ -n "$TAG" ]]; then
+    echo "[INFO] Set tags in nightly OLM files"
     sed -i 's/'$RELEASE'/'$TAG'/g' ${NEW_CSV}
   fi
 
