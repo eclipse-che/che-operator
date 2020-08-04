@@ -54,7 +54,7 @@ do
   cp -rf "${bundleFolder}/csv-config.yaml" "${olmCatalog}"
 
   echo "[INFO] Updating new package version..."
-  operator-sdk olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
+  ${OPERATOR_SDK_BINARY} olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
   # After migration to the newer operator-sdk we should use:
   # operator-sdk-v0.19.2-x86_64-linux-gnu olm-catalog gen-csv --csv-version "${newNightlySemVersion}"
 
