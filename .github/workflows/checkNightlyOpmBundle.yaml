@@ -64,6 +64,7 @@ jobs:
         git ls-files -m
         # IFS=$'\n' read -r -d '' -a changedFiles < <( git ls-files -m )
         IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
+        echo "======================================"
         echo "Changed files ${changedFiles[*]}"
 
         # IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
