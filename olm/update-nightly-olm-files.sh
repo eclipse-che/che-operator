@@ -73,11 +73,6 @@ do
   -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" ${NEW_CSV} > ${NEW_CSV}".new"
   mv "${NEW_CSV}.new" "${NEW_CSV}"
  
-  echo "-------------------------------------------"
-  ls "${bundleFolder}/manifests"
-  echo "-------------------------------------------"
-  cat "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
-  echo "[INFO] Copying the CRD file"
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
   echo "Done"
   # if [[ ! -z "$TAG" ]]; then
@@ -98,5 +93,5 @@ do
   #   done
   # fi
 
-  popd || true
+  # popd || true
 done
