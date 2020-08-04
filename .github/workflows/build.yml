@@ -34,6 +34,7 @@ jobs:
         DOCKER_USERNAME=aandriienko
         IMAGE_REGISTRY=quay.io
 
+        # install yq
         pip3 install wheel
         pip3 install --upgrade setuptools
         pip3 install yq
