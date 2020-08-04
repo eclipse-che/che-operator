@@ -25,6 +25,7 @@ jobs:
         set -e
 
         ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
+        BASE_DIR="${ROOT_PROJECT_DIR}/olm"
 
         CSV_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
         CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
