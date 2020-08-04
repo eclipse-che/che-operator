@@ -79,24 +79,24 @@ do
   cat "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
   echo "[INFO] Copying the CRD file"
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
+  echo "Done"
+  # if [[ ! -z "$TAG" ]]; then
+  #   echo "[INFO] Set tags in nighlty OLM files"
+  #   sed -i 's/'$RELEASE'/'$TAG'/g' ${NEW_CSV}
+  # fi
 
-  if [[ ! -z "$TAG" ]]; then
-    echo "[INFO] Set tags in nighlty OLM files"
-    sed -i 's/'$RELEASE'/'$TAG'/g' ${NEW_CSV}
-  fi
-
-  if [[ $platform == "openshift" ]]; then
-    # Removes che-tls-secret-creator
-    index=0
-    while [[ $index -le 30 ]]
-    do
-      if [[ $(cat ${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$index'].name') == "RELATED_IMAGE_che_tls_secrets_creation_job" ]]; then
-        yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$index'])' ${NEW_CSV}
-        break
-      fi
-      index=$((index+1))
-    done
-  fi
+  # if [[ $platform == "openshift" ]]; then
+  #   # Removes che-tls-secret-creator
+  #   index=0
+  #   while [[ $index -le 30 ]]
+  #   do
+  #     if [[ $(cat ${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$index'].name') == "RELATED_IMAGE_che_tls_secrets_creation_job" ]]; then
+  #       yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$index'])' ${NEW_CSV}
+  #       break
+  #     fi
+  #     index=$((index+1))
+  #   done
+  # fi
 
   popd || true
 done
