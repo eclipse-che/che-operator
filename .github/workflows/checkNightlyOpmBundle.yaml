@@ -72,7 +72,7 @@ jobs:
         yq --version
         
         echo "======================================"
-        ls "${ROOT_PROJECT_DIR}"
+        ls "${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/"
         echo "======================================"
 
         exit 0
