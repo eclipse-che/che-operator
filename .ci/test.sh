@@ -20,7 +20,7 @@ echo "${GOPATH}"
 export GOPATH="/home/runner/work/che-operator/go"
 echo "${GOPATH}"
 
-install yq
+# install yq
 pip3 install wheel
 pip3 install --upgrade setuptools
 pip3 install yq
