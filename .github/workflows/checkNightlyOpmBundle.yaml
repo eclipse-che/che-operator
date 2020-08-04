@@ -75,10 +75,10 @@ jobs:
         ls "${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/"
         echo "======================================"
 
-        exit 0
 
         for file in "${changedFiles[*]}"
         do
+          echo "${file}"
           echo "======================================"
           # cat "${ROOT_PROJECT_DIR}/${file}"
           echo "======================================"
