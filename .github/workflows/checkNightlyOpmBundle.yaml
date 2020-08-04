@@ -29,7 +29,8 @@ jobs:
         ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
         BASE_DIR="${ROOT_PROJECT_DIR}/olm"
         echo "${GOPATH}"
-        export GOPATH="${ROOT_PROJECT_DIR}"
+        # Prevent failing old operator-sdk...
+        export GOPATH="/home/runner/work/che-operator/go"
         echo "${GOPATH}"
 
         # install yq
