@@ -58,6 +58,7 @@ jobs:
 
         cd ${ROOT_PROJECT_DIR}
         source ${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh
+        echo "======================"
         git add .
 
         IFS=$'\n' read -r -d '' -a changedFiles < <( git diff --name-only origin/master )
