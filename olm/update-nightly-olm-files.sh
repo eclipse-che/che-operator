@@ -72,7 +72,8 @@ do
   -e "s|containerImage:.*$|containerImage: ${containerImage}|" \
   -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" ${NEW_CSV} > ${NEW_CSV}".new"
   mv "${NEW_CSV}.new" "${NEW_CSV}"
-
+ 
+  exit 0
   echo "[INFO] Copying the CRD file"
   cp "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
 
