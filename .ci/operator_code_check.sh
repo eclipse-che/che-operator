@@ -24,7 +24,7 @@ exit
 function transform_files() {
     for files in ${PR_FILES_CHANGED} 
     do
-        FILES_CHANGED_ARRAY+=($files)
+        FILES_CHANGED_ARRAY+=("${files}")
     done
 }
 
@@ -37,10 +37,10 @@ function check_che_types() {
     local CR_CRD_FOLDER="deploy/crds/"
     local CR_CRD_REGEX="\S*org_v1_che_crd.yaml"
 
-    if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ " ${CHE_TYPES_FILE} " ]]; then
+    if [[ " ${FILES_CHANGED_ARRAY[*]} " =~ " ${CHE_TYPES_FILE} " ]]; then
         echo "[INFO] File ${CHE_TYPES_FILE} suffer modifications in PR. Checking if exist modifications for cr/crd files."
         # The script should fail if deploy/crds folder didn't suffer any modification.
-        if [[ " ${FILES_CHANGED_ARRAY[@]} " =~ $CR_CRD_REGEX ]]; then
+        if [[ " ${FILES_CHANGED_ARRAY[*]} " =~ $CR_CRD_REGEX ]]; then
             echo "[INFO] CR/CRD file modified: ${BASH_REMATCH}"
         else
             echo "[ERROR] Detected modification in ${CHE_TYPES_FILE} file, but cr/crd files didn't suffer any modification."
