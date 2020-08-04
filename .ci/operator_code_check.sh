@@ -16,7 +16,7 @@ set -e
 # yum -y install git
 
 # PR_FILES_CHANGED store all Modified/Created files in Pull Request.
-export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD origin/master))
+export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD origin/master)")
 echo "========================="
 echo "${PR_FILES_CHANGED}"
 echo "========================="
