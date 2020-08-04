@@ -63,9 +63,9 @@ yq --version
 
 for file in "${changedFiles[@]}"
 do
-    echo "${file}"
     echo "======================================"
-    # cat "${ROOT_PROJECT_DIR}/${file}"
+    echo "${file}"
+    cat "${ROOT_PROJECT_DIR}/${file}" || true
     echo "======================================"
     # if [[ " ${bundle_files[@]} " =~ " ${file} " ]]; then
     #   echo "[ERROR] Nightly bundle file should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
