@@ -50,6 +50,8 @@ type CheClusterSpec struct {
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
+
+	test string `json:"test"`
 }
 
 // +k8s:openapi-gen=true
