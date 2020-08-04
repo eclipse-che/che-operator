@@ -13,7 +13,7 @@
 set -e
 go version
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
-# BASE_DIR="${ROOT_PROJECT_DIR}/olm"
+BASE_DIR="${ROOT_PROJECT_DIR}/olm"
 echo "${GOPATH}"
 # Prevent failing old operator-sdk...
 export GOPATH="/home/runner/work/che-operator/go"
