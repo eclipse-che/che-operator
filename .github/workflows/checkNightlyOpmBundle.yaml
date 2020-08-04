@@ -67,6 +67,8 @@ jobs:
         IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
         echo "Changed files ${changedFiles[*]}"
 
+        git diff
+
         for file in "${changedFiles}"
         do
           if [[ " ${bundle_files[@]} " =~ " ${file} " ]]; then
