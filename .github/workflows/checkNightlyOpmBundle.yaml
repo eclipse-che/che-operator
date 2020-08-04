@@ -68,12 +68,16 @@ jobs:
         IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
         echo "Changed files ${changedFiles[*]}"
 
-        git diff
+        # git diff
+        yq --version
 
         for file in "${changedFiles}"
         do
-          if [[ " ${bundle_files[@]} " =~ " ${file} " ]]; then
-            echo "[ERROR] Nightly bundle file should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
-            exit 1
-          fi
+          echo "======================================"
+          cat "${file}"
+          echo "======================================"
+          # if [[ " ${bundle_files[@]} " =~ " ${file} " ]]; then
+          #   echo "[ERROR] Nightly bundle file should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
+          #   exit 1
+          # fi
         done
