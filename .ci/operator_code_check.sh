@@ -12,9 +12,6 @@
 
 set -e
 
-# Perform git installation before execute.
-# yum -y install git
-
 # PR_FILES_CHANGED store all Modified/Created files in Pull Request.
 export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD origin/master)")
 echo "========================="
@@ -55,11 +52,11 @@ function check_che_types() {
 # check_nightly_files checks if exist nightly files after checking if exist any changes in deploy folder
 function check_nightly_files() {
     # Define olm-catalog folder and regexp to check if exist nightly files for kubernetes
-    local OLM_KUBERNETES='deploy/olm-catalog/eclipse-che-preview-kubernetes/'
+    local OLM_KUBERNETES='deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/'
     local OLM_K8S="\b$OLM_KUBERNETES.*?\b"
 
     # Define olm-catalog folder and regexp to check if exist nightly files for openshift
-    local OLM_OPENSHIFT='deploy/olm-catalog/eclipse-che-preview-openshift/'
+    local OLM_OPENSHIFT='deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/'
     local OLM_OCP="\b$OLM_OPENSHIFT.*?\b"
 
     # Match if exist nightly files in PR
