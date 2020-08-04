@@ -13,8 +13,8 @@
 set -e
 
 # Perform git installation before execute.
-yum -y install git
-
+# yum -y install git
+exit
 # PR_FILES_CHANGED store all Modified/Created files in Pull Request.
 export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD origin/master))
 
