@@ -245,7 +245,7 @@ spec:
                 - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                   value: ca-certs
                 - name: TEST
-                  value: TEST
+                  value: TEST24
                 image: quay.io/eclipse/che-operator:nightly
                 imagePullPolicy: Always
                 name: che-operator
