@@ -23,6 +23,4 @@ jobs:
         path: go/src/github.com/${{ github.repository }}
 
     - name:
-      run: |-
-        # "${GITHUB_WORKSPACE}"/.ci/test.sh
-        "${GITHUB_WORKSPACE}"/.ci/operator_code_check.sh
+      run: "${GITHUB_WORKSPACE}/.github/action_scripts/operator_code_check.sh"
