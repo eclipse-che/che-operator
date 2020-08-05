@@ -30,7 +30,7 @@ ls "${HOME}/.local/bin"
 OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
 pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
 echo "[INFO] Downloading 'operator-sdk' cli tool..."
-curl -sLo operator-sdk "$(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/20623716 | jq -r '[.assets[] | select(.name == "operator-sdk-v0.10.1-x86_64-linux-gnu")] | first | .browser_download_url')"
+curl -sLo operator-sdk "$(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/19175509 | jq -r '[.assets[] | select(.name == "operator-sdk-v0.10.1-x86_64-linux-gnu")] | first | .browser_download_url')"
 export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
 chmod +x "${OPERATOR_SDK_BINARY}"
 echo "[INFO] Downloading completed!"

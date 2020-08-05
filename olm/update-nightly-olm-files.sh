@@ -24,6 +24,9 @@ if [ -z "${OPERATOR_SDK_BINARY}" ]; then
   fi
 fi
 
+operatorVersion=$(operator-sdk version)
+[[ $operatorVersion =~ .*v0.10.0.* ]] || { echo "operator-sdk v0.10.0 is required"; exit 1; }
+
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
