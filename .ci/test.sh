@@ -25,7 +25,8 @@ if [ -z "${GOPATH}" ]; then
 fi
 
 installYq() {
-  YQ=$(command -v yq)
+  echo "test..."
+  YQ=$(command -v yq) || true
   if [[ ! -x "${YQ}" ]]; then
     pip3 install wheel
     pip3 install yq
