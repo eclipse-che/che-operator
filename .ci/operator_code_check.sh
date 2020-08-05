@@ -49,46 +49,72 @@ function check_che_types() {
     fi
 }
 
-# check_nightly_files checks if exist nightly files after checking if exist any changes in deploy folder
-function check_nightly_files() {
-    # Define olm-catalog folder and regexp to check if exist nightly files for kubernetes
-    local OLM_KUBERNETES='deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/'
-    local OLM_K8S="\b$OLM_KUBERNETES.*?\b"
+set -e
+go version
+ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
+if [ -z "${ROOT_PROJECT_DIR}" ]; then
+  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
+fi
 
-    # Define olm-catalog folder and regexp to check if exist nightly files for openshift
-    local OLM_OPENSHIFT='deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/'
-    local OLM_OCP="\b$OLM_OPENSHIFT.*?\b"
+# Unfortunately ${GOPATH} is required for an old operator-sdk
+if [ -z "${GOPATH}" ]; then
+    export GOPATH="/home/runner/work/che-operator/go"
+    echo "[INFO] GOPATH: ${GOPATH}"
+fi
 
-    # Match if exist nightly files in PR
-    if [[ " ${FILES_CHANGED_ARRAY[*]} " =~ $OLM_K8S && " ${FILES_CHANGED_ARRAY[*]} " =~ $OLM_OCP ]]; then
-        echo "[INFO] Nightly files for kubernetes and openshift platform was created."
-        exit 0
-    else
-        echo "[ERROR] Nightly files for kubernetes and openshift platform not created."
-        exit 1
-    fi
+installYq() {
+  YQ=$(command -v yq) || true
+  if [[ ! -x "${YQ}" ]]; then
+    pip3 install wheel
+    pip3 install yq
+    # Make python3 installed modules "visible"
+    export PATH=$HOME/.local/bin:$PATH
+    ls "${HOME}/.local/bin"
+  fi
+  echo "[INFO] $(yq --version)"
+  echo "[INFO] $(jq --version)"
 }
 
-#check_deploy_folder check first if files under deploy/* folder have modifications and in case of modification
-# check if exist nightly files for kubernetes and openshift platform.
-function check_deploy_folder() {
-    # Define deploy folder and regexp to search all under deploy/*
-    local CR_CRD_FOLDER="deploy/"
-    local BUNDLE_FOLDER="deploy/olm-catalog"
+installOperatorSDK() {
+  YQ=$(command -v operator-sdk) || true
+  if [[ ! -x "${YQ}" ]]; then
+    OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
+    pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
+    echo "[INFO] Downloading 'operator-sdk' cli tool..."
+    curl -sLo operator-sdk "$(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/19175509 | jq -r '[.assets[] | select(.name == "operator-sdk-v0.10.0-x86_64-linux-gnu")] | first | .browser_download_url')"
+    export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
+    chmod +x "${OPERATOR_SDK_BINARY}"
+    echo "[INFO] Downloading completed!"
+    echo "[INFO] $(${OPERATOR_SDK_BINARY} version)"
+    popd || exit
+  fi
+}
 
-    # Checking if exist modifications in deploy folder
-    for files in "${FILES_CHANGED_ARRAY[@]}"
-    do
-        if [[ $files =~ ^$CR_CRD_FOLDER.*? ]] && [[ ! $files =~ ${BUNDLE_FOLDER} ]]; then
-            echo "[INFO] Deploy Folder suffer modifications. Checking if exist nightly files..."
-            check_nightly_files
-        fi
-    done
+isActualNightlyOlmBundleCSVFiles() {
+  cd "${ROOT_PROJECT_DIR}"
+  export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
+  export NO_DATE_UPDATE="true"
+  source "${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh"
 
-    echo "[INFO] ${CR_CRD_FOLDER} don't have any modification."
+  CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+  CSV_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+
+  IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
+  for file in "${changedFiles[@]}"
+  do
+    if [ "${CSV_FILE_KUBERNETES}" == "${file}" ] || [ "${CSV_FILE_OPENSHIFT}" == "${file}" ]; then
+      echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
+      exit 1
+    fi
+  done
+  echo "[INFO] Nightly Olm bundle is in actual state."
 }
 
 transform_files
 check_che_types
-check_deploy_folder
+installYq
+installOperatorSDK
+isActualNightlyOlmBundleCSVFiles
+
 echo "[INFO] Done."
