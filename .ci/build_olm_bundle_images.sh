@@ -13,7 +13,6 @@ pip3 install yq
 export PATH=$HOME/.local/bin:$PATH
 ls $HOME/.local/bin
 
-platform=kubernetes
 for platform in 'kubernetes' 'openshift'
 do
   OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
