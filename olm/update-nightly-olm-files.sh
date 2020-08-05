@@ -24,8 +24,6 @@ if [ -z "${OPERATOR_SDK_BINARY}" ]; then
   fi
 fi
 
-# BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
