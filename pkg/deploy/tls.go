@@ -119,8 +119,10 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		routeSpec.SetOwnerReferences(nil)
 		// Create route manually
 		if err := clusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
-			logrus.Errorf("Failed to create test route 'test': %s", err)
-			return nil, err
+			if !errors.IsAlreadyExists(err) {
+				logrus.Errorf("Failed to create test route 'test': %s", err)
+				return nil, err
+			}
 		}
 
 		// Schedule test route cleanup after the job done.
