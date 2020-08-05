@@ -119,7 +119,7 @@ do
   done
 
   mv "${CSV_FILE_COPY}" "${CSV_FILE_COPY}.old"
-  yq -ryY "
+  yq -rY "
   ( .spec.relatedImages ) += [${RELATED_IMAGES}] |
   ( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]
   " "${CSV_FILE_COPY}.old" > "${CSV_FILE_COPY}"
