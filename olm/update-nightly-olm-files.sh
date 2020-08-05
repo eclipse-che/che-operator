@@ -24,14 +24,13 @@ if [ -z "${OPERATOR_SDK_BINARY}" ]; then
   fi
 fi
 
-operatorVersion=$(operator-sdk version)
+operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
 [[ $operatorVersion =~ .*v0.10.0.* ]] || { echo "operator-sdk v0.10.0 is required"; exit 1; }
 
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
 
-# TODO check operator sdk version...
 for platform in 'kubernetes' 'openshift'
 do
   echo "[INFO] Updating OperatorHub bundle for platform '${platform}' for platform '${platform}'"
