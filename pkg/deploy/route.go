@@ -33,6 +33,10 @@ var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
 }
+var routeWithHostDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
+}
 
 func SyncRouteToCluster(
 	checluster *orgv1.CheCluster,
@@ -58,7 +62,11 @@ func SyncRouteToCluster(
 		return nil, err
 	}
 
-	diff := cmp.Diff(clusterRoute, specRoute, routeDiffOpts)
+	diffOpts := routeDiffOpts
+	if host != "" {
+		diffOpts = routeWithHostDiffOpts
+	}
+	diff := cmp.Diff(clusterRoute, specRoute, diffOpts)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
 		fmt.Printf("Difference:\n%s", diff)
@@ -154,7 +162,6 @@ func GetSpecRoute(
 
 			route.Spec.TLS.Key = string(secret.Data["tls.key"])
 			route.Spec.TLS.Certificate = string(secret.Data["tls.crt"])
-			route.Spec.TLS.CACertificate = string(secret.Data["ca.crt"])
 		}
 	}
 
