@@ -101,20 +101,21 @@ run_olm_functions() {
 
   OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="quay.io/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
   buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
-  CATALOG_IMAGENAME="${REGISTRY_NAME}/${QUAY_USERNAME}/testing_catalog:0.0.1"
+  CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/testing_catalog:0.0.1"
   buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
+  createNamespace
   forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
   installOperatorMarketPlace
   installPackage
   add_Che_Cluster
-  # waitCheServerDeploy
-  # getOlmPodLogs
-  # getCheClusterLogs
+  waitCheServerDeploy
+  getOlmPodLogs
+  getCheClusterLogs
 }
 
 init

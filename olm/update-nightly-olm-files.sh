@@ -31,6 +31,11 @@ ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
 
+if [ -z "${NO_INCREMENT}" ]; then
+  source "${BASE_DIR}/incrementNightlyBundles.sh"
+  incrementNightlyVersion
+fi
+
 for platform in 'kubernetes' 'openshift'
 do
   echo "[INFO] Updating OperatorHub bundle for platform '${platform}' for platform '${platform}'"
@@ -41,10 +46,9 @@ do
   operatorFolder=${olmCatalog}/che-operator
   bundleFolder=${operatorFolder}/eclipse-che-preview-${platform}
 
-  # todo, hardcoded...
-  newNightlyBundleVersion="7.16.2-0.nightly"
   bundleCSVName="che-operator.clusterserviceversion.yaml"
   NEW_CSV=${bundleFolder}/manifests/${bundleCSVName}
+  newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
   echo "[INFO] Will create new nightly bundle version: ${newNightlyBundleVersion}"
 
   "${bundleFolder}"/build-roles.sh
@@ -96,6 +100,10 @@ do
       index=$((index+1))
     done
   fi
+
+  # Format code.
+  yq -rY "." "${NEW_CSV}" > "${NEW_CSV}.old"
+  mv "${NEW_CSV}.old" "${NEW_CSV}"
 
   popd || true
 done

@@ -54,7 +54,6 @@ then
    channel="nightly"
 fi
 
-# CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${REGISTRY_NAME}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
 packageName=eclipse-che-preview-${platform}
 platformPath=${BASE_DIR}/${packageName}
 if [ -z "${packageFolderPath}" ]; then
@@ -78,8 +77,8 @@ echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 # fi
 
 checkImagePushTridentionals() {
-  if [ -z "${REGISTRY_NAME}" ] || [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
-    echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD, and REGISTRY_NAME"
+  if [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
+    echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD"
     exit 1
   fi
 }
@@ -134,7 +133,7 @@ applyCheOperatorSource() {
 }
 
 loginToImageRegistry() {
-  docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${REGISTRY_NAME}"
+  docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "quay.io"
 }
 
 buildBundleImage() {
@@ -165,8 +164,6 @@ buildBundleImage() {
     --image-builder docker
 
   ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" 
-
-  docker images
 
   docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
@@ -234,14 +231,18 @@ installOPM() {
   echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
 }
 
-installOperatorMarketPlace() {
-  echo "Installing test pre-requisistes"
+createNamespace() {
   kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ${namespace}
 EOF
+}
+
+installOperatorMarketPlace() {
+  echo "Installing test pre-requisistes"
+
   marketplaceNamespace="marketplace"
   if [ "${platform}" == "openshift" ];
   then

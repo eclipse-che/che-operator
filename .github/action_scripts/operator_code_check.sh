@@ -95,6 +95,7 @@ isActualNightlyOlmBundleCSVFiles() {
   cd "${ROOT_PROJECT_DIR}"
   export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
   export NO_DATE_UPDATE="true"
+  export NO_INCREMENT="true"
   source "${ROOT_PROJECT_DIR}/olm/update-nightly-olm-files.sh"
 
   CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"

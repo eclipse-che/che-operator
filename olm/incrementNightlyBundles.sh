@@ -31,10 +31,16 @@ incrementNightlyVersion() {
 
     getNightlyVersionIncrementPart "${currentNightlyVersion}"
 
-    newVersion="${version}-$((incrementPart+1)).nightly"
+    PACKAGE_NAME="eclipse-che-preview-${platform}"
+    PACKAGE_FOLDER_PATH="${ROOT_PROJECT_DIR}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/${PACKAGE_NAME}"
+    PACKAGE_FILE_PATH="${PACKAGE_FOLDER_PATH}/${PACKAGE_NAME}.package.yaml"
+    CLUSTER_SERVICE_VERSION=$(yq -r ".channels[] | select(.name == \"stable\") | .currentCSV" "${PACKAGE_FILE_PATH}")
+    STABLE_PACKAGE_VERSION=$(echo "${CLUSTER_SERVICE_VERSION}" | sed -e "s/${PACKAGE_NAME}.v//")
+
+    newVersion="${STABLE_PACKAGE_VERSION}-$((incrementPart+1)).nightly"
 
     echo "[INFO] Set up nightly ${platform} version: ${newVersion}"
-    yq -ryY "(.spec.version) = \"${newVersion}\" | (.metadata.name) = \"eclipse-che-preview-${platform}.v${newVersion}\"" "${CSV}" > "${CSV}.old"
+    yq -rY "(.spec.version) = \"${newVersion}\" | (.metadata.name) = \"eclipse-che-preview-${platform}.v${newVersion}\"" "${CSV}" > "${CSV}.old"
     mv "${CSV}.old" "${CSV}"
   done
 }
@@ -50,3 +56,5 @@ getNightlyVersionIncrementPart() {
 
   echo "${incrementPart}"
 }
+
+incrementNightlyVersion

@@ -29,15 +29,19 @@ if [ "${channel}" == "" ]; then
   channel="nightly"
 fi
 
-packageName=eclipse-che-preview-${platform}
-platformPath=${BASE_DIR}/olm/${packageName}
-packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
-packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+if [ "${channel}" == "stable" ]; then
+  packageName=eclipse-che-preview-${platform}
+  platformPath=${BASE_DIR}/olm/${packageName}
+  packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+  packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
 
-lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
-lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
-previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
-previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+  lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
+  lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
+  previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
+  previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+else
+  echo "Complete nightly!"
+fi
 
 # $3 -> namespace
 source ${BASE_DIR}/olm/olm.sh ${platform} ${previousPackageVersion} $3
@@ -50,3 +54,4 @@ waitCheServerDeploy
 echo -e "\u001b[32m Installation of the previous che-operator version: ${previousCSV} succesfully completed \u001b[0m"
 
 installPackage
+
