@@ -39,19 +39,23 @@ if [ "${channel}" == "stable" ]; then
   lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
   previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
   previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+
+  installationType="Marketplace"
 else
   echo "Complete nightly!"
 fi
 
 # $3 -> namespace
-source ${BASE_DIR}/olm/olm.sh ${platform} ${previousPackageVersion} $3
+source ${BASE_DIR}/olm/olm.sh ${platform} ${previousPackageVersion} $3 ${installationType}
+
+createNamespace
 
 installOperatorMarketPlace
 installPackage
-applyCRCheCluster
-waitCheServerDeploy
+# applyCRCheCluster
+# waitCheServerDeploy
 
 echo -e "\u001b[32m Installation of the previous che-operator version: ${previousCSV} succesfully completed \u001b[0m"
 
-installPackage
-
+# installPackage
+echo "Done."

@@ -15,6 +15,8 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -36,7 +38,10 @@ func SyncSecretToCluster(
 	data map[string][]byte,
 	clusterAPI ClusterAPI) (*corev1.Secret, error) {
 
-	specSecret := GetSpecSecret(checluster, name, data)
+	specSecret, err := GetSpecSecret(checluster, name, data, clusterAPI)
+	if err != nil {
+		return nil, err
+	}
 
 	clusterSecret, err := GetClusterSecret(specSecret.Name, specSecret.Namespace, clusterAPI)
 	if err != nil {
@@ -86,20 +91,27 @@ func GetClusterSecret(name string, namespace string, clusterAPI ClusterAPI) (*co
 }
 
 // GetSpecSecret return default secret config for given data
-func GetSpecSecret(cr *orgv1.CheCluster, name string, data map[string][]byte) *corev1.Secret {
-	labels := GetLabels(cr, DefaultCheFlavor(cr))
-	return &corev1.Secret{
+func GetSpecSecret(checluster *orgv1.CheCluster, name string, data map[string][]byte, clusterAPI ClusterAPI) (*corev1.Secret, error) {
+	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: cr.Namespace,
+			Namespace: checluster.Namespace,
 			Labels:    labels,
 		},
 		Data: data,
 	}
+
+	err := controllerutil.SetControllerReference(checluster, secret, clusterAPI.Scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	return secret, nil
 }
 
 // CreateTLSSecretFromRoute creates TLS secret with given name which contains certificates obtained from give url.

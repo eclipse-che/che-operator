@@ -12,11 +12,11 @@
 
 set -e
 
-platform=$1
-if [ "${platform}" == "" ]; then
-  echo "Please specify platform ('openshift' or 'kubernetes') as the first argument."
+PLATFORM=$1
+if [ "${PLATFORM}" == "" ]; then
+  echo "Please specify PLATFORM ('openshift' or 'kubernetes') as the first argument."
   echo ""
-  echo "testUpdate.sh <platform> [<channel>] [<namespace>]"
+  echo "testUpdate.sh <PLATFORM> [<channel>] [<namespace>]"
   exit 1
 fi
 
@@ -39,17 +39,9 @@ init() {
   ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 
   # Setting The catalog image and the image and tag; and install type
-  Install_Type="LocalCatalog"
-
-  # GET the package version to apply
-  # packageName=eclipse-che-preview-${platform}
-  packageFolderPath="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
-  # packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-  # CSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
-  # CSV="eclipse-che-preview-kubernetes.v7.16.2-0.nightly"
-  # eclipse-che-preview-kubernetes.v7.16.1
-  # PackageVersion=$(echo "${CSV}" | sed -e "s/${packageName}.v//")
-  PackageVersion="7.16.2-0.nightly"
+  Install_Type="catalog"
+  packageFolderPath="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}"
+  PACKAGE_VERSION="7.16.2-0.nightly"
 }
 
 add_Che_Cluster() {
@@ -57,7 +49,7 @@ add_Che_Cluster() {
   CR=$(echo "$CRs" | yq -r ".[0]")
   CR=$(echo "$CR" | jq '.spec.server.tlsSupport = false')
 
-  if [ "${platform}" == "kubernetes" ]
+  if [ "${PLATFORM}" == "kubernetes" ]
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
@@ -95,30 +87,32 @@ function getOlmPodLogs() {
   done
 }
 
-run_olm_functions() {
+run() {
+  source "${BASE_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${Install_Type}"
   installOPM
   loginToImageRegistry
 
-#   OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
-#   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="quay.io/${QUAY_USERNAME}/eclipse-che-operator-kubernetes-bundle:7.16.2-0.nightly"
-#   buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-bundles:7.16.2-0.nightly"
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL2="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-bundles:7.16.2-1.nightly"
 
-  CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-catalog-source:0.0.1"
-#   buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-catalog:0.0.1"
 
+  createNamespace
   forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL2}"
 
   installOperatorMarketPlace
-  installPackage
-  add_Che_Cluster
+  # installPackage
+  # add_Che_Cluster
   # waitCheServerDeploy
   # getOlmPodLogs
   # getCheClusterLogs
 }
 
 init
-# $3 -> namespace
-source ${BASE_DIR}/check-yq.sh
-source ${BASE_DIR}/olm.sh ${platform} ${PackageVersion} $3 ${Install_Type}
-run_olm_functions
+run
+
+
+# kubectl patch service eclipse-che-preview-kubernetes --patch '{"spec": {"type": "NodePort"}}' -n moon44
+# grpcurl -plaintext -d '{"csvName":"eclipse-che-preview-kubernetes.v7.16.2-1.nightly","pkgName":"eclipse-che-preview-kubernetes","channelName":"nightly"}'  192.168.99.154:31374 api.Registry/GetBundle 
+# grpcurl -plaintext -d '{"csvName":"eclipse-che-preview-kubernetes.v9.9.9-nightly.1596626683","pkgName":"eclipse-che-preview-kubernetes","channelName":"nightly"}' 192.168.99.154:32451 api.Registry/GetBundleThatReplaces

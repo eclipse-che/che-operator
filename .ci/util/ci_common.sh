@@ -174,7 +174,7 @@ waitWorkspaceStart() {
       printInfo "Workspace started started successfully"
       break
     fi
-    sleep 3
+    sleep 10
     x=$(( x+1 ))
   done
 

@@ -13,15 +13,11 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-if [ -z "${BASE_DIR}" ]; then
-  BASE_DIR=$(cd "$(dirname "$0")" && pwd)
-fi
-
-echo "${BASE_DIR}"
 SCRIPT=$(readlink -f "$0")
-echo "[INFO] ${SCRIPT}"
-SCRIPT_DIR=$(dirname "$SCRIPT");
-echo "[INFO] ${SCRIPT_DIR}"
+export SCRIPT
+BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
+export BASE_DIR
+ROOT_DIR=$(dirname "${BASE_DIR}")
 
 source ${BASE_DIR}/check-yq.sh
 
@@ -55,14 +51,21 @@ then
 fi
 
 packageName=eclipse-che-preview-${platform}
-platformPath=${BASE_DIR}/${packageName}
-if [ -z "${packageFolderPath}" ]; then
+if [ "${channel}" == 'nightly' ]; then
+  CSV_FILE="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml"
+else
+  if [ ${SOURCE_INSTALL} == "catalog" ]; then
+    echo "[ERROR] Stable preview channel doesn't support installation using 'catalog'. Use 'Marketplace' instead of it."
+    exit 1
+  fi
+  
+  platformPath="${BASE_DIR}/${packageName}"
   packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+  # packageFilePath="${packageFolderPath}/${packageName}.package.yaml" # looks unused
+  CSV_FILE="${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
 fi
 
-# Todo check, maybe it's unused...
-# packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-# CSV="eclipse-che-preview-${platform}.${PACKAGE_VERSION}"
+CSV=$(yq -r ".metadata.name" "${CSV_FILE}")
 
 echo -e "\u001b[32m PACKAGE_VERSION=${PACKAGE_VERSION} \u001b[0m"
 echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
@@ -96,8 +99,6 @@ pushImage() {
 }
 
 catalog_source() {
-  echo "--- Use default eclipse che application registry ---"
-  if [ ${SOURCE_INSTALL} == "LocalCatalog" ]; then
     marketplaceNamespace=${namespace};
     kubectl apply -f - <<EOF
 apiVersion: operators.coreos.com/v1alpha1
@@ -110,25 +111,25 @@ spec:
   image: ${CATALOG_IMAGENAME}
   updateStrategy:
     registryPoll:
-      interval: 5m  
+      interval: 5m
 EOF
-  else
-    cat "${platformPath}/operator-source.yaml"
-    kubectl apply -f "${platformPath}/operator-source.yaml"
-  fi
 }
 
-# do it only when it's required or remove using deprecated operator source
-applyCheOperatorSource() {
-  # echo "Apply che-operator source"
-  if [ "${APPLICATION_REGISTRY}" == "" ]; then
+applyCheOperatorInstallationSource() {
+  if [ ${SOURCE_INSTALL} == "catalog" ]; then
+    echo "[INFO] Use catalog source(index) image"
     catalog_source
   else
-    echo "---- Use non default application registry ${APPLICATION_REGISTRY} ---"
-
-    cat "${platformPath}/operator-source.yaml" | \
-    sed  -e "s/registryNamespace:.*$/registryNamespace: \"${APPLICATION_REGISTRY}\"/" | \
-    kubectl apply -f -
+    if [ "${APPLICATION_REGISTRY}" == "" ]; then
+      echo "[INFO] Use default Eclipse Che application registry"
+      cat "${platformPath}/operator-source.yaml"
+      kubectl apply -f "${platformPath}/operator-source.yaml"
+    else
+      echo "[INFO] Use custom Che application registry"
+      cat "${platformPath}/operator-source.yaml" | \
+      sed  -e "s/registryNamespace:.*$/registryNamespace: \"${APPLICATION_REGISTRY}\"/" | \
+      kubectl apply -f -
+    fi
   fi
 }
 
@@ -180,7 +181,7 @@ forcePullingOlmImages() {
     exit 1
   fi
 
-  yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${SCRIPT_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
+  yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${BASE_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
 
   kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
 
@@ -247,18 +248,24 @@ installOperatorMarketPlace() {
   if [ "${platform}" == "openshift" ];
   then
     marketplaceNamespace="openshift-marketplace";
-    applyCheOperatorSource
+    applyCheOperatorInstallationSource
   else
     IFS=$'\n' read -d '' -r -a olmApiGroups < <( kubectl api-resources --api-group=operators.coreos.com -o name ) || true
     if [ -z "${olmApiGroups[*]}" ]; then
-      curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.15.1/install.sh -o install.sh
-      chmod +x install.sh
-      ./install.sh 0.15.1
-      rm -rf install.sh
+      olmVersion=0.15.1
+      curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/"${olmVersion}"/install.sh | bash -s "${olmVersion}"
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/03_operatorsource.crd.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/04_service_account.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/05_role.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/06_role_binding.yaml
+      sleep 1
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
       echo "Done"
     fi
 
-    applyCheOperatorSource
+    applyCheOperatorInstallationSource
 
     i=0
     while [ $i -le 240 ]
@@ -305,9 +312,12 @@ spec:
   name: ${packageName}
   source: ${packageName}
   sourceNamespace: ${marketplaceNamespace}
+  startingCSV: ${CSV}
 EOF
 
 # startingCSV: eclipse-che-preview-kubernetes.v7.16.2-0.nightly
+echo "Stop!!!!!!"
+exit 0
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
 
@@ -337,8 +347,7 @@ installPackage() {
 
 applyCRCheCluster() {
   echo "Creating Custom Resource"
-
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${packageFolderPath}/${PACKAGE_VERSION}/manifests/${packageName}.${PACKAGE_VERSION}.clusterserviceversion.yaml")
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
   if [ "${platform}" == "kubernetes" ]
   then
@@ -350,16 +359,17 @@ applyCRCheCluster() {
 
 waitCheServerDeploy() {
   echo "Waiting for Che server to be deployed"
+  set +e -x
 
   i=0
-  while [ $i -le 480 ]
+  while [[ $i -le 480 ]]
   do
     status=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheClusterRunning})
-    if [ "${status}" == "Available" ]
+    if [ "${status:-UNAVAILABLE}" == "Available" ]
     then
       break
     fi
-    sleep 1
+    sleep 10
     ((i++))
   done
 

@@ -14,7 +14,11 @@ set -e
 
 platform=kubernetes
 
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+DOCKER_USERNAME=aandriienko
+IMAGE_REGISTRY=quay.io
+
+SCRIPT=$(readlink -f "$0")
+BASE_DIR=$(dirname "$SCRIPT")
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 
 OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
@@ -25,7 +29,7 @@ nightlyVersion=$(yq -r ".spec.version" "${CSV}")
 
 source ${BASE_DIR}/olm.sh "${platform}" "${nightlyVersion}" "che"
 
-CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/aandrienko/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"
+CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-${platform}-opm-bundles:${nightlyVersion}"
 
 echo "${nightlyVersion}"
 
@@ -33,10 +37,10 @@ installOPM
 
 buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
-CATALOG_IMAGENAME="docker.io/aandrienko/eclipse-che-catalog-source:0.0.1"
+CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-${platform}-opm-catalog:0.0.1"
 
 ${OPM_BINARY} index add \
-    --bundles "docker.io/aandrienko/eclipse-che-operator-${platform}-bundle:7.16.2-0.nightly" \
+    --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
     --tag "${CATALOG_IMAGENAME}" \
     --build-tool docker \
     --mode semver
