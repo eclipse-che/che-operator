@@ -236,6 +236,7 @@ const (
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	deployContext := deploy.Context{}
 	clusterAPI := deploy.ClusterAPI{
 		Client: r.client,
 		Scheme: r.scheme,
@@ -265,6 +266,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Print error message in logs and wait until the configuration is changed.
 		logrus.Error(err)
 		return reconcile.Result{}, nil
+	}
+
+	if !util.IsTestMode() {
+		if isOpenShift && deployContext.DefaultCheHost == "" {
+			host, err := getDefaultCheHost(instance, clusterAPI)
+			if host == "" {
+				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
+			} else {
+				deployContext.DefaultCheHost = host
+			}
+		}
 	}
 
 	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth {
@@ -712,7 +724,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			cheHost = ingress.Spec.Rules[0].Host
 		}
 	} else {
-		route, err := deploy.SyncRouteToCluster(instance, cheFlavor, instance.Spec.Server.CheHost, deploy.CheServiceHame, 8080, clusterAPI)
+		customHost := instance.Spec.Server.CheHost
+		if deployContext.DefaultCheHost == customHost {
+			// let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
+			customHost = ""
+		}
+
+		route, err := deploy.SyncRouteToCluster(instance, cheFlavor, customHost, deploy.CheServiceHame, 8080, clusterAPI)
 		if !tests {
 			if route == nil {
 				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
@@ -1062,4 +1080,17 @@ func hasConsolelinkObject() bool {
 // based on Checluster information and image defaults from env variables
 func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+}
+
+func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) (string, error) {
+	routeName := deploy.DefaultCheFlavor(checluster)
+	route, err := deploy.SyncRouteToCluster(checluster, routeName, "", deploy.CheServiceHame, 8080, clusterAPI)
+	if route == nil {
+		logrus.Infof("Waiting on route '%s' to be ready", routeName)
+		if err != nil {
+			logrus.Error(err)
+		}
+		return "", err
+	}
+	return route.Spec.Host, nil
 }
