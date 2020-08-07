@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -274,8 +275,25 @@ func GetEnvByRegExp(regExp string) []corev1.EnvVar {
 		envName := pair[0]
 		rxp := regexp.MustCompile(regExp)
 		if rxp.MatchString(envName) {
+			envName = GetArchitectureDependentEnv(envName)
 			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
 		}
 	}
+	return env
+}
+
+// GetArchitectureDependentEnv returns environment variable dependending on architecture
+// by adding "_<ARCHITECTURE>" suffix. If variable is not set then the default will be return.
+// Supporing architectures:
+// - ppc64le
+// - s390x
+func GetArchitectureDependentEnv(env string) string {
+	if runtime.GOARCH == "ppc64le" || runtime.GOARCH == "s390x" {
+		archEnv := env + "_" + runtime.GOARCH
+		if _, ok := os.LookupEnv(archEnv); ok {
+			return archEnv
+		}
+	}
+
 	return env
 }
