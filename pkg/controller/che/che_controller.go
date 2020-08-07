@@ -741,6 +741,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
 			cheHost = route.Spec.Host
+			if customHost == "" {
+				deployContext.DefaultCheHost = cheHost
+			}
 		}
 	}
 	if instance.Spec.Server.CheHost != cheHost {
