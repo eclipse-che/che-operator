@@ -19,8 +19,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    # - name: Build the Docker image
-    #   run: docker build .
+    - name: Build the Docker image
+      run: docker build .
 
     - name: Docker login
       uses: azure/docker-login@v1
