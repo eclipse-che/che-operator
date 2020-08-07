@@ -59,7 +59,10 @@ func SyncRouteToCluster(
 	if clusterRoute == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRoute.Kind, specRoute.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specRoute)
-		return nil, err
+		if !errors.IsAlreadyExists(err) {
+			return nil, err
+		}
+		return nil, nil
 	}
 
 	diffOpts := routeDiffOpts
