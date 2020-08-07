@@ -9,18 +9,23 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-
-name: Check nightly "opm" bundle
+name: Docker
 on: [pull_request, push]
 jobs:
 
   build:
-    name: Check nightly "opm" bundle
-    runs-on: ubuntu-20.04
+    name: Build
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-      with:
-        path: go/src/github.com/${{ github.repository }}
 
-    - name:
-      run: "${GITHUB_WORKSPACE}/.github/action_scripts/operator_code_check.sh"
+    - name: Docker login
+      uses: azure/docker-login@v1
+      with:
+        login-server: quay.io
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+       # todo rework to cron job...
+    - name: Build catalog source and opm bundle images
+      run: "${GITHUB_WORKSPACE}/.github/action_scripts/build_olm_bundle_images.sh"
