@@ -90,7 +90,7 @@ installOperatorSDK() {
     popd || exit
   fi
 }
-
+ 
 isActualNightlyOlmBundleCSVFiles() {
   cd "${ROOT_PROJECT_DIR}"
   export BASE_DIR="${ROOT_PROJECT_DIR}/olm"

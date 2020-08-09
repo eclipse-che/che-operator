@@ -92,27 +92,28 @@ run() {
   installOPM
   loginToImageRegistry
 
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-bundles:7.16.2-0.nightly"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL2="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-bundles:7.16.2-1.nightly"
-
   export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-catalog:0.0.1"
 
   createNamespace
-  forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-  forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL2}"
 
   installOperatorMarketPlace
-  # installPackage
-  # add_Che_Cluster
-  # waitCheServerDeploy
-  # getOlmPodLogs
-  # getCheClusterLogs
+
+  exposeCatalogSource
+  getPreviousCSVInfo
+  getLatestCSVInfo
+
+  forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
+  forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
+
+  subscribeToInstallation "${PREVIOUS_CSV_NAME}"
+  installPackage
+  add_Che_Cluster
+  waitCheServerDeploy
+  getOlmPodLogs
+  getCheClusterLogs
+
+  installPackage
 }
 
 init
 run
-
-
-# kubectl patch service eclipse-che-preview-kubernetes --patch '{"spec": {"type": "NodePort"}}' -n moon44
-# grpcurl -plaintext -d '{"csvName":"eclipse-che-preview-kubernetes.v7.16.2-1.nightly","pkgName":"eclipse-che-preview-kubernetes","channelName":"nightly"}'  192.168.99.154:31374 api.Registry/GetBundle 
-# grpcurl -plaintext -d '{"csvName":"eclipse-che-preview-kubernetes.v9.9.9-nightly.1596626683","pkgName":"eclipse-che-preview-kubernetes","channelName":"nightly"}' 192.168.99.154:32451 api.Registry/GetBundleThatReplaces

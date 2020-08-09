@@ -163,8 +163,9 @@ run() {
 
   createNamespace
   forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
   installOperatorMarketPlace
+  subscribeToInstallation
+
   installPackage
   applyCRCheCluster
   waitCheServerDeploy

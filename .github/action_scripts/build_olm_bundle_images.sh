@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# todo rename to IMAGE_REGISTRY_USERNAME
 DOCKER_USERNAME=aandriienko
 IMAGE_REGISTRY=quay.io
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"

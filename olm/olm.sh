@@ -288,8 +288,15 @@ installOperatorMarketPlace() {
       marketplaceNamespace="olm"
     fi
   fi
+}
 
-  echo "Subscribing to version: ${CSV}"
+subscribeToInstallation() {
+  CSV_NAME="${1}"
+  if [ -z "${CSV_NAME}" ]; then
+    CSV_NAME="${CSV}"
+  fi
+
+  echo "Subscribing to version: ${CSV_NAME}"
 
   kubectl apply -f - <<EOF
 apiVersion: operators.coreos.com/v1
@@ -312,13 +319,10 @@ spec:
   name: ${packageName}
   source: ${packageName}
   sourceNamespace: ${marketplaceNamespace}
-  startingCSV: ${CSV}
+  startingCSV: ${CSV_NAME}
 EOF
 
-# startingCSV: eclipse-che-preview-kubernetes.v7.16.2-0.nightly
-echo "Stop!!!!!!"
-exit 0
-
+  # startingCSV: eclipse-che-preview-kubernetes.v7.16.2-0.nightly
   kubectl describe subscription/"${packageName}" -n "${namespace}"
 
   kubectl wait subscription/"${packageName}" -n "${namespace}" --for=condition=InstallPlanPending --timeout=240s
@@ -378,4 +382,48 @@ waitCheServerDeploy() {
     echo "Che server did't start after 8 minutes"
     exit 1
   fi
+}
+
+installGrpCurl() {
+  GRP_CURL_BINARY=$(command -v grpcurl) || true
+  if [[ ! -x "${GRP_CURL_BINARY}" ]]; then
+    GRP_CURL_TEMP_DIR="$(mktemp -q -d -t "GRPCURL_XXXXXX" 2>/dev/null || mktemp -q -d)"
+    pushd "${GRP_CURL_TEMP_DIR}" || exit
+    echo "[INFO] Downloading 'grpcurl' cli tool..."
+    curl -sLo grpcurl-tar "$(curl -sL https://api.github.com/repos/fullstorydev/grpcurl/releases/26555409 | \
+    jq -r '[.assets[] | select(.name == "grpcurl_1.6.0_linux_x86_32.tar.gz")] | first | .browser_download_url')"
+    tar -xvf "${GRP_CURL_TEMP_DIR}/grpcurl-tar"
+
+    export GRP_CURL_BINARY="${GRP_CURL_TEMP_DIR}/grpcurl"
+    echo "[INFO] Downloading completed!"
+    echo "[INFO] $(${GRP_CURL_BINARY} -version)"
+    popd || exit
+  fi
+}
+
+exposeCatalogSource() {
+  kubectl patch service eclipse-che-preview-kubernetes --patch '{"spec": {"type": "NodePort"}}' -n "${namespace}"
+  CATALOG_POD=$(kubectl get pods -n moon44 -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"eclipse-che-preview-kubernetes\")) | .metadata.name")
+  kubectl wait --for=condition=ready "pods/${CATALOG_POD}" --timeout=60s -n "${namespace}"
+
+  ## install grpcurl for communitcation with catalog source
+  installGrpCurl
+}
+
+getPreviousCSVInfo() {
+  catalogNodePort=$(kubectl get service eclipse-che-preview-kubernetes -n moon44 -o yaml | yq -r '.spec.ports[0].nodePort')
+  previousBundle=$(grpcurl -plaintext "192.168.99.154:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[1]')
+  PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
+  export PREVIOUS_CSV_NAME
+  PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${previousBundle}" | yq -r ".bundlePath")
+  export PREVIOUS_CSV_BUNDLE_IMAGE
+}
+
+getLatestCSVInfo() {
+  catalogNodePort=$(kubectl get service eclipse-che-preview-kubernetes -n moon44 -o yaml | yq -r '.spec.ports[0].nodePort')
+  latestBundle=$(grpcurl -plaintext "192.168.99.154:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[0]')
+  LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
+  export LATEST_CSV_NAME
+  LATEST_CSV_BUNDLE_IMAGE=$(echo "${latestBundle}" | yq -r ".bundlePath")
+  export LATEST_CSV_BUNDLE_IMAGE
 }
