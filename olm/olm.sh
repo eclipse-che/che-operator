@@ -19,7 +19,7 @@ BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
 export BASE_DIR
 ROOT_DIR=$(dirname "${BASE_DIR}")
 
-source ${BASE_DIR}/check-yq.sh
+source ${ROOT_DIR}/olm/check-yq.sh
 
 SOURCE_INSTALL=$4
 
