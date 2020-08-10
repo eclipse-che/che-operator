@@ -10,9 +10,12 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 name: Push catalog and bundle images.
-on: 
+on:
   schedule:
-    - cron:  '27 11 * * *'
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '*/15 * * * *'
+    
+    # - cron:  '27 11 * * *'
     # '0 21 * * *'
 jobs:
 
