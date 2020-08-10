@@ -140,6 +140,8 @@ applyCheOperatorInstallationSource() {
 loginToImageRegistry() {
   minikube addons  list
 
+  exit 1
+
   docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "quay.io"
 }
 
