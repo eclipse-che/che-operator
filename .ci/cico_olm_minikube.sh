@@ -41,7 +41,7 @@ function run() {
     IMAGE_REGISTRY="localhost:5000"
     export IMAGE_REGISTRY
     # Execute test catalog source script
-    # source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
+    source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
 
     # source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
