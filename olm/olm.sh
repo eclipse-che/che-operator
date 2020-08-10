@@ -13,10 +13,14 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-SCRIPT=$(readlink -f "$0")
-export SCRIPT
-BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
-export BASE_DIR
+if [ -z "${BASE_DIR}" ]; then
+  SCRIPT=$(readlink -f "$0")
+  export SCRIPT
+
+  BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
+  export BASE_DIR
+fi
+
 ROOT_DIR=$(dirname "${BASE_DIR}")
 
 source ${ROOT_DIR}/olm/check-yq.sh
