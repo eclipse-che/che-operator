@@ -85,11 +85,15 @@ do
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"
 
+  PLATFORM_DIR=$(pwd)
+
+  cd $CURRENT_DIR
+  source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+                -r "eclipse-che-preview-${platform}.*\.v${RELEASE}.*yaml" \
+                -t ${RELEASE}
+
+  cd $PLATFORM_DIR
+
   diff -u ${PRE_RELEASE_CSV} ${RELEASE_CSV} > ${RELEASE_CSV}".diff" || true
   diff -u ${PRE_RELEASE_CRD} ${RELEASE_CRD} > ${RELEASE_CRD}".diff" || true
 done
-cd "${CURRENT_DIR}"
-
-source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
-                -r "eclipse-che-preview-.*\.v${RELEASE}.*yaml" \
-                -t ${RELEASE}
