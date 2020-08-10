@@ -13,7 +13,7 @@ name: Push catalog and bundle images.
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '*/15 * * * *'
+    - cron:  '*/5 * * * *'
 
     # - cron:  '27 11 * * *'
     # '0 21 * * *'
