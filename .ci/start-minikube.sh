@@ -55,6 +55,16 @@ minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver
 # Add minikube ingress
 minikube addons enable ingress
 
+echo "[INFO] Enable registry addon."
+minikube addons enable registry
+
+echo "Minikube Addon list"
+minikube addons  list
+
+docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
+docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+# Todo drop socat container after the test...
+
 # waiting for node(s) to be ready
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
 
@@ -72,3 +82,5 @@ rules:
     verbs: ["*"]
 
 EOF
+
+echo "Minikube start is done!"
