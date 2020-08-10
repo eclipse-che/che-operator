@@ -148,6 +148,9 @@ init() {
 }
 
 run() {
+  if [ -z "${IMAGE_REGISTRY}" ]; then
+    IMAGE_REGISTRY="quay.io"
+  fi
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
   installOPM
