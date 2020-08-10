@@ -39,7 +39,7 @@ export NAMESPACE
 # run function run the tests in ci of custom catalog source.
 function run() {
     IMAGE_REGISTRY="localhost:5000"
-    QUAY_USERNAME="default"
+    # QUAY_USERNAME="default"
     export IMAGE_REGISTRY
     # Execute test catalog source script
     source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}

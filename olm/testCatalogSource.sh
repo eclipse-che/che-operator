@@ -163,7 +163,7 @@ run() {
 
   OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}${QUAY_USERNAME}/che_operator_bundle:0.0.1"
   echo "Try to build images..."
   buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
