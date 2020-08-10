@@ -31,6 +31,5 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-       # todo rework to cron job...
     - name: Build catalog source and opm bundle images
       run: "${GITHUB_WORKSPACE}/.github/action_scripts/build_olm_bundle_images.sh"
