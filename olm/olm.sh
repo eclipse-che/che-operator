@@ -406,13 +406,14 @@ exposeCatalogSource() {
   CATALOG_POD=$(kubectl get pods -n moon44 -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"eclipse-che-preview-kubernetes\")) | .metadata.name")
   kubectl wait --for=condition=ready "pods/${CATALOG_POD}" --timeout=60s -n "${namespace}"
 
-  ## install grpcurl for communitcation with catalog source
+  ## install grpcurl for communication with catalog source
   installGrpCurl
+  retrieveClusterIp
 }
 
 getPreviousCSVInfo() {
   catalogNodePort=$(kubectl get service eclipse-che-preview-kubernetes -n moon44 -o yaml | yq -r '.spec.ports[0].nodePort')
-  previousBundle=$(grpcurl -plaintext "192.168.99.154:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[1]')
+  previousBundle=$(grpcurl -plaintext "${CLUSTER_IP}:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[1]')
   PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
   export PREVIOUS_CSV_NAME
   PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${previousBundle}" | yq -r ".bundlePath")
@@ -421,9 +422,16 @@ getPreviousCSVInfo() {
 
 getLatestCSVInfo() {
   catalogNodePort=$(kubectl get service eclipse-che-preview-kubernetes -n moon44 -o yaml | yq -r '.spec.ports[0].nodePort')
-  latestBundle=$(grpcurl -plaintext "192.168.99.154:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[0]')
+  latestBundle=$(grpcurl -plaintext "${CLUSTER_IP}:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[0]')
   LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
   export LATEST_CSV_NAME
   LATEST_CSV_BUNDLE_IMAGE=$(echo "${latestBundle}" | yq -r ".bundlePath")
   export LATEST_CSV_BUNDLE_IMAGE
+}
+
+# Wide permissions is required.
+retrieveClusterIp() {
+  KUBE_MASTER_URL_INFO=$(kubectl cluster-info | grep "Kubernetes master");
+  CLUSTER_IP=$(echo "${KUBE_MASTER_URL_INFO}" | sed -e 's;.*https://\(.*\):.*;\1;')
+  export CLUSTER_IP
 }
