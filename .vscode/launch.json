@@ -35,6 +35,73 @@
       "args": [
         "kubernetes",
         "stable",
+        "moon44",
+        "Marketplace",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "NIGHTLY and catalog minikube (testCatalogSource.sh)",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "moon44",
+        "catalog",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "testUpdate.sh STABLE (testUpdate.sh)",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "moon44",
+        "Marketplace",
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "MultiBundle test",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogMultiBundle.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "moon44",
+        "catalog",
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "TestUpdate test",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "moon44",
+        "catalog",
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "STABLE TestUpdate test",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "stable",
         "moon44"
       ]
     },

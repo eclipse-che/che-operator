@@ -24,7 +24,6 @@ do
   CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-${platform}-opm-bundles:${nightlyVersion}"
   CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${DOCKER_USERNAME}/eclipse-che-${platform}-opm-catalog"
 
-  # todo remove namespace
   source ${ROOT_PROJECT_DIR}/olm/olm.sh "${platform}" "${nightlyVersion}" "che"
   source ${ROOT_PROJECT_DIR}/olm/incrementNightlyBundles.sh
 

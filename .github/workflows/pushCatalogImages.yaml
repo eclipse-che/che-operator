@@ -10,12 +10,16 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 name: Docker
-on: [pull_request, push]
+on: 
+  schedule
+    - cron:  '20 11 * * *'
+    # '0 21 * * *'
 jobs:
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v1
 
