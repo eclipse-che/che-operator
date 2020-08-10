@@ -56,5 +56,3 @@ getNightlyVersionIncrementPart() {
 
   echo "${incrementPart}"
 }
-
-incrementNightlyVersion

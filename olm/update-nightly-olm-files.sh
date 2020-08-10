@@ -33,7 +33,7 @@ source ${BASE_DIR}/check-yq.sh
 
 if [ -z "${NO_INCREMENT}" ]; then
   source "${BASE_DIR}/incrementNightlyBundles.sh"
-  # incrementNightlyVersion
+  incrementNightlyVersion
 fi
 
 for platform in 'kubernetes' 'openshift'

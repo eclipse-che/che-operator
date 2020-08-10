@@ -44,6 +44,8 @@ installOPM
 buildBundleImage
 
 ${BASE_DIR}/incrementNightlyBundles.sh
+incrementNightlyVersion
+
 platform=kubernetes
 nightlyVersion=$(yq -r ".spec.version" "${CSV}")
 CATALOG_BUNDLE_IMAGE_NAME_LOCAL="docker.io/aandrienko/eclipse-che-operator-${platform}-bundle:${nightlyVersion}"

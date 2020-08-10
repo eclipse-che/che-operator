@@ -211,11 +211,13 @@ buildCatalogImage() {
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
   fi
 
+  pushd  "${ROOT_DIR}" || true
   eval "${OPM_BINARY}" index add --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
        --build-tool docker \
        --mode semver "${BUILD_INDEX_IMAGE_ARG}"
-  # --skip-tls # local registry launched without https
+       # --skip-tls # local registry launched without https
+  popd || true
 
   docker push "${CATALOG_IMAGENAME}"
 }
