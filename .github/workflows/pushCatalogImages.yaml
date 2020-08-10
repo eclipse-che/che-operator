@@ -9,10 +9,10 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-name: Docker
+name: Push catalog and bundle images.
 on: 
-  schedule
-    - cron:  '20 11 * * *'
+  schedule:
+    - cron:  '27 11 * * *'
     # '0 21 * * *'
 jobs:
 
