@@ -13,7 +13,8 @@ name: Push catalog and bundle images.
 on:
   schedule:
     # 2
-    - cron:  '*/5 * * * *'
+    # - cron:  '*/5 * * * *'
+    - cron:  '55 15 * * *'
       branches:
         - master
 
