@@ -12,7 +12,6 @@ pip3 install --upgrade setuptools
 pip3 install yq
 # Make python3 installed modules "visible"
 export PATH=$HOME/.local/bin:$PATH
-ls $HOME/.local/bin
 
 for platform in 'kubernetes' 'openshift'
 do
@@ -34,9 +33,9 @@ do
   incrementPart=$(getNightlyVersionIncrementPart "${nightlyVersion}")
   echo "Nightly increment version ${incrementPart}"
 
-  buildBundleImage ${OPM_BUNDLE_MANIFESTS_DIR} "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
-  if [ ${incrementPart} == 0 ]; then
+  if [ "${incrementPart}" == 0 ]; then
     echo "Build very first bundle."
     buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
   else
