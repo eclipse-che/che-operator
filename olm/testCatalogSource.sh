@@ -153,12 +153,17 @@ run() {
   installOPM
   loginToImageRegistry
 
+  if [ -z "${IMAGE_REGISTRY}" ]; then
+    IMAGE_REGISTRY="quay.io"
+  fi
+  echo "Image registry: ${IMAGE_REGISTRY}"
+
   OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="quay.io/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${QUAY_USERNAME}/che_operator_bundle:0.0.1"
   buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
-  CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/testing_catalog:0.0.1"
+  CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${QUAY_USERNAME}/testing_catalog:0.0.1"
   buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
   createNamespace
