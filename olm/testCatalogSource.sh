@@ -154,7 +154,7 @@ run() {
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
   installOPM
-  loginToImageRegistry
+  # loginToImageRegistry
 
   if [ -z "${IMAGE_REGISTRY}" ]; then
     IMAGE_REGISTRY="quay.io"

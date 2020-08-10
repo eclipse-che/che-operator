@@ -41,17 +41,17 @@ function run() {
     IMAGE_REGISTRY="localhost:5000"
     export IMAGE_REGISTRY
     # Execute test catalog source script
-    source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
+    # source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
 
-    source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+    # source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
-    # Create and start a workspace
-    getCheAcessToken
-    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml 
+    # # Create and start a workspace
+    # getCheAcessToken
+    # chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml 
     
-    getCheAcessToken
-    chectl workspace:list
-    waitWorkspaceStart
+    # getCheAcessToken
+    # chectl workspace:list
+    # waitWorkspaceStart
 }
 
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
@@ -61,4 +61,4 @@ install_VirtPackages
 installStartDocker
 source ${OPERATOR_REPO}/.ci/start-minikube.sh
 installChectl
-# run
+run
