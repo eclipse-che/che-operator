@@ -69,6 +69,9 @@ installLatestCheStable() {
   sed -i "s/pluginRegistryImage: ''/pluginRegistryImage: quay.io\/eclipse\/che-plugin-registry:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
   sed -i "s/identityProviderImage: ''/identityProviderImage: quay.io\/eclipse\/che-keycloak:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
 
+  # set 'openShiftoAuth: false'
+  sed -i "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
+
   # Start last stable version of che
   chectl server:start --platform=minishift --skip-kubernetes-health-check --che-operator-cr-yaml=${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml \
     --che-operator-image=quay.io/eclipse/che-operator:${previousPackageVersion} --installer=operator

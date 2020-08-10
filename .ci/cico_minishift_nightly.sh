@@ -63,14 +63,15 @@ run() {
 spec:
   auth:
     updateAdminPassword: false
+    openShiftoAuth: false
 EOL
 
     self_signed_minishift
-    
+
     echo "======= Che cr patch ======="
-    cat /tmp/che-cr-patch.yaml  
+    cat /tmp/che-cr-patch.yaml
     chectl server:start --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
-    
+
     # Create and start a workspace
     getCheAcessToken # Function from ./util/ci_common.sh
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
