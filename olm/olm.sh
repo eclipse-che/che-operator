@@ -421,6 +421,10 @@ getPreviousCSVInfo() {
   catalogNodePort=$(kubectl get service eclipse-che-preview-kubernetes -n moon44 -o yaml | yq -r '.spec.ports[0].nodePort')
   previousBundle=$(grpcurl -plaintext "${CLUSTER_IP}:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[1]')
   PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
+  if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
+    echo "Error: bundle hasn't go previous bundle."
+    exit 1
+  fi
   export PREVIOUS_CSV_NAME
   PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${previousBundle}" | yq -r ".bundlePath")
   export PREVIOUS_CSV_BUNDLE_IMAGE

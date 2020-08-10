@@ -12,7 +12,7 @@
 
 SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
-BASE_DIR=$(dirname "$SCRIPT_DIR");
+BASE_DIR=$(dirname "$SCRIPT_DIR")/olm;
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 
 source ${BASE_DIR}/olm/check-yq.sh
@@ -50,14 +50,14 @@ init() {
   else
     packageFolderPath="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
     PACKAGE_VERSION="nightly"
-    export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${platform}-opm-catalog:0.0.1"
+    export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${platform}-opm-catalog:0.0.1" #:preview
     INSTALLATION_TYPE="catalog"
   fi
 }
 
 run() {
   # $3 -> namespace
-  source "${BASE_DIR}/olm/olm.sh" "${platform}" "${PACKAGE_VERSION}" "${namespace}" "${INSTALLATION_TYPE}"
+  source "${BASE_DIR}/olm.sh" "${platform}" "${PACKAGE_VERSION}" "${namespace}" "${INSTALLATION_TYPE}"
 
   createNamespace
 
