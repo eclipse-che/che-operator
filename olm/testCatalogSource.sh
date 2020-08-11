@@ -105,13 +105,11 @@ init() {
     eval "$(minikube docker-env)"
 
     # Build operator image
-    local OPERATOR_IMAGE=quay.io/eclipse/che-operator:test
     echo "[INFO]: Build operator image...${OPERATOR_IMAGE}"
-
     cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
     # Use operator image in the latest CSV
-    sed -i 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
+    sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
 
     echo "[INFO]: Starting to build catalog source image..."
 

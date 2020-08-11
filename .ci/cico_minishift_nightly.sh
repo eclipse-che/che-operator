@@ -18,7 +18,6 @@ init() {
   export RAM_MEMORY=8192
   export NAMESPACE="che"
   export PLATFORM="openshift"
-  export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
     OPERATOR_REPO=${WORKSPACE};
@@ -70,8 +69,7 @@ EOL
     self_signed_minishift
 
     # Build operator image
-    eval $(minishift docker-env)
-    cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+    buildCheOperatorImage ${PLATFORM}
 
     echo "======= Che cr patch ======="
     cat /tmp/che-cr-patch.yaml
