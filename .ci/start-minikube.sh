@@ -61,10 +61,17 @@ minikube addons enable registry
 echo "Minikube Addon list"
 minikube addons  list
 
-docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
-docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+docker pull alpine
+docker tag alpine 0.0.0.0:5000/alpine
+docker push 0.0.0.0:5000/alpine
+echo "Test push done!"
+
+exit 0
+# docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
+# docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
 echo "[INFO] List containers:==========="
 docker ps -a
+docker logs 
 # Todo drop socat container after the test...
 
 # waiting for node(s) to be ready
