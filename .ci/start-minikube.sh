@@ -92,6 +92,14 @@ echo "Minikube ip"
 minikube ip
 echo "List services"
 kubectl get service --all-namespaces
+kubectl get service registry -n kube-system -o yaml
+
+IP=$(minikube ip)
+
+docker pull alpine
+docker tag alpine "${IP}:5000/alpine"
+docker push "${IP}:5000/alpine"
+
 # echo "Test push done!"
 
 echo "Minikube start is done!"
