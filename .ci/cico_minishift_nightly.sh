@@ -70,7 +70,7 @@ EOL
     self_signed_minishift
 
     # Build operator image
-    eval "$(minishift -p minishift docker-env)"
+    eval $(minishift docker-env)
     cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
     echo "======= Che cr patch ======="

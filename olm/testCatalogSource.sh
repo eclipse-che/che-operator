@@ -102,7 +102,7 @@ init() {
   if [[ "${PLATFORM}" == "kubernetes" ]]
   then
     echo "[INFO]: Kubernetes platform detected"
-    eval "$(minikube -p minikube docker-env)"
+    eval "$(minikube docker-env)"
 
     # Build operator image
     local OPERATOR_IMAGE=quay.io/eclipse/che-operator:test
