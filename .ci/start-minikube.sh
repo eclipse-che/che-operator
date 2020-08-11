@@ -60,13 +60,6 @@ minikube addons enable registry
 
 echo "Minikube Addon list"
 minikube addons  list
-
-docker pull alpine
-docker tag alpine 0.0.0.0:5000/alpine
-docker push 0.0.0.0:5000/alpine
-echo "Test push done!"
-
-exit 0
 # docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
 # docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
 echo "[INFO] List containers:==========="
@@ -92,4 +85,15 @@ rules:
 
 EOF
 
+# docker pull alpine
+# docker tag alpine 0.0.0.0:5000/alpine
+# docker push 0.0.0.0:5000/alpine
+echo "Minikube ip"
+minikube ip
+echo "List services"
+kubectl get service --all-namespaces
+# echo "Test push done!"
+
 echo "Minikube start is done!"
+
+exit 0
