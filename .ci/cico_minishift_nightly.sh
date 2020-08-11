@@ -18,6 +18,7 @@ init() {
   export RAM_MEMORY=8192
   export NAMESPACE="che"
   export PLATFORM="openshift"
+  export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
     OPERATOR_REPO=${WORKSPACE};
@@ -68,9 +69,13 @@ EOL
 
     self_signed_minishift
 
+    # Build operator image
+    eval "$(minishift -p minishift docker-env)"
+    cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+
     echo "======= Che cr patch ======="
     cat /tmp/che-cr-patch.yaml
-    chectl server:start --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
+    chectl server:start --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
 
     # Create and start a workspace
     getCheAcessToken # Function from ./util/ci_common.sh

@@ -247,7 +247,7 @@ func K8sHandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI)
 		}
 
 		domains := checluster.Spec.K8s.IngressDomain + ",*." + checluster.Spec.K8s.IngressDomain
-		if checluster.Spec.Server.CheHostTLSSecret == "" && strings.Index(checluster.Spec.Server.CheHost, checluster.Spec.K8s.IngressDomain) == -1 {
+		if checluster.Spec.Server.CheHost != "" && strings.Index(checluster.Spec.Server.CheHost, checluster.Spec.K8s.IngressDomain) == -1 && checluster.Spec.Server.CheHostTLSSecret == "" {
 			domains += "," + checluster.Spec.Server.CheHost
 		}
 		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
