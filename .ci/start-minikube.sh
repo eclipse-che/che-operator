@@ -64,7 +64,7 @@ minikube addons  list
 # docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
 echo "[INFO] List containers:==========="
 docker ps -a
-docker logs 
+# docker logs 
 # Todo drop socat container after the test...
 
 # waiting for node(s) to be ready
