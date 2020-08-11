@@ -17,6 +17,7 @@ init() {
   export SCRIPT_DIR=$(dirname "$SCRIPT")
   export RAM_MEMORY=8192
   export NAMESPACE="che"
+  export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
   export PLATFORM="openshift"
 
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
@@ -69,7 +70,13 @@ EOL
     self_signed_minishift
 
     # Build operator image
-    buildCheOperatorImage ${PLATFORM}
+    buildCheOperatorImage "minishift" ${OPERATOR_IMAGE}
+
+    # Use custom changes, don't pull image from quay.io
+    cat ${OPERATOR_REPO}/deploy/operator.yaml | \
+    sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
+    sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
+    oc apply -n ${NAMESPACE} -f -
 
     echo "======= Che cr patch ======="
     cat /tmp/che-cr-patch.yaml

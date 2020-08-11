@@ -36,7 +36,7 @@ installStartDocker() {
     printInfo "Installing docker..."
     yum install --assumeyes -d1 yum-utils device-mapper-persistent-data lvm2
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    
+
     printInfo "Starting docker service..."
     yum install --assumeyes -d1 docker-ce
     systemctl start docker
@@ -86,8 +86,8 @@ buildCheOperatorImage() {
   if [ -z "${1}" ]; then
     printError "Platform is required to build che operator image."
   fi
-  PLATFORM="${1}"
-  OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
+  local PLATFORM="${1}"
+  local OPERATOR_IMAGE=${2:-"quay.io/eclipse/che-operator:nightly"}
   cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
   eval $(${PLATFORM} docker-env) && docker load -i operator.tar && rm operator.tar
 }
@@ -98,7 +98,7 @@ minishift_installation() {
   if [ ! -d "$OPERATOR_REPO/tmp" ]; then mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"; fi
   curl -L https://github.com/minishift/minishift/releases/download/v$MSFT_RELEASE/minishift-$MSFT_RELEASE-linux-amd64.tgz \
     -o ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar && tar -xvf ${OPERATOR_REPO}/tmp/minishift-$MSFT_RELEASE-linux-amd64.tar -C /usr/local/bin --strip-components=1
-  
+
   printInfo "Setting github token and start a new minishift VM."
   github_token_set
   minishift start --memory=8192 && eval $(minishift oc-env)
@@ -115,14 +115,14 @@ generate_self_signed_certs() {
               -out cert.pem \
               -days 365 \
               -subj "/CN=*.${IP_ADDRESS}.nip.io" \
-              -nodes && cat cert.pem key.pem > ca.crt    
+              -nodes && cat cert.pem key.pem > ca.crt
 }
 
 installEpelRelease() {
   if yum repolist | grep epel; then
     printWarn "Epel already installed, skipping instalation."
   else
-    #excluding mirror1.ci.centos.org 
+    #excluding mirror1.ci.centos.org
     printInfo "Installing epel..."
     yum install -d1 --assumeyes epel-release
     yum update --assumeyes -d1
