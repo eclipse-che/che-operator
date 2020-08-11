@@ -96,6 +96,10 @@ kubectl get service registry -n kube-system -o yaml
 
 IP=$(minikube ip)
 
+curl -X GET 0.0.0.0:5000/v2/_catalog || true
+curl -X GET "${IP}:5000/v2/_catalog" || true
+curl -X GET "0.0.0.0/v2/_catalog" || true
+
 docker pull alpine
 docker tag alpine "${IP}:5000/alpine"
 docker push "${IP}:5000/alpine"
