@@ -53,11 +53,11 @@ function run() {
 
     source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
     oc project ${NAMESPACE}
-    
+
     # Create and start a workspace
     getCheAcessToken
-    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml 
-    
+    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+
     getCheAcessToken
     chectl workspace:list
     waitWorkspaceStart

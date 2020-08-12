@@ -36,6 +36,10 @@ export CHANNEL
 NAMESPACE="che"
 export NAMESPACE
 
+# Operator image
+OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
+export OPERATOR_IMAGE
+
 # run function run the tests in ci of custom catalog source.
 function run() {
     IMAGE_REGISTRY="localhost:5000"
@@ -46,13 +50,13 @@ function run() {
 
     # source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
-    # # Create and start a workspace
-    # getCheAcessToken
-    # chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml 
-    
-    # getCheAcessToken
-    # chectl workspace:list
-    # waitWorkspaceStart
+    # Create and start a workspace
+    getCheAcessToken
+    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+
+    getCheAcessToken
+    chectl workspace:list
+    waitWorkspaceStart
 }
 
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh

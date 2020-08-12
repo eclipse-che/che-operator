@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,71 +29,61 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type RouteProvisioningStatus struct {
-	ProvisioningStatus
-	Route *routev1.Route
-}
-
-const (
-	CheRouteName = "che-host"
-)
-
 var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
+}
+var routeWithHostDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
 }
 
 func SyncRouteToCluster(
 	checluster *orgv1.CheCluster,
 	name string,
+	host string,
 	serviceName string,
-	port int32,
-	clusterAPI ClusterAPI) RouteProvisioningStatus {
+	servicePort int32,
+	clusterAPI ClusterAPI) (*routev1.Route, error) {
 
-	specRoute, err := GetSpecRoute(checluster, name, serviceName, port, clusterAPI)
+	specRoute, err := GetSpecRoute(checluster, name, host, serviceName, servicePort, clusterAPI)
 	if err != nil {
-		return RouteProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, err
 	}
 
 	clusterRoute, err := GetClusterRoute(specRoute.Name, specRoute.Namespace, clusterAPI.Client)
 	if err != nil {
-		return RouteProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return nil, err
 	}
 
 	if clusterRoute == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRoute.Kind, specRoute.Name)
 		err := clusterAPI.Client.Create(context.TODO(), specRoute)
-		return RouteProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		if !errors.IsAlreadyExists(err) {
+			return nil, err
 		}
+		return nil, nil
 	}
 
-	diff := cmp.Diff(clusterRoute, specRoute, routeDiffOpts)
+	diffOpts := routeDiffOpts
+	if host != "" {
+		diffOpts = routeWithHostDiffOpts
+	}
+	diff := cmp.Diff(clusterRoute, specRoute, diffOpts)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
 		err := clusterAPI.Client.Delete(context.TODO(), clusterRoute)
 		if err != nil {
-			return RouteProvisioningStatus{
-				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-			}
+			return nil, err
 		}
 
 		err = clusterAPI.Client.Create(context.TODO(), specRoute)
-		return RouteProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
+		return nil, err
 	}
 
-	return RouteProvisioningStatus{
-		ProvisioningStatus: ProvisioningStatus{Continue: true},
-		Route:              clusterRoute,
-	}
+	return clusterRoute, err
 }
 
 // GetClusterRoute returns existing route.
@@ -113,7 +104,14 @@ func GetClusterRoute(name string, namespace string, client runtimeClient.Client)
 }
 
 // GetSpecRoute returns default configuration of a route in Che namespace.
-func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string, port int32, clusterAPI ClusterAPI) (*routev1.Route, error) {
+func GetSpecRoute(
+	checluster *orgv1.CheCluster,
+	name string,
+	host string,
+	serviceName string,
+	servicePort int32,
+	clusterAPI ClusterAPI) (*routev1.Route, error) {
+
 	tlsSupport := checluster.Spec.Server.TlsSupport
 	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
 	weight := int32(100)
@@ -123,7 +121,7 @@ func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string,
 	}
 	targetPort := intstr.IntOrString{
 		Type:   intstr.Int,
-		IntVal: int32(port),
+		IntVal: int32(servicePort),
 	}
 	route := &routev1.Route{
 		TypeMeta: metav1.TypeMeta{
@@ -138,6 +136,7 @@ func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string,
 	}
 
 	route.Spec = routev1.RouteSpec{
+		Host: host,
 		To: routev1.RouteTargetReference{
 			Kind:   "Service",
 			Name:   serviceName,
@@ -152,6 +151,20 @@ func GetSpecRoute(checluster *orgv1.CheCluster, name string, serviceName string,
 		route.Spec.TLS = &routev1.TLSConfig{
 			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 			Termination:                   routev1.TLSTerminationEdge,
+		}
+
+		if name == DefaultCheFlavor(checluster) && checluster.Spec.Server.CheHostTLSSecret != "" {
+			secret := &corev1.Secret{}
+			namespacedName := types.NamespacedName{
+				Namespace: checluster.Namespace,
+				Name:      checluster.Spec.Server.CheHostTLSSecret,
+			}
+			if err := clusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
+				return nil, err
+			}
+
+			route.Spec.TLS.Key = string(secret.Data["tls.key"])
+			route.Spec.TLS.Certificate = string(secret.Data["tls.crt"])
 		}
 	}
 

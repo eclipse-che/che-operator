@@ -17,6 +17,7 @@ init() {
   export SCRIPT_DIR=$(dirname "$SCRIPT")
   export RAM_MEMORY=8192
   export NAMESPACE="che"
+  export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
   export PLATFORM="openshift"
 
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
@@ -63,14 +64,24 @@ run() {
 spec:
   auth:
     updateAdminPassword: false
+    openShiftoAuth: false
 EOL
 
     self_signed_minishift
-    
+
+    # Build operator image
+    buildCheOperatorImage "minishift" ${OPERATOR_IMAGE}
+
+    # Use custom changes, don't pull image from quay.io
+    cat ${OPERATOR_REPO}/deploy/operator.yaml | \
+    sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
+    sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
+    oc apply -n ${NAMESPACE} -f -
+
     echo "======= Che cr patch ======="
-    cat /tmp/che-cr-patch.yaml  
-    chectl server:start --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
-    
+    cat /tmp/che-cr-patch.yaml
+    chectl server:start --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
+
     # Create and start a workspace
     getCheAcessToken # Function from ./util/ci_common.sh
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml

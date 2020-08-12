@@ -38,14 +38,14 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 	if !checluster.Spec.Server.ExternalDevfileRegistry {
 		var host string
 		if !util.IsOpenShift {
-			ingressStatus := SyncIngressToCluster(checluster, DevfileRegistry, DevfileRegistry, 8080, clusterAPI)
+			ingress, err := SyncIngressToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
 			if !util.IsTestMode() {
-				if !ingressStatus.Continue {
+				if ingress == nil {
 					logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
-					if ingressStatus.Err != nil {
-						logrus.Error(ingressStatus.Err)
+					if err != nil {
+						logrus.Error(err)
 					}
-					return false, ingressStatus.Err
+					return false, err
 				}
 			}
 
@@ -56,20 +56,20 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 				host = checluster.Spec.K8s.IngressDomain + "/" + DevfileRegistry
 			}
 		} else {
-			routeStatus := SyncRouteToCluster(checluster, DevfileRegistry, DevfileRegistry, 8080, clusterAPI)
+			route, err := SyncRouteToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
 			if !util.IsTestMode() {
-				if !routeStatus.Continue {
+				if route == nil {
 					logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)
-					if routeStatus.Err != nil {
-						logrus.Error(routeStatus.Err)
+					if err != nil {
+						logrus.Error(err)
 					}
 
-					return false, routeStatus.Err
+					return false, err
 				}
 			}
 
 			if !util.IsTestMode() {
-				host = routeStatus.Route.Spec.Host
+				host = route.Spec.Host
 			}
 		}
 

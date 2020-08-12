@@ -107,8 +107,17 @@ init() {
   # 3.CRC: To run in our Code Ready Container Cluster we need have installed podman and running crc cluster...
   if [[ "${PLATFORM}" == "kubernetes" ]]
   then
-    echo "[INFO]: Kubernetes platform detected. Starting to build catalog source image..."
-    eval "$(minikube -p minikube docker-env)"
+    echo "[INFO]: Kubernetes platform detected"
+    eval "$(minikube docker-env)"
+
+    # Build operator image
+    echo "[INFO]: Build operator image...${OPERATOR_IMAGE}"
+    cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+
+    # Use operator image in the latest CSV
+    sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
+
+    echo "[INFO]: Starting to build catalog source image..."
 
     # docker build -t ${CATALOG_SOURCE_IMAGE} -f "${ROOT_DIR}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
     # "${ROOT_DIR}"/eclipse-che-preview-"${PLATFORM}"
