@@ -408,14 +408,21 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"cheFlavor": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Flavor of the installation. This is either `che` for upstream Che installations, or `codeready` for CodeReady Workspaces installation. In most cases the default value should not be overriden.",
+							Description: "Flavor of the installation. This is either `che` for upstream Che installations, or `codeready` for CodeReady Workspaces installation. In most cases the default value should not be overridden.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"cheHost": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Public hostname of the installed Che server. This will be automatically set by the operator. In most cases the default value set by the operator should not be overriden.",
+							Description: "Public hostname of the installed Che server. If value is omitted then it will be automatically set by the operator. (see the `cheHostTLSSecret` field).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"cheHostTLSSecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of a secret containing certificates to secure ingress/route for the custom hostname of the installed Che server. (see the `cheHost` field).",
 							Type:        []string{"string"},
 							Format:      "",
 						},

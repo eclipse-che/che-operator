@@ -1,0 +1,24 @@
+--- /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1596725014/eclipse-che-preview-kubernetes.crd.yaml	2020-08-10 14:11:43.425472338 +0300
++++ /home/tolusha/gocode/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1597060381/eclipse-che-preview-kubernetes.crd.yaml	2020-08-10 14:53:02.242181280 +0300
+@@ -284,12 +284,17 @@
+                 cheFlavor:
+                   description: Flavor of the installation. This is either `che` for
+                     upstream Che installations, or `codeready` for CodeReady Workspaces
+-                    installation. In most cases the default value should not be overriden.
++                    installation. In most cases the default value should not be overridden.
+                   type: string
+                 cheHost:
+-                  description: Public hostname of the installed Che server. This will
+-                    be automatically set by the operator. In most cases the default
+-                    value set by the operator should not be overriden.
++                  description: Public hostname of the installed Che server. If value
++                    is omitted then it will be automatically set by the operator.
++                    (see the `cheHostTLSSecret` field).
++                  type: string
++                cheHostTLSSecret:
++                  description: Name of a secret containing certificates to secure
++                    ingress/route for the custom hostname of the installed Che server.
++                    (see the `cheHost` field).
+                   type: string
+                 cheImage:
+                   description: Overrides the container image used in Che deployment.
