@@ -40,11 +40,11 @@ export NAMESPACE
 OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
 export OPERATOR_IMAGE
 
+IMAGE_REGISTRY="0.0.0.0:5000"
+export IMAGE_REGISTRY
+
 # run function run the tests in ci of custom catalog source.
 function run() {
-    IMAGE_REGISTRY="0.0.0.0:5000"
-    # QUAY_USERNAME="default"
-    export IMAGE_REGISTRY
     # Execute test catalog source script
     source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
 
@@ -64,9 +64,8 @@ function setPrivateRegistryForDocker {
     mkdir -p "/etc/docker"
     sudo touch "${dockerDaemonConfig}"
 
-    config='{"insecure-registries" : ["0.0.0.0:5000"]}'
+    config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY}\"]}"
     echo "${config}" | sudo tee "${dockerDaemonConfig}"
-    cat "${dockerDaemonConfig}"
 }
 
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh

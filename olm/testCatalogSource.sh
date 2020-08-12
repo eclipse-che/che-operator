@@ -14,13 +14,15 @@
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-# Detect the base directory where che-operator is cloned
-SCRIPT=$(readlink -f "$0")
-export SCRIPT
+if [ -z "${OPERATOR_REPO}" ]; then
+  # Detect the base directory where che-operator is cloned
+  SCRIPT=$(readlink -f "$0")
+  export SCRIPT
 
-ROOT_DIR=$(dirname "$(dirname "$SCRIPT")");
-OLM_DIR="${ROOT_DIR}/olm"
-export ROOT_DIR
+  OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
+  OLM_DIR="${OPERATOR_REPO}/olm"
+  export OPERATOR_REPO
+fi
 
 # Function which will print all arguments need it to run this script
 printHelp() {
@@ -32,7 +34,7 @@ printHelp() {
 	echo '    INSTALLATION_TYPE        - Olm tests now includes two types of installation: Catalog source and marketplace'
 	echo '    CATALOG_SOURCE_IMAGE     - Image name used to create a catalog source in cluster'
   echo ''
-  echo 'EXAMPLE of running: ${ROOT_DIR}/olm/testCatalogSource.sh crc nightly che catalog my_image_name'
+  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh crc nightly che catalog my_image_name'
   echo ''
   echo -e "${GREEN}!!!ATTENTION!!! To run in your local machine the script, please change PLATFORM VARIABLE to crc"
   echo -e "${GREEN} olm test in CRC cluster.${NC}"
@@ -98,7 +100,7 @@ init() {
   fi
 
   if [ "${CHANNEL}" == "nightly" ]; then
-    CLUSTER_SERVICE_VERSION="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
+    CLUSTER_SERVICE_VERSION="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
     PACKAGE_VERSION=$(yq -r ".spec.version" "${CLUSTER_SERVICE_VERSION}")
   else
     PACKAGE_FILE_PATH="${PACKAGE_FOLDER_PATH}/${PACKAGE_NAME}.package.yaml"
@@ -124,8 +126,8 @@ init() {
 
     echo "[INFO]: Starting to build catalog source image..."
 
-    # docker build -t ${CATALOG_SOURCE_IMAGE} -f "${ROOT_DIR}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
-    # "${ROOT_DIR}"/eclipse-che-preview-"${PLATFORM}"
+    # docker build -t ${CATALOG_SOURCE_IMAGE} -f "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
+    # "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"
 
     minikube addons enable ingress
     echo "[INFO]: Successfully created catalog cource container image and enabled minikube ingress."
@@ -146,8 +148,8 @@ init() {
     IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
     podman login -u kubeadmin -p $(oc whoami -t) ${IMAGE_REGISTRY_HOST} --tls-verify=false
 
-    podman build -t ${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE} -f "${ROOT_DIR}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
-        "${ROOT_DIR}"/eclipse-che-preview-"${PLATFORM}"
+    podman build -t ${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE} -f "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
+        "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"
     podman push ${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE}:latest --tls-verify=false
 
     # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
@@ -171,7 +173,7 @@ run() {
   
   loginToImageRegistry
 
-  OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+  OPM_BUNDLE_DIR="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
   CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${QUAY_USERNAME}che_operator_bundle:0.0.1"
   echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
