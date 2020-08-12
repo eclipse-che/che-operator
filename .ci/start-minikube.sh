@@ -113,8 +113,8 @@ kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -
 kubectl logs "${REGISTRY_PROXY_POD}" -n kube-system || true
 echo "[INFO] Push test image...."
 docker pull alpine
-docker tag alpine "${IP}:5000/alpine"
-docker push "${IP}:5000/alpine"
+docker tag alpine "0.0.0.0:5000/alpine"
+docker push "0.0.0.0:5000/alpine"
 echo "[INFO] Test push done!"
 
 echo "Minikube start is done!"
