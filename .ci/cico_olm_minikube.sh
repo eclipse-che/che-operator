@@ -66,6 +66,7 @@ function setPrivateRegistryForDocker {
 
     config='{"insecure-registries" : ["0.0.0.0:5000"]}'
     echo "${config}" | sudo tee "${dockerDaemonConfig}"
+    cat "${dockerDaemonConfig}"
 }
 
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
