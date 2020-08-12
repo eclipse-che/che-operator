@@ -52,20 +52,7 @@ minikube version
 # minikube start
 minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver.authorization-mode=RBAC
 
-# Add minikube ingress
-minikube addons enable ingress
 
-echo "[INFO] Enable registry addon."
-minikube addons enable registry
-
-echo "Minikube Addon list"
-minikube addons  list
-# docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
-# docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
-echo "[INFO] List containers:==========="
-docker ps -a
-# docker logs 
-# Todo drop socat container after the test...
 
 # waiting for node(s) to be ready
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
@@ -85,27 +72,50 @@ rules:
 
 EOF
 
-# docker pull alpine
-# docker tag alpine 0.0.0.0:5000/alpine
-# docker push 0.0.0.0:5000/alpine
-echo "Minikube ip"
-minikube ip
-echo "List services"
+# Add minikube ingress
+minikube addons enable ingress
+
+echo "[INFO] Enable registry addon."
+minikube addons enable registry
+
+sleep 7
+
+echo "Minikube Addon list"
+minikube addons  list
+
+# docker rm -f "$(docker ps -aq --filter "name=minikube-socat")" || true
+# docker run --detach --rm --name="minikube-socat" --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+# Todo drop socat container after the test...
+echo "[INFO] List containers:==========="
+docker ps -a
+echo "=================================="
+
+IP=$(minikube ip)
+echo "[INFO] ================Minikube ip: ${IP}"
+
+echo "[INFO] ================List services"
 kubectl get service --all-namespaces
 kubectl get service registry -n kube-system -o yaml
 
-IP=$(minikube ip)
-
+# Ping private image registry...
 curl -X GET 0.0.0.0:5000/v2/_catalog || true
 curl -X GET "${IP}:5000/v2/_catalog" || true
-curl -X GET "0.0.0.0/v2/_catalog" || true
 
-docker pull alpine
-docker tag alpine "${IP}:5000/alpine"
-docker push "${IP}:5000/alpine"
+uname -a
+echo "[INFO] List pods in the kube-system namespace"
+kubectl get pod -n kube-system
 
+echo "[INFO] Trying to get pod name of the registry proxy..."
+REGISTRY_PROXY_POD=$(kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
+echo "[INFO] So proxy pod name is ${REGISTRY_PROXY_POD}"
+echo "[INFO] Ok, let's take a look, what is going on inside registry proxy pod"
+kubectl logs "${REGISTRY_PROXY_POD}" -n kube-system || true
+# docker pull alpine
+# docker tag alpine "${IP}:5000/alpine"
+# docker push "${IP}:5000/alpine"
 # echo "Test push done!"
 
 echo "Minikube start is done!"
 
+# Temp.
 exit 0
