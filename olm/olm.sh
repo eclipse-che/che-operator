@@ -138,11 +138,10 @@ applyCheOperatorInstallationSource() {
 }
 
 loginToImageRegistry() {
-  minikube addons  list
-
-  exit 1
-
-  docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "quay.io"
+  # Todo rename QUAY_USERNAME to IMAGE_REGISTRY_USERNAME, and QUAY_PASSWORD the same.
+  if [ -n "${QUAY_USERNAME}" ] && [ -n "${QUAY_PASSWORD}" ] && [ -n "${IMAGE_REGISTRY}" ]; then
+    docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${IMAGE_REGISTRY}"
+  fi
 }
 
 buildBundleImage() {

@@ -82,6 +82,11 @@ fi
 CATALOG_SOURCE_IMAGE=$5
 
 init() {
+  if [ -z "${IMAGE_REGISTRY}" ]; then
+    echo "[ERROR] Image registry env 'IMAGE_REGISTRY' is an empty."
+    exit 1
+  fi
+
   # GET the package version to apply. In case of CRC we should detect somehow the platform is openshift to get packageversion
   if [[ "${PLATFORM}" == "crc" ]]
   then
@@ -157,22 +162,23 @@ init() {
 }
 
 run() {
-  if [ -z "${IMAGE_REGISTRY}" ]; then
-    IMAGE_REGISTRY="quay.io"
-    echo "Image registry: ${IMAGE_REGISTRY}"
+  if [ -n "${QUAY_USERNAME}" ]; then
+    QUAY_USERNAME="${QUAY_USERNAME}/"
   fi
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
   installOPM
-  # loginToImageRegistry
+  
+  loginToImageRegistry
 
   OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/che_operator_bundle:0.0.1"
-  echo "Try to build images..."
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${QUAY_USERNAME}che_operator_bundle:0.0.1"
+  echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
   buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
-  CATALOG_IMAGENAME="${IMAGE_REGISTRY}/testing_catalog:0.0.1"
+  CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${QUAY_USERNAME}testing_catalog:0.0.1"
+  echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
   buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
 
   createNamespace

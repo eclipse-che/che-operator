@@ -42,7 +42,7 @@ export OPERATOR_IMAGE
 
 # run function run the tests in ci of custom catalog source.
 function run() {
-    IMAGE_REGISTRY="localhost:5000"
+    IMAGE_REGISTRY="0.0.0.0:5000"
     # QUAY_USERNAME="default"
     export IMAGE_REGISTRY
     # Execute test catalog source script
