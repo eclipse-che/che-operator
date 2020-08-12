@@ -61,7 +61,7 @@ function run() {
 
 function setPrivateRegistryForDocker {
     dockerDaemonConfig="/etc/docker/daemon.json"
-    sudo touch "${dockerDaemonConfig}"
+    # sudo touch "${dockerDaemonConfig}"
     config='{"insecure-registries" : ["0.0.0.0:5000"]}'
     echo "${config}" | sudo tee "${dockerDaemonConfig}"
 }
