@@ -109,6 +109,7 @@ echo "[INFO] Trying to get pod name of the registry proxy..."
 REGISTRY_PROXY_POD=$(kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
 echo "[INFO] So proxy pod name is ${REGISTRY_PROXY_POD}"
 echo "[INFO] Ok, let's take a look, what is going on inside registry proxy pod"
+kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "kube-system" || true
 kubectl logs "${REGISTRY_PROXY_POD}" -n kube-system || true
 # docker pull alpine
 # docker tag alpine "${IP}:5000/alpine"
