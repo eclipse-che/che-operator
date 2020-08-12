@@ -59,11 +59,21 @@ function run() {
     waitWorkspaceStart
 }
 
+function setPrivateRegistryForDocker {
+    dockerDaemonConfig="/etc/docker/daemon.json"
+    sudo touch "${dockerDaemonConfig}"
+    config='{"insecure-registries" : ["0.0.0.0:5000"]}'
+    echo "${config}" | sudo tee "${dockerDaemonConfig}"
+}
+
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 installYQ
 installJQ
 install_VirtPackages
+# Docker should trust minikube private registry provided by "registry" addon
+setPrivateRegistryForDocker
 installStartDocker
+
 source ${OPERATOR_REPO}/.ci/start-minikube.sh
 installChectl
 run
