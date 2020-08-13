@@ -94,6 +94,10 @@ init() {
     exit 1
   fi
 
+  echo "${IMAGE_REGISTRY}"
+  echo "Done!"
+  exit 0
+
   # GET the package version to apply. In case of CRC we should detect somehow the platform is openshift to get packageversion
   if [[ "${PLATFORM}" == "crc" ]]
   then
@@ -204,8 +208,6 @@ run() {
 }
 
 
-echo "Done"
-exit 0
 init
-run
+# run
 echo "[INFO] Done."
