@@ -189,24 +189,6 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 									corev1.ResourceMemory: resource.MustParse(memLimit),
 								},
 							},
-							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/api/system/state",
-										Port: intstr.IntOrString{
-											Type:   intstr.Int,
-											IntVal: int32(8080),
-										},
-										Scheme: corev1.URISchemeHTTP,
-									},
-								},
-								// After POD start, don't initiate liveness probe while the POD is still expected to be declared as ready by the readiness probe
-								InitialDelaySeconds: 200,
-								FailureThreshold:    3,
-								TimeoutSeconds:      3,
-								PeriodSeconds:       10,
-								SuccessThreshold:    1,
-							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -285,7 +267,7 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 			}}
 	}
 
-	// configure readiness probe if debug isn't set
+	// configure probes if debug isn't set
 	cheDebug := util.GetValue(checluster.Spec.Server.CheDebug, DefaultCheDebug)
 	if cheDebug != "true" {
 		deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
@@ -304,6 +286,24 @@ func getSpecCheDeployment(checluster *orgv1.CheCluster, cmResourceVersion string
 			InitialDelaySeconds: 25,
 			FailureThreshold:    18,
 			TimeoutSeconds:      5,
+			PeriodSeconds:       10,
+			SuccessThreshold:    1,
+		}
+		deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/api/system/state",
+					Port: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(8080),
+					},
+					Scheme: corev1.URISchemeHTTP,
+				},
+			},
+			// After POD start, don't initiate liveness probe while the POD is still expected to be declared as ready by the readiness probe
+			InitialDelaySeconds: 200,
+			FailureThreshold:    3,
+			TimeoutSeconds:      3,
 			PeriodSeconds:       10,
 			SuccessThreshold:    1,
 		}
