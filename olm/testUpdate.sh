@@ -10,12 +10,12 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-SCRIPT=$(readlink -f "$0")
-SCRIPT_DIR=$(dirname "$SCRIPT")
-BASE_DIR=$(dirname "$SCRIPT_DIR")/olm;
-ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
+if [ -z "${OPERATOR_REPO}" ]; then
+  SCRIPT=$(readlink -f "$0")
+  OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
+fi
 
-source ${BASE_DIR}/olm/check-yq.sh
+source ${OPERATOR_REPO}/olm/check-yq.sh
 
 platform=$1
 if [ "${platform}" == "" ]; then
@@ -38,7 +38,7 @@ fi
 init() {
   if [ "${channel}" == "stable" ]; then
     packageName=eclipse-che-preview-${platform}
-    platformPath=${BASE_DIR}/olm/${packageName}
+    platformPath=${OPERATOR_REPO}/olm/${packageName}
     packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
     packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
 
@@ -48,7 +48,7 @@ init() {
     PACKAGE_VERSION=$(echo "${PREVIOUS_CSV_NAME}" | sed -e "s/${packageName}.v//")
     INSTALLATION_TYPE="Marketplace"
   else
-    packageFolderPath="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+    packageFolderPath="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
     PACKAGE_VERSION="nightly"
     export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${platform}-opm-catalog:0.0.1" #:preview
     INSTALLATION_TYPE="catalog"
@@ -57,7 +57,7 @@ init() {
 
 run() {
   # $3 -> namespace
-  source "${BASE_DIR}/olm.sh" "${platform}" "${PACKAGE_VERSION}" "${namespace}" "${INSTALLATION_TYPE}"
+  source "${OPERATOR_REPO}/olm/olm.sh" "${platform}" "${PACKAGE_VERSION}" "${namespace}" "${INSTALLATION_TYPE}"
 
   createNamespace
 

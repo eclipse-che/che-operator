@@ -20,7 +20,7 @@ readlink -f "$0"
 if [ -z "${OPERATOR_REPO}" ]; then
   # Detect the base directory where che-operator is cloned
   SCRIPT=$(readlink -f "$0")
-  export SCRIPT
+  export SCRIPT # do we need to export it?
 
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
 fi
