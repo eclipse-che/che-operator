@@ -12,10 +12,13 @@ set -e
 # Detect the base directory where che-operator is cloned
 SCRIPT=$(readlink -f "$0")
 export SCRIPT
+echo "Script dir: ${SCRIPT}"
 
 OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
 export OPERATOR_REPO
+echo "Operator repo: ${OPERATOR_REPO}"
 
+exit 0
 # Container image name of Catalog source
 CATALOG_SOURCE_IMAGE=my_image
 export CATALOG_SOURCE_IMAGE
