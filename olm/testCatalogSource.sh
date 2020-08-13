@@ -15,7 +15,7 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 echo "===================PATH to compare"
-$(readlink -f "$0")
+readlink -f "$0"
 
 if [ -z "${OPERATOR_REPO}" ]; then
   # Detect the base directory where che-operator is cloned
@@ -177,9 +177,6 @@ run() {
     QUAY_USERNAME="${QUAY_USERNAME}/"
   fi
 
-  echo "Done"
-  exit 0
-
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
   installOPM
@@ -206,6 +203,9 @@ run() {
   waitCheServerDeploy
 }
 
+
+echo "Done"
+exit 0
 init
 run
 echo "[INFO] Done."
