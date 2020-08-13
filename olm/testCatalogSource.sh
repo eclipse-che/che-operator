@@ -20,9 +20,11 @@ if [ -z "${OPERATOR_REPO}" ]; then
   export SCRIPT
 
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
-  OLM_DIR="${OPERATOR_REPO}/olm"
-  export OPERATOR_REPO
 fi
+echo "Operator repo path is ${OPERATOR_REPO}"
+
+OLM_DIR="${OPERATOR_REPO}/olm"
+export OPERATOR_REPO
 
 # Function which will print all arguments need it to run this script
 printHelp() {
@@ -119,7 +121,7 @@ init() {
 
     # Build operator image
     echo "[INFO]: Build operator image...${OPERATOR_IMAGE}"
-    cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+    cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
     # Use operator image in the latest CSV
     sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"

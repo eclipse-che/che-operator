@@ -51,12 +51,12 @@ function run() {
     # source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
     # Create and start a workspace
-    getCheAcessToken
-    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+    # getCheAcessToken
+    # chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
-    getCheAcessToken
-    chectl workspace:list
-    waitWorkspaceStart
+    # getCheAcessToken
+    # chectl workspace:list
+    # waitWorkspaceStart
 }
 
 function setPrivateRegistryForDocker {
