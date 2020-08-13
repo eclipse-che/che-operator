@@ -14,6 +14,9 @@
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+echo "===================PATH to compare"
+$(readlink -f "$0")
+
 if [ -z "${OPERATOR_REPO}" ]; then
   # Detect the base directory where che-operator is cloned
   SCRIPT=$(readlink -f "$0")
@@ -102,8 +105,8 @@ init() {
   fi
 
   if [ "${CHANNEL}" == "nightly" ]; then
-    CLUSTER_SERVICE_VERSION="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
-    PACKAGE_VERSION=$(yq -r ".spec.version" "${CLUSTER_SERVICE_VERSION}")
+    CLUSTER_SERVICE_VERSION_FILE="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
+    PACKAGE_VERSION=$(yq -r ".spec.version" "${CLUSTER_SERVICE_VERSION_FILE}")
   else
     PACKAGE_FILE_PATH="${PACKAGE_FOLDER_PATH}/${PACKAGE_NAME}.package.yaml"
     CLUSTER_SERVICE_VERSION=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${PACKAGE_FILE_PATH}")
@@ -124,7 +127,11 @@ init() {
     cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
     # Use operator image in the latest CSV
-    sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
+    if [ "${CHANNEL}" == "nightly" ]; then
+      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
+    else
+      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
+    fi
 
     echo "[INFO]: Starting to build catalog source image..."
 
