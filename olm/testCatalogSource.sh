@@ -95,8 +95,6 @@ init() {
   fi
 
   echo "${IMAGE_REGISTRY}"
-  echo "Done!"
-  exit 0
 
   # GET the package version to apply. In case of CRC we should detect somehow the platform is openshift to get packageversion
   if [[ "${PLATFORM}" == "crc" ]]
@@ -132,9 +130,9 @@ init() {
 
     # Use operator image in the latest CSV
     if [ "${CHANNEL}" == "nightly" ]; then
-      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
-    else
       sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
+    else
+      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
     fi
 
     echo "[INFO]: Starting to build catalog source image..."
@@ -209,5 +207,5 @@ run() {
 
 
 init
-# run
+run
 echo "[INFO] Done."
