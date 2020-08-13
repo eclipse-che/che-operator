@@ -176,6 +176,10 @@ run() {
   if [ -n "${QUAY_USERNAME}" ]; then
     QUAY_USERNAME="${QUAY_USERNAME}/"
   fi
+
+  echo "Done"
+  exit 0
+
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
   installOPM
