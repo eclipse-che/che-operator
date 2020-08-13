@@ -284,12 +284,17 @@ spec:
                 cheFlavor:
                   description: Flavor of the installation. This is either `che` for
                     upstream Che installations, or `codeready` for CodeReady Workspaces
-                    installation. In most cases the default value should not be overriden.
+                    installation. In most cases the default value should not be overridden.
                   type: string
                 cheHost:
-                  description: Public hostname of the installed Che server. This will
-                    be automatically set by the operator. In most cases the default
-                    value set by the operator should not be overriden.
+                  description: Public hostname of the installed Che server. If value
+                    is omitted then it will be automatically set by the operator.
+                    (see the `cheHostTLSSecret` field).
+                  type: string
+                cheHostTLSSecret:
+                  description: Name of a secret containing certificates to secure
+                    ingress/route for the custom hostname of the installed Che server.
+                    (see the `cheHost` field).
                   type: string
                 cheImage:
                   description: Overrides the container image used in Che deployment.
