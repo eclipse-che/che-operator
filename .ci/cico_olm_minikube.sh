@@ -50,7 +50,7 @@ function run() {
 
     source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
-    Create and start a workspace
+    # Create and start a workspace
     getCheAcessToken
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
