@@ -264,14 +264,14 @@ installOperatorMarketPlace() {
     if [ -z "${olmApiGroups[*]}" ]; then
       olmVersion=0.15.1
       curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/"${olmVersion}"/install.sh | bash -s "${olmVersion}"
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/01_namespace.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/03_operatorsource.crd.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/04_service_account.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/05_role.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/06_role_binding.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/01_namespace.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/03_operatorsource.crd.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/04_service_account.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/05_role.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/06_role_binding.yaml
       sleep 1
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/07_upstream_operatorsource.cr.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/master/deploy/upstream/08_operator.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/07_upstream_operatorsource.cr.yaml
+      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/release-4.5/deploy/upstream/08_operator.yaml
       echo "Done"
     fi
 
