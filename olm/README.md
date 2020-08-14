@@ -78,4 +78,4 @@ test script in the olm folder:
 $ ./testCatalogSource.sh {platform} ${channel} ${namespace}
 ```
 
-This scripts should install che-operator using OLM and check that the Che server was deployed.
+This script should install che-operator using OLM and check that the Che server was deployed.
