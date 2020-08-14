@@ -1,0 +1,10 @@
+mkdir -p /usr/local/lib
+cd /usr/local/lib
+rm -rf chectl
+rm -rf ~/.local/share/chectl/client
+curl -fsSL https://che-incubator.github.io/chectl/download-link/next-linux-x64
+curl -#fSL https://github.com/che-incubator/chectl/releases/download/20200812113821/chectl-linux-x64.tar.gz | tar xz
+rm -f /usr/local/bin/chectl || true
+rm -f /usr/local/bin/chectl
+ln -s /usr/local/lib/chectl/bin/chectl /usr/local/bin/chectl
+/usr/local/lib/chectl/bin/node -v > /dev/null 2>&1 || rm /usr/local/lib/chectl/bin/node

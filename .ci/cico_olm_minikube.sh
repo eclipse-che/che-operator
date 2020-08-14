@@ -62,10 +62,15 @@ function run() {
 function setPrivateRegistryForDocker {
     dockerDaemonConfig="/etc/docker/daemon.json"
     mkdir -p "/etc/docker"
-    sudo touch "${dockerDaemonConfig}"
+    touch "${dockerDaemonConfig}"
 
     config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY}\"]}"
     echo "${config}" | sudo tee "${dockerDaemonConfig}"
+
+    if [ -x "$(command -v docker)" ]; then
+        echo "[INFO] Restart docker daemon to set up private registry info."
+        systemctl restart docker
+    fi
 }
 
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
