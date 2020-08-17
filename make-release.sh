@@ -21,6 +21,7 @@ init() {
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
+  UPDATE_NIGHTLY_OLM_FILES=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -32,6 +33,7 @@ init() {
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
+      '--update-nightly-olm-files') UPDATE_NIGHTLY_OLM_FILES=true; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -244,7 +246,9 @@ createPRToMasterBranch() {
 run() {
   checkoutToReleaseBranch
   releaseOperatorCode
-  updateNightlyOlmFiles
+  if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
+    updateNightlyOlmFiles
+  fi
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
