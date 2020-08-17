@@ -278,7 +278,7 @@ installOperatorMarketPlace() {
       kubectl apply -f -
     fi
 
-    applyCheOperatorSource
+    applyCheOperatorInstallationSource
 
     i=0
     while [ $i -le 240 ]
