@@ -220,7 +220,7 @@ buildCatalogImage() {
        --build-tool docker \
        --mode semver "${BUILD_INDEX_IMAGE_ARG}" \
        --skip-tls
-       # --skip-tls # local registry launched without https
+
   popd || true
 
   docker push "${CATALOG_IMAGENAME}"
