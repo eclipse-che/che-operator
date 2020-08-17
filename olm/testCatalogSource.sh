@@ -88,14 +88,12 @@ fi
 # Assign catalog source image
 CATALOG_SOURCE_IMAGE=$5
 
+if [ -z "${IMAGE_REGISTRY}" ]; then
+  IMAGE_REGISTRY="quay.io"
+  echo "[INFO] Image registry env 'IMAGE_REGISTRY' is an empty. Set default value: '${IMAGE_REGISTRY}'"
+fi
+
 init() {
-  if [ -z "${IMAGE_REGISTRY}" ]; then
-    echo "[ERROR] Image registry env 'IMAGE_REGISTRY' is an empty."
-    exit 1
-  fi
-
-  echo "${IMAGE_REGISTRY}"
-
   # GET the package version to apply. In case of CRC we should detect somehow the platform is openshift to get packageversion
   if [[ "${PLATFORM}" == "crc" ]]
   then
@@ -125,14 +123,16 @@ init() {
     eval "$(minikube docker-env)"
 
     # Build operator image
-    echo "[INFO]: Build operator image...${OPERATOR_IMAGE}"
-    cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+    if [ -n "${OPERATOR_IMAGE}" ];then 
+      echo "[INFO]: Build operator image ${OPERATOR_IMAGE}..."
+      cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
-    # Use operator image in the latest CSV
-    if [ "${CHANNEL}" == "nightly" ]; then
-      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
-    else
-      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
+      # Use operator image in the latest CSV
+      if [ "${CHANNEL}" == "nightly" ]; then
+        sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
+      else
+        sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
+      fi    
     fi
 
     echo "[INFO]: Starting to build catalog source image..."
@@ -207,4 +207,4 @@ run() {
 
 init
 run
-echo "[INFO] Done."
+echo -e "\u001b[32m Done. \u001b[0m"
