@@ -78,7 +78,7 @@ const (
 
 	DefaultServerExposureStrategy              = "multi-host"
 	DefaultSingleHostWorkspaceExposureType     = "native"
-	DefaultSingleHostGatewayImage              = "traefik:v2.2.8"
+	DefaultSingleHostGatewayImage              = "docker.io/traefik:v2.2.8"
 	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:latest"
 
 	// This is only to correctly  manage defaults during the transition
