@@ -1,0 +1,35 @@
+--- /home/user/GoWorkSpace/src/github.com/eclipse/che-operator-eclipse/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1597060382/eclipse-che-preview-openshift.v9.9.9-nightly.1597060382.clusterserviceversion.yaml	2020-08-17 09:18:42.643953771 +0300
++++ /home/user/GoWorkSpace/src/github.com/eclipse/che-operator-eclipse/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1597748467/eclipse-che-preview-openshift.v9.9.9-nightly.1597748467.clusterserviceversion.yaml	2020-08-18 14:01:08.950629331 +0300
+@@ -49,13 +49,13 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-08-10T11:53:02Z"
++    createdAt: "2020-08-18T11:01:07Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1597060382
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1597748467
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -316,6 +316,8 @@
+                         value: che-postgres-secret
+                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+                         value: ca-certs
++                      - name: TEST
++                        value: TEST
+                     image: quay.io/eclipse/che-operator:nightly
+                     imagePullPolicy: Always
+                     name: che-operator
+@@ -431,5 +433,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1596725015
+-  version: 9.9.9-nightly.1597060382
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1597060382
++  version: 9.9.9-nightly.1597748467
