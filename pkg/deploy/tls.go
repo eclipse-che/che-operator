@@ -108,8 +108,9 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		return nil, stderrors.New("Not allowed for tests")
 	}
 
+	var isTestRoute bool = len(endpointURL) < 1
 	var requestURL string
-	if len(endpointURL) < 1 {
+	if isTestRoute {
 		// Create test route to get certificates chain.
 		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
 		routeSpec, err := GetSpecRoute(instance, "test", "", "test", 8080, clusterAPI)
@@ -149,9 +150,10 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		requestURL = endpointURL
 	}
 
-	// Adding the proxy settings to the Transport object
 	transport := &http.Transport{}
-	if proxy.HttpProxy != "" {
+	// Adding the proxy settings to the Transport object.
+	// However, in case of test route we need to reach cluter directly in order to get the right certificate.
+	if proxy.HttpProxy != "" && !isTestRoute {
 		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", proxy.HttpProxy, requestURL)
 		ConfigureProxy(instance, transport, proxy)
 	}
