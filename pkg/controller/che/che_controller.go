@@ -99,6 +99,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := configv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift Config to scheme: %s", err)
 		}
+		if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
+		}
 		if hasConsolelinkObject() {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
@@ -234,6 +237,7 @@ const (
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	deployContext := deploy.Context{}
 	clusterAPI := deploy.ClusterAPI{
 		Client: r.client,
 		Scheme: r.scheme,
@@ -266,6 +270,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
+	}
+
+	if !util.IsTestMode() {
+		if isOpenShift && deployContext.DefaultCheHost == "" {
+			host, err := getDefaultCheHost(instance, clusterAPI)
+			if host == "" {
+				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
+			} else {
+				deployContext.DefaultCheHost = host
+			}
+		}
 	}
 
 	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth {
@@ -698,49 +713,48 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	cheHost := ""
 	if !isOpenShift {
-		ingressStatus := deploy.SyncIngressToCluster(instance, cheFlavor, deploy.CheIngressName, 8080, clusterAPI)
+		ingress, err := deploy.SyncIngressToCluster(instance, cheFlavor, instance.Spec.Server.CheHost, deploy.CheServiceHame, 8080, clusterAPI)
 		if !tests {
-			if !ingressStatus.Continue {
-				logrus.Infof("Waiting on ingress '%s' to be ready", deploy.CheIngressName)
-				if ingressStatus.Err != nil {
-					logrus.Error(ingressStatus.Err)
+			if ingress == nil {
+				logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
+				if err != nil {
+					logrus.Error(err)
 				}
 
-				return reconcile.Result{Requeue: ingressStatus.Requeue}, ingressStatus.Err
+				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
-		}
-
-		cheHost := ingressDomain
-		if ingressStrategy == "multi-host" {
-			cheHost = cheFlavor + "-" + instance.Namespace + "." + ingressDomain
-		}
-		if instance.Spec.Server.CheHost != cheHost {
-			instance.Spec.Server.CheHost = cheHost
-			if err := r.UpdateCheCRSpec(instance, "CheHost URL", cheHost); err != nil {
-				instance, _ = r.GetCR(request)
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-			}
+			cheHost = ingress.Spec.Rules[0].Host
 		}
 	} else {
-		routeStatus := deploy.SyncRouteToCluster(instance, cheFlavor, deploy.CheRouteName, 8080, clusterAPI)
+		customHost := instance.Spec.Server.CheHost
+		if deployContext.DefaultCheHost == customHost {
+			// let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
+			customHost = ""
+		}
+
+		route, err := deploy.SyncRouteToCluster(instance, cheFlavor, customHost, deploy.CheServiceHame, 8080, clusterAPI)
 		if !tests {
-			if !routeStatus.Continue {
-				logrus.Infof("Waiting on route '%s' to be ready", deploy.CheRouteName)
-				if routeStatus.Err != nil {
-					logrus.Error(routeStatus.Err)
+			if route == nil {
+				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+				if err != nil {
+					logrus.Error(err)
 				}
 
-				return reconcile.Result{Requeue: routeStatus.Requeue}, routeStatus.Err
+				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
-
-			if instance.Spec.Server.CheHost != routeStatus.Route.Spec.Host {
-				instance.Spec.Server.CheHost = routeStatus.Route.Spec.Host
-				if err := r.UpdateCheCRSpec(instance, "CheHost URL", instance.Spec.Server.CheHost); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
+			cheHost = route.Spec.Host
+			if customHost == "" {
+				deployContext.DefaultCheHost = cheHost
 			}
+		}
+	}
+	if instance.Spec.Server.CheHost != cheHost {
+		instance.Spec.Server.CheHost = cheHost
+		if err := r.UpdateCheCRSpec(instance, "CheHost URL", cheHost); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 
@@ -769,15 +783,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 			// create Keycloak ingresses when on k8s
 			if !isOpenShift {
-				ingressStatus := deploy.SyncIngressToCluster(instance, "keycloak", "keycloak", 8080, clusterAPI)
+				ingress, err := deploy.SyncIngressToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
 				if !tests {
-					if !ingressStatus.Continue {
+					if ingress == nil {
 						logrus.Info("Waiting on ingress 'keycloak' to be ready")
-						if ingressStatus.Err != nil {
-							logrus.Error(ingressStatus.Err)
+						if err != nil {
+							logrus.Error(err)
 						}
 
-						return reconcile.Result{Requeue: ingressStatus.Requeue}, ingressStatus.Err
+						return reconcile.Result{RequeueAfter: time.Second * 1}, err
 					}
 				}
 
@@ -794,18 +808,18 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			} else {
 				// create Keycloak route
-				routeStatus := deploy.SyncRouteToCluster(instance, "keycloak", "keycloak", 8080, clusterAPI)
+				route, err := deploy.SyncRouteToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
 				if !tests {
-					if !routeStatus.Continue {
+					if route == nil {
 						logrus.Info("Waiting on route 'keycloak' to be ready")
-						if routeStatus.Err != nil {
-							logrus.Error(routeStatus.Err)
+						if err != nil {
+							logrus.Error(err)
 						}
 
-						return reconcile.Result{Requeue: routeStatus.Requeue}, routeStatus.Err
+						return reconcile.Result{RequeueAfter: time.Second * 1}, err
 					}
 
-					keycloakURL := protocol + "://" + routeStatus.Route.Spec.Host
+					keycloakURL := protocol + "://" + route.Spec.Host
 					if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
 						instance.Spec.Auth.IdentityProviderURL = keycloakURL
 						if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
@@ -1079,4 +1093,17 @@ func hasConsolelinkObject() bool {
 // based on Checluster information and image defaults from env variables
 func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+}
+
+func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) (string, error) {
+	routeName := deploy.DefaultCheFlavor(checluster)
+	route, err := deploy.SyncRouteToCluster(checluster, routeName, "", deploy.CheServiceHame, 8080, clusterAPI)
+	if route == nil {
+		logrus.Infof("Waiting on route '%s' to be ready", routeName)
+		if err != nil {
+			logrus.Error(err)
+		}
+		return "", err
+	}
+	return route.Spec.Host, nil
 }

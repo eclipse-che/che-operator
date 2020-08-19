@@ -23,6 +23,10 @@ type ProvisioningStatus struct {
 	Err      error
 }
 
+type Context struct {
+	DefaultCheHost string
+}
+
 type ClusterAPI struct {
 	Client client.Client
 	Scheme *runtime.Scheme

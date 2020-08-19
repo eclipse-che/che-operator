@@ -18,6 +18,7 @@ import (
 	"encoding/pem"
 	stderrors "errors"
 	"net/http"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -107,11 +108,12 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		return nil, stderrors.New("Not allowed for tests")
 	}
 
+	var isTestRoute bool = len(endpointURL) < 1
 	var requestURL string
-	if len(endpointURL) < 1 {
+	if isTestRoute {
 		// Create test route to get certificates chain.
 		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-		routeSpec, err := GetSpecRoute(instance, "test", "test", 8080, clusterAPI)
+		routeSpec, err := GetSpecRoute(instance, "test", "", "test", 8080, clusterAPI)
 		if err != nil {
 			return nil, err
 		}
@@ -119,8 +121,10 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		routeSpec.SetOwnerReferences(nil)
 		// Create route manually
 		if err := clusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
-			logrus.Errorf("Failed to create test route 'test': %s", err)
-			return nil, err
+			if !errors.IsAlreadyExists(err) {
+				logrus.Errorf("Failed to create test route 'test': %s", err)
+				return nil, err
+			}
 		}
 
 		// Schedule test route cleanup after the job done.
@@ -146,9 +150,10 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		requestURL = endpointURL
 	}
 
-	// Adding the proxy settings to the Transport object
 	transport := &http.Transport{}
-	if proxy.HttpProxy != "" {
+	// Adding the proxy settings to the Transport object.
+	// However, in case of test route we need to reach cluter directly in order to get the right certificate.
+	if proxy.HttpProxy != "" && !isTestRoute {
 		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", proxy.HttpProxy, requestURL)
 		ConfigureProxy(instance, transport, proxy)
 	}
@@ -243,9 +248,13 @@ func K8sHandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
+		domains := checluster.Spec.K8s.IngressDomain + ",*." + checluster.Spec.K8s.IngressDomain
+		if checluster.Spec.Server.CheHost != "" && strings.Index(checluster.Spec.Server.CheHost, checluster.Spec.K8s.IngressDomain) == -1 && checluster.Spec.Server.CheHostTLSSecret == "" {
+			domains += "," + checluster.Spec.Server.CheHost
+		}
 		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
 		jobEnvVars := map[string]string{
-			"DOMAIN":                         checluster.Spec.K8s.IngressDomain,
+			"DOMAIN":                         domains,
 			"CHE_NAMESPACE":                  checluster.Namespace,
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
@@ -271,7 +280,7 @@ func K8sHandleCheTLSSecrets(checluster *orgv1.CheCluster, clusterAPI ClusterAPI)
 	if err == nil {
 		// The job object is present
 		if job.Status.Succeeded > 0 {
-			logrus.Infof("Import public part of Eclipse Che self-signed CA certificvate from \"%s\" secret into your browser.", CheTLSSelfSignedCertificateSecretName)
+			logrus.Infof("Import public part of Eclipse Che self-signed CA certificate from \"%s\" secret into your browser.", CheTLSSelfSignedCertificateSecretName)
 			deleteJob(job, checluster, clusterAPI)
 		} else if job.Status.Failed > 0 {
 			// The job failed, but the certificate is present, shouldn't happen
