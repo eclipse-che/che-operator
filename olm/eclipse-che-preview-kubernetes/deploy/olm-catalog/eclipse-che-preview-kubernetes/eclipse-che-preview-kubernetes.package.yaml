@@ -1,7 +1,7 @@
 channels:
 - currentCSV: eclipse-che-preview-kubernetes.v9.9.9-nightly.1596725014
   name: nightly
-- currentCSV: eclipse-che-preview-kubernetes.v7.17.0
+- currentCSV: eclipse-che-preview-kubernetes.v7.17.1
   name: stable
 defaultChannel: stable
 packageName: eclipse-che-preview-kubernetes
