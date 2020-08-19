@@ -704,7 +704,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	serviceStatus := deploy.SyncCheServiceToCluster(instance, clusterAPI)
 	if !tests {
 		if !serviceStatus.Continue {
-			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceHame)
+			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceName)
 			if serviceStatus.Err != nil {
 				logrus.Error(serviceStatus.Err)
 			}
@@ -713,9 +713,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
-		ingress, err := deploy.SyncIngressToCluster(instance, cheFlavor, instance.Spec.Server.CheHost, deploy.CheServiceHame, 8080, clusterAPI)
+		ingress, err := deploy.SyncIngressToCluster(instance, cheFlavor, instance.Spec.Server.CheHost, exposedServiceName, 8080, clusterAPI)
 		if !tests {
 			if ingress == nil {
 				logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
@@ -734,7 +735,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			customHost = ""
 		}
 
-		route, err := deploy.SyncRouteToCluster(instance, cheFlavor, customHost, deploy.CheServiceHame, 8080, clusterAPI)
+		route, err := deploy.SyncRouteToCluster(instance, cheFlavor, customHost, exposedServiceName, 8080, clusterAPI)
 		if !tests {
 			if route == nil {
 				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
@@ -1097,7 +1098,7 @@ func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 
 func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) (string, error) {
 	routeName := deploy.DefaultCheFlavor(checluster)
-	route, err := deploy.SyncRouteToCluster(checluster, routeName, "", deploy.CheServiceHame, 8080, clusterAPI)
+	route, err := deploy.SyncRouteToCluster(checluster, routeName, "", getServerExposingServiceName(checluster), 8080, clusterAPI)
 	if route == nil {
 		logrus.Infof("Waiting on route '%s' to be ready", routeName)
 		if err != nil {
@@ -1106,4 +1107,11 @@ func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAP
 		return "", err
 	}
 	return route.Spec.Host, nil
+}
+
+func getServerExposingServiceName(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.ServerExposureStrategy == "single-host" && cr.Spec.Server.SingleHostWorkspaceExposureType == "gateway" {
+		return deploy.GatewayServiceName
+	}
+	return deploy.CheServiceName
 }

@@ -10,8 +10,14 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+const (
+	// GatewayServiceName is the name of the service which through which the gateway can be accessed
+	GatewayServiceName = "che-gateway"
 )
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
@@ -20,9 +26,9 @@ func SyncGatewayToCluster(instance *orgv1.CheCluster, clusterAPI ClusterAPI) err
 		(util.IsOpenShift || instance.Spec.Server.SingleHostWorkspaceExposureType == "gateway") {
 
 		return createGateway(instance, clusterAPI)
-	} else {
-		return deleteGateway(instance, clusterAPI)
 	}
+
+	return deleteGateway(instance, clusterAPI)
 }
 
 func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
@@ -31,14 +37,15 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 
 	// Create the SA for the gateway with the minimal permissions
 	sa := &corev1.ServiceAccount{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, sa); getErr != nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, sa); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
 			return getErr
 		}
 
 		sa = &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "che-gateway",
+				Name:   GatewayServiceName,
+				Labels: GetLabels(instance, GatewayServiceName),
 			},
 		}
 
@@ -53,14 +60,15 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	}
 
 	role := &rbac.Role{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, role); getErr != nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, role); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
 			return getErr
 		}
 
 		role = &rbac.Role{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "che-gateway",
+				Name:   GatewayServiceName,
+				Labels: GetLabels(instance, GatewayServiceName),
 			},
 			Rules: []rbac.PolicyRule{
 				{
@@ -82,24 +90,25 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	}
 
 	roleBinding := &rbac.RoleBinding{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, roleBinding); getErr != nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, roleBinding); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
 			return getErr
 		}
 
 		roleBinding = &rbac.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "che-gateway",
+				Name:   GatewayServiceName,
+				Labels: GetLabels(instance, GatewayServiceName),
 			},
 			RoleRef: rbac.RoleRef{
 				APIGroup: "rbac.authorization.k8s.io",
 				Kind:     "Role",
-				Name:     "che-gateway",
+				Name:     GatewayServiceName,
 			},
 			Subjects: []rbac.Subject{
 				{
 					Kind: "Role",
-					Name: "che-gateway",
+					Name: GatewayServiceName,
 				},
 			},
 		}
@@ -122,7 +131,8 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 
 		traefikConfig = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "che-gateway-config",
+				Name:   "che-gateway-config",
+				Labels: GetLabels(instance, GatewayServiceName),
 			},
 			Data: map[string]string{
 				"traefik.yml": `global:
@@ -152,17 +162,24 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	}
 
 	depl := &appsv1.Deployment{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, depl); getErr != nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, depl); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
 			return getErr
 		}
 
 		depl = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "che-gateway",
+				Name:   GatewayServiceName,
+				Labels: GetLabels(instance, GatewayServiceName),
 			},
 			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: GetLabels(instance, GatewayServiceName),
+				},
 				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: GetLabels(instance, GatewayServiceName),
+					},
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{
@@ -236,7 +253,47 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 			return err
 		}
 
-		return clusterAPI.Client.Create(context.TODO(), depl)
+		err = clusterAPI.Client.Create(context.TODO(), depl)
+		if err != nil {
+			return err
+		}
+	}
+
+	service := &corev1.Service{}
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: CheServiceName}, service); getErr != nil {
+		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
+			return getErr
+		}
+
+		service = &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   CheServiceName,
+				Labels: GetLabels(instance, GatewayServiceName),
+			},
+			Spec: corev1.ServiceSpec{
+				Selector: GetLabels(instance, GatewayServiceName),
+				Ports: []corev1.ServicePort{
+					corev1.ServicePort{
+						Port:       8080,
+						TargetPort: intstr.FromInt(8080),
+					},
+					corev1.ServicePort{
+						Port:       8443,
+						TargetPort: intstr.FromInt(8443),
+					},
+				},
+			},
+		}
+
+		err := controllerutil.SetControllerReference(instance, service, clusterAPI.Scheme)
+		if err != nil {
+			return err
+		}
+
+		err = clusterAPI.Client.Create(context.TODO(), service)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -244,8 +301,15 @@ func createGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 
 func deleteGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	deployment := &appsv1.Deployment{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, deployment); getErr == nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, deployment); getErr == nil {
 		if err := clusterAPI.Client.Delete(context.TODO(), deployment); err != nil {
+			return err
+		}
+	}
+
+	service := &corev1.Service{}
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, service); getErr == nil {
+		if err := clusterAPI.Client.Delete(context.TODO(), service); err != nil {
 			return err
 		}
 	}
@@ -258,21 +322,21 @@ func deleteGateway(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	}
 
 	roleBinding := &rbac.RoleBinding{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, roleBinding); getErr == nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, roleBinding); getErr == nil {
 		if err := clusterAPI.Client.Delete(context.TODO(), roleBinding); err != nil {
 			return err
 		}
 	}
 
 	role := &rbac.Role{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, role); getErr == nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, role); getErr == nil {
 		if err := clusterAPI.Client.Delete(context.TODO(), role); err != nil {
 			return err
 		}
 	}
 
 	sa := &corev1.ServiceAccount{}
-	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "che-gateway"}, sa); getErr == nil {
+	if getErr := clusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: GatewayServiceName}, sa); getErr == nil {
 		if err := clusterAPI.Client.Delete(context.TODO(), sa); err != nil {
 			return err
 		}
