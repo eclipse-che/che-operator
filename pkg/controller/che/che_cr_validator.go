@@ -24,7 +24,8 @@ import (
 // - configurations with which it is impossible to deploy Che
 func ValidateCheCR(checluster *orgv1.CheCluster, isOpenshift bool) error {
 	if isOpenshift {
-		if checluster.Spec.Server.ServerExposureStrategy != "multi-host" {
+		exposureStrategy := checluster.Spec.Server.ServerExposureStrategy
+		if exposureStrategy != "" && exposureStrategy != "multi-host" {
 			if checluster.Spec.Server.SingleHostWorkspaceExposureType != "gateway" {
 				return fmt.Errorf("On OpenShift, only the gateway workspace exposure is supported in the single-host mode")
 			}
