@@ -235,7 +235,7 @@ createPRToMasterBranch() {
   resetChanges master
   local tmpBranch="update-images-to-master"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply -3
   . ${RELEASE_DIR}/replace-images-tags.sh nightly master
   git add -A
   git commit -m "Copy "$RELEASE" csv to master" --signoff

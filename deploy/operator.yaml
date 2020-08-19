@@ -63,7 +63,7 @@ spec:
             - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
               value: quay.io/eclipse/che-plugin-artifacts-broker:v3.2.0
             - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
-              value: quay.io/eclipse/che-jwtproxy:fd94e60
+              value: quay.io/eclipse/che-jwtproxy:0.10.0
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME
