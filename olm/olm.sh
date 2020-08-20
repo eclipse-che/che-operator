@@ -170,29 +170,14 @@ buildBundleImage() {
     --default "stable" \
     --image-builder "${imageTool}"
 
-  ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
+  # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
-  ${imageTool} push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --tls-verify=false
-  # --cert-dir todo!!!
+  if [ "${imageTool}" == "podman" ]; then
+    SKIP_TLS_VERIFY=" --tls-verify=false"
+  fi
+  "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
 
   popd || exit
-}
-
-# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
-# It makes troubles for test scripts, because image bundle could be outdated with
-# such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
-forcePullingOlmImages() {
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
-  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
-    echo "Please specify first argument: opm bundle image"
-    exit 1
-  fi
-
-  yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${BASE_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
-
-  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
-
-  kubectl delete job/force-pulling-olm-images-job -n "${namespace}"
 }
 
 # Build catalog source image with index based on bundle image.
@@ -216,17 +201,38 @@ buildCatalogImage() {
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
   fi
 
+  if [ "${imageTool}" == "podman" ]; then
+    SKIP_TLS_ARG=" --skip-tls"
+    SKIP_TLS_VERIFY=" --tls-verify=false"
+  fi
+
   pushd  "${ROOT_DIR}" || true
   eval "${OPM_BINARY}" index add --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
        --build-tool "${BUILD_TOOL}" \
-       --mode semver "${BUILD_INDEX_IMAGE_ARG}" \
-       --skip-tls
+       --mode semver "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
       #  --permissive
 
   popd || true
 
-  ${BUILD_TOOL} push "${CATALOG_IMAGENAME}" --tls-verify=false
+  ${BUILD_TOOL} push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
+}
+
+# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
+# It makes troubles for test scripts, because image bundle could be outdated with
+# such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
+forcePullingOlmImages() {
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
+  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
+    echo "Please specify first argument: opm bundle image"
+    exit 1
+  fi
+
+  yq -r "(.spec.template.spec.containers[0].image) = \"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\"" "${BASE_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n "${namespace}"
+
+  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n "${namespace}"
+
+  kubectl delete job/force-pulling-olm-images-job -n "${namespace}"
 }
 
 installOPM() {
