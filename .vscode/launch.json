@@ -43,6 +43,19 @@
     {
       "type": "bashdb",
       "request": "launch",
+      "name": "TestCatalogSource.sh crc platform",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "crc",
+        "nightly",
+        "che",
+        "catalog"
+      ]
+    },    
+    {
+      "type": "bashdb",
+      "request": "launch",
       "name": "NIGHTLY and catalog minikube (testCatalogSource.sh)",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testCatalogSource.sh",

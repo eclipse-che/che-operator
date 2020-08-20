@@ -51,7 +51,9 @@ fi
 channel="stable"
 if [[ "${PACKAGE_VERSION}" =~ "nightly" ]]
 then
-   channel="nightly"
+  channel="nightly"
+  OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
 fi
 
 packageName=eclipse-che-preview-${platform}
@@ -84,8 +86,8 @@ echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 # fi
 
 checkImagePushTridentionals() {
-  if [ -z "${QUAY_USERNAME}" ] || [ -z "${QUAY_PASSWORD}" ]; then
-    echo "[ERROR] Should be defined env variables QUAY_USERNAME, QUAY_PASSWORD"
+  if [ -z "${IMAGE_REGISTRY_USER_NAME}" ] || [ -z "${IMAGE_REGISTRY_PASSWORD}" ]; then
+    echo "[ERROR] Should be defined env variables IMAGE_REGISTRY_USER_NAME, QUAY_PASSWORD"
     exit 1
   fi
 }
@@ -138,26 +140,23 @@ applyCheOperatorInstallationSource() {
 }
 
 loginToImageRegistry() {
-  # Todo rename QUAY_USERNAME to IMAGE_REGISTRY_USERNAME, and QUAY_PASSWORD the same.
-  if [ -n "${QUAY_USERNAME}" ] && [ -n "${QUAY_PASSWORD}" ] && [ -n "${IMAGE_REGISTRY}" ]; then
-    docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${IMAGE_REGISTRY}"
+  if [ -n "${IMAGE_REGISTRY_USER_NAME}" ] && [ -n "${IMAGE_REGISTRY_PASSWORD}" ] && [ -n "${IMAGE_REGISTRY_HOST}" ]; then
+    docker login -u "${IMAGE_REGISTRY_USER_NAME}" -p "${IMAGE_REGISTRY_PASSWORD}" "${IMAGE_REGISTRY_HOST}"
+  else
+    echo "[INFO] Skip login to registry"
   fi
 }
 
 buildBundleImage() {
   # checkImagePushTridentionals
 
-  OPM_BUNDLE_MANIFESTS_DIR=$1
-  if [ -z "${OPM_BUNDLE_MANIFESTS_DIR}" ]; then
-    echo "Please specify first argument: opm bundle manifest directory"
-    exit 1
-  fi
-
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${2}
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
   if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
     echo "Please specify second argument: opm bundle image"
     exit 1
   fi
+
+  imageTool=${2:-docker}
 
   pushd "${OPM_BUNDLE_DIR}" || exit
 
@@ -169,11 +168,12 @@ buildBundleImage() {
     --package "eclipse-che-preview-${platform}" \
     --channels "stable,nightly" \
     --default "stable" \
-    --image-builder docker
+    --image-builder "${imageTool}"
 
-  ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" 
+  ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
-  docker push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  ${imageTool} push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --tls-verify=false
+  # --cert-dir todo!!!
 
   popd || exit
 }
@@ -209,7 +209,9 @@ buildCatalogImage() {
     exit 1
   fi
 
-  FROM_INDEX=${3}
+  BUILD_TOOL=${3:-docker}
+  
+  FROM_INDEX=${4}
   if [ -n "${FROM_INDEX}" ]; then
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
   fi
@@ -217,13 +219,14 @@ buildCatalogImage() {
   pushd  "${ROOT_DIR}" || true
   eval "${OPM_BINARY}" index add --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
-       --build-tool docker \
+       --build-tool "${BUILD_TOOL}" \
        --mode semver "${BUILD_INDEX_IMAGE_ARG}" \
        --skip-tls
+      #  --permissive
 
   popd || true
 
-  docker push "${CATALOG_IMAGENAME}"
+  ${BUILD_TOOL} push "${CATALOG_IMAGENAME}" --tls-verify=false
 }
 
 installOPM() {

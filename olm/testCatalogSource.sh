@@ -88,15 +88,17 @@ fi
 # Assign catalog source image
 CATALOG_SOURCE_IMAGE=$5
 
-if [ -z "${IMAGE_REGISTRY}" ]; then
-  IMAGE_REGISTRY="quay.io"
-  echo "[INFO] Image registry env 'IMAGE_REGISTRY' is an empty. Set default value: '${IMAGE_REGISTRY}'"
+if [ -z "${IMAGE_REGISTRY_USER_NAME}" ]; then
+  IMAGE_REGISTRY_USER_NAME=eclipse
 fi
+echo "[INFO] Image 'IMAGE_REGISTRY_USER_NAME': ${IMAGE_REGISTRY_USER_NAME}"
 
 init() {
   # GET the package version to apply. In case of CRC we should detect somehow the platform is openshift to get packageversion
   if [[ "${PLATFORM}" == "crc" ]]
   then
+    export IS_CRC="true"
+    export PLATFORM=openshift
     PACKAGE_NAME=eclipse-che-preview-openshift
     PACKAGE_FOLDER_PATH="${OLM_DIR}/eclipse-che-preview-openshift/deploy/olm-catalog/${PACKAGE_NAME}"
   else
@@ -112,11 +114,19 @@ init() {
     CLUSTER_SERVICE_VERSION=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${PACKAGE_FILE_PATH}")
     PACKAGE_VERSION=$(echo "${CLUSTER_SERVICE_VERSION}" | sed -e "s/${PACKAGE_NAME}.v//")
   fi
- 
+
+  source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
+
+  if [ "${CHANNEL}" == "nightly" ]; then
+    installOPM
+  fi
+}
+
+buildOLMImages() {
   # Manage catalog source for every platform in part.
-  # 1.Kubernetes: We need to eval minikube docker image and build there the catalog source
-  # 2.Openshift: Openshift platform will be run as part of Openshift CI and the catalog source will be build automatically and exposed
-  # 3.CRC: To run in our Code Ready Container Cluster we need have installed podman and running crc cluster...
+  # 1. Kubernetes: We need to enable registry addon, build catalog images and push them to embedded private registry(Or we should provide image registry env to push images to real registry...).
+  # 2. Openshift: Openshift platform will be run as part of Openshift CI and the catalog source will be build automatically and exposed
+  # 3. CRC: To run in our Code Ready Container Cluster we need have installed podman and running crc cluster...
   if [[ "${PLATFORM}" == "kubernetes" ]]
   then
     echo "[INFO]: Kubernetes platform detected"
@@ -132,41 +142,71 @@ init() {
         sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
       else
         sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
-      fi    
+      fi
     fi
 
-    echo "[INFO]: Starting to build catalog source image..."
+    loginToImageRegistry
 
-    # docker build -t ${CATALOG_SOURCE_IMAGE} -f "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
-    # "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"
+    CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che_operator_bundle:0.0.1"
+    CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/testing_catalog:0.0.1"
+
+    echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
+    buildBundleImage "${CATALOG_BUNDLE_IMAGE}"
+    echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
+    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}"
 
     minikube addons enable ingress
-    echo "[INFO]: Successfully created catalog cource container image and enabled minikube ingress."
+    echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
 
-  elif [[ "${PLATFORM}" == "openshift" ]]
+  elif [[ "${IS_CRC}" == false ]]
   then
     echo "[INFO]: Catalog Source container image to run olm tests in openshift platform is: ${CATALOG_SOURCE_IMAGE}"
 
-  elif [[ "${PLATFORM}" == "crc" ]]
+  elif [[ "${PLATFORM}" == "openshift" ]]
   then
     echo "[INFO]: Starting to build catalog image and push to CRC ImageStream."
-    export PLATFORM="openshift"
 
-    oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
-    oc new-project ${NAMESPACE}
+    if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]]; then 
+      oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
+    fi
+
+    oc new-project "${NAMESPACE}" || true
+
+    if [ ! $(oc get configs.imageregistry.operator.openshift.io/cluster -o yaml | yq -r ".spec.defaultRoute") == true ];then
+      oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+    fi
 
     # Get Openshift Image registry host
     IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
-    podman login -u kubeadmin -p $(oc whoami -t) ${IMAGE_REGISTRY_HOST} --tls-verify=false
 
-    podman build -t ${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE} -f "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"/Dockerfile \
-        "${OPERATOR_REPO}"/eclipse-che-preview-"${PLATFORM}"
-    podman push ${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE}:latest --tls-verify=false
+    imageTool="podman"
+    ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
+
+    if [ -z "${CATALOG_SOURCE_IMAGE_NAME}" ]; then
+      CATALOG_SOURCE_IMAGE_NAME="operator-catalog-source:0.0.1"
+    fi
+
+    if [ -z "${CATALOG_SOURCE_IMAGE}" ]; then
+      CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"  
+    fi
+
+    CATALOG_BUNDLE_IMAGE_NAME="che_operator_bundle:0.0.1"
+    CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_BUNDLE_IMAGE_NAME}"
+
+    echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
+    buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
+
+    # CATALOG_BUNDLE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_BUNDLE_IMAGE_NAME}"
+    echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
+    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
 
     # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
-    export CATALOG_SOURCE_IMAGE=image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE}
-    echo "[INFO]: Successfully added catalog source image to crc image registry: ${CATALOG_SOURCE_IMAGE}"
+    CATALOG_SOURCE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"
+    export CATALOG_SOURCE_IMAGE
+    CATALOG_IMAGENAME=${CATALOG_SOURCE_IMAGE}
+    export CATALOG_IMAGENAME
 
+    echo "[INFO]: Successfully added catalog source and bundle images to crc image registry: ${CATALOG_SOURCE_IMAGE}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
     printHelp
@@ -175,28 +215,8 @@ init() {
 }
 
 run() {
-  if [ -n "${QUAY_USERNAME}" ]; then
-    QUAY_USERNAME="${QUAY_USERNAME}/"
-  fi
-
-  source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
-
-  installOPM
-  
-  loginToImageRegistry
-
-  OPM_BUNDLE_DIR="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
-  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${IMAGE_REGISTRY}/${QUAY_USERNAME}che_operator_bundle:0.0.1"
-  echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-  buildBundleImage "${OPM_BUNDLE_MANIFESTS_DIR}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
-  CATALOG_IMAGENAME="${IMAGE_REGISTRY}/${QUAY_USERNAME}testing_catalog:0.0.1"
-  echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-  buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-
   createNamespace
-  forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
   installOperatorMarketPlace
   subscribeToInstallation
 
@@ -206,5 +226,6 @@ run() {
 }
 
 init
+buildOLMImages
 run
 echo -e "\u001b[32m Done. \u001b[0m"

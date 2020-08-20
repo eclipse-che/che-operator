@@ -92,7 +92,7 @@ run() {
   installOPM
   loginToImageRegistry
 
-  export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${PLATFORM}-opm-catalog:0.0.1"
+  export CATALOG_IMAGENAME="quay.io/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-catalog:0.0.1"
 
   createNamespace
 

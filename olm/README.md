@@ -96,9 +96,9 @@ in order to install directly through a CatalogSource. To test this options start
 test script in the olm folder:
 
 ```shell
-export QUAY_USERNAME=${username} && \
-export QUAY_PASSWORD=${password} && \
-export REGISTRY_NAME=${registry_name} \
+export IMAGE_REGISTRY_USER_NAME=${username} && \
+export IMAGE_REGISTRY_PASSWORD=${password} && \
+export IMAGE_REGISTRY_HOST=${registry_name} \
 $ ./testCatalogSource.sh {platform} ${channel} ${namespace}
 ```
 

@@ -50,7 +50,7 @@ init() {
   else
     packageFolderPath="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
     PACKAGE_VERSION="nightly"
-    export CATALOG_IMAGENAME="quay.io/${QUAY_USERNAME}/eclipse-che-${platform}-opm-catalog:0.0.1" #:preview
+    export CATALOG_IMAGENAME="quay.io/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:0.0.1" #:preview
     INSTALLATION_TYPE="catalog"
   fi
 }
