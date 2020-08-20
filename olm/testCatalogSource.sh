@@ -117,6 +117,8 @@ init() {
 
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
+  echo "${IS_CRC}"
+
   if [ "${CHANNEL}" == "nightly" ]; then
     installOPM
   fi
@@ -158,7 +160,7 @@ buildOLMImages() {
     minikube addons enable ingress
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
 
-  elif [[ "${IS_CRC}" == false ]]
+  elif [[ "${IS_CRC}" == "false" ]]
   then
     echo "[INFO]: Catalog Source container image to run olm tests in openshift platform is: ${CATALOG_SOURCE_IMAGE}"
 

@@ -175,7 +175,7 @@ buildBundleImage() {
   if [ "${imageTool}" == "podman" ]; then
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
-  "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
+  eval "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
 
   popd || exit
 }
@@ -210,12 +210,13 @@ buildCatalogImage() {
   eval "${OPM_BINARY}" index add --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
        --build-tool "${BUILD_TOOL}" \
-       --mode semver "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
-      #  --permissive
+       --mode semver \
+       "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}" \
+       --permissive
 
   popd || true
 
-  ${BUILD_TOOL} push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
+  eval "${BUILD_TOOL}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
 }
 
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
