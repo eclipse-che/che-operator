@@ -79,7 +79,7 @@ const (
 	DefaultServerExposureStrategy              = "multi-host"
 	DefaultSingleHostWorkspaceExposureType     = "native"
 	DefaultSingleHostGatewayImage              = "docker.io/traefik:v2.2.8"
-	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:latest"
+	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:0.1.2"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version

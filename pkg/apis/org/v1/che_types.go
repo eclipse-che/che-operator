@@ -261,7 +261,7 @@ type CheClusterSpecServer struct {
 	SingleHostGatewayImage string `json:"singleHostGatewayImage,omitempty"`
 
 	// The image used for the gateway sidecar that provides configuration to the gateway.
-	// Default to quay.io/che-incubator/configbump:latest
+	// Default to quay.io/che-incubator/configbump:0.1.2
 	// +optional
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
 }
