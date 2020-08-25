@@ -70,6 +70,20 @@
     {
       "type": "bashdb",
       "request": "launch",
+      "name": "Quay.io minikube (testCatalogSource.sh)",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "moon44",
+        "catalog",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
       "name": "testUpdate.sh STABLE (testUpdate.sh)",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
