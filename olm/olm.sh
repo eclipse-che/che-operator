@@ -210,6 +210,7 @@ buildCatalogImage() {
        --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
        --pull-tool "${imageTool}" \
+       --build-tool "${imageTool}" \
        --mode semver \
        "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
 
