@@ -194,7 +194,7 @@ buildCatalogImage() {
     exit 1
   fi
 
-  BUILD_TOOL=${3:-docker}
+  imageTool=${3:-docker}
   
   FROM_INDEX=${4}
   if [ -n "${FROM_INDEX}" ]; then
@@ -213,7 +213,7 @@ buildCatalogImage() {
        --mode semver \
        "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
 
-  eval "${BUILD_TOOL}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
+  eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
 }
 
 setUpOpenshift4ImageRegistryCA() {
