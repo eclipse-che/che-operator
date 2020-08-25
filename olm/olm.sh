@@ -206,7 +206,7 @@ buildCatalogImage() {
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
 
-  eval "${HOME}/projects/operator-registry/bin/opm" index add \
+  eval "${OPM_BINARY}" index add \
        --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
        --pull-tool "${imageTool}" \
@@ -293,7 +293,7 @@ installOPM() {
     pushd "${OPM_TEMP_DIR}" || exit
 
     echo "[INFO] Downloading 'opm' cli tool..."
-    curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/28130850 | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
+    curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/30101377 | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
     export OPM_BINARY="${OPM_TEMP_DIR}/opm"
     chmod +x "${OPM_BINARY}"
     echo "[INFO] Downloading completed!"
