@@ -206,17 +206,67 @@ buildCatalogImage() {
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
 
-  pushd  "${ROOT_DIR}" || true
-  eval "${OPM_BINARY}" index add --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+  eval "${HOME}/projects/operator-registry/bin/opm" index add \
+       --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
        --tag "${CATALOG_IMAGENAME}" \
-       --build-tool "${BUILD_TOOL}" \
+       --pull-tool "${imageTool}" \
        --mode semver \
-       "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}" \
-       --permissive
-
-  popd || true
+       "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
 
   eval "${BUILD_TOOL}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
+}
+
+setUpOpenshift4ImageRegistryCA() {
+    HOST=$(oc get route default-route -n openshift-image-registry -o yaml | yq -r ".spec.host")
+    certBundle=$(echo "Q" | openssl s_client -showcerts -connect "${HOST}":443)
+    CA_CRT="${HOME}/crt/test.crt"
+    rm -rf "${CA_CRT}"
+    touch "${CA_CRT}"
+
+    echo "${certBundle}" |
+    while IFS= read -r line
+    do
+    if [ "${line}" == "-----BEGIN CERTIFICATE-----" ]; then
+        IS_CERT_STARTED=true
+    fi
+
+    if [ "${IS_CERT_STARTED}" == true ]; then
+        CERT="${CERT}${line}\n"
+    fi
+
+    if [ "${line}" == "-----END CERTIFICATE-----" ]; then
+        if echo -e "${CERT}" | openssl x509 -text | grep -q "CA:TRUE"; then
+            echo "CA sertificate found! And store by path ${CA_CRT}"
+            echo -e "${CERT}" > "${CA_CRT}"
+            exit 0
+        fi
+        CERT=""
+        IS_CERT_STARTED="false"
+    fi
+    done
+
+    oc create configmap user-ca-bundle --from-file=ca-bundle.crt="${CA_CRT}"  -n openshift-config
+    oc get configmap user-ca-bundle  -n openshift-config -o yaml
+    oc patch proxy/cluster --patch '{"spec":{"trustedCA":{"name":"user-ca-bundle"}}}' --type=merge
+    oc create configmap all-ca
+    oc label configmap all-ca config.openshift.io/inject-trusted-cabundle=true
+}
+
+createImageRegistryPullSecret() {
+  imageRegistryHost=${1}
+
+  if [ -z "${imageRegistryHost}" ]; then
+    echo "Please specify first argument: image registry host."
+    exit 1
+  fi
+
+  pullSecretName="myregistrykey"
+  kubectl create secret docker-registry "${pullSecretName}" \
+        --docker-server="${imageRegistryHost}" \
+        --docker-username="kubeadmin" \
+        --docker-password="$(oc whoami -t)" \
+        --docker-email="test@example.com"
+  kubectl patch serviceaccount default -p "{\"imagePullSecrets\": [{\"name\": \"${pullSecretName}\"}]}"
 }
 
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".

@@ -181,6 +181,9 @@ buildOLMImages() {
     # Get Openshift Image registry host
     IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
 
+    setUpOpenshift4ImageRegistryCA
+    createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
+
     imageTool="podman"
     ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
 
@@ -198,16 +201,12 @@ buildOLMImages() {
     echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
     buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
 
-    # CATALOG_BUNDLE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_BUNDLE_IMAGE_NAME}"
     echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
     buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
 
     # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
     CATALOG_SOURCE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"
     export CATALOG_SOURCE_IMAGE
-    CATALOG_IMAGENAME=${CATALOG_SOURCE_IMAGE}
-    export CATALOG_IMAGENAME
-
     echo "[INFO]: Successfully added catalog source and bundle images to crc image registry: ${CATALOG_SOURCE_IMAGE}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"

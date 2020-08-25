@@ -21,6 +21,8 @@ spec:
     metadata:
       name: force-pulling-olm-images-job
     spec:
+      imagePullSecrets:
+        - name: 'myregistrykey'
       volumes:
         - name: util
           emptyDir: {}
