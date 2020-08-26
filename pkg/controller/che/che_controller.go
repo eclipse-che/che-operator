@@ -228,7 +228,7 @@ const (
 	failedUnableToGetOAuth            = "Unable to get openshift oauth."
 	failedUnableToGetOpenshiftUsers   = "Unable to get users on the OpenShift cluster."
 
-	howToAddIdentityProviderLinkOS4 = "https://docs.openshift.com/container-platform/4.1/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
+	howToAddIdentityProviderLinkOS4 = "https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
 	howToConfigureOAuthLinkOS3      = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
 )
 
