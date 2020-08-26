@@ -199,6 +199,16 @@ buildOLMImages() {
 
     echo "Registry pods:====="
     oc get pods -n openshift-image-registry
+    oc get deployment -n openshift-image-registry
+
+    # REGISTRY_PROXY_POD=$(kubectl get pods -n openshift-image-registry -o yaml | grep  "name: image-registry-" | sed -e 's;.*name: \(\);\1;') || true
+    # echo "[INFO] So proxy pod name is ${REGISTRY_PROXY_POD}"
+    # kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "openshift-image-registry" || true
+
+    # oc get deployment -n openshift-image-registry
+
+    IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}' || true)
+    echo " Registry host is: ${IMAGE_REGISTRY_HOST}"
 
     exit 0
 
