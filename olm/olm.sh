@@ -270,7 +270,7 @@ createImageRegistryPullSecret() {
 
   kubectl create secret docker-registry "${pullSecretName}" \
         --docker-server="${imageRegistryHost}" \
-        --docker-username="kubeadmin" \
+        --docker-username="${userName}" \
         --docker-password="$(oc whoami -t)" \
         --docker-email="test@example.com"
   kubectl patch serviceaccount default -p "{\"imagePullSecrets\": [{\"name\": \"${pullSecretName}\"}]}"
