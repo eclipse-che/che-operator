@@ -260,8 +260,14 @@ createImageRegistryPullSecret() {
     echo "Please specify first argument: image registry host."
     exit 1
   fi
-
+  userName="$(oc whoami)"
+  userName="${userName//:}"
   pullSecretName="myregistrykey"
+
+  if [ -z "$(oc whoami -t)" ]; then
+    echo "Docker password is an empty...."
+  fi
+
   kubectl create secret docker-registry "${pullSecretName}" \
         --docker-server="${imageRegistryHost}" \
         --docker-username="kubeadmin" \
