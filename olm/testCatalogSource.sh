@@ -175,9 +175,10 @@ buildOLMImages() {
     echo "============"
     oc whoami
     echo "============"
-    if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]]; then 
-      oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
-    fi
+    # CRC_BINARY=$(command -v crc) || true
+    # if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]] && [[ ! -x "${CRC_BINARY}" ]; then 
+    #   oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
+    # fi
 
     oc new-project "${NAMESPACE}" || true
 
