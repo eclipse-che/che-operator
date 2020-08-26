@@ -182,12 +182,19 @@ buildOLMImages() {
 
     oc new-project "${NAMESPACE}" || true
 
+    oc get route --all-namespaces
+    echo "-------------------------------------------------"
+    oc get configs.imageregistry.operator.openshift.io/cluster -o yaml
+    echo "-------------------------------------------------"
+    oc get route -n openshift-image-registry
+    exit 0
+
     if [ ! $(oc get configs.imageregistry.operator.openshift.io/cluster -o yaml | yq -r ".spec.defaultRoute") == true ];then
       oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
     fi
 
     sleep 15
-    oc get route --all-namespaces
+
     # Get Openshift Image registry host
     IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
 
