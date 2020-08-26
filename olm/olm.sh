@@ -396,7 +396,6 @@ spec:
   startingCSV: ${CSV_NAME}
 EOF
 
-  # startingCSV: eclipse-che-preview-kubernetes.v7.16.2-0.nightly
   kubectl describe subscription/"${packageName}" -n "${namespace}"
 
   kubectl wait subscription/"${packageName}" -n "${namespace}" --for=condition=InstallPlanPending --timeout=240s

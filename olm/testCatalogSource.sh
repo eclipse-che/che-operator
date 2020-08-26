@@ -176,6 +176,7 @@ buildOLMImages() {
     oc whoami
     echo "============"
     # CRC_BINARY=$(command -v crc) || true
+    if [[ "${OPENSHIFT_CI}" == "true" ]];then echo "Openshift ci!"; fi
     # if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]] && [[ ! -x "${CRC_BINARY}" ]; then 
     #   oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
     # fi
@@ -187,11 +188,19 @@ buildOLMImages() {
     oc get configs.imageregistry.operator.openshift.io/cluster -o yaml
     echo "-------------------------------------------------"
     oc get route -n openshift-image-registry
-    exit 0
+    oc get pods -n openshift-image-registry
+
+    echo "Registry pods:====="
+    oc get pods -n openshift-image-registry
 
     if [ ! $(oc get configs.imageregistry.operator.openshift.io/cluster -o yaml | yq -r ".spec.defaultRoute") == true ];then
       oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
     fi
+
+    echo "Registry pods:====="
+    oc get pods -n openshift-image-registry
+
+    exit 0
 
     sleep 15
 
