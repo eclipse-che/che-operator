@@ -221,7 +221,7 @@ pushOlmFilesToQuayIo() {
 pushGitChanges() {
   echo "[INFO] Pushing git changes into $RELEASE branch"
   git push origin $RELEASE
-  git tag -a v$RELEASE -m $RELEASE
+  git tag -a $RELEASE -m $RELEASE
   git push --tags origin
 }
 
@@ -233,7 +233,7 @@ createPRToXBranch() {
 createPRToMasterBranch() {
   echo "[INFO] Creating pull request into master branch to copy csv"
   resetChanges master
-  local tmpBranch="update-images-to-master"
+  local tmpBranch="copy-csv-to-master"
   git checkout -B $tmpBranch
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply -3
   . ${RELEASE_DIR}/replace-images-tags.sh nightly master
