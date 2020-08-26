@@ -220,8 +220,8 @@ buildCatalogImage() {
 setUpOpenshift4ImageRegistryCA() {
     HOST=$(oc get route default-route -n openshift-image-registry -o yaml | yq -r ".spec.host")
     certBundle=$(echo "Q" | openssl s_client -showcerts -connect "${HOST}":443)
-    CA_CRT="${HOME}/crt/test.crt"
-    rm -rf "${CA_CRT}"
+    CRT_TEMP_DIR="$(mktemp -q -d -t "CRT_XXXXXX" 2>/dev/null || mktemp -q -d)"
+    CA_CRT="${CRT_TEMP_DIR}/test.crt"
     touch "${CA_CRT}"
 
     echo "${certBundle}" |

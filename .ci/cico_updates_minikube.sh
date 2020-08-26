@@ -9,7 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
-
+exit 0
 set -ex
 
 #Stop execution on any error

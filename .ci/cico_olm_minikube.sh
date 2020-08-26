@@ -7,7 +7,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-
+exit 0
 set -e
 # Detect the base directory where che-operator is cloned
 SCRIPT=$(readlink -f "$0")

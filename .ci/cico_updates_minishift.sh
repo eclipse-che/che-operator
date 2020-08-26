@@ -9,7 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
-
+exit 0
 set -ex
 
 trap 'Catch_Finish $?' EXIT SIGINT
