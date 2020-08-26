@@ -262,7 +262,8 @@ createImageRegistryPullSecret() {
   fi
   userName="$(oc whoami)"
   userName="${userName//:}"
-  token="$(oc whoami -t)"
+  oc config view -o yaml || true
+  token="$(oc whoami -t) || echo '')"
   pullSecretName="myregistrykey"
 
   if [ -z "$(oc whoami -t)" ]; then
