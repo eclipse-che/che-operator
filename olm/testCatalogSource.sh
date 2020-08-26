@@ -197,8 +197,7 @@ buildOLMImages() {
       oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
     fi
 
-    echo "Registry pods:====="
-    oc get pods -n openshift-image-registry
+    echo "Registry deployments:====="
     oc get deployment -n openshift-image-registry
 
     # REGISTRY_PROXY_POD=$(kubectl get pods -n openshift-image-registry -o yaml | grep  "name: image-registry-" | sed -e 's;.*name: \(\);\1;') || true
@@ -210,15 +209,11 @@ buildOLMImages() {
     IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}' || true)
     echo " Registry host is: ${IMAGE_REGISTRY_HOST}"
 
-    exit 0
-
-    sleep 15
-
     # Get Openshift Image registry host
-    IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
-
     setUpOpenshift4ImageRegistryCA
     createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
+    podman version || true
+    exit 0
 
     imageTool="podman"
     ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
