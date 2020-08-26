@@ -168,6 +168,10 @@ buildOLMImages() {
   then
     echo "[INFO]: Starting to build catalog image and push to CRC ImageStream."
 
+    ls /etc/boskos
+    if [ -n "$(cat '/etc/boskos/password')" ]; then
+      echo "PSW file exists"
+    fi
     if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]]; then 
       oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
     fi
