@@ -274,6 +274,10 @@ createImageRegistryPullSecret() {
   # fi
   oc login -u system:admin || true
 
+  echo "---------------"
+  oc config view -o yaml || true
+  echo  "---------------"
+
   kubectl create secret docker-registry "${pullSecretName}" \
         --docker-server="${imageRegistryHost}" \
         --docker-username="${userName}" \
