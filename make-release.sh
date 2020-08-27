@@ -15,6 +15,7 @@ set -e
 init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
+  RELEASE_BRANCH="${RELEASE}-release"
   GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
   RUN_RELEASE=false
   PUSH_OLM_FILES=false
@@ -84,7 +85,7 @@ checkoutToReleaseBranch() {
     resetChanges master
     git push origin master:$BRANCH
   fi
-  git checkout -B $RELEASE
+  git checkout -B $RELEASE_BRANCH
 }
 
 getPropertyValue() {
@@ -219,15 +220,15 @@ pushOlmFilesToQuayIo() {
 }
 
 pushGitChanges() {
-  echo "[INFO] Pushing git changes into $RELEASE branch"
-  git push origin $RELEASE
+  echo "[INFO] Pushing git changes into $RELEASE_BRANCH branch"
+  git push origin $RELEASE_BRANCH
   git tag -a $RELEASE -m $RELEASE
   git push --tags origin
 }
 
 createPRToXBranch() {
   echo "[INFO] Creating pull request into ${BRANCH} branch"
-  hub pull-request --base ${BRANCH} --head ${RELEASE} -m "Release version ${RELEASE}"
+  hub pull-request --base ${BRANCH} --head ${RELEASE_BRANCH} -m "Release version ${RELEASE}"
 }
 
 createPRToMasterBranch() {
@@ -235,7 +236,7 @@ createPRToMasterBranch() {
   resetChanges master
   local tmpBranch="copy-csv-to-master"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply -3
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply -3
   . ${RELEASE_DIR}/replace-images-tags.sh nightly master
   git add -A
   git commit -m "Copy "$RELEASE" csv to master" --signoff
