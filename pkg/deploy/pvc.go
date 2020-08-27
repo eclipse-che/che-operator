@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
@@ -24,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -43,20 +41,19 @@ var pvcDiffOpts = cmp.Options{
 }
 
 func SyncPVCToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	claimSize string,
-	labels map[string]string,
-	clusterAPI ClusterAPI) PVCProvisioningStatus {
+	labels map[string]string) PVCProvisioningStatus {
 
-	specPVC, err := getSpecPVC(checluster, name, claimSize, labels, clusterAPI.Scheme)
+	specPVC, err := getSpecPVC(deployContext, name, claimSize, labels)
 	if err != nil {
 		return PVCProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	clusterPVC, err := getClusterPVC(specPVC.Name, specPVC.Namespace, clusterAPI.Client)
+	clusterPVC, err := getClusterPVC(specPVC.Name, specPVC.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return PVCProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -65,7 +62,7 @@ func SyncPVCToCluster(
 
 	if clusterPVC == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specPVC.Kind, specPVC.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specPVC)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specPVC)
 		return PVCProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}
@@ -76,7 +73,7 @@ func SyncPVCToCluster(
 		logrus.Infof("Updating existed object: %s, name: %s", clusterPVC.Kind, clusterPVC.Name)
 		fmt.Printf("Difference:\n%s", diff)
 		clusterPVC.Spec = specPVC.Spec
-		err := clusterAPI.Client.Update(context.TODO(), clusterPVC)
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterPVC)
 		return PVCProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}
@@ -91,11 +88,10 @@ func SyncPVCToCluster(
 }
 
 func getSpecPVC(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	claimSize string,
-	labels map[string]string,
-	scheme *runtime.Scheme) (*corev1.PersistentVolumeClaim, error) {
+	labels map[string]string) (*corev1.PersistentVolumeClaim, error) {
 
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteOnce,
@@ -108,10 +104,10 @@ func getSpecPVC(
 		AccessModes: accessModes,
 		Resources:   resources,
 	}
-	if len(checluster.Spec.Storage.PostgresPVCStorageClassName) > 1 {
+	if len(deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName) > 1 {
 		pvcSpec = corev1.PersistentVolumeClaimSpec{
 			AccessModes:      accessModes,
-			StorageClassName: &checluster.Spec.Storage.PostgresPVCStorageClassName,
+			StorageClassName: &deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName,
 			Resources:        resources,
 		}
 	}
@@ -123,13 +119,13 @@ func getSpecPVC(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: pvcSpec,
 	}
 
-	err := controllerutil.SetControllerReference(checluster, pvc, scheme)
+	err := controllerutil.SetControllerReference(deployContext.CheCluster, pvc, deployContext.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
 	}

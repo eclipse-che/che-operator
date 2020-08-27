@@ -15,7 +15,6 @@ import (
 	"context"
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -39,26 +38,25 @@ var routeWithHostDiffOpts = cmp.Options{
 }
 
 func SyncRouteToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	host string,
 	serviceName string,
-	servicePort int32,
-	clusterAPI ClusterAPI) (*routev1.Route, error) {
+	servicePort int32) (*routev1.Route, error) {
 
-	specRoute, err := GetSpecRoute(checluster, name, host, serviceName, servicePort, clusterAPI)
+	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterRoute, err := GetClusterRoute(specRoute.Name, specRoute.Namespace, clusterAPI.Client)
+	clusterRoute, err := GetClusterRoute(specRoute.Name, specRoute.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterRoute == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRoute.Kind, specRoute.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specRoute)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRoute)
 		if !errors.IsAlreadyExists(err) {
 			return nil, err
 		}
@@ -74,12 +72,12 @@ func SyncRouteToCluster(
 		logrus.Infof("Updating existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		err := clusterAPI.Client.Delete(context.TODO(), clusterRoute)
+		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterRoute)
 		if err != nil {
 			return nil, err
 		}
 
-		err = clusterAPI.Client.Create(context.TODO(), specRoute)
+		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specRoute)
 		return nil, err
 	}
 
@@ -105,19 +103,18 @@ func GetClusterRoute(name string, namespace string, client runtimeClient.Client)
 
 // GetSpecRoute returns default configuration of a route in Che namespace.
 func GetSpecRoute(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	host string,
 	serviceName string,
-	servicePort int32,
-	clusterAPI ClusterAPI) (*routev1.Route, error) {
+	servicePort int32) (*routev1.Route, error) {
 
-	tlsSupport := checluster.Spec.Server.TlsSupport
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	weight := int32(100)
 
 	if name == "keycloak" {
-		labels = GetLabels(checluster, name)
+		labels = GetLabels(deployContext.CheCluster, name)
 	}
 	targetPort := intstr.IntOrString{
 		Type:   intstr.Int,
@@ -130,7 +127,7 @@ func GetSpecRoute(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 	}
@@ -153,13 +150,13 @@ func GetSpecRoute(
 			Termination:                   routev1.TLSTerminationEdge,
 		}
 
-		if name == DefaultCheFlavor(checluster) && checluster.Spec.Server.CheHostTLSSecret != "" {
+		if name == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
 			secret := &corev1.Secret{}
 			namespacedName := types.NamespacedName{
-				Namespace: checluster.Namespace,
-				Name:      checluster.Spec.Server.CheHostTLSSecret,
+				Namespace: deployContext.CheCluster.Namespace,
+				Name:      deployContext.CheCluster.Spec.Server.CheHostTLSSecret,
 			}
-			if err := clusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
+			if err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
 				return nil, err
 			}
 
@@ -168,7 +165,7 @@ func GetSpecRoute(
 		}
 	}
 
-	err := controllerutil.SetControllerReference(checluster, route, clusterAPI.Scheme)
+	err := controllerutil.SetControllerReference(deployContext.CheCluster, route, deployContext.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
 	}

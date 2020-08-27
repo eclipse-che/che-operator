@@ -12,13 +12,11 @@
 package deploy
 
 import (
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -30,35 +28,35 @@ var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func SyncPostgresDeploymentToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
-	clusterDeployment, err := getClusterDeployment(PostgresDeploymentName, checluster.Namespace, clusterAPI.Client)
+func SyncPostgresDeploymentToCluster(deployContext *DeployContext) DeploymentProvisioningStatus {
+	clusterDeployment, err := getClusterDeployment(PostgresDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	specDeployment, err := getSpecPostgresDeployment(checluster, clusterDeployment, clusterAPI.Scheme)
+	specDeployment, err := getSpecPostgresDeployment(deployContext, clusterDeployment)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, nil, nil, clusterAPI)
+	return SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecPostgresDeployment(checluster *orgv1.CheCluster, clusterDeployment *appsv1.Deployment, scheme *runtime.Scheme) (*appsv1.Deployment, error) {
+func getSpecPostgresDeployment(deployContext *DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels := GetLabels(checluster, PostgresDeploymentName)
-	chePostgresDb := util.GetValue(checluster.Spec.Database.ChePostgresDb, "dbche")
-	postgresImage := util.GetValue(checluster.Spec.Database.PostgresImage, DefaultPostgresImage(checluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(checluster.Spec.Database.PostgresImagePullPolicy), DefaultPullPolicyFromDockerImage(postgresImage)))
+	labels := GetLabels(deployContext.CheCluster, PostgresDeploymentName)
+	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
+	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, DefaultPostgresImage(deployContext.CheCluster))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	if clusterDeployment != nil {
 		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
@@ -77,7 +75,7 @@ func getSpecPostgresDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "postgres",
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -161,7 +159,7 @@ func getSpecPostgresDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		},
 	}
 
-	chePostgresSecret := checluster.Spec.Database.ChePostgresSecret
+	chePostgresSecret := deployContext.CheCluster.Spec.Database.ChePostgresSecret
 	if len(chePostgresSecret) > 0 {
 		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
 			corev1.EnvVar{
@@ -189,10 +187,10 @@ func getSpecPostgresDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
 			corev1.EnvVar{
 				Name:  "POSTGRESQL_USER",
-				Value: checluster.Spec.Database.ChePostgresUser,
+				Value: deployContext.CheCluster.Spec.Database.ChePostgresUser,
 			}, corev1.EnvVar{
 				Name:  "POSTGRESQL_PASSWORD",
-				Value: checluster.Spec.Database.ChePostgresPassword,
+				Value: deployContext.CheCluster.Spec.Database.ChePostgresPassword,
 			})
 	}
 
@@ -204,7 +202,7 @@ func getSpecPostgresDeployment(checluster *orgv1.CheCluster, clusterDeployment *
 		}
 	}
 	if !util.IsTestMode() {
-		err = controllerutil.SetControllerReference(checluster, deployment, scheme)
+		err = controllerutil.SetControllerReference(deployContext.CheCluster, deployment, deployContext.ClusterAPI.Scheme)
 		if err != nil {
 			return nil, err
 		}

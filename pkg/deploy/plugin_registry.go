@@ -33,12 +33,12 @@ const (
 /**
  * Create plugin registry resources unless an external registry is used.
  */
-func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (bool, error) {
-	pluginRegistryURL := checluster.Spec.Server.PluginRegistryUrl
-	if !checluster.Spec.Server.ExternalPluginRegistry {
+func SyncPluginRegistryToCluster(deployContext *DeployContext) (bool, error) {
+	pluginRegistryURL := deployContext.CheCluster.Spec.Server.PluginRegistryUrl
+	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
 		var host string
 		if !util.IsOpenShift {
-			ingress, err := SyncIngressToCluster(checluster, PluginRegistry, "", PluginRegistry, 8080, clusterAPI)
+			ingress, err := SyncIngressToCluster(deployContext, PluginRegistry, "", PluginRegistry, 8080)
 			if !util.IsTestMode() {
 				if ingress == nil {
 					logrus.Infof("Waiting on ingress '%s' to be ready", PluginRegistry)
@@ -49,14 +49,14 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Cluste
 				}
 			}
 
-			ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+			ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
 			if ingressStrategy == "multi-host" {
-				host = PluginRegistry + "-" + checluster.Namespace + "." + checluster.Spec.K8s.IngressDomain
+				host = PluginRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
 			} else {
-				host = checluster.Spec.K8s.IngressDomain + "/" + PluginRegistry
+				host = deployContext.CheCluster.Spec.K8s.IngressDomain + "/" + PluginRegistry
 			}
 		} else {
-			route, err := SyncRouteToCluster(checluster, PluginRegistry, "", PluginRegistry, 8080, clusterAPI)
+			route, err := SyncRouteToCluster(deployContext, PluginRegistry, "", PluginRegistry, 8080)
 			if !util.IsTestMode() {
 				if route == nil {
 					logrus.Infof("Waiting on route '%s' to be ready", PluginRegistry)
@@ -74,29 +74,29 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Cluste
 		}
 
 		if pluginRegistryURL == "" {
-			if checluster.Spec.Server.TlsSupport {
+			if deployContext.CheCluster.Spec.Server.TlsSupport {
 				pluginRegistryURL = "https://" + host + "/v3"
 			} else {
 				pluginRegistryURL = "http://" + host + "/v3"
 			}
 		}
 
-		if checluster.IsAirGapMode() {
-			configMapData := getPluginRegistryConfigMapData(checluster)
-			configMapSpec, err := GetSpecConfigMap(checluster, PluginRegistry, configMapData, clusterAPI)
+		if deployContext.CheCluster.IsAirGapMode() {
+			configMapData := getPluginRegistryConfigMapData(deployContext.CheCluster)
+			configMapSpec, err := GetSpecConfigMap(deployContext, PluginRegistry, configMapData)
 			if err != nil {
 				return false, err
 			}
 
-			configMap, err := SyncConfigMapToCluster(checluster, configMapSpec, clusterAPI)
+			configMap, err := SyncConfigMapToCluster(deployContext, configMapSpec)
 			if configMap == nil {
 				return false, err
 			}
 		}
 
 		// Create a new registry service
-		registryLabels := GetLabels(checluster, PluginRegistry)
-		serviceStatus := SyncServiceToCluster(checluster, PluginRegistry, []string{"http"}, []int32{8080}, registryLabels, clusterAPI)
+		registryLabels := GetLabels(deployContext.CheCluster, PluginRegistry)
+		serviceStatus := SyncServiceToCluster(deployContext, PluginRegistry, []string{"http"}, []int32{8080}, registryLabels)
 		if !util.IsTestMode() {
 			if !serviceStatus.Continue {
 				logrus.Info("Waiting on service '" + PluginRegistry + "' to be ready")
@@ -109,7 +109,7 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Cluste
 		}
 
 		// Deploy plugin registry
-		deploymentStatus := SyncPluginRegistryDeploymentToCluster(checluster, clusterAPI)
+		deploymentStatus := SyncPluginRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {
 			if !deploymentStatus.Continue {
 				logrus.Info("Waiting on deployment '" + PluginRegistry + "' to be ready")
@@ -122,9 +122,9 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Cluste
 		}
 	}
 
-	if pluginRegistryURL != checluster.Status.PluginRegistryURL {
-		checluster.Status.PluginRegistryURL = pluginRegistryURL
-		if err := UpdateCheCRStatus(checluster, "status: Plugin Registry URL", pluginRegistryURL, clusterAPI); err != nil {
+	if pluginRegistryURL != deployContext.CheCluster.Status.PluginRegistryURL {
+		deployContext.CheCluster.Status.PluginRegistryURL = pluginRegistryURL
+		if err := UpdateCheCRStatus(deployContext, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
 			return false, err
 		}
 	}

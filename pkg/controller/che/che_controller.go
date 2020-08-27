@@ -236,7 +236,6 @@ const (
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	deployContext := deploy.Context{}
 	clusterAPI := deploy.ClusterAPI{
 		Client: r.client,
 		Scheme: r.scheme,
@@ -255,6 +254,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
+	deployContext := &deploy.DeployContext{
+		ClusterAPI: clusterAPI,
+		CheCluster: instance,
+	}
+
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
@@ -270,7 +274,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if !util.IsTestMode() {
 		if isOpenShift && deployContext.DefaultCheHost == "" {
-			host, err := getDefaultCheHost(instance, clusterAPI)
+			host, err := getDefaultCheHost(deployContext)
 			if host == "" {
 				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
 			} else {
@@ -331,9 +335,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Error on reading proxy configuration: %v", err)
 		return reconcile.Result{}, err
 	}
+	// Assign Proxy to the deploy context
+	deployContext.Proxy = proxy
 
 	if proxy.TrustedCAMapName != "" {
-		provisioned, err := r.putOpenShiftCertsIntoConfigMap(instance, proxy, clusterAPI)
+		provisioned, err := r.putOpenShiftCertsIntoConfigMap(deployContext)
 		if !provisioned {
 			configMapName := instance.Spec.Server.ServerTrustStoreConfigMapName
 			if err != nil {
@@ -350,14 +356,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if !isOpenShift && instance.Spec.Server.TlsSupport {
 		// Ensure TLS configuration is correct
-		if err := deploy.CheckAndUpdateK8sTLSConfiguration(instance, clusterAPI); err != nil {
+		if err := deploy.CheckAndUpdateK8sTLSConfiguration(deployContext); err != nil {
 			instance, _ = r.GetCR(request)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 
 	// Detect whether self-signed certificate is used
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(instance, proxy, clusterAPI)
+	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
 		logrus.Errorf("Failed to detect if self-signed certificate used. Cause: %v", err)
 		return reconcile.Result{}, err
@@ -370,7 +376,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
 			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
-			if err := deploy.CreateTLSSecretFromRoute(instance, "", deploy.CheTLSSelfSignedCertificateSecretName, proxy, clusterAPI); err != nil {
+			if err := deploy.CreateTLSSecretFromRoute(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -391,7 +397,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if err != nil {
 				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 			} else {
-				if err := deploy.CreateTLSSecretFromRoute(instance, baseURL, "openshift-api-crt", proxy, clusterAPI); err != nil {
+				if err := deploy.CreateTLSSecretFromRoute(deployContext, baseURL, "openshift-api-crt"); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
@@ -399,7 +405,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	} else {
 		// Handle Che TLS certificates on Kubernetes infrastructure
 		if instance.Spec.Server.TlsSupport {
-			result, err := deploy.K8sHandleCheTLSSecrets(instance, clusterAPI)
+			result, err := deploy.K8sHandleCheTLSSecrets(deployContext)
 			if result.Requeue || result.RequeueAfter > 0 {
 				if err != nil {
 					logrus.Error(err)
@@ -477,7 +483,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create service accounts:
 	// che is the one which token is used to create workspace objects
 	// che-workspace is SA used by plugins like exec and terminal with limited privileges
-	cheSA, err := deploy.SyncServiceAccountToCluster(instance, "che", clusterAPI)
+	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che")
 	if cheSA == nil {
 		logrus.Info("Waiting on service account 'che' to be created")
 		if err != nil {
@@ -488,7 +494,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(instance, "che-workspace", clusterAPI)
+	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
 	if cheWorkspaceSA == nil {
 		logrus.Info("Waiting on service account 'che-workspace' to be created")
 		if err != nil {
@@ -500,7 +506,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create exec and view roles for CheCluster server and workspaces
-	role, err := deploy.SyncRoleToCluster(instance, "exec", []string{"pods/exec"}, []string{"*"}, clusterAPI)
+	role, err := deploy.SyncRoleToCluster(deployContext, "exec", []string{"pods/exec"}, []string{"*"})
 	if role == nil {
 		logrus.Info("Waiting on role 'exec' to be created")
 		if err != nil {
@@ -511,7 +517,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	viewRole, err := deploy.SyncRoleToCluster(instance, "view", []string{"pods"}, []string{"list"}, clusterAPI)
+	viewRole, err := deploy.SyncRoleToCluster(deployContext, "view", []string{"pods"}, []string{"list"})
 	if viewRole == nil {
 		logrus.Info("Waiting on role 'view' to be created")
 		if err != nil {
@@ -522,7 +528,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che", "che", "edit", "ClusterRole", clusterAPI)
+	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che", "che", "edit", "ClusterRole")
 	if cheRoleBinding == nil {
 		logrus.Info("Waiting on role binding 'che' to be created")
 		if err != nil {
@@ -533,7 +539,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che-workspace-exec", "che-workspace", "exec", "Role", clusterAPI)
+	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
 	if cheWSExecRoleBinding == nil {
 		logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
 		if err != nil {
@@ -544,7 +550,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che-workspace-view", "che-workspace", "view", "Role", clusterAPI)
+	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-view", "che-workspace", "view", "Role")
 	if cheWSViewRoleBinding == nil {
 		logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
 		if err != nil {
@@ -559,7 +565,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
 	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
 	if workspaceClusterRole != "" {
-		cheWSCustomRoleBinding, err := deploy.SyncRoleBindingToCluster(instance, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole", clusterAPI)
+		cheWSCustomRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
 		if cheWSCustomRoleBinding == nil {
 			logrus.Info("Waiting on role binding 'che-workspace-custom' to be created")
 			if err != nil {
@@ -571,7 +577,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if err := r.GenerateAndSaveFields(instance, request, clusterAPI); err != nil {
+	if err := r.GenerateAndSaveFields(deployContext, request); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
@@ -579,7 +585,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if cheMultiUser == "false" {
 		labels := deploy.GetLabels(instance, cheFlavor)
-		pvcStatus := deploy.SyncPVCToCluster(instance, deploy.DefaultCheVolumeClaimName, "1Gi", labels, clusterAPI)
+		pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", labels)
 		if !tests {
 			if !pvcStatus.Continue {
 				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
@@ -612,7 +618,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			postgresLabels := deploy.GetLabels(instance, deploy.PostgresDeploymentName)
 
 			// Create a new postgres service
-			serviceStatus := deploy.SyncServiceToCluster(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels, clusterAPI)
+			serviceStatus := deploy.SyncServiceToCluster(deployContext, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
 			if !tests {
 				if !serviceStatus.Continue {
 					logrus.Info("Waiting on service 'postgres' to be ready")
@@ -625,7 +631,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			// Create a new Postgres PVC object
-			pvcStatus := deploy.SyncPVCToCluster(instance, deploy.DefaultPostgresVolumeClaimName, "1Gi", postgresLabels, clusterAPI)
+			pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", postgresLabels)
 			if !tests {
 				if !pvcStatus.Continue {
 					logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
@@ -638,7 +644,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			// Create a new Postgres deployment
-			deploymentStatus := deploy.SyncPostgresDeploymentToCluster(instance, clusterAPI)
+			deploymentStatus := deploy.SyncPostgresDeploymentToCluster(deployContext)
 			if !tests {
 				if !deploymentStatus.Continue {
 					logrus.Infof("Waiting on deployment '%s' to be ready", deploy.PostgresDeploymentName)
@@ -697,7 +703,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create Che service and route
-	serviceStatus := deploy.SyncCheServiceToCluster(instance, clusterAPI)
+	serviceStatus := deploy.SyncCheServiceToCluster(deployContext)
 	if !tests {
 		if !serviceStatus.Continue {
 			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceHame)
@@ -711,7 +717,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	cheHost := ""
 	if !isOpenShift {
-		ingress, err := deploy.SyncIngressToCluster(instance, cheFlavor, instance.Spec.Server.CheHost, deploy.CheServiceHame, 8080, clusterAPI)
+		ingress, err := deploy.SyncIngressToCluster(deployContext, cheFlavor, instance.Spec.Server.CheHost, deploy.CheServiceHame, 8080)
 		if !tests {
 			if ingress == nil {
 				logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
@@ -730,7 +736,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			customHost = ""
 		}
 
-		route, err := deploy.SyncRouteToCluster(instance, cheFlavor, customHost, deploy.CheServiceHame, 8080, clusterAPI)
+		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, deploy.CheServiceHame, 8080)
 		if !tests {
 			if route == nil {
 				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
@@ -765,7 +771,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		} else {
 			keycloakLabels := deploy.GetLabels(instance, "keycloak")
 
-			serviceStatus := deploy.SyncServiceToCluster(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels, clusterAPI)
+			serviceStatus := deploy.SyncServiceToCluster(deployContext, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
 			if !tests {
 				if !serviceStatus.Continue {
 					logrus.Info("Waiting on service 'keycloak' to be ready")
@@ -779,7 +785,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 			// create Keycloak ingresses when on k8s
 			if !isOpenShift {
-				ingress, err := deploy.SyncIngressToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
+				ingress, err := deploy.SyncIngressToCluster(deployContext, "keycloak", "", "keycloak", 8080)
 				if !tests {
 					if ingress == nil {
 						logrus.Info("Waiting on ingress 'keycloak' to be ready")
@@ -804,7 +810,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			} else {
 				// create Keycloak route
-				route, err := deploy.SyncRouteToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
+				route, err := deploy.SyncRouteToCluster(deployContext, "keycloak", "", "keycloak", 8080)
 				if !tests {
 					if route == nil {
 						logrus.Info("Waiting on route 'keycloak' to be ready")
@@ -831,7 +837,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
-			deploymentStatus := deploy.SyncKeycloakDeploymentToCluster(instance, proxy, clusterAPI)
+			deploymentStatus := deploy.SyncKeycloakDeploymentToCluster(deployContext)
 			if !tests {
 				if !deploymentStatus.Continue {
 					logrus.Info("Waiting on deployment 'keycloak' to be ready")
@@ -845,7 +851,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 			if !tests {
 				if !instance.Status.KeycloakProvisoned {
-					if err := deploy.ProvisionKeycloakResources(instance, clusterAPI); err != nil {
+					if err := deploy.ProvisionKeycloakResources(deployContext); err != nil {
 						logrus.Error(err)
 						return reconcile.Result{RequeueAfter: time.Second}, err
 					}
@@ -876,7 +882,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err := deploy.SyncDevfileRegistryToCluster(instance, clusterAPI)
+	provisioned, err := deploy.SyncDevfileRegistryToCluster(deployContext)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -886,7 +892,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = deploy.SyncPluginRegistryToCluster(instance, clusterAPI)
+	provisioned, err = deploy.SyncPluginRegistryToCluster(deployContext)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -905,7 +911,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
-	cheConfigMap, err := deploy.SyncCheConfigMapToCluster(instance, proxy, clusterAPI)
+	cheConfigMap, err := deploy.SyncCheConfigMapToCluster(deployContext)
 	if !tests {
 		if cheConfigMap == nil {
 			logrus.Infof("Waiting on config map '%s' to be created", deploy.CheConfigMapName)
@@ -926,7 +932,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Create a new che deployment
-	deploymentStatus := deploy.SyncCheDeploymentToCluster(instance, cmResourceVersion, proxy, clusterAPI)
+	deploymentStatus := deploy.SyncCheDeploymentToCluster(deployContext, cmResourceVersion)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
@@ -1085,9 +1091,9 @@ func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
 }
 
-func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAPI) (string, error) {
-	routeName := deploy.DefaultCheFlavor(checluster)
-	route, err := deploy.SyncRouteToCluster(checluster, routeName, "", deploy.CheServiceHame, 8080, clusterAPI)
+func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
+	routeName := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	route, err := deploy.SyncRouteToCluster(deployContext, routeName, "", deploy.CheServiceHame, 8080)
 	if route == nil {
 		logrus.Infof("Waiting on route '%s' to be ready", routeName)
 		if err != nil {
