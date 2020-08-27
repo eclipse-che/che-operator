@@ -269,9 +269,9 @@ createImageRegistryPullSecret() {
   token=''
   pullSecretName="myregistrykey"
 
-  if [ -z "$(oc whoami -t)" ]; then
-    echo "Docker password is an empty...."
-  fi
+  # if [ -z "$(oc whoami -t)" ]; then
+  #   echo "Docker password is an empty...."
+  # fi
 
   kubectl create secret docker-registry "${pullSecretName}" \
         --docker-server="${imageRegistryHost}" \
