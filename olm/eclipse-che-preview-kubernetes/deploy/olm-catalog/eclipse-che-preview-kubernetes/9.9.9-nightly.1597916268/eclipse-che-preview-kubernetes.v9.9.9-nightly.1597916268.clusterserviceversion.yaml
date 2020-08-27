@@ -398,5 +398,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1597060381
   version: 9.9.9-nightly.1597916268

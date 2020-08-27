@@ -222,7 +222,7 @@ buildOLMImages() {
     setUpOpenshift4ImageRegistryCA
     createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
     podman version || true
-    # exit 0
+    exit 0
 
     if [ -z "${CATALOG_SOURCE_IMAGE_NAME}" ]; then
       CATALOG_SOURCE_IMAGE_NAME="operator-catalog-source:0.0.1"
