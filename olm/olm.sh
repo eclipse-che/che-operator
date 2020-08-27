@@ -272,27 +272,28 @@ createImageRegistryPullSecret() {
   # if [ -z "$(oc whoami -t)" ]; then
   #   echo "Docker password is an empty...."
   # fi
-  oc login -u system:admin || true
+  # oc login -u system:admin || true
 
   echo "---------------"
   oc config view -o yaml || true
   echo  "---------------"
 
   podman version || true
-  cat cat /etc/os-release || true
+  cat /etc/os-release || true
   echo "Config json for secret... ${XDG_RUNTIME_DIR}/containers/auth.json"
+  CONFIG_JSON="${XDG_RUNTIME_DIR}/containers/auth.json"
 
-  # oc create secret generic "${pullSecretName}" \
-  #   --from-file=.dockerconfigjson=<path/to/.docker/config.json> \
-  #   --type=kubernetes.io/dockerconfigjson
+  oc create secret generic "${pullSecretName}" \
+    --from-file=.dockerconfigjson="${CONFIG_JSON}" \
+    --type=kubernetes.io/dockerconfigjson
 
-  exit 0
+  # exit 0
 
-  kubectl create secret docker-registry "${pullSecretName}" \
-        --docker-server="${imageRegistryHost}" \
-        --docker-username="${userName}" \
-        --docker-password="${token}" \
-        --docker-email="test@example.com"
+  # kubectl create secret docker-registry "${pullSecretName}" \
+  #       --docker-server="${imageRegistryHost}" \
+  #       --docker-username="${userName}" \
+  #       --docker-password="${token}" \
+  #       --docker-email="test@example.com"
   kubectl patch serviceaccount default -p "{\"imagePullSecrets\": [{\"name\": \"${pullSecretName}\"}]}"
 
   

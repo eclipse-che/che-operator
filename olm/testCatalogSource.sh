@@ -209,14 +209,20 @@ buildOLMImages() {
     IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}' || true)
     echo " Registry host is: ${IMAGE_REGISTRY_HOST}"
 
+    PODMAN_BINARY=$(command -v podman) || true
+    if [[ ! -x "${PODMAN_BINARY}" ]]; then
+      curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+      yum -y install podman
+    fi
+
+    imageTool="podman"
+    ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
+
     # Get Openshift Image registry host
     setUpOpenshift4ImageRegistryCA
     createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
     podman version || true
-    exit 0
-
-    imageTool="podman"
-    ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
+    # exit 0
 
     if [ -z "${CATALOG_SOURCE_IMAGE_NAME}" ]; then
       CATALOG_SOURCE_IMAGE_NAME="operator-catalog-source:0.0.1"
