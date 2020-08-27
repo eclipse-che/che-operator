@@ -272,6 +272,7 @@ createImageRegistryPullSecret() {
   # if [ -z "$(oc whoami -t)" ]; then
   #   echo "Docker password is an empty...."
   # fi
+  oc login -u system:admin || true
 
   kubectl create secret docker-registry "${pullSecretName}" \
         --docker-server="${imageRegistryHost}" \
@@ -279,6 +280,8 @@ createImageRegistryPullSecret() {
         --docker-password="${token}" \
         --docker-email="test@example.com"
   kubectl patch serviceaccount default -p "{\"imagePullSecrets\": [{\"name\": \"${pullSecretName}\"}]}"
+
+  
 }
 
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
