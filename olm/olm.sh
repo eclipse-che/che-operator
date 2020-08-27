@@ -278,6 +278,15 @@ createImageRegistryPullSecret() {
   oc config view -o yaml || true
   echo  "---------------"
 
+  podman version || true
+  echo "Config json for secret... ${XDG_RUNTIME_DIR}/containers/auth.json"
+
+  # oc create secret generic "${pullSecretName}" \
+  #   --from-file=.dockerconfigjson=<path/to/.docker/config.json> \
+  #   --type=kubernetes.io/dockerconfigjson
+
+  exit 0
+
   kubectl create secret docker-registry "${pullSecretName}" \
         --docker-server="${imageRegistryHost}" \
         --docker-username="${userName}" \
