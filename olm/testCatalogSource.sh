@@ -211,8 +211,8 @@ buildOLMImages() {
 
     PODMAN_BINARY=$(command -v podman) || true
     if [[ ! -x "${PODMAN_BINARY}" ]]; then
-      curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
-      yum -y install podman
+      sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+      sudo yum -y install podman
     fi
 
     imageTool="podman"
