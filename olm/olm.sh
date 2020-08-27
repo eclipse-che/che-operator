@@ -279,6 +279,7 @@ createImageRegistryPullSecret() {
   echo  "---------------"
 
   podman version || true
+  cat cat /etc/os-release || true
   echo "Config json for secret... ${XDG_RUNTIME_DIR}/containers/auth.json"
 
   # oc create secret generic "${pullSecretName}" \

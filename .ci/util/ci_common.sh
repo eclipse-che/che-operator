@@ -44,6 +44,12 @@ installStartDocker() {
   fi
 }
 
+installPodman() {
+  # CentOS 7
+  curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+  yum -y install podman
+}
+
 install_VirtPackages() {
   printInfo 'Installing required virtualization packages installed'
   sudo yum -y install libvirt qemu-kvm
