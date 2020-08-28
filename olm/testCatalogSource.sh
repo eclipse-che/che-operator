@@ -11,6 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 # bash ansi colors
+
 GREEN='\033[0;32m'
 NC='\033[0m'
 
@@ -107,6 +108,7 @@ init() {
   fi
 
   if [ "${CHANNEL}" == "nightly" ]; then
+    PACKAGE_FOLDER_PATH="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}"
     CLUSTER_SERVICE_VERSION_FILE="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
     PACKAGE_VERSION=$(yq -r ".spec.version" "${CLUSTER_SERVICE_VERSION_FILE}")
   else
@@ -175,30 +177,123 @@ buildOLMImages() {
     echo "============"
     oc whoami
     echo "============"
-    # CRC_BINARY=$(command -v crc) || true
+    
     if [[ "${OPENSHIFT_CI}" == "true" ]];then echo "Openshift ci!"; fi
+
+    # CRC_BINARY=$(command -v crc) || true
     # if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]] && [[ ! -x "${CRC_BINARY}" ]; then 
     #   oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
     # fi
 
     oc new-project "${NAMESPACE}" || true
 
-    oc get route --all-namespaces
-    echo "-------------------------------------------------"
-    oc get configs.imageregistry.operator.openshift.io/cluster -o yaml
-    echo "-------------------------------------------------"
-    oc get route -n openshift-image-registry
-    oc get pods -n openshift-image-registry
+    if [ "$(oc whoami)" == "kube:admin" ]; then
+      IS_KUBE_ADMIN=true
+      KUBE_ADMIN_TOKEN="$(oc whoami -t)"
+    elif [ "$(oc whoami)" == "system:admin" ]; then
+      IS_SYSTEM_ADMIN=true
+    else
+      echo "[ERROR] Fatal. You should be logged in like admin user to pass test."
+      exit 1
+    fi
+    pull_user="puller"
+    pull_password="puller"
+    add_user "${pull_user}" "${pull_password}"
+    bash -c "! oc login  --username=${pull_user} --password=${pull_password}"
+    sleep 9
+    token=$(oc whoami -t)
+    # token=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token")
+    logInLikeAdmin
+    oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user" || true
 
-    echo "Registry pods:====="
-    oc get pods -n openshift-image-registry
+    echo "${token}"
 
-    if [ ! $(oc get configs.imageregistry.operator.openshift.io/cluster -o yaml | yq -r ".spec.defaultRoute") == true ];then
-      oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+    oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
+
+    cp -rf "${PACKAGE_FOLDER_PATH}/bundle.Dockerfile" "${PACKAGE_FOLDER_PATH}/Dockerfile"
+    if oc -n "${NAMESPACE}" start-build serverless-bundle --from-dir "${PACKAGE_FOLDER_PATH}"; then
+      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
+    else
+      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
+      echo "Failed to build bundle image."
+      exit 1
     fi
 
-    echo "Registry deployments:====="
-    oc get deployment -n openshift-image-registry
+cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: serverless-index
+spec:
+  selector:
+    matchLabels:
+      app: serverless-index
+  template:
+    metadata:
+      labels:
+        app: serverless-index
+    spec:
+      containers:
+      - name: registry
+        image: quay.io/openshift-knative/index
+        ports:
+        - containerPort: 50051
+          name: grpc
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - grpc_health_probe
+            - -addr=localhost:50051
+        readinessProbe:
+          exec:
+            command:
+            - grpc_health_probe
+            - -addr=localhost:50051
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          podman login -u ${pull_user} -p ${token} image-registry.openshift-image-registry.svc:5000
+          /bin/opm registry add --container-tool=podman -d index.db --mode=semver -b image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/serverless-bundle && \
+          /bin/opm registry serve -d index.db -p 50051
+EOF
+
+  # Wait for the index pod to be up to avoid inconsistencies with the catalog source.
+  kubectl wait --for=condition=ready "pods" -l app=serverless-index --timeout=120s -n "${NAMESPACE}" || true
+  indexip="$(oc -n "$NAMESPACE" get pods -l app=serverless-index -o jsonpath='{.items[0].status.podIP}')"
+  # Install the catalogsource.
+  createRpcCatalogSource "${NAMESPACE}" "${indexip}"
+# cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $? 
+# apiVersion: operators.coreos.com/v1alpha1
+# kind: CatalogSource
+# metadata:
+#   name: serverless-operator
+# spec:
+#   address: "${indexip}:50051"
+#   displayName: "Serverless Operator"
+#   publisher: Red Hat
+#   sourceType: grpc
+# EOF
+
+    # --from-dir "${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}" -F
+
+    # oc get route --all-namespaces
+    # echo "-------------------------------------------------"
+    # oc get configs.imageregistry.operator.openshift.io/cluster -o yaml
+    # echo "-------------------------------------------------"
+    # oc get route -n openshift-image-registry
+    # oc get pods -n openshift-image-registry
+
+    # echo "Registry pods:====="
+    # oc get pods -n openshift-image-registry
+
+    # if [ ! $(oc get configs.imageregistry.operator.openshift.io/cluster -o yaml | yq -r ".spec.defaultRoute") == true ];then
+    #   oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+    # fi
+
+    # echo "Registry deployments:====="
+    # oc get deployment -n openshift-image-registry
 
     # REGISTRY_PROXY_POD=$(kubectl get pods -n openshift-image-registry -o yaml | grep  "name: image-registry-" | sed -e 's;.*name: \(\);\1;') || true
     # echo "[INFO] So proxy pod name is ${REGISTRY_PROXY_POD}"
@@ -206,45 +301,44 @@ buildOLMImages() {
 
     # oc get deployment -n openshift-image-registry
 
-    IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}' || true)
-    echo " Registry host is: ${IMAGE_REGISTRY_HOST}"
+    # IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}' || true)
+    # echo " Registry host is: ${IMAGE_REGISTRY_HOST}"
 
-    PODMAN_BINARY=$(command -v podman) || true
-    if [[ ! -x "${PODMAN_BINARY}" ]]; then
-      sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
-      sudo yum -y install podman
-    fi
+    # PODMAN_BINARY=$(command -v podman) || true
+    # if [[ ! -x "${PODMAN_BINARY}" ]]; then
+    #   sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+    #   sudo yum -y install podman
+    # fi
 
-    imageTool="podman"
-    ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
+    # imageTool="podman"
+    # ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
 
     # Get Openshift Image registry host
-    setUpOpenshift4ImageRegistryCA
-    createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
-    podman version || true
-    exit 0
+    # setUpOpenshift4ImageRegistryCA
+    # createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
+    # podman version || true
 
-    if [ -z "${CATALOG_SOURCE_IMAGE_NAME}" ]; then
-      CATALOG_SOURCE_IMAGE_NAME="operator-catalog-source:0.0.1"
-    fi
+    # if [ -z "${CATALOG_SOURCE_IMAGE_NAME}" ]; then
+    #   CATALOG_SOURCE_IMAGE_NAME="operator-catalog-source:0.0.1"
+    # fi
 
-    if [ -z "${CATALOG_SOURCE_IMAGE}" ]; then
-      CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"  
-    fi
+    # if [ -z "${CATALOG_SOURCE_IMAGE}" ]; then
+    #   CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"  
+    # fi
 
-    CATALOG_BUNDLE_IMAGE_NAME="che_operator_bundle:0.0.1"
-    CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_BUNDLE_IMAGE_NAME}"
+    # CATALOG_BUNDLE_IMAGE_NAME="che_operator_bundle:0.0.1"
+    # CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_BUNDLE_IMAGE_NAME}"
 
-    echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
-    buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
+    # echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
+    # buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
 
-    echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
+    # echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
+    # buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
 
-    # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
-    CATALOG_SOURCE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"
-    export CATALOG_SOURCE_IMAGE
-    echo "[INFO]: Successfully added catalog source and bundle images to crc image registry: ${CATALOG_SOURCE_IMAGE}"
+    # # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
+    # CATALOG_SOURCE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"
+    # export CATALOG_SOURCE_IMAGE
+    # echo "[INFO]: Successfully added catalog source and bundle images to crc image registry: ${CATALOG_SOURCE_IMAGE}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
     printHelp
@@ -254,13 +348,65 @@ buildOLMImages() {
 
 run() {
   createNamespace
-  forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
+  if [ ! ${PLATFORM} == "openshift" ]; then
+    forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
+  fi
+  
   installOperatorMarketPlace
   subscribeToInstallation
 
   installPackage
   applyCRCheCluster
   waitCheServerDeploy
+}
+
+function add_user {
+  name=$1
+  pass=$2
+
+  echo "Creating user $name:$pass"
+  # todo create this file in the temp fole
+  rm -rf users.htpasswd
+  touch users.htpasswd
+
+  PASSWD_TEMP_DIR="$(mktemp -q -d -t "passwd_XXXXXX" 2>/dev/null || mktemp -q -d)"
+  HT_PASSWD_FILE="${PASSWD_TEMP_DIR}/users.htpasswd"
+  touch "${HT_PASSWD_FILE}"
+
+  htpasswd -b "${HT_PASSWD_FILE}" "$name" "$pass"
+
+  # sudo yum install httpd-tools
+  kubectl create secret generic htpass-secret \
+    --from-file=htpasswd="${HT_PASSWD_FILE}" \
+    -n openshift-config \
+    --dry-run -o yaml | kubectl apply -f -
+
+cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+  - name: my_htpasswd_provider
+    mappingMethod: claim
+    type: HTPasswd
+    htpasswd:
+      fileData:
+        name: htpass-secret
+EOF
+}
+
+logInLikeAdmin() {
+  if [ "${IS_KUBE_ADMIN}" == "true" ]; then
+    oc login --token "${KUBE_ADMIN_TOKEN}"
+  elif [ ${IS_SYSTEM_ADMIN} == "true" ]; then
+    # system:admin it is not regual user "it is a user for initialization cluster". So it doesn't have password or token. It works using certificate...
+    oc login -u "system:admin"
+  else
+    echo "[ERROR] You need to have access to user 'kube:admin' or 'kube:system' to pass this test script."
+    exit 0
+  fi
 }
 
 init

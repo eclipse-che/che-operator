@@ -121,6 +121,23 @@ spec:
 EOF
 }
 
+# Create catalog source which will communicate with OLM using google rpc protocol.
+createRpcCatalogSource() {
+NAMESPACE=${1}
+indexIp=${2}
+cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $? 
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${packageName}
+spec:
+  address: "${indexIp}:50051"
+  displayName: "Serverless Operator"
+  publisher: Red Hat
+  sourceType: grpc
+EOF
+}
+
 applyCheOperatorInstallationSource() {
   if [ ${SOURCE_INSTALL} == "catalog" ]; then
     echo "[INFO] Use catalog source(index) image"
