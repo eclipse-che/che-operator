@@ -33,12 +33,12 @@ const (
 /**
  * Create devfile registry resources unless an external registry is used.
  */
-func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (bool, error) {
-	devfileRegistryURL := checluster.Spec.Server.DevfileRegistryUrl
-	if !checluster.Spec.Server.ExternalDevfileRegistry {
+func SyncDevfileRegistryToCluster(deployContext *DeployContext) (bool, error) {
+	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
+	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
 		var host string
 		if !util.IsOpenShift {
-			ingress, err := SyncIngressToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
+			ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
 			if !util.IsTestMode() {
 				if ingress == nil {
 					logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
@@ -49,14 +49,14 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 				}
 			}
 
-			ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+			ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
 			if ingressStrategy == "multi-host" {
-				host = DevfileRegistry + "-" + checluster.Namespace + "." + checluster.Spec.K8s.IngressDomain
+				host = DevfileRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
 			} else {
-				host = checluster.Spec.K8s.IngressDomain + "/" + DevfileRegistry
+				host = deployContext.CheCluster.Spec.K8s.IngressDomain + "/" + DevfileRegistry
 			}
 		} else {
-			route, err := SyncRouteToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
+			route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
 			if !util.IsTestMode() {
 				if route == nil {
 					logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)
@@ -74,27 +74,27 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 		}
 
 		if devfileRegistryURL == "" {
-			if checluster.Spec.Server.TlsSupport {
+			if deployContext.CheCluster.Spec.Server.TlsSupport {
 				devfileRegistryURL = "https://" + host
 			} else {
 				devfileRegistryURL = "http://" + host
 			}
 		}
 
-		configMapData := getDevfileRegistryConfigMapData(checluster, devfileRegistryURL)
-		configMapSpec, err := GetSpecConfigMap(checluster, DevfileRegistry, configMapData, clusterAPI)
+		configMapData := getDevfileRegistryConfigMapData(deployContext.CheCluster, devfileRegistryURL)
+		configMapSpec, err := GetSpecConfigMap(deployContext, DevfileRegistry, configMapData)
 		if err != nil {
 			return false, err
 		}
 
-		configMap, err := SyncConfigMapToCluster(checluster, configMapSpec, clusterAPI)
+		configMap, err := SyncConfigMapToCluster(deployContext, configMapSpec)
 		if configMap == nil {
 			return false, err
 		}
 
 		// Create a new registry service
-		registryLabels := GetLabels(checluster, DevfileRegistry)
-		serviceStatus := SyncServiceToCluster(checluster, DevfileRegistry, []string{"http"}, []int32{8080}, registryLabels, clusterAPI)
+		registryLabels := GetLabels(deployContext.CheCluster, DevfileRegistry)
+		serviceStatus := SyncServiceToCluster(deployContext, DevfileRegistry, []string{"http"}, []int32{8080}, registryLabels)
 		if !util.IsTestMode() {
 			if !serviceStatus.Continue {
 				logrus.Info("Waiting on service '" + DevfileRegistry + "' to be ready")
@@ -107,7 +107,7 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 		}
 
 		// Deploy devfile registry
-		deploymentStatus := SyncDevfileRegistryDeploymentToCluster(checluster, clusterAPI)
+		deploymentStatus := SyncDevfileRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {
 			if !deploymentStatus.Continue {
 				logrus.Info("Waiting on deployment '" + DevfileRegistry + "' to be ready")
@@ -120,9 +120,9 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 		}
 	}
 
-	if devfileRegistryURL != checluster.Status.DevfileRegistryURL {
-		checluster.Status.DevfileRegistryURL = devfileRegistryURL
-		if err := UpdateCheCRStatus(checluster, "status: Devfile Registry URL", devfileRegistryURL, clusterAPI); err != nil {
+	if devfileRegistryURL != deployContext.CheCluster.Status.DevfileRegistryURL {
+		deployContext.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
+		if err := UpdateCheCRStatus(deployContext, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
 			return false, err
 		}
 	}

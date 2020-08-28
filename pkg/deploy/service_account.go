@@ -14,7 +14,6 @@ package deploy
 import (
 	"context"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,20 +23,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncServiceAccountToCluster(checluster *orgv1.CheCluster, name string, clusterAPI ClusterAPI) (*corev1.ServiceAccount, error) {
-	specSA, err := getSpecServiceAccount(checluster, name, clusterAPI)
+func SyncServiceAccountToCluster(deployContext *DeployContext, name string) (*corev1.ServiceAccount, error) {
+	specSA, err := getSpecServiceAccount(deployContext, name)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterSA, err := getClusterServiceAccount(specSA.Name, specSA.Namespace, clusterAPI.Client)
+	clusterSA, err := getClusterServiceAccount(specSA.Name, specSA.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterSA == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specSA.Kind, specSA.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specSA)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specSA)
 		return nil, err
 	}
 
@@ -60,8 +59,8 @@ func getClusterServiceAccount(name string, namespace string, client runtimeClien
 	return serviceAccount, nil
 }
 
-func getSpecServiceAccount(checluster *orgv1.CheCluster, name string, clusterAPI ClusterAPI) (*corev1.ServiceAccount, error) {
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+func getSpecServiceAccount(deployContext *DeployContext, name string) (*corev1.ServiceAccount, error) {
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	serviceAccount := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
@@ -69,12 +68,12 @@ func getSpecServiceAccount(checluster *orgv1.CheCluster, name string, clusterAPI
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 	}
 
-	err := controllerutil.SetControllerReference(checluster, serviceAccount, clusterAPI.Scheme)
+	err := controllerutil.SetControllerReference(deployContext.CheCluster, serviceAccount, deployContext.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
 	}

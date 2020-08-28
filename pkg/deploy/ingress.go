@@ -15,7 +15,6 @@ import (
 	"context"
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -34,26 +33,25 @@ var ingressDiffOpts = cmp.Options{
 }
 
 func SyncIngressToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	host string,
 	serviceName string,
-	servicePort int,
-	clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
+	servicePort int) (*v1beta1.Ingress, error) {
 
-	specIngress, err := getSpecIngress(checluster, name, host, serviceName, servicePort, clusterAPI)
+	specIngress, err := getSpecIngress(deployContext, name, host, serviceName, servicePort)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterIngress, err := getClusterIngress(specIngress.Name, specIngress.Namespace, clusterAPI.Client)
+	clusterIngress, err := getClusterIngress(specIngress.Name, specIngress.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterIngress == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specIngress.Kind, specIngress.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specIngress)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specIngress)
 		return nil, err
 	}
 
@@ -62,12 +60,12 @@ func SyncIngressToCluster(
 		logrus.Infof("Updating existed object: %s, name: %s", clusterIngress.Kind, clusterIngress.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		err := clusterAPI.Client.Delete(context.TODO(), clusterIngress)
+		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterIngress)
 		if err != nil {
 			return nil, err
 		}
 
-		err = clusterAPI.Client.Create(context.TODO(), specIngress)
+		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specIngress)
 		return nil, err
 	}
 
@@ -91,33 +89,32 @@ func getClusterIngress(name string, namespace string, client runtimeClient.Clien
 }
 
 func getSpecIngress(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	host string,
 	serviceName string,
-	servicePort int,
-	clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
+	servicePort int) (*v1beta1.Ingress, error) {
 
-	tlsSupport := checluster.Spec.Server.TlsSupport
-	ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
-	ingressDomain := checluster.Spec.K8s.IngressDomain
-	ingressClass := util.GetValue(checluster.Spec.K8s.IngressClass, DefaultIngressClass)
-	labels := GetLabels(checluster, name)
+	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
+	ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
+	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
+	labels := GetLabels(deployContext.CheCluster, name)
 
 	if host == "" {
 		if ingressStrategy == "multi-host" {
-			host = name + "-" + checluster.Namespace + "." + ingressDomain
+			host = name + "-" + deployContext.CheCluster.Namespace + "." + ingressDomain
 		} else if ingressStrategy == "single-host" {
 			host = ingressDomain
 		}
 	}
 
 	tls := "false"
-	tlsSecretName := util.GetValue(checluster.Spec.K8s.TlsSecretName, "che-tls")
+	tlsSecretName := util.GetValue(deployContext.CheCluster.Spec.K8s.TlsSecretName, "che-tls")
 	if tlsSupport {
 		tls = "true"
-		if name == DefaultCheFlavor(checluster) && checluster.Spec.Server.CheHostTLSSecret != "" {
-			tlsSecretName = checluster.Spec.Server.CheHostTLSSecret
+		if name == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
 		}
 	}
 
@@ -150,7 +147,7 @@ func getSpecIngress(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
-			Namespace:   checluster.Namespace,
+			Namespace:   deployContext.CheCluster.Namespace,
 			Labels:      labels,
 			Annotations: annotations,
 		},
@@ -188,7 +185,7 @@ func getSpecIngress(
 		}
 	}
 
-	err := controllerutil.SetControllerReference(checluster, ingress, clusterAPI.Scheme)
+	err := controllerutil.SetControllerReference(deployContext.CheCluster, ingress, deployContext.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
 	}

@@ -39,8 +39,11 @@ func TestCreateCheDefaultService(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{},
 		},
 	}
-
-	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
+	deployContext := &DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: ClusterAPI{},
+	}
+	service, err := GetSpecCheService(deployContext)
 
 	if service == nil || err != nil {
 		t.Error("service should be created witn no error")
@@ -60,8 +63,12 @@ func TestCreateCheServerDebug(t *testing.T) {
 			},
 		},
 	}
+	deployContext := &DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: ClusterAPI{},
+	}
 
-	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
+	service, err := GetSpecCheService(deployContext)
 
 	if service == nil || err != nil {
 		t.Error("service should be created without error")
@@ -83,7 +90,12 @@ func TestCreateCheServiceEnableMetrics(t *testing.T) {
 		},
 	}
 
-	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
+	deployContext := &DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: ClusterAPI{},
+	}
+
+	service, err := GetSpecCheService(deployContext)
 
 	if service == nil || err != nil {
 		t.Error("service should be created witn no error")
@@ -104,7 +116,12 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 		},
 	}
 
-	service, err := GetSpecCheService(cheCluster, ClusterAPI{})
+	deployContext := &DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: ClusterAPI{},
+	}
+
+	service, err := GetSpecCheService(deployContext)
 
 	if service == nil || err != nil {
 		t.Error("service should be created witn no error")
