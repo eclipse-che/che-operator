@@ -199,8 +199,8 @@ buildOLMImages() {
     pull_user="puller"
     pull_password="puller"
     add_user "${pull_user}" "${pull_password}"
+    sleep 30
     bash -c "! oc login  --username=${pull_user} --password=${pull_password}"
-    sleep 9
     token=$(oc whoami -t)
     # token=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token")
     logInLikeAdmin
@@ -365,9 +365,6 @@ function add_user {
   pass=$2
 
   echo "Creating user $name:$pass"
-  # todo create this file in the temp fole
-  rm -rf users.htpasswd
-  touch users.htpasswd
 
   PASSWD_TEMP_DIR="$(mktemp -q -d -t "passwd_XXXXXX" 2>/dev/null || mktemp -q -d)"
   HT_PASSWD_FILE="${PASSWD_TEMP_DIR}/users.htpasswd"
@@ -375,7 +372,7 @@ function add_user {
 
   htpasswd -b "${HT_PASSWD_FILE}" "$name" "$pass"
 
-  # sudo yum install httpd-tools
+
   kubectl create secret generic htpass-secret \
     --from-file=htpasswd="${HT_PASSWD_FILE}" \
     -n openshift-config \
