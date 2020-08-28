@@ -13,6 +13,7 @@
 package deploy
 
 import (
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,7 +24,10 @@ type ProvisioningStatus struct {
 	Err      error
 }
 
-type Context struct {
+type DeployContext struct {
+	CheCluster *orgv1.CheCluster
+	ClusterAPI ClusterAPI
+	Proxy *Proxy
 	DefaultCheHost string
 }
 

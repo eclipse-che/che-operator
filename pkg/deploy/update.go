@@ -14,28 +14,27 @@ package deploy
 import (
 	"context"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 )
 
-func UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField string, value string, clusterAPI ClusterAPI) (err error) {
-	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
-	err = clusterAPI.Client.Update(context.TODO(), instance)
+func UpdateCheCRSpec(deployContext *DeployContext, updatedField string, value string) (err error) {
+	logrus.Infof("Updating %s CR with %s: %s", deployContext.CheCluster.Name, updatedField, value)
+	err = deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
 	if err != nil {
-		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR: %s", deployContext.CheCluster.Name, err)
 		return err
 	}
-	logrus.Infof("Custom resource %s updated", instance.Name)
+	logrus.Infof("Custom resource %s updated", deployContext.CheCluster.Name)
 	return nil
 }
 
-func UpdateCheCRStatus(instance *orgv1.CheCluster, updatedField string, value string, clusterAPI ClusterAPI) (err error) {
-	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
-	err = clusterAPI.Client.Status().Update(context.TODO(), instance)
+func UpdateCheCRStatus(deployContext *DeployContext, updatedField string, value string) (err error) {
+	logrus.Infof("Updating %s CR with %s: %s", deployContext.CheCluster.Name, updatedField, value)
+	err = deployContext.ClusterAPI.Client.Status().Update(context.TODO(), deployContext.CheCluster)
 	if err != nil {
-		logrus.Errorf("Failed to update %s CR. Fetching the latest CR version: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR. Fetching the latest CR version: %s", deployContext.CheCluster.Name, err)
 		return err
 	}
-	logrus.Infof("Custom resource %s updated", instance.Name)
+	logrus.Infof("Custom resource %s updated", deployContext.CheCluster.Name)
 	return nil
 }

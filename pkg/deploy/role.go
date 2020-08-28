@@ -14,7 +14,6 @@ package deploy
 import (
 	"context"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -25,25 +24,24 @@ import (
 )
 
 func SyncRoleToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	resources []string,
-	verbs []string,
-	clusterAPI ClusterAPI) (*rbac.Role, error) {
+	verbs []string) (*rbac.Role, error) {
 
-	specRole, err := getSpecRole(checluster, name, resources, verbs, clusterAPI)
+	specRole, err := getSpecRole(deployContext, name, resources, verbs)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterRole, err := getClusterRole(specRole.Name, specRole.Namespace, clusterAPI.Client)
+	clusterRole, err := getClusterRole(specRole.Name, specRole.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterRole == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRole.Kind, specRole.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specRole)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRole)
 		return nil, err
 	}
 
@@ -66,8 +64,8 @@ func getClusterRole(name string, namespace string, client runtimeClient.Client) 
 	return role, nil
 }
 
-func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, verbs []string, clusterAPI ClusterAPI) (*rbac.Role, error) {
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+func getSpecRole(deployContext *DeployContext, name string, resources []string, verbs []string) (*rbac.Role, error) {
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Role",
@@ -75,7 +73,7 @@ func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Rules: []rbac.PolicyRule{
@@ -89,7 +87,7 @@ func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, 
 		},
 	}
 
-	err := controllerutil.SetControllerReference(checluster, role, clusterAPI.Scheme)
+	err := controllerutil.SetControllerReference(deployContext.CheCluster, role, deployContext.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
 	}
