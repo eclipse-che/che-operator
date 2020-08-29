@@ -1,0 +1,35 @@
+--- /home/user/GoWorkSpace/src/github.com/eclipse/che-operator-eclipse/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1598450052/eclipse-che-preview-openshift.v9.9.9-nightly.1598450052.clusterserviceversion.yaml	2020-08-29 04:59:30.383340103 +0300
++++ /home/user/GoWorkSpace/src/github.com/eclipse/che-operator-eclipse/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1598666382/eclipse-che-preview-openshift.v9.9.9-nightly.1598666382.clusterserviceversion.yaml	2020-08-29 04:59:43.155321899 +0300
+@@ -49,13 +49,13 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-08-26T13:54:12Z"
++    createdAt: "2020-08-29T01:59:42Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1598450052
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1598666382
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -312,6 +312,8 @@
+                         value: che-identity-secret
+                       - name: CHE_IDENTITY_POSTGRES_SECRET
+                         value: che-identity-postgres-secret
++                      - name: some-text
++                        value: some-value
+                       - name: CHE_POSTGRES_SECRET
+                         value: che-postgres-secret
+                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+@@ -431,5 +433,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1597916268
+-  version: 9.9.9-nightly.1598450052
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1598450052
++  version: 9.9.9-nightly.1598666382

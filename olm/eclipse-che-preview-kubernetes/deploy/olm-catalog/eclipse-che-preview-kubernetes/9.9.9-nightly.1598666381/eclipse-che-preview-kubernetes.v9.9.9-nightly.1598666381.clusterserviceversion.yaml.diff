@@ -1,0 +1,35 @@
+--- /home/user/GoWorkSpace/src/github.com/eclipse/che-operator-eclipse/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1598450051/eclipse-che-preview-kubernetes.v9.9.9-nightly.1598450051.clusterserviceversion.yaml	2020-08-29 04:59:30.381340106 +0300
++++ /home/user/GoWorkSpace/src/github.com/eclipse/che-operator-eclipse/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1598666381/eclipse-che-preview-kubernetes.v9.9.9-nightly.1598666381.clusterserviceversion.yaml	2020-08-29 04:59:41.886323708 +0300
+@@ -52,13 +52,13 @@
+     categories: Developer Tools
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-08-26T13:54:12Z"
++    createdAt: "2020-08-29T01:59:41Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1598450051
++  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1598666381
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -285,6 +285,8 @@
+                   value: che-identity-secret
+                 - name: CHE_IDENTITY_POSTGRES_SECRET
+                   value: che-identity-postgres-secret
++                - name: some-text
++                  value: some-value
+                 - name: CHE_POSTGRES_SECRET
+                   value: che-postgres-secret
+                 - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+@@ -398,5 +400,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1597916268
+-  version: 9.9.9-nightly.1598450051
++  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1598450051
++  version: 9.9.9-nightly.1598666381
