@@ -199,14 +199,18 @@ buildOLMImages() {
     pull_user="puller"
     pull_password="puller"
     add_user "${pull_user}" "${pull_password}"
-    sleep 30
+    sleep 180
     bash -c "! oc login  --username=${pull_user} --password=${pull_password}"
+    echo "Login done..."
+    sleep 180
     token=$(oc whoami -t)
+    echo "We have got token: ${token}"
+
     # token=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token")
     logInLikeAdmin
     oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user" || true
 
-    echo "${token}"
+    
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
 
