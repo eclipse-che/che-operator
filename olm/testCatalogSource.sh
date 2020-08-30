@@ -200,10 +200,10 @@ buildOLMImages() {
     pull_password="puller"
     add_user "${pull_user}" "${pull_password}"
 
-    loginCMD="! oc login --username=${pull_user} --password=${pull_password} > /dev/null"
-    timeout 90s bash -c "${loginCMD}" || return 1
+    # loginCMD="! oc login --username=${pull_user} --password=${pull_password} > /dev/null"
+    # timeout 90s bash -c "${loginCMD}" || return 1
 
-    echo "Login done..."
+    # echo "Login done..."
     # token=$(oc whoami -t) || true
     # sleep 180
     # token=$(oc whoami -t) || true
@@ -216,16 +216,16 @@ buildOLMImages() {
 
     cp "${KUBECONFIG}" "$pull_user.kubeconfig" || true
     loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
-    timeout 90s bash -c "${loginCMD}" || { echo "Login failed"; return 1; }
+    timeout 300s bash -c "${loginCMD}" || { echo "Login failed"; return 1; }
     echo "Login done again"
 
     # logInLikeAdmin
     oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user" || true
     echo "Applied policy registry-viewer"
-    echo "Try to get token"
-    token3=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t)
-    echo "Token 3 ${token3}"
-    exit
+    echo "Try to get token..."
+    token=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t)
+    echo "Token 3 ${token}"
+    exit 0
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
 
@@ -390,7 +390,9 @@ function add_user {
   touch "${HT_PASSWD_FILE}"
 
   htpasswd -b "${HT_PASSWD_FILE}" "$name" "$pass"
-
+  echo "HTPASSWD content is:======================="
+  cat "${HT_PASSWD_FILE}"
+  echo "==================================="
 
   kubectl create secret generic htpass-secret \
     --from-file=htpasswd="${HT_PASSWD_FILE}" \
