@@ -217,7 +217,7 @@ buildOLMImages() {
     cp "${KUBECONFIG}" "$pull_user.kubeconfig" || true
     loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
     timeout 300s bash -c "${loginCMD}" || { echo "Login failed"; return 1; }
-    echo "Login done again"
+    echo "Login done"
 
     # logInLikeAdmin
     oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user" || true
