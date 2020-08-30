@@ -211,16 +211,18 @@ buildOLMImages() {
 
     # token2=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token" || true)
     # echo "Token 2 ${token2}"
-    oc config view || true
+    
     echo "${KUBECONFIG}"
-
-    cp "${KUBECONFIG}" "$pull_user.kubeconfig" || true
-    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
-    timeout 300s bash -c "${loginCMD}" || { echo "Login failed"; return 1; }
+    cp "${KUBECONFIG}" "$pull_user.kubeconfig"
+    sleep 180
+    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password}"
+    timeout 300s bash -c "${loginCMD}" || exit 1
     echo "Login done"
+    oc whoami
+    oc config view --kubeconfig=$pull_user.kubeconfig || true
 
     # logInLikeAdmin
-    oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user" || true
+    oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user"
     echo "Applied policy registry-viewer"
     echo "Try to get token..."
     token=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t)
@@ -396,8 +398,7 @@ function add_user {
 
   kubectl create secret generic htpass-secret \
     --from-file=htpasswd="${HT_PASSWD_FILE}" \
-    -n openshift-config \
-    --dry-run -o yaml | kubectl apply -f -
+    -n openshift-config
 
 cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
 apiVersion: config.openshift.io/v1
