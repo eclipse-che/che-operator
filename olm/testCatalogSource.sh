@@ -204,18 +204,22 @@ buildOLMImages() {
     timeout 90s bash -c "${loginCMD}" || return 1
 
     echo "Login done..."
-    token=$(oc whoami -t) || true
-    sleep 180
-    token=$(oc whoami -t) || true
-    echo "We have got token: ${token}"
+    # token=$(oc whoami -t) || true
+    # sleep 180
+    # token=$(oc whoami -t) || true
+    # echo "We have got token: ${token}"
 
-    token2=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token" || true)
-    echo "Token 2 ${token2}"
+    # token2=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token" || true)
+    # echo "Token 2 ${token2}"
+    oc config view || true
+    echo "${KUBECONFIG}"
 
     cp "${KUBECONFIG}" "$pull_user.kubeconfig" || true
-    loginCMD="! oc login --config=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
+    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
     timeout 90s bash -c "${loginCMD}" || return 1
-    token3=$(oc --config=$pull_user.kubeconfig whoami -t)
+    echo "Login done again"
+    echo "Try to get token"
+    token3=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t || true)
     echo "Token 3 ${token3}"
 
 
