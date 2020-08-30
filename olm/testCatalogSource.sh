@@ -199,12 +199,11 @@ buildOLMImages() {
     pull_user="puller"
     pull_password="puller"
     add_user "${pull_user}" "${pull_password}"
-    sleep 180
-    loginCMD="bash -c '! oc login  --username=${pull_user} --password=${pull_password} > /dev/null'"
-    timeout 900 "${loginCMD}" || return 1
+
+    loginCMD="! oc login --username=${pull_user} --password=${pull_password} > /dev/null"
+    timeout 90s bash -c "${loginCMD}" || return 1
 
     echo "Login done..."
-    sleep 180
     token=$(oc whoami -t)
     echo "We have got token: ${token}"
 
