@@ -215,7 +215,7 @@ buildOLMImages() {
     echo "${KUBECONFIG}"
     cp "${KUBECONFIG}" "$pull_user.kubeconfig"
     sleep 180
-    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password}"
+    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
     timeout 900 bash -c "${loginCMD}" || exit 1
     echo "Login done?..."
     oc whoami
