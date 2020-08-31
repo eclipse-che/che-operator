@@ -45,7 +45,7 @@ run_tests() {
   oc apply -f ${OPERATOR_REPO}/deploy/crds/org_v1_che_crd.yaml
 
   oc_tls_mode
-    
+
   printInfo "Starting to compile e2e tests binary"
   docker run -t \
               -v ${OPERATOR_REPO}/tmp:/operator \

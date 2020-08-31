@@ -10,6 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+# Deprecated. Use .github/action_scripts/operator_code_check.sh instead of it.
+
 set -e
 
 # Perform git installation before execute.

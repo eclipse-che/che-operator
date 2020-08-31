@@ -12,11 +12,7 @@ If these dependencies are not installed, `docker-run.sh` can be used as a contai
 Example : `$ docker-run.sh update-nightly-olm-files.sh`
 
 
-# Make new changes to OLM artifacts
-
-Every change needs to be done in a new OLM artifact as previous artifacts are frozen.
-
-A script is generating new folders/files that can be edited.
+# Make new changes to OLM bundle
 
 In `olm` folder
 
@@ -32,7 +28,7 @@ $ update-nightly-olm-files.sh
 $ docker-run.sh update-nightly-olm-files.sh
 ```
 
-Then the changes can be applied in the newly created CSV files.
+Every change will be included to the deploy/olm-catalog/che-operator bundles and override all previous changes.
 
 ## Local testing che-operator development version using OLM
 
@@ -47,7 +43,32 @@ Generate new nightly olm bundle packages:
 $ ./update-nightly-olm-files.sh
 ```
 
-Olm bundle packages will be generated in the folders `olm/eclipse-che-preview-${platform}`.
+Olm bundle packages will be generated in the folders `deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}`.
+
+Build custom olm bundle image with own nightly version:
+
+```shell
+$ 
+```
+
+Push image to the image registry, using dokcer or podman.
+
+Build custom catalog image(index image) with created above bundle image. But there two options:
+ - build catalog image with only one latest generated nightly version:
+
+   ```shell
+   $
+   ```
+
+ - build catalog image and include you latest generated nightly version **plus "all know nighlty versions from Eclipse Che nightly catalog source image**:
+
+   ```shell
+   $
+   ```
+
+Push images to the image registry.
+
+## Push che-operator bundles to Application registry(Deprecated Olm feature)
 
 Push che-operator bundles to your application registry:
 
@@ -67,7 +88,7 @@ $ export APPLICATION_REGISTRY=${application_registry_namespace} && ./testCSV.sh 
 
 Where are:
  - `platform` - 'openshift' or 'kubernetes'
- - `package_version` - your generated che-operator package version(for example: `7.8.0` or `9.9.9-nightly.1562083645`)
+ - `package_version` - your generated che-operator package version(for example: `7.8.0`)
  - `optional-namespace` - kubernetes namespace to deploy che-operator. Optional parameter, by default operator will be deployed to the namespace `eclipse-che-preview-test`
 
 To test che-operator with OLM files without push to a related Quay.io application, we can build a required docker image of a dedicated catalog,
@@ -75,6 +96,9 @@ in order to install directly through a CatalogSource. To test this options start
 test script in the olm folder:
 
 ```shell
+export IMAGE_REGISTRY_USER_NAME=${username} && \
+export IMAGE_REGISTRY_PASSWORD=${password} && \
+export IMAGE_REGISTRY_HOST=${registry_name} \
 $ ./testCatalogSource.sh {platform} ${channel} ${namespace}
 ```
 

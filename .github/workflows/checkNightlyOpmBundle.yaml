@@ -9,15 +9,18 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-name: Che operator image build check.
+
+name: Check nightly "opm" bundle
 on: [pull_request, push]
 jobs:
 
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Check nightly "opm" bundle
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        path: go/src/github.com/${{ github.repository }}
 
-    - name: Build the Docker image
-      run: docker build .
+    - name:
+      run: "${GITHUB_WORKSPACE}/.github/action_scripts/operator_code_check.sh"
