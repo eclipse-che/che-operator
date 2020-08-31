@@ -77,7 +77,10 @@ type CheConfigMap struct {
 }
 
 func SyncCheConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap, error) {
-	data := GetCheConfigMapData(deployContext)
+	data, err := GetCheConfigMapData(deployContext)
+	if err != nil {
+		return nil, err
+	}
 	specConfigMap, err := GetSpecConfigMap(deployContext, CheConfigMapName, data)
 	if err != nil {
 		return nil, err
@@ -86,9 +89,9 @@ func SyncCheConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap,
 	return SyncConfigMapToCluster(deployContext, specConfigMap)
 }
 
-// GetConfigMapData gets env values from CR spec and returns a map with key:value
+// GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func GetCheConfigMapData(deployContext *DeployContext) (cheEnv map[string]string) {
+func GetCheConfigMapData(deployContext *DeployContext) (cheEnv map[string]string, err error) {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
 	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
@@ -227,19 +230,30 @@ func GetCheConfigMapData(deployContext *DeployContext) (cheEnv map[string]string
 	err = json.Unmarshal(out, &cheEnv)
 
 	// k8s specific envs
-	k8sCheEnv := map[string]string{
-		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
-		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
-		"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
-		"CHE_INFRA_KUBERNETES_SERVER__STRATEGY":                    ingressStrategy,
-		"CHE_INFRA_KUBERNETES_TLS__SECRET":                         tlsSecretName,
-		"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
-		"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
-	}
 	if !isOpenShift {
+		k8sCheEnv := map[string]string{
+			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
+			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
+			"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
+			"CHE_INFRA_KUBERNETES_SERVER__STRATEGY":                    ingressStrategy,
+			"CHE_INFRA_KUBERNETES_TLS__SECRET":                         tlsSecretName,
+			"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
+			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
+		}
+		// Add TLS key and server certificate to properties when user workspaces should be created in another
+		// than Che server namespace, from where the Che TLS secret is not accesible.
+		if _, keyExists := deployContext.CheCluster.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]; keyExists {
+			cheTLSSecret, err := GetClusterSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
+			if err != nil {
+				return nil, err
+			}
+			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
+			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
+		}
+
 		addMap(cheEnv, k8sCheEnv)
 	}
 
 	addMap(cheEnv, deployContext.CheCluster.Spec.Server.CustomCheProperties)
-	return cheEnv
+	return cheEnv, nil
 }
