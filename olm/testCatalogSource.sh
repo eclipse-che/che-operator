@@ -217,6 +217,7 @@ buildOLMImages() {
     sleep 180
     loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /tmp/test"
     timeout 900 bash -c "${loginCMD}" || echo "Login Fail"
+    cat /tmp/test
     echo "Login done..."
     oc config view --kubeconfig=$pull_user.kubeconfig || true
 
@@ -226,7 +227,6 @@ buildOLMImages() {
     echo "Try to get token..."
     token=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t)
     echo "Token 3 ${token}"
-    exit 0
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
 
