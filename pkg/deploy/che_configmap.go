@@ -75,6 +75,8 @@ type CheConfigMap struct {
 	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
 	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
 	CheTrustedCABundlesConfigMap           string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
+	ServerStrategy                         string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
+	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLE__HOST_WORKSPACE_EXPOSURE"`
 }
 
 func SyncCheConfigMapToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
@@ -161,7 +163,10 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, DefaultChePostgresDb)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-	ingressStrategy := util.GetValue(cr.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+	ingressStrategy := util.GetValue(cr.Spec.Server.ServerExposureStrategy, DefaultServerExposureStrategy)
+	if !isOpenShift && cr.Spec.Server.ServerExposureStrategy == "" {
+		ingressStrategy = util.GetValue(cr.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+	}
 	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
 	devfileRegistryUrl := cr.Status.DevfileRegistryURL
 	pluginRegistryUrl := cr.Status.PluginRegistryURL
@@ -170,6 +175,7 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, DefaultCheFlavor(cr)))
 	cheMultiUser := GetCheMultiUser(cr)
+	workspaceExposure := util.GetValue(cr.Spec.Server.SingleHostWorkspaceExposureType, DefaultSingleHostWorkspaceExposureType)
 
 	data := &CheConfigMap{
 		CheMultiUser:                           cheMultiUser,
@@ -207,6 +213,8 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
 		CheTrustedCABundlesConfigMap:           cr.Spec.Server.ServerTrustStoreConfigMapName,
+		ServerStrategy:                         ingressStrategy,
+		WorkspaceExposure:                      workspaceExposure,
 	}
 
 	if cheMultiUser == "true" {
@@ -232,7 +240,6 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
 		"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
 		"CHE_INFRA_KUBERNETES_INGRESS_DOMAIN":                      ingressDomain,
-		"CHE_INFRA_KUBERNETES_SERVER__STRATEGY":                    ingressStrategy,
 		"CHE_INFRA_KUBERNETES_TLS__SECRET":                         tlsSecretName,
 		"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
 		"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
