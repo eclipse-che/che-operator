@@ -188,6 +188,7 @@ buildOLMImages() {
     add_user "${pull_user}" "${pull_password}"
     
     cp "${KUBECONFIG}" "$pull_user.kubeconfig"
+    sleep 180
 
     loginLogFile="/tmp/login-log"
     touch "${loginLogFile}"
