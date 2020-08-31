@@ -170,12 +170,8 @@ buildOLMImages() {
   then
     echo "[INFO]: Starting to build catalog image and push to CRC ImageStream."
 
-    # ls /etc/boskos
-    # if [ -n "$(cat '/etc/boskos/password')" ]; then
-    #   echo "PSW file exists"
-    # fi
     echo "============"
-    oc whoami
+    echo "[INFO] Current user is $(oc whoami)"
     echo "============"
     
     if [[ "${OPENSHIFT_CI}" == "true" ]];then echo "Openshift ci!"; fi
@@ -187,47 +183,26 @@ buildOLMImages() {
 
     oc new-project "${NAMESPACE}" || true
 
-    if [ "$(oc whoami)" == "kube:admin" ]; then
-      IS_KUBE_ADMIN=true
-      KUBE_ADMIN_TOKEN="$(oc whoami -t)"
-    elif [ "$(oc whoami)" == "system:admin" ]; then
-      IS_SYSTEM_ADMIN=true
-    else
-      echo "[ERROR] Fatal. You should be logged in like admin user to pass test."
-      exit 1
-    fi
     pull_user="puller"
     pull_password="puller"
     add_user "${pull_user}" "${pull_password}"
-
-    # loginCMD="! oc login --username=${pull_user} --password=${pull_password} > /dev/null"
-    # timeout 90s bash -c "${loginCMD}" || return 1
-
-    # echo "Login done..."
-    # token=$(oc whoami -t) || true
-    # sleep 180
-    # token=$(oc whoami -t) || true
-    # echo "We have got token: ${token}"
-
-    # token2=$(oc config view | yq -r ".users[] | select(.name | startswith(\"puller\")) | .user.token" || true)
-    # echo "Token 2 ${token2}"
     
     echo "${KUBECONFIG}"
     cp "${KUBECONFIG}" "$pull_user.kubeconfig"
     sleep 180
-    touch /tmp/test
-    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /tmp/test"
-    timeout 900 bash -c "${loginCMD}" || echo "Login Fail"
-    cat /tmp/test
-    echo "Login done..."
-    oc config view --kubeconfig=$pull_user.kubeconfig || true
 
-    # logInLikeAdmin
+    loginLogFile="/tmp/login-log"
+    touch "${loginLogFile}"
+    loginCMD="oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > ${loginLogFile}"
+    timeout 900 bash -c "${loginCMD}" || echo "Login Fail"
+    echo "[INFO] $(cat "${loginLogFile}" || true)"
+
+    echo "[INFO] Applying policy registry-viewer to user '${pull_user}'..."
     oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user"
-    echo "Applied policy registry-viewer"
-    echo "Try to get token..."
+
+    echo "[INFO] Trying to retrieve user '${pull_user}' token..."
     token=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t)
-    echo "Token 3 ${token}"
+    echo "[INFO] User '${pull_user}' token is: ${token}"
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
 
@@ -236,7 +211,7 @@ buildOLMImages() {
       rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
     else
       rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
-      echo "Failed to build bundle image."
+      echo "[ERROR ]Failed to build bundle image."
       exit 1
     fi
 
@@ -244,15 +219,15 @@ cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: serverless-index
+  name: catalog-source-app
 spec:
   selector:
     matchLabels:
-      app: serverless-index
+      app: catalog-source-app
   template:
     metadata:
       labels:
-        app: serverless-index
+        app: catalog-source-app
     spec:
       containers:
       - name: registry
@@ -281,85 +256,11 @@ spec:
 EOF
 
   # Wait for the index pod to be up to avoid inconsistencies with the catalog source.
-  kubectl wait --for=condition=ready "pods" -l app=serverless-index --timeout=120s -n "${NAMESPACE}" || true
-  indexip="$(oc -n "$NAMESPACE" get pods -l app=serverless-index -o jsonpath='{.items[0].status.podIP}')"
+  kubectl wait --for=condition=ready "pods" -l app=catalog-source-app --timeout=120s -n "${NAMESPACE}" || true
+  indexip="$(oc -n "$NAMESPACE" get pods -l app=catalog-source-app -o jsonpath='{.items[0].status.podIP}')"
+
   # Install the catalogsource.
   createRpcCatalogSource "${NAMESPACE}" "${indexip}"
-# cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $? 
-# apiVersion: operators.coreos.com/v1alpha1
-# kind: CatalogSource
-# metadata:
-#   name: serverless-operator
-# spec:
-#   address: "${indexip}:50051"
-#   displayName: "Serverless Operator"
-#   publisher: Red Hat
-#   sourceType: grpc
-# EOF
-
-    # --from-dir "${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}" -F
-
-    # oc get route --all-namespaces
-    # echo "-------------------------------------------------"
-    # oc get configs.imageregistry.operator.openshift.io/cluster -o yaml
-    # echo "-------------------------------------------------"
-    # oc get route -n openshift-image-registry
-    # oc get pods -n openshift-image-registry
-
-    # echo "Registry pods:====="
-    # oc get pods -n openshift-image-registry
-
-    # if [ ! $(oc get configs.imageregistry.operator.openshift.io/cluster -o yaml | yq -r ".spec.defaultRoute") == true ];then
-    #   oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
-    # fi
-
-    # echo "Registry deployments:====="
-    # oc get deployment -n openshift-image-registry
-
-    # REGISTRY_PROXY_POD=$(kubectl get pods -n openshift-image-registry -o yaml | grep  "name: image-registry-" | sed -e 's;.*name: \(\);\1;') || true
-    # echo "[INFO] So proxy pod name is ${REGISTRY_PROXY_POD}"
-    # kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "openshift-image-registry" || true
-
-    # oc get deployment -n openshift-image-registry
-
-    # IMAGE_REGISTRY_HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}' || true)
-    # echo " Registry host is: ${IMAGE_REGISTRY_HOST}"
-
-    # PODMAN_BINARY=$(command -v podman) || true
-    # if [[ ! -x "${PODMAN_BINARY}" ]]; then
-    #   sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_7/devel:kubic:libcontainers:stable.repo
-    #   sudo yum -y install podman
-    # fi
-
-    # imageTool="podman"
-    # ${imageTool} login -u kubeadmin -p $(oc whoami -t) "${IMAGE_REGISTRY_HOST}" --tls-verify=false
-
-    # Get Openshift Image registry host
-    # setUpOpenshift4ImageRegistryCA
-    # createImageRegistryPullSecret "${IMAGE_REGISTRY_HOST}"
-    # podman version || true
-
-    # if [ -z "${CATALOG_SOURCE_IMAGE_NAME}" ]; then
-    #   CATALOG_SOURCE_IMAGE_NAME="operator-catalog-source:0.0.1"
-    # fi
-
-    # if [ -z "${CATALOG_SOURCE_IMAGE}" ]; then
-    #   CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"  
-    # fi
-
-    # CATALOG_BUNDLE_IMAGE_NAME="che_operator_bundle:0.0.1"
-    # CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${NAMESPACE}/${CATALOG_BUNDLE_IMAGE_NAME}"
-
-    # echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
-    # buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
-
-    # echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-    # buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "${imageTool}"
-
-    # # For some reason CRC external registry exposed is not working. I'll use the internal registry in cluster which is:image-registry.openshift-image-registry.svc:5000
-    # CATALOG_SOURCE_IMAGE="image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}"
-    # export CATALOG_SOURCE_IMAGE
-    # echo "[INFO]: Successfully added catalog source and bundle images to crc image registry: ${CATALOG_SOURCE_IMAGE}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
     printHelp
@@ -414,18 +315,6 @@ spec:
       fileData:
         name: htpass-secret
 EOF
-}
-
-logInLikeAdmin() {
-  if [ "${IS_KUBE_ADMIN}" == "true" ]; then
-    oc login --token "${KUBE_ADMIN_TOKEN}"
-  elif [ ${IS_SYSTEM_ADMIN} == "true" ]; then
-    # system:admin it is not regual user "it is a user for initialization cluster". So it doesn't have password or token. It works using certificate...
-    oc login -u "system:admin"
-  else
-    echo "[ERROR] You need to have access to user 'kube:admin' or 'kube:system' to pass this test script."
-    exit 0
-  fi
 }
 
 init
