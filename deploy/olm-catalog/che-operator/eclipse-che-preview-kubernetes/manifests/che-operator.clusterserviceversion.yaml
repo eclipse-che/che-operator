@@ -7,13 +7,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2020-08-31T17:34:12Z"
+    createdAt: "2020-08-31T18:14:49Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.18.0-1.nightly
+  name: eclipse-che-preview-kubernetes.v7.18.0-0.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -221,11 +221,11 @@ spec:
                       - name: RELATED_IMAGE_keycloak
                         value: quay.io/eclipse/che-keycloak:nightly
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
-                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.2.0
+                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.3.0
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
-                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.2.0
+                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.3.0
                       - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
-                        value: quay.io/eclipse/che-jwtproxy:fd94e60
+                        value: quay.io/eclipse/che-jwtproxy:0.10.0
                       - name: CHE_FLAVOR
                         value: che
                       - name: CONSOLE_LINK_NAME
@@ -244,8 +244,6 @@ spec:
                         value: che-postgres-secret
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
-                      - name: TEST
-                        value: TEST2456789
                     image: quay.io/eclipse/che-operator:nightly
                     imagePullPolicy: Always
                     name: che-operator
@@ -355,4 +353,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.18.0-1.nightly
+  version: 7.18.0-0.nightly
