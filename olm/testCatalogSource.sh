@@ -215,10 +215,9 @@ buildOLMImages() {
     echo "${KUBECONFIG}"
     cp "${KUBECONFIG}" "$pull_user.kubeconfig"
     sleep 180
-    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /dev/null"
-    timeout 900 bash -c "${loginCMD}" || exit 1
-    echo "Login done?..."
-    oc whoami
+    loginCMD="! oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > /tmp/test"
+    timeout 900 bash -c "${loginCMD}" || echo "Login Fail"
+    echo "Login done..."
     oc config view --kubeconfig=$pull_user.kubeconfig || true
 
     # logInLikeAdmin
