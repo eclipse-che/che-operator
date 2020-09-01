@@ -39,6 +39,10 @@ var (
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
 	defaultCheServerSecureExposerJwtProxyImage    string
+	DefaultSingleHostGatewayConfigMapLabels       = map[string]string{
+		"app":       "che",
+		"component": "che-gateway-config",
+	}
 )
 
 const (

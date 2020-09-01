@@ -21,6 +21,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // +k8s:openapi-gen=true
@@ -264,6 +265,9 @@ type CheClusterSpecServer struct {
 	// Default to quay.io/che-incubator/configbump:0.1.2
 	// +optional
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
+
+	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
+	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels"`
 }
 
 // +k8s:openapi-gen=true

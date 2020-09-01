@@ -14,6 +14,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,7 +30,7 @@ const (
 )
 
 var (
-	serviceAccountDiffOpts = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets")
+	serviceAccountDiffOpts = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
 	roleDiffOpts           = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
 	roleBindingDiffOpts    = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
 	serviceDiffOpts        = cmp.Options{
@@ -227,7 +228,7 @@ http:
     che-server:
       rule: "PathPrefix(` + "`/`" + `)"
       service: che-server
-      priority: 100
+      priority: 1
   services:
     che-server:
       loadBalancer:
@@ -238,7 +239,9 @@ http:
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gatewayServerConfigName,
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, gatewayConfigComponentName),
+			Labels: util.MergeMaps(
+				GetLabels(instance, gatewayConfigComponentName),
+				util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
 			"che-server.yml": data,
@@ -324,6 +327,9 @@ log:
 func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, DefaultSingleHostGatewayImage)
 	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, DefaultSingleHostGatewayConfigSidecarImage)
+	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)
+
+	configLabels := labels.FormatLabels(configLabelsMap)
 
 	return appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -378,7 +384,7 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 								},
 								{
 									Name:  "CONFIG_BUMP_LABELS",
-									Value: "app=che,component=" + gatewayConfigComponentName,
+									Value: configLabels,
 								},
 								{
 									Name: "CONFIG_BUMP_NAMESPACE",

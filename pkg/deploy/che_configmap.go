@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 const (
@@ -77,6 +78,7 @@ type CheConfigMap struct {
 	CheTrustedCABundlesConfigMap           string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
 	ServerStrategy                         string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
 	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLE__HOST_WORKSPACE_EXPOSURE"`
+	SingleHostGatewayConfigMapLabels       string `json:"CHE_INFRA_KUBERNETES_SINGLE__HOST_GATEWAY_CONFIGMAP_LABELS"`
 }
 
 func SyncCheConfigMapToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
@@ -173,6 +175,7 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, DefaultCheFlavor(cr)))
 	cheMultiUser := GetCheMultiUser(cr)
 	workspaceExposure := util.GetValue(cr.Spec.Server.SingleHostWorkspaceExposureType, DefaultSingleHostWorkspaceExposureType)
+	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(cr.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels))
 
 	data := &CheConfigMap{
 		CheMultiUser:                           cheMultiUser,
@@ -212,6 +215,7 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 		CheTrustedCABundlesConfigMap:           cr.Spec.Server.ServerTrustStoreConfigMapName,
 		ServerStrategy:                         ingressStrategy,
 		WorkspaceExposure:                      workspaceExposure,
+		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
 	}
 
 	if cheMultiUser == "true" {

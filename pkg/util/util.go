@@ -139,12 +139,33 @@ func GetServerResources() ([]*v1.APIResourceList, error) {
 }
 
 func GetValue(key string, defaultValue string) (value string) {
-
 	value = key
 	if len(key) < 1 {
 		value = defaultValue
 	}
 	return value
+}
+
+func GetMapValue(value map[string]string, defaultValue map[string]string) map[string]string {
+	ret := value
+	if len(value) < 1 {
+		ret = defaultValue
+	}
+
+	return ret
+}
+
+func MergeMaps(first map[string]string, second map[string]string) map[string]string {
+	ret := make(map[string]string)
+	for k, v := range first {
+		ret[k] = v
+	}
+
+	for k, v := range second {
+		ret[k] = v
+	}
+
+	return ret
 }
 
 func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string {
