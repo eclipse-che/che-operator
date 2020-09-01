@@ -54,7 +54,7 @@ go version
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-  ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
+  ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
 fi
 
 # Unfortunately ${GOPATH} is required for an old operator-sdk

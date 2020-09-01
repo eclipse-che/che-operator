@@ -14,6 +14,85 @@
     {
       "type": "bashdb",
       "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che",
+        "Marketplace"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che",
+        "catalog",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift nightly",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che2",
+        "catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift stable",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che",
+        "Marketplace"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) stable minikube",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che",
+        "Marketplace",
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) nightly minikube",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che",
+        "catalog",
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
       "program": "${file}"
     },

@@ -154,10 +154,12 @@ buildOLMImages() {
     CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che_operator_bundle:0.0.1"
     CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/testing_catalog:0.0.1"
 
-    echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
-    buildBundleImage "${CATALOG_BUNDLE_IMAGE}"
-    echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}"
+    if [ "${CHANNEL}" == "nightly" ]; then
+      echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
+      buildBundleImage "${CATALOG_BUNDLE_IMAGE}"
+      echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
+      buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}"
+    fi
 
     minikube addons enable ingress
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
@@ -168,6 +170,9 @@ buildOLMImages() {
 
   elif [[ "${PLATFORM}" == "openshift" ]]
   then
+    if [ "${INSTALLATION_TYPE}" == "Marketplace" ];then
+      return
+    fi
     echo "[INFO]: Starting to build catalog image and push to CRC ImageStream."
 
     echo "============"
@@ -190,20 +195,22 @@ buildOLMImages() {
     if [ -z "${KUBECONFIG}" ]; then
       KUBECONFIG="${HOME}/.kube/config"
     fi
-    cp "${KUBECONFIG}" "$pull_user.kubeconfig"
+    TEMP_KUBE_CONFIG="/tmp/$pull_user.kubeconfig"
+    rm -rf "${TEMP_KUBE_CONFIG}"
+    cp "${KUBECONFIG}" "${TEMP_KUBE_CONFIG}"
     sleep 180
 
     loginLogFile="/tmp/login-log"
     touch "${loginLogFile}"
-    loginCMD="oc login --kubeconfig=$pull_user.kubeconfig  --username=${pull_user} --password=${pull_password} > ${loginLogFile}"
-    timeout 900 bash -c "${loginCMD}" || echo "Login Fail"
+    loginCMD="oc login --kubeconfig=${TEMP_KUBE_CONFIG}  --username=${pull_user} --password=${pull_password} > ${loginLogFile}"
+    timeout 900 bash -c "${loginCMD}" || echo "[ERROR] Login Fail"
     echo "[INFO] $(cat "${loginLogFile}" || true)"
 
     echo "[INFO] Applying policy registry-viewer to user '${pull_user}'..."
     oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user"
 
     echo "[INFO] Trying to retrieve user '${pull_user}' token..."
-    token=$(oc --kubeconfig=$pull_user.kubeconfig whoami -t)
+    token=$(oc --kubeconfig=${TEMP_KUBE_CONFIG} whoami -t)
     echo "[INFO] User '${pull_user}' token is: ${token}"
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
@@ -272,7 +279,7 @@ EOF
 
 run() {
   createNamespace
-  if [ ! ${PLATFORM} == "openshift" ]; then
+  if [ ! ${PLATFORM} == "openshift" ] && [ "${CHANNEL}" == "nightly" ]; then
     forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
   fi
   
