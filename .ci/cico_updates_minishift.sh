@@ -35,7 +35,7 @@ init() {
 
   # Create tmp folder and add che operator templates used by server:update command.
   mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"
-  cp -r deploy "$OPERATOR_REPO/tmp/che-operator"
+  cp -rf deploy "$OPERATOR_REPO/tmp/che-operator"
 }
 
 installDependencies() {
@@ -65,10 +65,6 @@ installLatestCheStable() {
   # Add stable Che images and tag to CR
   sed -i "s/cheImage: ''/cheImage: quay.io\/eclipse\/che-server/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
   sed -i "s/cheImageTag: ''/cheImageTag: ${previousPackageVersion}/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
-  sed -i "s/devfileRegistryImage: ''/devfileRegistryImage: quay.io\/eclipse\/che-devfile-registry:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
-  sed -i "s/pluginRegistryImage: ''/pluginRegistryImage: quay.io\/eclipse\/che-plugin-registry:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
-  sed -i "s/identityProviderImage: ''/identityProviderImage: quay.io\/eclipse\/che-keycloak:"${previousPackageVersion}"/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
-
   # set 'openShiftoAuth: false'
   sed -i "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
 
@@ -83,9 +79,10 @@ waitForNewCheVersion() {
 
   while [ $n -le 500 ]
   do
-    cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o jsonpath={.status.cheVersion})
+    cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
+    cheIsRunning=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheClusterRunning}" )  
     oc get pods -n ${NAMESPACE}
-    if [ "${cheVersion}" == $lastPackageVersion ]
+    if [ "${cheVersion}" == "${lastPackageVersion}" ] && [ "${cheIsRunning}" == "Available" ]
     then
       echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
       break
@@ -134,10 +131,6 @@ testUpdates() {
   # Update the operator to the new release
   chectl server:update --skip-version-check --installer=operator --platform=minishift --che-operator-image=quay.io/eclipse/che-operator:${lastPackageVersion} --templates="tmp"
 
-  # Patch images and tag the latest release
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/auth/identityProviderImage", "value":"quay.io/eclipse/che-keycloak:'${lastPackageVersion}'"}]' -n ${NAMESPACE}
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/devfileRegistryImage", "value":"quay.io/eclipse/che-devfile-registry:'${lastPackageVersion}'"}]' -n ${NAMESPACE}
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/pluginRegistryImage", "value":"quay.io/eclipse/che-plugin-registry:'${lastPackageVersion}'"}]' -n ${NAMESPACE}
   oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/cheImageTag", "value":"'${lastPackageVersion}'"}]' -n ${NAMESPACE}
   waitForNewCheVersion
 
