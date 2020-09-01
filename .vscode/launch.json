@@ -47,7 +47,7 @@
       "args": [
         "openshift",
         "nightly",
-        "che2",
+        "che",
         "catalog"
       ]
     },
@@ -67,7 +67,7 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testUpdate.sh) stable minikube",
+      "name": "Bash-Debug (testUpdate.sh) minikube stable",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
@@ -80,7 +80,7 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testUpdate.sh) nightly minikube",
+      "name": "Bash-Debug (testUpdate.sh) minikube nightly",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [

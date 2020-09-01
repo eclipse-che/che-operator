@@ -19,9 +19,7 @@ echo "===================PATH to compare"
 readlink -f "$0"
 
 if [ -z "${OPERATOR_REPO}" ]; then
-  # Detect the base directory where che-operator is cloned
   SCRIPT=$(readlink -f "$0")
-  export SCRIPT # do we need to export it?
 
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
 fi
@@ -40,10 +38,7 @@ printHelp() {
 	echo '    INSTALLATION_TYPE        - Olm tests now includes two types of installation: Catalog source and marketplace'
 	echo '    CATALOG_SOURCE_IMAGE     - Image name used to create a catalog source in cluster'
   echo ''
-  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh crc nightly che catalog my_image_name'
-  echo ''
-  echo -e "${GREEN}!!!ATTENTION!!! To run in your local machine the script, please change PLATFORM VARIABLE to crc"
-  echo -e "${GREEN} olm test in CRC cluster.${NC}"
+  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift nightly che catalog my_image_name'
 }
 
 # Check if a platform was defined...
@@ -95,10 +90,8 @@ fi
 echo "[INFO] Image 'IMAGE_REGISTRY_USER_NAME': ${IMAGE_REGISTRY_USER_NAME}"
 
 init() {
-  # GET the package version to apply. In case of CRC we should detect somehow the platform is openshift to get packageversion
-  if [[ "${PLATFORM}" == "crc" ]]
+  if [[ "${PLATFORM}" == "openshift" ]]
   then
-    export IS_CRC="true"
     export PLATFORM=openshift
     PACKAGE_NAME=eclipse-che-preview-openshift
     PACKAGE_FOLDER_PATH="${OLM_DIR}/eclipse-che-preview-openshift/deploy/olm-catalog/${PACKAGE_NAME}"
@@ -119,8 +112,6 @@ init() {
 
   source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
 
-  echo "${IS_CRC}"
-
   if [ "${CHANNEL}" == "nightly" ]; then
     installOPM
   fi
@@ -128,9 +119,10 @@ init() {
 
 buildOLMImages() {
   # Manage catalog source for every platform in part.
-  # 1. Kubernetes: We need to enable registry addon, build catalog images and push them to embedded private registry(Or we should provide image registry env to push images to real registry...).
-  # 2. Openshift: Openshift platform will be run as part of Openshift CI and the catalog source will be build automatically and exposed
-  # 3. CRC: To run in our Code Ready Container Cluster we need have installed podman and running crc cluster...
+  # 1. Kubernetes: 
+  #    a) Enable registry addon, build catalog source and olm bundle images, push them to embedded private registry.
+  #    b) Provide image registry env variables to push images to the real public registry(docker.io, quay.io etc).
+  # 2. Openshift: build bundle image and push it using image stream. Launch deployment with custom grpc based catalog source image to install the latest bundle.
   if [[ "${PLATFORM}" == "kubernetes" ]]
   then
     echo "[INFO]: Kubernetes platform detected"
@@ -163,28 +155,18 @@ buildOLMImages() {
 
     minikube addons enable ingress
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
-
-  elif [[ "${IS_CRC}" == "false" ]]
-  then
-    echo "[INFO]: Catalog Source container image to run olm tests in openshift platform is: ${CATALOG_SOURCE_IMAGE}"
-
   elif [[ "${PLATFORM}" == "openshift" ]]
   then
     if [ "${INSTALLATION_TYPE}" == "Marketplace" ];then
       return
     fi
-    echo "[INFO]: Starting to build catalog image and push to CRC ImageStream."
+    echo "[INFO]: Starting to build catalog image and push to ImageStream."
 
     echo "============"
     echo "[INFO] Current user is $(oc whoami)"
     echo "============"
     
     if [[ "${OPENSHIFT_CI}" == "true" ]];then echo "Openshift ci!"; fi
-
-    # CRC_BINARY=$(command -v crc) || true
-    # if [[ ! "$(oc whoami  2>/dev/null)" =~ "kube:admin" ]] && [[ ! -x "${CRC_BINARY}" ]; then 
-    #   oc login -u kubeadmin -p $(crc console --credentials | awk -F "kubeadmin" '{print $2}' | cut -c 5- | rev | cut -c31- | rev) https://api.crc.testing:6443
-    # fi
 
     oc new-project "${NAMESPACE}" || true
 

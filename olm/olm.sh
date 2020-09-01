@@ -120,7 +120,7 @@ spec:
 EOF
 }
 
-# Create catalog source which will communicate with OLM using google rpc protocol.
+# Create catalog source to communicate with OLM using google rpc protocol.
 createRpcCatalogSource() {
 NAMESPACE=${1}
 indexIp=${2}
@@ -174,7 +174,7 @@ buildBundleImage() {
 
   pushd "${OPM_BUNDLE_DIR}" || exit
 
-  echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_DIR}"
+  echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_MANIFESTS_DIR}"
 
   ${OPM_BINARY} alpha bundle build \
     -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
@@ -231,42 +231,6 @@ buildCatalogImage() {
   eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
 }
 
-setUpOpenshift4ImageRegistryCA() {
-    HOST=$(oc get route default-route -n openshift-image-registry -o yaml | yq -r ".spec.host")
-    certBundle=$(echo "Q" | openssl s_client -showcerts -connect "${HOST}":443)
-    CRT_TEMP_DIR="$(mktemp -q -d -t "CRT_XXXXXX" 2>/dev/null || mktemp -q -d)"
-    CA_CRT="${CRT_TEMP_DIR}/test.crt"
-    touch "${CA_CRT}"
-
-    echo "${certBundle}" |
-    while IFS= read -r line
-    do
-    if [ "${line}" == "-----BEGIN CERTIFICATE-----" ]; then
-        IS_CERT_STARTED=true
-    fi
-
-    if [ "${IS_CERT_STARTED}" == true ]; then
-        CERT="${CERT}${line}\n"
-    fi
-
-    if [ "${line}" == "-----END CERTIFICATE-----" ]; then
-        if echo -e "${CERT}" | openssl x509 -text | grep -q "CA:TRUE"; then
-            echo "CA sertificate found! And store by path ${CA_CRT}"
-            echo -e "${CERT}" > "${CA_CRT}"
-            exit 0
-        fi
-        CERT=""
-        IS_CERT_STARTED="false"
-    fi
-    done
-
-    oc create configmap user-ca-bundle --from-file=ca-bundle.crt="${CA_CRT}"  -n openshift-config
-    oc get configmap user-ca-bundle  -n openshift-config -o yaml
-    oc patch proxy/cluster --patch '{"spec":{"trustedCA":{"name":"user-ca-bundle"}}}' --type=merge
-    oc create configmap all-ca
-    oc label configmap all-ca config.openshift.io/inject-trusted-cabundle=true
-}
-
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
 # It makes troubles for test scripts, because image bundle could be outdated with
 # such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
@@ -295,9 +259,9 @@ installOPM() {
     export OPM_BINARY="${OPM_TEMP_DIR}/opm"
     chmod +x "${OPM_BINARY}"
     echo "[INFO] Downloading completed!"
+    echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
     popd || exit
   fi
-  echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
 }
 
 createNamespace() {
@@ -454,6 +418,7 @@ waitCheServerDeploy() {
   fi
 }
 
+# Install GrpCurl tool to communicate with catalogSource using Google rpc protocol.
 installGrpCurl() {
   GRP_CURL_BINARY=$(command -v grpcurl) || true
   if [[ ! -x "${GRP_CURL_BINARY}" ]]; then
@@ -467,6 +432,7 @@ installGrpCurl() {
     export GRP_CURL_BINARY="${GRP_CURL_TEMP_DIR}/grpcurl"
     echo "[INFO] Downloading completed!"
     echo "[INFO] $(${GRP_CURL_BINARY} -version)"
+    echo "[INFO] 'grpcurl' binary path: ${GRP_CURL_BINARY}"
     popd || exit
   fi
 }
