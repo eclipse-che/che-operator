@@ -240,9 +240,11 @@ func GetCheConfigMapData(deployContext *DeployContext) (cheEnv map[string]string
 			"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
+
 		// Add TLS key and server certificate to properties when user workspaces should be created in another
-		// than Che server namespace, from where the Che TLS secret is not accesible.
-		if _, keyExists := deployContext.CheCluster.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]; keyExists {
+		// than Che server namespace, from where the Che TLS secret is not accessable
+		k8sDefaultNamespace := deployContext.CheCluster.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
+		if defaultTargetNamespace != deployContext.CheCluster.Namespace || k8sDefaultNamespace != deployContext.CheCluster.Namespace {
 			cheTLSSecret, err := GetClusterSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
 			if err != nil {
 				return nil, err
