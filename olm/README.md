@@ -19,13 +19,13 @@ In `olm` folder
 - If all dependencies are installed on the system:
 
 ```shell
-$ update-nightly-olm-files.sh
+$ update-nightly-bundle.sh
 ```
 
 - To use a docker environment
 
 ```shell
-$ docker-run.sh update-nightly-olm-files.sh
+$ docker-run.sh update-nightly-bundle.sh
 ```
 
 Every change will be included to the deploy/olm-catalog/che-operator bundles and override all previous changes.
