@@ -99,7 +99,7 @@ func getSpecIngress(
 	clusterAPI ClusterAPI) (*v1beta1.Ingress, error) {
 
 	tlsSupport := checluster.Spec.Server.TlsSupport
-	ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+	ingressStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
 	ingressDomain := checluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(checluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(checluster, name)

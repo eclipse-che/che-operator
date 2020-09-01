@@ -49,7 +49,7 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Cluste
 				}
 			}
 
-			ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+			ingressStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
 			if ingressStrategy == "multi-host" {
 				host = PluginRegistry + "-" + checluster.Namespace + "." + checluster.Spec.K8s.IngressDomain
 			} else {

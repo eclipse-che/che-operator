@@ -48,7 +48,6 @@ const (
 	DefaultChePostgresDb       = "dbche"
 	DefaultPvcStrategy         = "common"
 	DefaultPvcClaimSize        = "1Gi"
-	DefaultIngressStrategy     = "multi-host"
 	DefaultIngressClass        = "nginx"
 
 	DefaultPluginRegistryMemoryLimit   = "256Mi"

@@ -163,10 +163,7 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 	chePostgresDb := util.GetValue(cr.Spec.Database.ChePostgresDb, DefaultChePostgresDb)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-	ingressStrategy := util.GetValue(cr.Spec.Server.ServerExposureStrategy, DefaultServerExposureStrategy)
-	if !isOpenShift && cr.Spec.Server.ServerExposureStrategy == "" {
-		ingressStrategy = util.GetValue(cr.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
-	}
+	ingressStrategy := util.GetServerExposureStrategy(cr, DefaultServerExposureStrategy)
 	ingressClass := util.GetValue(cr.Spec.K8s.IngressClass, DefaultIngressClass)
 	devfileRegistryUrl := cr.Status.DevfileRegistryURL
 	pluginRegistryUrl := cr.Status.PluginRegistryURL

@@ -49,7 +49,7 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI Clust
 				}
 			}
 
-			ingressStrategy := util.GetValue(checluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+			ingressStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
 			if ingressStrategy == "multi-host" {
 				host = DevfileRegistry + "-" + checluster.Namespace + "." + checluster.Spec.K8s.IngressDomain
 			} else {

@@ -692,7 +692,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	ingressStrategy := util.GetValue(instance.Spec.K8s.IngressStrategy, deploy.DefaultIngressStrategy)
+	ingressStrategy := util.GetServerExposureStrategy(instance, deploy.DefaultServerExposureStrategy)
 	ingressDomain := instance.Spec.K8s.IngressDomain
 	tlsSupport := instance.Spec.Server.TlsSupport
 	protocol := "http"

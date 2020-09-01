@@ -436,6 +436,7 @@ type CheClusterSpecK8SOnly struct {
 	// `single-host` (host is provided, path-based rules) and `default-host.*`(no host is provided, path-based rules).
 	// Defaults to `"multi-host`
 	// Deprecated in favor of "serverExposureStrategy" in the "server" section, which defines this regardless of the cluster type.
+	// If both are defined, `serverExposureStrategy` takes precedence.
 	// +optional
 	IngressStrategy string `json:"ingressStrategy,omitempty"`
 	// Ingress class that will define the which controler will manage ingresses. Defaults to `nginx`.
