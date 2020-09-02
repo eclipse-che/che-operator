@@ -150,10 +150,26 @@ func GetEndpointTLSCrtChain(instance *orgv1.CheCluster, endpointURL string, prox
 		requestURL = endpointURL
 	}
 
+	certificates, err := doRequestForTLSCrtChain(instance, requestURL, proxy, isTestRoute)
+	if err != nil {
+		if proxy.HttpProxy != "" && isTestRoute {
+			// Fetching certificates from the test route without proxy failed. Probably non-proxy connections are blocked.
+			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
+			logrus.Warn("Failed to get certificate chain of trust of the OpenShift Ingress bypassing the proxy")
+
+			return doRequestForTLSCrtChain(instance, requestURL, proxy, false)
+		}
+
+		return nil, err
+	}
+	return certificates, nil
+}
+
+func doRequestForTLSCrtChain(instance *orgv1.CheCluster, requestURL string, proxy *Proxy, skipProxy bool) ([]*x509.Certificate, error) {
 	transport := &http.Transport{}
 	// Adding the proxy settings to the Transport object.
 	// However, in case of test route we need to reach cluter directly in order to get the right certificate.
-	if proxy.HttpProxy != "" && !isTestRoute {
+	if proxy.HttpProxy != "" && !skipProxy {
 		logrus.Infof("Configuring proxy with %s to extract crt from the following URL: %s", proxy.HttpProxy, requestURL)
 		ConfigureProxy(instance, transport, proxy)
 	}
