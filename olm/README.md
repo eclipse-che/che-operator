@@ -49,7 +49,7 @@ To update bundle without version incrementation and time update:
 $ export NO_DATE_UPDATE="true" && export NO_INCREMENT="true" && export ./update-nightly-bundle.sh
 ```
 
-# 4. Test scripts pre-Requisites
+# 4. Test scripts pre-requisites
 Start your kubernetes/openshift cluster. For openshift cluster make sure that you was logged in like
 "system:admin" or "kube:admin".
 
@@ -82,6 +82,15 @@ For nightly channel (dependent on platform) Eclipse Che provides two CatalogSour
 For each new nightly version Eclipse Che provides nightly bundle image with name pattern:
 
 `quay.io/eclipse/eclipse-che-${platform}-opm-bundles:${cheVersion}-${incrementVersion}.nightly`
+
+For example:
+
+```
+quay.io/eclipse/eclipse-che-kubernetes-opm-bundles:7.18.0-1.nightly
+...
+quay.io/eclipse/eclipse-che-kubernetes-opm-bundles:7.19.0-5.nightly
+...
+```
 
 To test the latest "nightly" bundle use `olm/TestCatalogSource.sh` script:
 
@@ -124,7 +133,7 @@ include them to your custom CatalogSource image. For this purpose you can specif
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  buildFirstBundle.sh "openshift" 'quay.io/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-catalog:preview"
+  buildFirstBundle.sh "openshift" 'quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
 ```
 
 ### 7.1 Testing custom CatalogSource and bundle images on the Openshift
@@ -146,7 +155,7 @@ $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
 ```
 
 ### 7.2 Testing custom CatalogSource and bundle images on the Kubernetes
-To test you custom CatalogSource and bundle images on the Kubernetes you need to use public image registry.
+To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry.
 
 For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create bundle and and catalog image repositories manually and made them public visible. If you want to save repositories "private", then it is not necessary pre-create them, but you need provide image pull secret to the cluster to prevent image pull 'unauthorized' error.
 
