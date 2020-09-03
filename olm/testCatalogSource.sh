@@ -49,7 +49,7 @@ if [ "${PLATFORM}" == "" ]; then
   exit 1
 else
   echo "[INFO]: Successfully validated platform. Starting olm tests in platform: ${PLATFORM}."
-  fi
+fi
 
 # Check if a channel was defined... The available channels are nightly and stable
 CHANNEL=$2

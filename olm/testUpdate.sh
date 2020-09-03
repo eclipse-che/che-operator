@@ -35,6 +35,9 @@ if [ "${namespace}" == "" ]; then
   namespace="eclipse-che-preview-test"
 fi
 
+IMAGE_REGISTRY_HOST=${IMAGE_REGISTRY_HOST:-quay.io}
+IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
+
 init() {
   if [ "${channel}" == "stable" ]; then
     packageName=eclipse-che-preview-${platform}
@@ -50,7 +53,7 @@ init() {
   else
     packageFolderPath="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
     PACKAGE_VERSION="nightly"
-    export CATALOG_IMAGENAME="quay.io/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:0.0.1" #:preview
+    export CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:preview"
     INSTALLATION_TYPE="catalog"
   fi
 }

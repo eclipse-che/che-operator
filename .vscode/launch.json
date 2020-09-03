@@ -73,8 +73,7 @@
       "args": [
         "kubernetes",
         "stable",
-        "che",
-        "Marketplace"
+        "che"
       ]
     },
     {
@@ -86,8 +85,7 @@
       "args": [
         "kubernetes",
         "nightly",
-        "che",
-        "catalog"
+        "che"
       ]
     },
     {
@@ -99,8 +97,7 @@
       "args": [
         "openshift",
         "stable",
-        "che",
-        "catalog"
+        "che"
       ]
     }, 
     {
@@ -112,10 +109,29 @@
       "args": [
         "openshift",
         "nightly",
-        "che",
-        "catalog"
+        "che"
       ]
-    }, 
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildFirstBundle.sh) kubernetes",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/buildFirstBundle.sh",
+      "args": [
+        "kubernetes"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildFirstBundle.sh) openshift",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/buildFirstBundle.sh",
+      "args": [
+        "openshift"
+      ]
+    },
     {
       "type": "bashdb",
       "request": "launch",
