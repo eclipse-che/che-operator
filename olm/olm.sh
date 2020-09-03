@@ -418,38 +418,29 @@ waitCheServerDeploy() {
   fi
 }
 
-# Install GrpCurl tool to communicate with catalogSource using Google rpc protocol.
-installGrpCurl() {
-  GRP_CURL_BINARY=$(command -v grpcurl) || true
-  if [[ ! -x "${GRP_CURL_BINARY}" ]]; then
-    GRP_CURL_TEMP_DIR="$(mktemp -q -d -t "GRPCURL_XXXXXX" 2>/dev/null || mktemp -q -d)"
-    pushd "${GRP_CURL_TEMP_DIR}" || exit
-    echo "[INFO] Downloading 'grpcurl' cli tool..."
-    curl -sLo grpcurl-tar "$(curl -sL https://api.github.com/repos/fullstorydev/grpcurl/releases/26555409 | \
-    jq -r '[.assets[] | select(.name == "grpcurl_1.6.0_linux_x86_32.tar.gz")] | first | .browser_download_url')"
-    tar -xvf "${GRP_CURL_TEMP_DIR}/grpcurl-tar"
-
-    export GRP_CURL_BINARY="${GRP_CURL_TEMP_DIR}/grpcurl"
-    echo "[INFO] Downloading completed!"
-    echo "[INFO] $(${GRP_CURL_BINARY} -version)"
-    echo "[INFO] 'grpcurl' binary path: ${GRP_CURL_BINARY}"
-    popd || exit
-  fi
-}
-
-exposeCatalogSource() {
-  kubectl patch service "eclipse-che-preview-${platform}" --patch '{"spec": {"type": "NodePort"}}' -n "${namespace}"
+getBundleListFromCatalogSource() {
   CATALOG_POD=$(kubectl get pods -n ${namespace} -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"eclipse-che-preview-${platform}\")) | .metadata.name")
   kubectl wait --for=condition=ready "pods/${CATALOG_POD}" --timeout=60s -n "${namespace}"
 
-  ## install grpcurl for communication with catalog source
-  installGrpCurl
-  retrieveClusterIp
+  CATALOG_SERVICE=$(kubectl get service "eclipse-che-preview-${platform}" -n "${namespace}" -o yaml)
+  CATALOG_IP=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.clusterIP")
+  CATALOG_PORT=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.ports[0].targetPort")
+
+  LIST_BUNDLES=$(kubectl run --generator=run-pod/v1 grpcurl-query -n che \
+  --rm=true \
+  --restart=Never \
+  --attach=true \
+  --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
+  --  -plaintext "${CATALOG_IP}:${CATALOG_PORT}" api.Registry.ListBundles
+  )
+  
+  LIST_BUNDLES=$(echo "${LIST_BUNDLES}" | head -n -1)
+
+  echo "${LIST_BUNDLES}"
 }
 
 getPreviousCSVInfo() {
-  catalogNodePort=$(kubectl get service eclipse-che-preview-${platform} -n ${namespace} -o yaml | yq -r '.spec.ports[0].nodePort')
-  previousBundle=$(grpcurl -plaintext "${CLUSTER_IP}:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[1]')
+  previousBundle=$(echo "${LIST_BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
   PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
   if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
     echo "Error: bundle hasn't go previous bundle."
@@ -461,16 +452,9 @@ getPreviousCSVInfo() {
 }
 
 getLatestCSVInfo() {
-  catalogNodePort=$(kubectl get service eclipse-che-preview-${platform} -n ${namespace} -o yaml | yq -r '.spec.ports[0].nodePort')
-  latestBundle=$(grpcurl -plaintext "${CLUSTER_IP}:${catalogNodePort}" api.Registry.ListBundles | jq -s '.' | jq '. | map(. | select(.channelName == "nightly")) | .[0]')
+  latestBundle=$(echo "${LIST_BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
   LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
   export LATEST_CSV_NAME
   LATEST_CSV_BUNDLE_IMAGE=$(echo "${latestBundle}" | yq -r ".bundlePath")
   export LATEST_CSV_BUNDLE_IMAGE
-}
-
-retrieveClusterIp() {
-  KUBE_MASTER_URL_INFO=$(kubectl cluster-info | grep "Kubernetes master");
-  CLUSTER_IP=$(echo "${KUBE_MASTER_URL_INFO}" | sed -e 's;.*https://\(.*\):.*;\1;')
-  export CLUSTER_IP
 }

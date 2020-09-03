@@ -74,7 +74,7 @@
         "kubernetes",
         "stable",
         "che",
-        "Marketplace",
+        "Marketplace"
       ]
     },
     {
@@ -87,9 +87,35 @@
         "kubernetes",
         "nightly",
         "che",
-        "catalog",
+        "catalog"
       ]
     },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che",
+        "catalog"
+      ]
+    }, 
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che",
+        "catalog"
+      ]
+    }, 
     {
       "type": "bashdb",
       "request": "launch",

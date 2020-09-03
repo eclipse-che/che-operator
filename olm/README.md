@@ -46,7 +46,7 @@ Change in the `deploy/operator.yaml` operator image from official to development
 Generate new nightly olm bundle packages:
 
 ```shell
-$ ./update-nightly-olm-files.sh
+$ ./update-nightly-bundle.sh
 ```
 
 Olm bundle packages will be generated in the folders `deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}`.
@@ -57,7 +57,7 @@ Build custom olm bundle image with own nightly version:
 $ 
 ```
 
-Push image to the image registry, using dokcer or podman.
+Push image to the image registry, using docker or podman.
 
 Build custom catalog image(index image) with created above bundle image. But there two options:
  - build catalog image with only one latest generated nightly version:
@@ -76,7 +76,7 @@ Push images to the image registry.
 
 ## Push che-operator bundles to Application registry(Deprecated Olm feature)
 
-Push che-operator bundles to your application registry:
+Push che-operator bundles to your "quay" application registry:
 
 ```shell
 $ export QUAY_ECLIPSE_CHE_USERNAME=${username} && \
@@ -87,34 +87,51 @@ $ export QUAY_ECLIPSE_CHE_USERNAME=${username} && \
 
 Go to the quay.io and use ui(tab Settings) to make your application public.
 
-Start minikube(or CRC) and after that launch test script in the olm folder:
+Start your kubernetes/openshift cluster. For openshift cluster make sure that you was logged in like
+"system:admin" or "kube:admin". Launch test script in the olm folder:
 
 ```shell
-$ export IMAGE_REGISTRY_USER_NAME=${username} && \
-  export IMAGE_REGISTRY_PASSWORD=${password} && \
-  export IMAGE_REGISTRY_HOST=${registry_name} && \
+$ export APPLICATION_REGISTRY=${application_registry_namespace} && \
   ./testCatalogSource.sh ${platform} ${channel} ${namespace} "Marketplace"
 ```
 
-See information about `platform`, `channel` and `namespace` arguments in the next chapter.
+See more information about test arguments in the chapter: [Test arguments](#test-script-arguments)
 
 > Notice: you can store security sensitive env variables in the `${HOME}/.bashrc`.
 
+> Notice: if `APPLICATION_REGISTRY` was not defined, then tests script will use default Eclipse Che preview application registry. But it's make sence to use only with `stable` channel. `nightly` channel is not maintainable any more. To test nightly channel you should use catalog source(see next chapter).
+
 ## Test installation Eclipse Che using catalog source(index) image
 
-To test che-operator with OLM files without push to a related Quay.io application, we can build a required docker image of a dedicated catalog,
-in order to install directly through a CatalogSource. To test this options start minikube and after that launch
-test script in the olm folder:
+To test che-operator with OLM files without push to a related Quay.io application, we can build a required docker olm bundle image and image with dedicated index image, in order to install directly through a CatalogSource.
+
+Test script in the olm folder:
 
 ```shell
 $ ./testCatalogSource.sh ${platform} ${channel} ${namespace} ${optional-source-install}
 ```
 
-Where are:
- - `platform` - 'openshift' or 'kubernetes'
- - `channel` - installation channel: 'nightly' or 'stable'
- - `namespace` - kubernetes namespace to deploy che-operator
- - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
+See more information about test arguments in the chapter: [Test arguments](#test-script-arguments)
+
+> Warning: for "kubernetes" platform you need provide test images "storage". Test scripts supports two variants:
+- specify env variables to provide access to the public image registry:
+"IMAGE_REGISTRY_USER_NAME", "IMAGE_REGISTRY_PASSWORD", "IMAGE_REGISTRY_HOST". For image registry host "docker.io" it works without any extra actions:
+```
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_PASSWORD=${password} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+ ./testCatalogSource.sh ${platform} ${channel} ${namespace} ${optional-source-install}
+```
+- use minikube cluster and enable minikube "registry" addon:
+```shell
+$ minikube addons enable registry
+# Set up /etc/docker/daemon.json and docker service in most cases requires sudo.
+$ mkdir -p "/etc/docker" && \
+  touch "/etc/docker/daemon.json" && \
+  config="{\"insecure-registries\" : [\"0.0.0.0:5000\"]}" && \
+  echo "${config}" | sudo tee "${dockerDaemonConfig}" && \
+  systemctl restart docker
+```
 
 This scripts should install che-operator using OLM and check that the Che server was deployed.
 
@@ -125,6 +142,15 @@ To test migration Che from previous version to the latest you can use `olm/testU
 $ ./testUpdate.sh ${platform} ${channel} ${namespace} ${optional-source-install}
 ```
 
+See more information about test arguments in the chapter: [Test arguments](#test-script-arguments)
+
+### Test script arguments
+There are some often used test script arguments:
+ - `platform` - 'openshift' or 'kubernetes'
+ - `channel` - installation channel: 'nightly' or 'stable'
+ - `namespace` - kubernetes namespace to deploy che-operator
+ - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
+
 ### Debug test scripts
-To debug tests scrits you can use "Bash debug" VSCode extension. 
-For a lot of tests scripts you can find debug configurations in the `.vscode/launch.json`.
+To debug tests scripts you can use "Bash debug" VSCode extension. 
+For a lot of tests scripts you can find different debug configurations in the `.vscode/launch.json`.

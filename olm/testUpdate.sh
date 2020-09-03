@@ -64,7 +64,7 @@ run() {
   installOperatorMarketPlace
 
   if [ "${channel}" == "nightly" ]; then
-    exposeCatalogSource
+    getBundleListFromCatalogSource
     getPreviousCSVInfo
     getLatestCSVInfo
 
