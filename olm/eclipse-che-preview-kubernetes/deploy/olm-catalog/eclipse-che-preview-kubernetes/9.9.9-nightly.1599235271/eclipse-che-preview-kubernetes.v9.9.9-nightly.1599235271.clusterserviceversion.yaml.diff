@@ -1,0 +1,38 @@
+--- /home/amisevsk/git/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1598450051/eclipse-che-preview-kubernetes.v9.9.9-nightly.1598450051.clusterserviceversion.yaml	2020-09-04 11:49:01.719085771 -0400
++++ /home/amisevsk/git/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/9.9.9-nightly.1599235271/eclipse-che-preview-kubernetes.v9.9.9-nightly.1599235271.clusterserviceversion.yaml	2020-09-04 12:01:12.470205631 -0400
+@@ -52,13 +52,13 @@
+     categories: Developer Tools
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-08-26T13:54:12Z"
++    createdAt: "2020-09-04T16:01:12Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1598450051
++  name: eclipse-che-preview-kubernetes.v9.9.9-nightly.1599235271
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -266,9 +266,9 @@
+                 - name: RELATED_IMAGE_keycloak
+                   value: quay.io/eclipse/che-keycloak:nightly
+                 - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
+-                  value: quay.io/eclipse/che-plugin-metadata-broker:v3.3.0
++                  value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
+                 - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
+-                  value: quay.io/eclipse/che-plugin-artifacts-broker:v3.3.0
++                  value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
+                 - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
+                   value: quay.io/eclipse/che-jwtproxy:0.10.0
+                 - name: CHE_FLAVOR
+@@ -398,5 +398,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1597916268
+-  version: 9.9.9-nightly.1598450051
++  replaces: eclipse-che-preview-kubernetes.v9.9.9-nightly.1598450051
++  version: 9.9.9-nightly.1599235271
