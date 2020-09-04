@@ -77,8 +77,8 @@ type CheConfigMap struct {
 	CheJGroupsKubernetesLabels             string `json:"KUBERNETES_LABELS,omitempty"`
 	CheTrustedCABundlesConfigMap           string `json:"CHE_TRUSTED__CA__BUNDLES__CONFIGMAP,omitempty"`
 	ServerStrategy                         string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
-	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLE__HOST_WORKSPACE_EXPOSURE"`
-	SingleHostGatewayConfigMapLabels       string `json:"CHE_INFRA_KUBERNETES_SINGLE__HOST_GATEWAY_CONFIGMAP_LABELS"`
+	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
+	SingleHostGatewayConfigMapLabels       string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
 }
 
 func SyncCheConfigMapToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
