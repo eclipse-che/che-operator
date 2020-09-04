@@ -17,6 +17,18 @@ BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
 
+# Check for compatible version of operator-sdk:
+OPERATOR_SDK_VERSION=$(operator-sdk version | sed -E 's|.*version: (v[0-9]+.[0-9]+\.[0-9]+).*|\1|')
+case $OPERATOR_SDK_VERSION in
+  v0.10.*)
+    echo "Operator SDK $OPERATOR_SDK_VERSION installed"
+    ;;
+  *)
+    echo "This script requires Operator SDK v0.10.x. Please install the correct version to continue"
+    exit 1
+    ;;
+esac
+
 for platform in 'kubernetes' 'openshift'
 do
   packageName=eclipse-che-preview-${platform}
