@@ -257,10 +257,10 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		}
 	}
 
-	singleHostWorkspaceExposureType := util.GetValue(instance.Spec.Server.SingleHostWorkspaceExposureType, deploy.DefaultSingleHostWorkspaceExposureType)
-	if len(instance.Spec.Server.SingleHostWorkspaceExposureType) < 1 {
-		instance.Spec.Server.SingleHostWorkspaceExposureType = singleHostWorkspaceExposureType
-		if err := r.UpdateCheCRSpec(instance, "single host workspace exposure strategy", singleHostWorkspaceExposureType); err != nil {
+	singleHostExposureType := util.GetSingleHostExposureType(instance, deploy.DefaultKubernetesSingleHostExposureType, deploy.DefaultOpenShiftSingleHostExposureType)
+	if len(instance.Spec.Server.SingleHostExposureType) < 1 {
+		instance.Spec.Server.SingleHostExposureType = singleHostExposureType
+		if err := r.UpdateCheCRSpec(instance, "single host exposure type", singleHostExposureType); err != nil {
 			return err
 		}
 	}

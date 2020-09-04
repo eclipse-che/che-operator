@@ -27,49 +27,93 @@ type PluginRegistryConfigMap struct {
 }
 
 const (
-	PluginRegistry = "plugin-registry"
+	PluginRegistry              = "plugin-registry"
+	pluginRegistryGatewayConfig = "plugin-registry-gtw"
 )
 
 /**
  * Create plugin registry resources unless an external registry is used.
  */
-func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (bool, error) {
+func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, clusterAPI ClusterAPI) (bool, error) {
 	pluginRegistryURL := checluster.Spec.Server.PluginRegistryUrl
 	if !checluster.Spec.Server.ExternalPluginRegistry {
 		var host string
+		exposureStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
+		singleHostExposureType := util.GetSingleHostExposureType(checluster, DefaultKubernetesSingleHostExposureType, DefaultOpenShiftSingleHostExposureType)
+		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
+
 		if !util.IsOpenShift {
-			ingress, err := SyncIngressToCluster(checluster, PluginRegistry, "", PluginRegistry, 8080, clusterAPI)
-			if !util.IsTestMode() {
-				if ingress == nil {
-					logrus.Infof("Waiting on ingress '%s' to be ready", PluginRegistry)
-					if err != nil {
-						logrus.Error(err)
+			if useGateway {
+				cfg := GetGatewayRouteConfig(checluster, pluginRegistryGatewayConfig, "/"+PluginRegistry, 1, "http://"+PluginRegistry+":8080")
+				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
 					}
-					return false, err
+				}
+				if err := DeleteIngressIfExists(PluginRegistry, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+			} else {
+				ingress, err := SyncIngressToCluster(checluster, PluginRegistry, "", PluginRegistry, 8080, clusterAPI)
+				if !util.IsTestMode() {
+					if ingress == nil {
+						logrus.Infof("Waiting on ingress '%s' to be ready", PluginRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(pluginRegistryGatewayConfig, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
 				}
 			}
 
-			ingressStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
-			if ingressStrategy == "multi-host" {
+			if exposureStrategy == "multi-host" {
 				host = PluginRegistry + "-" + checluster.Namespace + "." + checluster.Spec.K8s.IngressDomain
 			} else {
-				host = checluster.Spec.K8s.IngressDomain + "/" + PluginRegistry
+				host = cheHost + "/" + PluginRegistry
 			}
 		} else {
-			route, err := SyncRouteToCluster(checluster, PluginRegistry, "", PluginRegistry, 8080, clusterAPI)
-			if !util.IsTestMode() {
-				if route == nil {
-					logrus.Infof("Waiting on route '%s' to be ready", PluginRegistry)
-					if err != nil {
-						logrus.Error(err)
+			if useGateway {
+				cfg := GetGatewayRouteConfig(checluster, PluginRegistry, "/"+PluginRegistry, 1, "http://"+PluginRegistry+":8080")
+				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
 					}
-
-					return false, err
 				}
-			}
+				if err := DeleteRouteIfExists(PluginRegistry, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
 
-			if !util.IsTestMode() {
-				host = route.Spec.Host
+				host = cheHost + "/" + PluginRegistry
+			} else {
+				route, err := SyncRouteToCluster(checluster, PluginRegistry, "", PluginRegistry, 8080, clusterAPI)
+				if !util.IsTestMode() {
+					if route == nil {
+						logrus.Infof("Waiting on route '%s' to be ready", PluginRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
+
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(PluginRegistry, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+
+				if !util.IsTestMode() {
+					host = route.Spec.Host
+				}
 			}
 		}
 

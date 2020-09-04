@@ -27,49 +27,90 @@ type DevFileRegistryConfigMap struct {
 }
 
 const (
-	DevfileRegistry = "devfile-registry"
+	DevfileRegistry              = "devfile-registry"
+	devfileRegistryGatewayConfig = "devfile-registry-gtw"
 )
 
 /**
  * Create devfile registry resources unless an external registry is used.
  */
-func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (bool, error) {
+func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, clusterAPI ClusterAPI) (bool, error) {
 	devfileRegistryURL := checluster.Spec.Server.DevfileRegistryUrl
 	if !checluster.Spec.Server.ExternalDevfileRegistry {
 		var host string
+		exposureStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
+		singleHostExposureType := util.GetSingleHostExposureType(checluster, DefaultKubernetesSingleHostExposureType, DefaultOpenShiftSingleHostExposureType)
+		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
 		if !util.IsOpenShift {
-			ingress, err := SyncIngressToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
-			if !util.IsTestMode() {
-				if ingress == nil {
-					logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
-					if err != nil {
-						logrus.Error(err)
-					}
-					return false, err
-				}
-			}
-
-			ingressStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
-			if ingressStrategy == "multi-host" {
+			if exposureStrategy == "multi-host" {
 				host = DevfileRegistry + "-" + checluster.Namespace + "." + checluster.Spec.K8s.IngressDomain
 			} else {
-				host = checluster.Spec.K8s.IngressDomain + "/" + DevfileRegistry
+				host = cheHost + "/" + DevfileRegistry
 			}
-		} else {
-			route, err := SyncRouteToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
-			if !util.IsTestMode() {
-				if route == nil {
-					logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)
-					if err != nil {
-						logrus.Error(err)
-					}
 
-					return false, err
+			if useGateway {
+				cfg := GetGatewayRouteConfig(checluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 1, "http://"+DevfileRegistry+":8080")
+				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteIngressIfExists(DevfileRegistry, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+			} else {
+				ingress, err := SyncIngressToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
+				if !util.IsTestMode() {
+					if ingress == nil {
+						logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(devfileRegistryGatewayConfig, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
 				}
 			}
+		} else {
+			if useGateway {
+				cfg := GetGatewayRouteConfig(checluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 1, "http://"+DevfileRegistry+":8080")
+				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteRouteIfExists(DevfileRegistry, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+				host = cheHost + "/" + DevfileRegistry
+			} else {
+				route, err := SyncRouteToCluster(checluster, DevfileRegistry, "", DevfileRegistry, 8080, clusterAPI)
+				if !util.IsTestMode() {
+					if route == nil {
+						logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
 
-			if !util.IsTestMode() {
-				host = route.Spec.Host
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(devfileRegistryGatewayConfig, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+				if !util.IsTestMode() {
+					host = route.Spec.Host
+				}
 			}
 		}
 

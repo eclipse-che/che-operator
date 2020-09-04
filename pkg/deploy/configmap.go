@@ -41,7 +41,7 @@ func SyncConfigMapToCluster(checluster *orgv1.CheCluster, specConfigMap *corev1.
 
 	diff := cmp.Diff(clusterConfigMap.Data, specConfigMap.Data)
 	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
+		logrus.Infof("Updating existing object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
 		fmt.Printf("Difference:\n%s", diff)
 		clusterConfigMap.Data = specConfigMap.Data
 		err := clusterAPI.Client.Update(context.TODO(), clusterConfigMap)

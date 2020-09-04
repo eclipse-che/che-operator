@@ -74,6 +74,22 @@ func SyncIngressToCluster(
 	return clusterIngress, nil
 }
 
+func DeleteIngressIfExists(name string, namespace string, clusterAPI ClusterAPI) error {
+	ingress, err := getClusterIngress(name, namespace, clusterAPI.Client)
+	if err != nil {
+		return err
+	}
+
+	if ingress != nil {
+		err = clusterAPI.Client.Delete(context.TODO(), ingress)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func getClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
 	ingress := &v1beta1.Ingress{}
 	namespacedName := types.NamespacedName{

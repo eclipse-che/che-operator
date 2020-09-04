@@ -782,17 +782,40 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 
+			exposureStrategy := util.GetServerExposureStrategy(instance, deploy.DefaultServerExposureStrategy)
+			singleHostExposureType := util.GetSingleHostExposureType(instance, deploy.DefaultKubernetesSingleHostExposureType, deploy.DefaultOpenShiftSingleHostExposureType)
+			useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
+
 			// create Keycloak ingresses when on k8s
 			if !isOpenShift {
-				ingress, err := deploy.SyncIngressToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
-				if !tests {
-					if ingress == nil {
-						logrus.Info("Waiting on ingress 'keycloak' to be ready")
+				if useGateway {
+					// try to guess where in the ingress-creating code the /auth endpoint is defined...
+					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 1, "http://keycloak:8080")
+					_, err := deploy.SyncConfigMapToCluster(instance, &cfg, clusterAPI)
+					if !tests {
 						if err != nil {
 							logrus.Error(err)
 						}
+					}
 
-						return reconcile.Result{RequeueAfter: time.Second * 1}, err
+					if err := deploy.DeleteIngressIfExists("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
+						logrus.Error(err)
+					}
+				} else {
+					ingress, err := deploy.SyncIngressToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
+					if !tests {
+						if ingress == nil {
+							logrus.Info("Waiting on ingress 'keycloak' to be ready")
+							if err != nil {
+								logrus.Error(err)
+							}
+
+							return reconcile.Result{RequeueAfter: time.Second * 1}, err
+						}
+					}
+
+					if err := deploy.DeleteGatewayRouteConfig("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
+						logrus.Error(err)
 					}
 				}
 
@@ -808,19 +831,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					}
 				}
 			} else {
-				// create Keycloak route
-				route, err := deploy.SyncRouteToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
-				if !tests {
-					if route == nil {
-						logrus.Info("Waiting on route 'keycloak' to be ready")
+				if useGateway {
+					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 1, "http://keycloak:8080")
+					_, err := deploy.SyncConfigMapToCluster(instance, &cfg, clusterAPI)
+					if !tests {
 						if err != nil {
 							logrus.Error(err)
 						}
-
-						return reconcile.Result{RequeueAfter: time.Second * 1}, err
 					}
-
-					keycloakURL := protocol + "://" + route.Spec.Host
+					keycloakURL := protocol + "://" + cheHost
 					if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
 						instance.Spec.Auth.IdentityProviderURL = keycloakURL
 						if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
@@ -832,6 +851,41 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 							instance, _ = r.GetCR(request)
 							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 						}
+					}
+
+					if err := deploy.DeleteRouteIfExists("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
+						logrus.Error(err)
+					}
+				} else {
+					// create Keycloak route
+					route, err := deploy.SyncRouteToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
+					if !tests {
+						if route == nil {
+							logrus.Info("Waiting on route 'keycloak' to be ready")
+							if err != nil {
+								logrus.Error(err)
+							}
+
+							return reconcile.Result{RequeueAfter: time.Second * 1}, err
+						}
+
+						keycloakURL := protocol + "://" + route.Spec.Host
+						if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
+							instance.Spec.Auth.IdentityProviderURL = keycloakURL
+							if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
+								instance, _ = r.GetCR(request)
+								return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+							}
+							instance.Status.KeycloakURL = keycloakURL
+							if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", keycloakURL); err != nil {
+								instance, _ = r.GetCR(request)
+								return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+							}
+						}
+					}
+
+					if err := deploy.DeleteGatewayRouteConfig("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
+						logrus.Error(err)
 					}
 				}
 			}
@@ -881,7 +935,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err := deploy.SyncDevfileRegistryToCluster(instance, clusterAPI)
+	provisioned, err := deploy.SyncDevfileRegistryToCluster(instance, cheHost, clusterAPI)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -891,7 +945,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = deploy.SyncPluginRegistryToCluster(instance, clusterAPI)
+	provisioned, err = deploy.SyncPluginRegistryToCluster(instance, cheHost, clusterAPI)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -1110,7 +1164,7 @@ func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAP
 }
 
 func getServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.ServerExposureStrategy == "single-host" && cr.Spec.Server.SingleHostWorkspaceExposureType == "gateway" {
+	if cr.Spec.Server.ServerExposureStrategy == "single-host" && cr.Spec.Server.SingleHostExposureType == "gateway" {
 		return deploy.GatewayServiceName
 	}
 	return deploy.CheServiceName

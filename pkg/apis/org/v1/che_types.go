@@ -248,14 +248,14 @@ type CheClusterSpecServer struct {
 	// +optional
 	ServerExposureStrategy string `json:"serverExposureStrategy,omitempty"`
 
-	// When the serverExposureStrategy is set to "single-host", the way server and and workspaces
+	// When the serverExposureStrategy is set to "single-host", the way the server, registries and workspaces
 	// are exposed is further configured by this property. The possible values are "native" (which means
 	// that the server and workspaces are exposed using ingresses on K8s) or "gateway" where the server
 	// and workspaces are exposed using a custom gateway based on Traefik.
 	// "native" is only supported on Kubernetes, "gateway" is supported on both openshift and kubernetes.
 	// On OpenShift, this property defaults to "gateway". On Kubernetes, it defaults to "native".
 	// +optional
-	SingleHostWorkspaceExposureType string `json:"singleHostWorkspaceExposureType,omitempty"`
+	SingleHostExposureType string `json:"singleHostExposureType,omitempty"`
 
 	// The image used for the gateway in the single host mode. Defaults to docker.io/traefik:v2.2.8.
 	// +optional
@@ -267,7 +267,7 @@ type CheClusterSpecServer struct {
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
 
 	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
-	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels"`
+	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
 }
 
 // +k8s:openapi-gen=true

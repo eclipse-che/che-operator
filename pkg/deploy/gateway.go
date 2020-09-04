@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -43,7 +44,7 @@ var (
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	if instance.Spec.Server.ServerExposureStrategy == "single-host" &&
-		(util.IsOpenShift || instance.Spec.Server.SingleHostWorkspaceExposureType == "gateway") {
+		(util.IsOpenShift || instance.Spec.Server.SingleHostExposureType == "gateway") {
 		return syncAll(instance, clusterAPI)
 	}
 
@@ -153,7 +154,7 @@ func deleteAll(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	return nil
 }
 
-// sync syncs the bluprint to the cluster in a generic (as much as Go allows) manner.
+// sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 func sync(instance *orgv1.CheCluster, clusterAPI ClusterAPI, blueprint metav1.Object, diffOpts cmp.Option) error {
 	blueprintObject, ok := blueprint.(runtime.Object)
 	if !ok {
@@ -219,34 +220,52 @@ func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
 	return nil
 }
 
-// below functions declare the desired states of the various objects required for the gateway
-
-func getGatewayServerConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+// GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
+// `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
+// new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
+func GetGatewayRouteConfig(instance *orgv1.CheCluster, serviceName string, pathPrefix string, priority int, internalUrl string) corev1.ConfigMap {
 	data := `
 http:
   routers:
-    che-server:
-      rule: "PathPrefix(` + "`/`" + `)"
-      service: che-server
-      priority: 1
+    ` + serviceName + `:
+      rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
+      service: ` + serviceName + `
+      priority: ` + strconv.Itoa(priority) + `
   services:
-    che-server:
+    ` + serviceName + `:
       loadBalancer:
         servers:
-        - url: 'http://che-host:8080'`
+        - url: '` + internalUrl + `'`
 
 	return corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      gatewayServerConfigName,
+			Name:      serviceName,
 			Namespace: instance.Namespace,
 			Labels: util.MergeMaps(
 				GetLabels(instance, gatewayConfigComponentName),
 				util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
-			"che-server.yml": data,
+			serviceName + ".yml": data,
 		},
 	}
+}
+
+func DeleteGatewayRouteConfig(serviceName string, namespace string, clusterAPI ClusterAPI) error {
+	obj := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: namespace,
+		},
+	}
+
+	return delete(clusterAPI, obj)
+}
+
+// below functions declare the desired states of the various objects required for the gateway
+
+func getGatewayServerConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+	return GetGatewayRouteConfig(instance, gatewayServerConfigName, "/", 1, "http://che-host:8080")
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {

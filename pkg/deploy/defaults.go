@@ -80,7 +80,8 @@ const (
 	DefaultSecurityContextRunAsUser = "1724"
 
 	DefaultServerExposureStrategy              = "multi-host"
-	DefaultSingleHostWorkspaceExposureType     = "native"
+	DefaultKubernetesSingleHostExposureType    = "native"
+	DefaultOpenShiftSingleHostExposureType     = "gateway"
 	DefaultSingleHostGatewayImage              = "docker.io/traefik:v2.2.8"
 	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:0.1.2"
 
