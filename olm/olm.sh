@@ -209,7 +209,7 @@ buildCatalogImage() {
   fi
 
   imageTool=${3:-docker}
-  
+
   FROM_INDEX=${4}
   if [ -n "${FROM_INDEX}" ]; then
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"

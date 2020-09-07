@@ -116,7 +116,7 @@ To build these images you can use script `olm/buildFirstBundle.sh`:
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  buildFirstBundle.sh ${platform} ${optional-from-index-image}
+  ./buildFirstBundle.sh ${platform} ${optional-from-index-image}
 ```
 
 This script will build and push for you two images: CatalogSource(index) image and bundle image:
@@ -133,7 +133,7 @@ include them to your custom CatalogSource image. For this purpose you can specif
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  buildFirstBundle.sh "openshift" 'quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+  ./buildFirstBundle.sh "openshift" 'quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
 ```
 
 ### 7.1 Testing custom CatalogSource and bundle images on the Openshift
@@ -147,7 +147,6 @@ $ ./testCatalogSource.sh "openshift" "nightly" ${namespace} "catalog"
 If your CatalogSource image contains few bundles, you can test migration from previos bundle to the latest:
 
 ```bash
-
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
@@ -177,18 +176,30 @@ $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   ./testUpdate.sh "kubernetes" "nightly" ${namespace}
 ```
 
-Also you can test your changes without public registry. You can use minikube cluster and enable minikube "registry" addon:
+Also you can test your changes without public registry. You can use minikube cluster and enable minikube "registry" addon. For this purpose we have script
+`olm/minikube-private-registry.sh`. This script creates port forward to minikube private registry thought `locahost:5000`:
+
 ```bash
-$ minikube addons enable registry
-# sudo might be required.
-$ mkdir -p "/etc/docker" && \
-  touch "/etc/docker/daemon.json" && \
-  config="{\"insecure-registries\" : [\"0.0.0.0:5000\"]}" && \
-  echo "${config}" | sudo tee "${dockerDaemonConfig}" && \
-  systemctl restart docker
+$ minikube-registry-addon.sh
 ```
 
-Then env variables shall be: IMAGE_REGISTRY_HOST=0.0.0.0:5000, IMAGE_REGISTRY_USER_NAME=<any>
+This script should be launched during test execution. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
+
+```bash
+$ curl -X GET localhost:5000/v2/_catalog
+{"repositories":[]}
+```
+
+With this private registry you can test installation Che from development bundle:
+
+```bash
+$ export IMAGE_REGISTRY_HOST="localhost:5000" && \
+  export IMAGE_REGISTRY_USER_NAME="" && \
+  ./testCatalogSource.sh kubernetes nightly che catalog
+```
+
+> Tips: If minikube was installed locally(driver 'none', local installation minikube), then registry is availiable on the host 0.0.0.0 without port forwarding.
+But local installation minikube required 'sudo'.
 
 ### 8. Test script arguments
 There are some often used test script arguments:
