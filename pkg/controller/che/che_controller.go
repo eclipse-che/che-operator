@@ -787,6 +787,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
 
 			// create Keycloak ingresses when on k8s
+			var keycloakURL string
 			if !isOpenShift {
 				if useGateway {
 					// try to guess where in the ingress-creating code the /auth endpoint is defined...
@@ -801,6 +802,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					if err := deploy.DeleteIngressIfExists("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
 						logrus.Error(err)
 					}
+
+					keycloakURL = protocol + "://" + cheHost
 				} else {
 					ingress, err := deploy.SyncIngressToCluster(instance, "keycloak", "", "keycloak", 8080, clusterAPI)
 					if !tests {
@@ -817,17 +820,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					if err := deploy.DeleteGatewayRouteConfig("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
 						logrus.Error(err)
 					}
-				}
 
-				keycloakURL := protocol + "://" + ingressDomain
-				if ingressStrategy == "multi-host" {
-					keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
-				}
-				if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
-					instance.Spec.Auth.IdentityProviderURL = keycloakURL
-					if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
-						instance, _ = r.GetCR(request)
-						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+					keycloakURL = protocol + "://" + ingressDomain
+					if ingressStrategy == "multi-host" {
+						keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
 					}
 				}
 			} else {
@@ -839,19 +835,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 							logrus.Error(err)
 						}
 					}
-					keycloakURL := protocol + "://" + cheHost
-					if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
-						instance.Spec.Auth.IdentityProviderURL = keycloakURL
-						if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
-							instance, _ = r.GetCR(request)
-							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-						}
-						instance.Status.KeycloakURL = keycloakURL
-						if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", keycloakURL); err != nil {
-							instance, _ = r.GetCR(request)
-							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-						}
-					}
+					keycloakURL = protocol + "://" + cheHost
 
 					if err := deploy.DeleteRouteIfExists("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
 						logrus.Error(err)
@@ -869,24 +853,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 							return reconcile.Result{RequeueAfter: time.Second * 1}, err
 						}
 
-						keycloakURL := protocol + "://" + route.Spec.Host
-						if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
-							instance.Spec.Auth.IdentityProviderURL = keycloakURL
-							if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
-								instance, _ = r.GetCR(request)
-								return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-							}
-							instance.Status.KeycloakURL = keycloakURL
-							if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", keycloakURL); err != nil {
-								instance, _ = r.GetCR(request)
-								return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-							}
-						}
+						keycloakURL = protocol + "://" + route.Spec.Host
 					}
 
 					if err := deploy.DeleteGatewayRouteConfig("keycloak", instance.Namespace, clusterAPI); !tests && err != nil {
 						logrus.Error(err)
 					}
+				}
+			}
+
+			if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
+				instance.Spec.Auth.IdentityProviderURL = keycloakURL
+				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
+					instance, _ = r.GetCR(request)
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 				}
 			}
 
