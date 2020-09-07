@@ -183,7 +183,7 @@ Also you can test your changes without public registry. You can use minikube clu
 $ minikube-registry-addon.sh
 ```
 
-This script should be launched during test execution. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
+This script should be launched before test execution in the separated terminal. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
 
 ```bash
 $ curl -X GET localhost:5000/v2/_catalog

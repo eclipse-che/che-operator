@@ -180,8 +180,8 @@ buildBundleImage() {
     -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
     --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
     --package "eclipse-che-preview-${platform}" \
-    --channels "stable,nightly" \
-    --default "stable" \
+    --channels "nightly" \
+    --default "nightly" \
     --image-builder "${imageTool}"
 
   # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
