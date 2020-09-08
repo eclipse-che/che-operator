@@ -49,7 +49,7 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, 
 			}
 
 			if useGateway {
-				cfg := GetGatewayRouteConfig(checluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 1, "http://"+DevfileRegistry+":8080")
+				cfg := GetGatewayRouteConfig(checluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080")
 				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
 				if !util.IsTestMode() {
 					if clusterCfg == nil {
@@ -79,7 +79,7 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, 
 			}
 		} else {
 			if useGateway {
-				cfg := GetGatewayRouteConfig(checluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 1, "http://"+DevfileRegistry+":8080")
+				cfg := GetGatewayRouteConfig(checluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080")
 				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
 				if !util.IsTestMode() {
 					if clusterCfg == nil {

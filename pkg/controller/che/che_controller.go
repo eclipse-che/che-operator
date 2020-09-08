@@ -791,7 +791,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if !isOpenShift {
 				if useGateway {
 					// try to guess where in the ingress-creating code the /auth endpoint is defined...
-					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 1, "http://keycloak:8080")
+					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080")
 					_, err := deploy.SyncConfigMapToCluster(instance, &cfg, clusterAPI)
 					if !tests {
 						if err != nil {
@@ -828,7 +828,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			} else {
 				if useGateway {
-					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 1, "http://keycloak:8080")
+					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080")
 					_, err := deploy.SyncConfigMapToCluster(instance, &cfg, clusterAPI)
 					if !tests {
 						if err != nil {
