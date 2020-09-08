@@ -251,6 +251,7 @@ func getSpecCheDeployment(deployContext *DeployContext, cmResourceVersion string
 				})
 		}
 	} else {
+		deployment.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
 		deployment.Spec.Template.Spec.Volumes = []corev1.Volume{
 			{
 				Name: DefaultCheVolumeClaimName,
