@@ -1,0 +1,35 @@
+--- /home/user/projects/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1598450052/eclipse-che-preview-openshift.v9.9.9-nightly.1598450052.clusterserviceversion.yaml	2020-09-08 11:53:40.382881574 +0300
++++ /home/user/projects/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1599555246/eclipse-che-preview-openshift.v9.9.9-nightly.1599555246.clusterserviceversion.yaml	2020-09-08 11:54:07.239855351 +0300
+@@ -49,13 +49,13 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-08-26T13:54:12Z"
++    createdAt: "2020-09-08T08:54:06Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1598450052
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1599555246
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -316,6 +316,8 @@
+                         value: che-postgres-secret
+                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+                         value: ca-certs
++                      - name: CI_TEST
++                        value: CI_TEST
+                     image: quay.io/eclipse/che-operator:nightly
+                     imagePullPolicy: Always
+                     name: che-operator
+@@ -431,5 +433,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1597916268
+-  version: 9.9.9-nightly.1598450052
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1598450052
++  version: 9.9.9-nightly.1599555246
