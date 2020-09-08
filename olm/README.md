@@ -18,12 +18,12 @@ There two "nightly" platform specific Olm bundles:
 `deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests`
 `deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests`
 
-Each bundle consist of cluster service version file(CSV) and custom resource definition file(CRD). 
-CRD file describes "checluster" kubernetes api resource object(object fields name, format, description and so on.).
-Kubernetes api need this information to correctly store custom resource object "checluster".
-This object user could modify to change Eclipse Che configuration.
-Che operator watch "checluster" object and re-deploy Che with desired configuration.
-CSV file contains all "deploy" and "permission" specific information, which Olm needs to install Eclipse Che operator.
+Each bundle consists of a cluster service version file(CSV) and a custom resource definition file(CRD). 
+CRD file describes "cheCluster" kubernetes api resource object(object fields name, format, description and so on).
+Kubernetes api needs this information to correctly store a custom resource object "cheCluster".
+Custom resource object users could modify to change Eclipse Che configuration.
+Che operator watches "cheCluster" object and re-deploy Che with desired configuration.
+The CSV file contains all "deploy" and "permission" specific information, which Olm needs to install The Eclipse Che operator.
 
 # 3. Make new changes to OLM bundle
 
@@ -43,7 +43,7 @@ $ ./docker-run.sh update-nightly-bundle.sh
 
 Every change will be included to the deploy/olm-catalog/che-operator bundles and override all previous changes.
 
-To update bundle without version incrementation and time update:
+To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you want to increment the bundle version and time creation, when all desired changes were completed:
 
 ```bash
 $ export NO_DATE_UPDATE="true" && export NO_INCREMENT="true" && export ./update-nightly-bundle.sh
@@ -92,7 +92,7 @@ quay.io/eclipse/eclipse-che-kubernetes-opm-bundles:7.19.0-5.nightly
 ...
 ```
 
-To test the latest "nightly" bundle use `olm/TestCatalogSource.sh` script:
+To test the latest "nightly" bundle use `olm/testCatalogSource.sh` script:
 
 ```bash
 $ ./testCatalogSource.sh ${platform} "nightly" ${namespace} "catalog"
@@ -127,13 +127,13 @@ This script will build and push for you two images: CatalogSource(index) image a
 ```
 
 CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and
-include them to your custom CatalogSource image. For this purpose you can specify argument `optional-from-index-image`. For example:
+include them to your custom CatalogSource image. For this purpose you can specify the argument `optional-from-index-image`. For example:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  ./buildFirstBundle.sh "openshift" 'quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+  ./buildFirstBundle.sh "openshift" "quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
 ```
 
 ### 7.1 Testing custom CatalogSource and bundle images on the Openshift
@@ -144,19 +144,19 @@ To test the latest custom "nightly" bundle use `olm/TestCatalogSource.sh`. For O
 $ ./testCatalogSource.sh "openshift" "nightly" ${namespace} "catalog"
 ```
 
-If your CatalogSource image contains few bundles, you can test migration from previos bundle to the latest:
+If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  ./testUpdate.sh "openshit" "nightly" ${namespace}
+  ./testUpdate.sh "openshift" "nightly" ${namespace}
 ```
 
 ### 7.2 Testing custom CatalogSource and bundle images on the Kubernetes
 To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry.
 
-For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create bundle and and catalog image repositories manually and made them public visible. If you want to save repositories "private", then it is not necessary pre-create them, but you need provide image pull secret to the cluster to prevent image pull 'unauthorized' error.
+For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
 
 You can test your custom bundle and CatalogSource images:
 
@@ -167,7 +167,7 @@ $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
  ./testCatalogSource.sh "kubernetes" "nightly" ${namespace} "catalog"
 ```
 
-If your CatalogSource image contains few bundles, you can test migration from previos bundle to the latest:
+If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
@@ -176,8 +176,8 @@ $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
   ./testUpdate.sh "kubernetes" "nightly" ${namespace}
 ```
 
-Also you can test your changes without public registry. You can use minikube cluster and enable minikube "registry" addon. For this purpose we have script
-`olm/minikube-private-registry.sh`. This script creates port forward to minikube private registry thought `locahost:5000`:
+Also you can test your changes without a public registry. You can use the minikube cluster and enable the minikube "registry" addon. For this purpose we have script
+`olm/minikube-private-registry.sh`. This script creates port forward to minikube private registry thought `localhost:5000`:
 
 ```bash
 $ minikube-registry-addon.sh
@@ -198,7 +198,7 @@ $ export IMAGE_REGISTRY_HOST="localhost:5000" && \
   ./testCatalogSource.sh kubernetes nightly che catalog
 ```
 
-> Tips: If minikube was installed locally(driver 'none', local installation minikube), then registry is availiable on the host 0.0.0.0 without port forwarding.
+> Tips: If minikube was installed locally(driver 'none', local installation minikube), then registry is available on the host 0.0.0.0 without port forwarding.
 But local installation minikube required 'sudo'.
 
 ### 8. Test script arguments
@@ -209,5 +209,5 @@ There are some often used test script arguments:
  - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
 
 ### 9. Debug test scripts
-To debug tests scripts you can use "Bash debug" VSCode extension. 
-For a lot of tests scripts you can find different debug configurations in the `.vscode/launch.json`.
+To debug test scripts you can use the "Bash debug" VSCode extension. 
+For a lot of test scripts you can find different debug configurations in the `.vscode/launch.json`.
