@@ -115,9 +115,9 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildFirstBundle.sh) kubernetes",
+      "name": "Bash-Debug (buildAndPushInitialBundle.sh) kubernetes",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/buildFirstBundle.sh",
+      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
       "args": [
         "kubernetes"
       ]
@@ -125,9 +125,9 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildFirstBundle.sh) openshift",
+      "name": "Bash-Debug (buildAndPushInitialBundle.sh) openshift",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/buildFirstBundle.sh",
+      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
       "args": [
         "openshift"
       ]

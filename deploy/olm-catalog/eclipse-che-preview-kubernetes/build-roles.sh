@@ -13,5 +13,15 @@
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 rm -Rf "${BASE_DIR}/generated/roles"
 mkdir -p "${BASE_DIR}/generated/roles"
-cp "${BASE_DIR}/../../../role.yaml" "${BASE_DIR}/generated/roles/role.yaml"
-cp "${BASE_DIR}/../../../cluster_role.yaml" "${BASE_DIR}/generated/roles/cluster_role.yaml"
+roleYaml="${BASE_DIR}/../../role.yaml"
+index=0
+while [ $index -le 20 ]
+do
+  if yq -r -e ".rules[${index}] | select(.apiGroups[0] == \"route.openshift.io\") | \"\"" "${roleYaml}"
+  then
+    yq -y "del(.rules[${index}])" "${roleYaml}" > "${BASE_DIR}/generated/roles/role.yaml"
+    exit $?
+  fi
+  ((index++))
+done
+exit 1

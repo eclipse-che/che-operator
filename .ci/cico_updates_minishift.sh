@@ -33,9 +33,9 @@ init() {
     OPERATOR_REPO=$(dirname "$SCRIPT_DIR");
   fi
 
-  # Create tmp folder and add che operator templates used by server:update command.
-  mkdir -p "$OPERATOR_REPO/tmp" && chmod 777 "$OPERATOR_REPO/tmp"
-  cp -rf deploy "$OPERATOR_REPO/tmp/che-operator"
+  # Create tmp folder to save "operator" installer templates
+  mkdir -p "${OPERATOR_REPO}/tmp" && chmod 777 "${OPERATOR_REPO}/tmp"
+  cp -rf "${OPERATOR_REPO}/deploy" "${OPERATOR_REPO}/tmp/che-operator"
 }
 
 installDependencies() {
@@ -68,9 +68,13 @@ installLatestCheStable() {
   # set 'openShiftoAuth: false'
   sed -i "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
 
+  # Change operator images defaults in the deployment
+  sed -i -e "s|nightly|${previousPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+
   # Start last stable version of che
-  chectl server:start --platform=minishift --skip-kubernetes-health-check --che-operator-cr-yaml=${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml \
-    --che-operator-image=quay.io/eclipse/che-operator:${previousPackageVersion} --installer=operator
+  chectl server:start --platform=minishift --skip-kubernetes-health-check \
+  --che-operator-cr-yaml="${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml" --templates="${OPERATOR_REPO}/tmp" \
+  --installer=operator
 }
 
 # Utility to wait for new release to be up
@@ -126,10 +130,12 @@ testUpdates() {
 
   # Create an workspace
   getCheAcessToken # Function from ./util/ci_common.sh
-  chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+  chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
 
+  # Change operator images defaults in the deployment
+  sed -i -e "s|${previousPackageVersion}|${lastPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
   # Update the operator to the new release
-  chectl server:update --skip-version-check --installer=operator --platform=minishift --che-operator-image=quay.io/eclipse/che-operator:${lastPackageVersion} --templates="tmp"
+  chectl server:update --skip-version-check --installer=operator --platform=minishift --templates="${OPERATOR_REPO}/tmp"
 
   oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/cheImageTag", "value":"'${lastPackageVersion}'"}]' -n ${NAMESPACE}
   waitForNewCheVersion

@@ -15,14 +15,14 @@ Example : `$ docker-run.sh update-nightly-bundle.sh`
 
 There two "nightly" platform specific Olm bundles:
 
-`deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests`
-`deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests`
+`deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
+`deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
 
 Each bundle consists of a cluster service version file(CSV) and a custom resource definition file(CRD). 
-CRD file describes "cheCluster" kubernetes api resource object(object fields name, format, description and so on).
-Kubernetes api needs this information to correctly store a custom resource object "cheCluster".
+CRD file describes "checluster" kubernetes api resource object(object fields name, format, description and so on).
+Kubernetes api needs this information to correctly store a custom resource object "checluster".
 Custom resource object users could modify to change Eclipse Che configuration.
-Che operator watches "cheCluster" object and re-deploy Che with desired configuration.
+Che operator watches "checluster" object and re-deploy Che with desired configuration.
 The CSV file contains all "deploy" and "permission" specific information, which Olm needs to install The Eclipse Che operator.
 
 # 3. Make new changes to OLM bundle
@@ -41,7 +41,7 @@ $ ./update-nightly-bundle.sh
 $ ./docker-run.sh update-nightly-bundle.sh
 ```
 
-Every change will be included to the deploy/olm-catalog/che-operator bundles and override all previous changes.
+Every change will be included to the deploy/olm-catalog bundles and override all previous changes.
 
 To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you want to increment the bundle version and time creation, when all desired changes were completed:
 
@@ -110,13 +110,12 @@ See more information about test arguments in the chapter: [Test arguments](#test
 
 For test purpose you can build your own "nightly" CatalogSource and bundle images
 with your latest development changes and use it in the test scripts.
-To build these images you can use script `olm/buildFirstBundle.sh`:
+To build these images you can use script `olm/buildAndPushInitialBundle.sh`:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
-  export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  ./buildFirstBundle.sh ${platform} ${optional-from-index-image}
+  ./buildAndPushInitialBundle.sh ${platform} ${optional-from-index-image}
 ```
 
 This script will build and push for you two images: CatalogSource(index) image and bundle image:
@@ -131,14 +130,13 @@ include them to your custom CatalogSource image. For this purpose you can specif
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
-  export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  ./buildFirstBundle.sh "openshift" "quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+  ./buildAndPushInitialBundle.sh "openshift" "quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
 ```
 
 ### 7.1 Testing custom CatalogSource and bundle images on the Openshift
 
-To test the latest custom "nightly" bundle use `olm/TestCatalogSource.sh`. For Openshift platform script build your test bundle: `deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}/manifests` using Openshift image stream:
+To test the latest custom "nightly" bundle use `olm/TestCatalogSource.sh`. For Openshift platform script build your test bundle: `deploy/olm-catalog/eclipse-che-preview-${platform}/manifests` using Openshift image stream:
 
 ```bash
 $ ./testCatalogSource.sh "openshift" "nightly" ${namespace} "catalog"
@@ -148,7 +146,6 @@ If your CatalogSource image contains few bundles, you can test migration from pr
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
-  export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
   ./testUpdate.sh "openshift" "nightly" ${namespace}
 ```
@@ -162,7 +159,6 @@ You can test your custom bundle and CatalogSource images:
 
 ```bash 
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
-  export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
  ./testCatalogSource.sh "kubernetes" "nightly" ${namespace} "catalog"
 ```
@@ -171,7 +167,6 @@ If your CatalogSource image contains few bundles, you can test migration from pr
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=${userName} && \
-  export IMAGE_REGISTRY_PASSWORD=${password} && \
   export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
   ./testUpdate.sh "kubernetes" "nightly" ${namespace}
 ```

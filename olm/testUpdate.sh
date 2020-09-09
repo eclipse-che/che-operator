@@ -51,7 +51,7 @@ init() {
     PACKAGE_VERSION=$(echo "${PREVIOUS_CSV_NAME}" | sed -e "s/${packageName}.v//")
     INSTALLATION_TYPE="Marketplace"
   else
-    packageFolderPath="${OPERATOR_REPO}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+    packageFolderPath="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-${platform}"
     PACKAGE_VERSION="nightly"
     export CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:preview"
     INSTALLATION_TYPE="catalog"

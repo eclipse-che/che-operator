@@ -44,7 +44,7 @@ do
 
   olmCatalog=${ROOT_PROJECT_DIR}/deploy/olm-catalog
   operatorFolder=${olmCatalog}/che-operator
-  bundleFolder=${operatorFolder}/eclipse-che-preview-${platform}
+  bundleFolder=${olmCatalog}/eclipse-che-preview-${platform}
 
   bundleCSVName="che-operator.clusterserviceversion.yaml"
   NEW_CSV=${bundleFolder}/manifests/${bundleCSVName}
@@ -65,7 +65,7 @@ do
 
   cp -rf "${packageManifestCSVPath}" "${NEW_CSV}"
 
-  rm -rf "${packageManifestFolderPath}" "${packageManifestCSVPath}" "${operatorFolder}/che-operator.package.yaml" "${olmCatalog}/csv-config.yaml"
+  rm -rf "${operatorFolder}" "${olmCatalog}/csv-config.yaml"
 
   containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
   echo "[INFO] Updating new package version fields:"

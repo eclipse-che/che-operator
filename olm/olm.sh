@@ -52,13 +52,13 @@ channel="stable"
 if [[ "${PACKAGE_VERSION}" =~ "nightly" ]]
 then
   channel="nightly"
-  OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+  OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}"
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
 fi
 
 packageName=eclipse-che-preview-${platform}
 if [ "${channel}" == 'nightly' ]; then
-  CSV_FILE="${ROOT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml"
+  CSV_FILE="${ROOT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml"
 else
   if [ ${SOURCE_INSTALL} == "catalog" ]; then
     echo "[ERROR] Stable preview channel doesn't support installation using 'catalog'. Use 'Marketplace' instead of it."
@@ -83,25 +83,6 @@ echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
 #   echo "You should delete namespace '${namespace}' before running the update test first."
 #   exit 1
 # fi
-
-checkImagePushTridentionals() {
-  if [ -z "${IMAGE_REGISTRY_USER_NAME}" ] || [ -z "${IMAGE_REGISTRY_PASSWORD}" ]; then
-    echo "[ERROR] Should be defined env variables IMAGE_REGISTRY_USER_NAME, QUAY_PASSWORD"
-    exit 1
-  fi
-}
-
-pushImage() {
-  checkImagePushTridentionals
-
-  imageName=$1
-  if [ -z "${imageName}" ]; then
-    echo "Please specify first argument: imageName"
-    exit 1
-  fi
-
-  docker push "${imageName}"
-}
 
 catalog_source() {
     marketplaceNamespace=${namespace};
@@ -152,14 +133,6 @@ applyCheOperatorInstallationSource() {
       sed  -e "s/registryNamespace:.*$/registryNamespace: \"${APPLICATION_REGISTRY}\"/" | \
       kubectl apply -f -
     fi
-  fi
-}
-
-loginToImageRegistry() {
-  if [ -n "${IMAGE_REGISTRY_USER_NAME}" ] && [ -n "${IMAGE_REGISTRY_PASSWORD}" ] && [ -n "${IMAGE_REGISTRY_HOST}" ]; then
-    docker login -u "${IMAGE_REGISTRY_USER_NAME}" -p "${IMAGE_REGISTRY_PASSWORD}" "${IMAGE_REGISTRY_HOST}"
-  else
-    echo "[INFO] Skip login to registry"
   fi
 }
 

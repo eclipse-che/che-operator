@@ -18,7 +18,7 @@ printHelp() {
 	echo '    PLATFORM                 - cluster platform: "kubernetes" or "openshift".'
     echo '    FROM_INDEX_IMAGE         - (Optional) Using this argument you can include Olm bundles from another index image to you index(CatalogSource) image'
   echo ''
-  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/buildFirstBundle.sh openshift'
+  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/buildAndPushInitialBundle.sh openshift'
 }
 
 # Check if a 'from index image' was defined...
@@ -37,16 +37,11 @@ if [ -z "${IMAGE_REGISTRY_HOST}" ] || [ -z "${IMAGE_REGISTRY_USER_NAME}" ]; then
     echo "[ERROR] Specify env variables with information about image registry 'IMAGE_REGISTRY_HOST' and 'IMAGE_REGISTRY_USER_NAME'."
 fi
 
-if [ -n "${IMAGE_REGISTRY_PASSWORD}" ]; then
-    echo "[INFO] Your images repositories should be public visible. Otherwise you need to create pull secret in the cluster to use them."
-    docker login "${IMAGE_REGISTRY_HOST}" -u "${IMAGE_REGISTRY_USER_NAME}" -p "${IMAGE_REGISTRY_PASSWORD}" 
-fi
-
 SCRIPT=$(readlink -f "$0")
 BASE_DIR=$(dirname "$SCRIPT")
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 
-OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${PLATFORM}"
+OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${PLATFORM}"
 OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
 CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
@@ -67,4 +62,4 @@ echo "[INFO] Build CatalogSource image: ${CATALOG_BUNDLE_IMAGE}"
 CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-catalog:preview"
 buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${FROM_INDEX_IMAGE}"
 
-echo "[INFO] Done. Images '${CATALOG_BUNDLE_IMAGE}' and '${CATALOG_BUNDLE_IMAGE}' were build and pushed"
+echo "[INFO] Done. Images '${CATALOG_IMAGENAME}' and '${CATALOG_BUNDLE_IMAGE}' were build and pushed"

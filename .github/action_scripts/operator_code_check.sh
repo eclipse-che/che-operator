@@ -98,8 +98,8 @@ isActualNightlyOlmBundleCSVFiles() {
   export NO_INCREMENT="true"
   source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
 
-  CSV_FILE_KUBERNETES="deploy/olm-catalog/che-operator/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  CSV_FILE_OPENSHIFT="deploy/olm-catalog/che-operator/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  CSV_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+  CSV_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 
   IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
   for file in "${changedFiles[@]}"

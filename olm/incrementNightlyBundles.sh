@@ -22,7 +22,7 @@ source ${BASE_DIR}/check-yq.sh
 incrementNightlyVersion() {
   for platform in 'kubernetes' 'openshift'
   do
-    OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/eclipse-che-preview-${platform}"
+    OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}"
     OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
     CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
