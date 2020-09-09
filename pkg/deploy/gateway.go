@@ -223,19 +223,44 @@ func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
 // GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
 // `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
 // new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
-func GetGatewayRouteConfig(instance *orgv1.CheCluster, serviceName string, pathPrefix string, priority int, internalUrl string) corev1.ConfigMap {
-	data := `
+func GetGatewayRouteConfig(instance *orgv1.CheCluster, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
+	pathRewrite := pathPrefix != "/" && stripPrefix
+
+	data := `---
 http:
   routers:
     ` + serviceName + `:
       rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
       service: ` + serviceName + `
       priority: ` + strconv.Itoa(priority) + `
+      middlewares:
+      - "` + serviceName + `_headers"`
+
+	if pathRewrite {
+		data += `
+      - "` + serviceName + `"`
+	}
+
+	data += `
   services:
     ` + serviceName + `:
       loadBalancer:
         servers:
-        - url: '` + internalUrl + `'`
+        - url: '` + internalUrl + `'
+  middlewares:
+    ` + serviceName + `_headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+          X-Forwarded-Port: 443`
+
+	if pathRewrite {
+		data += `
+    ` + serviceName + `:
+      stripPrefix:
+        prefixes:
+        - "` + pathPrefix + `"`
+	}
 
 	return corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -265,7 +290,7 @@ func DeleteGatewayRouteConfig(serviceName string, namespace string, clusterAPI C
 // below functions declare the desired states of the various objects required for the gateway
 
 func getGatewayServerConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	return GetGatewayRouteConfig(instance, gatewayServerConfigName, "/", 1, "http://che-host:8080")
+	return GetGatewayRouteConfig(instance, gatewayServerConfigName, "/", 1, "http://che-host:8080", false)
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {
