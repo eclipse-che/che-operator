@@ -76,7 +76,7 @@ spec:
 ```
 Replace value of `image` field with your catalog source image. Don't forget to specify desired platform.
 
-6. Deploy Che using chectl:
+5. Deploy Che using chectl:
 ```sh
 $ chectl server:start --installer=olm --multiuser --platform=${platform} -n ${che-namespace} --catalog-source-yaml ${path_to_custom_catalog_source_yaml} --olm-channel=nightly --package-manifest-name=eclipse-che-preview-${platform}
 ```

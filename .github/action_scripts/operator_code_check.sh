@@ -105,7 +105,7 @@ isActualNightlyOlmBundleCSVFiles() {
   for file in "${changedFiles[@]}"
   do
     if [ "${CSV_FILE_KUBERNETES}" == "${file}" ] || [ "${CSV_FILE_OPENSHIFT}" == "${file}" ]; then
-      echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-olm-files.sh' for this purpose."
+      echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-bundle.sh' for this purpose."
       exit 1
     fi
   done

@@ -46,7 +46,7 @@ Every change will be included to the deploy/olm-catalog bundles and override all
 To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you want to increment the bundle version and time creation, when all desired changes were completed:
 
 ```bash
-$ export NO_DATE_UPDATE="true" && export NO_INCREMENT="true" && export ./update-nightly-bundle.sh
+$ export NO_DATE_UPDATE="true" && export NO_INCREMENT="true" && ./update-nightly-bundle.sh
 ```
 
 # 4. Test scripts pre-requisites

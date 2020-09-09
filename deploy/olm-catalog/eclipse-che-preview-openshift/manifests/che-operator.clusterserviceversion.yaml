@@ -261,9 +261,9 @@ spec:
                       - name: RELATED_IMAGE_keycloak
                         value: quay.io/eclipse/che-keycloak:nightly
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
-                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.3.0
+                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
-                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.3.0
+                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
                       - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
                         value: quay.io/eclipse/che-jwtproxy:0.10.0
                       - name: CHE_FLAVOR
