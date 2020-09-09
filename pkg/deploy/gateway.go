@@ -353,8 +353,12 @@ func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 entrypoints:
   http:
     address: ":8080"
+    forwardedHeaders:
+      insecure: true
   https:
     address: ":8443"
+    forwardedHeaders:
+      insecure: true
 global:
   checkNewVersion: false
   sendAnonymousUsage: false
