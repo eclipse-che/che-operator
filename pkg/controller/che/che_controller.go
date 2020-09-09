@@ -828,7 +828,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			} else {
 				if useGateway {
-					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "https://keycloak:8080", false)
+					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080", false)
 					_, err := deploy.SyncConfigMapToCluster(instance, &cfg, clusterAPI)
 					if !tests {
 						if err != nil {

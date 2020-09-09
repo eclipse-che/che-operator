@@ -80,7 +80,7 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, c
 			}
 		} else {
 			if useGateway {
-				cfg := GetGatewayRouteConfig(checluster, PluginRegistry, "/"+PluginRegistry, 10, "http://"+PluginRegistry+":8080", true)
+				cfg := GetGatewayRouteConfig(checluster, pluginRegistryGatewayConfig, "/"+PluginRegistry, 10, "http://"+PluginRegistry+":8080", true)
 				clusterCfg, err := SyncConfigMapToCluster(checluster, &cfg, clusterAPI)
 				if !util.IsTestMode() {
 					if clusterCfg == nil {
@@ -107,7 +107,7 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, c
 						return false, err
 					}
 				}
-				if err := DeleteGatewayRouteConfig(PluginRegistry, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
+				if err := DeleteGatewayRouteConfig(pluginRegistryGatewayConfig, checluster.Namespace, clusterAPI); !util.IsTestMode() && err != nil {
 					logrus.Error(err)
 				}
 
