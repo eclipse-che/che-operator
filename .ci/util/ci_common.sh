@@ -171,7 +171,7 @@ waitWorkspaceStart() {
 
     if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
     then
-      printInfo "Workspace started started successfully"
+      printInfo "Workspace started successfully"
       break
     fi
     sleep 10

@@ -10,6 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+# Deprecated. Use olm/update-nightly-bundle.sh instead of it.
+
 set -e
 
 CURRENT_DIR=$(pwd)

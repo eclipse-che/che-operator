@@ -40,42 +40,45 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
 ### How to test operator via OLM
 
 The following instructions show how to test Che operator under development using OLM installer.
-Steps below are applicable to Openshift infrastructure only.
 
-1. Build your custom operator image
-```sh
-docker build -t user/che-operator .
+1. Build your custom operator image and use it in the operator deployment: [How to Build Operator Image](#how-to-build-operator-image)).
+Push operator image to an image registry.
+
+2. Create newer OLM files by executing: `olm/update-nightly-bundle.sh`
+
+3. Build catalog source and bundle images.
+Use `olm/buildAndPushInitialBundle.sh` script with `platform` argument('openshift' or 'kubernetes'):
+
+```bash
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+  olm/buildAndPushInitialBundle.sh ${platform}
 ```
-and push it to a docker registry.
 
-2. Specify your operator image.
-Open deploy/operator.yaml, replace default operator image `quay.io/eclipse/che-operator:nightly` with yours (say, `docker.io/user/che-operator:latest`).
+Where are:
+  - `IMAGE_REGISTRY_USER_NAME` - your user account name in the image registry.
+  - `IMAGE_REGISTRY_HOST` - host of the image registry, for example: "docker.io", "quay.io". Host could be with non default port: localhost:5000, 127.0.0.1:3000 and etc.
 
-3. Create newer OLM files by executing: `olm/update-nightly-olm-files.sh`
+4. Create custom catalog source yaml(update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
 
-4. Build catalog source image.
-Go to `olm/eclipse-che-preview-openshift` folder and build the image: `docker build -t user/custom-catalog-source:latest .`
-Push it into your docker registry.
-
-5. Create custom catalog source yaml(update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
 ```yaml
 apiVersion:  operators.coreos.com/v1alpha1
 kind:         CatalogSource
 metadata:
-  name:         eclipse-che-preview-openshift
+  name:         eclipse-che-preview-custom
   namespace:    che-namespace
 spec:
-  image:        docker.io/user/custom-catalog-source:latest
+  image:        ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-catalog:preview
   sourceType:  grpc
   updateStrategy:
     registryPoll:
       interval: 5m
 ```
-Replace value of `image` field with your catalog source image.
+Replace value of `image` field with your catalog source image. Don't forget to specify desired platform.
 
-6. Deploy Che using chectl:
+5. Deploy Che using chectl:
 ```sh
-chectl server:start --installer=olm --multiuser --platform=openshift -n che-namespace --catalog-source-yaml /home/user/path/to/custom-catalog-source.yaml --olm-channel=nightly --package-manifest-name=eclipse-che-preview-openshift
+$ chectl server:start --installer=olm --multiuser --platform=${platform} -n ${che-namespace} --catalog-source-yaml ${path_to_custom_catalog_source_yaml} --olm-channel=nightly --package-manifest-name=eclipse-che-preview-${platform}
 ```
 
 ### OpenShift oAuth
@@ -106,12 +109,13 @@ Since not all Che configuration properties are custom resource spec fields (ther
 which you can use for any environment variables not supported by CR field. The operator will not reconcile configMap custom.
 
 ## How to Build Operator Image
+In the root of the che-operator project:
 
 ```bash
 docker build -t $registry/$repo:$tag .
 ```
 
-You can then use the resulting image in operator deployment (deploy/operator.yaml)
+You can then use the resulting image in operator deployment (deploy/operator.yaml): replace default operator image `quay.io/eclipse/che-operator:nightly` with yours (say, `docker.io/user/che-operator:latest`)
 
 ## Build and Deploy to a local cluster:
 

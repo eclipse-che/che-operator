@@ -14,6 +14,127 @@
     {
       "type": "bashdb",
       "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che",
+        "Marketplace"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che",
+        "catalog",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift nightly",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che",
+        "catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift stable",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che",
+        "Marketplace"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che"
+      ]
+    }, 
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildAndPushInitialBundle.sh) kubernetes",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "args": [
+        "kubernetes"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildAndPushInitialBundle.sh) openshift",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "args": [
+        "openshift"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
       "program": "${file}"
     },
