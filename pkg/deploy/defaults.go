@@ -83,7 +83,7 @@ const (
 	DefaultKubernetesSingleHostExposureType    = "native"
 	DefaultOpenShiftSingleHostExposureType     = "gateway"
 	DefaultSingleHostGatewayImage              = "docker.io/traefik:v2.2.8"
-	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:0.1.2"
+	DefaultSingleHostGatewayConfigSidecarImage = "quay.io/che-incubator/configbump:0.1.4"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
