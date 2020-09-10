@@ -46,11 +46,6 @@ init() {
 }
 
 installDependencies() {
-  installYQ
-  installJQ
-  install_VirtPackages
-  installStartDocker
-  source ${OPERATOR_REPO}/.ci/start-minikube.sh
   installChectl
 }
 
