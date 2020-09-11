@@ -181,16 +181,6 @@ func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string 
 	return strategy
 }
 
-func GetSingleHostExposureType(c *orgv1.CheCluster, k8sDefault string, openShiftDefault string) string {
-	dflt := k8sDefault
-
-	if IsOpenShift {
-		dflt = openShiftDefault
-	}
-
-	return GetValue(c.Spec.Server.SingleHostExposureType, dflt)
-}
-
 func IsTestMode() (isTesting bool) {
 
 	testMode := os.Getenv("MOCK_API")

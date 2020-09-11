@@ -44,7 +44,7 @@ var (
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 	if instance.Spec.Server.ServerExposureStrategy == "single-host" &&
-		(util.IsOpenShift || instance.Spec.Server.SingleHostExposureType == "gateway") {
+		(GetSingleHostExposureType(instance) == "gateway") {
 		return syncAll(instance, clusterAPI)
 	}
 

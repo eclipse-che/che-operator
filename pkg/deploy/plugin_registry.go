@@ -39,7 +39,7 @@ func SyncPluginRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, c
 	if !checluster.Spec.Server.ExternalPluginRegistry {
 		var host string
 		exposureStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
-		singleHostExposureType := util.GetSingleHostExposureType(checluster, DefaultKubernetesSingleHostExposureType, DefaultOpenShiftSingleHostExposureType)
+		singleHostExposureType := GetSingleHostExposureType(checluster)
 		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
 
 		if !util.IsOpenShift {

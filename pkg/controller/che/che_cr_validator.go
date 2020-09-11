@@ -25,9 +25,10 @@ import (
 func ValidateCheCR(checluster *orgv1.CheCluster, isOpenshift bool) error {
 	if isOpenshift {
 		exposureStrategy := checluster.Spec.Server.ServerExposureStrategy
+		exposureType := checluster.Spec.Server.SingleHostExposureType
 		if exposureStrategy != "" && exposureStrategy != "multi-host" {
-			if checluster.Spec.Server.SingleHostExposureType != "gateway" {
-				return fmt.Errorf("On OpenShift, only the gateway exposure is supported in the single-host mode. Please set `spec.server.singleHostExposureType` to `gateway`.")
+			if exposureType != "" && exposureType != "gateway" {
+				return fmt.Errorf("on OpenShift, only the gateway exposure is supported in the single-host mode. Please set `spec.server.singleHostExposureType` to `gateway`")
 			}
 		}
 	} else {

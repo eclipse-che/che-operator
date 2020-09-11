@@ -174,7 +174,7 @@ func GetCheConfigMapData(cr *orgv1.CheCluster, proxy *Proxy) (cheEnv map[string]
 	cheMetrics := strconv.FormatBool(cr.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(GetLabels(cr, DefaultCheFlavor(cr)))
 	cheMultiUser := GetCheMultiUser(cr)
-	workspaceExposure := util.GetSingleHostExposureType(cr, DefaultKubernetesSingleHostExposureType, DefaultOpenShiftSingleHostExposureType)
+	workspaceExposure := GetSingleHostExposureType(cr)
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(cr.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels))
 
 	data := &CheConfigMap{

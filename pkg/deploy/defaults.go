@@ -288,6 +288,16 @@ func GetCheMultiUser(cr *orgv1.CheCluster) string {
 	return DefaultCheMultiUser
 }
 
+func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
+	dflt := DefaultKubernetesSingleHostExposureType
+
+	if util.IsOpenShift {
+		dflt = DefaultOpenShiftSingleHostExposureType
+	}
+
+	return util.GetValue(cr.Spec.Server.SingleHostExposureType, dflt)
+}
+
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
 	if !cr.IsAirGapMode() {
 		return imageName

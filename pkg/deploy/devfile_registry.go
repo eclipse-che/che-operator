@@ -39,7 +39,7 @@ func SyncDevfileRegistryToCluster(checluster *orgv1.CheCluster, cheHost string, 
 	if !checluster.Spec.Server.ExternalDevfileRegistry {
 		var host string
 		exposureStrategy := util.GetServerExposureStrategy(checluster, DefaultServerExposureStrategy)
-		singleHostExposureType := util.GetSingleHostExposureType(checluster, DefaultKubernetesSingleHostExposureType, DefaultOpenShiftSingleHostExposureType)
+		singleHostExposureType := GetSingleHostExposureType(checluster)
 		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
 		if !util.IsOpenShift {
 			if exposureStrategy == "multi-host" {

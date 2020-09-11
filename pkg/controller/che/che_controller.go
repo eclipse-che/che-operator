@@ -783,7 +783,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			exposureStrategy := util.GetServerExposureStrategy(instance, deploy.DefaultServerExposureStrategy)
-			singleHostExposureType := util.GetSingleHostExposureType(instance, deploy.DefaultKubernetesSingleHostExposureType, deploy.DefaultOpenShiftSingleHostExposureType)
+			singleHostExposureType := deploy.GetSingleHostExposureType(instance)
 			useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
 
 			// create Keycloak ingresses when on k8s
@@ -1144,7 +1144,7 @@ func getDefaultCheHost(checluster *orgv1.CheCluster, clusterAPI deploy.ClusterAP
 }
 
 func getServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.ServerExposureStrategy == "single-host" && cr.Spec.Server.SingleHostExposureType == "gateway" {
+	if cr.Spec.Server.ServerExposureStrategy == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
 		return deploy.GatewayServiceName
 	}
 	return deploy.CheServiceName

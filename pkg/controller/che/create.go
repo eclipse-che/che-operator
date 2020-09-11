@@ -257,7 +257,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 		}
 	}
 
-	singleHostExposureType := util.GetSingleHostExposureType(instance, deploy.DefaultKubernetesSingleHostExposureType, deploy.DefaultOpenShiftSingleHostExposureType)
+	singleHostExposureType := deploy.GetSingleHostExposureType(instance)
 	if len(instance.Spec.Server.SingleHostExposureType) < 1 {
 		instance.Spec.Server.SingleHostExposureType = singleHostExposureType
 		if err := r.UpdateCheCRSpec(instance, "single host exposure type", singleHostExposureType); err != nil {
