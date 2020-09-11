@@ -56,34 +56,32 @@ var (
 	}
 )
 
-func SyncKeycloakDeploymentToCluster(checluster *orgv1.CheCluster, proxy *Proxy, clusterAPI ClusterAPI) DeploymentProvisioningStatus {
-	clusterDeployment, err := getClusterDeployment(KeycloakDeploymentName, checluster.Namespace, clusterAPI.Client)
+func SyncKeycloakDeploymentToCluster(deployContext *DeployContext) DeploymentProvisioningStatus {
+	clusterDeployment, err := getClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(checluster, clusterDeployment, proxy, clusterAPI)
+	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	return SyncDeploymentToCluster(checluster, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge, clusterAPI)
+	return SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge)
 }
 
 func getSpecKeycloakDeployment(
-	checluster *orgv1.CheCluster,
-	clusterDeployment *appsv1.Deployment,
-	proxy *Proxy,
-	clusterAPI ClusterAPI) (*appsv1.Deployment, error) {
+	deployContext *DeployContext,
+	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	optionalEnv := true
-	labels := GetLabels(checluster, KeycloakDeploymentName)
-	cheFlavor := DefaultCheFlavor(checluster)
-	keycloakImage := util.GetValue(checluster.Spec.Auth.IdentityProviderImage, DefaultKeycloakImage(checluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(checluster.Spec.Auth.IdentityProviderImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
+	labels := GetLabels(deployContext.CheCluster, KeycloakDeploymentName)
+	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
+	keycloakImage := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderImage, DefaultKeycloakImage(deployContext.CheCluster))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Auth.IdentityProviderImagePullPolicy), DefaultPullPolicyFromDockerImage(keycloakImage)))
 	jbossDir := "/opt/eap"
 	if cheFlavor == "che" {
 		// writable dir in the upstream Keycloak image
@@ -102,8 +100,8 @@ func getSpecKeycloakDeployment(
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", checluster.Namespace, clusterAPI)
-	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", checluster.Namespace, clusterAPI)
+	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
+	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 
 	// add various certificates to Java trust store so that Keycloak can connect to OpenShift API
 	// certificate that OpenShift router uses (for 4.0 only)
@@ -130,11 +128,11 @@ func getSpecKeycloakDeployment(
 
 	customPublicCertsDir := "/public-certs"
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if checluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
+	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		customPublicCertsVolumeSource = corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: checluster.Spec.Server.ServerTrustStoreConfigMapName,
+					Name: deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName,
 				},
 			},
 		}
@@ -167,24 +165,24 @@ func getSpecKeycloakDeployment(
 	applyProxyCliCommand := ""
 	proxyEnvVars := []corev1.EnvVar{}
 
-	if proxy.HttpProxy != "" {
+	if deployContext.Proxy.HttpProxy != "" {
 		proxyEnvVars = []corev1.EnvVar{
 			corev1.EnvVar{
 				Name:  "HTTP_PROXY",
-				Value: proxy.HttpProxy,
+				Value: deployContext.Proxy.HttpProxy,
 			},
 			corev1.EnvVar{
 				Name:  "HTTPS_PROXY",
-				Value: proxy.HttpsProxy,
+				Value: deployContext.Proxy.HttpsProxy,
 			},
 			corev1.EnvVar{
 				Name:  "NO_PROXY",
-				Value: proxy.NoProxy,
+				Value: deployContext.Proxy.NoProxy,
 			},
 		}
 
 		quotedNoProxy := ""
-		for _, noProxyHost := range strings.Split(proxy.NoProxy, ",") {
+		for _, noProxyHost := range strings.Split(deployContext.Proxy.NoProxy, ",") {
 			if len(quotedNoProxy) != 0 {
 				quotedNoProxy += ","
 			}
@@ -199,7 +197,7 @@ func getSpecKeycloakDeployment(
 		}
 		addProxyCliCommand = " && echo Configuring Proxy && " +
 			"echo -e 'embed-server --server-config=" + serverConfig + " --std-out=echo \n" +
-			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[" + quotedNoProxy + ",\".*;" + proxy.HttpProxy + "\"]) \n" +
+			"/subsystem=keycloak-server/spi=connectionsHttpClient/provider=default:write-attribute(name=properties.proxy-mappings,value=[" + quotedNoProxy + ",\".*;" + deployContext.Proxy.HttpProxy + "\"]) \n" +
 			"stop-embedded-server' > " + jbossDir + "/setup-http-proxy.cli"
 
 		applyProxyCliCommand = " && " + jbossCli + " --file=" + jbossDir + "/setup-http-proxy.cli"
@@ -221,19 +219,19 @@ func getSpecKeycloakDeployment(
 		},
 		{
 			Name:  "POSTGRES_PORT_5432_TCP_ADDR",
-			Value: util.GetValue(checluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
+			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
 		},
 		{
 			Name:  "POSTGRES_PORT_5432_TCP_PORT",
-			Value: util.GetValue(checluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
+			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
 		},
 		{
 			Name:  "POSTGRES_PORT",
-			Value: util.GetValue(checluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
+			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
 		},
 		{
 			Name:  "POSTGRES_ADDR",
-			Value: util.GetValue(checluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
+			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
 		},
 		{
 			Name:  "POSTGRES_DATABASE",
@@ -281,7 +279,7 @@ func getSpecKeycloakDeployment(
 		},
 	}
 
-	identityProviderPostgresSecret := checluster.Spec.Auth.IdentityProviderPostgresSecret
+	identityProviderPostgresSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
 	if len(identityProviderPostgresSecret) > 0 {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 			Name: "POSTGRES_PASSWORD",
@@ -297,11 +295,11 @@ func getSpecKeycloakDeployment(
 	} else {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 			Name:  "POSTGRES_PASSWORD",
-			Value: checluster.Spec.Auth.IdentityProviderPostgresPassword,
+			Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword,
 		})
 	}
 
-	identityProviderSecret := checluster.Spec.Auth.IdentityProviderSecret
+	identityProviderSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderSecret
 	if len(identityProviderSecret) > 0 {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 			Name: "KEYCLOAK_PASSWORD",
@@ -328,11 +326,11 @@ func getSpecKeycloakDeployment(
 	} else {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 			Name:  "KEYCLOAK_PASSWORD",
-			Value: checluster.Spec.Auth.IdentityProviderPassword,
+			Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPassword,
 		},
 			corev1.EnvVar{
 				Name:  "KEYCLOAK_USER",
-				Value: checluster.Spec.Auth.IdentityProviderAdminUserName,
+				Value: deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName,
 			})
 	}
 
@@ -348,11 +346,11 @@ func getSpecKeycloakDeployment(
 			},
 			{
 				Name:  "KEYCLOAK_POSTGRESQL_SERVICE_HOST",
-				Value: util.GetValue(checluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
+				Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, DefaultChePostgresHostName),
 			},
 			{
 				Name:  "KEYCLOAK_POSTGRESQL_SERVICE_PORT",
-				Value: util.GetValue(checluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
+				Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, DefaultChePostgresPort),
 			},
 			{
 				Name:  "DB_DATABASE",
@@ -404,7 +402,7 @@ func getSpecKeycloakDeployment(
 			},
 		}
 
-		identityProviderPostgresSecret := checluster.Spec.Auth.IdentityProviderPostgresSecret
+		identityProviderPostgresSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
 		if len(identityProviderPostgresSecret) > 0 {
 			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 				Name: "DB_PASSWORD",
@@ -420,11 +418,11 @@ func getSpecKeycloakDeployment(
 		} else {
 			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 				Name:  "DB_PASSWORD",
-				Value: checluster.Spec.Auth.IdentityProviderPostgresPassword,
+				Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword,
 			})
 		}
 
-		identityProviderSecret := checluster.Spec.Auth.IdentityProviderSecret
+		identityProviderSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderSecret
 		if len(identityProviderSecret) > 0 {
 			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 				Name: "SSO_ADMIN_PASSWORD",
@@ -451,11 +449,11 @@ func getSpecKeycloakDeployment(
 		} else {
 			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 				Name:  "SSO_ADMIN_PASSWORD",
-				Value: checluster.Spec.Auth.IdentityProviderPassword,
+				Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPassword,
 			},
 				corev1.EnvVar{
 					Name:  "SSO_ADMIN_USERNAME",
-					Value: checluster.Spec.Auth.IdentityProviderAdminUserName,
+					Value: deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName,
 				})
 		}
 	}
@@ -473,7 +471,7 @@ func getSpecKeycloakDeployment(
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
 
-	sslRequiredUpdatedForMasterRealm := isSslRequiredUpdatedForMasterRealm(checluster, clusterAPI)
+	sslRequiredUpdatedForMasterRealm := isSslRequiredUpdatedForMasterRealm(deployContext)
 	if sslRequiredUpdatedForMasterRealm {
 		// update command to restart pod
 		command = "echo \"ssl_required WAS UPDATED for master realm.\" && " + command
@@ -488,7 +486,7 @@ func getSpecKeycloakDeployment(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeycloakDeploymentName,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
 				"che.self-signed-certificate.version": cheCertSecretVersion,
@@ -564,7 +562,7 @@ func getSpecKeycloakDeployment(
 	}
 
 	if !util.IsTestMode() {
-		err := controllerutil.SetControllerReference(checluster, deployment, clusterAPI.Scheme)
+		err := controllerutil.SetControllerReference(deployContext.CheCluster, deployment, deployContext.ClusterAPI.Scheme)
 		if err != nil {
 			return nil, err
 		}
@@ -585,8 +583,8 @@ func getSecretResourceVersion(name string, namespace string, clusterAPI ClusterA
 	return secret.ResourceVersion
 }
 
-func isSslRequiredUpdatedForMasterRealm(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) bool {
-	if checluster.Spec.Database.ExternalDb {
+func isSslRequiredUpdatedForMasterRealm(deployContext *DeployContext) bool {
+	if deployContext.CheCluster.Spec.Database.ExternalDb {
 		return false
 	}
 
@@ -594,7 +592,7 @@ func isSslRequiredUpdatedForMasterRealm(checluster *orgv1.CheCluster, clusterAPI
 		return false
 	}
 
-	clusterDeployment, _ := getClusterDeployment(KeycloakDeploymentName, checluster.Namespace, clusterAPI.Client)
+	clusterDeployment, _ := getClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if clusterDeployment == nil {
 		return false
 	}
@@ -604,7 +602,7 @@ func isSslRequiredUpdatedForMasterRealm(checluster *orgv1.CheCluster, clusterAPI
 		return true
 	}
 
-	dbValue, _ := getSslRequiredForMasterRealm(checluster)
+	dbValue, _ := getSslRequiredForMasterRealm(deployContext.CheCluster)
 	return dbValue == "NONE"
 }
 
@@ -628,27 +626,27 @@ func updateSslRequiredForMasterRealm(checluster *orgv1.CheCluster) error {
 	return err
 }
 
-func ProvisionKeycloakResources(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) error {
-	if !checluster.Spec.Database.ExternalDb {
-		value, err := getSslRequiredForMasterRealm(checluster)
+func ProvisionKeycloakResources(deployContext *DeployContext) error {
+	if !deployContext.CheCluster.Spec.Database.ExternalDb {
+		value, err := getSslRequiredForMasterRealm(deployContext.CheCluster)
 		if err != nil {
 			return err
 		}
 
 		if value != "NONE" {
-			err := updateSslRequiredForMasterRealm(checluster)
+			err := updateSslRequiredForMasterRealm(deployContext.CheCluster)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	keycloakProvisionCommand := GetKeycloakProvisionCommand(checluster)
-	podToExec, err := util.K8sclient.GetDeploymentPod(KeycloakDeploymentName, checluster.Namespace)
+	keycloakProvisionCommand := GetKeycloakProvisionCommand(deployContext.CheCluster)
+	podToExec, err := util.K8sclient.GetDeploymentPod(KeycloakDeploymentName, deployContext.CheCluster.Namespace)
 	if err != nil {
 		logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
 	}
 
-	_, err = util.K8sclient.ExecIntoPod(podToExec, keycloakProvisionCommand, "create realm, client and user", checluster.Namespace)
+	_, err = util.K8sclient.ExecIntoPod(podToExec, keycloakProvisionCommand, "create realm, client and user", deployContext.CheCluster.Namespace)
 	return err
 }

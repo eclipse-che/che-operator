@@ -270,15 +270,15 @@ http:
 	}
 }
 
-func DeleteGatewayRouteConfig(serviceName string, namespace string, clusterAPI ClusterAPI) error {
+func DeleteGatewayRouteConfig(serviceName string, deployContext *DeployContext) error {
 	obj := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 		},
 	}
 
-	return delete(clusterAPI, obj)
+	return delete(deployContext.ClusterAPI, obj)
 }
 
 // below functions declare the desired states of the various objects required for the gateway

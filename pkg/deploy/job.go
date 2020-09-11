@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"reflect"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -52,27 +51,26 @@ var (
 )
 
 func SyncJobToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	component string,
 	image string,
 	serviceAccountName string,
-	env map[string]string,
-	clusterAPI ClusterAPI) (*batchv1.Job, error) {
+	env map[string]string) (*batchv1.Job, error) {
 
-	specJob, err := getSpecJob(checluster, name, component, image, serviceAccountName, env, clusterAPI)
+	specJob, err := getSpecJob(deployContext, name, component, image, serviceAccountName, env)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterJob, err := getClusterJob(specJob.Name, specJob.Namespace, clusterAPI)
+	clusterJob, err := getClusterJob(specJob.Name, specJob.Namespace, deployContext.ClusterAPI)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterJob == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specJob.Kind, specJob.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specJob)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specJob)
 		return nil, err
 	}
 
@@ -81,11 +79,11 @@ func SyncJobToCluster(
 		logrus.Infof("Updating existed object: %s, name: %s", clusterJob.Kind, clusterJob.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
-		if err := clusterAPI.Client.Delete(context.TODO(), clusterJob); err != nil {
+		if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterJob); err != nil {
 			return nil, err
 		}
 
-		err := clusterAPI.Client.Create(context.TODO(), specJob)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specJob)
 		return nil, err
 	}
 
@@ -94,14 +92,13 @@ func SyncJobToCluster(
 
 // GetSpecJob creates new job configuration by given parameters.
 func getSpecJob(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	component string,
 	image string,
 	serviceAccountName string,
-	env map[string]string,
-	clusterAPI ClusterAPI) (*batchv1.Job, error) {
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+	env map[string]string) (*batchv1.Job, error) {
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	labels["component"] = component
 
 	backoffLimit := int32(3)
@@ -109,7 +106,7 @@ func getSpecJob(
 	comletions := int32(1)
 	terminationGracePeriodSeconds := int64(30)
 	ttlSecondsAfterFinished := int32(30)
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(checluster.Spec.Server.CheImagePullPolicy), "IfNotPresent"))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.CheImagePullPolicy), "IfNotPresent"))
 
 	var jobEnvVars []corev1.EnvVar
 	for envVarName, envVarValue := range env {
@@ -123,7 +120,7 @@ func getSpecJob(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: batchv1.JobSpec{
@@ -153,7 +150,7 @@ func getSpecJob(
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(checluster, job, clusterAPI.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(deployContext.CheCluster, job, deployContext.ClusterAPI.Scheme); err != nil {
 		return nil, err
 	}
 

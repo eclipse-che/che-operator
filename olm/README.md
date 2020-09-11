@@ -1,4 +1,4 @@
-# Pre-Requisites
+# 1. Pre-Requisites
 
 OLM packages scripts are using some required dependencies that need to be installed
  - [curl](https://curl.haxx.se/)
@@ -9,73 +9,200 @@ WARNING: Please make sure to use the precise `v0.10.0` version of the `operator-
 
 If these dependencies are not installed, `docker-run.sh` can be used as a container bootstrap to run a given script with the appropriate dependencies.
 
-Example : `$ docker-run.sh update-nightly-olm-files.sh`
+Example : `$ docker-run.sh update-nightly-bundle.sh`
 
+# 2. Eclipse Che Olm bundles
 
-# Make new changes to OLM artifacts
+There two "nightly" platform specific Olm bundles:
 
-Every change needs to be done in a new OLM artifact as previous artifacts are frozen.
+`deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
+`deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
 
-A script is generating new folders/files that can be edited.
+Each bundle consists of a cluster service version file(CSV) and a custom resource definition file(CRD). 
+CRD file describes "checluster" kubernetes api resource object(object fields name, format, description and so on).
+Kubernetes api needs this information to correctly store a custom resource object "checluster".
+Custom resource object users could modify to change Eclipse Che configuration.
+Che operator watches "checluster" object and re-deploy Che with desired configuration.
+The CSV file contains all "deploy" and "permission" specific information, which Olm needs to install The Eclipse Che operator.
+
+# 3. Make new changes to OLM bundle
 
 In `olm` folder
 
 - If all dependencies are installed on the system:
 
-```shell
-$ update-nightly-olm-files.sh
+```bash
+$ ./update-nightly-bundle.sh
 ```
 
 - To use a docker environment
 
-```shell
-$ docker-run.sh update-nightly-olm-files.sh
+```bash
+$ ./docker-run.sh update-nightly-bundle.sh
 ```
 
-Then the changes can be applied in the newly created CSV files.
+Every change will be included to the deploy/olm-catalog bundles and override all previous changes.
 
-## Local testing che-operator development version using OLM
+To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you want to increment the bundle version and time creation, when all desired changes were completed:
 
-To test a che-operator with OLM you need to have an application registry. You can register on the quay.io and
-use application registry from this service.
-Build your custom che-operator image and push it to the image registry(you also can use quay.io).
-Change in the `deploy/operator.yaml` operator image from official to development.
-
-Generate new nightly olm bundle packages:
-
-```shell
-$ ./update-nightly-olm-files.sh
+```bash
+$ export NO_DATE_UPDATE="true" && export NO_INCREMENT="true" && ./update-nightly-bundle.sh
 ```
 
-Olm bundle packages will be generated in the folders `olm/eclipse-che-preview-${platform}`.
+# 4. Test scripts pre-requisites
+Start your kubernetes/openshift cluster. For openshift cluster make sure that you was logged in like
+"system:admin" or "kube:admin".
 
-Push che-operator bundles to your application registry:
+# 5.Test installation "stable" Eclipse Che using Application registry(Deprecated)
+To test stable versions che-operator you have to use Eclipse Che application registry.
 
-```shell
-$ export QUAY_ECLIPSE_CHE_USERNAME=${username} && \
-export QUAY_ECLIPSE_CHE_PASSWORD=${password} && \
-export APPLICATION_REGISTRY=${application_registry_namespace} && \
-./push-olm-files-to-quay.sh
+To test the latest stable Che launch test script in the olm folder:
+
+```bash
+$ ./testCatalogSource.sh ${platform} "stable" ${namespace} "Marketplace"
 ```
 
-Go to the quay.io and use ui(tab Settings) to make your application public.
-Start minikube(or CRC) and after that launch test script in the olm folder:
+To test migration from one stable version to another one:
 
-```shell
-$ export APPLICATION_REGISTRY=${application_registry_namespace} && ./testCSV.sh ${platform} ${package_version} ${optional-namespace}
+```bash
+$ ./testUpdate.sh ${platform} "stable" ${namespace}
 ```
 
-Where are:
+See more information about test arguments in the chapter: [Test arguments](#test-script-arguments)
+
+## 6. Test installation "nightly" Eclipse Che using CatalogSource(index) image
+
+To test nightly che-operator you have to use Olm CatalogSource(index) image. 
+CatalogSource image stores in the internal database information about Olm bundles with different versions of the Eclipse Che.
+For nightly channel (dependent on platform) Eclipse Che provides two CatalogSource images:
+ 
+ - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:preview` for kubernetes platform;
+ - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview` for openshift platform;
+
+For each new nightly version Eclipse Che provides nightly bundle image with name pattern:
+
+`quay.io/eclipse/eclipse-che-${platform}-opm-bundles:${cheVersion}-${incrementVersion}.nightly`
+
+For example:
+
+```
+quay.io/eclipse/eclipse-che-kubernetes-opm-bundles:7.18.0-1.nightly
+...
+quay.io/eclipse/eclipse-che-kubernetes-opm-bundles:7.19.0-5.nightly
+...
+```
+
+To test the latest "nightly" bundle use `olm/testCatalogSource.sh` script:
+
+```bash
+$ ./testCatalogSource.sh ${platform} "nightly" ${namespace} "catalog"
+```
+
+To test migration Che from previous nightly version to the latest you can use `olm/testUpdate.sh` script:
+
+```bash
+$ ./testUpdate.sh ${platform} "nightly" ${namespace}
+```
+
+See more information about test arguments in the chapter: [Test arguments](#test-script-arguments)
+
+### 7. Build custom nightly bundle images
+
+For test purpose you can build your own "nightly" CatalogSource and bundle images
+with your latest development changes and use it in the test scripts.
+To build these images you can use script `olm/buildAndPushInitialBundle.sh`:
+
+```bash
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+  ./buildAndPushInitialBundle.sh ${platform} ${optional-from-index-image}
+```
+
+This script will build and push for you two images: CatalogSource(index) image and bundle image:
+
+```
+"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-bundles:${cheVersion}-${incrementVersion}.nightly"
+"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-catalog:preview"
+```
+
+CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and
+include them to your custom CatalogSource image. For this purpose you can specify the argument `optional-from-index-image`. For example:
+
+```bash
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+  ./buildAndPushInitialBundle.sh "openshift" "quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+```
+
+### 7.1 Testing custom CatalogSource and bundle images on the Openshift
+
+To test the latest custom "nightly" bundle use `olm/TestCatalogSource.sh`. For Openshift platform script build your test bundle: `deploy/olm-catalog/eclipse-che-preview-${platform}/manifests` using Openshift image stream:
+
+```bash
+$ ./testCatalogSource.sh "openshift" "nightly" ${namespace} "catalog"
+```
+
+If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
+
+```bash
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+  ./testUpdate.sh "openshift" "nightly" ${namespace}
+```
+
+### 7.2 Testing custom CatalogSource and bundle images on the Kubernetes
+To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry.
+
+For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
+
+You can test your custom bundle and CatalogSource images:
+
+```bash 
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+ ./testCatalogSource.sh "kubernetes" "nightly" ${namespace} "catalog"
+```
+
+If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
+
+```bash
+$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
+  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
+  ./testUpdate.sh "kubernetes" "nightly" ${namespace}
+```
+
+Also you can test your changes without a public registry. You can use the minikube cluster and enable the minikube "registry" addon. For this purpose we have script
+`olm/minikube-private-registry.sh`. This script creates port forward to minikube private registry thought `localhost:5000`:
+
+```bash
+$ minikube-registry-addon.sh
+```
+
+This script should be launched before test execution in the separated terminal. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
+
+```bash
+$ curl -X GET localhost:5000/v2/_catalog
+{"repositories":[]}
+```
+
+With this private registry you can test installation Che from development bundle:
+
+```bash
+$ export IMAGE_REGISTRY_HOST="localhost:5000" && \
+  export IMAGE_REGISTRY_USER_NAME="" && \
+  ./testCatalogSource.sh kubernetes nightly che catalog
+```
+
+> Tips: If minikube was installed locally(driver 'none', local installation minikube), then registry is available on the host 0.0.0.0 without port forwarding.
+But local installation minikube required 'sudo'.
+
+### 8. Test script arguments
+There are some often used test script arguments:
  - `platform` - 'openshift' or 'kubernetes'
- - `package_version` - your generated che-operator package version(for example: `7.8.0` or `9.9.9-nightly.1562083645`)
- - `optional-namespace` - kubernetes namespace to deploy che-operator. Optional parameter, by default operator will be deployed to the namespace `eclipse-che-preview-test`
+ - `channel` - installation channel: 'nightly' or 'stable'
+ - `namespace` - kubernetes namespace to deploy che-operator, for example 'che'
+ - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
 
-To test che-operator with OLM files without push to a related Quay.io application, we can build a required docker image of a dedicated catalog,
-in order to install directly through a CatalogSource. To test this options start minikube and after that launch
-test script in the olm folder:
-
-```shell
-$ ./testCatalogSource.sh {platform} ${channel} ${namespace}
-```
-
-This scripts should install che-operator using OLM and check that the Che server was deployed.
+### 9. Debug test scripts
+To debug test scripts you can use the "Bash debug" VSCode extension. 
+For a lot of test scripts you can find different debug configurations in the `.vscode/launch.json`.

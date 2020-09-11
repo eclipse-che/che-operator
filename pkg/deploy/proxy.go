@@ -150,11 +150,11 @@ func removeProtocolPrefix(url string) string {
 	return url
 }
 
-func ConfigureProxy(instance *orgv1.CheCluster, transport *http.Transport, proxy *Proxy) {
+func ConfigureProxy(deployContext *DeployContext, transport *http.Transport) {
 	config := httpproxy.Config{
-		HTTPProxy:  proxy.HttpProxy,
-		HTTPSProxy: proxy.HttpsProxy,
-		NoProxy:    proxy.NoProxy,
+		HTTPProxy:  deployContext.Proxy.HttpProxy,
+		HTTPSProxy: deployContext.Proxy.HttpsProxy,
+		NoProxy:    deployContext.Proxy.NoProxy,
 	}
 	proxyFunc := config.ProxyFunc()
 	transport.Proxy = func(r *http.Request) (*url.URL, error) {

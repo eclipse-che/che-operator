@@ -40,6 +40,9 @@ export NAMESPACE
 OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
 export OPERATOR_IMAGE
 
+IMAGE_REGISTRY_HOST="0.0.0.0:5000"
+export IMAGE_REGISTRY_HOST
+
 # run function run the tests in ci of custom catalog source.
 function run() {
     # Execute test catalog source script
@@ -56,11 +59,28 @@ function run() {
     waitWorkspaceStart
 }
 
+function setPrivateRegistryForDocker {
+    dockerDaemonConfig="/etc/docker/daemon.json"
+    mkdir -p "/etc/docker"
+    touch "${dockerDaemonConfig}"
+
+    config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
+    echo "${config}" | sudo tee "${dockerDaemonConfig}"
+
+    if [ -x "$(command -v docker)" ]; then
+        echo "[INFO] Restart docker daemon to set up private registry info."
+        systemctl restart docker
+    fi
+}
+
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 installYQ
 installJQ
 install_VirtPackages
+# Docker should trust minikube private registry provided by "registry" addon
+setPrivateRegistryForDocker
 installStartDocker
+
 source ${OPERATOR_REPO}/.ci/start-minikube.sh
 installChectl
 run

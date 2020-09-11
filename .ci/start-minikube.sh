@@ -52,9 +52,6 @@ minikube version
 # minikube start
 minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver.authorization-mode=RBAC
 
-# Add minikube ingress
-minikube addons enable ingress
-
 # waiting for node(s) to be ready
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
 
@@ -72,3 +69,19 @@ rules:
     verbs: ["*"]
 
 EOF
+
+echo "[INFO] Enable ingress addon."
+minikube addons enable ingress
+
+echo "[INFO] Enable registry addon."
+minikube addons enable registry
+
+echo "[INFO] Minikube Addon list"
+minikube addons  list
+
+echo "[INFO] Trying to get pod name of the registry proxy..."
+REGISTRY_PROXY_POD=$(kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
+echo "[INFO] Proxy pod name is ${REGISTRY_PROXY_POD}"
+kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "kube-system" || true
+
+echo "[INFO] Minikube started!"

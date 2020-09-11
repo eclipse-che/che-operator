@@ -15,7 +15,6 @@ import (
 	"context"
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -27,15 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncConfigMapToCluster(checluster *orgv1.CheCluster, specConfigMap *corev1.ConfigMap, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
-	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, clusterAPI.Client)
+func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterConfigMap == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specConfigMap.Kind, specConfigMap.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specConfigMap)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specConfigMap)
 		return nil, err
 	}
 
@@ -44,7 +43,7 @@ func SyncConfigMapToCluster(checluster *orgv1.CheCluster, specConfigMap *corev1.
 		logrus.Infof("Updating existing object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
 		fmt.Printf("Difference:\n%s", diff)
 		clusterConfigMap.Data = specConfigMap.Data
-		err := clusterAPI.Client.Update(context.TODO(), clusterConfigMap)
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterConfigMap)
 		return nil, err
 	}
 
@@ -52,12 +51,11 @@ func SyncConfigMapToCluster(checluster *orgv1.CheCluster, specConfigMap *corev1.
 }
 
 func GetSpecConfigMap(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
-	data map[string]string,
-	clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
+	data map[string]string) (*corev1.ConfigMap, error) {
 
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -65,14 +63,14 @@ func GetSpecConfigMap(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Data: data,
 	}
 
 	if !util.IsTestMode() {
-		err := controllerutil.SetControllerReference(checluster, configMap, clusterAPI.Scheme)
+		err := controllerutil.SetControllerReference(deployContext.CheCluster, configMap, deployContext.ClusterAPI.Scheme)
 		if err != nil {
 			return nil, err
 		}

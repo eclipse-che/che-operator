@@ -15,7 +15,6 @@ import (
 	"context"
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
@@ -46,14 +45,13 @@ type DeploymentProvisioningStatus struct {
 }
 
 func SyncDeploymentToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	specDeployment *appsv1.Deployment,
 	clusterDeployment *appsv1.Deployment,
 	additionalDeploymentDiffOpts cmp.Options,
-	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment,
-	clusterAPI ClusterAPI) DeploymentProvisioningStatus {
+	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment) DeploymentProvisioningStatus {
 
-	clusterDeployment, err := getClusterDeployment(specDeployment.Name, specDeployment.Namespace, clusterAPI.Client)
+	clusterDeployment, err := getClusterDeployment(specDeployment.Name, specDeployment.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -62,7 +60,7 @@ func SyncDeploymentToCluster(
 
 	if clusterDeployment == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specDeployment.Kind, specDeployment.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specDeployment)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specDeployment)
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}
@@ -77,7 +75,7 @@ func SyncDeploymentToCluster(
 			logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
 			fmt.Printf("Difference:\n%s", diff)
 			clusterDeployment = additionalDeploymentMerge(specDeployment, clusterDeployment)
-			err := clusterAPI.Client.Update(context.TODO(), clusterDeployment)
+			err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)
 			return DeploymentProvisioningStatus{
 				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 			}
@@ -89,7 +87,7 @@ func SyncDeploymentToCluster(
 		logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
 		fmt.Printf("Difference:\n%s", diff)
 		clusterDeployment.Spec = specDeployment.Spec
-		err := clusterAPI.Client.Update(context.TODO(), clusterDeployment)
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}

@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -41,58 +40,54 @@ var portsDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort"),
 }
 
-func SyncCheServiceToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) ServiceProvisioningStatus {
-	specService, err := GetSpecCheService(checluster, clusterAPI)
+func SyncCheServiceToCluster(deployContext *DeployContext) ServiceProvisioningStatus {
+	specService, err := GetSpecCheService(deployContext)
 	if err != nil {
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	return doSyncServiceToCluster(checluster, specService, clusterAPI)
+	return doSyncServiceToCluster(deployContext, specService)
 }
 
-func GetSpecCheService(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (*corev1.Service, error) {
+func GetSpecCheService(deployContext *DeployContext) (*corev1.Service, error) {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 
-	if checluster.Spec.Metrics.Enable {
+	if deployContext.CheCluster.Spec.Metrics.Enable {
 		portName = append(portName, "metrics")
 		portNumber = append(portNumber, DefaultCheMetricsPort)
 	}
 
-	if checluster.Spec.Server.CheDebug == "true" {
+	if deployContext.CheCluster.Spec.Server.CheDebug == "true" {
 		portName = append(portName, "debug")
 		portNumber = append(portNumber, DefaultCheDebugPort)
 	}
 
-	return getSpecService(checluster, CheServiceName, portName, portNumber, labels, clusterAPI)
+	return getSpecService(deployContext, CheServiceName, portName, portNumber, labels)
 }
 
 func SyncServiceToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	portName []string,
 	portNumber []int32,
-	labels map[string]string,
-	clusterAPI ClusterAPI) ServiceProvisioningStatus {
-	specService, err := getSpecService(checluster, name, portName, portNumber, labels, clusterAPI)
+	labels map[string]string) ServiceProvisioningStatus {
+	specService, err := getSpecService(deployContext, name, portName, portNumber, labels)
 	if err != nil {
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	return doSyncServiceToCluster(checluster, specService, clusterAPI)
+	return doSyncServiceToCluster(deployContext, specService)
 }
 
-func doSyncServiceToCluster(
-	checluster *orgv1.CheCluster,
-	specService *corev1.Service,
-	clusterAPI ClusterAPI) ServiceProvisioningStatus {
+func doSyncServiceToCluster(deployContext *DeployContext, specService *corev1.Service) ServiceProvisioningStatus {
 
-	clusterService, err := getClusterService(specService.Name, specService.Namespace, clusterAPI.Client)
+	clusterService, err := getClusterService(specService.Name, specService.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -101,7 +96,7 @@ func doSyncServiceToCluster(
 
 	if clusterService == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specService.Kind, specService.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specService)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specService)
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}
@@ -114,14 +109,14 @@ func doSyncServiceToCluster(
 		fmt.Printf("Ports difference:\n%s", diffPorts)
 		fmt.Printf("Selectors difference:\n%s", diffSelectors)
 
-		err := clusterAPI.Client.Delete(context.TODO(), clusterService)
+		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterService)
 		if err != nil {
 			return ServiceProvisioningStatus{
 				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 			}
 		}
 
-		err = clusterAPI.Client.Create(context.TODO(), specService)
+		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specService)
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
 		}
@@ -133,12 +128,11 @@ func doSyncServiceToCluster(
 }
 
 func getSpecService(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
 	portName []string,
 	portNumber []int32,
-	labels map[string]string,
-	clusterAPI ClusterAPI) (*corev1.Service, error) {
+	labels map[string]string) (*corev1.Service, error) {
 
 	ports := []corev1.ServicePort{}
 	for i := range portName {
@@ -157,7 +151,7 @@ func getSpecService(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
@@ -167,7 +161,7 @@ func getSpecService(
 	}
 
 	if !util.IsTestMode() {
-		err := controllerutil.SetControllerReference(checluster, service, clusterAPI.Scheme)
+		err := controllerutil.SetControllerReference(deployContext.CheCluster, service, deployContext.ClusterAPI.Scheme)
 		if err != nil {
 			return nil, err
 		}

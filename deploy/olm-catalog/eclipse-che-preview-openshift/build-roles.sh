@@ -10,11 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-source olm.sh
-
-installOperatorMarketPlace
-installPackage
-applyCRCheCluster
-waitCheServerDeploy
-
-echo -e "\u001b[32m Installation of the che-operator version: ${CSV} succesfully completed \u001b[0m"
+BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+rm -Rf "${BASE_DIR}/generated/roles"
+mkdir -p "${BASE_DIR}/generated/roles"
+cp "${BASE_DIR}/../../role.yaml" "${BASE_DIR}/generated/roles/role.yaml"
+cp "${BASE_DIR}/../../cluster_role.yaml" "${BASE_DIR}/generated/roles/cluster_role.yaml"

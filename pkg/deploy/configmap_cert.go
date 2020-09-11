@@ -14,7 +14,6 @@ package deploy
 import (
 	"context"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -23,9 +22,9 @@ const (
 	injector = "config.openshift.io/inject-trusted-cabundle"
 )
 
-func SyncTrustStoreConfigMapToCluster(checluster *orgv1.CheCluster, clusterAPI ClusterAPI) (*corev1.ConfigMap, error) {
-	name := checluster.Spec.Server.ServerTrustStoreConfigMapName
-	specConfigMap, err := GetSpecConfigMap(checluster, name, map[string]string{}, clusterAPI)
+func SyncTrustStoreConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap, error) {
+	name := deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName
+	specConfigMap, err := GetSpecConfigMap(deployContext, name, map[string]string{})
 	if err != nil {
 		return nil, err
 	}
@@ -33,21 +32,21 @@ func SyncTrustStoreConfigMapToCluster(checluster *orgv1.CheCluster, clusterAPI C
 	// OpenShift will automatically injects all certs into the configmap
 	specConfigMap.ObjectMeta.Labels[injector] = "true"
 
-	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, clusterAPI.Client)
+	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	if clusterConfigMap == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specConfigMap.Kind, specConfigMap.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specConfigMap)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specConfigMap)
 		return nil, err
 	}
 
 	if clusterConfigMap.ObjectMeta.Labels[injector] != "true" {
 		clusterConfigMap.ObjectMeta.Labels[injector] = "true"
 		logrus.Infof("Updating existed object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
-		err := clusterAPI.Client.Update(context.TODO(), clusterConfigMap)
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterConfigMap)
 		return nil, err
 	}
 
