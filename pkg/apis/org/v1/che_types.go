@@ -241,8 +241,9 @@ type CheClusterSpecServer struct {
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
 	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every requied
 	// endpoint.
-	// "single-host" creates a single ingress/route and exposes workspaces on subpaths. Please read the docs
-	// to learn about the limitations of this approach.
+	// "single-host" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs
+	// to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure
+	// how the operator and Che server make that happen.
 	// "default-host" exposes che server on the host of the cluster. Please read the docs to learn about
 	// the limitations of this approach.
 	// +optional
@@ -251,18 +252,18 @@ type CheClusterSpecServer struct {
 	// When the serverExposureStrategy is set to "single-host", the way the server, registries and workspaces
 	// are exposed is further configured by this property. The possible values are "native" (which means
 	// that the server and workspaces are exposed using ingresses on K8s) or "gateway" where the server
-	// and workspaces are exposed using a custom gateway based on Traefik.
+	// and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress
+	// or gateway "route" always point to the subpaths on the same domain.
 	// "native" is only supported on Kubernetes, "gateway" is supported on both openshift and kubernetes.
 	// On OpenShift, this property defaults to "gateway". On Kubernetes, it defaults to "native".
 	// +optional
 	SingleHostExposureType string `json:"singleHostExposureType,omitempty"`
 
-	// The image used for the gateway in the single host mode. Defaults to docker.io/traefik:v2.2.8.
+	// The image used for the gateway in the single host mode.
 	// +optional
 	SingleHostGatewayImage string `json:"singleHostGatewayImage,omitempty"`
 
 	// The image used for the gateway sidecar that provides configuration to the gateway.
-	// Default to quay.io/che-incubator/configbump:0.1.2
 	// +optional
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
 
