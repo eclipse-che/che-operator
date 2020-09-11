@@ -1,0 +1,38 @@
+--- /home/brq/lkrejci/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1598898636/eclipse-che-preview-openshift.v9.9.9-nightly.1598898636.clusterserviceversion.yaml	2020-09-11 14:49:45.061897178 +0200
++++ /home/brq/lkrejci/go/src/github.com/eclipse/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/9.9.9-nightly.1599834351/eclipse-che-preview-openshift.v9.9.9-nightly.1599834351.clusterserviceversion.yaml	2020-09-11 16:25:52.398225712 +0200
+@@ -49,13 +49,13 @@
+     categories: Developer Tools, OpenShift Optional
+     certified: "false"
+     containerImage: quay.io/eclipse/che-operator:nightly
+-    createdAt: "2020-08-31T18:30:36Z"
++    createdAt: "2020-09-11T14:25:51Z"
+     description: A Kube-native development solution that delivers portable and collaborative
+       developer workspaces in OpenShift.
+     operatorframework.io/suggested-namespace: eclipse-che
+     repository: https://github.com/eclipse/che-operator
+     support: Eclipse Foundation
+-  name: eclipse-che-preview-openshift.v9.9.9-nightly.1598898636
++  name: eclipse-che-preview-openshift.v9.9.9-nightly.1599834351
+   namespace: placeholder
+ spec:
+   apiservicedefinitions: {}
+@@ -293,9 +293,9 @@
+                       - name: RELATED_IMAGE_keycloak
+                         value: quay.io/eclipse/che-keycloak:nightly
+                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
+-                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.3.0
++                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
+                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
+-                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.3.0
++                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
+                       - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
+                         value: quay.io/eclipse/che-jwtproxy:0.10.0
+                       - name: CHE_FLAVOR
+@@ -431,5 +431,5 @@
+   maturity: stable
+   provider:
+     name: Eclipse Foundation
+-  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1598450052
+-  version: 9.9.9-nightly.1598898636
++  replaces: eclipse-che-preview-openshift.v9.9.9-nightly.1598898636
++  version: 9.9.9-nightly.1599834351

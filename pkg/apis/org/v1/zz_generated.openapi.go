@@ -325,7 +325,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 					},
 					"ingressStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Strategy for ingress creation. This can be `multi-host` (host is explicitly provided in ingress), `single-host` (host is provided, path-based rules) and `default-host.*`(no host is provided, path-based rules). Defaults to `\"multi-host`",
+							Description: "Strategy for ingress creation. This can be `multi-host` (host is explicitly provided in ingress), `single-host` (host is provided, path-based rules) and `default-host.*`(no host is provided, path-based rules). Defaults to `\"multi-host` Deprecated in favor of \"serverExposureStrategy\" in the \"server\" section, which defines this regardless of the cluster type. If both are defined, `serverExposureStrategy` takes precedence.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -642,6 +642,48 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Description: "Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"serverExposureStrategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Sets the server and workspaces exposure type. Possible values are \"multi-host\", \"single-host\", \"default-host\". Defaults to \"multi-host\" which creates a separate ingress (or route on OpenShift) for every requied endpoint. \"single-host\" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure how the operator and Che server make that happen. \"default-host\" exposes che server on the host of the cluster. Please read the docs to learn about the limitations of this approach.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"singleHostExposureType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "When the serverExposureStrategy is set to \"single-host\", the way the server, registries and workspaces are exposed is further configured by this property. The possible values are \"native\" (which means that the server and workspaces are exposed using ingresses on K8s) or \"gateway\" where the server and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress or gateway \"route\" always point to the subpaths on the same domain. \"native\" is only supported on Kubernetes, \"gateway\" is supported on both openshift and kubernetes. On OpenShift, this property defaults to \"gateway\". On Kubernetes, it defaults to \"native\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"singleHostGatewayImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The image used for the gateway in the single host mode.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"singleHostGatewayConfigSidecarImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The image used for the gateway sidecar that provides configuration to the gateway.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"singleHostGatewayConfigMapLabels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The labels that need to be present (and are put) on the configmaps representing the gateway configuration.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 				},
