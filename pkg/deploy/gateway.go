@@ -232,12 +232,11 @@ http:
     ` + serviceName + `:
       rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
       service: ` + serviceName + `
-      priority: ` + strconv.Itoa(priority) + `
-      middlewares:
-      - "` + serviceName + `_headers"`
+      priority: ` + strconv.Itoa(priority)
 
 	if pathRewrite {
 		data += `
+      middlewares:
       - "` + serviceName + `"`
 	}
 
@@ -246,16 +245,11 @@ http:
     ` + serviceName + `:
       loadBalancer:
         servers:
-        - url: '` + internalUrl + `'
-  middlewares:
-    ` + serviceName + `_headers:
-      headers:
-        customRequestHeaders:
-          X-Forwarded-Proto: https
-          X-Forwarded-Port: 443`
+        - url: '` + internalUrl + `'`
 
 	if pathRewrite {
 		data += `
+  middlewares:
     ` + serviceName + `:
       stripPrefix:
         prefixes:
