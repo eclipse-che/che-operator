@@ -97,7 +97,7 @@ spec:
   image: ${CATALOG_IMAGENAME}
   updateStrategy:
     registryPoll:
-      interval: 5m
+      interval: 15m
 EOF
 }
 
