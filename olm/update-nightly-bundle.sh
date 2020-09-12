@@ -28,7 +28,7 @@ fi
 OPERATOR_SDK_VERSION=$(${OPERATOR_SDK_BINARY} version | sed -E 's|.*version: (v[0-9]+.[0-9]+\.[0-9]+).*|\1|')
 case $OPERATOR_SDK_VERSION in
   v0.10.*)
-    echo "Operator SDK $OPERATOR_SDK_VERSION installed"
+    echo "Operator SDK ${OPERATOR_SDK_VERSION} installed"
     ;;
   *)
     echo "This script requires Operator SDK v0.10.x. Please install the correct version to continue"
