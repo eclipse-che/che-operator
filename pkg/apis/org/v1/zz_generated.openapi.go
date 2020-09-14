@@ -358,6 +358,13 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
+					"singleHostExposureType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "When the serverExposureStrategy is set to \"single-host\", the way the server, registries and workspaces are exposed is further configured by this property. The possible values are \"native\" (which means that the server and workspaces are exposed using ingresses on K8s) or \"gateway\" where the server and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress or gateway \"route\" always point to the subpaths on the same domain. Defaults to \"native\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -646,28 +653,21 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"serverExposureStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Sets the server and workspaces exposure type. Possible values are \"multi-host\", \"single-host\", \"default-host\". Defaults to \"multi-host\" which creates a separate ingress (or route on OpenShift) for every requied endpoint. \"single-host\" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure how the operator and Che server make that happen. \"default-host\" exposes che server on the host of the cluster. Please read the docs to learn about the limitations of this approach.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"singleHostExposureType": {
-						SchemaProps: spec.SchemaProps{
-							Description: "When the serverExposureStrategy is set to \"single-host\", the way the server, registries and workspaces are exposed is further configured by this property. The possible values are \"native\" (which means that the server and workspaces are exposed using ingresses on K8s) or \"gateway\" where the server and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress or gateway \"route\" always point to the subpaths on the same domain. \"native\" is only supported on Kubernetes, \"gateway\" is supported on both openshift and kubernetes. On OpenShift, this property defaults to \"gateway\". On Kubernetes, it defaults to \"native\".",
+							Description: "Sets the server and workspaces exposure type. Possible values are \"multi-host\", \"single-host\", \"default-host\". Defaults to \"multi-host\" which creates a separate ingress (or route on OpenShift) for every requied endpoint. \"single-host\" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure how the operator and Che server make that happen on Kubernetes. \"default-host\" exposes che server on the host of the cluster. Please read the docs to learn about the limitations of this approach.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"singleHostGatewayImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The image used for the gateway in the single host mode.",
+							Description: "The image used for the gateway in the single host mode. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"singleHostGatewayConfigSidecarImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The image used for the gateway sidecar that provides configuration to the gateway.",
+							Description: "The image used for the gateway sidecar that provides configuration to the gateway. Omit it or leave it empty to use the defaut container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

@@ -23,15 +23,7 @@ import (
 // - self-contradictory configurations
 // - configurations with which it is impossible to deploy Che
 func ValidateCheCR(checluster *orgv1.CheCluster, isOpenshift bool) error {
-	if isOpenshift {
-		exposureStrategy := checluster.Spec.Server.ServerExposureStrategy
-		exposureType := checluster.Spec.Server.SingleHostExposureType
-		if exposureStrategy != "" && exposureStrategy != "multi-host" {
-			if exposureType != "" && exposureType != "gateway" {
-				return fmt.Errorf("on OpenShift, only the gateway exposure is supported in the single-host mode. Please set `spec.server.singleHostExposureType` to `gateway`")
-			}
-		}
-	} else {
+	if !isOpenshift {
 		if checluster.Spec.K8s.IngressDomain == "" {
 			return fmt.Errorf("Required field \"spec.K8s.IngressDomain\" is not set")
 		}

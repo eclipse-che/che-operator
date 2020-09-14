@@ -367,8 +367,8 @@ log:
 }
 
 func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
-	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, DefaultSingleHostGatewayImage)
-	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, DefaultSingleHostGatewayConfigSidecarImage)
+	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, DefaultSingleHostGatewayImage(instance))
+	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, DefaultSingleHostGatewayConfigSidecarImage(instance))
 	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)
 
 	configLabels := labels.FormatLabels(configLabelsMap)
