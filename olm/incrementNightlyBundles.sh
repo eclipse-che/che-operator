@@ -37,7 +37,9 @@ incrementNightlyVersion() {
     CLUSTER_SERVICE_VERSION=$(yq -r ".channels[] | select(.name == \"stable\") | .currentCSV" "${PACKAGE_FILE_PATH}")
     STABLE_PACKAGE_VERSION=$(echo "${CLUSTER_SERVICE_VERSION}" | sed -e "s/${PACKAGE_NAME}.v//")
 
-    newVersion="${STABLE_PACKAGE_VERSION}-$((incrementPart+1)).nightly"
+    parseStableVersion
+    STABLE_MINOR_VERSION=$((STABLE_MINOR_VERSION+1))
+    newVersion="${STABLE_MAJOR_VERSION}.${STABLE_MINOR_VERSION}.0-$((incrementPart+1)).nightly"
 
     echo "[INFO] Set up nightly ${platform} version: ${newVersion}"
     yq -rY "(.spec.version) = \"${newVersion}\" | (.metadata.name) = \"eclipse-che-preview-${platform}.v${newVersion}\"" "${CSV}" > "${CSV}.old"
@@ -55,4 +57,13 @@ getNightlyVersionIncrementPart() {
   incrementPart="${versionWithoutNightly#*-}"
 
   echo "${incrementPart}"
+}
+
+parseStableVersion() {
+  local majorAndMinor=${STABLE_PACKAGE_VERSION%.*}
+  STABLE_MINOR_VERSION=${majorAndMinor#*.}
+  STABLE_MAJOR_VERSION=${majorAndMinor%.*}
+
+  export STABLE_MAJOR_VERSION
+  export STABLE_MINOR_VERSION
 }
