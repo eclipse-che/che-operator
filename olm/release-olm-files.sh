@@ -16,6 +16,7 @@ REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 source ${BASE_DIR}/check-yq.sh
 
 if [[ "$1" =~ $REGEX ]]
@@ -35,9 +36,12 @@ do
   packageBaseFolderPath="${BASE_DIR}/${packageName}"
   cd "${packageBaseFolderPath}"
 
+  LAST_NIGHTLY_CSV="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml"
+  LAST_NIGHTLY_CRD="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml"
+
   packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
   packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-  lastPackageNightlyVersion=$(yq -r '.channels[] | select(.name == "nightly") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
+  lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
   echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
   echo "[INFO] Last package pre-release version: ${lastPackagePreReleaseVersion}"
@@ -49,13 +53,11 @@ do
     exit 1
   fi
 
-  echo "[INFO] Will create release '${RELEASE}' from nightly version '${lastPackageNightlyVersion}' that will replace previous release '${lastPackagePreReleaseVersion}'"
+  echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion} that will replace previous release '${lastPackagePreReleaseVersion}'"
 
-  LAST_NIGHTLY_CSV="${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.v${lastPackageNightlyVersion}.clusterserviceversion.yaml"
   PRE_RELEASE_CSV="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
-  RELEASE_CSV="${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
-  LAST_NIGHTLY_CRD="${packageFolderPath}/${lastPackageNightlyVersion}/${packageName}.crd.yaml"
   PRE_RELEASE_CRD="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml"
+  RELEASE_CSV="${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
   RELEASE_CRD="${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
 
   mkdir -p "${packageFolderPath}/${RELEASE}"

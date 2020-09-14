@@ -120,7 +120,7 @@ init() {
 buildOLMImages() {
   # Manage catalog source for every platform in part.
   # 1. Kubernetes: 
-  #    a) Enable registry addon, build catalog source and olm bundle images, push them to embedded private registry.
+  #    a) Use Minikube cluster. Enable registry addon, build catalog source and olm bundle images, push them to embedded private registry.
   #    b) Provide image registry env variables to push images to the real public registry(docker.io, quay.io etc).
   # 2. Openshift: build bundle image and push it using image stream. Launch deployment with custom grpc based catalog source image to install the latest bundle.
   if [[ "${PLATFORM}" == "kubernetes" ]]
@@ -163,8 +163,6 @@ buildOLMImages() {
     echo "============"
     echo "[INFO] Current user is $(oc whoami)"
     echo "============"
-    
-    if [[ "${OPENSHIFT_CI}" == "true" ]];then echo "Openshift ci!"; fi
 
     oc new-project "${NAMESPACE}" || true
 

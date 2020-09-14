@@ -199,7 +199,7 @@ But local installation minikube required 'sudo'.
 ### 8. Test script arguments
 There are some often used test script arguments:
  - `platform` - 'openshift' or 'kubernetes'
- - `channel` - installation channel: 'nightly' or 'stable'
+ - `channel` - installation Olm channel: 'nightly' or 'stable'
  - `namespace` - kubernetes namespace to deploy che-operator, for example 'che'
  - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
 
