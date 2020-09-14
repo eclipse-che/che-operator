@@ -284,7 +284,7 @@ func DeleteGatewayRouteConfig(serviceName string, deployContext *DeployContext) 
 // below functions declare the desired states of the various objects required for the gateway
 
 func getGatewayServerConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	return GetGatewayRouteConfig(instance, gatewayServerConfigName, "/", 1, "http://che-host:8080", false)
+	return GetGatewayRouteConfig(instance, gatewayServerConfigName, "/", 1, "http://"+CheServiceName+":8080", false)
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {
