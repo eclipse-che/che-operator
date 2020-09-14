@@ -653,7 +653,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"serverExposureStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Sets the server and workspaces exposure type. Possible values are \"multi-host\", \"single-host\", \"default-host\". Defaults to \"multi-host\" which creates a separate ingress (or route on OpenShift) for every requied endpoint. \"single-host\" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure how the operator and Che server make that happen on Kubernetes. \"default-host\" exposes che server on the host of the cluster. Please read the docs to learn about the limitations of this approach.",
+							Description: "Sets the server and workspaces exposure type. Possible values are \"multi-host\", \"single-host\", \"default-host\". Defaults to \"multi-host\" which creates a separate ingress (or route on OpenShift) for every required endpoint. \"single-host\" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure how the operator and Che server make that happen on Kubernetes. \"default-host\" exposes che server on the host of the cluster. Please read the docs to learn about the limitations of this approach.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

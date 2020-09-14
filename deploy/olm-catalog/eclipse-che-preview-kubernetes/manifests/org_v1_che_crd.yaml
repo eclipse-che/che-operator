@@ -462,13 +462,14 @@ spec:
                   description: Sets the server and workspaces exposure type. Possible
                     values are "multi-host", "single-host", "default-host". Defaults
                     to "multi-host" which creates a separate ingress (or route on
-                    OpenShift) for every requied endpoint. "single-host" makes Che
+                    OpenShift) for every required endpoint. "single-host" makes Che
                     exposed on a single hostname with workspaces exposed on subpaths.
                     Please read the docs to learn about the limitations of this approach.
                     Also consult the `singleHostExposureType` property to further
-                    configure how the operator and Che server make that happen. "default-host"
-                    exposes che server on the host of the cluster. Please read the
-                    docs to learn about the limitations of this approach.
+                    configure how the operator and Che server make that happen on
+                    Kubernetes. "default-host" exposes che server on the host of the
+                    cluster. Please read the docs to learn about the limitations of
+                    this approach.
                   type: string
                 serverMemoryLimit:
                   description: Overrides the memory limit used in the Che server deployment.
@@ -484,19 +485,6 @@ spec:
                     when adding the OpenShift OAuth provider which has https endpoint
                     signed with self-signed cert. So, Che server must be aware of
                     its CA cert to be able to request it. This is disabled by default.
-                  type: string
-                singleHostExposureType:
-                  description: When the serverExposureStrategy is set to "single-host",
-                    the way the server, registries and workspaces are exposed is further
-                    configured by this property. The possible values are "native"
-                    (which means that the server and workspaces are exposed using
-                    ingresses on K8s) or "gateway" where the server and workspaces
-                    are exposed using a custom gateway based on Traefik. All the endpoints
-                    whether backed by the ingress or gateway "route" always point
-                    to the subpaths on the same domain. "native" is only supported
-                    on Kubernetes, "gateway" is supported on both openshift and kubernetes.
-                    On OpenShift, this property defaults to "gateway". On Kubernetes,
-                    it defaults to "native".
                   type: string
                 singleHostGatewayConfigMapLabels:
                   additionalProperties:

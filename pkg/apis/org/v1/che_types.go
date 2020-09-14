@@ -239,7 +239,7 @@ type CheClusterSpecServer struct {
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
 
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
-	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every requied
+	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every required
 	// endpoint.
 	// "single-host" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs
 	// to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure
