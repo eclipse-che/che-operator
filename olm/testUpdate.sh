@@ -76,13 +76,13 @@ run() {
   fi
 
   subscribeToInstallation "${PREVIOUS_CSV_NAME}"
-  echo -e "\u001b[32m Installation of the previous che-operator version: ${PREVIOUS_CSV_NAME} successfully completed \u001b[0m"
   installPackage
+  echo -e "\u001b[32m Installation of the previous che-operator version: ${PREVIOUS_CSV_NAME} successfully completed \u001b[0m"
   applyCRCheCluster
   waitCheServerDeploy
 
-  echo -e "\u001b[32m Installation of the latest che-operator version: ${LATEST_CSV_NAME} successfully completed \u001b[0m"
   installPackage
+  echo -e "\u001b[32m Installation of the latest che-operator version: ${LATEST_CSV_NAME} successfully completed \u001b[0m"
 }
 
 init

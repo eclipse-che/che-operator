@@ -172,10 +172,11 @@ releaseOperatorCode() {
 
 updateNightlyOlmFiles() {
   echo "[INFO] Updating nighlty OLM files"
-  echo "[INFO] Launching 'olm/update-nightly-olm-files.sh' script"
-  cd $RELEASE_DIR/olm
-  . update-nightly-olm-files.sh nightly
-  cd $RELEASE_DIR
+  echo "[INFO] Launching 'olm/update-nightly-bundle.sh' script"
+
+  export BASE_DIR=${RELEASE_DIR}/olm
+  . ${BASE_DIR}/update-nightly-bundle.sh nightly
+  unset BASE_DIR
 
   echo "[INFO] List of changed files:"
   git status -s
