@@ -305,9 +305,7 @@ func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
 		return DefaultOpenShiftSingleHostExposureType
 	}
 
-	dflt := DefaultKubernetesSingleHostExposureType
-
-	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, dflt)
+	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
