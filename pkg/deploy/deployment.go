@@ -72,7 +72,7 @@ func SyncDeploymentToCluster(
 	if additionalDeploymentDiffOpts != nil {
 		diff := cmp.Diff(clusterDeployment, specDeployment, additionalDeploymentDiffOpts)
 		if len(diff) > 0 {
-			logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
+			logrus.Infof("Updating existing object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
 			fmt.Printf("Difference:\n%s", diff)
 			clusterDeployment = additionalDeploymentMerge(specDeployment, clusterDeployment)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)

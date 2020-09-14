@@ -698,8 +698,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	ingressStrategy := util.GetServerExposureStrategy(instance, deploy.DefaultServerExposureStrategy)
-	ingressDomain := instance.Spec.K8s.IngressDomain
 	tlsSupport := instance.Spec.Server.TlsSupport
 	protocol := "http"
 	if tlsSupport {
@@ -766,162 +764,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create and provision Keycloak related objects
-	ExternalKeycloak := instance.Spec.Auth.ExternalIdentityProvider
-
-	if !ExternalKeycloak {
-		if cheMultiUser == "false" {
-			if util.K8sclient.IsDeploymentExists("keycloak", instance.Namespace) {
-				util.K8sclient.DeleteDeployment("keycloak", instance.Namespace)
+	provisioned, err := deploy.SyncIdentityProviderToCluster(deployContext, cheHost, protocol, cheFlavor)
+	if !tests {
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
 			}
-		} else {
-			keycloakLabels := deploy.GetLabels(instance, "keycloak")
-
-			serviceStatus := deploy.SyncServiceToCluster(deployContext, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
-			if !tests {
-				if !serviceStatus.Continue {
-					logrus.Info("Waiting on service 'keycloak' to be ready")
-					if serviceStatus.Err != nil {
-						logrus.Error(serviceStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
-				}
-			}
-
-			exposureStrategy := util.GetServerExposureStrategy(instance, deploy.DefaultServerExposureStrategy)
-			singleHostExposureType := deploy.GetSingleHostExposureType(instance)
-			useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
-
-			// create Keycloak ingresses when on k8s
-			var keycloakURL string
-			if !isOpenShift {
-				if useGateway {
-					// try to guess where in the ingress-creating code the /auth endpoint is defined...
-					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080", false)
-					_, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)
-					if !tests {
-						if err != nil {
-							logrus.Error(err)
-						}
-					}
-
-					if err := deploy.DeleteIngressIfExists("keycloak", deployContext); !tests && err != nil {
-						logrus.Error(err)
-					}
-
-					keycloakURL = protocol + "://" + cheHost
-				} else {
-					ingress, err := deploy.SyncIngressToCluster(deployContext, "keycloak", "", "keycloak", 8080)
-					if !tests {
-						if ingress == nil {
-							logrus.Info("Waiting on ingress 'keycloak' to be ready")
-							if err != nil {
-								logrus.Error(err)
-							}
-
-							return reconcile.Result{RequeueAfter: time.Second * 1}, err
-						}
-					}
-
-					if err := deploy.DeleteGatewayRouteConfig("keycloak", deployContext); !tests && err != nil {
-						logrus.Error(err)
-					}
-
-					keycloakURL = protocol + "://" + ingressDomain
-					if ingressStrategy == "multi-host" {
-						keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
-					}
-				}
-			} else {
-				if useGateway {
-					cfg := deploy.GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080", false)
-					_, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)
-					if !tests {
-						if err != nil {
-							logrus.Error(err)
-						}
-					}
-					keycloakURL = protocol + "://" + cheHost
-
-					if err := deploy.DeleteRouteIfExists("keycloak", deployContext); !tests && err != nil {
-						logrus.Error(err)
-					}
-				} else {
-					// create Keycloak route
-					route, err := deploy.SyncRouteToCluster(deployContext, "keycloak", "", "keycloak", 8080)
-					if !tests {
-						if route == nil {
-							logrus.Info("Waiting on route 'keycloak' to be ready")
-							if err != nil {
-								logrus.Error(err)
-							}
-
-							return reconcile.Result{RequeueAfter: time.Second * 1}, err
-						}
-
-						keycloakURL = protocol + "://" + route.Spec.Host
-					}
-
-					if err := deploy.DeleteGatewayRouteConfig("keycloak", deployContext); !tests && err != nil {
-						logrus.Error(err)
-					}
-				}
-			}
-
-			if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
-				instance.Spec.Auth.IdentityProviderURL = keycloakURL
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", keycloakURL); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-
-			deploymentStatus := deploy.SyncKeycloakDeploymentToCluster(deployContext)
-			if !tests {
-				if !deploymentStatus.Continue {
-					logrus.Info("Waiting on deployment 'keycloak' to be ready")
-					if deploymentStatus.Err != nil {
-						logrus.Error(deploymentStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
-				}
-			}
-
-			if !tests {
-				if !instance.Status.KeycloakProvisoned {
-					if err := deploy.ProvisionKeycloakResources(deployContext); err != nil {
-						logrus.Error(err)
-						return reconcile.Result{RequeueAfter: time.Second}, err
-					}
-
-					for {
-						instance.Status.KeycloakProvisoned = true
-						if err := r.UpdateCheCRStatus(instance, "status: provisioned with Keycloak", "true"); err != nil &&
-							errors.IsConflict(err) {
-							instance, _ = r.GetCR(request)
-							continue
-						}
-						break
-					}
-				}
-			}
-
-			if isOpenShift {
-				doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
-				if doInstallOpenShiftoAuthProvider {
-					openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
-					if !openShiftIdentityProviderStatus {
-						if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, deploy.KeycloakDeploymentName, isOpenShift4); err != nil {
-							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-						}
-					}
-				}
-			}
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
 	}
 
-	provisioned, err := deploy.SyncDevfileRegistryToCluster(deployContext, cheHost)
+	provisioned, err = deploy.SyncDevfileRegistryToCluster(deployContext, cheHost)
 	if !tests {
 		if !provisioned {
 			if err != nil {
