@@ -28,7 +28,7 @@ type DevFileRegistryConfigMap struct {
 
 const (
 	DevfileRegistry              = "devfile-registry"
-	devfileRegistryGatewayConfig = "devfile-registry-gtw"
+	devfileRegistryGatewayConfig = "che-gateway-route-devfile-registry"
 )
 
 /**

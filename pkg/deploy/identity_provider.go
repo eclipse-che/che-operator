@@ -11,6 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	keycloakGatewayConfig = "che-gateway-route-keycloak"
+)
+
 // SyncIdentityProviderToCluster instantiates the identity provider (Keycloak) in the cluster. Returns true if
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string, protocol string, cheFlavor string) (bool, error) {
@@ -56,7 +60,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 	if !isOpenShift {
 		if useGateway {
 			// try to guess where in the ingress-creating code the /auth endpoint is defined...
-			cfg := GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080", false)
+			cfg := GetGatewayRouteConfig(instance, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
 			_, err := SyncConfigMapToCluster(deployContext, &cfg)
 			if !tests {
 				if err != nil {
@@ -82,7 +86,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 				}
 			}
 
-			if err := DeleteGatewayRouteConfig("keycloak", deployContext); !tests && err != nil {
+			if err := DeleteGatewayRouteConfig(keycloakGatewayConfig, deployContext); !tests && err != nil {
 				logrus.Error(err)
 			}
 
@@ -93,7 +97,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 		}
 	} else {
 		if useGateway {
-			cfg := GetGatewayRouteConfig(instance, "keycloak", "/auth", 10, "http://keycloak:8080", false)
+			cfg := GetGatewayRouteConfig(instance, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
 			_, err := SyncConfigMapToCluster(deployContext, &cfg)
 			if !tests {
 				if err != nil {
@@ -121,7 +125,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 				keycloakURL = protocol + "://" + route.Spec.Host
 			}
 
-			if err := DeleteGatewayRouteConfig("keycloak", deployContext); !tests && err != nil {
+			if err := DeleteGatewayRouteConfig(keycloakGatewayConfig, deployContext); !tests && err != nil {
 				logrus.Error(err)
 			}
 		}

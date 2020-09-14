@@ -26,7 +26,7 @@ const (
 	// GatewayServiceName is the name of the service which through which the gateway can be accessed
 	GatewayServiceName = "che-gateway"
 
-	gatewayServerConfigName    = "che-gateway-server-config"
+	gatewayServerConfigName    = "che-gateway-route-server"
 	gatewayConfigComponentName = "che-gateway-config"
 )
 

@@ -28,7 +28,7 @@ type PluginRegistryConfigMap struct {
 
 const (
 	PluginRegistry              = "plugin-registry"
-	pluginRegistryGatewayConfig = "plugin-registry-gtw"
+	pluginRegistryGatewayConfig = "che-gateway-route-plugin-registry"
 )
 
 /**
