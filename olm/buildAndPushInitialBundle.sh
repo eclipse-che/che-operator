@@ -21,7 +21,6 @@ printHelp() {
   echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/buildAndPushInitialBundle.sh openshift'
 }
 
-# Check if a 'from index image' was defined...
 PLATFORM="${1}"
 if [ "${PLATFORM}" == "" ]; then
   echo -e "${RED}[ERROR]: Please specify a valid platform. The posible platforms are kubernetes or openshift.The script will exit with code 1.${NC}"

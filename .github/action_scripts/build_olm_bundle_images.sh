@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Todo: set eclipse value
 IMAGE_REGISTRY_USERNAME=eclipse
 IMAGE_REGISTRY=quay.io
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
