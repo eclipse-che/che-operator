@@ -260,6 +260,7 @@ type CheClusterSpecServer struct {
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
 
 	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
+	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
 }
 
