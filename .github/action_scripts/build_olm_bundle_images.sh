@@ -38,6 +38,6 @@ do
     echo "Build very first bundle."
     buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
   else
-    buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${CATALOG_IMAGENAME}"
+    buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "docker" "${CATALOG_IMAGENAME}"
   fi
 done
