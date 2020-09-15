@@ -7,13 +7,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2020-09-14T11:31:19Z"
+    createdAt: "2020-09-15T14:10:22Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.19.0-2.nightly
+  name: eclipse-che-preview-kubernetes.v7.19.0-3.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -221,9 +221,9 @@ spec:
                       - name: RELATED_IMAGE_keycloak
                         value: quay.io/eclipse/che-keycloak:nightly
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
-                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.3.0
+                        value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
-                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.3.0
+                        value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
                       - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
                         value: quay.io/eclipse/che-jwtproxy:0.10.0
                       - name: CHE_FLAVOR
@@ -353,4 +353,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.19.0-2.nightly
+  version: 7.19.0-3.nightly
