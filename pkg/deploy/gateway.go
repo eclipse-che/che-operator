@@ -213,7 +213,9 @@ func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
 	ro := obj.(runtime.Object)
 	if getErr := clusterAPI.Client.Get(context.TODO(), key, ro); getErr == nil {
 		if err := clusterAPI.Client.Delete(context.TODO(), ro); err != nil {
-			return err
+			if !errors.IsNotFound(err) {
+				return err
+			}
 		}
 	}
 
