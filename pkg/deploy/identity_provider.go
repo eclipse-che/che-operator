@@ -19,8 +19,6 @@ const (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string, protocol string, cheFlavor string) (bool, error) {
 	instance := deployContext.CheCluster
-	ingressStrategy := util.GetServerExposureStrategy(instance, DefaultServerExposureStrategy)
-	ingressDomain := instance.Spec.K8s.IngressDomain
 	cheMultiUser := GetCheMultiUser(instance)
 	tests := util.IsTestMode()
 	isOpenShift := util.IsOpenShift
@@ -58,6 +56,12 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 	// create Keycloak ingresses when on k8s
 	var keycloakURL string
 	if !isOpenShift {
+		var host string
+		if exposureStrategy == "multi-host" {
+			host = "keycloak-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
+		} else {
+			host = cheHost
+		}
 		if useGateway {
 			// try to guess where in the ingress-creating code the /auth endpoint is defined...
 			cfg := GetGatewayRouteConfig(instance, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
@@ -74,7 +78,8 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 
 			keycloakURL = protocol + "://" + cheHost
 		} else {
-			ingress, err := SyncIngressToCluster(deployContext, "keycloak", "", "keycloak", 8080)
+			logrus.Infof("Deploying Keycloak on %s", host)
+			ingress, err := SyncIngressToCluster(deployContext, "keycloak", host, "keycloak", 8080)
 			if !tests {
 				if ingress == nil {
 					logrus.Info("Waiting on ingress 'keycloak' to be ready")
@@ -86,14 +91,13 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 				}
 			}
 
+			logrus.Infof("Deployed Keycloak on %s", ingress.Spec.Rules[0].Host)
+
 			if err := DeleteGatewayRouteConfig(keycloakGatewayConfig, deployContext); !tests && err != nil {
 				logrus.Error(err)
 			}
 
-			keycloakURL = protocol + "://" + ingressDomain
-			if ingressStrategy == "multi-host" {
-				keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
-			}
+			keycloakURL = protocol + "://" + host
 		}
 	} else {
 		if useGateway {

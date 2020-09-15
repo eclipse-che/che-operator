@@ -37,16 +37,20 @@ const (
 func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) (bool, error) {
 	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		var host string
+		var endpoint string
+		var domain string
 		exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
 		singleHostExposureType := GetSingleHostExposureType(deployContext.CheCluster)
 		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
+		if exposureStrategy == "multi-host" {
+			// this won't get used on openshift, because there we're intentionally let Openshift decide on the domain name
+			domain = DevfileRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
+			endpoint = domain
+		} else {
+			domain = cheHost
+			endpoint = domain + "/" + DevfileRegistry
+		}
 		if !util.IsOpenShift {
-			if exposureStrategy == "multi-host" {
-				host = DevfileRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
-			} else {
-				host = cheHost + "/" + DevfileRegistry
-			}
 
 			if useGateway {
 				cfg := GetGatewayRouteConfig(deployContext.CheCluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
@@ -63,7 +67,7 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 					logrus.Error(err)
 				}
 			} else {
-				ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
+				ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, domain, DevfileRegistry, 8080)
 				if !util.IsTestMode() {
 					if ingress == nil {
 						logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
@@ -92,8 +96,8 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 				if err := DeleteRouteIfExists(DevfileRegistry, deployContext); !util.IsTestMode() && err != nil {
 					logrus.Error(err)
 				}
-				host = cheHost + "/" + DevfileRegistry
 			} else {
+				// the empty string for a host is intentional here - we let OpenShift decide on the hostname
 				route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
 				if !util.IsTestMode() {
 					if route == nil {
@@ -109,16 +113,16 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 					logrus.Error(err)
 				}
 				if !util.IsTestMode() {
-					host = route.Spec.Host
+					endpoint = route.Spec.Host
 				}
 			}
 		}
 
 		if devfileRegistryURL == "" {
 			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				devfileRegistryURL = "https://" + host
+				devfileRegistryURL = "https://" + endpoint
 			} else {
-				devfileRegistryURL = "http://" + host
+				devfileRegistryURL = "http://" + endpoint
 			}
 		}
 
