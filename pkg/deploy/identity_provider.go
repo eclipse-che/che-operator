@@ -136,6 +136,11 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 		if err := UpdateCheCRSpec(deployContext, "Keycloak URL", keycloakURL); err != nil {
 			return false, err
 		}
+
+		instance.Status.KeycloakURL = keycloakURL
+		if err := UpdateCheCRStatus(deployContext, "Keycloak URL", keycloakURL); err != nil {
+			return false, err
+		}
 	}
 
 	deploymentStatus := SyncKeycloakDeploymentToCluster(deployContext)
