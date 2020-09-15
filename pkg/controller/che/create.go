@@ -168,14 +168,6 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		}
 	}
 
-	serverExposureStrategy := util.GetValue(deployContext.CheCluster.Spec.Server.ServerExposureStrategy, deploy.DefaultServerExposureStrategy)
-	if len(deployContext.CheCluster.Spec.Server.ServerExposureStrategy) < 1 {
-		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = serverExposureStrategy
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "server exposure strategy", serverExposureStrategy); err != nil {
-			return err
-		}
-	}
-
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next
 	// version that should fixed bug https://github.com/eclipse/che/issues/13714
