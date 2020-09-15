@@ -149,6 +149,6 @@ spec:
     # or gateway "route" always point to the subpaths on the same domain.
     # Defaults to "native".
     singleHostExposureType: ''
-    metrics:
+  metrics:
     # Enables '/metrics' endpoint of Che server.
     enable: true
