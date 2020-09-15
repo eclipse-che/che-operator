@@ -53,7 +53,7 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 		if !util.IsOpenShift {
 
 			if useGateway {
-				cfg := GetGatewayRouteConfig(deployContext.CheCluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
+				cfg := GetGatewayRouteConfig(deployContext, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
 				clusterCfg, err := SyncConfigMapToCluster(deployContext, &cfg)
 				if !util.IsTestMode() {
 					if clusterCfg == nil {
@@ -83,7 +83,7 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 			}
 		} else {
 			if useGateway {
-				cfg := GetGatewayRouteConfig(deployContext.CheCluster, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
+				cfg := GetGatewayRouteConfig(deployContext, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
 				clusterCfg, err := SyncConfigMapToCluster(deployContext, &cfg)
 				if !util.IsTestMode() {
 					if clusterCfg == nil {

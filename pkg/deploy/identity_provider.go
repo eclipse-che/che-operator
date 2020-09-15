@@ -64,7 +64,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 		}
 		if useGateway {
 			// try to guess where in the ingress-creating code the /auth endpoint is defined...
-			cfg := GetGatewayRouteConfig(instance, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
+			cfg := GetGatewayRouteConfig(deployContext, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
 			_, err := SyncConfigMapToCluster(deployContext, &cfg)
 			if !tests {
 				if err != nil {
@@ -101,7 +101,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 		}
 	} else {
 		if useGateway {
-			cfg := GetGatewayRouteConfig(instance, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
+			cfg := GetGatewayRouteConfig(deployContext, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
 			_, err := SyncConfigMapToCluster(deployContext, &cfg)
 			if !tests {
 				if err != nil {

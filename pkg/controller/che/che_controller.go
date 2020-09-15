@@ -823,7 +823,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cmResourceVersion = cheConfigMap.ResourceVersion
 	}
 
-	err = deploy.SyncGatewayToCluster(instance, clusterAPI)
+	err = deploy.SyncGatewayToCluster(deployContext)
 	if err != nil {
 		logrus.Errorf("Failed to create the Server Gateway: %s", err)
 		return reconcile.Result{}, err

@@ -42,55 +42,59 @@ var (
 )
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
-func SyncGatewayToCluster(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
-	if instance.Spec.Server.ServerExposureStrategy == "single-host" &&
-		(GetSingleHostExposureType(instance) == "gateway") {
-		return syncAll(instance, clusterAPI)
+func SyncGatewayToCluster(deployContext *DeployContext) error {
+	if deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "single-host" &&
+		(GetSingleHostExposureType(deployContext.CheCluster) == "gateway") {
+		return syncAll(deployContext)
 	}
 
-	return deleteAll(instance, clusterAPI)
+	return deleteAll(deployContext)
 }
 
-func syncAll(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
+func syncAll(deployContext *DeployContext) error {
+	instance := deployContext.CheCluster
 	sa := getGatewayServiceAccountSpec(instance)
-	if err := sync(instance, clusterAPI, &sa, serviceAccountDiffOpts); err != nil {
+	if err := sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
 		return err
 	}
 
 	role := getGatewayRoleSpec(instance)
-	if err := sync(instance, clusterAPI, &role, roleDiffOpts); err != nil {
+	if err := sync(deployContext, &role, roleDiffOpts); err != nil {
 		return err
 	}
 
 	roleBinding := getGatewayRoleBindingSpec(instance)
-	if err := sync(instance, clusterAPI, &roleBinding, roleBindingDiffOpts); err != nil {
+	if err := sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
 		return err
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
-	if err := sync(instance, clusterAPI, &traefikConfig, configMapDiffOpts); err != nil {
+	if err := sync(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
 		return err
 	}
 
 	depl := getGatewayDeploymentSpec(instance)
-	if err := sync(instance, clusterAPI, &depl, deploymentDiffOpts); err != nil {
+	if err := sync(deployContext, &depl, deploymentDiffOpts); err != nil {
 		return err
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if err := sync(instance, clusterAPI, &service, serviceDiffOpts); err != nil {
+	if err := sync(deployContext, &service, serviceDiffOpts); err != nil {
 		return err
 	}
 
-	serverConfig := getGatewayServerConfigSpec(instance)
-	if err := sync(instance, clusterAPI, &serverConfig, configMapDiffOpts); err != nil {
+	serverConfig := getGatewayServerConfigSpec(deployContext)
+	if err := sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func deleteAll(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
+func deleteAll(deployContext *DeployContext) error {
+	instance := deployContext.CheCluster
+	clusterAPI := deployContext.ClusterAPI
+
 	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
@@ -155,7 +159,9 @@ func deleteAll(instance *orgv1.CheCluster, clusterAPI ClusterAPI) error {
 }
 
 // sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
-func sync(instance *orgv1.CheCluster, clusterAPI ClusterAPI, blueprint metav1.Object, diffOpts cmp.Option) error {
+func sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) error {
+	clusterAPI := deployContext.ClusterAPI
+
 	blueprintObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
@@ -165,7 +171,7 @@ func sync(instance *orgv1.CheCluster, clusterAPI ClusterAPI, blueprint metav1.Ob
 
 	actual := blueprintObject.DeepCopyObject()
 
-	if getErr := clusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
+	if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
 			return getErr
 		}
@@ -176,11 +182,27 @@ func sync(instance *orgv1.CheCluster, clusterAPI ClusterAPI, blueprint metav1.Ob
 
 	if actual == nil {
 		logrus.Infof("Creating a new object: %s, name %s", kind, blueprint.GetName())
-		err := clusterAPI.Client.Create(context.TODO(), blueprintObject)
+		obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
 		if err != nil {
 			return err
 		}
-	} else {
+
+		err = clusterAPI.Client.Create(context.TODO(), obj)
+		if err != nil {
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
+
+			// ok, we got an already-exists error. So let's try to load the object into "actual".
+			// if we fail this retry for whatever reason, just give up rather than retrying this in a loop...
+			// the reconciliation loop will lead us here again in the next round.
+			if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
+				return getErr
+			}
+		}
+	}
+
+	if actual != nil {
 		actualMeta := actual.(metav1.Object)
 
 		diff := cmp.Diff(actual, blueprint, diffOpts)
@@ -188,24 +210,54 @@ func sync(instance *orgv1.CheCluster, clusterAPI ClusterAPI, blueprint metav1.Ob
 			logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
 			fmt.Printf("Difference:\n%s", diff)
 
-			err := clusterAPI.Client.Delete(context.TODO(), actual)
-			if err != nil {
-				return err
-			}
+			if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
+				err := clusterAPI.Client.Delete(context.TODO(), actual)
+				if err != nil {
+					return err
+				}
 
-			err = controllerutil.SetControllerReference(instance, blueprint, clusterAPI.Scheme)
-			if err != nil {
-				return err
-			}
+				obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+				if err != nil {
+					return err
+				}
 
-			err = clusterAPI.Client.Create(context.TODO(), blueprintObject)
-			if err != nil {
-				return err
+				err = clusterAPI.Client.Create(context.TODO(), obj)
+				if err != nil {
+					return err
+				}
+			} else {
+				obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+				if err != nil {
+					return err
+				}
+
+				err = clusterAPI.Client.Update(context.TODO(), obj)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func isUpdateUsingDeleteCreate(kind string) bool {
+	return "Service" == kind || "Ingress" == kind || "Route" == kind
+}
+
+func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj metav1.Object) (runtime.Object, error) {
+	err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	robj, ok := obj.(runtime.Object)
+	if !ok {
+		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
+	}
+
+	return robj, nil
 }
 
 func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
@@ -225,7 +277,7 @@ func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
 // GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
 // `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
 // new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
-func GetGatewayRouteConfig(instance *orgv1.CheCluster, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
+func GetGatewayRouteConfig(deployContext *DeployContext, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
 	pathRewrite := pathPrefix != "/" && stripPrefix
 
 	data := `---
@@ -258,18 +310,26 @@ http:
         - "` + pathPrefix + `"`
 	}
 
-	return corev1.ConfigMap{
+	ret := corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: instance.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels: util.MergeMaps(
-				GetLabels(instance, gatewayConfigComponentName),
-				util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)),
+				GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
+				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
 			serviceName + ".yml": data,
 		},
 	}
+
+	controllerutil.SetControllerReference(deployContext.CheCluster, &ret, deployContext.ClusterAPI.Scheme)
+
+	return ret
 }
 
 func DeleteGatewayRouteConfig(serviceName string, deployContext *DeployContext) error {
@@ -285,12 +345,16 @@ func DeleteGatewayRouteConfig(serviceName string, deployContext *DeployContext) 
 
 // below functions declare the desired states of the various objects required for the gateway
 
-func getGatewayServerConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	return GetGatewayRouteConfig(instance, gatewayServerConfigName, "/", 1, "http://"+CheServiceName+":8080", false)
+func getGatewayServerConfigSpec(deployContext *DeployContext) corev1.ConfigMap {
+	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, "/", 1, "http://"+CheServiceName+":8080", false)
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {
 	return corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ServiceAccount",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
@@ -301,6 +365,10 @@ func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAcco
 
 func getGatewayRoleSpec(instance *orgv1.CheCluster) rbac.Role {
 	return rbac.Role{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbac.SchemeGroupVersion.String(),
+			Kind:       "Role",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
@@ -318,6 +386,10 @@ func getGatewayRoleSpec(instance *orgv1.CheCluster) rbac.Role {
 
 func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 	return rbac.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbac.SchemeGroupVersion.String(),
+			Kind:       "RoleBinding",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
@@ -339,6 +411,10 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	return corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "che-gateway-config",
 			Namespace: instance.Namespace,
@@ -377,6 +453,10 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	return appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
@@ -470,6 +550,10 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 
 func getGatewayServiceSpec(instance *orgv1.CheCluster) corev1.Service {
 	return corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Service",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
