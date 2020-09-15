@@ -370,6 +370,7 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, DefaultSingleHostGatewayImage(instance))
 	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, DefaultSingleHostGatewayConfigSidecarImage(instance))
 	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)
+	terminationGracePeriodSeconds := int64(10)
 
 	configLabels := labels.FormatLabels(configLabelsMap)
 
@@ -391,8 +392,9 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 					Labels: GetLabels(instance, GatewayServiceName),
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: GatewayServiceName,
-					RestartPolicy:      corev1.RestartPolicyAlways,
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
+					ServiceAccountName:            GatewayServiceName,
+					RestartPolicy:                 corev1.RestartPolicyAlways,
 					Containers: []corev1.Container{
 						{
 							Name:            "gateway",
