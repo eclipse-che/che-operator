@@ -84,6 +84,22 @@ func SyncRouteToCluster(
 	return clusterRoute, err
 }
 
+func DeleteRouteIfExists(name string, deployContext *DeployContext) error {
+	ingress, err := GetClusterRoute(name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if err != nil {
+		return err
+	}
+
+	if ingress != nil {
+		err = deployContext.ClusterAPI.Client.Delete(context.TODO(), ingress)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // GetClusterRoute returns existing route.
 func GetClusterRoute(name string, namespace string, client runtimeClient.Client) (*routev1.Route, error) {
 	route := &routev1.Route{}

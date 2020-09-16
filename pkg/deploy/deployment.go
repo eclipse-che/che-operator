@@ -31,7 +31,7 @@ var deploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "RevisionHistoryLimit", "ProgressDeadlineSeconds"),
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
 	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
-	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext"),
+	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext", "DeprecatedServiceAccount"),
 	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
 	cmpopts.IgnoreFields(corev1.VolumeSource{}, "EmptyDir"),
 	cmp.Comparer(func(x, y resource.Quantity) bool {
@@ -72,7 +72,7 @@ func SyncDeploymentToCluster(
 	if additionalDeploymentDiffOpts != nil {
 		diff := cmp.Diff(clusterDeployment, specDeployment, additionalDeploymentDiffOpts)
 		if len(diff) > 0 {
-			logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
+			logrus.Infof("Updating existing object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
 			fmt.Printf("Difference:\n%s", diff)
 			clusterDeployment = additionalDeploymentMerge(specDeployment, clusterDeployment)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)

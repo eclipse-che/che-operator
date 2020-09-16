@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -138,12 +139,46 @@ func GetServerResources() ([]*v1.APIResourceList, error) {
 }
 
 func GetValue(key string, defaultValue string) (value string) {
-
 	value = key
 	if len(key) < 1 {
 		value = defaultValue
 	}
 	return value
+}
+
+func GetMapValue(value map[string]string, defaultValue map[string]string) map[string]string {
+	ret := value
+	if len(value) < 1 {
+		ret = defaultValue
+	}
+
+	return ret
+}
+
+func MergeMaps(first map[string]string, second map[string]string) map[string]string {
+	ret := make(map[string]string)
+	for k, v := range first {
+		ret[k] = v
+	}
+
+	for k, v := range second {
+		ret[k] = v
+	}
+
+	return ret
+}
+
+func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string {
+	strategy := c.Spec.Server.ServerExposureStrategy
+	if IsOpenShift {
+		strategy = GetValue(strategy, defaultValue)
+	} else {
+		if strategy == "" {
+			strategy = GetValue(c.Spec.K8s.IngressStrategy, defaultValue)
+		}
+	}
+
+	return strategy
 }
 
 func IsTestMode() (isTesting bool) {

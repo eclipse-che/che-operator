@@ -21,6 +21,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // +k8s:openapi-gen=true
@@ -236,6 +237,31 @@ type CheClusterSpecServer struct {
 	// Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
+
+	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
+	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every required
+	// endpoint.
+	// "single-host" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs
+	// to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure
+	// how the operator and Che server make that happen on Kubernetes.
+	// "default-host" exposes che server on the host of the cluster. Please read the docs to learn about
+	// the limitations of this approach.
+	// +optional
+	ServerExposureStrategy string `json:"serverExposureStrategy,omitempty"`
+
+	// The image used for the gateway in the single host mode.
+	// Omit it or leave it empty to use the defaut container image provided by the operator.
+	// +optional
+	SingleHostGatewayImage string `json:"singleHostGatewayImage,omitempty"`
+
+	// The image used for the gateway sidecar that provides configuration to the gateway.
+	// Omit it or leave it empty to use the defaut container image provided by the operator.
+	// +optional
+	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
+
+	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
+	// +optional
+	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -407,6 +433,8 @@ type CheClusterSpecK8SOnly struct {
 	// Strategy for ingress creation. This can be `multi-host` (host is explicitly provided in ingress),
 	// `single-host` (host is provided, path-based rules) and `default-host.*`(no host is provided, path-based rules).
 	// Defaults to `"multi-host`
+	// Deprecated in favor of "serverExposureStrategy" in the "server" section, which defines this regardless of the cluster type.
+	// If both are defined, `serverExposureStrategy` takes precedence.
 	// +optional
 	IngressStrategy string `json:"ingressStrategy,omitempty"`
 	// Ingress class that will define the which controler will manage ingresses. Defaults to `nginx`.
@@ -423,6 +451,14 @@ type CheClusterSpecK8SOnly struct {
 	// ID of the user the Che pod and Workspace pods containers should run as. Default to `1724`.
 	// +optional
 	SecurityContextRunAsUser string `json:"securityContextRunAsUser,omitempty"`
+	// When the serverExposureStrategy is set to "single-host", the way the server, registries and workspaces
+	// are exposed is further configured by this property. The possible values are "native" (which means
+	// that the server and workspaces are exposed using ingresses on K8s) or "gateway" where the server
+	// and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress
+	// or gateway "route" always point to the subpaths on the same domain.
+	// Defaults to "native".
+	// +optional
+	SingleHostExposureType string `json:"singleHostExposureType,omitempty"`
 }
 
 type CheClusterSpecMetrics struct {

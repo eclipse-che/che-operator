@@ -27,57 +27,103 @@ type PluginRegistryConfigMap struct {
 }
 
 const (
-	PluginRegistry = "plugin-registry"
+	PluginRegistry              = "plugin-registry"
+	pluginRegistryGatewayConfig = "che-gateway-route-plugin-registry"
 )
 
 /**
  * Create plugin registry resources unless an external registry is used.
  */
-func SyncPluginRegistryToCluster(deployContext *DeployContext) (bool, error) {
+func SyncPluginRegistryToCluster(deployContext *DeployContext, cheHost string) (bool, error) {
 	pluginRegistryURL := deployContext.CheCluster.Spec.Server.PluginRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
-		var host string
-		if !util.IsOpenShift {
-			ingress, err := SyncIngressToCluster(deployContext, PluginRegistry, "", PluginRegistry, 8080)
-			if !util.IsTestMode() {
-				if ingress == nil {
-					logrus.Infof("Waiting on ingress '%s' to be ready", PluginRegistry)
-					if err != nil {
-						logrus.Error(err)
-					}
-					return false, err
-				}
-			}
+		var endpoint string
+		var domain string
+		exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
+		singleHostExposureType := GetSingleHostExposureType(deployContext.CheCluster)
+		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
 
-			ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
-			if ingressStrategy == "multi-host" {
-				host = PluginRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
+		if exposureStrategy == "multi-host" {
+			// this won't get used on openshift, because there we're intentionally let Openshift decide on the domain name
+			domain = PluginRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
+			endpoint = domain
+		} else {
+			domain = cheHost
+			endpoint = domain + "/" + PluginRegistry
+		}
+		if !util.IsOpenShift {
+			if useGateway {
+				cfg := GetGatewayRouteConfig(deployContext, pluginRegistryGatewayConfig, "/"+PluginRegistry, 10, "http://"+PluginRegistry+":8080", true)
+				clusterCfg, err := SyncConfigMapToCluster(deployContext, &cfg)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteIngressIfExists(PluginRegistry, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
 			} else {
-				host = deployContext.CheCluster.Spec.K8s.IngressDomain + "/" + PluginRegistry
+				ingress, err := SyncIngressToCluster(deployContext, PluginRegistry, domain, PluginRegistry, 8080)
+				if !util.IsTestMode() {
+					if ingress == nil {
+						logrus.Infof("Waiting on ingress '%s' to be ready", PluginRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(pluginRegistryGatewayConfig, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
 			}
 		} else {
-			route, err := SyncRouteToCluster(deployContext, PluginRegistry, "", PluginRegistry, 8080)
-			if !util.IsTestMode() {
-				if route == nil {
-					logrus.Infof("Waiting on route '%s' to be ready", PluginRegistry)
-					if err != nil {
-						logrus.Error(err)
+			if useGateway {
+				cfg := GetGatewayRouteConfig(deployContext, pluginRegistryGatewayConfig, "/"+PluginRegistry, 10, "http://"+PluginRegistry+":8080", true)
+				clusterCfg, err := SyncConfigMapToCluster(deployContext, &cfg)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
 					}
-
-					return false, err
 				}
-			}
+				if err := DeleteRouteIfExists(PluginRegistry, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+			} else {
+				// the empty string for a host is intentional here - we let OpenShift decide on the hostname
+				route, err := SyncRouteToCluster(deployContext, PluginRegistry, "", PluginRegistry, 8080)
+				if !util.IsTestMode() {
+					if route == nil {
+						logrus.Infof("Waiting on route '%s' to be ready", PluginRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
 
-			if !util.IsTestMode() {
-				host = route.Spec.Host
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(pluginRegistryGatewayConfig, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+
+				if !util.IsTestMode() {
+					endpoint = route.Spec.Host
+				}
 			}
 		}
 
 		if pluginRegistryURL == "" {
 			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				pluginRegistryURL = "https://" + host + "/v3"
+				pluginRegistryURL = "https://" + endpoint + "/v3"
 			} else {
-				pluginRegistryURL = "http://" + host + "/v3"
+				pluginRegistryURL = "http://" + endpoint + "/v3"
 			}
 		}
 

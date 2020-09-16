@@ -33,7 +33,7 @@ type ServiceProvisioningStatus struct {
 }
 
 const (
-	CheServiceHame = "che-host"
+	CheServiceName = "che-host"
 )
 
 var portsDiffOpts = cmp.Options{
@@ -66,7 +66,7 @@ func GetSpecCheService(deployContext *DeployContext) (*corev1.Service, error) {
 		portNumber = append(portNumber, DefaultCheDebugPort)
 	}
 
-	return getSpecService(deployContext, CheServiceHame, portName, portNumber, labels)
+	return getSpecService(deployContext, CheServiceName, portName, portNumber, labels)
 }
 
 func SyncServiceToCluster(

@@ -27,57 +27,102 @@ type DevFileRegistryConfigMap struct {
 }
 
 const (
-	DevfileRegistry = "devfile-registry"
+	DevfileRegistry              = "devfile-registry"
+	devfileRegistryGatewayConfig = "che-gateway-route-devfile-registry"
 )
 
 /**
  * Create devfile registry resources unless an external registry is used.
  */
-func SyncDevfileRegistryToCluster(deployContext *DeployContext) (bool, error) {
+func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) (bool, error) {
 	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		var host string
+		var endpoint string
+		var domain string
+		exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
+		singleHostExposureType := GetSingleHostExposureType(deployContext.CheCluster)
+		useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
+		if exposureStrategy == "multi-host" {
+			// this won't get used on openshift, because there we're intentionally let Openshift decide on the domain name
+			domain = DevfileRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
+			endpoint = domain
+		} else {
+			domain = cheHost
+			endpoint = domain + "/" + DevfileRegistry
+		}
 		if !util.IsOpenShift {
-			ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
-			if !util.IsTestMode() {
-				if ingress == nil {
-					logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
-					if err != nil {
-						logrus.Error(err)
-					}
-					return false, err
-				}
-			}
 
-			ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
-			if ingressStrategy == "multi-host" {
-				host = DevfileRegistry + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
+			if useGateway {
+				cfg := GetGatewayRouteConfig(deployContext, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
+				clusterCfg, err := SyncConfigMapToCluster(deployContext, &cfg)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteIngressIfExists(DevfileRegistry, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
 			} else {
-				host = deployContext.CheCluster.Spec.K8s.IngressDomain + "/" + DevfileRegistry
+				ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, domain, DevfileRegistry, 8080)
+				if !util.IsTestMode() {
+					if ingress == nil {
+						logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(devfileRegistryGatewayConfig, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
 			}
 		} else {
-			route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
-			if !util.IsTestMode() {
-				if route == nil {
-					logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)
-					if err != nil {
-						logrus.Error(err)
+			if useGateway {
+				cfg := GetGatewayRouteConfig(deployContext, devfileRegistryGatewayConfig, "/"+DevfileRegistry, 10, "http://"+DevfileRegistry+":8080", true)
+				clusterCfg, err := SyncConfigMapToCluster(deployContext, &cfg)
+				if !util.IsTestMode() {
+					if clusterCfg == nil {
+						if err != nil {
+							logrus.Error(err)
+						}
+						return false, err
 					}
-
-					return false, err
 				}
-			}
+				if err := DeleteRouteIfExists(DevfileRegistry, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+			} else {
+				// the empty string for a host is intentional here - we let OpenShift decide on the hostname
+				route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
+				if !util.IsTestMode() {
+					if route == nil {
+						logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)
+						if err != nil {
+							logrus.Error(err)
+						}
 
-			if !util.IsTestMode() {
-				host = route.Spec.Host
+						return false, err
+					}
+				}
+				if err := DeleteGatewayRouteConfig(devfileRegistryGatewayConfig, deployContext); !util.IsTestMode() && err != nil {
+					logrus.Error(err)
+				}
+				if !util.IsTestMode() {
+					endpoint = route.Spec.Host
+				}
 			}
 		}
 
 		if devfileRegistryURL == "" {
 			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				devfileRegistryURL = "https://" + host
+				devfileRegistryURL = "https://" + endpoint
 			} else {
-				devfileRegistryURL = "http://" + host
+				devfileRegistryURL = "http://" + endpoint
 			}
 		}
 

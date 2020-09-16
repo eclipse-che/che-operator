@@ -5,6 +5,7 @@
 package v1
 
 import (
+	labels "k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -161,6 +162,13 @@ func (in *CheClusterSpecServer) DeepCopyInto(out *CheClusterSpecServer) {
 	if in.CustomCheProperties != nil {
 		in, out := &in.CustomCheProperties, &out.CustomCheProperties
 		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.SingleHostGatewayConfigMapLabels != nil {
+		in, out := &in.SingleHostGatewayConfigMapLabels, &out.SingleHostGatewayConfigMapLabels
+		*out = make(labels.Set, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

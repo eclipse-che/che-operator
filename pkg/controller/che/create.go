@@ -12,91 +12,10 @@
 package che
 
 import (
-	"context"
-	"strings"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
-	oauth "github.com/openshift/api/oauth/v1"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthClient *oauth.OAuthClient) error {
-	oAuthClientFound := &oauth.OAuthClient{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClient.Name, Namespace: oAuthClient.Namespace}, oAuthClientFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", oAuthClient.Kind, oAuthClient.Name)
-		err = r.client.Create(context.TODO(), oAuthClient)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, keycloakDeploymentName string, isOpenShift4 bool) (err error) {
-	tests := r.tests
-	oAuthClientName := instance.Spec.Auth.OAuthClientName
-	if len(oAuthClientName) < 1 {
-		oAuthClientName = instance.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
-		instance.Spec.Auth.OAuthClientName = oAuthClientName
-		if err := r.UpdateCheCRSpec(instance, "oAuthClient name", oAuthClientName); err != nil {
-			return err
-		}
-	}
-	oauthSecret := instance.Spec.Auth.OAuthSecret
-	if len(oauthSecret) < 1 {
-		oauthSecret = util.GeneratePasswd(12)
-		instance.Spec.Auth.OAuthSecret = oauthSecret
-		if err := r.UpdateCheCRSpec(instance, "oAuthC secret name", oauthSecret); err != nil {
-			return err
-		}
-	}
-
-	keycloakURL := instance.Spec.Auth.IdentityProviderURL
-	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
-	if err := r.CreateNewOauthClient(instance, oAuthClient); err != nil {
-		return err
-	}
-
-	if !tests {
-		openShiftIdentityProviderCommand, err := deploy.GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, isOpenShift4)
-		if err != nil {
-			logrus.Errorf("Failed to build identity provider provisioning command")
-			return err
-		}
-		podToExec, err := util.K8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
-		if err != nil {
-			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
-			return err
-		}
-		_, err = util.K8sclient.ExecIntoPod(podToExec, openShiftIdentityProviderCommand, "create OpenShift identity provider", instance.Namespace)
-		if err == nil {
-			for {
-				instance.Status.OpenShiftoAuthProvisioned = true
-				if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
-					errors.IsConflict(err) {
-					instance, _ = r.GetCR(request)
-					continue
-				}
-				break
-			}
-		}
-		return err
-	}
-	return nil
-}
 
 func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext, request reconcile.Request) (err error) {
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)

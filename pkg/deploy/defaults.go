@@ -27,18 +27,24 @@ import (
 )
 
 var (
-	defaultCheServerImage                string
-	defaultCheVersion                    string
-	defaultPluginRegistryImage           string
-	defaultDevfileRegistryImage          string
-	defaultCheTLSSecretsCreationJobImage string
-	defaultPvcJobsImage                  string
-	defaultPostgresImage                 string
-	defaultKeycloakImage                 string
+	defaultCheServerImage                      string
+	defaultCheVersion                          string
+	defaultPluginRegistryImage                 string
+	defaultDevfileRegistryImage                string
+	defaultCheTLSSecretsCreationJobImage       string
+	defaultPvcJobsImage                        string
+	defaultPostgresImage                       string
+	defaultKeycloakImage                       string
+	defaultSingleHostGatewayImage              string
+	defaultSingleHostGatewayConfigSidecarImage string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
 	defaultCheServerSecureExposerJwtProxyImage    string
+	DefaultSingleHostGatewayConfigMapLabels       = map[string]string{
+		"app":       "che",
+		"component": "che-gateway-config",
+	}
 )
 
 const (
@@ -48,7 +54,6 @@ const (
 	DefaultChePostgresDb       = "dbche"
 	DefaultPvcStrategy         = "common"
 	DefaultPvcClaimSize        = "1Gi"
-	DefaultIngressStrategy     = "multi-host"
 	DefaultIngressClass        = "nginx"
 
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
@@ -75,6 +80,10 @@ const (
 	DefaultServerMemoryLimit        = "1Gi"
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
+
+	DefaultServerExposureStrategy           = "multi-host"
+	DefaultKubernetesSingleHostExposureType = "native"
+	DefaultOpenShiftSingleHostExposureType  = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
@@ -104,6 +113,8 @@ func InitDefaultsFromEnv() {
 	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
@@ -128,6 +139,8 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
@@ -257,6 +270,14 @@ func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
 }
 
+func DefaultSingleHostGatewayImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultSingleHostGatewayImage)
+}
+
+func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
+}
+
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	tag := "latest"
 	parts := strings.Split(dockerImage, ":")
@@ -277,6 +298,14 @@ func GetCheMultiUser(cr *orgv1.CheCluster) string {
 		}
 	}
 	return DefaultCheMultiUser
+}
+
+func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
+	if util.IsOpenShift {
+		return DefaultOpenShiftSingleHostExposureType
+	}
+
+	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {

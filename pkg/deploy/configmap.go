@@ -40,7 +40,7 @@ func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.
 
 	diff := cmp.Diff(clusterConfigMap.Data, specConfigMap.Data)
 	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
+		logrus.Infof("Updating existing object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
 		fmt.Printf("Difference:\n%s", diff)
 		clusterConfigMap.Data = specConfigMap.Data
 		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterConfigMap)

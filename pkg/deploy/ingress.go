@@ -72,6 +72,22 @@ func SyncIngressToCluster(
 	return clusterIngress, nil
 }
 
+func DeleteIngressIfExists(name string, deployContext *DeployContext) error {
+	ingress, err := getClusterIngress(name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if err != nil {
+		return err
+	}
+
+	if ingress != nil {
+		err = deployContext.ClusterAPI.Client.Delete(context.TODO(), ingress)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func getClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
 	ingress := &v1beta1.Ingress{}
 	namespacedName := types.NamespacedName{
@@ -96,7 +112,7 @@ func getSpecIngress(
 	servicePort int) (*v1beta1.Ingress, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
-	ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressStrategy, DefaultIngressStrategy)
+	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, name)

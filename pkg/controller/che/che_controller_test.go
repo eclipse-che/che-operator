@@ -232,8 +232,22 @@ func TestCheController(t *testing.T) {
 		t.Errorf("ConfigMap wasn't updated properly. Expecting '%s', got: '%s'", expectedIdentityProviderName, cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"])
 	}
 
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR)
-	err = r.CreateIdentityProviderItems(cheCR, req, "che", "keycloak", false)
+	clusterAPI := deploy.ClusterAPI{
+		Client: r.client,
+		Scheme: r.scheme,
+	}
+
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCR,
+		ClusterAPI: clusterAPI,
+	}
+
+	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR); err != nil {
+		t.Errorf("Failed to get the Che custom resource %s: %s", cheCR.Name, err)
+	}
+	if err = deploy.CreateIdentityProviderItems(deployContext, "che"); err != nil {
+		t.Errorf("Failed to create the items for the identity provider: %s", err)
+	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
 	oauthSecret := cheCR.Spec.Auth.OAuthSecret
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {

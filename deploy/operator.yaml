@@ -64,6 +64,10 @@ spec:
               value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
             - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
               value: quay.io/eclipse/che-jwtproxy:0.10.0
+            - name: RELATED_IMAGE_single_host_gateway
+              value: docker.io/traefik:v2.2.8
+            - name: RELATED_IMAGE_single_host_gateway_config_sidecar
+              value: quay.io/che-incubator/configbump:0.1.4
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME
