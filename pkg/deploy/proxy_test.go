@@ -27,7 +27,7 @@ const (
 	expectedNoProxy                         = "localhost,myhost.com"
 )
 
-func TestGenerateProxyJavaOpts(t *testing.T) {
+func TestGenerateProxyJavaOptsWithUsernameAndPassword(t *testing.T) {
 	proxy := &Proxy{
 		HttpProxy:    "https://user:password@myproxy.com:1234",
 		HttpUser:     "user",
@@ -57,21 +57,44 @@ func TestGenerateProxyJavaOpts(t *testing.T) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOpts, javaOpts)
 
 	}
+}
 
-	proxy = &Proxy{
-		HttpProxy: "http://user:password@myproxy.com:1234",
+func TestGenerateProxyJavaOptsWithoutAuthentication(t *testing.T) {
+	proxy := &Proxy{
+		HttpProxy: "http://myproxy.com:1234",
 		HttpHost:  "myproxy.com",
 		HttpPort:  "1234",
 
-		HttpsProxy: "https://user:password@myproxy.com:1234",
+		HttpsProxy: "https://myproxy.com:1234",
 		HttpsHost:  "myproxy.com",
 		HttpsPort:  "1234",
 
 		NoProxy: "localhost,myhost.com",
 	}
-	javaOpts, _ = GenerateProxyJavaOpts(proxy, "test-no-proxy.com")
+	javaOpts, _ := GenerateProxyJavaOpts(proxy, "test-no-proxy.com")
 	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
 		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='test-no-proxy.com'"
+
+	if !reflect.DeepEqual(javaOpts, expectedJavaOptsWithoutUsernamePassword) {
+		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
+	}
+}
+
+func TestGenerateProxyJavaOptsWildcardInNonProxyHosts(t *testing.T) {
+	proxy := &Proxy{
+		HttpProxy: "http://myproxy.com:1234",
+		HttpHost:  "myproxy.com",
+		HttpPort:  "1234",
+
+		HttpsProxy: "https://myproxy.com:1234",
+		HttpsHost:  "myproxy.com",
+		HttpsPort:  "1234",
+
+		NoProxy: ".example.com,localhost, *.wildcard.domain.com ,myhost.com , .wildcard.net , 127.* ",
+	}
+	javaOpts, _ := GenerateProxyJavaOpts(proxy, "")
+	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
+		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='*.example.com|localhost|*.wildcard.domain.com|myhost.com|*.wildcard.net|127.*'"
 
 	if !reflect.DeepEqual(javaOpts, expectedJavaOptsWithoutUsernamePassword) {
 		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)

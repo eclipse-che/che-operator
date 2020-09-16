@@ -186,7 +186,17 @@ func getSpecKeycloakDeployment(
 			if len(quotedNoProxy) != 0 {
 				quotedNoProxy += ","
 			}
-			quotedNoProxy += "\"" + strings.ReplaceAll(regexp.QuoteMeta(noProxyHost), "\\", "\\\\\\") + ";NO_PROXY\""
+
+			var noProxyEntry string
+			if strings.HasPrefix(noProxyHost, ".") {
+				noProxyEntry = ".*" + strings.ReplaceAll(regexp.QuoteMeta(noProxyHost), "\\", "\\\\\\")
+			} else if strings.HasPrefix(noProxyHost, "*.") {
+				noProxyEntry = strings.TrimPrefix(noProxyHost, "*")
+				noProxyEntry = ".*" + strings.ReplaceAll(regexp.QuoteMeta(noProxyEntry), "\\", "\\\\\\")
+			} else {
+				noProxyEntry = strings.ReplaceAll(regexp.QuoteMeta(noProxyHost), "\\", "\\\\\\")
+			}
+			quotedNoProxy += "\"" + noProxyEntry + ";NO_PROXY\""
 		}
 
 		jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"

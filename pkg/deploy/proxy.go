@@ -121,16 +121,25 @@ func ReadCheClusterProxyConfiguration(checluster *orgv1.CheCluster) (*Proxy, err
 	}, nil
 }
 
+// GenerateProxyJavaOpts converts given proxy configuration into Java format.
 func GenerateProxyJavaOpts(proxy *Proxy, noProxy string) (javaOpts string, err error) {
 	if noProxy == "" {
 		noProxy = proxy.NoProxy
 	}
+	// Remove all spaces
+	noProxy = strings.Replace(noProxy, " ", "", -1)
+	// Replace , with |
 	noProxy = strings.Replace(noProxy, ",", "|", -1)
+	// Convert .domain wildcards to Java format *.domain
+	noProxy = strings.Replace(noProxy, "|.", "|*.", -1)
+	if strings.HasPrefix(noProxy, ".") {
+		noProxy = "*" + noProxy
+	}
 
 	proxyUserPassword := ""
 	if len(proxy.HttpUser) > 1 && len(proxy.HttpPassword) > 1 {
 		proxyUserPassword = " -Dhttp.proxyUser=" + proxy.HttpUser + " -Dhttp.proxyPassword=" + proxy.HttpPassword +
-			" -Dhttps.proxyUser=" + proxy.HttpsUser + " -Dhttps.proxyPassword=" + proxy.HttpsPassword + 
+			" -Dhttps.proxyUser=" + proxy.HttpsUser + " -Dhttps.proxyPassword=" + proxy.HttpsPassword +
 			" -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes="
 	}
 
@@ -150,6 +159,7 @@ func removeProtocolPrefix(url string) string {
 	return url
 }
 
+// ConfigureProxy adds existing proxy configuration into provided transport object.
 func ConfigureProxy(deployContext *DeployContext, transport *http.Transport) {
 	config := httpproxy.Config{
 		HTTPProxy:  deployContext.Proxy.HttpProxy,
@@ -158,15 +168,15 @@ func ConfigureProxy(deployContext *DeployContext, transport *http.Transport) {
 	}
 	proxyFunc := config.ProxyFunc()
 	transport.Proxy = func(r *http.Request) (*url.URL, error) {
-		theProxyUrl, err := proxyFunc(r.URL)
+		theProxyURL, err := proxyFunc(r.URL)
 		if err != nil {
 			logrus.Warnf("Error when trying to get the proxy to access TLS endpoint URL: %s - %s", r.URL, err)
 		}
-		if theProxyUrl != nil {
-			logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyUrl, r.URL)
+		if theProxyURL != nil {
+			logrus.Infof("Using proxy: %s to access TLS endpoint URL: %s", theProxyURL, r.URL)
 		} else {
 			logrus.Infof("Proxy isn't used to access TLS endpoint URL: %s", r.URL)
 		}
-		return theProxyUrl, err
+		return theProxyURL, err
 	}
 }
