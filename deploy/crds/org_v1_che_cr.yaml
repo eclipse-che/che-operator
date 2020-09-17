@@ -72,8 +72,8 @@ spec:
     # Omit it or leave it empty to use the defaut container image provided by the operator.
     singleHostGatewayConfigSidecarImage: ''
     # The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
-    singleHostGatewayConfigMapLabels: ''
-        
+    singleHostGatewayConfigMapLabels: {}
+
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
     # otherwise a Postgres deployment is created
