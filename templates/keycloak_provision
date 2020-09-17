@@ -10,7 +10,7 @@ if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
                                         -s displayName='$realmDisplayName' \
                                         -s enabled=true \
                                         -s sslRequired=none \
-                                        -s registrationAllowed=true \
+                                        -s registrationAllowed=false \
                                         -s resetPasswordAllowed=true \
                                         -s loginTheme=$keycloakTheme \
                                         -s accountTheme=$keycloakTheme \
