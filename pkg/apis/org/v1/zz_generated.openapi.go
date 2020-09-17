@@ -11,13 +11,16 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheCluster":            schema_pkg_apis_org_v1_CheCluster(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpec":        schema_pkg_apis_org_v1_CheClusterSpec(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth":    schema_pkg_apis_org_v1_CheClusterSpecAuth(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB":      schema_pkg_apis_org_v1_CheClusterSpecDB(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly": schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer":  schema_pkg_apis_org_v1_CheClusterSpecServer(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage": schema_pkg_apis_org_v1_CheClusterSpecStorage(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheCluster":                    schema_pkg_apis_org_v1_CheCluster(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels":              schema_pkg_apis_org_v1_CheClusterLabels(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpec":                schema_pkg_apis_org_v1_CheClusterSpec(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth":            schema_pkg_apis_org_v1_CheClusterSpecAuth(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB":              schema_pkg_apis_org_v1_CheClusterSpecDB(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDevfileRegistry": schema_pkg_apis_org_v1_CheClusterSpecDevfileRegistry(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly":         schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecPluginRegistry":  schema_pkg_apis_org_v1_CheClusterSpecPluginRegistry(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer":          schema_pkg_apis_org_v1_CheClusterSpecServer(ref),
+		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage":         schema_pkg_apis_org_v1_CheClusterSpecStorage(ref),
 	}
 }
 
@@ -66,6 +69,26 @@ func schema_pkg_apis_org_v1_CheCluster(ref common.ReferenceCallback) common.Open
 	}
 }
 
+func schema_pkg_apis_org_v1_CheClusterLabels(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings related to the persistent storage used by the Che installation.",
+				Properties: map[string]spec.Schema{
+					"labels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Comma separated list of labels that can be used to organize and categorize (scope and select) objects.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -108,11 +131,23 @@ func schema_pkg_apis_org_v1_CheClusterSpec(ref common.ReferenceCallback) common.
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly"),
 						},
 					},
+					"pluginRegistry": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Configuration settings related to the devfile registry used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecPluginRegistry"),
+						},
+					},
+					"devfileRegistry": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Configuration settings related to the plugin registry used by the Che installation.",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDevfileRegistry"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecMetrics", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"},
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDevfileRegistry", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecMetrics", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecPluginRegistry", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer", "github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage"},
 	}
 }
 
@@ -227,10 +262,23 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 							Format:      "",
 						},
 					},
+					"ingress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into an Ingress",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
+					"route": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into a Route",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
 				},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"},
 	}
 }
 
@@ -310,6 +358,32 @@ func schema_pkg_apis_org_v1_CheClusterSpecDB(ref common.ReferenceCallback) commo
 	}
 }
 
+func schema_pkg_apis_org_v1_CheClusterSpecDevfileRegistry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings related to the devfile registry used by the Che installation.",
+				Properties: map[string]spec.Schema{
+					"ingress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into an Ingress",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
+					"route": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into a Route",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"},
+	}
+}
+
 func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -369,6 +443,32 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_org_v1_CheClusterSpecPluginRegistry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Configuration settings related to the plugin registry used by the Che installation.",
+				Properties: map[string]spec.Schema{
+					"ingress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into an Ingress",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
+					"route": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into a Route",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"},
 	}
 }
 
@@ -548,7 +648,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"pluginRegistryImage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Overrides the container image used in the Plugin registry deployment. This includes the image tag. Omit it or leave it empty to use the defaut container image provided by the operator.",
+							Description: "Overrides the container image used in the Plugin registry deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the operator.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -686,10 +786,23 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							},
 						},
 					},
+					"ingress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into an Ingress",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
+					"route": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Additional labels to add into a Route",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"),
+						},
+					},
 				},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterLabels"},
 	}
 }
 

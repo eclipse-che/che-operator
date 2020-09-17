@@ -47,10 +47,15 @@ type CheClusterSpec struct {
 	// Configuration settings related to the metrics collection used by the Che installation.
 	// +optional
 	Metrics CheClusterSpecMetrics `json:"metrics"`
-
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
+	// Configuration settings related to the devfile registry used by the Che installation.
+	// +optional
+	PluginRegistry CheClusterSpecPluginRegistry `json:"pluginRegistry"`
+	// Configuration settings related to the plugin registry used by the Che installation.
+	// +optional
+	DevfileRegistry CheClusterSpecDevfileRegistry `json:"devfileRegistry"`
 }
 
 // +k8s:openapi-gen=true
@@ -170,7 +175,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	PluginRegistryUrl string `json:"pluginRegistryUrl,omitempty"`
 	// Overrides the container image used in the Plugin registry deployment. This includes the image tag.
-	// Omit it or leave it empty to use the defaut container image provided by the operator.
+	// Omit it or leave it empty to use the default container image provided by the operator.
 	// +optional
 	PluginRegistryImage string `json:"pluginRegistryImage,omitempty"`
 	// Overrides the image pull policy used in the Plugin registry deployment.
@@ -262,6 +267,12 @@ type CheClusterSpecServer struct {
 	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
 	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
+	// Additional labels to add into an Ingress
+	// +optional
+	Ingress CheClusterLabels `json:"ingress,omitempty"`
+	// Additional labels to add into a Route
+	// +optional
+	Route CheClusterLabels `json:"route,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -392,6 +403,42 @@ type CheClusterSpecAuth struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
+	// Additional labels to add into an Ingress
+	// +optional
+	Ingress CheClusterLabels `json:"ingress,omitempty"`
+	// Additional labels to add into a Route
+	// +optional
+	Route CheClusterLabels `json:"route,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+// Configuration settings related to the devfile registry used by the Che installation.
+type CheClusterSpecDevfileRegistry struct {
+	// Additional labels to add into an Ingress
+	// +optional
+	Ingress CheClusterLabels `json:"ingress,omitempty"`
+	// Additional labels to add into a Route
+	// +optional
+	Route CheClusterLabels `json:"route,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+// Configuration settings related to the plugin registry used by the Che installation.
+type CheClusterSpecPluginRegistry struct {
+	// Additional labels to add into an Ingress
+	// +optional
+	Ingress CheClusterLabels `json:"ingress,omitempty"`
+	// Additional labels to add into a Route
+	// +optional
+	Route CheClusterLabels `json:"route,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+// Configuration settings related to the persistent storage used by the Che installation.
+type CheClusterLabels struct {
+	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
+	// +optional
+	Labels string `json:"labels,omitempty"`
 }
 
 // +k8s:openapi-gen=true

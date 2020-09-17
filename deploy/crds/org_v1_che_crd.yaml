@@ -129,6 +129,14 @@ spec:
                     By default this will be automatically calculated and set by the
                     operator.
                   type: string
+                ingress:
+                  description: Additional labels to add into an Ingress
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
                     setup identity federation on the OpenShift side. Auto-generated
@@ -148,6 +156,14 @@ spec:
                     user is NOT supported, and logging through it will NOT allow accessing
                     the Che Dashboard.'
                   type: boolean
+                route:
+                  description: Additional labels to add into a Route
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 updateAdminPassword:
                   description: Forces the default `admin` Che user to update password
                     on first login. Defaults to `false`.
@@ -213,6 +229,27 @@ spec:
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
               type: object
+            devfileRegistry:
+              description: Configuration settings related to the plugin registry used
+                by the Che installation.
+              properties:
+                ingress:
+                  description: Additional labels to add into an Ingress
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
+                route:
+                  description: Additional labels to add into a Route
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
+              type: object
             k8s:
               description: Configuration settings specific to Che installations made
                 on upstream Kubernetes.
@@ -265,6 +302,27 @@ spec:
                 enable:
                   description: Enables `metrics` Che server endpoint. Default to `true`.
                   type: boolean
+              type: object
+            pluginRegistry:
+              description: Configuration settings related to the devfile registry
+                used by the Che installation.
+              properties:
+                ingress:
+                  description: Additional labels to add into an Ingress
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
+                route:
+                  description: Additional labels to add into a Route
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
               type: object
             server:
               description: General configuration settings related to the Che server
@@ -386,6 +444,14 @@ spec:
                     config map will be propagated to the Che components and provide
                     particular configuration for Git.
                   type: boolean
+                ingress:
+                  description: Additional labels to add into an Ingress
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 nonProxyHosts:
                   description: List of hosts that should not use the configured proxy.
                     Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
@@ -400,7 +466,7 @@ spec:
                 pluginRegistryImage:
                   description: Overrides the container image used in the Plugin registry
                     deployment. This includes the image tag. Omit it or leave it empty
-                    to use the defaut container image provided by the operator.
+                    to use the default container image provided by the operator.
                   type: string
                 pluginRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Plugin registry
@@ -453,6 +519,14 @@ spec:
                     a proxy is required (see also the `proxyURL`, `proxyPassword`
                     and `proxySecret` fields).
                   type: string
+                route:
+                  description: Additional labels to add into a Route
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 selfSignedCert:
                   description: Deprecated. The value of this flag is ignored. Che
                     operator will automatically detect if router certificate is self-signed.

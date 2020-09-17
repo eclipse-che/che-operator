@@ -14,6 +14,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -31,10 +32,16 @@ import (
 var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return reflect.DeepEqual(x.Labels, y.Labels)
+	}),
 }
 var routeWithHostDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return reflect.DeepEqual(x.Labels, y.Labels)
+	}),
 }
 
 func SyncRouteToCluster(
@@ -42,9 +49,10 @@ func SyncRouteToCluster(
 	name string,
 	host string,
 	serviceName string,
-	servicePort int32) (*routev1.Route, error) {
+	servicePort int32,
+	additionalLabels string) (*routev1.Route, error) {
 
-	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort)
+	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, additionalLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +131,12 @@ func GetSpecRoute(
 	name string,
 	host string,
 	serviceName string,
-	servicePort int32) (*routev1.Route, error) {
+	servicePort int32,
+	additionalLabels string) (*routev1.Route, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
+	MergeLabels(labels, additionalLabels)
 	weight := int32(100)
 
 	if name == "keycloak" {

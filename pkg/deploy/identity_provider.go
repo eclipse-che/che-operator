@@ -79,7 +79,8 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 			keycloakURL = protocol + "://" + cheHost
 		} else {
 			logrus.Infof("Deploying Keycloak on %s", host)
-			ingress, err := SyncIngressToCluster(deployContext, "keycloak", host, "keycloak", 8080)
+			additionalLabels := deployContext.CheCluster.Spec.Auth.Ingress.Labels
+			ingress, err := SyncIngressToCluster(deployContext, "keycloak", host, "keycloak", 8080, additionalLabels)
 			if !tests {
 				if ingress == nil {
 					logrus.Info("Waiting on ingress 'keycloak' to be ready")
@@ -115,7 +116,8 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 			}
 		} else {
 			// create Keycloak route
-			route, err := SyncRouteToCluster(deployContext, "keycloak", "", "keycloak", 8080)
+			additionalLabels := deployContext.CheCluster.Spec.Auth.Route.Labels
+			route, err := SyncRouteToCluster(deployContext, "keycloak", "", "keycloak", 8080, additionalLabels)
 			if !tests {
 				if route == nil {
 					logrus.Info("Waiting on route 'keycloak' to be ready")
