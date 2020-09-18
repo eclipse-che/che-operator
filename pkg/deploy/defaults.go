@@ -104,6 +104,8 @@ func InitDefaultsFromEnv() {
 	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	fmt.Printf("DEBUG s390x :: Got util.GetArchitectureDependentEnv('RELATED_IMAGE_keycloak') = '%s'", util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	fmt.Printf("DEBUG s390x :: Got defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv('RELATED_IMAGE_keycloak'))= '%s'", defaultKeycloakImage)
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
@@ -159,10 +161,15 @@ func getDefaultsFromFile(defaultsPath string) *v1.Deployment {
 }
 
 func getDefaultFromEnv(envName string) string {
+
+	//old way
 	value := os.Getenv(envName)
+	// value := os.Getenv(util.GetArchitectureDependentEnv(envName)) // might be overkill to check ALL vars for an arch-specific version
 
 	if len(value) == 0 {
 		logrus.Fatalf("Failed to initialize default value: '%s'. Environment variable with default value was not found.", envName)
+		logrus.Fatalf("DEBUG s390x :: envName = '%s'", envName)
+		logrus.Fatalf("DEBUG s390x :: util.GetArchitectureDependentEnv(envName) = '%s'", util.GetArchitectureDependentEnv(envName))
 	}
 
 	return value
