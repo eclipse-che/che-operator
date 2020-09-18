@@ -17,7 +17,6 @@ import (
 	"os"
 	"testing"
 
-	util "github.com/eclipse/che-operator/pkg/util"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
