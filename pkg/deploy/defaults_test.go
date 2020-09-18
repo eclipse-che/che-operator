@@ -60,11 +60,11 @@ func init() {
 			case "RELATED_IMAGE_postgres":
 				postgresImageTest = env.Value
 			case "RELATED_IMAGE_keycloak":
-				keycloakImageTest = util.GetArchitectureDependentEnv(env.Value)
+				keycloakImageTest = env.Value
 			case "RELATED_IMAGE_keycloak_s390x":
-				keycloakImageTest = util.GetArchitectureDependentEnv(env.Value)
+				keycloakImageTest = env.Value
 			case "RELATED_IMAGE_keycloak_ppc64le":
-				keycloakImageTest = util.GetArchitectureDependentEnv(env.Value)
+				keycloakImageTest = env.Value
 			case "RELATED_IMAGE_che_workspace_plugin_broker_metadata":
 				brokerMetadataTest = env.Value
 			case "RELATED_IMAGE_che_workspace_plugin_broker_artifacts":
