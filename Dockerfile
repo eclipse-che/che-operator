@@ -32,7 +32,7 @@ COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /che-operator/templates/keycloak_provision /tmp/keycloak_provision
 COPY --from=builder /che-operator/templates/oauth_provision /tmp/oauth_provision
 # apply CVE fixes, if required
-RUN microdnf update -y libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
+RUN microdnf update -y librepo libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
 
 # append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator.Jenkinsfile)
