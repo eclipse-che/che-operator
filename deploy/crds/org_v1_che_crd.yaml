@@ -229,27 +229,6 @@ spec:
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
               type: object
-            devfileRegistry:
-              description: Configuration settings related to the plugin registry used
-                by the Che installation.
-              properties:
-                ingress:
-                  description: Additional labels to add into an Ingress
-                  properties:
-                    labels:
-                      description: Comma separated list of labels that can be used
-                        to organize and categorize (scope and select) objects.
-                      type: string
-                  type: object
-                route:
-                  description: Additional labels to add into a Route
-                  properties:
-                    labels:
-                      description: Comma separated list of labels that can be used
-                        to organize and categorize (scope and select) objects.
-                      type: string
-                  type: object
-              type: object
             k8s:
               description: Configuration settings specific to Che installations made
                 on upstream Kubernetes.
@@ -302,27 +281,6 @@ spec:
                 enable:
                   description: Enables `metrics` Che server endpoint. Default to `true`.
                   type: boolean
-              type: object
-            pluginRegistry:
-              description: Configuration settings related to the devfile registry
-                used by the Che installation.
-              properties:
-                ingress:
-                  description: Additional labels to add into an Ingress
-                  properties:
-                    labels:
-                      description: Comma separated list of labels that can be used
-                        to organize and categorize (scope and select) objects.
-                      type: string
-                  type: object
-                route:
-                  description: Additional labels to add into a Route
-                  properties:
-                    labels:
-                      description: Comma separated list of labels that can be used
-                        to organize and categorize (scope and select) objects.
-                      type: string
-                  type: object
               type: object
             server:
               description: General configuration settings related to the Che server
@@ -406,6 +364,9 @@ spec:
                     deployment. This includes the image tag. Omit it or leave it empty
                     to use the defaut container image provided by the operator.
                   type: string
+                devfileRegistryIngressLabels:
+                  description: Additional labels to add into an Ingress
+                  type: string
                 devfileRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Devfile registry
                     deployment. Defaults to 256Mi.
@@ -418,6 +379,9 @@ spec:
                   description: Overrides the image pull policy used in the Devfile
                     registry deployment. Default value is `Always` for `nightly` or
                     `latest` images, and `IfNotPresent` in other cases.
+                  type: string
+                devfileRegistryRouteLabels:
+                  description: Additional labels to add into a Route
                   type: string
                 devfileRegistryUrl:
                   description: Public URL of the Devfile registry, that serves sample,
@@ -468,6 +432,9 @@ spec:
                     deployment. This includes the image tag. Omit it or leave it empty
                     to use the default container image provided by the operator.
                   type: string
+                pluginRegistryIngressLabels:
+                  description: Additional labels to add into an Ingress
+                  type: string
                 pluginRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Plugin registry
                     deployment. Defaults to 256Mi.
@@ -480,6 +447,9 @@ spec:
                   description: Overrides the image pull policy used in the Plugin
                     registry deployment. Default value is `Always` for `nightly` or
                     `latest` images, and `IfNotPresent` in other cases.
+                  type: string
+                pluginRegistryRouteLabels:
+                  description: Additional labels to add into a Route
                   type: string
                 pluginRegistryUrl:
                   description: Public URL of the Plugin registry, that serves sample

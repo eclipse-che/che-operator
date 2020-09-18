@@ -67,7 +67,7 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 					logrus.Error(err)
 				}
 			} else {
-				additionalLabels := deployContext.CheCluster.Spec.DevfileRegistry.Ingress.Labels
+				additionalLabels := deployContext.CheCluster.Spec.Server.DevfileRegistryIngressLabels
 				ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, domain, DevfileRegistry, 8080, additionalLabels)
 				if !util.IsTestMode() {
 					if ingress == nil {
@@ -99,7 +99,7 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 				}
 			} else {
 				// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-				additionalLabels := deployContext.CheCluster.Spec.DevfileRegistry.Route.Labels
+				additionalLabels := deployContext.CheCluster.Spec.Server.DevfileRegistryRouteLabels
 				route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080, additionalLabels)
 				if !util.IsTestMode() {
 					if route == nil {

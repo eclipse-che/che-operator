@@ -50,12 +50,6 @@ type CheClusterSpec struct {
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
-	// Configuration settings related to the devfile registry used by the Che installation.
-	// +optional
-	PluginRegistry CheClusterSpecPluginRegistry `json:"pluginRegistry"`
-	// Configuration settings related to the plugin registry used by the Che installation.
-	// +optional
-	DevfileRegistry CheClusterSpecDevfileRegistry `json:"devfileRegistry"`
 }
 
 // +k8s:openapi-gen=true
@@ -163,6 +157,12 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
+	// Additional labels to add into an Ingress
+	// +optional
+	DevfileRegistryIngressLabels string `json:"devfileRegistryIngressLabels,omitempty"`
+	// Additional labels to add into a Route
+	// +optional
+	DevfileRegistryRouteLabels string `json:"devfileRegistryRouteLabels,omitempty"`
 	// Instructs the operator on whether or not to deploy a dedicated Devfile registry server.
 	// By default a dedicated devfile registry server is started.
 	// But if `externalDevfileRegistry` is `true`, then no such dedicated server will be started by the operator
@@ -188,6 +188,12 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
+	// Additional labels to add into an Ingress
+	// +optional
+	PluginRegistryIngressLabels string `json:"pluginRegistryIngressLabels,omitempty"`
+	// Additional labels to add into a Route
+	// +optional
+	PluginRegistryRouteLabels string `json:"pluginRegistryRouteLabels,omitempty"`
 	// Instructs the operator on whether or not to deploy a dedicated Plugin registry server.
 	// By default a dedicated plugin registry server is started.
 	// But if `externalPluginRegistry` is `true`, then no such dedicated server will be started by the operator
@@ -403,28 +409,6 @@ type CheClusterSpecAuth struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
-	// Additional labels to add into an Ingress
-	// +optional
-	Ingress CheClusterLabels `json:"ingress,omitempty"`
-	// Additional labels to add into a Route
-	// +optional
-	Route CheClusterLabels `json:"route,omitempty"`
-}
-
-// +k8s:openapi-gen=true
-// Configuration settings related to the devfile registry used by the Che installation.
-type CheClusterSpecDevfileRegistry struct {
-	// Additional labels to add into an Ingress
-	// +optional
-	Ingress CheClusterLabels `json:"ingress,omitempty"`
-	// Additional labels to add into a Route
-	// +optional
-	Route CheClusterLabels `json:"route,omitempty"`
-}
-
-// +k8s:openapi-gen=true
-// Configuration settings related to the plugin registry used by the Che installation.
-type CheClusterSpecPluginRegistry struct {
 	// Additional labels to add into an Ingress
 	// +optional
 	Ingress CheClusterLabels `json:"ingress,omitempty"`
