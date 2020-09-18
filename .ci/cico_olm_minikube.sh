@@ -8,7 +8,7 @@
 # SPDX-License-Identifier: EPL-2.0
 #
 
-set -e
+set -ex
 # Detect the base directory where che-operator is cloned
 SCRIPT=$(readlink -f "$0")
 export SCRIPT
@@ -52,35 +52,32 @@ function run() {
 
     # Create and start a workspace
     getCheAcessToken
-    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+    chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
     getCheAcessToken
-    chectl workspace:list
+    workspaceList=$(chectl workspace:list)
+    workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
+    chectl workspace:start $workspaceID
     waitWorkspaceStart
 }
 
 function setPrivateRegistryForDocker {
     dockerDaemonConfig="/etc/docker/daemon.json"
-    mkdir -p "/etc/docker"
-    touch "${dockerDaemonConfig}"
+    sudo mkdir -p "/etc/docker"
+    sudo touch "${dockerDaemonConfig}"
 
     config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
     echo "${config}" | sudo tee "${dockerDaemonConfig}"
 
     if [ -x "$(command -v docker)" ]; then
         echo "[INFO] Restart docker daemon to set up private registry info."
-        systemctl restart docker
+        sudo service docker restart
     fi
 }
 
-source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-installYQ
-installJQ
-install_VirtPackages
-# Docker should trust minikube private registry provided by "registry" addon
-setPrivateRegistryForDocker
-installStartDocker
 
-source ${OPERATOR_REPO}/.ci/start-minikube.sh
-installChectl
+
+echo "[INFO] Trying to get pod name of the registry proxy..."
+REGISTRY_PROXY_POD=$(kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
+setPrivateRegistryForDocker
 run

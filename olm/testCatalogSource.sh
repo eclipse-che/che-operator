@@ -126,7 +126,6 @@ buildOLMImages() {
   if [[ "${PLATFORM}" == "kubernetes" ]]
   then
     echo "[INFO]: Kubernetes platform detected"
-    eval "$(minikube docker-env)"
 
     # Build operator image
     if [ -n "${OPERATOR_IMAGE}" ];then 
@@ -151,7 +150,6 @@ buildOLMImages() {
       buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}"
     fi
 
-    minikube addons enable ingress
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
   elif [[ "${PLATFORM}" == "openshift" ]]
   then

@@ -19,8 +19,8 @@ trap "catchFinish" EXIT SIGINT
 catchFinish() {
   result=$?
   if [ "$result" != "0" ]; then
-    printInfo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
-    printInfo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
+    echo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
+    echo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
     exit 1
     getCheClusterLogs
     archiveArtifacts "che-operator-minikube-updates"
@@ -43,15 +43,6 @@ init() {
   PLATFORM="kubernetes"
   NAMESPACE="che"
   CHANNEL="stable"
-}
-
-installDependencies() {
-  installYQ
-  installJQ
-  install_VirtPackages
-  installStartDocker
-  source ${OPERATOR_REPO}/.ci/start-minikube.sh
-  installChectl
 }
 
 waitCheUpdateInstall() {
@@ -88,7 +79,7 @@ waitCheUpdateInstall() {
 
 testUpdates() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
-  printInfo "Successfully installed Eclipse Che previous version."
+  echo "Successfully installed Eclipse Che previous version."
 
   getCheAcessToken
   chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
@@ -98,6 +89,7 @@ testUpdates() {
 
   workspaceList=$(chectl workspace:list)
   workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
+  echo $workspaceID
   chectl workspace:start $workspaceID
 
   waitWorkspaceStart
@@ -105,5 +97,4 @@ testUpdates() {
 
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-installDependencies
 testUpdates

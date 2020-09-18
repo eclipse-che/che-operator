@@ -28,7 +28,8 @@ init() {
   export CHANNEL="stable"
 }
 
-waitCheUpdateInstall() {
+# Utility to wait for eclipse che to be up in Openshift
+function waitCheUpdateInstall() {
   export packageName=eclipse-che-preview-${PLATFORM}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
   export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
@@ -60,7 +61,7 @@ waitCheUpdateInstall() {
   fi
 }
 
-testUpdates() {
+function openshiftUpdates() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
 
   getCheAcessToken
@@ -86,4 +87,4 @@ testUpdates() {
 
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-testUpdates
+openshiftUpdates
