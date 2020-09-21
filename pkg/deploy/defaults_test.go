@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	util "github.com/eclipse/che-operator/pkg/util"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 )
@@ -58,12 +59,8 @@ func init() {
 				pvcJobsImageTest = env.Value
 			case "RELATED_IMAGE_postgres":
 				postgresImageTest = env.Value
-			case "RELATED_IMAGE_keycloak":
-				keycloakImageTest = env.Value
-			case "RELATED_IMAGE_keycloak_s390x":
-				keycloakImageTest = env.Value
-			case "RELATED_IMAGE_keycloak_ppc64le":
-				keycloakImageTest = env.Value
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"):
+					keycloakImageTest = env.Value
 			case "RELATED_IMAGE_che_workspace_plugin_broker_metadata":
 				brokerMetadataTest = env.Value
 			case "RELATED_IMAGE_che_workspace_plugin_broker_artifacts":
