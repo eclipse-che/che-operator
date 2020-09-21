@@ -131,7 +131,7 @@ do
 
   if [[ -n "$TAG" ]]; then
     echo "[INFO] Set tags in nightly OLM files"
-    sed -i 's/'$RELEASE'/'$TAG'/g' ${NEW_CSV}
+    sed -ri "s/(.*:\s?)7.19.0([^-])?$/\1nightly\2/" "${NEW_CSV}"
   fi
 
   if [[ $platform == "openshift" ]]; then
