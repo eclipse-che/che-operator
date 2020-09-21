@@ -18,14 +18,13 @@ function init() {
   export RAM_MEMORY=8192
   export NAMESPACE="che"
   export PLATFORM="openshift"
-
+  export OPERATOR_IMAGE=quay.io/eclipse/che-operator:nightly
   # Set operator root directory
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
     OPERATOR_REPO=${WORKSPACE};
   else
     OPERATOR_REPO=$(dirname "$SCRIPT_DIR");
   fi
-
 }
 
 # Deploy Eclipse Che
