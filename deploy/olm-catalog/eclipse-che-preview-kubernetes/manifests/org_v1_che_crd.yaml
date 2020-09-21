@@ -129,6 +129,14 @@ spec:
                     By default this will be automatically calculated and set by the
                     operator.
                   type: string
+                ingress:
+                  description: Additional labels to add into an Ingress
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
                     setup identity federation on the OpenShift side. Auto-generated
@@ -148,6 +156,14 @@ spec:
                     user is NOT supported, and logging through it will NOT allow accessing
                     the Che Dashboard.'
                   type: boolean
+                route:
+                  description: Additional labels to add into a Route
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 updateAdminPassword:
                   description: Forces the default `admin` Che user to update password
                     on first login. Defaults to `false`.
@@ -348,6 +364,9 @@ spec:
                     deployment. This includes the image tag. Omit it or leave it empty
                     to use the defaut container image provided by the operator.
                   type: string
+                devfileRegistryIngressLabels:
+                  description: Additional labels to add into an Ingress
+                  type: string
                 devfileRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Devfile registry
                     deployment. Defaults to 256Mi.
@@ -360,6 +379,9 @@ spec:
                   description: Overrides the image pull policy used in the Devfile
                     registry deployment. Default value is `Always` for `nightly` or
                     `latest` images, and `IfNotPresent` in other cases.
+                  type: string
+                devfileRegistryRouteLabels:
+                  description: Additional labels to add into a Route
                   type: string
                 devfileRegistryUrl:
                   description: Public URL of the Devfile registry, that serves sample,
@@ -386,6 +408,14 @@ spec:
                     config map will be propagated to the Che components and provide
                     particular configuration for Git.
                   type: boolean
+                ingress:
+                  description: Additional labels to add into an Ingress
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 nonProxyHosts:
                   description: List of hosts that should not use the configured proxy.
                     Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
@@ -400,7 +430,10 @@ spec:
                 pluginRegistryImage:
                   description: Overrides the container image used in the Plugin registry
                     deployment. This includes the image tag. Omit it or leave it empty
-                    to use the defaut container image provided by the operator.
+                    to use the default container image provided by the operator.
+                  type: string
+                pluginRegistryIngressLabels:
+                  description: Additional labels to add into an Ingress
                   type: string
                 pluginRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Plugin registry
@@ -414,6 +447,9 @@ spec:
                   description: Overrides the image pull policy used in the Plugin
                     registry deployment. Default value is `Always` for `nightly` or
                     `latest` images, and `IfNotPresent` in other cases.
+                  type: string
+                pluginRegistryRouteLabels:
+                  description: Additional labels to add into a Route
                   type: string
                 pluginRegistryUrl:
                   description: Public URL of the Plugin registry, that serves sample
@@ -453,6 +489,14 @@ spec:
                     a proxy is required (see also the `proxyURL`, `proxyPassword`
                     and `proxySecret` fields).
                   type: string
+                route:
+                  description: Additional labels to add into a Route
+                  properties:
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize (scope and select) objects.
+                      type: string
+                  type: object
                 selfSignedCert:
                   description: Deprecated. The value of this flag is ignored. Che
                     operator will automatically detect if router certificate is self-signed.

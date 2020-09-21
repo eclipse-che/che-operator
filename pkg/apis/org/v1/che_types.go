@@ -275,10 +275,10 @@ type CheClusterSpecServer struct {
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
 	// Additional labels to add into an Ingress
 	// +optional
-	Ingress CheClusterLabels `json:"ingress,omitempty"`
+	Ingress CheClusterSpecLabels `json:"ingress,omitempty"`
 	// Additional labels to add into a Route
 	// +optional
-	Route CheClusterLabels `json:"route,omitempty"`
+	Route CheClusterSpecLabels `json:"route,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -411,15 +411,14 @@ type CheClusterSpecAuth struct {
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
 	// Additional labels to add into an Ingress
 	// +optional
-	Ingress CheClusterLabels `json:"ingress,omitempty"`
+	Ingress CheClusterSpecLabels `json:"ingress,omitempty"`
 	// Additional labels to add into a Route
 	// +optional
-	Route CheClusterLabels `json:"route,omitempty"`
+	Route CheClusterSpecLabels `json:"route,omitempty"`
 }
 
 // +k8s:openapi-gen=true
-// Configuration settings related to the persistent storage used by the Che installation.
-type CheClusterLabels struct {
+type CheClusterSpecLabels struct {
 	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
 	// +optional
 	Labels string `json:"labels,omitempty"`
