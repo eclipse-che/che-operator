@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	util "github.com/eclipse/che-operator/pkg/util"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 )
@@ -46,25 +47,25 @@ func init() {
 			switch env.Name {
 			case "CHE_VERSION":
 				cheVersionTest = env.Value
-			case "RELATED_IMAGE_che_server":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"):
 				cheServerImageTest = env.Value
-			case "RELATED_IMAGE_plugin_registry":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"):
 				pluginRegistryImageTest = env.Value
-			case "RELATED_IMAGE_devfile_registry":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"):
 				devfileRegistryImageTest = env.Value
-			case "RELATED_IMAGE_che_tls_secrets_creation_job":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"):
 				tlsJobImageTest = env.Value
-			case "RELATED_IMAGE_pvc_jobs":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"):
 				pvcJobsImageTest = env.Value
-			case "RELATED_IMAGE_postgres":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"):
 				postgresImageTest = env.Value
-			case "RELATED_IMAGE_keycloak":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"):
 				keycloakImageTest = env.Value
-			case "RELATED_IMAGE_che_workspace_plugin_broker_metadata":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"):
 				brokerMetadataTest = env.Value
-			case "RELATED_IMAGE_che_workspace_plugin_broker_artifacts":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"):
 				brokerArtifactsTest = env.Value
-			case "RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image":
+			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"):
 				jwtProxyTest = env.Value
 			}
 		}
