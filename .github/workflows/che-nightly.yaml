@@ -28,3 +28,7 @@ jobs:
       run: /bin/bash .github/action_scripts/minishift_cert_gen.sh
     - name: Update minishift deprecated certificates and run e2e
       run: eval $(minishift oc-env) && /bin/bash .ci/cico_minishift_nightly.sh
+    - uses: actions/upload-artifact@v2
+      with:
+        name: che-nightly-artifacts
+        path: /tmp/artifacts-che

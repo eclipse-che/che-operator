@@ -26,3 +26,7 @@ jobs:
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run che operator updates minikube
       run: /bin/bash .ci/cico_olm_minikube.sh
+    - uses: actions/upload-artifact@v2
+      with:
+        name: minikube-olm-artifacts
+        path: /tmp/artifacts-che

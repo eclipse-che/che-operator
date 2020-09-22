@@ -12,6 +12,25 @@
 
 set -e
 
+#Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
+# Catch_Finish is executed after finish script.
+catchFinish() {
+  result=$?
+
+  if [ "$result" != "0" ]; then
+    echo "[ERROR] Please check the artifacts in github actions"
+    getCheClusterLogs
+    exit 1
+  fi
+
+  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  getCheClusterLogs
+
+  exit $result
+}
+
 function init() {
   export SCRIPT=$(readlink -f "$0")
   export SCRIPT_DIR=$(dirname "$SCRIPT")

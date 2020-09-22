@@ -31,3 +31,7 @@ jobs:
         oc apply -f deploy/crds/org_v1_che_crd.yaml
         go mod tidy
         go run e2e/*.go
+    - uses: actions/upload-artifact@v2
+      with:
+        name: minishift-e2e-artifacts
+        path: /tmp/artifacts-che

@@ -18,14 +18,16 @@ trap "catchFinish" EXIT SIGINT
 # Catch_Finish is executed after finish script.
 catchFinish() {
   result=$?
+
   if [ "$result" != "0" ]; then
-    echo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
-    echo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
-    exit 1
+    echo "[ERROR] Please check the artifacts in github actions"
     getCheClusterLogs
-    archiveArtifacts "che-operator-minikube-updates"
+    exit 1
   fi
-  rm -rf ~/.kube ~/.minikube
+
+  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  getCheClusterLogs
+
   exit $result
 }
 

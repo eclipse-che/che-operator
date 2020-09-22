@@ -16,6 +16,9 @@ export SCRIPT
 OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
 export OPERATOR_REPO
 
+# Import operator bash utilities
+source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+
 # Container image name of Catalog source
 CATALOG_SOURCE_IMAGE=my_image
 export CATALOG_SOURCE_IMAGE
@@ -43,12 +46,29 @@ export OPERATOR_IMAGE
 IMAGE_REGISTRY_HOST="0.0.0.0:5000"
 export IMAGE_REGISTRY_HOST
 
+#Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
+# Catch_Finish is executed after finish script.
+catchFinish() {
+  result=$?
+
+  if [ "$result" != "0" ]; then
+    echo "[ERROR] Please check the artifacts in github actions"
+    getCheClusterLogs
+    exit 1
+  fi
+
+  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  getCheClusterLogs
+
+  exit $result
+}
+
 # run function run the tests in ci of custom catalog source.
 function run() {
     # Execute test catalog source script
     source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
-
-    source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
     # Create and start a workspace
     getCheAcessToken

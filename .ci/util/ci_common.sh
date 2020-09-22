@@ -68,8 +68,8 @@ function waitWorkspaceStart() {
 
 # Utility to get all logs from che
 function getCheClusterLogs() {
-  mkdir -p /root/payload/report/che-logs
-  cd /root/payload/report/che-logs
+  mkdir -p /tmp/artifacts-che
+  cd /tmp/artifacts-che
   for POD in $(kubectl get pods -o name -n ${NAMESPACE}); do
     for CONTAINER in $(kubectl get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
       echo ""
