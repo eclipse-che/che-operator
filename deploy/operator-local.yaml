@@ -25,7 +25,7 @@ spec:
       serviceAccountName: che-operator
       containers:
         - name: che-operator
-          image: quay.io/eclipse/che-operator:nightly
+          image: quay.io/eclipse/che-operator:7.19.0
           ports:
             - containerPort: 60000
               name: metrics
@@ -44,13 +44,13 @@ spec:
             - name: OPERATOR_NAME
               value: che-operator
             - name: CHE_VERSION
-              value: nightly
+              value: 7.19.0
             - name: RELATED_IMAGE_che_server
-              value: quay.io/eclipse/che-server:nightly
+              value: quay.io/eclipse/che-server:7.19.0
             - name: RELATED_IMAGE_plugin_registry
-              value: quay.io/eclipse/che-plugin-registry:nightly
+              value: quay.io/eclipse/che-plugin-registry:7.19.0
             - name: RELATED_IMAGE_devfile_registry
-              value: quay.io/eclipse/che-devfile-registry:nightly
+              value: quay.io/eclipse/che-devfile-registry:7.19.0
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
               value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
             - name: RELATED_IMAGE_pvc_jobs
@@ -58,7 +58,7 @@ spec:
             - name: RELATED_IMAGE_postgres
               value: centos/postgresql-96-centos7:9.6
             - name: RELATED_IMAGE_keycloak
-              value: quay.io/eclipse/che-keycloak:nightly
+              value: quay.io/eclipse/che-keycloak:7.19.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
               value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
