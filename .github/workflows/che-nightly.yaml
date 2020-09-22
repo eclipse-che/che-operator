@@ -9,11 +9,11 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 
-name: Che Operator che nightly
+name: Testing latest changes
 on: pull_request
 jobs:
   minishift-e2e:
-    name: Minishift che nightly
+    name: Minishift
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1

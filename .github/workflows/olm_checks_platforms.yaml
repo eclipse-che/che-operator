@@ -10,11 +10,11 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 
-name: Che Operator olm
+name: Testing latest changes with olm
 on: pull_request
 jobs:
   minikube-e2e:
-    name: Minikube olm changes
+    name: Minikube
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1

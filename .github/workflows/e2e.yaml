@@ -12,7 +12,7 @@ name: Che Operator e2e tests
 on: pull_request
 jobs:
   minishift-e2e:
-    name: Minishift e2e
+    name: Minishift
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
@@ -31,4 +31,3 @@ jobs:
         oc apply -f deploy/crds/org_v1_che_crd.yaml
         go mod tidy
         go run e2e/*.go
-

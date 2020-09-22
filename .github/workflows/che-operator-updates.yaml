@@ -10,7 +10,7 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 
-name: Che Operator Updates
+name: Testing stable versions updates
 on: pull_request
 jobs:
   minikube-e2e:
@@ -27,7 +27,7 @@ jobs:
     - name: Run che operator updates minikube
       run: /bin/bash .ci/cico_updates_minikube.sh
   minishift-update:
-    name: Minishift update
+    name: Minishift
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1

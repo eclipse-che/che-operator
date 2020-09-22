@@ -1,100 +1,72 @@
 #!/bin/bash
 #
-# Copyright (c) 2020 Red Hat, Inc.
+# Copyright (c) 2012-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Contributors:
-#   Red Hat, Inc. - initial API and implementation
 
-set -ex
+set -e
 
-#Stop execution on any error
-trap "catchFinish" EXIT SIGINT
+# Detect the base directory where che-operator is cloned
+SCRIPT=$(readlink -f "$0")
+export SCRIPT
 
-# Catch_Finish is executed after finish script.
-catchFinish() {
-  result=$?
-  if [ "$result" != "0" ]; then
-    echo "Failed on running tests. Please check logs or contact QE team (e-mail:codereadyqe-workspaces-qe@redhat.com, Slack: #che-qe-internal, Eclipse mattermost: 'Eclipse Che QE'"
-    echo "Logs should be availabe on http://artifacts.ci.centos.org/devtools/che/che-eclipse-minikube-updates/${ghprbPullId}/"
-    exit 1
-    getCheClusterLogs
-    archiveArtifacts "che-operator-minikube-updates"
-  fi
-  rm -rf ~/.kube ~/.minikube
-  exit $result
+OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
+export OPERATOR_REPO
+
+# ENV used by Openshift CI
+ARTIFACTS_DIR="/tmp/artifacts"
+export ARTIFACTS_DIR
+
+# Component is defined in Openshift CI job configuration. See: https://github.com/openshift/release/blob/master/ci-operator/config/devfile/devworkspace-operator/devfile-devworkspace-operator-master__v4.yaml#L8
+CI_COMPONENT="che-operator-catalog"
+export CI_COMPONENT
+
+CATALOG_SOURCE_IMAGE_NAME=${CI_COMPONENT}:stable
+export CATALOG_SOURCE_IMAGE_NAME
+
+# This image is builded by Openshift CI and exposed to be consumed for olm tests.
+#OPENSHIFT_BUILD_NAMESPACE env var exposed by Openshift CI. More info about how images are builded in Openshift CI: https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+CATALOG_SOURCE_IMAGE="che-catalog"
+export CATALOG_SOURCE_IMAGE
+
+# Choose if install Eclipse Che using an operatorsource or Custom Catalog Source
+INSTALLATION_TYPE="catalog"
+export INSTALLATION_TYPE
+
+# Execute olm nightly files in openshift
+PLATFORM="openshift"
+export PLATFORM
+
+# Test nightly olm files
+CHANNEL="nightly"
+export CHANNEL
+
+# Test nightly olm files
+NAMESPACE="che"
+export NAMESPACE
+
+# run function run the tests in ci of custom catalog source.
+function run() {
+    # Execute test catalog source script
+    source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
+
+    source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+    oc project ${NAMESPACE}
+
+    # Create and start a workspace
+    getCheAcessToken
+    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+
+    getCheAcessToken
+    chectl workspace:list
+    waitWorkspaceStart
 }
 
-init() {
-  SCRIPT=$(readlink -f "$0")
-  SCRIPT_DIR=$(dirname "$SCRIPT")
+run
 
-  if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
-    OPERATOR_REPO=${WORKSPACE};
-  else
-    OPERATOR_REPO=$(dirname "$SCRIPT_DIR");
-  fi
-
-  RAM_MEMORY=8192
-  PLATFORM="kubernetes"
-  NAMESPACE="che"
-  CHANNEL="stable"
-}
-
-waitCheUpdateInstall() {
-  export packageName=eclipse-che-preview-${PLATFORM}
-  export platformPath=${OPERATOR_REPO}/olm/${packageName}
-  export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
-  export packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
-
-  export lastCSV=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${packageFilePath}")
-  export lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
-
-  echo -e "\u001b[34m Check installation last version che-operator...$lastPackageVersion \u001b[0m"
-
-  export n=0
-
-  while [ $n -le 360 ]
-  do
-    cheVersion=$(kubectl get checluster/eclipse-che -n "${NAMESPACE}" -o jsonpath={.status.cheVersion})
-    if [ "${cheVersion}" == $lastPackageVersion ]
-    then
-      echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
-      break
-    fi
-    sleep 3
-    n=$(( n+1 ))
-  done
-
-  if [ $n -gt 360 ]
-  then
-    echo "Latest version install for Eclipse che failed."
-    exit 1
-  fi
-}
-
-testUpdates() {
-  "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
-  echo "Successfully installed Eclipse Che previous version."
-
-  getCheAcessToken
-  chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
-
-  waitCheUpdateInstall
-  getCheAcessToken
-
-  workspaceList=$(chectl workspace:list)
-  workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
-  echo $workspaceID
-  chectl workspace:start $workspaceID
-
-  waitWorkspaceStart
-}
-
-init
-source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-testUpdates
+# grab che-operator namespace events after running olm nightly tests
+oc get events -n ${NAMESPACE} | tee ${ARTIFACTS_DIR}/che-operator-events.log
