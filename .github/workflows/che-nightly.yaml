@@ -23,7 +23,7 @@ jobs:
         export OPERATOR_IMAGE=quay.io/eclipse/che-operator:test
 
         brew install docker-machine docker
-        docker-machine create --driver virtualbox default
+        docker-machine --github-api-token=${{ secrets.GITHUB_TOKEN }} create --driver virtualbox default
         eval "$(docker-machine env default)"
 
         docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
