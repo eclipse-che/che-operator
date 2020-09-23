@@ -16,6 +16,17 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Build operator image
+      run: |
+        export OPERATOR_IMAGE=quay.io/eclipse/che-operator:test
+
+        brew install docker-machine docker
+        docker-machine create --driver virtualbox default
+        eval "$(docker-machine env default)"
+        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+        sed -i'.bak' -e "s|quay.io\/eclipse\/che-operator:nightly|$OPERATOR_IMAGE|" deploy/operator-local.yaml
+
+        docker-machine stop
     - name: Install and start minishift OCP 3.11 cluster
       run: |
         brew cask install minishift
@@ -26,11 +37,16 @@ jobs:
     - name: Update minishift deprecated certificates and run e2e
       run: |
         eval $(minishift oc-env)
+        eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
 
         # Run E2E tests
+        cat deploy/operator-local.yaml
+
         oc apply -f deploy/crds/org_v1_che_crd.yaml
         go mod tidy
         go run e2e/*.go
+
+        oc get events -n che
     - uses: actions/upload-artifact@v2
       with:
         name: minishift-e2e-artifacts

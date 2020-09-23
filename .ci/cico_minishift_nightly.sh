@@ -37,7 +37,8 @@ function init() {
   export RAM_MEMORY=8192
   export NAMESPACE="che"
   export PLATFORM="openshift"
-  export OPERATOR_IMAGE=quay.io/eclipse/che-operator:nightly
+  export CLI_TOOL="oc"
+
   # Set operator root directory
   if [[ ${WORKSPACE} ]] && [[ -d ${WORKSPACE} ]]; then
     OPERATOR_REPO=${WORKSPACE};
@@ -56,6 +57,17 @@ spec:
 EOL
     echo "======= Che cr patch ======="
     cat /tmp/che-cr-patch.yaml
+
+    # OPERATOR_IMAGE In CI is defined in .github/workflows/che-nightly.yaml
+    if [[ ! -z "${OPERATOR_IMAGE}" ]]; then
+      OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
+    fi
+
+    cat deploy/operator.yaml | \
+      sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
+      sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
+      oc apply -n ${NAMESPACE} -f -
+
     chectl server:start --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
 
     # Create and start a workspace
