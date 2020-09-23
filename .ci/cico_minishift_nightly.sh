@@ -25,7 +25,7 @@ catchFinish() {
     exit 1
   fi
 
-  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  echo "[INFO] Job finished Successfully.Please check the artifacts in github actions"
   getOCCheClusterLogs
 
   exit $result

@@ -43,8 +43,6 @@ minikube config set WantNoneDriverWarning false
 minikube config set vm-driver none
 minikube version
 
-sudo ufw disable
-
 # minikube start
 sudo minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf
 sudo chown -R $USER $HOME/.kube $HOME/.minikube

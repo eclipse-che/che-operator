@@ -22,13 +22,12 @@ init() {
     export OPERATOR_REPO=$(dirname "$SCRIPT_DIR");
   fi
 
-  export RAM_MEMORY=8192
   export PLATFORM="openshift"
   export NAMESPACE="che"
   export CHANNEL="stable"
 }
 
-# Utility to wait for eclipse che to be up in Openshift
+# Utility to wait for Eclipse Che to be up in Openshift
 function waitCheUpdateInstall() {
   export packageName=eclipse-che-preview-${PLATFORM}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
@@ -56,7 +55,7 @@ function waitCheUpdateInstall() {
 
   if [ $n -gt 360 ]
   then
-    echo "Latest version install for Eclipse che failed."
+    echo "[ERROR] Latest version install for Eclipse Che failed."
     exit 1
   fi
 }

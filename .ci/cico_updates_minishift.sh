@@ -25,7 +25,7 @@ catchFinish() {
     exit 1
   fi
 
-  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  echo "[INFO] Job finished Successfully.Please check the artifacts in github actions"
   getOCCheClusterLogs
 
   exit $result
@@ -147,7 +147,7 @@ function minishiftUpdates() {
   # Grep applied to MacOS
   workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
   workspaceID="${workspaceID%'ID'}"
-  echo $workspaceID
+  echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
 
   chectl workspace:start $workspaceID
 

@@ -59,7 +59,7 @@ catchFinish() {
     exit 1
   fi
 
-  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  echo "[INFO] Job finished Successfully.Please check the artifacts in github actions"
   getCheClusterLogs
 
   exit $result
@@ -95,7 +95,5 @@ function setPrivateRegistryForDocker {
     fi
 }
 
-echo "[INFO] Trying to get pod name of the registry proxy..."
-REGISTRY_PROXY_POD=$(kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
 setPrivateRegistryForDocker
 run

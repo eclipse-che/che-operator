@@ -16,7 +16,7 @@ set -ex
 trap "catchFinish" EXIT SIGINT
 
 # Catch_Finish is executed after finish script.
-catchFinish() {
+function catchFinish() {
   result=$?
 
   if [ "$result" != "0" ]; then
@@ -25,13 +25,13 @@ catchFinish() {
     exit 1
   fi
 
-  echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
+  echo "[INFO] Job finished Successfully.Please check the artifacts in github actions"
   getCheClusterLogs
 
   exit $result
 }
 
-init() {
+function init() {
   SCRIPT=$(readlink -f "$0")
   SCRIPT_DIR=$(dirname "$SCRIPT")
 
@@ -47,7 +47,7 @@ init() {
   CHANNEL="stable"
 }
 
-waitCheUpdateInstall() {
+function waitCheUpdateInstall() {
   export packageName=eclipse-che-preview-${PLATFORM}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
   export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
@@ -74,14 +74,14 @@ waitCheUpdateInstall() {
 
   if [ $n -gt 360 ]
   then
-    echo "Latest version install for Eclipse che failed."
+    echo "[ERROR] Latest version install for Eclipse che failed."
     exit 1
   fi
 }
 
-testUpdates() {
+function testUpdates() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE}
-  echo "Successfully installed Eclipse Che previous version."
+  echo "[INFO] Successfully installed Eclipse Che previous version."
 
   getCheAcessToken
   chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
@@ -91,7 +91,7 @@ testUpdates() {
 
   workspaceList=$(chectl workspace:list)
   workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
-  echo $workspaceID
+  echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
   chectl workspace:start $workspaceID
 
   waitWorkspaceStart
