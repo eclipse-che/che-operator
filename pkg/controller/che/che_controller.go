@@ -782,7 +782,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if err != nil {
 				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistry, err)
 			}
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -792,7 +792,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if err != nil {
 				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistry, err)
 			}
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{}, err
 		}
 	}
 

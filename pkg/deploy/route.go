@@ -77,16 +77,18 @@ func SyncRouteToCluster(
 	}
 	diff := cmp.Diff(clusterRoute, specRoute, diffOpts)
 	if len(diff) > 0 {
+		logrus.Infof("Deleting existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
+		fmt.Printf("Difference:\n%s", diff)
+
 		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterRoute)
 		if !errors.IsNotFound(err) {
 			return nil, err
 		}
 
-		fmt.Printf("Deleting existed object: %s, name: %s.\nDifference:\n%s", clusterRoute.Kind, clusterRoute.Name, diff)
 		return nil, err
 	}
 
-	return clusterRoute, err
+	return clusterRoute, nil
 }
 
 func DeleteRouteIfExists(name string, deployContext *DeployContext) error {
