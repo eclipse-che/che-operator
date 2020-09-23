@@ -71,20 +71,15 @@ function getCheClusterLogs() {
   mkdir -p /tmp/artifacts-che
   cd /tmp/artifacts-che
 
-  # OPERATOR_IMAGE In CI is defined in .github/workflows/che-nightly.yaml
-  if [[ "${CLI_TOOL}" == "oc" ]]; then
-    CLI_TOOL="kubectl"
-  fi
-
-  for POD in $($CLI_TOOL get pods -o name -n ${NAMESPACE}); do
-    for CONTAINER in $($CLI_TOOL get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+  for POD in $(kubectl get pods -o name -n ${NAMESPACE}); do
+    for CONTAINER in $(kubectl get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
       echo ""
       echo "[INFO] Getting logs from $POD"
       echo ""
-      $CLI_TOOL logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+      kubectl logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
     done
   done
   echo "[INFO] Get events"
-  $CLI_TOOL get events -n ${NAMESPACE}| tee get_events.log
-  $CLI_TOOL get all | tee get_all.log
+  kubectl get events -n ${NAMESPACE}| tee get_events.log
+  kubectl get all | tee get_all.log
 }

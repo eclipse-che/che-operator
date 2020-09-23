@@ -21,12 +21,12 @@ catchFinish() {
 
   if [ "$result" != "0" ]; then
     echo "[ERROR] Please check the artifacts in github actions"
-    getCheClusterLogs
+    getOCCheClusterLogs
     exit 1
   fi
 
   echo "[INFO] JOb finished Successfully.Please check the artifacts in github actions"
-  getCheClusterLogs
+  getOCCheClusterLogs
 
   exit $result
 }
@@ -103,6 +103,24 @@ function waitForNewCheVersion() {
     echo "Latest version install for Eclipse che failed."
     exit 1
   fi
+}
+
+# Utility to get che events and pod logs from openshift
+function getOCCheClusterLogs() {
+  mkdir -p /tmp/artifacts-che
+  cd /tmp/artifacts-che
+
+  for POD in $(oc get pods -o name -n ${NAMESPACE}); do
+    for CONTAINER in $(oc get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+      echo ""
+      echo "[INFO] Getting logs from $POD"
+      echo ""
+      oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+    done
+  done
+  echo "[INFO] Get events"
+  oc get events -n ${NAMESPACE}| tee get_events.log
+  oc get all | tee get_all.log
 }
 
 function minishiftUpdates() {

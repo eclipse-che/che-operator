@@ -65,7 +65,7 @@ rules:
     verbs: ["*"]
 EOF
 
-echo "[INFO] Enable registry addon."
+echo "[INFO] Enable ingress addon."
 sudo minikube addons enable ingress
 
 echo "[INFO] Enable registry addon."
