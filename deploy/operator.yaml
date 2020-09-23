@@ -73,7 +73,7 @@ spec:
             - name: CONSOLE_LINK_NAME
               value: che
             - name: CONSOLE_LINK_DISPLAY_NAME
-              value: Eclipse Che
+              value: Eclipse Che TEST
             - name: CONSOLE_LINK_SECTION
               value: Red Hat Applications
             - name: CONSOLE_LINK_IMAGE

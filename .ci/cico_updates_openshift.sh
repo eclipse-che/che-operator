@@ -41,7 +41,7 @@ waitCheUpdateInstall() {
 
   export n=0
 
-  while [ $n -le 360 ]
+  while [ $n -le 420 ]
   do
     cheVersion=$(kubectl get checluster/eclipse-che -n "${NAMESPACE}" -o jsonpath={.status.cheVersion})
     if [ "${cheVersion}" == $lastPackageVersion ]
