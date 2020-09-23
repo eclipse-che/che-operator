@@ -81,11 +81,6 @@ func SyncRouteToCluster(
 		fmt.Printf("Difference:\n%s", diff)
 
 		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterRoute)
-		if err != nil {
-			return nil, err
-		}
-
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specRoute)
 		return nil, err
 	}
 
@@ -136,12 +131,13 @@ func GetSpecRoute(
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
-	MergeLabels(labels, additionalLabels)
-	weight := int32(100)
-
 	if name == "keycloak" {
 		labels = GetLabels(deployContext.CheCluster, name)
 	}
+
+	MergeLabels(labels, additionalLabels)
+	weight := int32(100)
+
 	targetPort := intstr.IntOrString{
 		Type:   intstr.Int,
 		IntVal: int32(servicePort),
