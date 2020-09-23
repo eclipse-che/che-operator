@@ -72,7 +72,7 @@ function getCheClusterLogs() {
   cd /tmp/artifacts-che
 
   # OPERATOR_IMAGE In CI is defined in .github/workflows/che-nightly.yaml
-  if [[ ! -z "${CLI_TOOL}" ]]; then
+  if [[ "${CLI_TOOL}" == "oc" ]]; then
     CLI_TOOL="kubectl"
   fi
 

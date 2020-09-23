@@ -59,9 +59,7 @@ EOL
     cat /tmp/che-cr-patch.yaml
 
     # OPERATOR_IMAGE In CI is defined in .github/workflows/che-nightly.yaml
-    if [[ ! -z "${OPERATOR_IMAGE}" ]]; then
-      OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
-    fi
+    export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
     cat deploy/operator.yaml | \
       sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
