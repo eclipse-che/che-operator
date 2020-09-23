@@ -78,7 +78,6 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 
 			keycloakURL = protocol + "://" + cheHost
 		} else {
-			logrus.Infof("Deploying Keycloak on %s", host)
 			additionalLabels := deployContext.CheCluster.Spec.Auth.Ingress.Labels
 			ingress, err := SyncIngressToCluster(deployContext, "keycloak", host, "keycloak", 8080, additionalLabels)
 			if !tests {
@@ -91,8 +90,6 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 					return false, err
 				}
 			}
-
-			logrus.Infof("Deployed Keycloak on %s", ingress.Spec.Rules[0].Host)
 
 			if err := DeleteGatewayRouteConfig(keycloakGatewayConfig, deployContext); !tests && err != nil {
 				logrus.Error(err)
