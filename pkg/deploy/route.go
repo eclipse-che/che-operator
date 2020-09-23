@@ -77,10 +77,12 @@ func SyncRouteToCluster(
 	}
 	diff := cmp.Diff(clusterRoute, specRoute, diffOpts)
 	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
-		fmt.Printf("Difference:\n%s", diff)
-
 		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterRoute)
+		if !errors.IsNotFound(err) {
+			return nil, err
+		}
+
+		fmt.Printf("Deleting existed object: %s, name: %s.\nDifference:\n%s", clusterRoute.Kind, clusterRoute.Name, diff)
 		return nil, err
 	}
 
@@ -95,7 +97,7 @@ func DeleteRouteIfExists(name string, deployContext *DeployContext) error {
 
 	if ingress != nil {
 		err = deployContext.ClusterAPI.Client.Delete(context.TODO(), ingress)
-		if err != nil {
+		if !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -134,8 +136,8 @@ func GetSpecRoute(
 	if name == "keycloak" {
 		labels = GetLabels(deployContext.CheCluster, name)
 	}
-
 	MergeLabels(labels, additionalLabels)
+
 	weight := int32(100)
 
 	targetPort := intstr.IntOrString{
