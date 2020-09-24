@@ -51,6 +51,7 @@ export NAMESPACE
 
 # run function run the tests in ci of custom catalog source.
 function run() {
+    export OAUTH="false"
     # Execute test catalog source script
     source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
 

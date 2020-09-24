@@ -167,7 +167,7 @@ buildOLMImages() {
     pull_user="puller"
     pull_password="puller"
     add_user "${pull_user}" "${pull_password}"
-    
+
     if [ -z "${KUBECONFIG}" ]; then
       KUBECONFIG="${HOME}/.kube/config"
     fi
@@ -282,9 +282,11 @@ function add_user {
   cat "${HT_PASSWD_FILE}"
   echo "==================================="
 
+  if ! kubectl get secret htpass-secret -n openshift-config 2>/dev/null; then
   kubectl create secret generic htpass-secret \
     --from-file=htpasswd="${HT_PASSWD_FILE}" \
     -n openshift-config
+  fi
 
 cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
 apiVersion: config.openshift.io/v1
