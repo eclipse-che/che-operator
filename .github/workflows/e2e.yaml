@@ -19,10 +19,13 @@ jobs:
     - name: Build operator image
       run: |
         export OPERATOR_IMAGE=quay.io/eclipse/che-operator:test
+        # coreutils provides a readlink that supports `-f`
 
-        brew install docker-machine docker
+        brew install coreutils docker docker-machine
         docker-machine --github-api-token="${{ secrets.GITHUB_TOKEN }}" create --driver virtualbox default
         eval "$(docker-machine env default)"
+        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+
         docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
         sed -i'.bak' -e "s|quay.io\/eclipse\/che-operator:nightly|$OPERATOR_IMAGE|" deploy/operator-local.yaml
 
