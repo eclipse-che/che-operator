@@ -104,7 +104,7 @@ func createNamespace(ns *corev1.Namespace) (err error) {
 
 	ns, err = client.clientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
-		logrus.Fatalf("Failed to create namespace %s: %s", ns.Name, err)
+		logrus.Warn(err)
 		return err
 	}
 	return nil

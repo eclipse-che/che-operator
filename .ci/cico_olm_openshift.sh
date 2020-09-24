@@ -30,7 +30,7 @@ export CATALOG_SOURCE_IMAGE_NAME
 
 # This image is builded by Openshift CI and exposed to be consumed for olm tests.
 #OPENSHIFT_BUILD_NAMESPACE env var exposed by Openshift CI. More info about how images are builded in Openshift CI: https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
-CATALOG_SOURCE_IMAGE=registry.svc.ci.openshift.org/${OPENSHIFT_BUILD_NAMESPACE}/${CATALOG_SOURCE_IMAGE_NAME}
+CATALOG_SOURCE_IMAGE="che-catalog"
 export CATALOG_SOURCE_IMAGE
 
 # Choose if install Eclipse Che using an operatorsource or Custom Catalog Source
