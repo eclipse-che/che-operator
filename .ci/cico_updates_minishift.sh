@@ -10,16 +10,28 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-set -ex
+set -e
 
-trap 'Catch_Finish $?' EXIT SIGINT
+#Stop execution on any error
+trap "catchFinish" EXIT SIGINT
 
-# Catch errors and force to delete minishift VM.
-Catch_Finish() {
-  rm -rf ${OPERATOR_REPO}/tmp ~/.minishift && yes | minishift delete
+# Catch_Finish is executed after finish script.
+catchFinish() {
+  result=$?
+
+  if [ "$result" != "0" ]; then
+    echo "[ERROR] Please check the artifacts in github actions"
+    getOCCheClusterLogs
+    exit 1
+  fi
+
+  echo "[INFO] Job finished Successfully.Please check the artifacts in github actions"
+  getOCCheClusterLogs
+
+  exit $result
 }
 
-init() {
+function init() {
   export SCRIPT=$(readlink -f "$0")
   export SCRIPT_DIR=$(dirname "$SCRIPT")
   export RAM_MEMORY=8192
@@ -38,19 +50,7 @@ init() {
   cp -rf "${OPERATOR_REPO}/deploy" "${OPERATOR_REPO}/tmp/che-operator"
 }
 
-installDependencies() {
-  installYQ
-  installJQ
-  install_VirtPackages
-  installStartDocker
-  start_libvirt
-  setup_kvm_machine_driver
-  minishift_installation
-  installChectl
-  load_jenkins_vars
-}
-
-installLatestCheStable() {
+function installLatestCheStable() {
   # Get Stable and new release versions from olm files openshift.
   export packageName=eclipse-che-preview-${PLATFORM}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
@@ -63,22 +63,25 @@ installLatestCheStable() {
   export previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
   # Add stable Che images and tag to CR
-  sed -i "s/cheImage: ''/cheImage: quay.io\/eclipse\/che-server/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
-  sed -i "s/cheImageTag: ''/cheImageTag: ${previousPackageVersion}/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
+  sed -i'.bak' -e "s/cheImage: ''/cheImage: quay.io\/eclipse\/che-server/" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
+  sed -i'.bak' -e "s/cheImageTag: ''/cheImageTag: ${previousPackageVersion}/" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
+  
   # set 'openShiftoAuth: false'
-  sed -i "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
+  sed -i'.bak' -e "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
+  cat ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
 
   # Change operator images defaults in the deployment
-  sed -i -e "s|nightly|${previousPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+  sed -i'.bak' -e "s|nightly|${previousPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+  cat "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
 
   # Start last stable version of che
   chectl server:start --platform=minishift --skip-kubernetes-health-check \
-  --che-operator-cr-yaml="${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml" --templates="${OPERATOR_REPO}/tmp" \
-  --installer=operator
+    --che-operator-cr-yaml="${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml" --templates="${OPERATOR_REPO}/tmp" \
+    --installer=operator
 }
 
 # Utility to wait for new release to be up
-waitForNewCheVersion() {
+function waitForNewCheVersion() {
   export n=0
 
   while [ $n -le 500 ]
@@ -102,30 +105,26 @@ waitForNewCheVersion() {
   fi
 }
 
-self_signed_minishift() {
-  export DOMAIN=*.$(minishift ip).nip.io
+# Utility to get che events and pod logs from openshift
+function getOCCheClusterLogs() {
+  mkdir -p /tmp/artifacts-che
+  cd /tmp/artifacts-che
 
-  source ${OPERATOR_REPO}/.ci/util/che-cert-generation.sh
-
-  #Configure Router with generated certificate:
-
-  oc login -u system:admin --insecure-skip-tls-verify=true
-  oc project default
-  oc delete secret router-certs
-
-  cat domain.crt domain.key > minishift.crt
-  oc create secret tls router-certs --key=domain.key --cert=minishift.crt
-  oc rollout latest router
-
-  oc create namespace che
-
-  cp rootCA.crt ca.crt
-  oc create secret generic self-signed-certificate --from-file=ca.crt -n=che
+  for POD in $(oc get pods -o name -n ${NAMESPACE}); do
+    for CONTAINER in $(oc get -n ${NAMESPACE} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+      echo ""
+      echo "[INFO] Getting logs from $POD"
+      echo ""
+      oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} |tee $(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+    done
+  done
+  echo "[INFO] Get events"
+  oc get events -n ${NAMESPACE}| tee get_events.log
+  oc get all | tee get_all.log
 }
 
-testUpdates() {
+function minishiftUpdates() {
   # Install previous stable version of Eclipse Che
-  self_signed_minishift
   installLatestCheStable
 
   # Create an workspace
@@ -133,7 +132,8 @@ testUpdates() {
   chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
 
   # Change operator images defaults in the deployment
-  sed -i -e "s|${previousPackageVersion}|${lastPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+  sed -i'.bak' -e "s|${previousPackageVersion}|${lastPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+
   # Update the operator to the new release
   chectl server:update --skip-version-check --installer=operator --platform=minishift --templates="${OPERATOR_REPO}/tmp"
 
@@ -141,8 +141,14 @@ testUpdates() {
   waitForNewCheVersion
 
   getCheAcessToken # Function from ./util/ci_common.sh
+  chectl workspace:list
   workspaceList=$(chectl workspace:list)
-  workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
+
+  # Grep applied to MacOS
+  workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
+  workspaceID="${workspaceID%'ID'}"
+  echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
+
   chectl workspace:start $workspaceID
 
   # Wait for workspace to be up
@@ -152,5 +158,4 @@ testUpdates() {
 
 init
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-installDependencies
-testUpdates
+minishiftUpdates

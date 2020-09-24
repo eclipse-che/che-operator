@@ -32,12 +32,6 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
   chmod +x minikube && \
   sudo mv minikube /usr/local/bin/
 
-# Configure firewall rules for docker0 network
-firewall-cmd --permanent --zone=trusted --add-interface=docker0
-firewall-cmd --reload
-firewall-cmd --get-active-zones
-firewall-cmd --list-all --zone=trusted
-
 # Create kube folder
 mkdir "${HOME}"/.kube || true
 touch "${HOME}"/.kube/config
@@ -50,10 +44,10 @@ minikube config set vm-driver none
 minikube version
 
 # minikube start
-minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver.authorization-mode=RBAC
+sudo minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf
+sudo chown -R $USER $HOME/.kube $HOME/.minikube
 
-# waiting for node(s) to be ready
-JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
+minikube update-context
 
 #Give god access to the k8s API
 kubectl apply -f - <<EOF
@@ -67,21 +61,20 @@ rules:
     verbs: ["get", "list", "watch"]
   - nonResourceURLs: ["*"]
     verbs: ["*"]
-
 EOF
 
 echo "[INFO] Enable ingress addon."
-minikube addons enable ingress
+sudo minikube addons enable ingress
 
 echo "[INFO] Enable registry addon."
-minikube addons enable registry
+sudo minikube addons enable registry
 
 echo "[INFO] Minikube Addon list"
-minikube addons  list
+sudo minikube addons  list
 
 echo "[INFO] Trying to get pod name of the registry proxy..."
-REGISTRY_PROXY_POD=$(kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
+REGISTRY_PROXY_POD=$(sudo kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
 echo "[INFO] Proxy pod name is ${REGISTRY_PROXY_POD}"
-kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "kube-system" || true
+sudo kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "kube-system" || true
 
 echo "[INFO] Minikube started!"

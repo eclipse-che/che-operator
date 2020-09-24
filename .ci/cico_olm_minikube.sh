@@ -8,13 +8,16 @@
 # SPDX-License-Identifier: EPL-2.0
 #
 
-set -e
+set -ex
 # Detect the base directory where che-operator is cloned
 SCRIPT=$(readlink -f "$0")
 export SCRIPT
 
 OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")");
 export OPERATOR_REPO
+
+# Import operator bash utilities
+source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
 # Container image name of Catalog source
 CATALOG_SOURCE_IMAGE=my_image
@@ -43,44 +46,54 @@ export OPERATOR_IMAGE
 IMAGE_REGISTRY_HOST="0.0.0.0:5000"
 export IMAGE_REGISTRY_HOST
 
+#Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
+# Catch_Finish is executed after finish script.
+catchFinish() {
+  result=$?
+
+  if [ "$result" != "0" ]; then
+    echo "[ERROR] Please check the artifacts in github actions"
+    getCheClusterLogs
+    exit 1
+  fi
+
+  echo "[INFO] Job finished Successfully.Please check the artifacts in github actions"
+  getCheClusterLogs
+
+  exit $result
+}
+
 # run function run the tests in ci of custom catalog source.
 function run() {
     # Execute test catalog source script
     source "${OPERATOR_REPO}"/olm/testCatalogSource.sh ${PLATFORM} ${CHANNEL} ${NAMESPACE} ${INSTALLATION_TYPE} ${CATALOG_SOURCE_IMAGE}
 
-    source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-
     # Create and start a workspace
     getCheAcessToken
-    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+    chectl workspace:create --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
     getCheAcessToken
-    chectl workspace:list
+    workspaceList=$(chectl workspace:list)
+    workspaceID=$(echo "$workspaceList" | grep -oP '\bworkspace.*?\b')
+    chectl workspace:start $workspaceID
     waitWorkspaceStart
 }
 
 function setPrivateRegistryForDocker {
     dockerDaemonConfig="/etc/docker/daemon.json"
-    mkdir -p "/etc/docker"
-    touch "${dockerDaemonConfig}"
+    sudo mkdir -p "/etc/docker"
+    sudo touch "${dockerDaemonConfig}"
 
     config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
     echo "${config}" | sudo tee "${dockerDaemonConfig}"
 
     if [ -x "$(command -v docker)" ]; then
         echo "[INFO] Restart docker daemon to set up private registry info."
-        systemctl restart docker
+        sudo service docker restart
     fi
 }
 
-source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
-installYQ
-installJQ
-install_VirtPackages
-# Docker should trust minikube private registry provided by "registry" addon
 setPrivateRegistryForDocker
-installStartDocker
-
-source ${OPERATOR_REPO}/.ci/start-minikube.sh
-installChectl
 run
