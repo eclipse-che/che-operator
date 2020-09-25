@@ -130,7 +130,7 @@ spec:
                     operator.
                   type: string
                 ingress:
-                  description: Additional labels to add into an Ingress
+                  description: Ingress custom settings
                   properties:
                     labels:
                       description: Comma separated list of labels that can be used
@@ -157,7 +157,7 @@ spec:
                     the Che Dashboard.'
                   type: boolean
                 route:
-                  description: Additional labels to add into a Route
+                  description: Route custom settings
                   properties:
                     labels:
                       description: Comma separated list of labels that can be used
@@ -409,7 +409,7 @@ spec:
                     particular configuration for Git.
                   type: boolean
                 ingress:
-                  description: Additional labels to add into an Ingress
+                  description: Ingress custom settings
                   properties:
                     labels:
                       description: Comma separated list of labels that can be used
@@ -490,7 +490,7 @@ spec:
                     and `proxySecret` fields).
                   type: string
                 route:
-                  description: Additional labels to add into a Route
+                  description: Route custom settings
                   properties:
                     labels:
                       description: Comma separated list of labels that can be used
