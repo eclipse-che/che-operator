@@ -27,7 +27,7 @@ import (
 )
 
 func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
-	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
+	clusterConfigMap, err := GetClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func GetSpecConfigMap(
 	return configMap, nil
 }
 
-func getClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
+func GetClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,

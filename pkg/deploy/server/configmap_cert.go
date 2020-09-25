@@ -9,10 +9,11 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package server
 
 import (
 	"context"
+	"github.com/eclipse/che-operator/pkg/deploy"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -22,9 +23,9 @@ const (
 	injector = "config.openshift.io/inject-trusted-cabundle"
 )
 
-func SyncTrustStoreConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap, error) {
+func SyncTrustStoreConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.ConfigMap, error) {
 	name := deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName
-	specConfigMap, err := GetSpecConfigMap(deployContext, name, map[string]string{})
+	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, name, map[string]string{})
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +33,7 @@ func SyncTrustStoreConfigMapToCluster(deployContext *DeployContext) (*corev1.Con
 	// OpenShift will automatically injects all certs into the configmap
 	specConfigMap.ObjectMeta.Labels[injector] = "true"
 
-	clusterConfigMap, err := getClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
+	clusterConfigMap, err := deploy.GetClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}

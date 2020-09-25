@@ -1,25 +1,14 @@
-//
-// Copyright (c) 2012-2019 Red Hat, Inc.
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
-//
-// SPDX-License-Identifier: EPL-2.0
-//
-// Contributors:
-//   Red Hat, Inc. - initial API and implementation
-//
-package deploy
+package identity_provider
 
 import (
 	"bytes"
+	"github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
 	"text/template"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
-	"github.com/sirupsen/logrus"
 )
 
 func GetPostgresProvisionCommand(identityProviderPostgresPassword string) (command string) {
@@ -33,10 +22,10 @@ func GetPostgresProvisionCommand(identityProviderPostgresPassword string) (comma
 	return command
 }
 
-func GetKeycloakProvisionCommand(cr *orgv1.CheCluster) (command string) {
+func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string) {
 	requiredActions := ""
 	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
-	cheFlavor := DefaultCheFlavor(cr)
+	cheFlavor := deploy.DefaultCheFlavor(cr)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 	keycloakUserEnvVar := "${KEYCLOAK_USER}"
@@ -77,8 +66,8 @@ func GetKeycloakProvisionCommand(cr *orgv1.CheCluster) (command string) {
 	return command
 }
 
-func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthClientName string, oauthSecret string, isOpenShift4 bool) (command string, err error) {
-	cheFlavor := DefaultCheFlavor(cr)
+func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClientName string, oauthSecret string, isOpenShift4 bool) (command string, err error) {
+	cheFlavor := deploy.DefaultCheFlavor(cr)
 	openShiftApiUrl, err := util.GetClusterPublicHostname(isOpenShift4)
 	if err != nil {
 		logrus.Errorf("Failed to auto-detect public OpenShift API URL. Configure it in Identity provider details page in Keycloak admin console: %s", err)
@@ -153,8 +142,8 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, oAuthCli
 	return command, nil
 }
 
-func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *orgv1.CheCluster, isOpenShift4 bool) (command string) {
-	cheFlavor := DefaultCheFlavor(cr)
+func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, isOpenShift4 bool) (command string) {
+	cheFlavor := deploy.DefaultCheFlavor(cr)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	script := "/opt/jboss/keycloak/bin/kcadm.sh"
 	keycloakUserEnvVar := "${KEYCLOAK_USER}"

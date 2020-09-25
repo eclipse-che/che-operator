@@ -135,7 +135,7 @@ func newOAuthConfig(c *rest.Config) (*OauthClient, error) {
 	return &OauthClient{restClient: client}, nil
 }
 
-func addKnownTypes(scheme *runtime.Scheme) (error) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&orgv1.CheCluster{},
 		&orgv1.CheClusterList{},

@@ -34,5 +34,3 @@ func VerifyCheRunning(status string) (deployed bool, err error) {
 		}
 	}
 }
-
-

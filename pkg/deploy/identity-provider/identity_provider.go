@@ -1,7 +1,9 @@
-package deploy
+package identity_provider
 
 import (
 	"context"
+	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/deploy/expose"
 	"strings"
 
 	"github.com/eclipse/che-operator/pkg/util"
@@ -12,14 +14,14 @@ import (
 )
 
 const (
-	keycloakGatewayConfig = "che-gateway-route-keycloak"
+	Keycloak = "keycloak"
 )
 
 // SyncIdentityProviderToCluster instantiates the identity provider (Keycloak) in the cluster. Returns true if
 // the provisioning is complete, false if requeue of the reconcile request is needed.
-func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string, protocol string, cheFlavor string) (bool, error) {
+func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext, cheHost string, protocol string, cheFlavor string) (bool, error) {
 	instance := deployContext.CheCluster
-	cheMultiUser := GetCheMultiUser(instance)
+	cheMultiUser := deploy.GetCheMultiUser(instance)
 	tests := util.IsTestMode()
 	isOpenShift := util.IsOpenShift
 
@@ -35,9 +37,9 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 		return true, nil
 	}
 
-	keycloakLabels := GetLabels(instance, "keycloak")
+	keycloakLabels := deploy.GetLabels(instance, "keycloak")
 
-	serviceStatus := SyncServiceToCluster(deployContext, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
+	serviceStatus := deploy.SyncServiceToCluster(deployContext, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
 	if !tests {
 		if !serviceStatus.Continue {
 			logrus.Info("Waiting on service 'keycloak' to be ready")
@@ -49,99 +51,20 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 		}
 	}
 
-	exposureStrategy := util.GetServerExposureStrategy(instance, DefaultServerExposureStrategy)
-	singleHostExposureType := GetSingleHostExposureType(instance)
-	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
-
-	// create Keycloak ingresses when on k8s
-	var keycloakURL string
-	if !isOpenShift {
-		var host string
-		if exposureStrategy == "multi-host" {
-			host = "keycloak-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
-		} else {
-			host = cheHost
-		}
-		if useGateway {
-			// try to guess where in the ingress-creating code the /auth endpoint is defined...
-			cfg := GetGatewayRouteConfig(deployContext, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
-			_, err := SyncConfigMapToCluster(deployContext, &cfg)
-			if !tests {
-				if err != nil {
-					logrus.Error(err)
-				}
-			}
-
-			if err := DeleteIngressIfExists("keycloak", deployContext); !tests && err != nil {
-				logrus.Error(err)
-			}
-
-			keycloakURL = protocol + "://" + cheHost
-		} else {
-			additionalLabels := deployContext.CheCluster.Spec.Auth.IdentityProviderIngress.Labels
-			ingress, err := SyncIngressToCluster(deployContext, "keycloak", host, "keycloak", 8080, additionalLabels)
-			if !tests {
-				if ingress == nil {
-					logrus.Info("Waiting on ingress 'keycloak' to be ready")
-					if err != nil {
-						logrus.Error(err)
-					}
-
-					return false, err
-				}
-			}
-
-			if err := DeleteGatewayRouteConfig(keycloakGatewayConfig, deployContext); !tests && err != nil {
-				logrus.Error(err)
-			}
-
-			keycloakURL = protocol + "://" + host
-		}
-	} else {
-		if useGateway {
-			cfg := GetGatewayRouteConfig(deployContext, keycloakGatewayConfig, "/auth", 10, "http://keycloak:8080", false)
-			_, err := SyncConfigMapToCluster(deployContext, &cfg)
-			if !tests {
-				if err != nil {
-					logrus.Error(err)
-				}
-			}
-			keycloakURL = protocol + "://" + cheHost
-
-			if err := DeleteRouteIfExists("keycloak", deployContext); !tests && err != nil {
-				logrus.Error(err)
-			}
-		} else {
-			// create Keycloak route
-			additionalLabels := deployContext.CheCluster.Spec.Auth.IdentityProviderRoute.Labels
-			route, err := SyncRouteToCluster(deployContext, "keycloak", "", "keycloak", 8080, additionalLabels)
-			if !tests {
-				if route == nil {
-					logrus.Info("Waiting on route 'keycloak' to be ready")
-					if err != nil {
-						logrus.Error(err)
-					}
-
-					return false, err
-				}
-
-				keycloakURL = protocol + "://" + route.Spec.Host
-			}
-
-			if err := DeleteGatewayRouteConfig(keycloakGatewayConfig, deployContext); !tests && err != nil {
-				logrus.Error(err)
-			}
-		}
+	endpoint, done, err := expose.Expose(deployContext, cheHost, Keycloak)
+	if !done {
+		return false, err
 	}
+	keycloakURL := protocol + "://" + endpoint
 
 	if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
 		instance.Spec.Auth.IdentityProviderURL = keycloakURL
-		if err := UpdateCheCRSpec(deployContext, "Keycloak URL", keycloakURL); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak URL", keycloakURL); err != nil {
 			return false, err
 		}
 
 		instance.Status.KeycloakURL = keycloakURL
-		if err := UpdateCheCRStatus(deployContext, "Keycloak URL", keycloakURL); err != nil {
+		if err := deploy.UpdateCheCRStatus(deployContext, "Keycloak URL", keycloakURL); err != nil {
 			return false, err
 		}
 	}
@@ -167,7 +90,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 
 			for {
 				instance.Status.KeycloakProvisoned = true
-				if err := UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
+				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
 					errors.IsConflict(err) {
 
 					reload(deployContext)
@@ -193,7 +116,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 	return true, nil
 }
 
-func CreateIdentityProviderItems(deployContext *DeployContext, cheFlavor string) error {
+func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor string) error {
 	instance := deployContext.CheCluster
 	tests := util.IsTestMode()
 	isOpenShift4 := util.IsOpenShift4
@@ -202,7 +125,7 @@ func CreateIdentityProviderItems(deployContext *DeployContext, cheFlavor string)
 	if len(oAuthClientName) < 1 {
 		oAuthClientName = instance.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
 		instance.Spec.Auth.OAuthClientName = oAuthClientName
-		if err := UpdateCheCRSpec(deployContext, "oAuthClient name", oAuthClientName); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthClient name", oAuthClientName); err != nil {
 			return err
 		}
 	}
@@ -210,14 +133,14 @@ func CreateIdentityProviderItems(deployContext *DeployContext, cheFlavor string)
 	if len(oauthSecret) < 1 {
 		oauthSecret = util.GeneratePasswd(12)
 		instance.Spec.Auth.OAuthSecret = oauthSecret
-		if err := UpdateCheCRSpec(deployContext, "oAuthC secret name", oauthSecret); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthC secret name", oauthSecret); err != nil {
 			return err
 		}
 	}
 
 	keycloakURL := instance.Spec.Auth.IdentityProviderURL
 	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
+	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
 	if err := createNewOauthClient(deployContext, oAuthClient); err != nil {
 		return err
 	}
@@ -237,7 +160,7 @@ func CreateIdentityProviderItems(deployContext *DeployContext, cheFlavor string)
 		if err == nil {
 			for {
 				instance.Status.OpenShiftoAuthProvisioned = true
-				if err := UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
+				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
 					errors.IsConflict(err) {
 
 					reload(deployContext)
@@ -250,7 +173,7 @@ func CreateIdentityProviderItems(deployContext *DeployContext, cheFlavor string)
 	return nil
 }
 
-func createNewOauthClient(deployContext *DeployContext, oAuthClient *oauth.OAuthClient) error {
+func createNewOauthClient(deployContext *deploy.DeployContext, oAuthClient *oauth.OAuthClient) error {
 	oAuthClientFound := &oauth.OAuthClient{}
 	err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: oAuthClient.Name, Namespace: oAuthClient.Namespace}, oAuthClientFound)
 	if err != nil && errors.IsNotFound(err) {
@@ -269,7 +192,7 @@ func createNewOauthClient(deployContext *DeployContext, oAuthClient *oauth.OAuth
 	return nil
 }
 
-func reload(deployContext *DeployContext) error {
+func reload(deployContext *deploy.DeployContext) error {
 	return deployContext.ClusterAPI.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: deployContext.CheCluster.Name, Namespace: deployContext.CheCluster.Namespace},

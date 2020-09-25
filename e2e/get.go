@@ -17,15 +17,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-func getOauthClient(name string)(oAuthClient *oauth.OAuthClient, err error) {
+
+func getOauthClient(name string) (oAuthClient *oauth.OAuthClient, err error) {
 	oAuthClient = &oauth.OAuthClient{}
 	err = oauthClientSet.restClient.Get().Name(name).Resource("oauthclients").Do().Into(oAuthClient)
 	if err != nil && errors.IsNotFound(err) {
 		return nil, err
 	}
-	return oAuthClient,nil
+	return oAuthClient, nil
 }
-
 
 func getConfigMap(cmName string) (cm *corev1.ConfigMap, err error) {
 

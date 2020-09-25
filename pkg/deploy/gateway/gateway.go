@@ -1,8 +1,9 @@
-package deploy
+package gateway
 
 import (
 	"context"
 	"fmt"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"strconv"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -42,16 +43,16 @@ var (
 )
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
-func SyncGatewayToCluster(deployContext *DeployContext) error {
+func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
 	if deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "single-host" &&
-		(GetSingleHostExposureType(deployContext.CheCluster) == "gateway") {
+		(deploy.GetSingleHostExposureType(deployContext.CheCluster) == "gateway") {
 		return syncAll(deployContext)
 	}
 
 	return deleteAll(deployContext)
 }
 
-func syncAll(deployContext *DeployContext) error {
+func syncAll(deployContext *deploy.DeployContext) error {
 	instance := deployContext.CheCluster
 	sa := getGatewayServiceAccountSpec(instance)
 	if err := sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
@@ -74,7 +75,7 @@ func syncAll(deployContext *DeployContext) error {
 	}
 
 	depl := getGatewayDeploymentSpec(instance)
-	if err := sync(deployContext, &depl, deploymentDiffOpts); err != nil {
+	if err := sync(deployContext, &depl, deploy.DeploymentDiffOpts); err != nil {
 		return err
 	}
 
@@ -91,7 +92,7 @@ func syncAll(deployContext *DeployContext) error {
 	return nil
 }
 
-func deleteAll(deployContext *DeployContext) error {
+func deleteAll(deployContext *deploy.DeployContext) error {
 	instance := deployContext.CheCluster
 	clusterAPI := deployContext.ClusterAPI
 
@@ -159,7 +160,7 @@ func deleteAll(deployContext *DeployContext) error {
 }
 
 // sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
-func sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) error {
+func sync(deployContext *deploy.DeployContext, blueprint metav1.Object, diffOpts cmp.Option) error {
 	clusterAPI := deployContext.ClusterAPI
 
 	blueprintObject, ok := blueprint.(runtime.Object)
@@ -246,7 +247,7 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj metav1.Object) (runtime.Object, error) {
+func setOwnerReferenceAndConvertToRuntime(deployContext *deploy.DeployContext, obj metav1.Object) (runtime.Object, error) {
 	err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme)
 	if err != nil {
 		return nil, err
@@ -260,7 +261,7 @@ func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj meta
 	return robj, nil
 }
 
-func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
+func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 	key := client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	ro := obj.(runtime.Object)
 	if getErr := clusterAPI.Client.Get(context.TODO(), key, ro); getErr == nil {
@@ -277,7 +278,7 @@ func delete(clusterAPI ClusterAPI, obj metav1.Object) error {
 // GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
 // `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
 // new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
-func GetGatewayRouteConfig(deployContext *DeployContext, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
+func GetGatewayRouteConfig(deployContext *deploy.DeployContext, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
 	pathRewrite := pathPrefix != "/" && stripPrefix
 
 	data := `---
@@ -319,8 +320,8 @@ http:
 			Name:      serviceName,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels: util.MergeMaps(
-				GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
-				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)),
+				deploy.GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
+				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
 			serviceName + ".yml": data,
@@ -332,7 +333,7 @@ http:
 	return ret
 }
 
-func DeleteGatewayRouteConfig(serviceName string, deployContext *DeployContext) error {
+func DeleteGatewayRouteConfig(serviceName string, deployContext *deploy.DeployContext) error {
 	obj := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
@@ -345,8 +346,8 @@ func DeleteGatewayRouteConfig(serviceName string, deployContext *DeployContext) 
 
 // below functions declare the desired states of the various objects required for the gateway
 
-func getGatewayServerConfigSpec(deployContext *DeployContext) corev1.ConfigMap {
-	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, "/", 1, "http://"+CheServiceName+":8080", false)
+func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) corev1.ConfigMap {
+	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, "/", 1, "http://"+deploy.CheServiceName+":8080", false)
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {
@@ -358,7 +359,7 @@ func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAcco
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 	}
 }
@@ -372,7 +373,7 @@ func getGatewayRoleSpec(instance *orgv1.CheCluster) rbac.Role {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		Rules: []rbac.PolicyRule{
 			{
@@ -393,7 +394,7 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		RoleRef: rbac.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
@@ -418,7 +419,7 @@ func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "che-gateway-config",
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		Data: map[string]string{
 			"traefik.yml": `
@@ -445,9 +446,9 @@ log:
 }
 
 func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
-	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, DefaultSingleHostGatewayImage(instance))
-	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, DefaultSingleHostGatewayConfigSidecarImage(instance))
-	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, DefaultSingleHostGatewayConfigMapLabels)
+	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(instance))
+	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
+	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
 	terminationGracePeriodSeconds := int64(10)
 
 	configLabels := labels.FormatLabels(configLabelsMap)
@@ -460,18 +461,18 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: GetLabels(instance, GatewayServiceName),
+				MatchLabels: deploy.GetLabels(instance, GatewayServiceName),
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: GetLabels(instance, GatewayServiceName),
+					Labels: deploy.GetLabels(instance, GatewayServiceName),
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
@@ -557,10 +558,10 @@ func getGatewayServiceSpec(instance *orgv1.CheCluster) corev1.Service {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		Spec: corev1.ServiceSpec{
-			Selector:        GetLabels(instance, GatewayServiceName),
+			Selector:        deploy.GetLabels(instance, GatewayServiceName),
 			SessionAffinity: corev1.ServiceAffinityNone,
 			Type:            corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{

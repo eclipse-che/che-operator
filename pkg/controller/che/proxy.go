@@ -13,6 +13,7 @@ package che
 
 import (
 	"context"
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -55,6 +56,6 @@ func (r *ReconcileChe) putOpenShiftCertsIntoConfigMap(deployContext *deploy.Depl
 		}
 	}
 
-	certConfigMap, err := deploy.SyncTrustStoreConfigMapToCluster(deployContext)
+	certConfigMap, err := server.SyncTrustStoreConfigMapToCluster(deployContext)
 	return certConfigMap != nil, err
 }
