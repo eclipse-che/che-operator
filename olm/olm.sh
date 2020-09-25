@@ -379,6 +379,7 @@ waitCheServerDeploy() {
   while [[ $i -le 480 ]]
   do
     status=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheClusterRunning})
+    kubectl get pods -n "${namespace}"
     if [ "${status:-UNAVAILABLE}" == "Available" ]
     then
       break

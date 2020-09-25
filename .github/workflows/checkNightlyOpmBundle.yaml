@@ -11,7 +11,7 @@
 #
 
 name: Check nightly "opm" bundle
-on: [pull_request, push]
+on: pull_request
 jobs:
 
   build:

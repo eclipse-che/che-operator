@@ -45,7 +45,7 @@ func main() {
 	logrus.Infof("Creating a new namespace: %s", namespace)
 	ns := newNamespace()
 	if err := createNamespace(ns); err != nil {
-		logrus.Fatalf("Failed to create a namespace %s: %s", ns.Name, err)
+		logrus.Warn(err)
 	}
 
 	logrus.Info("Creating a new CR")
