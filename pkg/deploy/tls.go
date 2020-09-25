@@ -112,7 +112,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 	if isTestRoute {
 		// Create test route to get certificates chain.
 		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-		additionalLabels := deployContext.CheCluster.Spec.Server.Route.Labels
+		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
 		routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels)
 		if err != nil {
 			return nil, err

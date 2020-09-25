@@ -157,12 +157,12 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
-	// Additional labels to add into an Ingress
+	// Devfile registry ingress custom settings
 	// +optional
-	DevfileRegistryIngressLabels string `json:"devfileRegistryIngressLabels,omitempty"`
-	// Additional labels to add into a Route
+	DevfileRegistryIngress IngressCustomSettings `json:"devfileRegistryIngress,omitempty"`
+	// Devfile registry route custom settings
 	// +optional
-	DevfileRegistryRouteLabels string `json:"devfileRegistryRouteLabels,omitempty"`
+	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
 	// Instructs the operator on whether or not to deploy a dedicated Devfile registry server.
 	// By default a dedicated devfile registry server is started.
 	// But if `externalDevfileRegistry` is `true`, then no such dedicated server will be started by the operator
@@ -188,12 +188,12 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
-	// Additional labels to add into an Ingress
+	// Plugin registry ingress custom settings
 	// +optional
-	PluginRegistryIngressLabels string `json:"pluginRegistryIngressLabels,omitempty"`
-	// Additional labels to add into a Route
+	PluginRegistryIngress IngressCustomSettings `json:"pluginRegistryIngress,omitempty"`
+	// Plugin registry route custom settings
 	// +optional
-	PluginRegistryRouteLabels string `json:"pluginRegistryRouteLabels,omitempty"`
+	PluginRegistryRoute RouteCustomSettings `json:"pluginRegistryRoute,omitempty"`
 	// Instructs the operator on whether or not to deploy a dedicated Plugin registry server.
 	// By default a dedicated plugin registry server is started.
 	// But if `externalPluginRegistry` is `true`, then no such dedicated server will be started by the operator
@@ -273,12 +273,12 @@ type CheClusterSpecServer struct {
 	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
 	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
-	// Ingress custom settings
+	// Che server ingress custom settings
 	// +optional
-	Ingress IngressCustomSettings `json:"ingress,omitempty"`
-	// Route custom settings
+	CheServerIngress IngressCustomSettings `json:"cheServerIngress,omitempty"`
+	// Che server route custom settings
 	// +optional
-	Route RouteCustomSettings `json:"route,omitempty"`
+	CheServerRoute RouteCustomSettings `json:"cheServerRoute,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -411,10 +411,10 @@ type CheClusterSpecAuth struct {
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
 	// Ingress custom settings
 	// +optional
-	Ingress IngressCustomSettings `json:"ingress,omitempty"`
+	IdentityProviderIngress IngressCustomSettings `json:"identityProviderIngress,omitempty"`
 	// Route custom settings
 	// +optional
-	Route RouteCustomSettings `json:"route,omitempty"`
+	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future

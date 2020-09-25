@@ -227,13 +227,13 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 							Format:      "",
 						},
 					},
-					"ingress": {
+					"identityProviderIngress": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Ingress custom settings",
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings"),
 						},
 					},
-					"route": {
+					"identityProviderRoute": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Route custom settings",
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"),
@@ -545,18 +545,16 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"devfileRegistryIngressLabels": {
+					"devfileRegistryIngress": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into an Ingress",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "Devfile registry ingress custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings"),
 						},
 					},
-					"devfileRegistryRouteLabels": {
+					"devfileRegistryRoute": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into a Route",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "Devfile registry route custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"),
 						},
 					},
 					"externalDevfileRegistry": {
@@ -601,18 +599,16 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"pluginRegistryIngressLabels": {
+					"pluginRegistryIngress": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into an Ingress",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "Plugin registry ingress custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings"),
 						},
 					},
-					"pluginRegistryRouteLabels": {
+					"pluginRegistryRoute": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into a Route",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "Plugin registry route custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"),
 						},
 					},
 					"externalPluginRegistry": {
@@ -727,15 +723,15 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 							},
 						},
 					},
-					"ingress": {
+					"cheServerIngress": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Ingress custom settings",
+							Description: "Che server ingress custom settings",
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings"),
 						},
 					},
-					"route": {
+					"cheServerRoute": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Route custom settings",
+							Description: "Che server route custom settings",
 							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"),
 						},
 					},

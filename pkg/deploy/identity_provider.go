@@ -78,7 +78,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 
 			keycloakURL = protocol + "://" + cheHost
 		} else {
-			additionalLabels := deployContext.CheCluster.Spec.Auth.Ingress.Labels
+			additionalLabels := deployContext.CheCluster.Spec.Auth.IdentityProviderIngress.Labels
 			ingress, err := SyncIngressToCluster(deployContext, "keycloak", host, "keycloak", 8080, additionalLabels)
 			if !tests {
 				if ingress == nil {
@@ -113,7 +113,7 @@ func SyncIdentityProviderToCluster(deployContext *DeployContext, cheHost string,
 			}
 		} else {
 			// create Keycloak route
-			additionalLabels := deployContext.CheCluster.Spec.Auth.Route.Labels
+			additionalLabels := deployContext.CheCluster.Spec.Auth.IdentityProviderRoute.Labels
 			route, err := SyncRouteToCluster(deployContext, "keycloak", "", "keycloak", 8080, additionalLabels)
 			if !tests {
 				if route == nil {

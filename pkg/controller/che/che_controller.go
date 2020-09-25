@@ -720,7 +720,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
-		additionalLabels := deployContext.CheCluster.Spec.Server.Ingress.Labels
+		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
 		ingress, err := deploy.SyncIngressToCluster(deployContext, cheFlavor, instance.Spec.Server.CheHost, exposedServiceName, 8080, additionalLabels)
 		if !tests {
 			if ingress == nil {
@@ -740,7 +740,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			customHost = ""
 		}
 
-		additionalLabels := deployContext.CheCluster.Spec.Server.Route.Labels
+		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
 		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels)
 		if !tests {
 			if route == nil {
@@ -993,7 +993,7 @@ func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 
 func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 	routeName := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	additionalLabels := deployContext.CheCluster.Spec.Server.Route.Labels
+	additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
 	route, err := deploy.SyncRouteToCluster(deployContext, routeName, "", getServerExposingServiceName(deployContext.CheCluster), 8080, additionalLabels)
 	if route == nil {
 		logrus.Infof("Waiting on route '%s' to be ready", routeName)
