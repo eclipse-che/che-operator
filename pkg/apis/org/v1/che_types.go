@@ -47,7 +47,6 @@ type CheClusterSpec struct {
 	// Configuration settings related to the metrics collection used by the Che installation.
 	// +optional
 	Metrics CheClusterSpecMetrics `json:"metrics"`
-
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
@@ -158,6 +157,12 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
+	// Devfile registry ingress custom settings
+	// +optional
+	DevfileRegistryIngress IngressCustomSettings `json:"devfileRegistryIngress,omitempty"`
+	// Devfile registry route custom settings
+	// +optional
+	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
 	// Instructs the operator on whether or not to deploy a dedicated Devfile registry server.
 	// By default a dedicated devfile registry server is started.
 	// But if `externalDevfileRegistry` is `true`, then no such dedicated server will be started by the operator
@@ -170,7 +175,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	PluginRegistryUrl string `json:"pluginRegistryUrl,omitempty"`
 	// Overrides the container image used in the Plugin registry deployment. This includes the image tag.
-	// Omit it or leave it empty to use the defaut container image provided by the operator.
+	// Omit it or leave it empty to use the default container image provided by the operator.
 	// +optional
 	PluginRegistryImage string `json:"pluginRegistryImage,omitempty"`
 	// Overrides the image pull policy used in the Plugin registry deployment.
@@ -183,6 +188,12 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
+	// Plugin registry ingress custom settings
+	// +optional
+	PluginRegistryIngress IngressCustomSettings `json:"pluginRegistryIngress,omitempty"`
+	// Plugin registry route custom settings
+	// +optional
+	PluginRegistryRoute RouteCustomSettings `json:"pluginRegistryRoute,omitempty"`
 	// Instructs the operator on whether or not to deploy a dedicated Plugin registry server.
 	// By default a dedicated plugin registry server is started.
 	// But if `externalPluginRegistry` is `true`, then no such dedicated server will be started by the operator
@@ -262,6 +273,12 @@ type CheClusterSpecServer struct {
 	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
 	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
+	// Che server ingress custom settings
+	// +optional
+	CheServerIngress IngressCustomSettings `json:"cheServerIngress,omitempty"`
+	// Che server route custom settings
+	// +optional
+	CheServerRoute RouteCustomSettings `json:"cheServerRoute,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -392,6 +409,26 @@ type CheClusterSpecAuth struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
+	// Ingress custom settings
+	// +optional
+	IdentityProviderIngress IngressCustomSettings `json:"identityProviderIngress,omitempty"`
+	// Route custom settings
+	// +optional
+	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
+}
+
+// Ingress custom settings, can be extended in the future
+type IngressCustomSettings struct {
+	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
+	// +optional
+	Labels string `json:"labels,omitempty"`
+}
+
+// Route custom settings, can be extended in the future
+type RouteCustomSettings struct {
+	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
+	// +optional
+	Labels string `json:"labels,omitempty"`
 }
 
 // +k8s:openapi-gen=true

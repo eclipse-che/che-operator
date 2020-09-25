@@ -67,7 +67,8 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 					logrus.Error(err)
 				}
 			} else {
-				ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, domain, DevfileRegistry, 8080)
+				additionalLabels := deployContext.CheCluster.Spec.Server.DevfileRegistryIngress.Labels
+				ingress, err := SyncIngressToCluster(deployContext, DevfileRegistry, domain, DevfileRegistry, 8080, additionalLabels)
 				if !util.IsTestMode() {
 					if ingress == nil {
 						logrus.Infof("Waiting on ingress '%s' to be ready", DevfileRegistry)
@@ -98,7 +99,8 @@ func SyncDevfileRegistryToCluster(deployContext *DeployContext, cheHost string) 
 				}
 			} else {
 				// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-				route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080)
+				additionalLabels := deployContext.CheCluster.Spec.Server.DevfileRegistryRoute.Labels
+				route, err := SyncRouteToCluster(deployContext, DevfileRegistry, "", DevfileRegistry, 8080, additionalLabels)
 				if !util.IsTestMode() {
 					if route == nil {
 						logrus.Infof("Waiting on route '%s' to be ready", DevfileRegistry)

@@ -14,6 +14,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
@@ -29,7 +30,10 @@ import (
 )
 
 var ingressDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "Status"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return reflect.DeepEqual(x.Labels, y.Labels)
+	}),
 }
 
 func SyncIngressToCluster(
@@ -37,9 +41,10 @@ func SyncIngressToCluster(
 	name string,
 	host string,
 	serviceName string,
-	servicePort int) (*v1beta1.Ingress, error) {
+	servicePort int,
+	additionalLabels string) (*v1beta1.Ingress, error) {
 
-	specIngress, err := getSpecIngress(deployContext, name, host, serviceName, servicePort)
+	specIngress, err := getSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +114,15 @@ func getSpecIngress(
 	name string,
 	host string,
 	serviceName string,
-	servicePort int) (*v1beta1.Ingress, error) {
+	servicePort int,
+	additionalLabels string) (*v1beta1.Ingress, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, name)
+	MergeLabels(labels, additionalLabels)
 
 	if host == "" {
 		if ingressStrategy == "multi-host" {

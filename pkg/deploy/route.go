@@ -14,6 +14,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -29,12 +30,18 @@ import (
 )
 
 var routeDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return reflect.DeepEqual(x.Labels, y.Labels)
+	}),
 }
 var routeWithHostDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "ObjectMeta", "Status"),
+	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
+	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
+		return reflect.DeepEqual(x.Labels, y.Labels)
+	}),
 }
 
 func SyncRouteToCluster(
@@ -42,9 +49,10 @@ func SyncRouteToCluster(
 	name string,
 	host string,
 	serviceName string,
-	servicePort int32) (*routev1.Route, error) {
+	servicePort int32,
+	additionalLabels string) (*routev1.Route, error) {
 
-	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort)
+	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, additionalLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -69,19 +77,18 @@ func SyncRouteToCluster(
 	}
 	diff := cmp.Diff(clusterRoute, specRoute, diffOpts)
 	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
+		logrus.Infof("Deleting existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
 		fmt.Printf("Difference:\n%s", diff)
 
 		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterRoute)
-		if err != nil {
+		if !errors.IsNotFound(err) {
 			return nil, err
 		}
 
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specRoute)
-		return nil, err
+		return nil, nil
 	}
 
-	return clusterRoute, err
+	return clusterRoute, nil
 }
 
 func DeleteRouteIfExists(name string, deployContext *DeployContext) error {
@@ -92,7 +99,7 @@ func DeleteRouteIfExists(name string, deployContext *DeployContext) error {
 
 	if ingress != nil {
 		err = deployContext.ClusterAPI.Client.Delete(context.TODO(), ingress)
-		if err != nil {
+		if !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -123,15 +130,18 @@ func GetSpecRoute(
 	name string,
 	host string,
 	serviceName string,
-	servicePort int32) (*routev1.Route, error) {
+	servicePort int32,
+	additionalLabels string) (*routev1.Route, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
-	weight := int32(100)
-
 	if name == "keycloak" {
 		labels = GetLabels(deployContext.CheCluster, name)
 	}
+	MergeLabels(labels, additionalLabels)
+
+	weight := int32(100)
+
 	targetPort := intstr.IntOrString{
 		Type:   intstr.Int,
 		IntVal: int32(servicePort),
