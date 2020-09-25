@@ -16,7 +16,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecAuth":    schema_pkg_apis_org_v1_CheClusterSpecAuth(ref),
 		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecDB":      schema_pkg_apis_org_v1_CheClusterSpecDB(ref),
 		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecK8SOnly": schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref),
-		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels":  schema_pkg_apis_org_v1_CheClusterSpecLabels(ref),
 		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecServer":  schema_pkg_apis_org_v1_CheClusterSpecServer(ref),
 		"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecStorage": schema_pkg_apis_org_v1_CheClusterSpecStorage(ref),
 	}
@@ -230,21 +229,21 @@ func schema_pkg_apis_org_v1_CheClusterSpecAuth(ref common.ReferenceCallback) com
 					},
 					"ingress": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into an Ingress",
-							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels"),
+							Description: "Ingress custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings"),
 						},
 					},
 					"route": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into a Route",
-							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels"),
+							Description: "Route custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels"},
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings", "github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"},
 	}
 }
 
@@ -375,25 +374,6 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 					"singleHostExposureType": {
 						SchemaProps: spec.SchemaProps{
 							Description: "When the serverExposureStrategy is set to \"single-host\", the way the server, registries and workspaces are exposed is further configured by this property. The possible values are \"native\" (which means that the server and workspaces are exposed using ingresses on K8s) or \"gateway\" where the server and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress or gateway \"route\" always point to the subpaths on the same domain. Defaults to \"native\".",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_pkg_apis_org_v1_CheClusterSpecLabels(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"labels": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Comma separated list of labels that can be used to organize and categorize (scope and select) objects.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -749,21 +729,21 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"ingress": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into an Ingress",
-							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels"),
+							Description: "Ingress custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings"),
 						},
 					},
 					"route": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Additional labels to add into a Route",
-							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels"),
+							Description: "Route custom settings",
+							Ref:         ref("github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/eclipse/che-operator/pkg/apis/org/v1.CheClusterSpecLabels"},
+			"github.com/eclipse/che-operator/pkg/apis/org/v1.IngressCustomSettings", "github.com/eclipse/che-operator/pkg/apis/org/v1.RouteCustomSettings"},
 	}
 }
 

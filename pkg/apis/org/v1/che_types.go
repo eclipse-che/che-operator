@@ -273,12 +273,12 @@ type CheClusterSpecServer struct {
 	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
 	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
-	// Additional labels to add into an Ingress
+	// Ingress custom settings
 	// +optional
-	Ingress CheClusterSpecLabels `json:"ingress,omitempty"`
-	// Additional labels to add into a Route
+	Ingress IngressCustomSettings `json:"ingress,omitempty"`
+	// Route custom settings
 	// +optional
-	Route CheClusterSpecLabels `json:"route,omitempty"`
+	Route RouteCustomSettings `json:"route,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -409,16 +409,23 @@ type CheClusterSpecAuth struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
-	// Additional labels to add into an Ingress
+	// Ingress custom settings
 	// +optional
-	Ingress CheClusterSpecLabels `json:"ingress,omitempty"`
-	// Additional labels to add into a Route
+	Ingress IngressCustomSettings `json:"ingress,omitempty"`
+	// Route custom settings
 	// +optional
-	Route CheClusterSpecLabels `json:"route,omitempty"`
+	Route RouteCustomSettings `json:"route,omitempty"`
 }
 
-// +k8s:openapi-gen=true
-type CheClusterSpecLabels struct {
+// Ingress custom settings, can be extended in the future
+type IngressCustomSettings struct {
+	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
+	// +optional
+	Labels string `json:"labels,omitempty"`
+}
+
+// Route custom settings, can be extended in the future
+type RouteCustomSettings struct {
 	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
 	// +optional
 	Labels string `json:"labels,omitempty"`
