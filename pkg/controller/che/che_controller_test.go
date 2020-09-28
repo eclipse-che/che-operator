@@ -36,11 +36,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
+)
+
+var (
+	name      = "eclipse-che"
+	namespace = "eclipse-che"
 )
 
 func init() {
@@ -58,79 +64,16 @@ func TestCheController(t *testing.T) {
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	var (
-		name      = "eclipse-che"
-		namespace = "eclipse-che"
-	)
-
-	pgPod := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fake-pg-pod",
-			Namespace: "eclipse-che",
-			Labels: map[string]string{
-				"component": "postgres",
-			},
-		},
-	}
-
-	// A CheCluster custom resource with metadata and spec
-	cheCR := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: orgv1.CheClusterSpec{
-			// todo add some spec to check controller ifs like external db, ssl etc
-			Server: orgv1.CheClusterSpecServer{
-				CheWorkspaceClusterRole: "cluster-admin",
-			},
-		},
-	}
-
-	userList := &userv1.UserList{
-		Items: []userv1.User{
-			userv1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "user1",
-				},
-			},
-			userv1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "user2",
-				},
-			},
-		},
-	}
-
-	// Objects to track in the fake client.
-	objs := []runtime.Object{
-		cheCR, pgPod, userList,
-	}
-
-	route := &routev1.Route{}
-	oAuthClient := &oauth.OAuthClient{}
-	users := &userv1.UserList{}
-	user := &userv1.User{}
-
-	// Register operator types with the runtime scheme
-	s := scheme.Scheme
-	s.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
-	s.AddKnownTypes(routev1.SchemeGroupVersion, route)
-	s.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-	s.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
-
-	s.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
-
-	// Create a fake client to mock API calls
-	cl := fake.NewFakeClient(objs...)
-	tests := true
+	cl, scheme := Init()
 
 	// Create a ReconcileChe object with the scheme and fake client
-	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: s, tests: tests}
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -193,6 +136,7 @@ func TestCheController(t *testing.T) {
 	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {
 		t.Errorf("ConfigMap wasn't updated. Extecting true, got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])
 	}
+	route := &routev1.Route{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(cheCR), Namespace: cheCR.Namespace}, route); err != nil {
 		t.Errorf("Route %s not found: %s", cm.Name, err)
 	}
@@ -250,6 +194,7 @@ func TestCheController(t *testing.T) {
 	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
 	oauthSecret := cheCR.Spec.Auth.OAuthSecret
+	oAuthClient := &oauth.OAuthClient{}
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
 		t.Errorf("Failed to Get oAuthClient %s: %s", oAuthClient.Name, err)
 	}
@@ -318,4 +263,126 @@ func TestCheController(t *testing.T) {
 		t.Fatalf("OauthClient %s has not been deleted", oauthClientName)
 	}
 	logrus.Infof("Disregard the error above. OauthClient %s has been deleted", oauthClientName)
+}
+
+func TestConfiguringLabelsForRoutes(t *testing.T) {
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := Init()
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	// reconcile
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR.Spec.Server.CheServerRoute.Labels = "route=one"
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+
+	// reconcile again
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// get route
+	route := &routev1.Route{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, route); err != nil {
+		t.Errorf("Route %s not found: %s", route.Name, err)
+	}
+
+	if route.ObjectMeta.Labels["route"] != "one" {
+		t.Fatalf("Route '%s' does not have label '%s'", route.Name, route)
+	}
+}
+
+func Init() (client.Client, runtime.Scheme) {
+	pgPod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-pg-pod",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"component": "postgres",
+			},
+		},
+	}
+
+	// A CheCluster custom resource with metadata and spec
+	cheCR := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: orgv1.CheClusterSpec{
+			// todo add some spec to check controller ifs like external db, ssl etc
+			Server: orgv1.CheClusterSpecServer{
+				CheWorkspaceClusterRole: "cluster-admin",
+			},
+		},
+	}
+
+	userList := &userv1.UserList{
+		Items: []userv1.User{
+			userv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "user1",
+				},
+			},
+			userv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "user2",
+				},
+			},
+		},
+	}
+
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "che",
+			Namespace: namespace,
+		},
+	}
+	// Objects to track in the fake client.
+	objs := []runtime.Object{
+		cheCR, pgPod, userList, route,
+	}
+	oAuthClient := &oauth.OAuthClient{}
+	users := &userv1.UserList{}
+	user := &userv1.User{}
+
+	// Register operator types with the runtime scheme
+	scheme := scheme.Scheme
+	scheme.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
+	scheme.AddKnownTypes(routev1.SchemeGroupVersion, route)
+	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
+
+	// Create a fake client to mock API calls
+	return fake.NewFakeClient(objs...), *scheme
 }
