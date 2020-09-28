@@ -26,7 +26,9 @@ jobs:
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run che operator updates minikube
       run: /bin/bash .ci/cico_updates_minikube.sh
+    # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
       with:
         name: minikube-updates-artifacts
         path: /tmp/artifacts-che
@@ -50,7 +52,9 @@ jobs:
         eval $(minishift oc-env)
         pip install yq
         /bin/bash .ci/cico_updates_minishift.sh
+    # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
       with:
         name: minishift-updates-artifacts
         path: /tmp/artifacts-che
