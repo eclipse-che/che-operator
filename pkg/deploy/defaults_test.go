@@ -13,9 +13,10 @@ package deploy
 
 import (
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/util"
 	"os"
 	"testing"
+
+	"github.com/eclipse/che-operator/pkg/util"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
@@ -34,7 +35,6 @@ func TestDefaultFromEnv(t *testing.T) {
 	brokerMetadataTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	brokerArtifactsTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
 	jwtProxyTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
-	//tlsJobImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 
 	if DefaultCheVersion() != cheVersionTest {
 		t.Errorf("Expected %s but was %s", cheVersionTest, DefaultCheVersion())
@@ -81,11 +81,6 @@ func TestDefaultFromEnv(t *testing.T) {
 	if DefaultCheServerSecureExposerJwtProxyImage(cheCluster) != jwtProxyTest {
 		t.Errorf("Expected '%s', but was %s", jwtProxyTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
 	}
-
-	//TODO Previosly it was not tested and now fails
-	//if DefaultCheTLSSecretsCreationJobImage() != tlsJobImageTest {
-	//	t.Errorf("Expected '%s', but was %s", tlsJobImageTest, DefaultCheTLSSecretsCreationJobImage())
-	//}
 }
 
 func TestCorrectImageName(t *testing.T) {
