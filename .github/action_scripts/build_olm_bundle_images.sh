@@ -21,7 +21,7 @@ export PATH=$HOME/.local/bin:$PATH
 
 export IMAGE_REGISTRY_USERNAME=eclipse
 export IMAGE_REGISTRY=quay.io
-export ROOT_PROJECT_DIR="${PWD}"
+export ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
 
 for platform in 'kubernetes' 'openshift'
