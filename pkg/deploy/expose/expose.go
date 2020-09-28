@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName string) (endpont string, done bool, err error) {
+func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName string, additionalLabels string) (endpont string, done bool, err error) {
 	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
 	var domain string
 	var endpoint string
@@ -40,7 +40,6 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 				logrus.Error(err)
 			}
 		} else {
-			additionalLabels := deployContext.CheCluster.Spec.Server.PluginRegistryIngress.Labels
 			ingress, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, additionalLabels)
 			if !util.IsTestMode() {
 				if ingress == nil {
@@ -72,7 +71,6 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 			}
 		} else {
 			// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-			additionalLabels := deployContext.CheCluster.Spec.Server.PluginRegistryIngress.Labels
 			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, additionalLabels)
 			if !util.IsTestMode() {
 				if route == nil {

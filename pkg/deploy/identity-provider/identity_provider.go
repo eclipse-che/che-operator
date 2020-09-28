@@ -2,9 +2,10 @@ package identity_provider
 
 import (
 	"context"
+	"strings"
+
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/expose"
-	"strings"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
@@ -51,7 +52,8 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext, cheHost 
 		}
 	}
 
-	endpoint, done, err := expose.Expose(deployContext, cheHost, Keycloak)
+	additionalLabels := (map[bool]string{true: instance.Spec.Auth.IdentityProviderRoute.Labels, false: instance.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenShift]
+	endpoint, done, err := expose.Expose(deployContext, cheHost, Keycloak, additionalLabels)
 	if !done {
 		return false, err
 	}

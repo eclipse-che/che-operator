@@ -14,6 +14,7 @@ package devfile_registry
 import (
 	"encoding/json"
 	"fmt"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/expose"
@@ -33,7 +34,8 @@ type DevFileRegistryConfigMap struct {
 func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost string) (bool, error) {
 	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.DevfileRegistry)
+		additionalLabels := (map[bool]string{true: deployContext.CheCluster.Spec.Server.DevfileRegistryRoute.Labels, false: deployContext.CheCluster.Spec.Server.DevfileRegistryIngress.Labels})[util.IsOpenShift]
+		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.DevfileRegistry, additionalLabels)
 		if !done {
 			return false, err
 		}
