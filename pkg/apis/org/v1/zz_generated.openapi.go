@@ -648,7 +648,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecServer(ref common.ReferenceCallback) c
 					},
 					"nonProxyHosts": {
 						SchemaProps: spec.SchemaProps{
-							Description: "List of hosts that should not use the configured proxy. Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32` Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources. (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyURL` fields).",
+							Description: "List of hosts that should not use the configured proxy. So specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, eg: `localhost|.my.host.com|123.42.12.32` Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources. (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyURL` fields).",
 							Type:        []string{"string"},
 							Format:      "",
 						},

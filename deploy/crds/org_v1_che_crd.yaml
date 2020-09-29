@@ -435,15 +435,16 @@ spec:
                     particular configuration for Git.
                   type: boolean
                 nonProxyHosts:
-                  description: List of hosts that should not use the configured proxy.
-                    Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
+                  description: 'List of hosts that should not use the configured proxy.
+                    So specify wild card domain use the following form `.<DOMAIN>`
+                    and `|` as delimiter, eg: `localhost|.my.host.com|123.42.12.32`
                     Only use when configuring a proxy is required. Operator respects
                     OpenShift cluster wide proxy configuration and no additional configuration
                     is required, but defining `nonProxyHosts` in a custom resource
                     leads to merging non proxy hosts lists from the cluster proxy
                     configuration and ones defined in the custom resources. (see the
                     doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html)
-                    (see also the `proxyURL` fields).
+                    (see also the `proxyURL` fields).'
                   type: string
                 pluginRegistryImage:
                   description: Overrides the container image used in the Plugin registry

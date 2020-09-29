@@ -220,7 +220,8 @@ type CheClusterSpecServer struct {
 	// (see also the `proxyURL` and `nonProxyHosts` fields).
 	// +optional
 	ProxyPort string `json:"proxyPort,omitempty"`
-	// List of hosts that should not use the configured proxy. Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
+	// List of hosts that should not use the configured proxy.
+	// So specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, eg: `localhost|.my.host.com|123.42.12.32`
 	// Only use when configuring a proxy is required.
 	// Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required,
 	// but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the
