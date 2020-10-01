@@ -14,9 +14,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"os"
 	"strconv"
+
+	"github.com/eclipse/che-operator/pkg/deploy"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"

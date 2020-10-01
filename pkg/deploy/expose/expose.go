@@ -11,13 +11,28 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
 	var domain string
 	var endpoint string
+	var pathPrefix string
+	var stripPrefix bool
+
+	if endpointName == "keycloak" {
+		pathPrefix = "auth"
+		stripPrefix = false
+	} else {
+		pathPrefix = endpointName
+		stripPrefix = true
+	}
 	if exposureStrategy == "multi-host" {
 		// this won't get used on openshift, because there we're intentionally let Openshift decide on the domain name
 		domain = endpointName + "-" + deployContext.CheCluster.Namespace + "." + deployContext.CheCluster.Spec.K8s.IngressDomain
 		endpoint = domain
 	} else {
 		domain = cheHost
-		endpoint = domain + "/" + endpointName
+		if endpointName == "keycloak" {
+			// legacy
+			endpoint = domain
+		} else {
+			endpoint = domain + "/" + pathPrefix
+		}
 	}
 
 	gatewayConfig := "che-gateway-route-" + endpointName
@@ -26,7 +41,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 
 	if !util.IsOpenShift {
 		if useGateway {
-			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+endpointName, 10, "http://"+endpointName+":8080", true)
+			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+pathPrefix, 10, "http://"+endpointName+":8080", stripPrefix)
 			clusterCfg, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)
 			if !util.IsTestMode() {
 				if clusterCfg == nil {
@@ -56,7 +71,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 		}
 	} else {
 		if useGateway {
-			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+endpointName, 10, "http://"+endpointName+":8080", true)
+			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+pathPrefix, 10, "http://"+endpointName+":8080", stripPrefix)
 			clusterCfg, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)
 			if !util.IsTestMode() {
 				if clusterCfg == nil {
