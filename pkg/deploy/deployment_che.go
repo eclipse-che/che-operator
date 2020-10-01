@@ -130,6 +130,59 @@ func getSpecCheDeployment(deployContext *DeployContext, cmResourceVersion string
 		}
 	}
 
+	var cheEnv []corev1.EnvVar
+	cheEnv = append(cheEnv, selfSignedCertEnv)
+	cheEnv = append(cheEnv, gitSelfSignedCertEnv)
+	cheEnv = append(cheEnv, gitSelfSignedCertHostEnv)
+
+	identityProviderSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderSecret
+	if len(identityProviderSecret) > 0 {
+		cheEnv = append(cheEnv, corev1.EnvVar{
+			Name: "CHE_KEYCLOAK_ADMIN__PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "password",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: identityProviderSecret,
+					},
+				},
+			},
+		},
+			corev1.EnvVar{
+				Name: "CHE_KEYCLOAK_ADMIN__USERNAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "user",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: identityProviderSecret,
+						},
+					},
+				},
+			})
+	} else {
+		cheEnv = append(cheEnv, corev1.EnvVar{
+			Name:  "CHE_KEYCLOAK_ADMIN__PASSWORD",
+			Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPassword,
+		},
+			corev1.EnvVar{
+				Name:  "CHE_KEYCLOAK_ADMIN__USERNAME",
+				Value: deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName,
+			})
+	}
+
+	cheEnv = append(cheEnv,
+		corev1.EnvVar{
+			Name:  "CM_REVISION",
+			Value: cmResourceVersion,
+		},
+		corev1.EnvVar{
+			Name: "KUBERNETES_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace"}},
+		})
+
 	memLimit := util.GetValue(deployContext.CheCluster.Spec.Server.ServerMemoryLimit, DefaultServerMemoryLimit)
 	cheImageAndTag := GetFullCheServerImageLink(deployContext.CheCluster)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.CheImagePullPolicy), DefaultPullPolicyFromDockerImage(cheImageAndTag)))
@@ -199,22 +252,8 @@ func getSpecCheDeployment(deployContext *DeployContext, cmResourceVersion string
 							VolumeMounts: []corev1.VolumeMount{
 								customPublicCertsVolumeMount,
 							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "CM_REVISION",
-									Value: cmResourceVersion,
-								},
-								{
-									Name: "KUBERNETES_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "metadata.namespace"}},
-								},
-								selfSignedCertEnv,
-								gitSelfSignedCertEnv,
-								gitSelfSignedCertHostEnv,
-							}},
+							Env: cheEnv,
+						},
 					},
 					RestartPolicy:                 "Always",
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
