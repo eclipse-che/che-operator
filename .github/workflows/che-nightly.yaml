@@ -24,6 +24,10 @@ jobs:
         # coreutils provides a readlink that supports `-f`
 
         brew install coreutils docker docker-machine
+
+        mkdir -p ~/.docker/machine/cache/
+        sudo curl -Lo ~/.docker/machine/cache/boot2docker.iso https://github.com/boot2docker/boot2docker/releases/download/v19.03.12/boot2docker.iso
+
         docker-machine --github-api-token="${{ secrets.GITHUB_TOKEN }}" create --driver virtualbox default
         eval "$(docker-machine env default)"
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
@@ -49,7 +53,9 @@ jobs:
         eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
 
         /bin/bash .ci/cico_minishift_nightly.sh
+    # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
       with:
         name: minishift-che-nightly-artifacts
         path: /tmp/artifacts-che
