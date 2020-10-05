@@ -71,7 +71,7 @@ EOL
     cat /tmp/che-cr-patch.yaml
 
     # Use custom changes, don't pull image from quay.io
-    #kubectl create namespace ${NAMESPACE}
+    kubectl create namespace ${NAMESPACE}
     cat ${OPERATOR_REPO}/deploy/operator.yaml | \
     sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
     sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
