@@ -24,7 +24,7 @@ jobs:
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run che operator single host tests
-      run: /bin/bash .github/action_scrits/nightly/minikube/single-host-gateway.sh
+      run: /bin/bash .github/action_scripts/nightly/minikube/single-host-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
@@ -43,7 +43,7 @@ jobs:
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run che operator single host tests
-      run: /bin/bash .github/action_scrits/nightly/minikube/single-host-gateway.sh
+      run: /bin/bash .github/action_scripts/nightly/minikube/single-host-native.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
