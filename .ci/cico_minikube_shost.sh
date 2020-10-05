@@ -98,7 +98,7 @@ function waitSingleHostWorkspaceStart() {
   fi
 }
 
-# Build latest operator code in PR.
+# Build latest operator image
 function buildCheOperatorImage() {
     docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
     eval $(minikube docker-env) && docker load -i operator.tar && rm operator.tar
@@ -163,7 +163,6 @@ EOL
     # Start to deploy Che
     chectl server:start --platform=minikube --skip-kubernetes-health-check --installer=operator \
         --chenamespace=${NAMESPACE} --che-operator-image=${OPERATOR_IMAGE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
-    exit 0
 
     # Get the token from .ci/util/common.sh
     getCheAcessToken

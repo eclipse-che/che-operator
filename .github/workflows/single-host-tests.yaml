@@ -10,7 +10,7 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 
-name: Testing single host deployment
+name: Testing single host nightly deployment
 on: pull_request
 jobs:
   minikube-shost:
