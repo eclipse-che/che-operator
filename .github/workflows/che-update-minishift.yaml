@@ -10,30 +10,11 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 
-name: Testing stable versions updates
+name: Minishift
 on: pull_request
 jobs:
-  minikube-e2e:
-    name: Minikube
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Install minikube kubernetes cluster
-      run:  /bin/bash .ci/start-minikube.sh
-    - name: Install jq
-      run: sudo pip install yq
-    - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Run che operator updates minikube
-      run: /bin/bash .ci/cico_updates_minikube.sh
-    # Run this step even the previous step fail
-    - uses: actions/upload-artifact@v2
-      if: ${{ always() }}
-      with:
-        name: minikube-updates-artifacts
-        path: /tmp/artifacts-che
   minishift-update:
-    name: Minishift
+    name: Testing stable versions updates
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1

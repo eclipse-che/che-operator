@@ -8,11 +8,11 @@
 #
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
-name: Che Operator e2e tests
+name: Minishift
 on: pull_request
 jobs:
   minishift-e2e:
-    name: Minishift
+    name: e2e tests
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
