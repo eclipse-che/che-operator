@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2020-2020 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,15 +9,11 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package main
+package deploy
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-func deleteNamespace() (err error) {
-	if err := client.clientset.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{}); err != nil {
-		return err
+func init() {
+	err := InitTestDefaultsFromDeployment("../../deploy/operator.yaml")
+	if err != nil {
+		panic(err)
 	}
-	return nil
 }

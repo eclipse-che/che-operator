@@ -121,7 +121,6 @@ func deserializeOperatorRoleBinding() (operatorServiceAccountRoleBinding *rbac.R
 	return operatorServiceAccountRoleBinding, nil
 }
 
-
 func deserializeOperatorClusterRoleBinding() (operatorServiceAccountClusterRoleBinding *rbac.ClusterRoleBinding, err error) {
 	fileLocation, err := filepath.Abs("deploy/cluster_role_binding.yaml")
 	if err != nil {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2012-2020 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -26,7 +26,7 @@ import (
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var deploymentDiffOpts = cmp.Options{
+var DeploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.Deployment{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "RevisionHistoryLimit", "ProgressDeadlineSeconds"),
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
@@ -51,7 +51,7 @@ func SyncDeploymentToCluster(
 	additionalDeploymentDiffOpts cmp.Options,
 	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment) DeploymentProvisioningStatus {
 
-	clusterDeployment, err := getClusterDeployment(specDeployment.Name, specDeployment.Namespace, deployContext.ClusterAPI.Client)
+	clusterDeployment, err := GetClusterDeployment(specDeployment.Name, specDeployment.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return DeploymentProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -82,7 +82,7 @@ func SyncDeploymentToCluster(
 		}
 	}
 
-	diff := cmp.Diff(clusterDeployment, specDeployment, deploymentDiffOpts)
+	diff := cmp.Diff(clusterDeployment, specDeployment, DeploymentDiffOpts)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
 		fmt.Printf("Difference:\n%s", diff)
@@ -103,7 +103,7 @@ func SyncDeploymentToCluster(
 	}
 }
 
-func getClusterDeployment(name string, namespace string, client runtimeClient.Client) (*appsv1.Deployment, error) {
+func GetClusterDeployment(name string, namespace string, client runtimeClient.Client) (*appsv1.Deployment, error) {
 	deployment := &appsv1.Deployment{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,

@@ -9,10 +9,11 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package server
 
 import (
 	"fmt"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"testing"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -39,9 +40,9 @@ func TestCreateCheDefaultService(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{},
 		},
 	}
-	deployContext := &DeployContext{
+	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
-		ClusterAPI: ClusterAPI{},
+		ClusterAPI: deploy.ClusterAPI{},
 	}
 	service, err := GetSpecCheService(deployContext)
 
@@ -63,9 +64,9 @@ func TestCreateCheServerDebug(t *testing.T) {
 			},
 		},
 	}
-	deployContext := &DeployContext{
+	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
-		ClusterAPI: ClusterAPI{},
+		ClusterAPI: deploy.ClusterAPI{},
 	}
 
 	service, err := GetSpecCheService(deployContext)
@@ -90,9 +91,9 @@ func TestCreateCheServiceEnableMetrics(t *testing.T) {
 		},
 	}
 
-	deployContext := &DeployContext{
+	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
-		ClusterAPI: ClusterAPI{},
+		ClusterAPI: deploy.ClusterAPI{},
 	}
 
 	service, err := GetSpecCheService(deployContext)
@@ -116,9 +117,9 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 		},
 	}
 
-	deployContext := &DeployContext{
+	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
-		ClusterAPI: ClusterAPI{},
+		ClusterAPI: deploy.ClusterAPI{},
 	}
 
 	service, err := GetSpecCheService(deployContext)
@@ -131,7 +132,7 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 		t.Error("expected 2 ports")
 	}
 	checkPort(ports[0], "http", 8080, t)
-	checkPort(ports[1], "metrics", DefaultCheMetricsPort, t)
+	checkPort(ports[1], "metrics", deploy.DefaultCheMetricsPort, t)
 }
 
 func checkPort(actualPort corev1.ServicePort, expectedName string, expectedPort int32, t *testing.T) {

@@ -13,68 +13,29 @@ package deploy
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
+	"github.com/eclipse/che-operator/pkg/util"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	util "github.com/eclipse/che-operator/pkg/util"
-	"gopkg.in/yaml.v2"
-	appsv1 "k8s.io/api/apps/v1"
 )
-
-var (
-	cheVersionTest           string
-	cheServerImageTest       string
-	pluginRegistryImageTest  string
-	devfileRegistryImageTest string
-	pvcJobsImageTest         string
-	postgresImageTest        string
-	keycloakImageTest        string
-	brokerMetadataTest       string
-	brokerArtifactsTest      string
-	jwtProxyTest             string
-	tlsJobImageTest          string
-)
-
-func init() {
-	operator := &appsv1.Deployment{}
-	data, err := ioutil.ReadFile("../../deploy/operator.yaml")
-	yaml.Unmarshal(data, operator)
-	if err == nil {
-		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
-			os.Setenv(env.Name, env.Value)
-			switch env.Name {
-			case "CHE_VERSION":
-				cheVersionTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"):
-				cheServerImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"):
-				pluginRegistryImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"):
-				devfileRegistryImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"):
-				tlsJobImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"):
-				pvcJobsImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"):
-				postgresImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"):
-				keycloakImageTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"):
-				brokerMetadataTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"):
-				brokerArtifactsTest = env.Value
-			case util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"):
-				jwtProxyTest = env.Value
-			}
-		}
-	}
-
-	InitDefaultsFromEnv()
-}
 
 func TestDefaultFromEnv(t *testing.T) {
+
+	cheVersionTest := os.Getenv("CHE_VERSION")
+
+	cheServerImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+
+	pluginRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	devfileRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	pvcJobsImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	postgresImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	keycloakImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	brokerMetadataTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	brokerArtifactsTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	jwtProxyTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+
 	if DefaultCheVersion() != cheVersionTest {
 		t.Errorf("Expected %s but was %s", cheVersionTest, DefaultCheVersion())
 	}

@@ -182,7 +182,6 @@ func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string 
 }
 
 func IsTestMode() (isTesting bool) {
-
 	testMode := os.Getenv("MOCK_API")
 	if len(testMode) == 0 {
 		return false

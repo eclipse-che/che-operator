@@ -9,9 +9,10 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package postgres
 
 import (
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,35 +29,35 @@ var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func SyncPostgresDeploymentToCluster(deployContext *DeployContext) DeploymentProvisioningStatus {
-	clusterDeployment, err := getClusterDeployment(PostgresDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
+	clusterDeployment, err := deploy.GetClusterDeployment(PostgresDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return DeploymentProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
+		return deploy.DeploymentProvisioningStatus{
+			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
 		}
 	}
 
 	specDeployment, err := getSpecPostgresDeployment(deployContext, clusterDeployment)
 	if err != nil {
-		return DeploymentProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
+		return deploy.DeploymentProvisioningStatus{
+			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
 		}
 	}
 
-	return SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecPostgresDeployment(deployContext *DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels := GetLabels(deployContext.CheCluster, PostgresDeploymentName)
+	labels := deploy.GetLabels(deployContext.CheCluster, PostgresDeploymentName)
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
-	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, DefaultPostgresImage(deployContext.CheCluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), DefaultPullPolicyFromDockerImage(postgresImage)))
+	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(deployContext.CheCluster))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	if clusterDeployment != nil {
 		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
@@ -90,10 +91,10 @@ func getSpecPostgresDeployment(deployContext *DeployContext, clusterDeployment *
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
-							Name: DefaultPostgresVolumeClaimName,
+							Name: deploy.DefaultPostgresVolumeClaimName,
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: DefaultPostgresVolumeClaimName,
+									ClaimName: deploy.DefaultPostgresVolumeClaimName,
 								},
 							},
 						},
@@ -120,7 +121,7 @@ func getSpecPostgresDeployment(deployContext *DeployContext, clusterDeployment *
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      DefaultPostgresVolumeClaimName,
+									Name:      deploy.DefaultPostgresVolumeClaimName,
 									MountPath: "/var/lib/pgsql/data",
 								},
 							},

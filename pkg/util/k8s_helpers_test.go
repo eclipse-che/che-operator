@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	fakeK8s = fakeClientSet()
+	fakeK8s   = fakeClientSet()
 	namespace = "eclipse-che"
 )
 
@@ -58,7 +58,6 @@ func TestGetDeploymentPod(t *testing.T) {
 	}
 	logrus.Infof("Test passed. Pod %s found", pod)
 }
-
 
 func TestGetEvents(t *testing.T) {
 
@@ -101,4 +100,3 @@ func TestGetEvents(t *testing.T) {
 		logrus.Infof("Test passed. Expected event message: %s. Received event message %s", message, fakePodEventMessage)
 	}
 }
-
