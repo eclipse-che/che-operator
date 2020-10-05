@@ -28,7 +28,7 @@ export RAM_MEMORY=8192
 export NAMESPACE="che"
 export PLATFORM="kubernetes"
 
-# Directory where che artifacts will be stored and uploded to GH actions artifacts
+# Directory where che artifacts will be stored and uploaded to GH actions artifacts
 export ARTIFACTS_DIR="/tmp/artifacts-che"
 
 # Set operator root directory

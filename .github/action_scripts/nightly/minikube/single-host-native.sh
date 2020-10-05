@@ -19,25 +19,20 @@ set -u
 # print each command before executing it
 set -x
 
-#Stop execution on any error
+# Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 # Define global environments
-function init() {
-  export SCRIPT=$(readlink -f "$0")
-  export SCRIPT_DIR=$(dirname "$SCRIPT")
-  export OPERATOR_REPO=$(dirname "$SCRIPT_DIR");
+export OPERATOR_REPO="${GITHUB_WORKSPACE}"
+export RAM_MEMORY=8192
+export NAMESPACE="che"
+export PLATFORM="kubernetes"
 
-  export RAM_MEMORY=8192
-  export NAMESPACE="che"
-  export PLATFORM="kubernetes"
+# Directory where che artifacts will be stored and uploaded to GH actions artifacts
+export ARTIFACTS_DIR="/tmp/artifacts-che"
 
-  # Directory where che artifacts will be stored and uploded to GH actions artifacts
-  export ARTIFACTS_DIR="/tmp/artifacts-che"
-
-  # Set operator root directory
-  export OPERATOR_IMAGE="che-operator:tests"
-}
+# Set operator root directory
+export OPERATOR_IMAGE="che-operator:tests"
 
 # Catch_Finish is executed after finish script.
 catchFinish() {
@@ -98,49 +93,6 @@ function waitSingleHostWorkspaceStart() {
   fi
 }
 
-# Build latest operator image
-function buildCheOperatorImage() {
-    docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
-    eval $(minikube docker-env) && docker load -i operator.tar && rm operator.tar
-}
-
-# Deploy Eclipse Che in single host mode(gateway exposure type)
-function runSHostGatewayExposure() {
-    # Patch file to pass to chectl
-    cat >/tmp/che-cr-patch.yaml <<EOL
-spec:
-  server:
-    serverExposureStrategy: 'single-host'
-  auth:
-    updateAdminPassword: false
-    openShiftoAuth: false
-  k8s:
-    singleHostExposureType: 'gateway'
-EOL
-    echo "======= Che cr patch ======="
-    cat /tmp/che-cr-patch.yaml
-
-    # Use custom changes, don't pull image from quay.io
-    oc create namespace che
-    cat ${OPERATOR_REPO}/deploy/operator.yaml | \
-    sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
-    sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
-    oc apply -n ${NAMESPACE} -f -
-
-    # Start to deploy Che
-    chectl server:start --platform=minikube --skip-kubernetes-health-check --installer=operator \
-        --chenamespace=${NAMESPACE} --che-operator-image=${OPERATOR_IMAGE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
-
-    # Create and start a workspace
-    getSingleHostToken # Function from ./util/ci_common.sh
-    chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
-
-    # Wait for workspace to be up
-    waitSingleHostWorkspaceStart
-
-    chectl server:delete --chenamespace=${NAMESPACE} --skip-deletion-check
-}
-
 # Deploy Eclipse Che in single host mode(native exposure type)
 function runSHostNativeExposure() {
     # Patch file to pass to chectl
@@ -156,7 +108,7 @@ EOL
     cat /tmp/che-cr-patch.yaml
 
     # Use custom changes, don't pull image from quay.io
-    checkNamespace
+    kubectl create namespace ${NAMESPACE}
     cat ${OPERATOR_REPO}/deploy/operator.yaml | \
     sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
     sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
@@ -176,13 +128,9 @@ EOL
     chectl server:delete --chenamespace=${NAMESPACE} --skip-deletion-check
 }
 
-init
-source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
+source "${OPERATOR_REPO}"/.github/action_scripts/nightly/minikube/function-utilities.sh
 echo "[INFO] Start to Building Che Operator Image"
 buildCheOperatorImage
 
-echo "[INFO] Start to run single host with gateway exposure mode"
-runSHostGatewayExposure
-
-echo "[INFO] Start to run single host in native mode"
+echo "[INFO] Start to run single host with native exposure mode"
 runSHostNativeExposure

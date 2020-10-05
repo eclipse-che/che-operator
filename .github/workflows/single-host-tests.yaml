@@ -9,12 +9,30 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-
-name: Testing single host nightly deployment
+name: Testing latest changes
 on: pull_request
 jobs:
-  minikube-shost:
-    name: Minikube
+  minikube-gateway:
+    name: single-host/gateway
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install minikube kubernetes cluster
+      run:  /bin/bash .ci/start-minikube.sh
+    - name: Install jq
+      run: sudo pip install yq
+    - name: Install chectl
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Run che operator single host tests
+      run: /bin/bash .github/action_scrits/nightly/minikube/single-host-gateway.sh
+    # Run this step even the previous step fail to upload artifacts to GH
+    - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
+      with:
+        name: minikube-updates-artifacts
+        path: /tmp/artifacts-che
+  minikube-native:
+    name: single-host/native
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
