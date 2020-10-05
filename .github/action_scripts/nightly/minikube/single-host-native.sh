@@ -32,7 +32,7 @@ export PLATFORM="kubernetes"
 export ARTIFACTS_DIR="/tmp/artifacts-che"
 
 # Set operator root directory
-export OPERATOR_IMAGE="che-operator:tests"
+export OPERATOR_IMAGE="che-operator:pr-check"
 
 # Catch_Finish is executed after finish script.
 catchFinish() {
@@ -56,43 +56,6 @@ function collectCheLogWithChectl() {
   chectl server:logs --directory=${ARTIFACTS_DIR}
 }
 
-# Get Token from single host mode deployment
-function getSingleHostToken() {
-    export GATEWAY_HOSTNAME=$(minikube ip).nip.io
-    export TOKEN_ENDPOINT="https://${GATEWAY_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
-    export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
-}
-
-# Utility to wait for a workspace to be started after workspace:create.
-function waitSingleHostWorkspaceStart() {
-  set +e
-  export x=0
-  while [ $x -le 180 ]
-  do
-    getSingleHostToken
-
-    # List Workspaces and get the status
-    echo "[INFO] Getting workspace status:"
-    chectl workspace:list
-    workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
-    workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
-
-    if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
-    then
-      echo "[INFO] Workspace started successfully"
-      break
-    fi
-    sleep 10
-    x=$(( x+1 ))
-  done
-
-  if [ $x -gt 180 ]
-  then
-    echo "[ERROR] Workspace didn't start after 3 minutes."
-    exit 1
-  fi
-}
-
 # Deploy Eclipse Che in single host mode(native exposure type)
 function runSHostNativeExposure() {
     # Patch file to pass to chectl
@@ -108,7 +71,7 @@ EOL
     cat /tmp/che-cr-patch.yaml
 
     # Use custom changes, don't pull image from quay.io
-    kubectl create namespace ${NAMESPACE}
+    #kubectl create namespace ${NAMESPACE}
     cat ${OPERATOR_REPO}/deploy/operator.yaml | \
     sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
     sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
@@ -118,19 +81,17 @@ EOL
     chectl server:start --platform=minikube --skip-kubernetes-health-check --installer=operator \
         --chenamespace=${NAMESPACE} --che-operator-image=${OPERATOR_IMAGE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
 
-    # Get the token from .ci/util/common.sh
-    getCheAcessToken
+    # Get the token from utility in ${PROJECT_DIR}/.github/action_scripts/minikube/function-utilities.sh
+    getSingleHostToken
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
-    # Wait for workspace to be up for native deployment from .ci/util/common.sh
-    waitWorkspaceStart
-
-    chectl server:delete --chenamespace=${NAMESPACE} --skip-deletion-check
+    # Wait for workspace to be up for native deployment from ${PROJECT_DIR}/.github/action_scripts/minikube/function-utilities.sh
+    waitSingleHostWorkspaceStart
 }
 
 source "${OPERATOR_REPO}"/.github/action_scripts/nightly/minikube/function-utilities.sh
 echo "[INFO] Start to Building Che Operator Image"
 buildCheOperatorImage
 
-echo "[INFO] Start to run single host with native exposure mode"
+echo "[INFO] Start to run native single host mode"
 runSHostNativeExposure

@@ -29,7 +29,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-updates-artifacts
+        name: minikube-single-host-gateway
         path: /tmp/artifacts-che
   minikube-native:
     name: single-host/native
@@ -48,5 +48,5 @@ jobs:
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-updates-artifacts
+        name: minikube-single-host-native
         path: /tmp/artifacts-che

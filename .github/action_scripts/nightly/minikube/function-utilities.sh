@@ -25,14 +25,23 @@ function buildCheOperatorImage() {
     eval $(minikube docker-env) && docker load -i operator.tar && rm operator.tar
 }
 
+# Get Token from single host mode deployment
+function getSingleHostToken() {
+    export GATEWAY_HOSTNAME=$(minikube ip).nip.io
+    export TOKEN_ENDPOINT="https://${GATEWAY_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
+    export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
+}
+
 # Utility to wait for a workspace to be started after workspace:create.
-function waitWorkspaceStart() {
+function waitSingleHostWorkspaceStart() {
   set +e
   export x=0
   while [ $x -le 180 ]
   do
-    getCheAcessToken
+    getSingleHostToken
 
+    # List Workspaces and get the status
+    echo "[INFO] Getting workspace status:"
     chectl workspace:list
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
@@ -61,7 +70,7 @@ function getCheAcessToken() {
     TOKEN_ENDPOINT="https://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
     export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
   else
-    KEYCLOAK_HOSTNAME=keycloak-che.$(minikube ip).nip.io
+    KEYCLOAK_HOSTNAME=$(minikube ip).nip.io
     TOKEN_ENDPOINT="https://${KEYCLOAK_HOSTNAME}/auth/realms/che/protocol/openid-connect/token"
     export CHE_ACCESS_TOKEN=$(curl --data "grant_type=password&client_id=che-public&username=admin&password=admin" -k ${TOKEN_ENDPOINT} | jq -r .access_token)
   fi

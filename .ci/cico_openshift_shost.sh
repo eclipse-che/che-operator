@@ -113,7 +113,7 @@ EOL
       --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${OPERATOR_IMAGE}
 
     # Create and start a workspace
-    getSingleHostToken # Function from ./util/ci_common.sh
+    getSingleHostToken
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
     # Wait for workspace to be up
