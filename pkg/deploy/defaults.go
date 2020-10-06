@@ -14,12 +14,14 @@ package deploy
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	util "github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
@@ -102,30 +104,6 @@ func InitDefaults(defaultsPath string) {
 		InitDefaultsFromEnv()
 	} else {
 		InitDefaultsFromFile(defaultsPath)
-	}
-}
-
-func InitDefaultsFromEnv() {
-	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
-	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
-	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
-	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
-	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
-	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
-	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
-	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
-	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-
-	// CRW images for that are mentioned in the Che server che.properties
-	// For CRW these should be synced by hand with images stored in RH registries
-	// instead of being synced by script with the content of the upstream `che.properties` file
-	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
-	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
-	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
-
-	// Don't get some k8s specific env
-	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }
 
@@ -363,4 +341,51 @@ func getOrganizationFromImage(image string) string {
 		organization = imageParts[1]
 	}
 	return organization
+}
+
+func InitDefaultsFromEnv() {
+	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
+	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+
+	// CRW images for that are mentioned in the Che server che.properties
+	// For CRW these should be synced by hand with images stored in RH registries
+	// instead of being synced by script with the content of the upstream `che.properties` file
+	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+
+	// Don't get some k8s specific env
+	if !util.IsOpenShift {
+		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+	}
+}
+
+func InitTestDefaultsFromDeployment(deploymentFile string) error {
+	operator := &appsv1.Deployment{}
+	data, err := ioutil.ReadFile(deploymentFile)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(data, operator)
+	if err != nil {
+		return err
+	}
+
+	for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
+		err = os.Setenv(env.Name, env.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	InitDefaultsFromEnv()
+	return nil
 }

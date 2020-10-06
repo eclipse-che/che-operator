@@ -14,6 +14,12 @@ package che
 import (
 	"context"
 	"fmt"
+	"github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/gateway"
+	"github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	"github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"strconv"
 	"time"
 
@@ -615,11 +621,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	externalDB := instance.Spec.Database.ExternalDb
 	if !externalDB {
 		if cheMultiUser == "false" {
-			if util.K8sclient.IsDeploymentExists(deploy.PostgresDeploymentName, instance.Namespace) {
-				util.K8sclient.DeleteDeployment(deploy.PostgresDeploymentName, instance.Namespace)
+			if util.K8sclient.IsDeploymentExists(postgres.PostgresDeploymentName, instance.Namespace) {
+				util.K8sclient.DeleteDeployment(postgres.PostgresDeploymentName, instance.Namespace)
 			}
 		} else {
-			postgresLabels := deploy.GetLabels(instance, deploy.PostgresDeploymentName)
+			postgresLabels := deploy.GetLabels(instance, postgres.PostgresDeploymentName)
 
 			// Create a new postgres service
 			serviceStatus := deploy.SyncServiceToCluster(deployContext, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
@@ -648,10 +654,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			// Create a new Postgres deployment
-			deploymentStatus := deploy.SyncPostgresDeploymentToCluster(deployContext)
+			deploymentStatus := postgres.SyncPostgresDeploymentToCluster(deployContext)
 			if !tests {
 				if !deploymentStatus.Continue {
-					logrus.Infof("Waiting on deployment '%s' to be ready", deploy.PostgresDeploymentName)
+					logrus.Infof("Waiting on deployment '%s' to be ready", postgres.PostgresDeploymentName)
 					if deploymentStatus.Err != nil {
 						logrus.Error(deploymentStatus.Err)
 					}
@@ -671,11 +677,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					}
 					identityProviderPostgresPassword = password
 				}
-				pgCommand := deploy.GetPostgresProvisionCommand(identityProviderPostgresPassword)
+				pgCommand := identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword)
 				dbStatus := instance.Status.DbProvisoned
 				// provision Db and users for Che and Keycloak servers
 				if !dbStatus {
-					podToExec, err := util.K8sclient.GetDeploymentPod(deploy.PostgresDeploymentName, instance.Namespace)
+					podToExec, err := util.K8sclient.GetDeploymentPod(postgres.PostgresDeploymentName, instance.Namespace)
 					if err != nil {
 						return reconcile.Result{}, err
 					}
@@ -705,7 +711,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create Che service and route
-	serviceStatus := deploy.SyncCheServiceToCluster(deployContext)
+	serviceStatus := server.SyncCheServiceToCluster(deployContext)
 	if !tests {
 		if !serviceStatus.Continue {
 			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceName)
@@ -766,7 +772,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create and provision Keycloak related objects
-	provisioned, err := deploy.SyncIdentityProviderToCluster(deployContext, cheHost, protocol, cheFlavor)
+	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext, cheHost, protocol, cheFlavor)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -776,7 +782,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = deploy.SyncDevfileRegistryToCluster(deployContext, cheHost)
+	provisioned, err = devfile_registry.SyncDevfileRegistryToCluster(deployContext, cheHost)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -786,7 +792,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = deploy.SyncPluginRegistryToCluster(deployContext, cheHost)
+	provisioned, err = plugin_registry.SyncPluginRegistryToCluster(deployContext, cheHost)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -805,10 +811,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
-	cheConfigMap, err := deploy.SyncCheConfigMapToCluster(deployContext)
+	cheConfigMap, err := server.SyncCheConfigMapToCluster(deployContext)
 	if !tests {
 		if cheConfigMap == nil {
-			logrus.Infof("Waiting on config map '%s' to be created", deploy.CheConfigMapName)
+			logrus.Infof("Waiting on config map '%s' to be created", server.CheConfigMapName)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -820,19 +826,19 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// which will automatically trigger Che rolling update
 	var cmResourceVersion string
 	if tests {
-		cmResourceVersion = r.GetEffectiveConfigMap(instance, deploy.CheConfigMapName).ResourceVersion
+		cmResourceVersion = r.GetEffectiveConfigMap(instance, server.CheConfigMapName).ResourceVersion
 	} else {
 		cmResourceVersion = cheConfigMap.ResourceVersion
 	}
 
-	err = deploy.SyncGatewayToCluster(deployContext)
+	err = gateway.SyncGatewayToCluster(deployContext)
 	if err != nil {
 		logrus.Errorf("Failed to create the Server Gateway: %s", err)
 		return reconcile.Result{}, err
 	}
 
 	// Create a new che deployment
-	deploymentStatus := deploy.SyncCheDeploymentToCluster(deployContext, cmResourceVersion)
+	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext, cmResourceVersion)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
@@ -1007,7 +1013,7 @@ func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 
 func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 	if cr.Spec.Server.ServerExposureStrategy == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
-		return deploy.GatewayServiceName
+		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName
 }

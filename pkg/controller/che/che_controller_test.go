@@ -13,6 +13,7 @@ package che
 
 import (
 	"context"
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"io/ioutil"
 	"os"
 	"time"
@@ -189,7 +190,7 @@ func TestCheController(t *testing.T) {
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR); err != nil {
 		t.Errorf("Failed to get the Che custom resource %s: %s", cheCR.Name, err)
 	}
-	if err = deploy.CreateIdentityProviderItems(deployContext, "che"); err != nil {
+	if err = identity_provider.CreateIdentityProviderItems(deployContext, "che"); err != nil {
 		t.Errorf("Failed to create the items for the identity provider: %s", err)
 	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName

@@ -15,7 +15,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -40,52 +39,23 @@ var portsDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort"),
 }
 
-func SyncCheServiceToCluster(deployContext *DeployContext) ServiceProvisioningStatus {
-	specService, err := GetSpecCheService(deployContext)
-	if err != nil {
-		return ServiceProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
-	}
-
-	return doSyncServiceToCluster(deployContext, specService)
-}
-
-func GetSpecCheService(deployContext *DeployContext) (*corev1.Service, error) {
-	portName := []string{"http"}
-	portNumber := []int32{8080}
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
-
-	if deployContext.CheCluster.Spec.Metrics.Enable {
-		portName = append(portName, "metrics")
-		portNumber = append(portNumber, DefaultCheMetricsPort)
-	}
-
-	if deployContext.CheCluster.Spec.Server.CheDebug == "true" {
-		portName = append(portName, "debug")
-		portNumber = append(portNumber, DefaultCheDebugPort)
-	}
-
-	return getSpecService(deployContext, CheServiceName, portName, portNumber, labels)
-}
-
 func SyncServiceToCluster(
 	deployContext *DeployContext,
 	name string,
 	portName []string,
 	portNumber []int32,
 	labels map[string]string) ServiceProvisioningStatus {
-	specService, err := getSpecService(deployContext, name, portName, portNumber, labels)
+	specService, err := GetSpecService(deployContext, name, portName, portNumber, labels)
 	if err != nil {
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
 		}
 	}
 
-	return doSyncServiceToCluster(deployContext, specService)
+	return DoSyncServiceToCluster(deployContext, specService)
 }
 
-func doSyncServiceToCluster(deployContext *DeployContext, specService *corev1.Service) ServiceProvisioningStatus {
+func DoSyncServiceToCluster(deployContext *DeployContext, specService *corev1.Service) ServiceProvisioningStatus {
 
 	clusterService, err := getClusterService(specService.Name, specService.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
@@ -127,7 +97,7 @@ func doSyncServiceToCluster(deployContext *DeployContext, specService *corev1.Se
 	}
 }
 
-func getSpecService(
+func GetSpecService(
 	deployContext *DeployContext,
 	name string,
 	portName []string,
