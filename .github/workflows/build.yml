@@ -9,7 +9,7 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-name: Che operator image build check.
+name: Che operator image build check
 on: [pull_request, push]
 jobs:
 

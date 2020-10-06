@@ -11,19 +11,6 @@
 
 set -e
 
-# Utility to build Che Operator Image.
-function buildCheOperatorImage() {
-  if [ -z "${1}" ]; then
-    printError "Platform is required to build che operator image."
-  fi
-
-  local PLATFORM="${1}"
-  local OPERATOR_IMAGE=${2:-"quay.io/eclipse/che-operator:nightly"}
-
-  cd "$OPERATOR_REPO" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
-  eval $(${PLATFORM} docker-env) && docker load -i operator.tar && rm operator.tar
-}
-
 # Get the access token from keycloak in openshift platforms and kubernetes
 function getCheAcessToken() {
   if [[ ${PLATFORM} == "openshift" ]]

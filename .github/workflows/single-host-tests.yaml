@@ -9,12 +9,11 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-
-name: Testing stable versions updates
+name: Minikube
 on: pull_request
 jobs:
-  minikube-e2e:
-    name: Minikube
+  minikube-gateway:
+    name: Testing latest changes (single-host/gateway)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -24,37 +23,30 @@ jobs:
       run: sudo pip install yq
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Run che operator updates minikube
-      run: /bin/bash .ci/cico_updates_minikube.sh
-    # Run this step even the previous step fail
+    - name: Run che operator single host tests
+      run: /bin/bash .github/action_scripts/nightly/minikube/single-host-gateway.sh
+    # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-updates-artifacts
+        name: minikube-single-host-gateway
         path: /tmp/artifacts-che
-  minishift-update:
-    name: Minishift
-    runs-on: macos-latest
+  minikube-native:
+    name: Testing latest changes (single-host/native)
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Install minikube kubernetes cluster
+      run:  /bin/bash .ci/start-minikube.sh
+    - name: Install jq
+      run: sudo pip install yq
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install and start minishift OCP 3.11 cluster
-      run: |
-        brew cask install minishift
-        export MINISHIFT_GITHUB_API_TOKEN=${{ secrets.GITHUB_TOKEN }}
-        minishift start --memory=5500 --vm-driver=virtualbox
-    - name: Generate minishift certificates
-      run: /bin/bash .github/action_scripts/minishift_cert_gen.sh
-    - name: Update minishift deprecated certificates and run e2e
-      run: |
-        # Run E2E tests
-        eval $(minishift oc-env)
-        pip install yq
-        /bin/bash .ci/cico_updates_minishift.sh
-    # Run this step even the previous step fail
+    - name: Run che operator single host tests
+      run: /bin/bash .github/action_scripts/nightly/minikube/single-host-native.sh
+    # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minishift-updates-artifacts
+        name: minikube-single-host-native
         path: /tmp/artifacts-che

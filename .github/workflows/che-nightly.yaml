@@ -9,11 +9,11 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 
-name: Testing latest changes
+name: Minishift
 on: pull_request
 jobs:
   minishift-e2e:
-    name: Minishift
+    name: Testing latest changes
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1

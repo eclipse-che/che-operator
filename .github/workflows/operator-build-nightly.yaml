@@ -33,7 +33,7 @@ jobs:
     - name: Build and push nightly
       uses: docker/build-push-action@v2
       with:
-        file: build/dockerfiles/Dockerfile
+        file: Dockerfile
         platforms: linux/amd64,linux/ppc64le,linux/s390x
         push: true
         tags: quay.io/eclipse/che-operator:nightly
