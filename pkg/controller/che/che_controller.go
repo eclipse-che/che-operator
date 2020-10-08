@@ -14,14 +14,15 @@ package che
 import (
 	"context"
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
-	"github.com/eclipse/che-operator/pkg/deploy/gateway"
-	"github.com/eclipse/che-operator/pkg/deploy/identity-provider"
-	"github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
-	"github.com/eclipse/che-operator/pkg/deploy/postgres"
-	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"strconv"
 	"time"
+
+	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/gateway"
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	plugin_registry "github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -43,7 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -771,8 +771,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	trustStoreConfigMapVersion := ""
+	if instance.Spec.Server.ServerTrustStoreConfigMapName != "" {
+		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(instance.Spec.Server.ServerTrustStoreConfigMapName, instance.Namespace, clusterAPI.Client)
+		if trustStoreConfigMap != nil {
+			if !deploy.HasCheClusterOwner(deployContext, trustStoreConfigMap) {
+				err := deploy.SetCheClusterOwner(deployContext, trustStoreConfigMap)
+				return reconcile.Result{}, err
+			}
+			trustStoreConfigMapVersion = trustStoreConfigMap.ResourceVersion
+		}
+	}
+
 	// create and provision Keycloak related objects
-	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext, cheHost, protocol, cheFlavor)
+	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext, trustStoreConfigMapVersion)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -802,13 +814,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if serverTrustStoreConfigMapName := instance.Spec.Server.ServerTrustStoreConfigMapName; serverTrustStoreConfigMapName != "" {
-		certMap := r.GetEffectiveConfigMap(instance, serverTrustStoreConfigMapName)
-		if err := controllerutil.SetControllerReference(instance, certMap, r.scheme); err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-	}
-
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
 	cheConfigMap, err := server.SyncCheConfigMapToCluster(deployContext)
@@ -820,15 +825,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			return reconcile.Result{}, err
 		}
-	}
-
-	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
-	// which will automatically trigger Che rolling update
-	var cmResourceVersion string
-	if tests {
-		cmResourceVersion = r.GetEffectiveConfigMap(instance, server.CheConfigMapName).ResourceVersion
 	} else {
-		cmResourceVersion = cheConfigMap.ResourceVersion
+		cheConfigMap, _ = deploy.GetClusterConfigMap(server.CheConfigMapName, instance.Namespace, clusterAPI.Client)
 	}
 
 	err = gateway.SyncGatewayToCluster(deployContext)
@@ -838,7 +836,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Create a new che deployment
-	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext, cmResourceVersion)
+	resourceVersions := cheConfigMap.ResourceVersion
+	if trustStoreConfigMapVersion != "" {
+		resourceVersions += "," + trustStoreConfigMapVersion
+	}
+	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext, resourceVersions)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)

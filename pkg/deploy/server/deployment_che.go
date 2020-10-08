@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext, cmResourceVersion string) deploy.DeploymentProvisioningStatus {
+func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext, resourceVersions string) deploy.DeploymentProvisioningStatus {
 	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DefaultCheFlavor(deployContext.CheCluster), deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
@@ -35,7 +35,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext, cmResourceV
 		}
 	}
 
-	specDeployment, err := getSpecCheDeployment(deployContext, cmResourceVersion)
+	specDeployment, err := getSpecCheDeployment(deployContext, resourceVersions)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
@@ -45,7 +45,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext, cmResourceV
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecCheDeployment(deployContext *deploy.DeployContext, cmResourceVersion string) (*appsv1.Deployment, error) {
+func getSpecCheDeployment(deployContext *deploy.DeployContext, resourceVersions string) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext, cmResourceVersion
 	cheEnv = append(cheEnv,
 		corev1.EnvVar{
 			Name:  "CM_REVISION",
-			Value: cmResourceVersion,
+			Value: resourceVersions,
 		},
 		corev1.EnvVar{
 			Name: "KUBERNETES_NAMESPACE",

@@ -13,11 +13,12 @@ package identity_provider
 
 import (
 	"context"
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/deploy/postgres"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/deploy/postgres"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -58,7 +59,7 @@ var (
 	}
 )
 
-func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
+func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, resourceVersions string) deploy.DeploymentProvisioningStatus {
 	clusterDeployment, err := deploy.GetClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
@@ -66,7 +67,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) deploy
 		}
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment)
+	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment, resourceVersions)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
@@ -78,7 +79,8 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) deploy
 
 func getSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
-	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+	clusterDeployment *appsv1.Deployment,
+	resourceVersions string) (*appsv1.Deployment, error) {
 	optionalEnv := true
 	labels := deploy.GetLabels(deployContext.CheCluster, KeycloakDeploymentName)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
@@ -222,6 +224,10 @@ func getSpecKeycloakDeployment(
 
 	keycloakEnv := []corev1.EnvVar{
 		{
+			Name:  "CM_REVISION",
+			Value: resourceVersions,
+		},
+		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
 			Value: "true",
 		},
@@ -348,6 +354,10 @@ func getSpecKeycloakDeployment(
 
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
+			{
+				Name:  "CM_REVISION",
+				Value: resourceVersions,
+			},
 			{
 				Name:  "PROXY_ADDRESS_FORWARDING",
 				Value: "true",
