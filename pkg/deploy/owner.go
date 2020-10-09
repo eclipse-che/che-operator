@@ -30,7 +30,7 @@ func HasCheClusterOwner(deployContext *DeployContext, object v1.Object) bool {
 	return false
 }
 
-func SetCheClusterOwner(deployContext *DeployContext, object v1.Object) error {
+func UpdateCheClusterOwner(deployContext *DeployContext, object v1.Object) error {
 	if err := controllerutil.SetControllerReference(deployContext.CheCluster, object, deployContext.ClusterAPI.Scheme); err != nil {
 		return err
 	}

@@ -776,7 +776,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(instance.Spec.Server.ServerTrustStoreConfigMapName, instance.Namespace, clusterAPI.Client)
 		if trustStoreConfigMap != nil {
 			if !deploy.HasCheClusterOwner(deployContext, trustStoreConfigMap) {
-				err := deploy.SetCheClusterOwner(deployContext, trustStoreConfigMap)
+				err := deploy.UpdateCheClusterOwner(deployContext, trustStoreConfigMap)
 				return reconcile.Result{}, err
 			}
 			trustStoreConfigMapVersion = trustStoreConfigMap.ResourceVersion
