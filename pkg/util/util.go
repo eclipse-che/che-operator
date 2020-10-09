@@ -190,11 +190,15 @@ func IsTestMode() (isTesting bool) {
 }
 
 func GetClusterPublicHostname(isOpenShift4 bool) (hostname string, err error) {
+	// Could be set for debug scripts.
+	CLUSTER_API_URL := os.Getenv("CLUSTER_API_URL")
+	if CLUSTER_API_URL != "" {
+		return CLUSTER_API_URL, nil
+	}
 	if isOpenShift4 {
 		return getClusterPublicHostnameForOpenshiftV4()
-	} else {
-		return getClusterPublicHostnameForOpenshiftV3()
 	}
+	return getClusterPublicHostnameForOpenshiftV3()
 }
 
 // getClusterPublicHostnameForOpenshiftV3 is a hacky way to get OpenShift API public DNS/IP
