@@ -19,28 +19,12 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
-	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-)
-
-var (
-	cheCustomDiffOpts = cmp.Options{
-		cmp.Comparer(func(x, y appsv1.Deployment) bool {
-			return x.Annotations["che.che-configmap.version"] == y.Annotations["che.che-configmap.version"] &&
-				x.Annotations["che.ca-certificates.version"] == y.Annotations["che.ca-certificates.version"]
-		}),
-	}
-	cheAdditionalDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
-		clusterDeployment.Spec = specDeployment.Spec
-		clusterDeployment.Annotations["che.che-configmap.version"] = specDeployment.Annotations["che.che-configmap.version"]
-		clusterDeployment.Annotations["che.ca-certificates.version"] = specDeployment.Annotations["che.ca-certificates.version"]
-		return clusterDeployment
-	}
 )
 
 func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
@@ -58,7 +42,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) deploy.Depl
 		}
 	}
 
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, cheCustomDiffOpts, cheAdditionalDeploymentMerge)
+	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
 func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
@@ -166,6 +150,15 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 	cheEnv = append(cheEnv, selfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertHostEnv)
+	cheEnv = append(cheEnv,
+		corev1.EnvVar{
+			Name:  "CHE_CONFIGMAP_VERSION",
+			Value: cheConfigMapVersion,
+		},
+		corev1.EnvVar{
+			Name:  "CHE_CA_CERTIFICATES_VERSION",
+			Value: cheCaCertificatesVersion,
+		})
 
 	identityProviderSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderSecret
 	if len(identityProviderSecret) > 0 {
@@ -224,10 +217,6 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 			Name:      cheFlavor,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
-			Annotations: map[string]string{
-				"che.che-configmap.version":   cheConfigMapVersion,
-				"che.ca-certificates.version": cheCaCertificatesVersion,
-			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},

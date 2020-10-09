@@ -233,6 +233,10 @@ func getSpecKeycloakDeployment(
 
 	keycloakEnv := []corev1.EnvVar{
 		{
+			Name:  "CHE_CA_CERTIFICATES_VERSION",
+			Value: cheCaCertificatesVersion,
+		},
+		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
 			Value: "true",
 		},
@@ -359,6 +363,10 @@ func getSpecKeycloakDeployment(
 
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
+			{
+				Name:  "CHE_CA_CERTIFICATES_VERSION",
+				Value: cheCaCertificatesVersion,
+			},
 			{
 				Name:  "PROXY_ADDRESS_FORWARDING",
 				Value: "true",
@@ -521,7 +529,6 @@ func getSpecKeycloakDeployment(
 				"che.self-signed-certificate.version": cheCertSecretVersion,
 				"che.openshift-api-crt.version":       openshiftApiCertSecretVersion,
 				"che.keycloak-ssl-required-updated":   strconv.FormatBool(sslRequiredUpdatedForMasterRealm),
-				"che.ca-certificates.version":         cheCaCertificatesVersion,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
