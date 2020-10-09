@@ -59,7 +59,7 @@ var (
 	}
 )
 
-func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, resourceVersions string) deploy.DeploymentProvisioningStatus {
+func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, cmRevisions string) deploy.DeploymentProvisioningStatus {
 	clusterDeployment, err := deploy.GetClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
@@ -67,7 +67,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, resour
 		}
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment, resourceVersions)
+	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment, cmRevisions)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
@@ -80,7 +80,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, resour
 func getSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
 	clusterDeployment *appsv1.Deployment,
-	resourceVersions string) (*appsv1.Deployment, error) {
+	cmRevisions string) (*appsv1.Deployment, error) {
 	optionalEnv := true
 	labels := deploy.GetLabels(deployContext.CheCluster, KeycloakDeploymentName)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
@@ -225,7 +225,7 @@ func getSpecKeycloakDeployment(
 	keycloakEnv := []corev1.EnvVar{
 		{
 			Name:  "CM_REVISION",
-			Value: resourceVersions,
+			Value: cmRevisions,
 		},
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
@@ -355,8 +355,8 @@ func getSpecKeycloakDeployment(
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
 			{
-				Name:  "CM_REVISION",
-				Value: resourceVersions,
+				Name:  "CM_REVISIONS",
+				Value: cmRevisions,
 			},
 			{
 				Name:  "PROXY_ADDRESS_FORWARDING",
