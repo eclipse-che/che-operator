@@ -12,11 +12,6 @@
 
 set -e
 
-if [ $# -ne 1 ]; then
-    echo -e "Wrong number of parameters.\nUsage: ./loca-debug.sh <custom-resource-yaml>\n"
-    exit 1
-fi
-
 command -v delv >/dev/null 2>&1 || { echo "operator-sdk is not installed. Aborting."; exit 1; }
 command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
 
@@ -28,8 +23,26 @@ set +e
 kubectl create namespace $CHE_NAMESPACE
 set -e
 
+CR="${1}"
+if [ -z "${CR}" ]; then
+    CR="./deploy/crds/org_v1_che_cr.yaml"
+    echo "[INFO] First argument is an empty. Set up default CR file: ${CR}"
+fi
+
 kubectl apply -f deploy/crds/org_v1_che_crd.yaml
-kubectl apply -f $1 -n $CHE_NAMESPACE
+kubectl apply -f "${CR}" -n $CHE_NAMESPACE
 cp templates/keycloak_provision /tmp/keycloak_provision
+cp templates/oauth_provision /tmp/oauth_provision
+
+ENV_FILE=/tmp/che-operator-debug.env
+rm -rf "${ENV_FILE}"
+touch "${ENV_FILE}"
+CLUSTER_API_URL=$(oc whoami --show-server=true) || true
+if [ -n "${CLUSTER_API_URL}" ]; then 
+    echo "CLUSTER_API_URL='${CLUSTER_API_URL}'" > "${ENV_FILE}"
+    echo "[INFO] Set up cluster api url: ${CLUSTER_API_URL}"
+fi
+
+echo "[WARN] Make sure that your CR contains valid ingress domain!"
 
 operator-sdk up local --namespace=${CHE_NAMESPACE} --enable-delve
