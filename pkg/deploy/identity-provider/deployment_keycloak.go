@@ -224,7 +224,7 @@ func getSpecKeycloakDeployment(
 
 	keycloakEnv := []corev1.EnvVar{
 		{
-			Name:  "CM_REVISION",
+			Name:  "CM_REVISIONS",
 			Value: cmRevisions,
 		},
 		{
