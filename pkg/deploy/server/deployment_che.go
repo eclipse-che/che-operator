@@ -19,6 +19,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -27,7 +28,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext, cmRevisions string) deploy.DeploymentProvisioningStatus {
+var (
+	cheCustomDiffOpts = cmp.Options{
+		cmp.Comparer(func(x, y appsv1.Deployment) bool {
+			return x.Annotations["che.che-configmap.version"] == y.Annotations["che.che-configmap.version"] &&
+				x.Annotations["che.ca-certificates.version"] == y.Annotations["che.ca-certificates.version"]
+		}),
+	}
+	cheAdditionalDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
+		clusterDeployment.Spec = specDeployment.Spec
+		clusterDeployment.Annotations["che.che-configmap.version"] = specDeployment.Annotations["che.che-configmap.version"]
+		clusterDeployment.Annotations["che.ca-certificates.version"] = specDeployment.Annotations["che.ca-certificates.version"]
+		return clusterDeployment
+	}
+)
+
+func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
 	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DefaultCheFlavor(deployContext.CheCluster), deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
@@ -35,17 +51,17 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext, cmRevisions
 		}
 	}
 
-	specDeployment, err := getSpecCheDeployment(deployContext, cmRevisions)
+	specDeployment, err := getSpecCheDeployment(deployContext)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
 		}
 	}
 
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, cheCustomDiffOpts, cheAdditionalDeploymentMerge)
 }
 
-func getSpecCheDeployment(deployContext *deploy.DeployContext, cmRevisions string) (*appsv1.Deployment, error) {
+func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
@@ -54,6 +70,20 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext, cmRevisions strin
 	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
 		return nil, err
+	}
+
+	cheCaCertificatesVersion := ""
+	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
+		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+		if trustStoreConfigMap != nil {
+			cheCaCertificatesVersion = trustStoreConfigMap.ResourceVersion
+		}
+	}
+
+	cheConfigMapVersion := ""
+	cheConfigMap, _ := deploy.GetClusterConfigMap("che", deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if cheConfigMap != nil {
+		cheConfigMapVersion = cheConfigMap.ResourceVersion
 	}
 
 	terminationGracePeriodSeconds := int64(30)
@@ -174,10 +204,6 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext, cmRevisions strin
 
 	cheEnv = append(cheEnv,
 		corev1.EnvVar{
-			Name:  "CM_REVISIONS",
-			Value: cmRevisions,
-		},
-		corev1.EnvVar{
 			Name: "KUBERNETES_NAMESPACE",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -198,6 +224,10 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext, cmRevisions strin
 			Name:      cheFlavor,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
+			Annotations: map[string]string{
+				"che.che-configmap.version":   cheConfigMapVersion,
+				"che.ca-certificates.version": cheCaCertificatesVersion,
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},

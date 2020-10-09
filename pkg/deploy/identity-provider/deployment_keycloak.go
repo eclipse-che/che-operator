@@ -47,7 +47,8 @@ var (
 		cmp.Comparer(func(x, y appsv1.Deployment) bool {
 			return x.Annotations["che.self-signed-certificate.version"] == y.Annotations["che.self-signed-certificate.version"] &&
 				x.Annotations["che.openshift-api-crt.version"] == y.Annotations["che.openshift-api-crt.version"] &&
-				x.Annotations["che.keycloak-ssl-required-updated"] == y.Annotations["che.keycloak-ssl-required-updated"]
+				x.Annotations["che.keycloak-ssl-required-updated"] == y.Annotations["che.keycloak-ssl-required-updated"] &&
+				x.Annotations["che.ca-certificates.version"] == y.Annotations["che.ca-certificates.version"]
 		}),
 	}
 	keycloakAdditionalDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
@@ -55,11 +56,12 @@ var (
 		clusterDeployment.Annotations["che.self-signed-certificate.version"] = specDeployment.Annotations["che.self-signed-certificate.version"]
 		clusterDeployment.Annotations["che.openshift-api-crt.version"] = specDeployment.Annotations["che.openshift-api-crt.version"]
 		clusterDeployment.Annotations["che.keycloak-ssl-required-updated"] = specDeployment.Annotations["che.keycloak-ssl-required-updated"]
+		clusterDeployment.Annotations["che.ca-certificates.version"] = specDeployment.Annotations["che.ca-certificates.version"]
 		return clusterDeployment
 	}
 )
 
-func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, cmRevisions string) deploy.DeploymentProvisioningStatus {
+func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
 	clusterDeployment, err := deploy.GetClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
@@ -67,7 +69,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, cmRevi
 		}
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment, cmRevisions)
+	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
@@ -79,8 +81,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext, cmRevi
 
 func getSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
-	clusterDeployment *appsv1.Deployment,
-	cmRevisions string) (*appsv1.Deployment, error) {
+	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	optionalEnv := true
 	labels := deploy.GetLabels(deployContext.CheCluster, KeycloakDeploymentName)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
@@ -100,6 +101,14 @@ func getSpecKeycloakDeployment(
 				trustpass = e.Value
 				break
 			}
+		}
+	}
+
+	cheCaCertificatesVersion := ""
+	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
+		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+		if trustStoreConfigMap != nil {
+			cheCaCertificatesVersion = trustStoreConfigMap.ResourceVersion
 		}
 	}
 
@@ -223,10 +232,6 @@ func getSpecKeycloakDeployment(
 	}
 
 	keycloakEnv := []corev1.EnvVar{
-		{
-			Name:  "CM_REVISIONS",
-			Value: cmRevisions,
-		},
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
 			Value: "true",
@@ -354,10 +359,6 @@ func getSpecKeycloakDeployment(
 
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
-			{
-				Name:  "CM_REVISIONS",
-				Value: cmRevisions,
-			},
 			{
 				Name:  "PROXY_ADDRESS_FORWARDING",
 				Value: "true",
@@ -520,6 +521,7 @@ func getSpecKeycloakDeployment(
 				"che.self-signed-certificate.version": cheCertSecretVersion,
 				"che.openshift-api-crt.version":       openshiftApiCertSecretVersion,
 				"che.keycloak-ssl-required-updated":   strconv.FormatBool(sslRequiredUpdatedForMasterRealm),
+				"che.ca-certificates.version":         cheCaCertificatesVersion,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{

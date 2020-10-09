@@ -817,16 +817,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	trustStoreCMResourceVersion := ""
-	if instance.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(instance.Spec.Server.ServerTrustStoreConfigMapName, instance.Namespace, clusterAPI.Client)
-		if trustStoreConfigMap != nil {
-			trustStoreCMResourceVersion = trustStoreConfigMap.ResourceVersion
-		}
-	}
-
 	// create and provision Keycloak related objects
-	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext, trustStoreCMResourceVersion)
+	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -867,8 +859,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			return reconcile.Result{}, err
 		}
-	} else {
-		cheConfigMap, _ = deploy.GetClusterConfigMap(server.CheConfigMapName, instance.Namespace, clusterAPI.Client)
 	}
 
 	err = gateway.SyncGatewayToCluster(deployContext)
@@ -878,11 +868,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Create a new che deployment
-	cmRevisions := cheConfigMap.ResourceVersion
-	if trustStoreCMResourceVersion != "" {
-		cmRevisions += "," + trustStoreCMResourceVersion
-	}
-	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext, cmRevisions)
+	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
