@@ -129,7 +129,7 @@ spec:
     identityProviderImage: ''
   k8s:
     # your global ingress domain
-    ingressDomain: '192.168.99.100.nip.io'
+    ingressDomain: '192.168.99.101.nip.io'
     # kubernetes.io/ingress.class, defaults to nginx
     ingressClass: ''
     # IngressStrategy is the way ingresses are created.
