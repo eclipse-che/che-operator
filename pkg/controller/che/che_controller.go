@@ -17,15 +17,14 @@ import (
 	"strconv"
 	"time"
 
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
 	"github.com/eclipse/che-operator/pkg/deploy/gateway"
 	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	plugin_registry "github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
 	"github.com/eclipse/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse/che-operator/pkg/deploy/server"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/config/v1"
@@ -44,8 +43,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -145,6 +146,49 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &orgv1.CheCluster{},
+	})
+	if err != nil {
+		return err
+	}
+
+	var toRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
+		checlusters := &orgv1.CheClusterList{}
+		if err := mgr.GetClient().List(context.TODO(), &client.ListOptions{}, checlusters); err != nil {
+			return []reconcile.Request{}
+		}
+
+		if len(checlusters.Items) != 1 {
+			return []reconcile.Request{}
+		}
+
+		if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
+			return []reconcile.Request{}
+		}
+
+		return []reconcile.Request{
+			reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: checlusters.Items[0].Namespace,
+					Name:      checlusters.Items[0].Name,
+				},
+			},
+		}
+	}
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: toRequestMapper,
+	}, predicate.Funcs{
+		UpdateFunc: func(evt event.UpdateEvent) bool {
+			return true
+		},
+		CreateFunc: func(evt event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(evt event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(evt event.GenericEvent) bool {
+			return false
+		},
 	})
 	if err != nil {
 		return err
@@ -265,6 +309,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		ClusterAPI: clusterAPI,
 		CheCluster: instance,
 	}
+
+	logrus.Info(">>>>>>>>>>>>>>>>>>>> Reconcile")
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
 	if err != nil {
@@ -775,11 +821,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if instance.Spec.Server.ServerTrustStoreConfigMapName != "" {
 		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(instance.Spec.Server.ServerTrustStoreConfigMapName, instance.Namespace, clusterAPI.Client)
 		if trustStoreConfigMap != nil {
-			// trustStoreConfigMap might be created by user, to detect changes we have to add the owner
-			if !deploy.HasCheClusterOwner(deployContext, trustStoreConfigMap) {
-				err := deploy.UpdateCheClusterOwner(deployContext, trustStoreConfigMap)
-				return reconcile.Result{}, err
-			}
 			trustStoreCMResourceVersion = trustStoreConfigMap.ResourceVersion
 		}
 	}
