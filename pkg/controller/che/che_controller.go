@@ -310,8 +310,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		CheCluster: instance,
 	}
 
-	logrus.Info(">>>>>>>>>>>>>>>>>>>> Reconcile")
-
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
