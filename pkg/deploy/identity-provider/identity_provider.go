@@ -33,7 +33,7 @@ const (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(
 	deployContext *deploy.DeployContext,
-	resourceVersions string) (bool, error) {
+	cmRevisions string) (bool, error) {
 	instance := deployContext.CheCluster
 	cheHost := instance.Spec.Server.CheHost
 	protocol := "http"
@@ -90,7 +90,7 @@ func SyncIdentityProviderToCluster(
 		}
 	}
 
-	deploymentStatus := SyncKeycloakDeploymentToCluster(deployContext, resourceVersions)
+	deploymentStatus := SyncKeycloakDeploymentToCluster(deployContext, cmRevisions)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Info("Waiting on deployment 'keycloak' to be ready")
