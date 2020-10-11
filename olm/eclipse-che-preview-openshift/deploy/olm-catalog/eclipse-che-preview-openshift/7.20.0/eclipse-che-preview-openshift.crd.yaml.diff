@@ -1,0 +1,135 @@
+--- /root/payload/che/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.19.2/eclipse-che-preview-openshift.crd.yaml	2020-10-11 21:34:49.294436546 +0100
++++ /root/payload/che/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.20.0/eclipse-che-preview-openshift.crd.yaml	2020-10-11 21:40:59.872018421 +0100
+@@ -82,6 +82,14 @@
+                     for `nightly` or `latest` images, and `IfNotPresent` in other
+                     cases.
+                   type: string
++                identityProviderIngress:
++                  description: Ingress custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 identityProviderPassword:
+                   description: Overrides the password of Keycloak admin user. This
+                     is useful to override it ONLY if you use an external Identity
+@@ -112,6 +120,14 @@
+                     field). If omitted or left blank, it will be set to the value
+                     of the `flavour` field.
+                   type: string
++                identityProviderRoute:
++                  description: Route custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 identityProviderSecret:
+                   description: 'The secret that contains `user` and `password` for
+                     Identity Provider. If the secret is defined then `identityProviderAdminUserName`
+@@ -329,6 +345,22 @@
+                   description: 'Log level for the Che server: `INFO` or `DEBUG`. Defaults
+                     to `INFO`.'
+                   type: string
++                cheServerIngress:
++                  description: Che server ingress custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
++                cheServerRoute:
++                  description: Che server route custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 cheWorkspaceClusterRole:
+                   description: Custom cluster role bound to the user for the Che workspaces.
+                     The default roles are used if this is omitted or left blank.
+@@ -349,6 +381,14 @@
+                     deployment. This includes the image tag. Omit it or leave it empty
+                     to use the defaut container image provided by the operator.
+                   type: string
++                devfileRegistryIngress:
++                  description: Devfile registry ingress custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 devfileRegistryMemoryLimit:
+                   description: Overrides the memory limit used in the Devfile registry
+                     deployment. Defaults to 256Mi.
+@@ -362,6 +402,14 @@
+                     registry deployment. Default value is `Always` for `nightly` or
+                     `latest` images, and `IfNotPresent` in other cases.
+                   type: string
++                devfileRegistryRoute:
++                  description: Devfile registry route custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 devfileRegistryUrl:
+                   description: Public URL of the Devfile registry, that serves sample,
+                     ready-to-use devfiles. You should set it ONLY if you use an external
+@@ -388,21 +436,30 @@
+                     particular configuration for Git.
+                   type: boolean
+                 nonProxyHosts:
+-                  description: List of hosts that should not use the configured proxy.
+-                    Use `|`` as delimiter, eg `localhost|my.host.com|123.42.12.32`
++                  description: 'List of hosts that should not use the configured proxy.
++                    So specify wild card domain use the following form `.<DOMAIN>`
++                    and `|` as delimiter, eg: `localhost|.my.host.com|123.42.12.32`
+                     Only use when configuring a proxy is required. Operator respects
+                     OpenShift cluster wide proxy configuration and no additional configuration
+                     is required, but defining `nonProxyHosts` in a custom resource
+                     leads to merging non proxy hosts lists from the cluster proxy
+                     configuration and ones defined in the custom resources. (see the
+                     doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html)
+-                    (see also the `proxyURL` fields).
++                    (see also the `proxyURL` fields).'
+                   type: string
+                 pluginRegistryImage:
+                   description: Overrides the container image used in the Plugin registry
+                     deployment. This includes the image tag. Omit it or leave it empty
+-                    to use the defaut container image provided by the operator.
++                    to use the default container image provided by the operator.
+                   type: string
++                pluginRegistryIngress:
++                  description: Plugin registry ingress custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 pluginRegistryMemoryLimit:
+                   description: Overrides the memory limit used in the Plugin registry
+                     deployment. Defaults to 256Mi.
+@@ -416,6 +473,14 @@
+                     registry deployment. Default value is `Always` for `nightly` or
+                     `latest` images, and `IfNotPresent` in other cases.
+                   type: string
++                pluginRegistryRoute:
++                  description: Plugin registry route custom settings
++                  properties:
++                    labels:
++                      description: Comma separated list of labels that can be used
++                        to organize and categorize (scope and select) objects.
++                      type: string
++                  type: object
+                 pluginRegistryUrl:
+                   description: Public URL of the Plugin registry, that serves sample
+                     ready-to-use devfiles. You should set it ONLY if you use an external
