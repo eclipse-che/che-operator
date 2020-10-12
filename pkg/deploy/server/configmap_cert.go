@@ -13,6 +13,7 @@ package server
 
 import (
 	"context"
+
 	"github.com/eclipse/che-operator/pkg/deploy"
 
 	"github.com/sirupsen/logrus"
@@ -52,4 +53,15 @@ func SyncTrustStoreConfigMapToCluster(deployContext *deploy.DeployContext) (*cor
 	}
 
 	return clusterConfigMap, nil
+}
+
+func GetTrustStoreConfigMapVersion(deployContext *deploy.DeployContext) string {
+	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
+		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+		if trustStoreConfigMap != nil {
+			return trustStoreConfigMap.ResourceVersion
+		}
+	}
+
+	return ""
 }

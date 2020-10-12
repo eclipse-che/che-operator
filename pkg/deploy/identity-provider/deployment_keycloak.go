@@ -12,6 +12,7 @@
 package identity_provider
 
 import (
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"context"
 	"regexp"
 	"strconv"
@@ -47,8 +48,7 @@ var (
 		cmp.Comparer(func(x, y appsv1.Deployment) bool {
 			return x.Annotations["che.self-signed-certificate.version"] == y.Annotations["che.self-signed-certificate.version"] &&
 				x.Annotations["che.openshift-api-crt.version"] == y.Annotations["che.openshift-api-crt.version"] &&
-				x.Annotations["che.keycloak-ssl-required-updated"] == y.Annotations["che.keycloak-ssl-required-updated"] &&
-				x.Annotations["che.ca-certificates.version"] == y.Annotations["che.ca-certificates.version"]
+				x.Annotations["che.keycloak-ssl-required-updated"] == y.Annotations["che.keycloak-ssl-required-updated"]
 		}),
 	}
 	keycloakAdditionalDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
@@ -56,7 +56,6 @@ var (
 		clusterDeployment.Annotations["che.self-signed-certificate.version"] = specDeployment.Annotations["che.self-signed-certificate.version"]
 		clusterDeployment.Annotations["che.openshift-api-crt.version"] = specDeployment.Annotations["che.openshift-api-crt.version"]
 		clusterDeployment.Annotations["che.keycloak-ssl-required-updated"] = specDeployment.Annotations["che.keycloak-ssl-required-updated"]
-		clusterDeployment.Annotations["che.ca-certificates.version"] = specDeployment.Annotations["che.ca-certificates.version"]
 		return clusterDeployment
 	}
 )
@@ -104,14 +103,7 @@ func getSpecKeycloakDeployment(
 		}
 	}
 
-	cheCaCertificatesVersion := ""
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-		if trustStoreConfigMap != nil {
-			cheCaCertificatesVersion = trustStoreConfigMap.ResourceVersion
-		}
-	}
-
+	cmResourceVersions := server.GetTrustStoreConfigMapVersion(deployContext)
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
@@ -233,8 +225,8 @@ func getSpecKeycloakDeployment(
 
 	keycloakEnv := []corev1.EnvVar{
 		{
-			Name:  "CHE_CA_CERTIFICATES_VERSION",
-			Value: cheCaCertificatesVersion,
+			Name:  "CM_REVISION",
+			Value: cmResourceVersions,
 		},
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
@@ -364,8 +356,8 @@ func getSpecKeycloakDeployment(
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
 			{
-				Name:  "CHE_CA_CERTIFICATES_VERSION",
-				Value: cheCaCertificatesVersion,
+				Name:  "CM_REVISION",
+				Value: cmResourceVersions,
 			},
 			{
 				Name:  "PROXY_ADDRESS_FORWARDING",

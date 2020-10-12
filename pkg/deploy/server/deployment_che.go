@@ -56,19 +56,8 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		return nil, err
 	}
 
-	cheCaCertificatesVersion := ""
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-		if trustStoreConfigMap != nil {
-			cheCaCertificatesVersion = trustStoreConfigMap.ResourceVersion
-		}
-	}
-
-	cheConfigMapVersion := ""
-	cheConfigMap, _ := deploy.GetClusterConfigMap("che", deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if cheConfigMap != nil {
-		cheConfigMapVersion = cheConfigMap.ResourceVersion
-	}
+	cmResourceVersions := GetCheConfigMapVersion(deployContext)
+	cmResourceVersions += "," + GetTrustStoreConfigMapVersion(deployContext)
 
 	terminationGracePeriodSeconds := int64(30)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
@@ -150,15 +139,6 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 	cheEnv = append(cheEnv, selfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertHostEnv)
-	cheEnv = append(cheEnv,
-		corev1.EnvVar{
-			Name:  "CHE_CONFIGMAP_VERSION",
-			Value: cheConfigMapVersion,
-		},
-		corev1.EnvVar{
-			Name:  "CHE_CA_CERTIFICATES_VERSION",
-			Value: cheCaCertificatesVersion,
-		})
 
 	identityProviderSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderSecret
 	if len(identityProviderSecret) > 0 {
@@ -196,6 +176,10 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 	}
 
 	cheEnv = append(cheEnv,
+		corev1.EnvVar{
+			Name:  "CM_REVISION",
+			Value: cmResourceVersions,
+		},
 		corev1.EnvVar{
 			Name: "KUBERNETES_NAMESPACE",
 			ValueFrom: &corev1.EnvVarSource{

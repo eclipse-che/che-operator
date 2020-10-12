@@ -271,3 +271,11 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	addMap(cheEnv, deployContext.CheCluster.Spec.Server.CustomCheProperties)
 	return cheEnv, nil
 }
+
+func GetCheConfigMapVersion(deployContext *deploy.DeployContext) string {
+	cheConfigMap, _ := deploy.GetClusterConfigMap("che", deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if cheConfigMap != nil {
+		return cheConfigMap.ResourceVersion
+	}
+	return ""
+}

@@ -81,6 +81,21 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	isOpenShift, _, err := util.DetectOpenShift()
 
+	onAllExceptGenericEventsPredicate := predicate.Funcs{
+		UpdateFunc: func(evt event.UpdateEvent) bool {
+			return true
+		},
+		CreateFunc: func(evt event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(evt event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(evt event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
@@ -152,44 +167,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	var toRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
-		checlusters := &orgv1.CheClusterList{}
-		if err := mgr.GetClient().List(context.TODO(), &client.ListOptions{}, checlusters); err != nil {
-			return []reconcile.Request{}
+		isTrusted, reconcileRequest := isTrustedBundleConfigMap(mgr, obj)
+		if isTrusted {
+			return []reconcile.Request{reconcileRequest}
 		}
-
-		if len(checlusters.Items) != 1 {
-			return []reconcile.Request{}
-		}
-
-		if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
-			return []reconcile.Request{}
-		}
-
-		return []reconcile.Request{
-			reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Namespace: checlusters.Items[0].Namespace,
-					Name:      checlusters.Items[0].Name,
-				},
-			},
-		}
+		return []reconcile.Request{}
 	}
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{
 		ToRequests: toRequestMapper,
-	}, predicate.Funcs{
-		UpdateFunc: func(evt event.UpdateEvent) bool {
-			return true
-		},
-		CreateFunc: func(evt event.CreateEvent) bool {
-			return true
-		},
-		DeleteFunc: func(evt event.DeleteEvent) bool {
-			return true
-		},
-		GenericFunc: func(evt event.GenericEvent) bool {
-			return false
-		},
-	})
+	}, onAllExceptGenericEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -1044,4 +1030,26 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName
+}
+
+func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
+	checlusters := &orgv1.CheClusterList{}
+	if err := mgr.GetClient().List(context.TODO(), &client.ListOptions{}, checlusters); err != nil {
+		return false, reconcile.Request{}
+	}
+
+	if len(checlusters.Items) != 1 {
+		return false, reconcile.Request{}
+	}
+
+	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
+		return false, reconcile.Request{}
+	}
+
+	return true, reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checlusters.Items[0].Namespace,
+			Name:      checlusters.Items[0].Name,
+		},
+	}
 }
