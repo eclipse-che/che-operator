@@ -65,24 +65,17 @@ replace (
 )
 
 require (
-	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
-	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/spdystream v0.0.0-00010101000000-000000000000 // indirect
 	github.com/elazarl/goproxy v0.0.0-20200426045556-49ad98f6dac1 // indirect
 	github.com/go-logr/logr v0.0.0-00010101000000-000000000000 // indirect
 	github.com/go-logr/zapr v0.0.0-00010101000000-000000000000 // indirect
 	github.com/go-openapi/spec v0.19.3
 	github.com/google/go-cmp v0.3.0
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-00010101000000-000000000000 // indirect
 	github.com/imdario/mergo v0.0.0-00010101000000-000000000000 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-00010101000000-000000000000 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.10.0 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v0.0.0-00010101000000-000000000000
 	github.com/operator-framework/operator-sdk v0.0.0-00010101000000-000000000000
 	github.com/peterbourgon/diskv v0.0.0-00010101000000-000000000000 // indirect
