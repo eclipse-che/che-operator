@@ -12,12 +12,14 @@
 package identity_provider
 
 import (
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"context"
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/deploy/postgres"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/deploy/postgres"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -101,6 +103,7 @@ func getSpecKeycloakDeployment(
 		}
 	}
 
+	cmResourceVersions := server.GetTrustStoreConfigMapVersion(deployContext)
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
@@ -221,6 +224,10 @@ func getSpecKeycloakDeployment(
 	}
 
 	keycloakEnv := []corev1.EnvVar{
+		{
+			Name:  "CM_REVISION",
+			Value: cmResourceVersions,
+		},
 		{
 			Name:  "PROXY_ADDRESS_FORWARDING",
 			Value: "true",
@@ -348,6 +355,10 @@ func getSpecKeycloakDeployment(
 
 	if cheFlavor == "codeready" {
 		keycloakEnv = []corev1.EnvVar{
+			{
+				Name:  "CM_REVISION",
+				Value: cmResourceVersions,
+			},
 			{
 				Name:  "PROXY_ADDRESS_FORWARDING",
 				Value: "true",

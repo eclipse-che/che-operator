@@ -31,8 +31,14 @@ const (
 
 // SyncIdentityProviderToCluster instantiates the identity provider (Keycloak) in the cluster. Returns true if
 // the provisioning is complete, false if requeue of the reconcile request is needed.
-func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext, cheHost string, protocol string, cheFlavor string) (bool, error) {
+func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	instance := deployContext.CheCluster
+	cheHost := instance.Spec.Server.CheHost
+	protocol := "http"
+	if instance.Spec.Server.TlsSupport {
+		protocol = "https"
+	}
+	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 	tests := util.IsTestMode()
 	isOpenShift := util.IsOpenShift

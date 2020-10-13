@@ -18,7 +18,6 @@ import (
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -27,17 +26,6 @@ func (r *ReconcileChe) GetEffectiveDeployment(instance *orgv1.CheCluster, name s
 	deployment = &appsv1.Deployment{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
 	return deployment, err
-}
-
-func (r *ReconcileChe) GetEffectiveConfigMap(instance *orgv1.CheCluster, name string) (configMap *corev1.ConfigMap) {
-	configMap = &corev1.ConfigMap{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, configMap)
-	if err != nil {
-		logrus.Errorf("Failed to get %s config map: %s", name, err)
-		return nil
-	}
-	return configMap
-
 }
 
 func (r *ReconcileChe) GetCR(request reconcile.Request) (instance *orgv1.CheCluster, err error) {
