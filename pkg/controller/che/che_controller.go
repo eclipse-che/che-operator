@@ -14,17 +14,17 @@ package che
 import (
 	"context"
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
-	"github.com/eclipse/che-operator/pkg/deploy/gateway"
-	"github.com/eclipse/che-operator/pkg/deploy/identity-provider"
-	"github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
-	"github.com/eclipse/che-operator/pkg/deploy/postgres"
-	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"strconv"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
+	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/gateway"
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	plugin_registry "github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"github.com/eclipse/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/config/v1"
@@ -43,9 +43,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -79,6 +80,21 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	isOpenShift, _, err := util.DetectOpenShift()
+
+	onAllExceptGenericEventsPredicate := predicate.Funcs{
+		UpdateFunc: func(evt event.UpdateEvent) bool {
+			return true
+		},
+		CreateFunc: func(evt event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(evt event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(evt event.GenericEvent) bool {
+			return false
+		},
+	}
 
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
@@ -146,6 +162,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		IsController: true,
 		OwnerType:    &orgv1.CheCluster{},
 	})
+	if err != nil {
+		return err
+	}
+
+	var toRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
+		isTrusted, reconcileRequest := isTrustedBundleConfigMap(mgr, obj)
+		if isTrusted {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: toRequestMapper,
+	}, onAllExceptGenericEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -772,7 +802,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create and provision Keycloak related objects
-	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext, cheHost, protocol, cheFlavor)
+	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -802,13 +832,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if serverTrustStoreConfigMapName := instance.Spec.Server.ServerTrustStoreConfigMapName; serverTrustStoreConfigMapName != "" {
-		certMap := r.GetEffectiveConfigMap(instance, serverTrustStoreConfigMapName)
-		if err := controllerutil.SetControllerReference(instance, certMap, r.scheme); err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-	}
-
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
 	cheConfigMap, err := server.SyncCheConfigMapToCluster(deployContext)
@@ -822,15 +845,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
-	// which will automatically trigger Che rolling update
-	var cmResourceVersion string
-	if tests {
-		cmResourceVersion = r.GetEffectiveConfigMap(instance, server.CheConfigMapName).ResourceVersion
-	} else {
-		cmResourceVersion = cheConfigMap.ResourceVersion
-	}
-
 	err = gateway.SyncGatewayToCluster(deployContext)
 	if err != nil {
 		logrus.Errorf("Failed to create the Server Gateway: %s", err)
@@ -838,7 +852,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Create a new che deployment
-	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext, cmResourceVersion)
+	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext)
 	if !tests {
 		if !deploymentStatus.Continue {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
@@ -1016,4 +1030,26 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName
+}
+
+func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
+	checlusters := &orgv1.CheClusterList{}
+	if err := mgr.GetClient().List(context.TODO(), &client.ListOptions{}, checlusters); err != nil {
+		return false, reconcile.Request{}
+	}
+
+	if len(checlusters.Items) != 1 {
+		return false, reconcile.Request{}
+	}
+
+	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
+		return false, reconcile.Request{}
+	}
+
+	return true, reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checlusters.Items[0].Namespace,
+			Name:      checlusters.Items[0].Name,
+		},
+	}
 }
