@@ -10,6 +10,8 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+echo AAAAAAAAAAAAA
+exit 0
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
   BASE_DIR=$(cd $(dirname "$0"); pwd)

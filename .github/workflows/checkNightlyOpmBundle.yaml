@@ -24,8 +24,9 @@ jobs:
         fetch-depth: 0
     - name: Che operator code check.
       run: >-
-        export GOPATH="${GITHUB_WORKSPACE}/go" &&
-        echo "GOPATH: ${GOPATH}" &&
-        export GITHUB_WORKSPACE="${GITHUB_WORKSPACE}/go/src/github.com/eclipse/${{ github.repository }}" &&
-        cd ${GITHUB_WORKSPACE} &&
-        .github/action_scripts/operator_code_check.sh
+        pwd && echo 'TEST'
+        # export GOPATH="${GITHUB_WORKSPACE}/go" &&
+        # echo "GOPATH: ${GOPATH}" &&
+        # export GITHUB_WORKSPACE="${GITHUB_WORKSPACE}/go/src/github.com/eclipse/${{ github.repository }}" &&
+        # cd ${GITHUB_WORKSPACE} &&
+        # .github/action_scripts/operator_code_check.sh
