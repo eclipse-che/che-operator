@@ -36,7 +36,8 @@ jobs:
 
     - name: Commit new nightly Olm bundle
       uses: EndBug/add-and-commit@v5
-      add: "${GITHUB_WORKSPACE}/deploy/olm-catalog/*.yaml"
+      with:
+        add: "${GITHUB_WORKSPACE}/deploy/olm-catalog/*.yaml"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
