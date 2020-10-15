@@ -756,7 +756,6 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  replaces: eclipse-che-preview-openshift.v7.16.2
   version: 7.17.0
   relatedImages:
     - name: che-operator-7.17.0
