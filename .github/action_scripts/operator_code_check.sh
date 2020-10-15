@@ -49,14 +49,6 @@ function check_che_types() {
     fi
 }
 
-set -e
-go version
-ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
-if [ -z "${ROOT_PROJECT_DIR}" ]; then
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-  ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
-fi
-
 # Unfortunately ${GOPATH} is required for an old operator-sdk
 if [ -z "${GOPATH}" ]; then
     export GOPATH="/home/runner/work/che-operator/go"
@@ -90,32 +82,10 @@ installOperatorSDK() {
     popd || exit
   fi
 }
- 
-isActualNightlyOlmBundleCSVFiles() {
-  cd "${ROOT_PROJECT_DIR}"
-  export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
-  export NO_DATE_UPDATE="true"
-  export NO_INCREMENT="true"
-  source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
-
-  CSV_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  CSV_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-
-  IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
-  for file in "${changedFiles[@]}"
-  do
-    if [ "${CSV_FILE_KUBERNETES}" == "${file}" ] || [ "${CSV_FILE_OPENSHIFT}" == "${file}" ]; then
-      echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-bundle.sh' for this purpose."
-      exit 1
-    fi
-  done
-  echo "[INFO] Nightly Olm bundle is in actual state."
-}
 
 transform_files
 check_che_types
 installYq
 installOperatorSDK
-isActualNightlyOlmBundleCSVFiles
 
 echo "[INFO] Done."
