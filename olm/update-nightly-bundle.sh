@@ -77,10 +77,7 @@ mv "${NEW_OPERATOR_LOCAL_YAML}" "${OPERATOR_LOCAL_YAML}"
 DOCKERFILE=${BASE_DIR}/../Dockerfile
 sed -i 's|registry.access.redhat.com/ubi8-minimal:.*|'${UBI8_MINIMAL_IMAGE}'|g' $DOCKERFILE
 
-if [ -z "${NO_INCREMENT}" ]; then
-  source "${BASE_DIR}/incrementNightlyBundles.sh"
-  incrementNightlyVersion
-fi
+source "${BASE_DIR}/incrementNightlyBundles.sh"
 
 for platform in 'kubernetes' 'openshift'
 do
@@ -124,6 +121,10 @@ do
     echo "[INFO]        - createdAt => ${createdAt}"
     sed -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" "${NEW_CSV}" > "${NEW_CSV}.new"
     mv "${NEW_CSV}.new" "${NEW_CSV}"
+  fi
+
+  if [ -z "${NO_INCREMENT}" ]; then
+    incrementNightlyVersion "${platform}"
   fi
 
   cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"

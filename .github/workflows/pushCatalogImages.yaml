@@ -19,10 +19,28 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-20.04
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        path: go/src/github.com/eclipse/${{ github.repository }}
+        fetch-depth: 0
+
+    - name: Prepare new nightly Olm bundle
+      run: >-
+        export GOPATH="${GITHUB_WORKSPACE}/go" &&
+        echo "GOPATH: ${GOPATH}" &&
+        export GITHUB_WORKSPACE="${GOPATH}/src/github.com/eclipse/${{ github.repository }}" &&
+        cd ${GITHUB_WORKSPACE} && "${GITHUB_WORKSPACE}/.github/action_scripts/provideNewNightlyBundle.sh"
+
+    - name: Commit new nightly Olm bundle
+      uses: EndBug/add-and-commit@v5
+      with:
+        add: "*.yaml"
+        cwd: go/src/github.com/eclipse/${{ github.repository }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Docker login
       uses: azure/docker-login@v1
@@ -32,4 +50,6 @@ jobs:
         password: ${{ secrets.QUAY_PASSWORD }}
 
     - name: Build catalog source and opm bundle images
-      run: "${GITHUB_WORKSPACE}/.github/action_scripts/build_olm_bundle_images.sh"
+      run: >-
+        export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/go/src/github.com/eclipse/${{ github.repository }} &&
+        ${GITHUB_WORKSPACE}/.github/action_scripts/build_olm_bundle_images.sh
