@@ -65,7 +65,7 @@ function installLatestCheStable() {
   # Add stable Che images and tag to CR
   sed -i'.bak' -e "s/cheImage: ''/cheImage: quay.io\/eclipse\/che-server/" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
   sed -i'.bak' -e "s/cheImageTag: ''/cheImageTag: ${previousPackageVersion}/" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
-  
+
   # set 'openShiftoAuth: false'
   sed -i'.bak' -e "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
   cat ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
@@ -75,7 +75,7 @@ function installLatestCheStable() {
   cat "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
 
   # Start last stable version of che
-  chectl server:start --platform=minishift --skip-kubernetes-health-check \
+  chectl server:deploy --platform=minishift --skip-kubernetes-health-check \
     --che-operator-cr-yaml="${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml" --templates="${OPERATOR_REPO}/tmp" \
     --installer=operator
 }
@@ -87,7 +87,7 @@ function waitForNewCheVersion() {
   while [ $n -le 500 ]
   do
     cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
-    cheIsRunning=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheClusterRunning}" )  
+    cheIsRunning=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheClusterRunning}" )
     oc get pods -n ${NAMESPACE}
     if [ "${cheVersion}" == "${lastPackageVersion}" ] && [ "${cheIsRunning}" == "Available" ]
     then
