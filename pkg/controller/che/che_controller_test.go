@@ -309,7 +309,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 
 	// get route
 	route := &routev1.Route{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, route); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(cheCR), Namespace: cheCR.Namespace}, route); err != nil {
 		t.Errorf("Route %s not found: %s", route.Name, err)
 	}
 
@@ -364,7 +364,7 @@ func Init() (client.Client, runtime.Scheme) {
 
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che",
+			Name:      deploy.DefaultCheFlavor(cheCR),
 			Namespace: namespace,
 		},
 	}
