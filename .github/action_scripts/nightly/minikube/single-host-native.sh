@@ -78,7 +78,7 @@ EOL
     oc apply -n ${NAMESPACE} -f -
 
     # Start to deploy Che
-    chectl server:start --platform=minikube --skip-kubernetes-health-check --installer=operator \
+    chectl server:deploy --platform=minikube --skip-kubernetes-health-check --installer=operator \
         --chenamespace=${NAMESPACE} --che-operator-image=${OPERATOR_IMAGE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
 
     # Get the token from utility in ${PROJECT_DIR}/.github/action_scripts/minikube/function-utilities.sh
