@@ -109,7 +109,7 @@ EOL
     cat /tmp/che-cr-patch.yaml
 
     # Start to deploy Che
-    chectl server:start --platform=openshift --skip-kubernetes-health-check --installer=operator \
+    chectl server:deploy --platform=openshift --skip-kubernetes-health-check --installer=operator \
       --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${OPERATOR_IMAGE}
 
     # Create and start a workspace

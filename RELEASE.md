@@ -72,7 +72,7 @@ oc login <LOCAL_MINISHIFT_CLUSTER_ADDRESS>
 Install the previous version of Eclipse Che using the corresponding version of `chectl`:
 
 ```bash
-chectl server:start --platform=minishift  --installer=operator
+chectl server:deploy --platform=minishift  --installer=operator
 ```
 
 Update Eclipse Che to the latest version. Validate that the correct version is installed and workspace can be created:
