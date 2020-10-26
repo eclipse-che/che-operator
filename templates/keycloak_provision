@@ -20,7 +20,7 @@ if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
                                         -s clientId=$keycloakClientId \
                                         -s id=$keycloakClientId \
                                         -s 'webOrigins=["http://$cheHost", "https://$cheHost"]' \
-                                        -s 'redirectUris=["http://$cheHost/dashboard/*", "https://$cheHost/dashboard/*", "http://$cheHost/workspace-loader/*", "https://$cheHost/workspace-loader/*", "http://$cheHost/_app/*", "https://$cheHost/_app/*"]' \
+                                        -s 'redirectUris=["http://$cheHost/dashboard/*", "https://$cheHost/dashboard/*", "http://$cheHost/workspace-loader/*", "https://$cheHost/workspace-loader/*", "http://$cheHost/_app/*", "https://$cheHost/_app/*", "http://$cheHost/swagger/*", "https://$cheHost/swagger/*"]' \
                                         -s 'directAccessGrantsEnabled'=true \
                                         -s publicClient=true \
 && $script create users   -s username=admin \
