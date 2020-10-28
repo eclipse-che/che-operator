@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
@@ -33,6 +34,9 @@ import (
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +46,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -71,10 +76,15 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 	if err != nil {
 		return nil, err
 	}
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		return nil, err
+	}
 	return &ReconcileChe{
 		client:          mgr.GetClient(),
 		nonCachedClient: noncachedClient,
 		scheme:          mgr.GetScheme(),
+		discoveryClient: discoveryClient,
 	}, nil
 }
 
@@ -254,6 +264,9 @@ type ReconcileChe struct {
 	// to simply read objects thta we don't intend
 	// to further watch
 	nonCachedClient client.Client
+	// A discovery client to check for the existence of certain APIs registered
+	// in the API Server
+	discoveryClient discovery.DiscoveryInterface
 	scheme          *runtime.Scheme
 	tests           bool
 }
@@ -275,12 +288,15 @@ const (
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	clusterAPI := deploy.ClusterAPI{
-		Client: r.client,
-		Scheme: r.scheme,
+		Client:          r.client,
+		NonCachedClient: r.nonCachedClient,
+		DiscoveryClient: r.discoveryClient,
+		Scheme:          r.scheme,
 	}
 	// Fetch the CheCluster instance
 	tests := r.tests
 	instance, err := r.GetCR(request)
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -290,6 +306,252 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	// Determine what server groups the API Server knows about
+	groupList, err := r.discoveryClient.ServerGroups()
+	groups := groupList.Groups
+	foundPackagesAPI := false
+	foundOperatorsAPI := false
+	foundKubernetesImagePullerAPI := false
+	for _, group := range groups {
+		if group.Name == packagesv1.SchemeGroupVersion.Group {
+			foundPackagesAPI = true
+		}
+		if group.Name == operatorsv1alpha1.SchemeGroupVersion.Group {
+			foundOperatorsAPI = true
+		}
+		if group.Name == chev1alpha1.SchemeGroupVersion.Group {
+			foundKubernetesImagePullerAPI = true
+		}
+	}
+
+	// If the image puller should be installed but the APIServer doesn't know about PackageManifests/Subscriptions, log a warning and requeue
+	if instance.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI || !foundKubernetesImagePullerAPI) {
+		logrus.Infof("Couldn't find Operator Lifecycle Manager types to install the Kubernetes Image Puller Operator.  Please install Operator Lifecycle Manager to install the operator or disable the image puller by setting spec.imagePuller.enable to false.")
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	if instance.Spec.ImagePuller.Enable {
+		// Check subscription, operatorgroup, clusterserviceversion
+		if foundOperatorsAPI && foundPackagesAPI {
+			// Get PackageManifest information about the kubernetes image puller operator
+			packageManifest := &packagesv1.PackageManifest{}
+			err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "kubernetes-imagepuller-operator"}, packageManifest)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					logrus.Info("There is no PackageManifest for the Kubernetes Image Puller Operator.  Install the Operator Lifecycle Manager and the Community Operators Catalog")
+					return reconcile.Result{Requeue: true}, nil
+				}
+				logrus.Errorf("Error getting packagemanifest: %v", err)
+				return reconcile.Result{}, err
+			}
+
+			// Create the operator group if it does not exist
+			operatorGroupList := &operatorsv1.OperatorGroupList{}
+			if err = r.nonCachedClient.List(context.TODO(), operatorGroupList, &client.ListOptions{}); err != nil {
+				logrus.Errorf("Error listing OperatorGroups: %v", err)
+				return reconcile.Result{}, err
+			}
+
+			if len(operatorGroupList.Items) == 0 {
+				operatorGroup := &operatorsv1.OperatorGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "kubernetes-imagepuller-operator",
+						Namespace: instance.Namespace,
+					},
+					Spec: operatorsv1.OperatorGroupSpec{
+						TargetNamespaces: []string{
+							instance.Namespace,
+						},
+					},
+				}
+				logrus.Infof("Creating kubernetes image puller OperatorGroup")
+				if err = r.nonCachedClient.Create(context.TODO(), operatorGroup, &client.CreateOptions{}); err != nil {
+					logrus.Errorf("Error creating operatorgroup: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
+
+			imagePullerOperatorSubscription := &operatorsv1alpha1.Subscription{}
+			// Need to use the noncached client because Subscriptions don't have a watch implementation and the controller logs will be polluted with log messages
+			// If subscription/CSV does not exist, create it
+			expectedImagePullerOperatorSubscription := &operatorsv1alpha1.Subscription{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kubernetes-imagepuller-operator",
+					Namespace: instance.Namespace,
+				},
+				Spec: &operatorsv1alpha1.SubscriptionSpec{
+					CatalogSource:          packageManifest.Status.CatalogSource,
+					CatalogSourceNamespace: packageManifest.Status.CatalogSourceNamespace,
+					Channel:                packageManifest.Status.DefaultChannel,
+					InstallPlanApproval:    operatorsv1alpha1.ApprovalAutomatic,
+					Package:                "kubernetes-imagepuller-operator",
+				},
+			}
+			if err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "kubernetes-imagepuller-operator", Namespace: instance.Namespace}, imagePullerOperatorSubscription); err != nil {
+				if errors.IsNotFound(err) {
+					logrus.Info("Creating kubernetes image puller operator Subscription")
+					if err = r.nonCachedClient.Create(context.TODO(), expectedImagePullerOperatorSubscription, &client.CreateOptions{}); err != nil {
+						logrus.Errorf("Error creating Subscription: %v", err)
+						return reconcile.Result{}, err
+					}
+					return reconcile.Result{Requeue: true}, nil
+				}
+			}
+
+			// If the Subscription Spec changed for some reason, update it
+			if !deploy.SubscriptionsAreEqual(expectedImagePullerOperatorSubscription, imagePullerOperatorSubscription) {
+				imagePullerOperatorSubscription.Spec = expectedImagePullerOperatorSubscription.Spec
+				logrus.Infof("Updating Subscription")
+				err = r.nonCachedClient.Update(context.TODO(), imagePullerOperatorSubscription, &client.UpdateOptions{})
+				if err != nil {
+					logrus.Errorf("Error updating Subscription: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
+		}
+		// If the KubernetesImagePuller API service exists, attempt to reconcile creation/update
+		if foundKubernetesImagePullerAPI {
+			// Check KubernetesImagePuller options
+			imagePuller := &chev1alpha1.KubernetesImagePuller{}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name + "-image-puller"}, imagePuller)
+			if err != nil {
+				if errors.IsNotFound(err) {
+
+					// If the image puller spec is empty, set default values, update the CheCluster CR and requeue
+					// These assignments are needed because the image puller operator updates the CR with a default configmap and deployment name
+					// if none are given.  Without these, che-operator will be stuck in an update loop
+					if instance.IsImagePullerSpecEmpty() {
+						if instance.Spec.ImagePuller.Spec.DeploymentName == "" {
+							instance.Spec.ImagePuller.Spec.DeploymentName = "kubernetes-image-puller"
+						}
+						if instance.Spec.ImagePuller.Spec.ConfigMapName == "" {
+							instance.Spec.ImagePuller.Spec.ConfigMapName = "k8s-image-puller"
+						}
+						logrus.Infof("Updating CheCluster to set KubernetesImagePuller default values")
+						if err = r.client.Update(context.TODO(), instance, &client.UpdateOptions{}); err != nil {
+							logrus.Errorf("Error updating CheCluster: %v", err)
+							return reconcile.Result{}, err
+						}
+						return reconcile.Result{Requeue: true}, nil
+					}
+
+					imagePuller := &chev1alpha1.KubernetesImagePuller{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      instance.Name + "-image-puller",
+							Namespace: instance.Namespace,
+							OwnerReferences: []metav1.OwnerReference{
+								*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
+							},
+							Labels: map[string]string{
+								"app.kubernetes.io/part-of": instance.Name,
+								"app":                       "che",
+								"component":                 "kubernetes-image-puller",
+							},
+						},
+						Spec: instance.Spec.ImagePuller.Spec,
+					}
+
+					logrus.Infof("Creating KubernetesImagePuller for CheCluster %v", instance.Name)
+					if err = r.client.Create(context.TODO(), imagePuller); err != nil {
+						logrus.Error("Error creating KubernetesImagePuller: ", err)
+						return reconcile.Result{}, err
+					}
+					return reconcile.Result{}, nil
+				}
+				logrus.Errorf("Error getting KubernetesImagePuller: %v", err)
+				return reconcile.Result{}, err
+			}
+
+			// If ImagePuller specs are different, update the KubernetesImagePuller CR
+			if imagePuller.Spec != instance.Spec.ImagePuller.Spec {
+				imagePuller.Spec = instance.Spec.ImagePuller.Spec
+				logrus.Infof("Updating KubernetesImagePuller %v", imagePuller.Name)
+				if err = r.client.Update(context.TODO(), imagePuller, &client.UpdateOptions{}); err != nil {
+					logrus.Errorf("Error updating KubernetesImagePuller: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
+		}
+	} else {
+		// Delete the KubernetesImagePuller
+		imagePuller := &chev1alpha1.KubernetesImagePuller{}
+		err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name + "-image-puller"}, imagePuller)
+		if err != nil && !errors.IsNotFound(err) {
+			logrus.Errorf("Error deleting KubernetesImagePuller: %v", err)
+			return reconcile.Result{}, err
+		}
+		if imagePuller.Name != "" {
+			logrus.Infof("Deleting KubernetesImagePuller %v", imagePuller.Name)
+			if err = r.client.Delete(context.TODO(), imagePuller, &client.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+				logrus.Errorf("Error removing KubernetesImagePuller: %v", err)
+				return reconcile.Result{}, nil
+			}
+		}
+
+		// Delete the ClusterServiceVersion
+		csv := &operatorsv1alpha1.ClusterServiceVersion{}
+		err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: deploy.DefaultKubernetesImagePullerOperatorCSV()}, csv)
+		if err != nil && !errors.IsNotFound(err) {
+			logrus.Errorf("Error getting ClusterServiceVersion: %v", err)
+			return reconcile.Result{}, err
+		}
+
+		if csv.Name != "" {
+			logrus.Infof("Deleting ClusterServiceVersion %v", csv.Name)
+			if r.nonCachedClient.Delete(context.TODO(), csv, &client.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+				logrus.Errorf("Error deleting ClusterServiceVersion: %v", err)
+				return reconcile.Result{}, nil
+			}
+		}
+
+		// Delete the Subscription
+		subscription := &operatorsv1alpha1.Subscription{}
+		err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
+		if err != nil && !errors.IsNotFound(err) {
+			logrus.Errorf("Error getting Subscription: %v", err)
+			return reconcile.Result{}, nil
+		}
+
+		if subscription.Name != "" {
+			logrus.Infof("Deleting Subscription")
+			if err = r.nonCachedClient.Delete(context.TODO(), subscription, &client.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+				logrus.Errorf("Error deleting Subscription: %v", err)
+				return reconcile.Result{}, nil
+			}
+		}
+
+		// Delete the OperatorGroup if it was created
+		operatorGroup := &operatorsv1.OperatorGroup{}
+		err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
+		if err != nil && !errors.IsNotFound(err) {
+			logrus.Errorf("Error deleting OperatorGroup: %v", err)
+			return reconcile.Result{}, err
+		}
+
+		if operatorGroup.Name != "" {
+			logrus.Infof("Deleting OperatorGroup")
+			if err = r.nonCachedClient.Delete(context.TODO(), operatorGroup, &client.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+				logrus.Errorf("Error deleting OperatorGroup: %v", err)
+				return reconcile.Result{}, err
+			}
+		}
+
+		// Update CR to remove imagePullerSpec
+		if instance.Spec.ImagePuller.Enable || instance.Spec.ImagePuller.Spec != (chev1alpha1.KubernetesImagePullerSpec{}) {
+			instance.Spec.ImagePuller.Spec = chev1alpha1.KubernetesImagePullerSpec{}
+			logrus.Infof("Updating %v CR to set spec.imagePuller.enable to false", instance.Name)
+			if err = r.client.Update(context.TODO(), instance, &client.UpdateOptions{}); err != nil {
+				logrus.Errorf("Error updating CheCluster: %v", err)
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{Requeue: true}, nil
+		}
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	deployContext := &deploy.DeployContext{

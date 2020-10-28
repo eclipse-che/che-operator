@@ -15,12 +15,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"runtime"
+
+	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
 	"github.com/eclipse/che-operator/pkg/util"
+	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
-	"os"
-	"runtime"
 
 	"github.com/eclipse/che-operator/pkg/apis"
 	"github.com/eclipse/che-operator/pkg/controller"
@@ -121,6 +126,26 @@ func main() {
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		logrus.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := image_puller_api.AddToScheme(mgr.GetScheme()); err != nil {
+		logrus.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := packagesv1.AddToScheme(mgr.GetScheme()); err != nil {
+		logrus.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := operatorsv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := operatorsv1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
 		os.Exit(1)
 	}
 

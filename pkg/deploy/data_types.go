@@ -15,6 +15,7 @@ package deploy
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,8 +41,10 @@ type InternalService struct {
 }
 
 type ClusterAPI struct {
-	Client client.Client
-	Scheme *runtime.Scheme
+	Client          client.Client
+	NonCachedClient client.Client
+	DiscoveryClient discovery.DiscoveryInterface
+	Scheme          *runtime.Scheme
 }
 
 type Proxy struct {

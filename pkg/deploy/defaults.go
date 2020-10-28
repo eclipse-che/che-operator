@@ -48,6 +48,7 @@ var (
 		"app":       "che",
 		"component": "che-gateway-config",
 	}
+	defaultKubernetesImagePullerOperatorCSV string
 )
 
 const (
@@ -261,6 +262,10 @@ func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
 }
 
+func DefaultKubernetesImagePullerOperatorCSV() string {
+	return defaultKubernetesImagePullerOperatorCSV
+}
+
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	tag := "latest"
 	parts := strings.Split(dockerImage, ":")
@@ -370,6 +375,7 @@ func InitDefaultsFromEnv() {
 	if !util.IsOpenShift {
 		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
+	defaultKubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.3"
 }
 
 func InitTestDefaultsFromDeployment(deploymentFile string) error {
