@@ -307,8 +307,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	deployContext := &deploy.DeployContext{
-		ClusterAPI: clusterAPI,
-		CheCluster: instance,
+		ClusterAPI:      clusterAPI,
+		CheCluster:      instance,
 		InternalService: deploy.InternalService{},
 	}
 	// Determine what server groups the API Server knows about
@@ -316,12 +316,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		logrus.Errorf("Error discovering image puller APIs: %v", err)
 		return reconcile.Result{}, err
-	}
-
-	// If the image puller should be installed but the APIServer doesn't know about PackageManifests/Subscriptions, log a warning and requeue
-	if instance.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI) {
-		logrus.Infof("Couldn't find Operator Lifecycle Manager types to install the Kubernetes Image Puller Operator.  Please install Operator Lifecycle Manager to install the operator or disable the image puller by setting spec.imagePuller.enable to false.")
-		return reconcile.Result{Requeue: true}, nil
 	}
 
 	if instance.Spec.ImagePuller.Enable {
