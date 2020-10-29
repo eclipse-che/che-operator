@@ -232,7 +232,7 @@ func doRequestForTLSCrtChain(deployContext *DeployContext, requestURL string, sk
 }
 
 // GetEndpointTLSCrtBytes extracts certificate chain from given endpoint.
-// Creates a test TLS route/ingress if enpoint url is empty.
+// Creates a test TLS route/ingress if endpoint url is empty.
 // There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
 // which however requires extra privileges for operator service account
 func GetEndpointTLSCrtBytes(deployContext *DeployContext, endpointURL string) (certificates []byte, err error) {

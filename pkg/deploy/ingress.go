@@ -95,7 +95,7 @@ func DeleteIngressIfExists(name string, deployContext *DeployContext) error {
 	return nil
 }
 
-// GetClusterIngress return actual ingress config by provided name and namespace
+// GetClusterIngress returns actual ingress config by provided name and namespace
 func GetClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
 	ingress := &v1beta1.Ingress{}
 	namespacedName := types.NamespacedName{

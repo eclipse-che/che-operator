@@ -112,7 +112,7 @@ func GetSpecSecret(deployContext *DeployContext, name string, data map[string][]
 	return secret, nil
 }
 
-// CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from give url.
+// CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from the given url.
 // If the url is empty string, then cluster default certificate will be obtained.
 // Does nothing if secret with given name already exists.
 func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name string) (err error) {

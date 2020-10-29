@@ -17,8 +17,8 @@ metadata:
               },
              "server": {
                 "cheImageTag": "nightly",
-                "devfileRegistryImage": "",
-                "pluginRegistryImage": "",
+                "devfileRegistryImage": "quay.io/eclipse/che-devfile-registry:nightly",
+                "pluginRegistryImage": "quay.io/eclipse/che-plugin-registry:nightly",
                 "tlsSupport": true,
                 "selfSignedCert": false
              },
@@ -31,7 +31,7 @@ metadata:
                 "chePostgresDb": ""
              },
              "auth": {
-                "identityProviderImage": "",
+                "identityProviderImage": "quay.io/eclipse/che-keycloak:nightly",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",
                 "identityProviderRealm": "",
