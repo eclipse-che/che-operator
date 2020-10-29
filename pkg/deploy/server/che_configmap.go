@@ -149,9 +149,6 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
-	if tlsSupport && tlsSecretName == "" {
-		tlsSecretName = "che-tls"
-	}
 	securityContextFsGroup := util.GetValue(deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup)
 	securityContextRunAsUser := util.GetValue(deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser)
 	pvcStrategy := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcStrategy, deploy.DefaultPvcStrategy)

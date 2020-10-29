@@ -394,14 +394,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheDeploymentName := cheFlavor
 
-	if !isOpenShift && instance.Spec.Server.TlsSupport {
-		// Ensure TLS configuration is correct
-		if err := deploy.CheckAndUpdateK8sTLSConfiguration(deployContext); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
 	// Detect whether self-signed certificate is used
 	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
@@ -416,7 +408,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
 			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
-			if err := deploy.CreateTLSSecretFromRoute(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -437,7 +429,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if err != nil {
 				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 			} else {
-				if err := deploy.CreateTLSSecretFromRoute(deployContext, baseURL, "openshift-api-crt"); err != nil {
+				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, baseURL, "openshift-api-crt"); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
@@ -445,13 +437,21 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	} else {
 		// Handle Che TLS certificates on Kubernetes infrastructure
 		if instance.Spec.Server.TlsSupport {
-			result, err := deploy.K8sHandleCheTLSSecrets(deployContext)
-			if result.Requeue || result.RequeueAfter > 0 {
-				if err != nil {
-					logrus.Error(err)
+			if instance.Spec.K8s.TlsSecretName != "" {
+				// Self-signed certificate should be created to secure Che ingresses
+				result, err := deploy.K8sHandleCheTLSSecrets(deployContext)
+				if result.Requeue || result.RequeueAfter > 0 {
+					if err != nil {
+						logrus.Error(err)
+					}
+					if !tests {
+						return result, err
+					}
 				}
-				if !tests {
-					return result, err
+			} else if selfSignedCertUsed {
+				// Use default self-signed ingress certificate
+				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+					return reconcile.Result{}, err
 				}
 			}
 		}

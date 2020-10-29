@@ -13,12 +13,12 @@ metadata:
           "spec": {
             "k8s": {
                 "ingressDomain": "",
-                "tlsSecretName": ""
+                "tlsSecretName": "che-tls"
               },
              "server": {
                 "cheImageTag": "nightly",
-                "devfileRegistryImage": "quay.io/eclipse/che-devfile-registry:nightly",
-                "pluginRegistryImage": "quay.io/eclipse/che-plugin-registry:nightly",
+                "devfileRegistryImage": "",
+                "pluginRegistryImage": "",
                 "tlsSupport": true,
                 "selfSignedCert": false
              },
@@ -31,7 +31,7 @@ metadata:
                 "chePostgresDb": ""
              },
              "auth": {
-                "identityProviderImage": "quay.io/eclipse/che-keycloak:nightly",
+                "identityProviderImage": "",
                 "externalIdentityProvider": false,
                 "identityProviderURL": "",
                 "identityProviderRealm": "",

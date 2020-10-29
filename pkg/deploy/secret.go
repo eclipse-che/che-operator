@@ -112,10 +112,10 @@ func GetSpecSecret(deployContext *DeployContext, name string, data map[string][]
 	return secret, nil
 }
 
-// CreateTLSSecretFromRoute creates TLS secret with given name which contains certificates obtained from give url.
-// If the url is empty string, then router certificate will be obtained.
-// Works only on Openshift family infrastructures.
-func CreateTLSSecretFromRoute(deployContext *DeployContext, url string, name string) (err error) {
+// CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from give url.
+// If the url is empty string, then cluster default certificate will be obtained.
+// Does nothing if secret with given name already exists.
+func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name string) (err error) {
 	secret := &corev1.Secret{}
 	if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
 		crtBytes, err := GetEndpointTLSCrtBytes(deployContext, url)
