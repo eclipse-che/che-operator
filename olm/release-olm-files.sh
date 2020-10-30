@@ -76,11 +76,6 @@ do
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" ${LAST_NIGHTLY_CSV} > ${RELEASE_CSV}
 
   cp ${LAST_NIGHTLY_CRD} ${RELEASE_CRD}
-  if [[ $platform == "openshift" ]]; then
-    yq -riSY  '.spec.preserveUnknownFields = false' ${RELEASE_CRD}
-    yq -riSY  '.spec.validation.openAPIV3Schema.type = "object"' ${RELEASE_CRD}
-    eval head -10 ${LAST_NIGHTLY_CRD} | cat - ${RELEASE_CRD} > tmp && mv tmp ${RELEASE_CRD}
-  fi
 
   sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
   mv "${packageFilePath}.new" "${packageFilePath}"

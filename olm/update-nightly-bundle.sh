@@ -126,7 +126,20 @@ do
     mv "${NEW_CSV}.new" "${NEW_CSV}"
   fi
 
-  cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
+  if [ -z "${NO_INCREMENT}" ]; then
+    incrementNightlyVersion "${platform}"
+  fi
+
+  templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
+  platformCRD="${bundleFolder}/manifests/org_v1_che_crd.yaml"
+
+  cp -rf $templateCRD $platformCRD
+  if [[ $platform == "openshift" ]]; then
+    yq -riSY  '.spec.preserveUnknownFields = false' $platformCRD
+    yq -riSY  '.spec.validation.openAPIV3Schema.type = "object"' $platformCRD
+    eval head -10 $templateCRD | cat - ${platformCRD} > tmp.crd && mv tmp.crd ${platformCRD}
+  fi
+
   echo "Done for ${platform}"
 
   if [[ -n "$TAG" ]]; then
