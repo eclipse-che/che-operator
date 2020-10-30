@@ -127,7 +127,16 @@ do
     incrementNightlyVersion "${platform}"
   fi
 
-  cp -rf "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${bundleFolder}/manifests"
+  templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
+  platformCRD="${bundleFolder}/manifests/org_v1_che_crd.yaml"
+
+  cp -rf $templateCRD $platformCRD
+  if [[ $platform == "openshift" ]]; then
+    yq -riSY  '.spec.preserveUnknownFields = false' $platformCRD
+    yq -riSY  '.spec.validation.openAPIV3Schema.type = "object"' $platformCRD
+    eval head -10 $templateCRD | cat - ${platformCRD} > tmp.crd && mv tmp.crd ${platformCRD}
+  fi
+
   echo "Done for ${platform}"
 
   if [[ -n "$TAG" ]]; then
