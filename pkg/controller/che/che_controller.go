@@ -45,10 +45,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -344,7 +344,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		} else {
 			users := &userv1.UserList{}
 			listOptions := &client.ListOptions{}
-			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
+			if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
 				getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
 				logrus.Errorf(getUsersErrMsg)
 				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getUsersErrMsg, ""); err != nil {
@@ -1034,7 +1034,7 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 
 func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
 	checlusters := &orgv1.CheClusterList{}
-	if err := mgr.GetClient().List(context.TODO(), &client.ListOptions{}, checlusters); err != nil {
+	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
 		return false, reconcile.Request{}
 	}
 
