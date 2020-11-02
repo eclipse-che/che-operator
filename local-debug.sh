@@ -15,9 +15,11 @@ set -e
 command -v delv >/dev/null 2>&1 || { echo "operator-sdk is not installed. Aborting."; exit 1; }
 command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
 
-CHE_NAMESPACE=che
-
-
+CHE_NAMESPACE="${1}"
+if [ -z "${CHE_NAMESPACE}" ];then
+    CHE_NAMESPACE=che
+fi
+echo "Namespace is: ${CHE_NAMESPACE}"
 
 set +e
 kubectl create namespace $CHE_NAMESPACE
@@ -39,9 +41,10 @@ rm -rf "${ENV_FILE}"
 touch "${ENV_FILE}"
 CLUSTER_API_URL=$(oc whoami --show-server=true) || true
 if [ -n "${CLUSTER_API_URL}" ]; then 
-    echo "CLUSTER_API_URL='${CLUSTER_API_URL}'" > "${ENV_FILE}"
+    echo "CLUSTER_API_URL='${CLUSTER_API_URL}'" >> "${ENV_FILE}"
     echo "[INFO] Set up cluster api url: ${CLUSTER_API_URL}"
 fi
+echo "WATCH_NAMESPACE='${CHE_NAMESPACE}'" >> ${ENV_FILE}
 
 echo "[WARN] Make sure that your CR contains valid ingress domain!"
 
