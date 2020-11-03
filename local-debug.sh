@@ -15,21 +15,33 @@ set -e
 command -v delv >/dev/null 2>&1 || { echo "operator-sdk is not installed. Aborting."; exit 1; }
 command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
 
-CHE_NAMESPACE="${1}"
+usage () {
+	echo "Usage:   $0 [-w WORKDIR] [-s SOURCE_PATH] -r [CSV_FILE_PATH_REGEXP] -t [IMAGE_TAG] "
+	echo "Example: $0 -w $(pwd) -r \"eclipse-che-preview-.*/eclipse-che-preview-.*\.v7.15.0.*yaml\" -t 7.15.0"
+}
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    '-n') CHE_NAMESPACE="$2"; shift 1;;
+    '-cr') CR="$2"; shift 1;;
+	'--help'|'-h') usage; exit;;
+  esac
+  shift 1
+done
+
 if [ -z "${CHE_NAMESPACE}" ];then
     CHE_NAMESPACE=che
 fi
-echo "Namespace is: ${CHE_NAMESPACE}"
+echo "[INFO] Namespace: ${CHE_NAMESPACE}"
 
 set +e
 kubectl create namespace $CHE_NAMESPACE
 set -e
 
-CR="${1}"
 if [ -z "${CR}" ]; then
     CR="./deploy/crds/org_v1_che_cr.yaml"
-    echo "[INFO] First argument is an empty. Set up default CR file: ${CR}"
 fi
+echo "[INFO] CR file path: ${CR}"
 
 kubectl apply -f deploy/crds/org_v1_che_crd.yaml
 kubectl apply -f "${CR}" -n $CHE_NAMESPACE
