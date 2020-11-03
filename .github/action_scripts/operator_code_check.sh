@@ -33,7 +33,7 @@ function check_che_types() {
     local CHE_TYPES_FILE='pkg/apis/org/v1/che_types.go'
     # Export variables for cr/crds files.
     local CR_CRD_FOLDER="deploy/crds/"
-    local CR_CRD_REGEX="\S*org_v1_che_crd.yaml"
+    local CR_CRD_REGEX="\S*org.eclipse.che_checlusters_crd.yaml"
 
     if [[ " ${FILES_CHANGED_ARRAY[*]} " =~ ${CHE_TYPES_FILE} ]]; then
         echo "[INFO] File ${CHE_TYPES_FILE} suffer modifications in PR. Checking if exist modifications for cr/crd files."
