@@ -1,6 +1,6 @@
-FROM quay.io/operator-framework/upstream-registry-builder as builder
+FROM quay.io/operator-framework/upstream-registry-builder:v1.15.1 as builder
 
-COPY deploy manifests/eclipse-che-preview-kubernetes
+COPY deploy manifests/eclipse-che-preview-openshift
 RUN ./bin/initializer -o ./bundles.db
 
 FROM openshift/origin-base

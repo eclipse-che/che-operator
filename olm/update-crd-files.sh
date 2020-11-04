@@ -76,5 +76,7 @@ init
 check
 updateFiles
 
-removeRequired "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml" 
-addLicenseHeader "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml" "#"
+rm "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
+removeRequired "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml" "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
+rm "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml"
+addLicenseHeader "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml" "#"
