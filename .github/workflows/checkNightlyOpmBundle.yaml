@@ -19,6 +19,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        path: go/src/github.com/eclipse/${{ github.repository }}
+        fetch-depth: 0
     - name: Che operator code check.
       run: >-
-        ${GITHUB_WORKSPACE}/.github/action_scripts/operator_code_check.sh
+        export GOPATH="${GITHUB_WORKSPACE}/go" &&
+        echo "GOPATH: ${GOPATH}" &&
+        export GITHUB_WORKSPACE="${GOPATH}/src/github.com/eclipse/${{ github.repository }}" &&
+        cd ${GITHUB_WORKSPACE} &&
+        .github/action_scripts/operator_code_check.sh
