@@ -66,8 +66,8 @@ function init() {
   mkdir -p "${OPERATOR_REPO}/tmp" && chmod 777 "${OPERATOR_REPO}/tmp"
 
   # clone the exact versions to use their templates
-  git clone --depth 1 --branch ${previousPackageVersion} git@github.com:eclipse/che-operator.git ${previousOperatorPath}
-  git clone --depth 1 --branch ${lastPackageVersion} git@github.com:eclipse/che-operator.git ${lastOperatorPath}
+  git clone --depth 1 --branch ${previousPackageVersion} https://github.com/eclipse/che-operator/ ${previousOperatorPath}
+  git clone --depth 1 --branch ${lastPackageVersion} https://github.com/eclipse/che-operator/ ${lastOperatorPath}
 
   # chectl requires 'che-operator' template folder
   mkdir -p "${lastOperatorTemplate}/che-operator"
