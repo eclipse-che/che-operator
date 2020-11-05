@@ -45,12 +45,6 @@ function init() {
     OPERATOR_REPO=$(dirname "$SCRIPT_DIR");
   fi
 
-  # Create tmp folder to save "operator" installer templates
-  mkdir -p "${OPERATOR_REPO}/tmp" && chmod 777 "${OPERATOR_REPO}/tmp"
-  cp -rf "${OPERATOR_REPO}/deploy" "${OPERATOR_REPO}/tmp/che-operator"
-}
-
-function installLatestCheStable() {
   # Get Stable and new release versions from olm files openshift.
   export packageName=eclipse-che-preview-${PLATFORM}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
@@ -62,25 +56,42 @@ function installLatestCheStable() {
   export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
   export previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
-  # Add stable Che images and tag to CR
-  sed -i'.bak' -e "s/cheImage: ''/cheImage: quay.io\/eclipse\/che-server/" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
-  sed -i'.bak' -e "s/cheImageTag: ''/cheImageTag: ${previousPackageVersion}/" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
+  export lastOperatorPath=${OPERATOR_REPO}/tmp/${lastPackageVersion}
+  export previousOperatorPath=${OPERATOR_REPO}/tmp/${previousPackageVersion}
+
+  export lastOperatorTemplate=${lastOperatorPath}/chectl/templates
+  export previousOperatorTemplate=${previousOperatorPath}/chectl/templates
+
+  # Create tmp folder to save "operator" installer templates
+  mkdir -p "${OPERATOR_REPO}/tmp" && chmod 777 "${OPERATOR_REPO}/tmp"
+
+  # clone the exact versions to use their templates
+  git clone --depth 1 --branch ${previousPackageVersion} git@github.com:eclipse/che-operator.git ${previousOperatorPath}
+  git clone --depth 1 --branch ${lastPackageVersion} git@github.com:eclipse/che-operator.git ${lastOperatorPath}
+
+  # chectl requires 'che-operator' template folder
+  mkdir -p "${lastOperatorTemplate}/che-operator"
+  mkdir -p "${previousOperatorTemplate}/che-operator"
+
+  cp -rf ${previousOperatorPath}/deploy/* "${previousOperatorTemplate}/che-operator"
+  cp -rf ${lastOperatorPath}/deploy/* "${lastOperatorTemplate}/che-operator"
 
   # set 'openShiftoAuth: false'
-  sed -i'.bak' -e "s/openShiftoAuth: .*/openShiftoAuth: false/" ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
-  cat ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
+  sed -i'.bak' -e "s/openShiftoAuth: .*/openShiftoAuth: false/" "${previousOperatorTemplate}/che-operator/crds/org_v1_che_cr.yaml"
+  sed -i'.bak' -e "s/openShiftoAuth: .*/openShiftoAuth: false/" "${lastOperatorTemplate}/che-operator/crds/org_v1_che_cr.yaml"
+}
 
-  # Change operator images defaults in the deployment
-  sed -i'.bak' -e "s|nightly|${previousPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
-  cat "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+function installlastCheStable() {
+  cat "${previousOperatorTemplate}/che-operator/crds/org_v1_che_cr.yaml"
 
   # Start last stable version of che
-  chectl server:deploy --platform=minishift --skip-kubernetes-health-check \
-    --che-operator-cr-yaml="${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml" --templates="${OPERATOR_REPO}/tmp" \
+  chectl server:deploy --platform=minishift  \
+    --che-operator-image=quay.io/eclipse/che-operator:${previousPackageVersion} \
+    --che-operator-cr-yaml="${previousOperatorTemplate}/che-operator/crds/org_v1_che_cr.yaml" \
+    --templates="${previousOperatorTemplate}" \
     --installer=operator
 }
 
-# Utility to wait for new release to be up
 function waitForNewCheVersion() {
   export n=0
 
@@ -91,7 +102,7 @@ function waitForNewCheVersion() {
     oc get pods -n ${NAMESPACE}
     if [ "${cheVersion}" == "${lastPackageVersion}" ] && [ "${cheIsRunning}" == "Available" ]
     then
-      echo -e "\u001b[32m Installed latest version che-operator: ${lastCSV} \u001b[0m"
+      echo -e "\u001b[32m Installed last version che-operator: ${lastCSV} \u001b[0m"
       break
     fi
     sleep 6
@@ -125,22 +136,20 @@ function getOCCheClusterLogs() {
 
 function minishiftUpdates() {
   # Install previous stable version of Eclipse Che
-  installLatestCheStable
+  installlastCheStable
 
   # Create an workspace
   getCheAcessToken # Function from ./util/ci_common.sh
   chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
 
-  # Change operator images defaults in the deployment
-  sed -i'.bak' -e "s|${previousPackageVersion}|${lastPackageVersion}|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
-
   # Update the operator to the new release
-  chectl server:update --skip-version-check --installer=operator --platform=minishift --templates="${OPERATOR_REPO}/tmp"
+  chectl server:update -y \
+    --che-operator-image=quay.io/eclipse/che-operator:${lastPackageVersion} \
+    --templates="${lastOperatorTemplate}"
 
-  oc patch checluster eclipse-che --type='json' -p='[{"op": "replace", "path": "/spec/server/cheImageTag", "value":"'${lastPackageVersion}'"}]' -n ${NAMESPACE}
   waitForNewCheVersion
 
-  getCheAcessToken # Function from ./util/ci_common.sh
+  chectl auth:login -u admin -p admin
   chectl workspace:list
   workspaceList=$(chectl workspace:list)
 
