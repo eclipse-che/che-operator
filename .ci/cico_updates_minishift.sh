@@ -81,7 +81,7 @@ function init() {
   sed -i'.bak' -e "s/openShiftoAuth: .*/openShiftoAuth: false/" "${lastOperatorTemplate}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
-function installlastCheStable() {
+function installPreviousStableChe() {
   cat "${previousOperatorTemplate}/che-operator/crds/org_v1_che_cr.yaml"
 
   # Start last stable version of che
@@ -102,7 +102,7 @@ function waitForNewCheVersion() {
     oc get pods -n ${NAMESPACE}
     if [ "${cheVersion}" == "${lastPackageVersion}" ] && [ "${cheIsRunning}" == "Available" ]
     then
-      echo -e "\u001b[32m Installed last version che-operator: ${lastCSV} \u001b[0m"
+      echo -e "\u001b[32m The latest Eclipse Che ${lastCSV} has been deployed \u001b[0m"
       break
     fi
     sleep 6
@@ -111,7 +111,7 @@ function waitForNewCheVersion() {
 
   if [ $n -gt 360 ]
   then
-    echo "Latest version install for Eclipse che failed."
+    echo "Failed to deploy the latest ${lastCSV} Eclipse Che."
     exit 1
   fi
 }
@@ -136,7 +136,7 @@ function getOCCheClusterLogs() {
 
 function minishiftUpdates() {
   # Install previous stable version of Eclipse Che
-  installlastCheStable
+  installPreviousStableChe
 
   # Create an workspace
   getCheAcessToken # Function from ./util/ci_common.sh
