@@ -149,6 +149,9 @@ function minishiftUpdates() {
 
   waitForNewCheVersion
 
+  # Sleep before starting a workspace
+  sleep 10s
+
   chectl auth:login -u admin -p admin
   chectl workspace:list
   workspaceList=$(chectl workspace:list)
