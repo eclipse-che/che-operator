@@ -20,8 +20,8 @@ do
   if yq -r -e ".rules[${index}] | select(.apiGroups[0] == \"route.openshift.io\") | \"\"" "${roleYaml}"
   then
     yq -y "del(.rules[${index}])" "${roleYaml}" > "${BASE_DIR}/generated/roles/role.yaml"
-    exit $?
+    break
   fi
   ((index++))
 done
-exit 1
+cp "${BASE_DIR}/../../namespaces_cluster_role.yaml" "${BASE_DIR}/generated/roles/namespaces_cluster_role.yaml"
