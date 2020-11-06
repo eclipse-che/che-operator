@@ -352,7 +352,7 @@ func schema_pkg_apis_org_v1_CheClusterSpecK8SOnly(ref common.ReferenceCallback) 
 					},
 					"tlsSecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of a secret that will be used to setup ingress TLS termination if TLS is enabled. See also the `tlsSupport` field.",
+							Description: "Name of a secret that will be used to setup ingress TLS termination if TLS is enabled. If the field is empty string, then default cluster certificate will be used. See also the `tlsSupport` field.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

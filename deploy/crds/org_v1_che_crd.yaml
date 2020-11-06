@@ -271,7 +271,9 @@ spec:
                   type: string
                 tlsSecretName:
                   description: Name of a secret that will be used to setup ingress
-                    TLS termination if TLS is enabled. See also the `tlsSupport` field.
+                    TLS termination if TLS is enabled. If the field is empty string,
+                    then default cluster certificate will be used. See also the `tlsSupport`
+                    field.
                   type: string
               type: object
             metrics:

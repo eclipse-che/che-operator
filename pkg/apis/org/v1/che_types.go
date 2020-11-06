@@ -480,6 +480,7 @@ type CheClusterSpecK8SOnly struct {
 	// +optional
 	IngressClass string `json:"ingressClass,omitempty"`
 	// Name of a secret that will be used to setup ingress TLS termination if TLS is enabled.
+	// If the field is empty string, then default cluster certificate will be used.
 	// See also the `tlsSupport` field.
 	// +optional
 	TlsSecretName string `json:"tlsSecretName,omitempty"`

@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
@@ -44,12 +45,12 @@ func SyncIngressToCluster(
 	servicePort int,
 	additionalLabels string) (*v1beta1.Ingress, error) {
 
-	specIngress, err := getSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels)
+	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterIngress, err := getClusterIngress(specIngress.Name, specIngress.Namespace, deployContext.ClusterAPI.Client)
+	clusterIngress, err := GetClusterIngress(specIngress.Name, specIngress.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +78,9 @@ func SyncIngressToCluster(
 	return clusterIngress, nil
 }
 
+// DeleteIngressIfExists removes specified ingress if any
 func DeleteIngressIfExists(name string, deployContext *DeployContext) error {
-	ingress, err := getClusterIngress(name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	ingress, err := GetClusterIngress(name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return err
 	}
@@ -93,7 +95,8 @@ func DeleteIngressIfExists(name string, deployContext *DeployContext) error {
 	return nil
 }
 
-func getClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
+// GetClusterIngress returns actual ingress config by provided name and namespace
+func GetClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
 	ingress := &v1beta1.Ingress{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
@@ -109,7 +112,8 @@ func getClusterIngress(name string, namespace string, client runtimeClient.Clien
 	return ingress, nil
 }
 
-func getSpecIngress(
+// GetSpecIngress returns expected ingress config for given parameters
+func GetSpecIngress(
 	deployContext *DeployContext,
 	name string,
 	host string,
@@ -132,10 +136,8 @@ func getSpecIngress(
 		}
 	}
 
-	tls := "false"
-	tlsSecretName := util.GetValue(deployContext.CheCluster.Spec.K8s.TlsSecretName, "che-tls")
+	tlsSecretName := util.GetValue(deployContext.CheCluster.Spec.K8s.TlsSecretName, "")
 	if tlsSupport {
-		tls = "true"
 		if name == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
 			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
 		}
@@ -157,7 +159,7 @@ func getSpecIngress(
 		"kubernetes.io/ingress.class":                       ingressClass,
 		"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-		"nginx.ingress.kubernetes.io/ssl-redirect":          tls,
+		"nginx.ingress.kubernetes.io/ssl-redirect":          strconv.FormatBool(tlsSupport),
 	}
 	if ingressStrategy != "multi-host" && (name == DevfileRegistry || name == PluginRegistry) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
@@ -180,7 +182,6 @@ func getSpecIngress(
 					Host: host,
 					IngressRuleValue: v1beta1.IngressRuleValue{
 						HTTP: &v1beta1.HTTPIngressRuleValue{
-
 							Paths: []v1beta1.HTTPIngressPath{
 								{
 									Backend: v1beta1.IngressBackend{

@@ -136,8 +136,9 @@ spec:
     # Can be multi-host (host is explicitly provided in ingress, <ingress-name>-<namespace>.<global-ingress-domain>),
     # single-host (host is provided, path based rules, <ingress-domain>/path) and default-host *(no host is provided, path based rules)
     ingressStrategy: ''
-    # secret name used for tls termination
-    tlsSecretName: ''
+    # Secret name used for tls termination.
+    # If the field is empty string, then default cluster certificate will be used.
+    tlsSecretName: 'che-tls'
     # FSGroup the Che POD and Workspace pod containers should run in
     securityContextFsGroup: ''
     # User the Che POD and Workspace pod containers should run as

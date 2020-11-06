@@ -13,7 +13,7 @@ metadata:
           "spec": {
             "k8s": {
                 "ingressDomain": "",
-                "tlsSecretName": ""
+                "tlsSecretName": "che-tls"
               },
              "server": {
                 "cheImageTag": "nightly",

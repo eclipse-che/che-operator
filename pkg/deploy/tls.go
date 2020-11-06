@@ -26,6 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -60,99 +61,141 @@ func IsSelfSignedCertificateUsed(deployContext *DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if util.IsOpenShift {
-		// Get router TLS certificates chain
-		peerCertificates, err := GetEndpointTLSCrtChain(deployContext, "")
-		if err != nil {
-			return false, err
-		}
+	if !util.IsOpenShift {
+		// Handle custom tls secret for Che ingresses
+		cheTLSSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
+		if cheTLSSecretName != "" {
+			// The secret is specified in CR
+			cheTLSSecret := &corev1.Secret{}
+			err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					// Failed to get secret, return error to restart reconcile loop.
+					return false, err
+				}
 
-		// Check the chain if ti contains self-signed CA certificate
-		for _, cert := range peerCertificates {
-			if cert.Subject.String() == cert.Issuer.String() {
-				// Self-signed CA certificate is found in the chain
+				// Both secrets (che-tls and self-signed-certificate) are missing which means that we should generate them (i.e. use self-signed certificate).
 				return true, nil
 			}
+			// TLS secret found, consider it as commonly trusted.
+			return false, nil
 		}
-		// The chain doesn't contain self-signed certificate
-		return false, nil
+
+		// Empty secret name means using of default ingress certificate.
+		// Retrieve the info about certificate chain from test ingress below.
 	}
 
-	// For Kubernetes, check che-tls secret.
-
-	cheTLSSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
-	if len(cheTLSSecretName) < 1 {
-		cheTLSSecretName = DefaultCheTLSSecretName
-	}
-
-	cheTLSSecret := &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
+	// Get route/ingress TLS certificates chain
+	peerCertificates, err := GetEndpointTLSCrtChain(deployContext, "")
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			// Failed to get secret, return error to restart reconcile loop.
-			return false, err
-		}
-
-		// Both secrets (che-tls and self-signed-certificate) are missing which means that we should generate them (i.e. use self-signed certificate).
-		return true, nil
+		return false, err
 	}
-	// TLS secret found, consider it as commonly trusted.
+
+	// Check the chain if it contains self-signed CA certificate
+	for _, cert := range peerCertificates {
+		if cert.Subject.String() == cert.Issuer.String() {
+			// Self-signed CA certificate is found in the chain
+			return true, nil
+		}
+	}
+	// The chain doesn't contain self-signed certificate
 	return false, nil
 }
 
 // GetEndpointTLSCrtChain retrieves TLS certificates chain from given endpoint.
-// If endpoint is not specified, then a test route will be created and used to get router certificates.
+// If endpoint is not specified, then a test route/ingress will be created and used to get router certificates.
 func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([]*x509.Certificate, error) {
 	if util.IsTestMode() {
 		return nil, stderrors.New("Not allowed for tests")
 	}
 
-	var isTestRoute bool = len(endpointURL) < 1
+	var useTestEndpoint bool = len(endpointURL) < 1
 	var requestURL string
-	if isTestRoute {
-		// Create test route to get certificates chain.
-		// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-		routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels)
-		if err != nil {
-			return nil, err
-		}
-		// Remove controller reference to prevent queueing new reconcile loop
-		routeSpec.SetOwnerReferences(nil)
-		// Create route manually
-		if err := deployContext.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
-			if !errors.IsAlreadyExists(err) {
-				logrus.Errorf("Failed to create test route 'test': %s", err)
-				return nil, err
-			}
-		}
-
-		// Schedule test route cleanup after the job done.
-		defer func() {
-			if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
-				logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
-			}
-		}()
-
-		// Wait till route is ready
-		var route *routev1.Route
-		for wait := true; wait; {
-			time.Sleep(time.Duration(1) * time.Second)
-			route, err = GetClusterRoute(routeSpec.Name, routeSpec.Namespace, deployContext.ClusterAPI.Client)
+	if useTestEndpoint {
+		if util.IsOpenShift {
+			// Create test route to get certificates chain.
+			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
+			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
+			routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels)
 			if err != nil {
 				return nil, err
 			}
-			wait = len(route.Spec.Host) == 0
-		}
+			// Remove controller reference to prevent queueing new reconcile loop
+			routeSpec.SetOwnerReferences(nil)
+			// Create route manually
+			if err := deployContext.ClusterAPI.Client.Create(context.TODO(), routeSpec); err != nil {
+				if !errors.IsAlreadyExists(err) {
+					logrus.Errorf("Failed to create test route 'test': %s", err)
+					return nil, err
+				}
+			}
 
-		requestURL = "https://" + route.Spec.Host
+			// Schedule test route cleanup after the job done.
+			defer func() {
+				if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), routeSpec); err != nil {
+					logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
+				}
+			}()
+
+			// Wait till the route is ready
+			var route *routev1.Route
+			for wait := true; wait; {
+				time.Sleep(time.Duration(1) * time.Second)
+				route, err = GetClusterRoute(routeSpec.Name, routeSpec.Namespace, deployContext.ClusterAPI.Client)
+				if err != nil {
+					return nil, err
+				}
+				wait = len(route.Spec.Host) == 0
+			}
+
+			requestURL = "https://" + route.Spec.Host
+		} else {
+			// Kubernetes
+
+			// Create test ingress to get certificates chain.
+			// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
+			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
+			ingressSpec, err := GetSpecIngress(deployContext, "test", "", "test", 8080, additionalLabels)
+			if err != nil {
+				return nil, err
+			}
+			// Remove controller reference to prevent queueing new reconcile loop
+			ingressSpec.SetOwnerReferences(nil)
+			// Create ingress manually
+			if err := deployContext.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
+				if !errors.IsAlreadyExists(err) {
+					logrus.Errorf("Failed to create test ingress 'test': %s", err)
+					return nil, err
+				}
+			}
+
+			// Schedule test ingress cleanup after the job done.
+			defer func() {
+				if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), ingressSpec); err != nil {
+					logrus.Errorf("Failed to delete test ingress %s: %s", ingressSpec.Name, err)
+				}
+			}()
+
+			// Wait till the ingress is ready
+			var ingress *v1beta1.Ingress
+			for wait := true; wait; {
+				time.Sleep(time.Duration(1) * time.Second)
+				ingress, err = GetClusterIngress(ingressSpec.Name, ingressSpec.Namespace, deployContext.ClusterAPI.Client)
+				if err != nil {
+					return nil, err
+				}
+				wait = len(ingress.Spec.Rules[0].Host) == 0
+			}
+
+			requestURL = "https://" + ingress.Spec.Rules[0].Host
+		}
 	} else {
 		requestURL = endpointURL
 	}
 
-	certificates, err := doRequestForTLSCrtChain(deployContext, requestURL, isTestRoute)
+	certificates, err := doRequestForTLSCrtChain(deployContext, requestURL, useTestEndpoint)
 	if err != nil {
-		if deployContext.Proxy.HttpProxy != "" && isTestRoute {
+		if deployContext.Proxy.HttpProxy != "" && useTestEndpoint {
 			// Fetching certificates from the test route without proxy failed. Probably non-proxy connections are blocked.
 			// Retrying with proxy configuration, however it might cause retreiving of wrong certificate in case of TLS interception by proxy.
 			logrus.Warn("Failed to get certificate chain of trust of the OpenShift Ingress bypassing the proxy")
@@ -188,7 +231,8 @@ func doRequestForTLSCrtChain(deployContext *DeployContext, requestURL string, sk
 	return resp.TLS.PeerCertificates, nil
 }
 
-// GetEndpointTLSCrtBytes creates a test TLS route and gets it to extract certificate chain
+// GetEndpointTLSCrtBytes extracts certificate chain from given endpoint.
+// Creates a test TLS route/ingress if endpoint url is empty.
 // There's an easier way which is to read tls secret in default (3.11) or openshift-ingress (4.0) namespace
 // which however requires extra privileges for operator service account
 func GetEndpointTLSCrtBytes(deployContext *DeployContext, endpointURL string) (certificates []byte, err error) {
@@ -380,19 +424,6 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 
 	// TLS configuration is ok, go further in reconcile loop
 	return reconcile.Result{}, nil
-}
-
-// CheckAndUpdateK8sTLSConfiguration validates Che TLS configuration on Kubernetes infra.
-// If configuration is wrong it will guess most common use cases and will make changes in Che CR accordingly to the assumption.
-func CheckAndUpdateK8sTLSConfiguration(deployContext *DeployContext) error {
-	if deployContext.CheCluster.Spec.K8s.TlsSecretName == "" {
-		deployContext.CheCluster.Spec.K8s.TlsSecretName = DefaultCheTLSSecretName
-		if err := UpdateCheCRSpec(deployContext, "TlsSecretName", deployContext.CheCluster.Spec.K8s.TlsSecretName); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func isCheTLSSecretValid(cheTLSSecret *corev1.Secret) bool {
