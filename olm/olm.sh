@@ -139,7 +139,7 @@ applyCheOperatorInstallationSource() {
 buildBundleImage() {
   CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
   if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
-    echo "Please specify second argument: opm bundle image"
+    echo "Please specify first argument: opm bundle image"
     exit 1
   fi
 
@@ -198,6 +198,7 @@ buildCatalogImage() {
        --tag "${CATALOG_IMAGENAME}" \
        --pull-tool "${imageTool}" \
        --build-tool "${imageTool}" \
+       --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
        --mode semver \
        "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
 
@@ -228,7 +229,7 @@ installOPM() {
     pushd "${OPM_TEMP_DIR}" || exit
 
     echo "[INFO] Downloading 'opm' cli tool..."
-    curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/30101377 | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
+    curl -sLo opm "$(curl -sL https://api.github.com/repos/operator-framework/operator-registry/releases/33432389 | jq -r '[.assets[] | select(.name == "linux-amd64-opm")] | first | .browser_download_url')"
     export OPM_BINARY="${OPM_TEMP_DIR}/opm"
     chmod +x "${OPM_BINARY}"
     echo "[INFO] Downloading completed!"
