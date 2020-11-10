@@ -100,7 +100,7 @@ function run() {
       --installer=operator \
       --chenamespace=${NAMESPACE} \
       --che-operator-image ${OPERATOR_IMAGE} \
-      --che-operator-cr-yaml="${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml" \
+      --che-operator-cr-yaml ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml \
       --templates ${OPERATOR_REPO}/tmp
 
     # Create and start a workspace
