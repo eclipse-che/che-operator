@@ -13,75 +13,67 @@ package deploy
 
 import (
 	"context"
-
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncRoleBindingToCluster(
+func SyncClusterRoleBindingToCluster(
 	deployContext *DeployContext,
 	name string,
 	serviceAccountName string,
-	roleName string,
-	roleKind string) (*rbac.RoleBinding, error) {
+	clusterRoleName string) (*rbac.ClusterRoleBinding, error) {
 
-	specRB, err := getSpecRoleBinding(deployContext, name, serviceAccountName, roleName, roleKind)
+	specCRB, err := getSpecClusterRoleBinding(deployContext, name, serviceAccountName, clusterRoleName)
 	if err != nil {
 		return nil, err
 	}
 
-	roleBinding, err := getRoleBiding(specRB.Name, specRB.Namespace, deployContext.ClusterAPI.Client)
+	clusterRB, err := getClusterRoleBiding(specCRB.Name, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
-	if roleBinding == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specRB.Kind, specRB.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRB)
+	if clusterRB == nil {
+		logrus.Infof("Creating a new object: %s, name %s", specCRB.Kind, specCRB.Name)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specCRB)
 		return nil, err
 	}
 
-	return roleBinding, nil
+	return clusterRB, nil
 }
 
-func getRoleBiding(name string, namespace string, client runtimeClient.Client) (*rbac.RoleBinding, error) {
-	roleBinding := &rbac.RoleBinding{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, roleBinding)
+func getClusterRoleBiding(name string, client runtimeClient.Client) (*rbac.ClusterRoleBinding, error) {
+	clusterRoleBinding := &rbac.ClusterRoleBinding{}
+	crbName := types.NamespacedName{Name: name}
+	err := client.Get(context.TODO(), crbName, clusterRoleBinding)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return roleBinding, nil
+	return clusterRoleBinding, nil
 }
 
-func getSpecRoleBinding(
+func getSpecClusterRoleBinding(
 	deployContext *DeployContext,
 	name string,
 	serviceAccountName string,
-	roleName string,
-	roleKind string) (*rbac.RoleBinding, error) {
+	roleName string) (*rbac.ClusterRoleBinding, error) {
 
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
-	roleBinding := &rbac.RoleBinding{
+	clusterRoleBinding := &rbac.ClusterRoleBinding{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "RoleBinding",
+			Kind:       "ClusterRoleBinding",
 			APIVersion: rbac.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
-			Labels:    labels,
+			Name:   name,
+			Labels: labels,
 		},
 		Subjects: []rbac.Subject{
 			{
@@ -92,15 +84,10 @@ func getSpecRoleBinding(
 		},
 		RoleRef: rbac.RoleRef{
 			Name:     roleName,
-			Kind:     roleKind,
 			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
 		},
 	}
 
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, roleBinding, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	return roleBinding, nil
+	return clusterRoleBinding, nil
 }
