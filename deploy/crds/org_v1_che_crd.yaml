@@ -364,6 +364,10 @@ spec:
                         to organize and categorize (scope and select) objects.
                       type: string
                   type: object
+                cheClusterRoles:
+                  description: Comma separated list of ClusterRoles, that will be bound to
+                    Che Server's ServiceAccount.
+                  type: string
                 cheWorkspaceClusterRole:
                   description: Custom cluster role bound to the user for the Che workspaces.
                     The default roles are used if this is omitted or left blank.

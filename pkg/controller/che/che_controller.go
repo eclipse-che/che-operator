@@ -579,6 +579,18 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	cheNamespaceEditorClusterRoleName := instance.Namespace + "-che-namespace-editor"
+	cheNamespaceEditorClusterRoleBinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, "che-namespace-editor", "che", cheNamespaceEditorClusterRoleName)
+	if cheNamespaceEditorClusterRoleBinding == nil {
+		logrus.Info("Waiting on cluster role binding 'che-namespace-editor' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
 	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
 	if cheWSExecRoleBinding == nil {
 		logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
