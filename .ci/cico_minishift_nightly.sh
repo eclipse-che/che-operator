@@ -97,8 +97,8 @@ function run() {
 
     # Deploy Eclipse Che
     chectl server:deploy --platform=minishift \
-      --installer=operator \
-      --chenamespace=${NAMESPACE} \
+      --installer operator \
+      --chenamespace ${NAMESPACE} \
       --che-operator-image ${OPERATOR_IMAGE} \
       --che-operator-cr-yaml ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml \
       --templates ${OPERATOR_REPO}/tmp
