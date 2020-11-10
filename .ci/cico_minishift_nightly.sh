@@ -67,27 +67,33 @@ function getOCCheClusterLogs() {
 
 # Deploy Eclipse Che
 function run() {
-    cat >/tmp/che-cr-patch.yaml <<EOL
-spec:
-  auth:
-    updateAdminPassword: false
-    openShiftoAuth: false
-EOL
-    echo "======= Che cr patch ======="
-    cat /tmp/che-cr-patch.yaml
-
     # OPERATOR_IMAGE In CI is defined in .github/workflows/che-nightly.yaml
     export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
-    cat deploy/operator.yaml | \
-      sed 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' | \
-      sed 's|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|' | \
-      oc apply -n ${NAMESPACE} -f -
+    # prepare template folder
+    mkdir -p "${OPERATOR_REPO}/tmp/che-operator" && chmod 777 "${OPERATOR_REPO}/tmp"
+    cp -rf ${OPERATOR_REPO}/deploy/* "${OPERATOR_REPO}/tmp/che-operator"
 
-    chectl server:deploy --platform=minishift --skip-kubernetes-health-check --installer=operator --chenamespace=${NAMESPACE} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
+    # prepare CR
+    sed -i'.bak' -e "s|openShiftoAuth: .*|openShiftoAuth: false|" "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
+    yq -riSY  '.spec.auth.updateAdminPassword = false' "${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml"
+
+    # update operator yaml
+    sed -i'.bak' -e "s|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+    sed -i'.bak' -e "s|quay.io/eclipse/che-operator:nightly|'${OPERATOR_IMAGE}'|" "${OPERATOR_REPO}/tmp/che-operator/operator.yaml"
+
+    cat ${OPERATOR_REPO}/tmp/che-operator/crds/org_v1_che_cr.yaml
+    cat ${OPERATOR_REPO}/tmp/che-operator/operator.yaml
+
+    # Deploy Eclipse Che
+    chectl server:deploy --platform=minishift \
+      --installer=operator \
+      --chenamespace=${NAMESPACE} \
+      --che-operator-image ${OPERATOR_IMAGE} \
+      --templates ${OPERATOR_REPO}/tmp
 
     # Create and start a workspace
-    getCheAcessToken # Function from ./util/ci_common.sh
+    chectl auth:login -u admin -p admin
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
     # Wait for workspace to be up
