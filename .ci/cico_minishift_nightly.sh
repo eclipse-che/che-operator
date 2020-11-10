@@ -52,9 +52,6 @@ installYq() {
   if [[ ! -x "${YQ}" ]]; then
     pip3 install wheel
     pip3 install yq
-    # Make python3 installed modules "visible"
-    export PATH=$HOME/.local/bin:$PATH
-    ls "${HOME}/.local/bin"
   fi
   echo "[INFO] $(yq --version)"
   echo "[INFO] $(jq --version)"
