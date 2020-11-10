@@ -47,6 +47,19 @@ function init() {
   fi
 }
 
+installYq() {
+  YQ=$(command -v yq) || true
+  if [[ ! -x "${YQ}" ]]; then
+    pip3 install wheel
+    pip3 install yq
+    # Make python3 installed modules "visible"
+    export PATH=$HOME/.local/bin:$PATH
+    ls "${HOME}/.local/bin"
+  fi
+  echo "[INFO] $(yq --version)"
+  echo "[INFO] $(jq --version)"
+}
+
 # Utility to get che events and pod logs from openshift cluster
 function getOCCheClusterLogs() {
   mkdir -p /tmp/artifacts-che
@@ -102,5 +115,6 @@ function run() {
 }
 
 init
+installYq
 source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 run
