@@ -21,13 +21,13 @@ init() {
 
 check() {
   local operatorVersion=$(operator-sdk version)
-  [[ $operatorVersion =~ .*v0.10.0.* ]] || { echo "operator-sdk v0.10.0 is required"; exit 1; }
+  [[ $operatorVersion =~ .*v0.15.2.* ]] || { echo "operator-sdk v0.10.0 is required"; exit 1; }
 }
 
 updateFiles() {
   cd $BASE_DIR/..
   operator-sdk generate k8s
-  operator-sdk generate openapi
+  operator-sdk generate crds
   cd $BASE_DIR
 }
 
@@ -77,6 +77,6 @@ check
 updateFiles
 
 rm "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
-removeRequired "$BASE_DIR/../deploy/crds/org_v1_checluster_crd.yaml" "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
-rm "$BASE_DIR/../deploy/crds/org_v1_checluster_crd.yaml"
+removeRequired "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml" "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
+rm "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml"
 addLicenseHeader "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml" "#"

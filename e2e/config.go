@@ -111,7 +111,7 @@ func newForConfig(c *rest.Config) (*CRClient, error) {
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: groupName, Version: orgv1.SchemeGroupVersion.Version}
 	//config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: oauth.GroupName, Version: oauth.SchemeGroupVersion.Version}
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 	client, err := rest.RESTClientFor(&config)
 	if err != nil {
@@ -125,7 +125,7 @@ func newOAuthConfig(c *rest.Config) (*OauthClient, error) {
 	config := *c
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: oauth.GroupName, Version: oauth.SchemeGroupVersion.Version}
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 	client, err := rest.RESTClientFor(&config)
 	if err != nil {
