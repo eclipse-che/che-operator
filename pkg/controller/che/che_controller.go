@@ -457,6 +457,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
+	_, err = deploy.SyncAdditionalCACertsConfigMapToCluster(instance, deployContext)
+	if err != nil {
+		logrus.Errorf("Error updating additional CA config map: %v", err)
+		return reconcile.Result{}, err
+	}
+
 	// Get custom ConfigMap
 	// if it exists, add the data into CustomCheProperties
 	customConfigMap := &corev1.ConfigMap{}
@@ -1033,6 +1040,7 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 	return deploy.CheServiceName
 }
 
+// isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
 func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
 	checlusters := &orgv1.CheClusterList{}
 	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
@@ -1043,8 +1051,14 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 		return false, reconcile.Request{}
 	}
 
+	// Check if config map is the config map from CR
 	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
-		return false, reconcile.Request{}
+		// No, it is not form CR
+		// Check for labels
+		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
+			// Labels do not match
+			return false, reconcile.Request{}
+		}
 	}
 
 	return true, reconcile.Request{

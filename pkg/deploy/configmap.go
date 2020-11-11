@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// SyncConfigMapToCluster makes sure that given config map spec is actual
 func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
 	clusterConfigMap, err := GetClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
@@ -50,6 +51,7 @@ func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.
 	return clusterConfigMap, nil
 }
 
+// GetSpecConfigMap returns config map spec template
 func GetSpecConfigMap(
 	deployContext *DeployContext,
 	name string,
@@ -79,6 +81,7 @@ func GetSpecConfigMap(
 	return configMap, nil
 }
 
+// GetClusterConfigMap reads config map from cluster
 func GetClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
 	namespacedName := types.NamespacedName{

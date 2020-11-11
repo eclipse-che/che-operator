@@ -18,9 +18,11 @@ import (
 	"encoding/pem"
 	stderrors "errors"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -28,7 +30,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -42,6 +47,15 @@ const (
 	CheTLSJobComponentName                = "che-create-tls-secret-job"
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 	DefaultCheTLSSecretName               = "che-tls"
+
+	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
+	CheAllCACertsConfigMapName = "che-ca-certs-merged"
+	// CheCACertsConfigMapLabelKey is the label key which marks config map with additional CA certificates
+	CheCACertsConfigMapLabelKey = "che-ca-certs"
+	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
+	CheCACertsConfigMapLabelValue = "true"
+	// CheMergedCAConfigMapRevisionsLabelKey is label name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
+	CheMergedCAConfigMapRevisionsLabelKey = "included-cm"
 )
 
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
@@ -459,4 +473,99 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 	if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), job); err != nil {
 		logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
 	}
+}
+
+// SyncAdditionalCACertsConfigMapToCluster makes sure that additional CA certs config map is up to date if any
+func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext *DeployContext) (*corev1.ConfigMap, error) {
+	// Get all source config maps, if any
+	caConfigMaps, err := getCACertsConfigMaps(deployContext)
+	if err != nil {
+		return nil, err
+	}
+	if len(cr.Spec.Server.ServerTrustStoreConfigMapName) > 0 {
+		crConfigMap := &corev1.ConfigMap{}
+		err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cr.Spec.Server.ServerTrustStoreConfigMapName}, crConfigMap)
+		if err != nil {
+			return nil, err
+		}
+		caConfigMaps = append(caConfigMaps, *crConfigMap)
+	}
+
+	mergedCAConfigMap := &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheAllCACertsConfigMapName}, mergedCAConfigMap)
+	if err == nil {
+		// Merged config map exists. Check if it up to date.
+		caConfigMapsCurrentRevisions := make(map[string]string)
+		for _, cm := range caConfigMaps {
+			caConfigMapsCurrentRevisions[cm.Name] = cm.ResourceVersion
+		}
+
+		caConfigMapsCachedRevisions := make(map[string]string)
+		if revisions, exists := mergedCAConfigMap.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey]; exists {
+			for _, cmNameRevision := range strings.Split(revisions, ",") {
+				nameRevision := strings.Split(cmNameRevision, "=")
+				if len(nameRevision) != 2 {
+					// The label value is invalid, recreate merged config map
+					break
+				}
+				caConfigMapsCachedRevisions[nameRevision[0]] = nameRevision[1]
+			}
+		}
+
+		if reflect.DeepEqual(caConfigMapsCurrentRevisions, caConfigMapsCachedRevisions) {
+			// Existing merged config map is up to date, do nothing
+			return mergedCAConfigMap, nil
+		}
+	} else {
+		if !errors.IsNotFound(err) {
+			return nil, err
+		}
+		// Merged config map doesn't exist. Create it.
+	}
+
+	// Merged config map is out of date or doesn't exist
+	// Merge all config maps into single one to mount inside Che components and workspaces
+	data := make(map[string]string)
+	revisions := ""
+	for _, cm := range caConfigMaps {
+		// Copy data
+		for key, dataRecord := range cm.Data {
+			data[cm.ObjectMeta.Name+"."+key] = dataRecord
+		}
+
+		// Save source config map revision
+		if revisions != "" {
+			revisions += ","
+		}
+		revisions += cm.ObjectMeta.Name + "=" + cm.ObjectMeta.ResourceVersion
+	}
+
+	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data)
+	if err != nil {
+		return nil, err
+	}
+	mergedCAConfigMapSpec.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey] = revisions
+
+	logrus.Infof("Updating additional CA certs config map: %s", CheAllCACertsConfigMapName)
+	mergedCAConfigMap, err = SyncConfigMapToCluster(deployContext, mergedCAConfigMapSpec)
+	if err != nil {
+		return nil, err
+	}
+	return mergedCAConfigMap, nil
+}
+
+// getCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
+// The selection is based on the specific label
+func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
+	CACertsConfigMapList := &corev1.ConfigMapList{}
+
+	labelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
+	listOptions := &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*labelSelectorRequirement),
+	}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), listOptions, CACertsConfigMapList); err == nil {
+		return nil, err
+	}
+
+	return CACertsConfigMapList.Items, nil
 }
