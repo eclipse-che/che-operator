@@ -21,7 +21,7 @@ init() {
 
 check() {
   local operatorVersion=$(operator-sdk version)
-  [[ $operatorVersion =~ .*v0.15.2.* ]] || { echo "operator-sdk v0.10.0 is required"; exit 1; }
+  [[ $operatorVersion =~ .*v0.15.2.* ]] || { echo "operator-sdk v0.15.2 is required"; exit 1; }
 }
 
 updateFiles() {
