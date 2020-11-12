@@ -52,7 +52,7 @@ ENV_FILE=/tmp/che-operator-debug.env
 rm -rf "${ENV_FILE}"
 touch "${ENV_FILE}"
 CLUSTER_API_URL=$(oc whoami --show-server=true) || true
-if [ -n "${CLUSTER_API_URL}" ]; then 
+if [ -n "${CLUSTER_API_URL}" ]; then
     echo "CLUSTER_API_URL='${CLUSTER_API_URL}'" >> "${ENV_FILE}"
     echo "[INFO] Set up cluster api url: ${CLUSTER_API_URL}"
 fi
@@ -60,4 +60,4 @@ echo "WATCH_NAMESPACE='${CHE_NAMESPACE}'" >> ${ENV_FILE}
 
 echo "[WARN] Make sure that your CR contains valid ingress domain!"
 
-operator-sdk up local --namespace=${CHE_NAMESPACE} --enable-delve
+operator-sdk run --local --namespace=${CHE_NAMESPACE} --enable-delve
