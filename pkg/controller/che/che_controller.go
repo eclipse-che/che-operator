@@ -458,9 +458,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
-	_, err = deploy.SyncAdditionalCACertsConfigMapToCluster(instance, deployContext)
+	cm, err := deploy.SyncAdditionalCACertsConfigMapToCluster(instance, deployContext)
 	if err != nil {
 		logrus.Errorf("Error updating additional CA config map: %v", err)
+		return reconcile.Result{}, err
+	}
+	if cm == nil && !tests {
+		// Config map update is in progress
+		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
 		return reconcile.Result{}, err
 	}
 

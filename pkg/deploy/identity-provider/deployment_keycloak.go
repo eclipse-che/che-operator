@@ -104,7 +104,7 @@ func getSpecKeycloakDeployment(
 		}
 	}
 
-	cmResourceVersions := server.GetTrustStoreConfigMapVersion(deployContext)
+	cmResourceVersions := deploy.GetAdditionalCACertsConfigMapVersion(deployContext)
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
@@ -134,14 +134,12 @@ func getSpecKeycloakDeployment(
 
 	customPublicCertsDir := "/public-certs"
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		customPublicCertsVolumeSource = corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName,
-				},
+	customPublicCertsVolumeSource = corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: deploy.CheAllCACertsConfigMapName,
 			},
-		}
+		},
 	}
 	customPublicCertsVolume := corev1.Volume{
 		Name:         "che-public-certs",

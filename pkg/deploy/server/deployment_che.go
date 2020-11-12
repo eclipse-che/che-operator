@@ -57,7 +57,7 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 	}
 
 	cmResourceVersions := GetCheConfigMapVersion(deployContext)
-	cmResourceVersions += "," + GetTrustStoreConfigMapVersion(deployContext)
+	cmResourceVersions += "," + deploy.GetAdditionalCACertsConfigMapVersion(deployContext)
 
 	terminationGracePeriodSeconds := int64(30)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
@@ -69,14 +69,12 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		Value: "",
 	}
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		customPublicCertsVolumeSource = corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName,
-				},
+	customPublicCertsVolumeSource = corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: deploy.CheAllCACertsConfigMapName,
 			},
-		}
+		},
 	}
 	customPublicCertsVolume := corev1.Volume{
 		Name:         "che-public-certs",

@@ -56,6 +56,10 @@ const (
 	CheCACertsConfigMapLabelValue = "true"
 	// CheMergedCAConfigMapRevisionsLabelKey is label name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
 	CheMergedCAConfigMapRevisionsLabelKey = "included-cm"
+
+	// Local constants
+	labelEqualSign = "-"
+	labelCommaSign = "."
 )
 
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
@@ -502,8 +506,8 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 
 		caConfigMapsCachedRevisions := make(map[string]string)
 		if revisions, exists := mergedCAConfigMap.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey]; exists {
-			for _, cmNameRevision := range strings.Split(revisions, ",") {
-				nameRevision := strings.Split(cmNameRevision, "=")
+			for _, cmNameRevision := range strings.Split(revisions, labelCommaSign) {
+				nameRevision := strings.Split(cmNameRevision, labelEqualSign)
 				if len(nameRevision) != 2 {
 					// The label value is invalid, recreate merged config map
 					break
@@ -535,9 +539,9 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 
 		// Save source config map revision
 		if revisions != "" {
-			revisions += ","
+			revisions += labelCommaSign
 		}
-		revisions += cm.ObjectMeta.Name + "=" + cm.ObjectMeta.ResourceVersion
+		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
 	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data)
@@ -545,6 +549,7 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 		return nil, err
 	}
 	mergedCAConfigMapSpec.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey] = revisions
+	mergedCAConfigMapSpec.ObjectMeta.Labels["warning"] = "do-not-edit-manually"
 
 	logrus.Infof("Updating additional CA certs config map: %s", CheAllCACertsConfigMapName)
 	mergedCAConfigMap, err = SyncConfigMapToCluster(deployContext, mergedCAConfigMapSpec)
@@ -563,9 +568,19 @@ func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, err
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*labelSelectorRequirement),
 	}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), listOptions, CACertsConfigMapList); err == nil {
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
 		return nil, err
 	}
 
 	return CACertsConfigMapList.Items, nil
+}
+
+// GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
+func GetAdditionalCACertsConfigMapVersion(deployContext *DeployContext) string {
+	trustStoreConfigMap, _ := GetClusterConfigMap(CheAllCACertsConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if trustStoreConfigMap != nil {
+		return trustStoreConfigMap.ResourceVersion
+	}
+
+	return ""
 }
