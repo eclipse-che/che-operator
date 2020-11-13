@@ -1,0 +1,87 @@
+# This Workflow performs a full release of che-operator
+
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'version'
+        default: '7.x.y'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check release version
+      # we will not allow next major release
+      # until https://github.com/eclipse/che/issues/18349 is fixed,
+      # then this step will be removed
+        run: |
+          CHE_VERSION=${{ github.event.inputs.version }}
+          if [[ ${CHE_VERSION%.*} == 7.22 ]];then
+            echo "Do not release next major version"
+            exit 1
+          fi
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install operator courier
+        run: |
+          python -m pip install --upgrade pip
+          pip install operator-courier==2.1.7
+          pip install yq
+
+      - name: Install operator SDK
+        run: |
+          set -e
+
+          OP_SDK_DIR=/opt/operator-sdk
+          mkdir -p $OP_SDK_DIR
+          wget https://github.com/operator-framework/operator-sdk/releases/download/v0.10.0/operator-sdk-v0.10.0-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk 
+          chmod +x $OP_SDK_DIR/operator-sdk
+          export PATH="$PATH:$OP_SDK_DIR"
+
+      - name: Install base32
+        run: |
+          # get base32 util from che-release project
+          wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
+          # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts) 
+          sudo cp -f $(pwd)/base32 /usr/local/bin/ 
+          sudo chmod +x /usr/local/bin/base32
+          #remove base32 from current directory to avoid it being commited during release
+          rm $(pwd)/base32 
+
+      - name: Release operator
+        run: |
+          CHE_VERSION=${{ github.event.inputs.version }}
+          BRANCH=${CHE_VERSION%.*}.x
+
+          docker login quay.io --username ${{ secrets.QUAY_USERNAME }} --password ${{ secrets.QUAY_PASSWORD }}
+          
+          # we usually do not update nightly files during major releases
+          if [[ ${CHE_VERSION} == *".0" ]]; then
+            ./make-release.sh ${CHE_VERSION} --release --release-olm-files --update-nightly-olm-files 
+          else
+            git checkout ${BRANCH}
+            ./make-release.sh ${CHE_VERSION} --release --release-olm-files
+          fi
+          
+          # default robot account on quay does not have permissions for application repos
+          # so we provide credentials for accounts that do
+          export QUAY_USERNAME_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
+          export QUAY_PASSWORD_K8S${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
+          export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
+          export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
+
+          git checkout ${CHE_VERSION}-release
+          ./make-release.sh ${CHE_VERSION} --push-olm-files
+          
+          # perform extra checkouts to ensure branches exist locally
+          git checkout ${BRANCH}
+          git checkout ${CHE_VERSION}-release
+          ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests  
