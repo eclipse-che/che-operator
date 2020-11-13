@@ -29,7 +29,7 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s SOURCE_PATH] -r [CSV_FILE_PATH_REGEXP] -t [IMAGE_TAG] "
-	echo "Example: $0 -w $(pwd) -r \"eclipse-che-preview-.*/eclipse-che-preview-.*\.v7.15.0.*yaml\" -t 7.15.0"
+	echo "Example: ./olm/addDigests.sh -w . -r \".*openshift.*v7.21.1.*yaml\" -t 7.21.1"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
