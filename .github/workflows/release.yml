@@ -14,6 +14,16 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+      - name: Check release version
+      # we will not allow next major release
+      # until https://github.com/eclipse/che/issues/18349 is fixed,
+      # then this step will be removed
+        run: |
+          CHE_VERSION=${{ github.event.inputs.version }}
+          if [[ ${CHE_VERSION%.*} == 7.22 ]];then
+            echo "Do not release next major version"
+            exit 1
+          fi
       - uses: actions/checkout@v2
 
       - name: Set up Python 3.6
@@ -57,6 +67,7 @@ jobs:
           if [[ ${CHE_VERSION} == *".0" ]]; then
             ./make-release.sh ${CHE_VERSION} --release --release-olm-files --update-nightly-olm-files 
           else
+            git checkout ${BRANCH}
             ./make-release.sh ${CHE_VERSION} --release --release-olm-files
           fi
           
@@ -67,8 +78,8 @@ jobs:
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
 
-          # git checkout ${CHE_VERSION}
-          # ./make-release.sh ${CHE_VERSION} --push-olm-files
+          git checkout ${CHE_VERSION}-release
+          ./make-release.sh ${CHE_VERSION} --push-olm-files
           
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}
