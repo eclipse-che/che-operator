@@ -16,6 +16,8 @@ BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 oc apply -f ${BASE_DIR}/deploy/service_account.yaml
 oc apply -f ${BASE_DIR}/deploy/role.yaml
 oc apply -f ${BASE_DIR}/deploy/role_binding.yaml
+oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role.yaml
+oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role_binding.yaml
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml
 # sometimes the operator cannot get CRD right away
 sleep 2
