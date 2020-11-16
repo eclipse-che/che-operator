@@ -84,7 +84,7 @@ installOperatorSDK() {
     OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
     pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
     echo "[INFO] Downloading 'operator-sdk' cli tool..."
-    curl -sLo operator-sdk "$(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/tags/v0.15.2 | jq -r '[.assets[] | select(.name == "operator-sdk-v0.15.2-x86_64-linux-gnu")] | first | .browser_download_url')"
+    curl -sLo operator-sdk "$(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/tags/v0.17.1 | jq -r '[.assets[] | select(.name == "operator-sdk-v0.17.1-x86_64-linux-gnu")] | first | .browser_download_url')"
     export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
     chmod +x "${OPERATOR_SDK_BINARY}"
     echo "[INFO] Downloading completed!"
@@ -92,7 +92,7 @@ installOperatorSDK() {
     popd || exit
   fi
 }
- 
+
 isActualNightlyOlmBundleCSVFiles() {
   cd "${ROOT_PROJECT_DIR}"
   export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
