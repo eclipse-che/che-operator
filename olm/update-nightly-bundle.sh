@@ -96,8 +96,6 @@ do
   newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
   echo "[INFO] Will create new nightly bundle version: ${newNightlyBundleVersion}"
 
-  echo "[INFO] Updating new package version..."
-
   csv_config=${olmCatalog}/eclipse-che-preview-${platform}/csv-config.yaml
   generateFolder=${olmCatalog}/eclipse-che-preview-${platform}/generated
   rm -rf "${generateFolder}"
@@ -168,7 +166,6 @@ do
     echo "[INFO] Fix openshift sample"
     sample=$(yq -r ".metadata.annotations.\"alm-examples\"" "${NEW_CSV}")
     fixedSample=$(echo "${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
-    echo "${fixedSample}"
     # Update sample in the CSV
     yq -rY " (.metadata.annotations.\"alm-examples\") = \"${fixedSample}\"" "${NEW_CSV}" > "${NEW_CSV}.old"
     mv "${NEW_CSV}.old" "${NEW_CSV}"
@@ -177,7 +174,6 @@ do
     echo "[INFO] Fix kubernetes sample"
     sample=$(yq -r ".metadata.annotations.\"alm-examples\"" "${NEW_CSV}")
     fixedSample=$(echo "${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
-    echo "${fixedSample}"
     # Update sample in the CSV
     yq -rY " (.metadata.annotations.\"alm-examples\") = \"${fixedSample}\"" "${NEW_CSV}" > "${NEW_CSV}.old"
     mv "${NEW_CSV}.old" "${NEW_CSV}"

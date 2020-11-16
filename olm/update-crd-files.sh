@@ -16,7 +16,9 @@
 set -e
 
 init() {
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  if [ -z "${BASE_DIR}" ]; then
+    BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  fi
 }
 
 check() {
@@ -25,10 +27,10 @@ check() {
 }
 
 updateFiles() {
-  cd $BASE_DIR/..
+  pushd $BASE_DIR/.. || true
   operator-sdk generate k8s
   operator-sdk generate crds
-  cd $BASE_DIR
+  popd
 }
 
 removeRequired() {

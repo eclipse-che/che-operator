@@ -12,58 +12,35 @@
 
 set -e
 
-# PR_FILES_CHANGED store all Modified/Created files in Pull Request.
-export PR_FILES_CHANGED=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD origin/master)")
-echo "========================="
-echo "${PR_FILES_CHANGED}"
-echo "========================="
-
-# transform_files function transform PR_FILES_CHANGED into a new array => FILES_CHANGED_ARRAY.
-function transform_files() {
-    for files in ${PR_FILES_CHANGED} 
-    do
-        FILES_CHANGED_ARRAY+=("${files}")
-    done
-}
-
-# check_che_types function check first if pkg/apis/org/v1/che_types.go file suffer modifications and
-# in case of modification should exist also modifications in deploy/crds/* folder.
-function check_che_types() {
-    # CHE_TYPES_FILE make reference to generated code by operator-sdk.
-    local CHE_TYPES_FILE='pkg/apis/org/v1/che_types.go'
-    # Export variables for cr/crds files.
-    local CR_CRD_FOLDER="deploy/crds/"
-    local CR_CRD_REGEX="\S*org_v1_che_crd.yaml"
-
-    if [[ " ${FILES_CHANGED_ARRAY[*]} " =~ ${CHE_TYPES_FILE} ]]; then
-        echo "[INFO] File ${CHE_TYPES_FILE} suffer modifications in PR. Checking if exist modifications for cr/crd files."
-        # The script should fail if deploy/crds folder didn't suffer any modification.
-        if [[ " ${FILES_CHANGED_ARRAY[*]} " =~ $CR_CRD_REGEX ]]; then
-            echo "[INFO] CR/CRD file modified: ${BASH_REMATCH}"
-        else
-            echo "[ERROR] Detected modification in ${CHE_TYPES_FILE} file, but cr/crd files didn't suffer any modification."
-            exit 1
-        fi
-    else
-        echo "[INFO] ${CHE_TYPES_FILE} don't have any modification."
-    fi
-}
-
-set -e
-
-go version
-
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)
   ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
 fi
+export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
 
-# Unfortunately ${GOPATH} is required for an old operator-sdk
-if [ -z "${GOPATH}" ]; then
-    export GOPATH="/home/runner/work/che-operator/go"
-    echo "[INFO] GOPATH: ${GOPATH}"
-fi
+# check_che_types function check first if pkg/apis/org/v1/che_types.go file suffer modifications and
+# in case of modification should exist also modifications in deploy/crds/* folder.
+function check_che_crds() {
+    cd "${ROOT_PROJECT_DIR}"
+    # CHE_TYPES_FILE make reference to generated code by operator-sdk.
+    # Export variables for cr/crds files.
+    local CR_CRD_FOLDER="deploy/crds"
+    local CR_CRD_REGEX="${CR_CRD_FOLDER}/org_v1_che_crd.yaml"
+
+    # Update crd
+    source "${ROOT_PROJECT_DIR}/olm/update-crd-files.sh"
+
+    IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
+    # Check if there is any difference in the crds. If yes, then fail check. 
+    if [[ " ${changedFiles[*]} " =~ $CR_CRD_REGEX ]]; then
+        echo "[ERROR] CR/CRD file is up to date: ${BASH_REMATCH}. Use 'che-operator/olm/update-crd-files.sh' script to update it."
+        exit 1
+    else
+        echo "[INFO] cr/crd files are in actual state."
+        exit 0
+    fi
+}
 
 installYq() {
   YQ=$(command -v yq) || true
@@ -95,7 +72,6 @@ installOperatorSDK() {
 
 isActualNightlyOlmBundleCSVFiles() {
   cd "${ROOT_PROJECT_DIR}"
-  export BASE_DIR="${ROOT_PROJECT_DIR}/olm"
   export NO_DATE_UPDATE="true"
   export NO_INCREMENT="true"
   source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
@@ -114,10 +90,9 @@ isActualNightlyOlmBundleCSVFiles() {
   echo "[INFO] Nightly Olm bundle is in actual state."
 }
 
-transform_files
-check_che_types
 installYq
 installOperatorSDK
+check_che_crds
 isActualNightlyOlmBundleCSVFiles
 
 echo "[INFO] Done."
