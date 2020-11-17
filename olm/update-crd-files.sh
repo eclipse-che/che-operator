@@ -30,7 +30,7 @@ check() {
     fi
   fi
 
-  local operatorVersion=$(operator-sdk version)
+  local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
   [[ $operatorVersion =~ .*v0.17.1.* ]] || { echo "operator-sdk v0.17.1 is required"; exit 1; }
 }
 
