@@ -27,9 +27,9 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"github.com/eclipse/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
-	oauthv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
 	oauth "github.com/openshift/api/oauth/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
@@ -114,9 +114,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}
 		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift User to scheme: %s", err)
-		}
-		if err := oauthv1.AddToScheme(mgr.GetScheme()); err != nil {
-			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
 		}
 		if err := configv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift Config to scheme: %s", err)
@@ -325,7 +322,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth {
 		if isOpenShift4 {
-			oauthv1 := &oauthv1.OAuth{}
+			oauthv1 := &configv1.OAuth{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
 				getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
 				logrus.Errorf(getOAuthV1ErrMsg)
@@ -334,7 +331,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 				return reconcile.Result{}, err
 			}
-			if len(oauthv1.Spec.IdentityProviders) < 1 {
+
+			osinServerConfig := &osinv1.OsinServerConfig{}
+			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, osinServerConfig); err != nil {
+				if !errors.IsNotFound(err) {
+					logrus.Errorf("Failed to get server config: %v", err)
+				}
+			}
+
+			if len(oauthv1.Spec.IdentityProviders) < 1 && len(osinServerConfig.OAuthConfig.IdentityProviders) < 1 {
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
 				instance.Spec.Auth.OpenShiftoAuth = false
 				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
