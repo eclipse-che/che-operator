@@ -29,6 +29,18 @@ while [[ "$#" -gt 0 ]]; do
   shift 1
 done
 
+# Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
+# Catch_Finish is executed after finish script.
+catchFinish() {
+  if [ -n "${OPERATOR_SDK_PID}" ]; then
+    # Gracefull SIG_TERM process
+    kill -15 "${OPERATOR_SDK_PID}"
+    echo "Debug completed."
+  fi
+}
+
 if [ -z "${CHE_NAMESPACE}" ];then
     CHE_NAMESPACE=che
 fi
@@ -60,4 +72,7 @@ echo "WATCH_NAMESPACE='${CHE_NAMESPACE}'" >> ${ENV_FILE}
 
 echo "[WARN] Make sure that your CR contains valid ingress domain!"
 
-operator-sdk run --local --watch-namespace=${CHE_NAMESPACE} --enable-delve
+operator-sdk run --local --watch-namespace=${CHE_NAMESPACE} --enable-delve &
+OPERATOR_SDK_PID=$!
+
+wait ${OPERATOR_SDK_PID}
