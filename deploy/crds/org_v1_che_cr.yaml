@@ -16,6 +16,8 @@ metadata:
   name: eclipse-che
 spec:
   server:
+    # use internal host names provided by cluster dns.
+    serviceHostnames: true
     # server image used in Che deployment
     cheImage: ''
     # tag of an image used in Che deployment

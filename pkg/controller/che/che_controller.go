@@ -291,10 +291,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	if instance.Spec.Server.ServiceHostnames == nil {
-		instance.Spec.Server.ServiceHostnames = util.GetTruePointer()
-	}
-
 	deployContext := &deploy.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: instance,

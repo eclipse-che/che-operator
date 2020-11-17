@@ -344,17 +344,15 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
 
 	// get CR
-	cheCR := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				ServiceHostnames: util.GetTruePointer(),
-			},
-		},
-	}
+	cheCR := &orgv1.CheCluster{}
 
 	// get CR
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
+	}
+	cheCR.Spec.Server.ServiceHostnames = true
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Errorf("Failed to update CheCluster custom resource")
 	}
 
 	// Mock request to simulate Reconcile() being called on an event for a
@@ -441,7 +439,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Server.ServiceHostnames = util.GetFalsePointer()
+	cheCR.Spec.Server.ServiceHostnames = false
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}

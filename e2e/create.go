@@ -13,7 +13,6 @@ package main
 
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	util "github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -121,7 +120,7 @@ func newCheCluster() (cr *orgv1.CheCluster) {
 		},
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				ServiceHostnames: util.GetTruePointer(),
+				ServiceHostnames: true,
 			},
 		},
 	}

@@ -330,17 +330,3 @@ func GetArchitectureDependentEnv(env string) string {
 
 	return env
 }
-
-// GetTruePointer returns `bool` pointer to true value in the memory. 
-// Unfortunately golang hasn't got syntax to create `bool` pointer.
-func GetTruePointer() *bool {
-	variable := true
-	return &variable
-}
-
-// GetFalsePointer returns `bool` pointer to false value in the memory. 
-// Unfortunately golang hasn't got syntax to create `bool` pointer.
-func GetFalsePointer() *bool {
-	variable := false
-	return &variable
-}

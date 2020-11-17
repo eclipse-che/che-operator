@@ -185,7 +185,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 
 	var pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
 
-	if deployContext.CheCluster.Spec.Server.ServiceHostnames != nil && *deployContext.CheCluster.Spec.Server.ServiceHostnames {
+	if deployContext.CheCluster.Spec.Server.ServiceHostnames {
 		devfileRegistryInternalURL = deployContext.InternalService.DevfileRegistryHost
 		pluginRegistryInternalURL = deployContext.InternalService.PluginRegistryHost
 		cheInternalAPI = deployContext.InternalService.CheHost + "/api"

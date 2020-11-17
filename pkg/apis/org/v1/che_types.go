@@ -146,7 +146,7 @@ type CheClusterSpecServer struct {
 	// It should be usefull to speed internal services traffic.
 	// Also it could avoid some proxy issues.
 	// Default value is true.
-	ServiceHostnames *bool `json:"serviceHostnames"`
+	ServiceHostnames bool `json:"serviceHostnames"`
 
 	// Internal cluster DNS service hostname suffix. It's a root dns domain. "cluster.local" by default for Kube-DNS.
 	ServiceHostnameSuffix string `json:"serviceHostnameSuffix"`
