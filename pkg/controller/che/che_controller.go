@@ -14,7 +14,9 @@ package che
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -314,7 +316,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if instance.Spec.Server.ServiceHostnameSuffix == "" {
-		instance.Spec.Server.ServiceHostnameSuffix = deploy.DefaultServiceHostnameSuffix
+		instance.Spec.Server.ServiceHostnameSuffix = getClusterDomain()
+		fmt.Println("========= Default service hostname is", instance.Spec.Server.ServiceHostnameSuffix)
 		if err := r.UpdateCheCRSpec(instance, "DefaultServiceHostnameSuffix", instance.Spec.Server.ServiceHostnameSuffix); err != nil {
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
@@ -1060,4 +1063,17 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 			Name:      checlusters.Items[0].Name,
 		},
 	}
+}
+
+func getClusterDomain() string {
+    apiSvc := "kubernetes.default.svc"
+
+    canonicalName, err := net.LookupCNAME(apiSvc)
+    if err != nil {
+		fmt.Printf("===========Error: unable to get csv %v using lookup...", err)
+        return deploy.DefaultServiceHostnameSuffix
+    }
+	fmt.Printf("====================Good!")
+
+    return strings.TrimSuffix(strings.TrimPrefix(canonicalName, apiSvc), ".")
 }
