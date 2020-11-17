@@ -22,14 +22,22 @@ init() {
 }
 
 check() {
+  if [ -z "${OPERATOR_SDK_BINARY}" ]; then
+    OPERATOR_SDK_BINARY=$(command -v operator-sdk)
+    if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
+      echo "[ERROR] operator-sdk is not installed."
+      exit 1
+    fi
+  fi
+
   local operatorVersion=$(operator-sdk version)
   [[ $operatorVersion =~ .*v0.17.1.* ]] || { echo "operator-sdk v0.17.1 is required"; exit 1; }
 }
 
 updateFiles() {
-  pushd $BASE_DIR/.. || true
-  operator-sdk generate k8s
-  operator-sdk generate crds
+  pushd "${BASE_DIR}"/.. || true
+  "${OPERATOR_SDK_BINARY}" generate k8s
+  "${OPERATOR_SDK_BINARY}" generate crds
   popd
 }
 
