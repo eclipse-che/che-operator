@@ -58,11 +58,14 @@ function run() {
     source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
     oc project ${NAMESPACE}
 
+    export XDG_CONFIG_HOME=/tmp/chectl/config
+    export XDG_CACHE_HOME=/tmp/chectl/cache
+    export XDG_DATA_HOME=/tmp/chectl/data
+
     # Create and start a workspace
-    getCheAcessToken
+    chectl auth:login -u admin -p admin
     chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
-    getCheAcessToken
     chectl workspace:list
     waitWorkspaceStart
 }
