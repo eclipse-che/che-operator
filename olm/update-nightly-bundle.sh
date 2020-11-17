@@ -27,11 +27,11 @@ fi
 # Check for compatible version of operator-sdk:
 OPERATOR_SDK_VERSION=$(${OPERATOR_SDK_BINARY} version | cut -d, -f1 | cut -d: -f2 | sed 's/[ \"]//g')
 case $OPERATOR_SDK_VERSION in
-  v0.15.*)
+  v0.17.*)
     echo "Operator SDK ${OPERATOR_SDK_VERSION} installed"
     ;;
   *)
-    echo "This script requires Operator SDK v0.15.x. Please install the correct version to continue"
+    echo "This script requires Operator SDK v0.17.x. Please install the correct version to continue"
     exit 1
     ;;
 esac
@@ -89,7 +89,6 @@ do
   pushd "${ROOT_PROJECT_DIR}" || true
 
   olmCatalog=${ROOT_PROJECT_DIR}/deploy/olm-catalog
-  operatorFolder=${olmCatalog}/che-operator
   bundleFolder=${olmCatalog}/eclipse-che-preview-${platform}
 
   bundleCSVName="che-operator.clusterserviceversion.yaml"
@@ -97,21 +96,23 @@ do
   newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
   echo "[INFO] Will create new nightly bundle version: ${newNightlyBundleVersion}"
 
+  csv_config=${olmCatalog}/eclipse-che-preview-${platform}/csv-config.yaml
+  generateFolder=${olmCatalog}/eclipse-che-preview-${platform}/generated
+  rm -rf "${generateFolder}"
+  mkdir -p "${generateFolder}"
+
   "${bundleFolder}"/build-roles.sh
 
-  packageManifestFolderPath=${ROOT_PROJECT_DIR}/deploy/olm-catalog/che-operator/${newNightlyBundleVersion}
-  packageManifestCSVPath=${packageManifestFolderPath}/che-operator.v${newNightlyBundleVersion}.clusterserviceversion.yaml
+  operatorYaml=$(yq -r ".\"operator-path\"" "${csv_config}")
+  cp -rf "${operatorYaml}" "${generateFolder}/"
 
-  mkdir -p "${packageManifestFolderPath}"
-  cp -rf "${NEW_CSV}" "${packageManifestCSVPath}"
-  cp -rf "${bundleFolder}/csv-config.yaml" "${olmCatalog}"
+  crdsDir=${ROOT_PROJECT_DIR}/deploy/crds
+  cp -rf "${crdsDir}" "${generateFolder}/"
 
-  echo "[INFO] Updating new package version..."
-  "${OPERATOR_SDK_BINARY}" olm-catalog gen-csv --csv-version "${newNightlyBundleVersion}" 2>&1 | sed -e 's/^/      /'
-
-  cp -rf "${packageManifestCSVPath}" "${NEW_CSV}"
-
-  rm -rf "${operatorFolder}" "${olmCatalog}/csv-config.yaml"
+  "${OPERATOR_SDK_BINARY}" generate csv \
+  --csv-version "${newNightlyBundleVersion}" \
+  --deploy-dir "${generateFolder}" \
+  --output-dir "${bundleFolder}" 2>&1 | sed -e 's/^/      /'
 
   containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
   echo "[INFO] Updating new package version fields:"
@@ -158,6 +159,24 @@ do
       fi
       index=$((index+1))
     done
+  fi
+
+  # Fix sample
+  if [ "${platform}" == "openshift" ]; then
+    echo "[INFO] Fix openshift sample"
+    sample=$(yq -r ".metadata.annotations.\"alm-examples\"" "${NEW_CSV}")
+    fixedSample=$(echo "${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
+    # Update sample in the CSV
+    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${fixedSample}\"" "${NEW_CSV}" > "${NEW_CSV}.old"
+    mv "${NEW_CSV}.old" "${NEW_CSV}"
+  fi
+  if [ "${platform}" == "kubernetes" ]; then
+    echo "[INFO] Fix kubernetes sample"
+    sample=$(yq -r ".metadata.annotations.\"alm-examples\"" "${NEW_CSV}")
+    fixedSample=$(echo "${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
+    # Update sample in the CSV
+    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${fixedSample}\"" "${NEW_CSV}" > "${NEW_CSV}.old"
+    mv "${NEW_CSV}.old" "${NEW_CSV}"
   fi
 
   # Format code.

@@ -60,4 +60,4 @@ echo "WATCH_NAMESPACE='${CHE_NAMESPACE}'" >> ${ENV_FILE}
 
 echo "[WARN] Make sure that your CR contains valid ingress domain!"
 
-operator-sdk run --local --namespace=${CHE_NAMESPACE} --enable-delve
+operator-sdk run --local --watch-namespace=${CHE_NAMESPACE} --enable-delve

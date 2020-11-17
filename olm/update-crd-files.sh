@@ -16,19 +16,29 @@
 set -e
 
 init() {
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  if [ -z "${BASE_DIR}" ]; then
+    BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  fi
 }
 
 check() {
-  local operatorVersion=$(operator-sdk version)
-  [[ $operatorVersion =~ .*v0.15.2.* ]] || { echo "operator-sdk v0.15.2 is required"; exit 1; }
+  if [ -z "${OPERATOR_SDK_BINARY}" ]; then
+    OPERATOR_SDK_BINARY=$(command -v operator-sdk)
+    if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
+      echo "[ERROR] operator-sdk is not installed."
+      exit 1
+    fi
+  fi
+
+  local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
+  [[ $operatorVersion =~ .*v0.17.1.* ]] || { echo "operator-sdk v0.17.1 is required"; exit 1; }
 }
 
 updateFiles() {
-  cd $BASE_DIR/..
-  operator-sdk generate k8s
-  operator-sdk generate crds
-  cd $BASE_DIR
+  pushd "${BASE_DIR}"/.. || true
+  "${OPERATOR_SDK_BINARY}" generate k8s
+  "${OPERATOR_SDK_BINARY}" generate crds
+  popd
 }
 
 removeRequired() {
