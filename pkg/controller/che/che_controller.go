@@ -291,9 +291,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
+	if instance.Spec.Server.ServiceHostnames == nil {
+		instance.Spec.Server.ServiceHostnames = util.GetTruePointer()
+	}
+
 	deployContext := &deploy.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: instance,
+		InternalService: deploy.InternalService{},
 	}
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
@@ -310,6 +315,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
+	}
+
+	if instance.Spec.Server.ServiceHostnameSuffix == "" {
+		instance.Spec.Server.ServiceHostnameSuffix = deploy.DefaultServiceHostnameSuffix
+		if err := r.UpdateCheCRSpec(instance, "DefaultServiceHostnameSuffix", instance.Spec.Server.ServiceHostnameSuffix); err != nil {
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
 	}
 
 	if !util.IsTestMode() {
@@ -752,6 +764,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
 		}
 	}
+	hostNameSuffix := deployContext.CheCluster.Spec.Server.ServiceHostnameSuffix
+	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc.%s:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace, hostNameSuffix)
 
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
@@ -778,19 +792,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
 		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels)
-		if !tests {
-			if route == nil {
-				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
-				if err != nil {
-					logrus.Error(err)
-				}
+		if route == nil {
+			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+			if err != nil {
+				logrus.Error(err)
+			}
 
-				return reconcile.Result{RequeueAfter: time.Second * 1}, err
-			}
-			cheHost = route.Spec.Host
-			if customHost == "" {
-				deployContext.DefaultCheHost = cheHost
-			}
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+		cheHost = route.Spec.Host
+		if customHost == "" {
+			deployContext.DefaultCheHost = cheHost
 		}
 	}
 	if instance.Spec.Server.CheHost != cheHost {

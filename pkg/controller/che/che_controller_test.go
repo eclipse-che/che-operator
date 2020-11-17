@@ -84,7 +84,20 @@ func TestCheController(t *testing.T) {
 			Namespace: namespace,
 		},
 	}
+
 	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -106,6 +119,14 @@ func TestCheController(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
 
 	// get configmap
 	cm := &corev1.ConfigMap{}
@@ -114,12 +135,6 @@ func TestCheController(t *testing.T) {
 	}
 
 	customCm := &corev1.ConfigMap{}
-
-	// Reconcile to delete legacy custom configmap
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
 
 	// Custom ConfigMap should be gone
 	err = cl.Get(context.TODO(), types.NamespacedName{Name: "custom", Namespace: cheCR.Namespace}, customCm)
@@ -150,6 +165,7 @@ func TestCheController(t *testing.T) {
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
+
 	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
@@ -315,6 +331,147 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 
 	if route.ObjectMeta.Labels["route"] != "one" {
 		t.Fatalf("Route '%s' does not have label '%s'", route.Name, route)
+	}
+}
+
+func TestConfiguringInternalNetworkTest(t *testing.T) {
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := Init()
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				ServiceHostnames: util.GetTruePointer(),
+			},
+		},
+	}
+
+	// get CR
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	// reconcile to delete che route
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// reconcile to create che-route
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	clusterAPI := deploy.ClusterAPI{
+		Client: r.client,
+		Scheme: r.scheme,
+	}
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCR,
+		ClusterAPI: clusterAPI,
+	}
+
+	// Set up che host for route
+	cheRoute, _ := deploy.GetSpecRoute(deployContext, "che", "che-host", "che-host", 8080, "")
+	cl.Update(context.TODO(), cheRoute)
+
+	// reconsile to update Che route
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// Set up keycloak host for route
+	keycloakRoute, _ := deploy.GetSpecRoute(deployContext, "keycloak", "keycloak", "keycloak", 8080, "")
+	cl.Update(context.TODO(), keycloakRoute)
+
+	// Set up devfile registry host for route
+	devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, "devfile-registry", "devfile-registry", "devfile-registry", 8080, "")
+	cl.Update(context.TODO(), devfileRegistryRoute)
+
+	// Set up plugin registry host for route
+	pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, "plugin-registry", "plugin-registry", "plugin-registry", 8080, "")
+	cl.Update(context.TODO(), pluginRegistryRoute)
+
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCm := &corev1.ConfigMap{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cheCm); err != nil {
+		t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+	}
+
+	cheAPIInternal := cheCm.Data["CHE_API_INTERNAL"]
+	cheAPIInternalExpected := "http://che-host.eclipse-che.svc.cluster.local:8080/api"
+	if cheAPIInternal != cheAPIInternalExpected {
+		t.Fatalf("Che API internal url must be %s", cheAPIInternalExpected)
+	}
+
+	pluginRegistryInternal := cheCm.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
+	pluginRegistryInternalExpected := "http://plugin-registry.eclipse-che.svc.cluster.local:8080/v3"
+	if pluginRegistryInternal != pluginRegistryInternalExpected {
+		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
+	}
+
+	devRegistryInternal := cheCm.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
+	devRegistryInternalExpected := "http://devfile-registry.eclipse-che.svc.cluster.local:8080"
+	if devRegistryInternal != devRegistryInternalExpected {
+		t.Fatalf("Devfile registry internal url must be %s", pluginRegistryInternalExpected)
+	}
+
+	// update CR and make sure Che configmap has been updated
+	cheCR.Spec.Server.ServiceHostnames = util.GetFalsePointer()
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCmWithDisabledServiceHostnames := &corev1.ConfigMap{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cheCmWithDisabledServiceHostnames); err != nil {
+		t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+	}
+
+	cheAPIInternal = cheCmWithDisabledServiceHostnames.Data["CHE_API_INTERNAL"]
+	cheAPIInternalExpected = "http://che-host/api"
+	if cheAPIInternal != cheAPIInternalExpected {
+		t.Fatalf("Che API internal url must be %s", cheAPIInternalExpected)
+	}
+
+	pluginRegistryInternal = cheCmWithDisabledServiceHostnames.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
+	pluginRegistryInternalExpected = "http://plugin-registry/v3"
+	if pluginRegistryInternal != pluginRegistryInternalExpected {
+		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
+	}
+
+	devRegistryInternal = cheCmWithDisabledServiceHostnames.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
+	devRegistryInternalExpected = "http://devfile-registry"
+	if devRegistryInternal != devRegistryInternalExpected {
+		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
 	}
 }
 

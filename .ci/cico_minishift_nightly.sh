@@ -80,6 +80,7 @@ function run() {
     # OPERATOR_IMAGE In CI is defined in .github/workflows/che-nightly.yaml
     export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
+    rm -rf tmp
     # prepare template folder
     mkdir -p "${OPERATOR_REPO}/tmp/che-operator" && chmod 777 "${OPERATOR_REPO}/tmp"
     cp -rf ${OPERATOR_REPO}/deploy/* "${OPERATOR_REPO}/tmp/che-operator"

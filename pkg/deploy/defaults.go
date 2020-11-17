@@ -61,6 +61,8 @@ const (
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
 	DefaultPluginRegistryMemoryRequest = "16Mi"
 
+	// DefaultKube
+	DefaultServiceHostnameSuffix        = "cluster.local"
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"

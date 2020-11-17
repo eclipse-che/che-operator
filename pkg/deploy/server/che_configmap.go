@@ -40,6 +40,7 @@ type CheConfigMap struct {
 	CheMultiUser                           string `json:"CHE_MULTIUSER"`
 	ChePort                                string `json:"CHE_PORT"`
 	CheApi                                 string `json:"CHE_API"`
+	CheApiInternal                         string `json:"CHE_API_INTERNAL"`
 	CheWebSocketEndpoint                   string `json:"CHE_WEBSOCKET_ENDPOINT"`
 	CheDebugServer                         string `json:"CHE_DEBUG_SERVER"`
 	CheMetricsEnabled                      string `json:"CHE_METRICS_ENABLED"`
@@ -70,7 +71,9 @@ type CheConfigMap struct {
 	WorkspaceHttpsProxy                    string `json:"CHE_WORKSPACE_HTTPS__PROXY"`
 	WorkspaceNoProxy                       string `json:"CHE_WORKSPACE_NO__PROXY"`
 	PluginRegistryUrl                      string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__URL,omitempty"`
+	PluginRegistryInternalUrl              string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
 	DevfileRegistryUrl                     string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
+	DevfileRegistryInternalUrl             string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL,omitempty"`
 	WebSocketEndpointMinor                 string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 	CheWorkspacePluginBrokerMetadataImage  string `json:"CHE_WORKSPACE_PLUGIN__BROKER_METADATA_IMAGE,omitempty"`
 	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
@@ -168,8 +171,8 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
-	devfileRegistryUrl := deployContext.CheCluster.Status.DevfileRegistryURL
-	pluginRegistryUrl := deployContext.CheCluster.Status.PluginRegistryURL
+	devfileRegistryURL:= deployContext.CheCluster.Status.DevfileRegistryURL
+	pluginRegistryURL := deployContext.CheCluster.Status.PluginRegistryURL
 	cheLogLevel := util.GetValue(deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
 	cheDebug := util.GetValue(deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(deployContext.CheCluster.Spec.Metrics.Enable)
@@ -178,11 +181,26 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	workspaceExposure := deploy.GetSingleHostExposureType(deployContext.CheCluster)
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
 
+	cheAPI := protocol + "://" + cheHost + "/api"
+
+	var pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
+
+	if deployContext.CheCluster.Spec.Server.ServiceHostnames != nil && *deployContext.CheCluster.Spec.Server.ServiceHostnames {
+		devfileRegistryInternalURL = deployContext.InternalService.DevfileRegistryHost
+		pluginRegistryInternalURL = deployContext.InternalService.PluginRegistryHost
+		cheInternalAPI = deployContext.InternalService.CheHost + "/api"
+	} else {
+		devfileRegistryInternalURL = devfileRegistryURL
+		pluginRegistryInternalURL = pluginRegistryURL
+		cheInternalAPI = cheAPI
+	}
+
 	data := &CheConfigMap{
 		CheMultiUser:                           cheMultiUser,
 		CheHost:                                cheHost,
 		ChePort:                                "8080",
-		CheApi:                                 protocol + "://" + cheHost + "/api",
+		CheApi:                                 cheAPI,
+		CheApiInternal:							cheInternalAPI,
 		CheWebSocketEndpoint:                   wsprotocol + "://" + cheHost + "/api/websocket",
 		WebSocketEndpointMinor:                 wsprotocol + "://" + cheHost + "/api/websocket-minor",
 		CheDebugServer:                         cheDebug,
@@ -206,8 +224,10 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		WorkspaceHttpProxy:                     deployContext.Proxy.HttpProxy,
 		WorkspaceHttpsProxy:                    deployContext.Proxy.HttpsProxy,
 		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
-		PluginRegistryUrl:                      pluginRegistryUrl,
-		DevfileRegistryUrl:                     devfileRegistryUrl,
+		PluginRegistryUrl:                      pluginRegistryURL,
+		PluginRegistryInternalUrl:              pluginRegistryInternalURL,
+		DevfileRegistryUrl:                     devfileRegistryURL,
+		DevfileRegistryInternalUrl:             devfileRegistryInternalURL,
 		CheWorkspacePluginBrokerMetadataImage:  deploy.DefaultCheWorkspacePluginBrokerMetadataImage(deployContext.CheCluster),
 		CheWorkspacePluginBrokerArtifactsImage: deploy.DefaultCheWorkspacePluginBrokerArtifactsImage(deployContext.CheCluster),
 		CheServerSecureExposerJwtProxyImage:    deploy.DefaultCheServerSecureExposerJwtProxyImage(deployContext.CheCluster),

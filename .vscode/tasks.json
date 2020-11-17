@@ -2,6 +2,24 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Run mock tests",
+            "command": "go test -mod=vendor -v ./...",
+            "options": {
+                "env": {
+                    "MOCK_API": "true"
+                }
+            },
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
             "label": "Update cr/crd files",
             "command": "./olm/update-crd-files.sh",
             "type": "shell",

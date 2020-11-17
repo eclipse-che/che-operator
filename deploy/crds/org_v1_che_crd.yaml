@@ -555,6 +555,15 @@ spec:
                     signed with self-signed cert. So, Che server must be aware of
                     its CA cert to be able to request it. This is disabled by default.
                   type: string
+                serviceHostnameSuffix:
+                  description: Internal cluster DNS service hostname suffix. It's
+                    a root dns domain. "cluster.local" by default for Kube-DNS.
+                  type: string
+                serviceHostnames:
+                  description: Use internal host names provided by cluster dns. It
+                    should be usefull to speed internal services traffic. Also it
+                    could avoid some proxy issues. Default value is true.
+                  type: boolean
                 singleHostGatewayConfigMapLabels:
                   additionalProperties:
                     type: string
