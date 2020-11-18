@@ -28,7 +28,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
-	oauth "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -41,6 +41,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -109,7 +110,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := routev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift route to scheme: %s", err)
 		}
-		if err := oauth.AddToScheme(mgr.GetScheme()); err != nil {
+		if err := oauthv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
 		}
 		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
@@ -119,6 +120,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			logrus.Errorf("Failed to add OpenShift Config to scheme: %s", err)
 		}
 		if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
+		}
+		if err := osinv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
 		}
 		if hasConsolelinkObject() {
@@ -334,7 +338,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 			osinServerConfig := &osinv1.OsinServerConfig{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, osinServerConfig); err != nil {
-				if !errors.IsNotFound(err) {
+				if !errors.IsNotFound(err) && !apimeta.IsNoMatchError(err) {
 					logrus.Errorf("Failed to get server config: %v", err)
 				}
 			}
