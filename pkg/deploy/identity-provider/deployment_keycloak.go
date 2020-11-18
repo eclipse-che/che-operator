@@ -493,7 +493,7 @@ func getSpecKeycloakDeployment(
 		addUsernameReadonlyTheme := "if [ ! -d /opt/eap/themes/codeready-username-readonly ]; then" +
 			" mkdir -p /opt/eap/themes/codeready-username-readonly/login" +
 			" && cp /opt/eap/themes/base/login/login-update-profile.ftl /opt/eap/themes/codeready-username-readonly/login" +
-			" && echo \"parent=base\" > /opt/eap/themes/codeready-username-readonly/login/theme.properties" +
+			" && echo \"parent=rh-sso\" > /opt/eap/themes/codeready-username-readonly/login/theme.properties" +
 			" && sed -i 's|id=\"username\" name=\"username\"|id=\"username\" readonly name=\"username\"|g' /opt/eap/themes/codeready-username-readonly/login/login-update-profile.ftl; fi"
 		addUsernameValidationForKeycloakTheme := "sed -i  's|id=\"username\" name=\"username\"|" +
 			"id=\"username\" " +
