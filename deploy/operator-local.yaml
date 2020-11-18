@@ -56,7 +56,7 @@ spec:
             - name: RELATED_IMAGE_pvc_jobs
               value: registry.access.redhat.com/ubi8-minimal:8.3-201
             - name: RELATED_IMAGE_postgres
-              value: centos/postgresql-96-centos7:9.6
+              value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
             - name: RELATED_IMAGE_keycloak
               value: quay.io/eclipse/che-keycloak:nightly
             - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
@@ -66,7 +66,7 @@ spec:
             - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
               value: quay.io/eclipse/che-jwtproxy:0.10.0
             - name: RELATED_IMAGE_single_host_gateway
-              value: docker.io/traefik:v2.2.8
+              value: quay.io/eclipse/che--traefik:v2.2.8-f5af5a5ce17fc3e353b507e8acce65d7f28126408a8c92dc3cac246d023dc9e8
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
               value: quay.io/che-incubator/configbump:0.1.4
             - name: CHE_FLAVOR

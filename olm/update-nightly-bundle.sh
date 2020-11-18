@@ -31,7 +31,7 @@ case $OPERATOR_SDK_VERSION in
     echo "Operator SDK ${OPERATOR_SDK_VERSION} installed"
     ;;
   *)
-    echo "This script requires Operator SDK v0.17.x. Please install the correct version to continue"
+    echo "This script requires Operator SDK v0.17.x. Please install from https://github.com/operator-framework/operator-sdk/releases/tag/v0.17.2 to continue"
     exit 1
     ;;
 esac
