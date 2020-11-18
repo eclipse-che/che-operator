@@ -2,6 +2,24 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Update vendor folder",
+            "command": "go mod vendor",
+            "options": {
+                "env": {
+                    "MOCK_API": "true"
+                }
+            },
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
             "label": "Run mock tests",
             "command": "go test -mod=vendor -v ./...",
             "options": {

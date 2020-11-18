@@ -1066,14 +1066,12 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 }
 
 func getClusterDomain() string {
-    apiSvc := "kubernetes.default.svc"
+	apiSvc := "kubernetes.default.svc"
 
     canonicalName, err := net.LookupCNAME(apiSvc)
     if err != nil {
-		fmt.Printf("===========Error: unable to get csv %v using lookup...", err)
         return deploy.DefaultServiceHostnameSuffix
     }
-	fmt.Printf("====================Good!")
 
-    return strings.TrimSuffix(strings.TrimPrefix(canonicalName, apiSvc), ".")
+    return strings.TrimSuffix(strings.TrimPrefix(canonicalName, apiSvc + "."), ".")
 }
