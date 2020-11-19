@@ -100,6 +100,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheDebug string `json:"cheDebug,omitempty"`
 	// Comma-separated list of ClusterRoles that will be assigned to che ServiceAccount.
+	// Be aware that che-operator has to already have all permissions in these ClusterRoles to be able to grant them.
 	// +optional
 	CheClusterRoles string `json:"cheClusterRoles,omitempty"`
 	// Custom cluster role bound to the user for the Che workspaces.
