@@ -99,6 +99,9 @@ type CheClusterSpecServer struct {
 	// Enables the debug mode for Che server. Defaults to `false`.
 	// +optional
 	CheDebug string `json:"cheDebug,omitempty"`
+	// Comma-separated list of ClusterRoles that will be assigned to che ServiceAccount.
+	// +optional
+	CheClusterRoles string `json:"cheClusterRoles,omitempty"`
 	// Custom cluster role bound to the user for the Che workspaces.
 	// The default roles are used if this is omitted or left blank.
 	// +optional
