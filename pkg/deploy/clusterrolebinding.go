@@ -13,6 +13,8 @@ package deploy
 
 import (
 	"context"
+	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,6 +43,16 @@ func SyncClusterRoleBindingToCluster(
 		logrus.Infof("Creating a new object: %s, name %s", specCRB.Kind, specCRB.Name)
 		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specCRB)
 		return nil, err
+	}
+
+	diff := cmp.Diff(clusterRB, specCRB, pvcDiffOpts)
+	if len(diff) > 0 {
+		logrus.Infof("Updating existed object: %s, name: %s", clusterRB.Kind, clusterRB.Name)
+		fmt.Printf("Difference:\n%s", diff)
+		clusterRB.Subjects = specCRB.Subjects
+		clusterRB.RoleRef = specCRB.RoleRef
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterRB)
+		return clusterRB, err
 	}
 
 	return clusterRB, nil
