@@ -143,7 +143,7 @@ function minishiftUpdates() {
   chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
 
   # Update the operator to the new release
-  chectl server:update -y \
+  chectl server:update --skip-version-check --platform minishift \
     --che-operator-image=quay.io/eclipse/che-operator:${lastPackageVersion} \
     --templates="${lastOperatorTemplate}"
 
