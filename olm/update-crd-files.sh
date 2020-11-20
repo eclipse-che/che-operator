@@ -31,7 +31,8 @@ check() {
   fi
 
   local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
-  [[ $operatorVersion =~ .*v0.17.1.* ]] || { echo "operator-sdk v0.17.1 is required"; exit 1; }
+  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
+  [[ $operatorVersion =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "operator-sdk ${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
 }
 
 updateFiles() {

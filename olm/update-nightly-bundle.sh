@@ -26,12 +26,13 @@ fi
 
 # Check for compatible version of operator-sdk:
 OPERATOR_SDK_VERSION=$(${OPERATOR_SDK_BINARY} version | cut -d, -f1 | cut -d: -f2 | sed 's/[ \"]//g')
+REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${BASE_DIR}/../REQUIREMENTS")
 case $OPERATOR_SDK_VERSION in
-  v0.17.*)
+  "${REQUIRED_OPERATOR_SDK}")
     echo "Operator SDK ${OPERATOR_SDK_VERSION} installed"
     ;;
   *)
-    echo "This script requires Operator SDK v0.17.x. Please install the correct version to continue"
+    echo "This script requires Operator SDK ${REQUIRED_OPERATOR_SDK}. Please install the correct version to continue"
     exit 1
     ;;
 esac
