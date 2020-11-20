@@ -13,23 +13,96 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+var roleDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
+	cmpopts.IgnoreFields(rbac.PolicyRule{}, "Verbs", "APIGroups", "Resources", "ResourceNames", "NonResourceURLs"),
+	cmp.Comparer(func(x, y resource.Quantity) bool {
+		return x.Cmp(y) == 0
+	}),
+}
+
+func SyncTLSRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
+	tlsPolicyRule := []rbac.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"secrets",
+			},
+			Verbs:     []string{
+				"create",
+			},
+		},
+	}
+	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)	
+}
+
+func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
+	execPolicyRule := []rbac.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"pods/exec",
+			},
+			Verbs:     []string{
+				"*",
+			},
+		},
+	}
+	return SyncRoleToCluster(deployContext, "exec", execPolicyRule)	
+}
+
+func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
+	viewPolicyRule := []rbac.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"pods",
+			},
+			Verbs:     []string{
+				"list", "get",
+			},
+		},
+		{
+			APIGroups: []string{
+				"metrics.k8s.io",
+			},
+			Resources: []string{
+				"pods",
+			},
+			Verbs:     []string{
+				"list", "get", "watch",
+			},
+		},
+	}
+	return SyncRoleToCluster(deployContext, "view", viewPolicyRule)	
+}
+
 func SyncRoleToCluster(
 	deployContext *DeployContext,
 	name string,
-	resources []string,
-	verbs []string) (*rbac.Role, error) {
+	policyRule []rbac.PolicyRule) (*rbac.Role, error) {
 
-	specRole, err := getSpecRole(deployContext, name, resources, verbs)
+	specRole, err := getSpecRole(deployContext, name, policyRule)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +115,15 @@ func SyncRoleToCluster(
 	if clusterRole == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRole.Kind, specRole.Name)
 		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRole)
+		return nil, err
+	}
+	
+	diff := cmp.Diff(clusterRole, specRole, roleDiffOpts)
+	if len(diff) > 0 {
+		logrus.Infof("Updating existed object: %s, name: %s", clusterRole.Kind, clusterRole.Name)
+		fmt.Printf("Difference:\n%s", diff)
+		clusterRole.Rules = specRole.Rules
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterRole)
 		return nil, err
 	}
 
@@ -64,7 +146,7 @@ func getClusterRole(name string, namespace string, client runtimeClient.Client) 
 	return role, nil
 }
 
-func getSpecRole(deployContext *DeployContext, name string, resources []string, verbs []string) (*rbac.Role, error) {
+func getSpecRole(deployContext *DeployContext, name string, policyRule []rbac.PolicyRule) (*rbac.Role, error) {
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
@@ -76,15 +158,7 @@ func getSpecRole(deployContext *DeployContext, name string, resources []string, 
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
-		Rules: []rbac.PolicyRule{
-			{
-				APIGroups: []string{
-					"",
-				},
-				Resources: resources,
-				Verbs:     verbs,
-			},
-		},
+		Rules: policyRule,
 	}
 
 	err := controllerutil.SetControllerReference(deployContext.CheCluster, role, deployContext.ClusterAPI.Scheme)
