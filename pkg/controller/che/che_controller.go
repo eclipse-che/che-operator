@@ -14,9 +14,7 @@ package che
 import (
 	"context"
 	"fmt"
-	"net"
 	"strconv"
-	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -313,14 +311,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
-	}
-
-	if instance.Spec.Server.ServiceHostnameSuffix == "" {
-		instance.Spec.Server.ServiceHostnameSuffix = getClusterDomain()
-		fmt.Println("========= Default service hostname is", instance.Spec.Server.ServiceHostnameSuffix)
-		if err := r.UpdateCheCRSpec(instance, "DefaultServiceHostnameSuffix", instance.Spec.Server.ServiceHostnameSuffix); err != nil {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
 	}
 
 	if !util.IsTestMode() {
@@ -763,8 +753,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
 		}
 	}
-	hostNameSuffix := deployContext.CheCluster.Spec.Server.ServiceHostnameSuffix
-	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc.%s:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace, hostNameSuffix)
+
+	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
 
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
@@ -1063,15 +1053,4 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 			Name:      checlusters.Items[0].Name,
 		},
 	}
-}
-
-func getClusterDomain() string {
-	apiSvc := "kubernetes.default.svc"
-
-    canonicalName, err := net.LookupCNAME(apiSvc)
-    if err != nil {
-        return deploy.DefaultServiceHostnameSuffix
-    }
-
-    return strings.TrimSuffix(strings.TrimPrefix(canonicalName, apiSvc + "."), ".")
 }

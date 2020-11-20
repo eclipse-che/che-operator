@@ -148,9 +148,6 @@ type CheClusterSpecServer struct {
 	// Default value is true.
 	ServiceHostnames bool `json:"serviceHostnames"`
 
-	// Internal cluster DNS service hostname suffix. It's a root dns domain. "cluster.local" by default for Kube-DNS.
-	ServiceHostnameSuffix string `json:"serviceHostnameSuffix"`
-
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
 	// You should set it ONLY if you use an external devfile registry (see the `externalDevfileRegistry` field).
 	// By default this will be automatically calculated by the operator.

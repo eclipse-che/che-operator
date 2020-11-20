@@ -421,19 +421,19 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	cheAPIInternal := cheCm.Data["CHE_API_INTERNAL"]
-	cheAPIInternalExpected := "http://che-host.eclipse-che.svc.cluster.local:8080/api"
+	cheAPIInternalExpected := "http://che-host.eclipse-che.svc:8080/api"
 	if cheAPIInternal != cheAPIInternalExpected {
 		t.Fatalf("Che API internal url must be %s", cheAPIInternalExpected)
 	}
 
 	pluginRegistryInternal := cheCm.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
-	pluginRegistryInternalExpected := "http://plugin-registry.eclipse-che.svc.cluster.local:8080/v3"
+	pluginRegistryInternalExpected := "http://plugin-registry.eclipse-che.svc:8080/v3"
 	if pluginRegistryInternal != pluginRegistryInternalExpected {
 		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
 	}
 
 	devRegistryInternal := cheCm.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
-	devRegistryInternalExpected := "http://devfile-registry.eclipse-che.svc.cluster.local:8080"
+	devRegistryInternalExpected := "http://devfile-registry.eclipse-che.svc:8080"
 	if devRegistryInternal != devRegistryInternalExpected {
 		t.Fatalf("Devfile registry internal url must be %s", pluginRegistryInternalExpected)
 	}
