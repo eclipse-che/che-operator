@@ -20,7 +20,6 @@ import (
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,10 +28,7 @@ import (
 
 var roleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
-	cmpopts.IgnoreFields(rbac.PolicyRule{}, "Verbs", "APIGroups", "Resources", "ResourceNames", "NonResourceURLs"),
-	cmp.Comparer(func(x, y resource.Quantity) bool {
-		return x.Cmp(y) == 0
-	}),
+	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
 }
 
 func SyncTLSRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
