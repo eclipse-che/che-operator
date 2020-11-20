@@ -64,7 +64,7 @@ var (
 	packageManifest = &packagesv1.PackageManifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes-imagepuller-operator",
-			Namespace: "default",
+			Namespace: namespace,
 		},
 		Status: packagesv1.PackageManifestStatus{
 			CatalogSource:          "community-operators",
@@ -334,6 +334,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				client:          cli,
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
+				scheme:          scheme.Scheme,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
