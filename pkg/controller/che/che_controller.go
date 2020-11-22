@@ -250,6 +250,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileChe{}
 var oAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
+var imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
 
 // ReconcileChe reconciles a CheCluster object
 type ReconcileChe struct {
@@ -424,9 +425,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			logrus.Errorf("Error uninstalling Image Puller: %v", err)
 			return reconcile.Result{}, err
 		}
+
 		if removed {
 			return reconcile.Result{Requeue: true}, nil
 		}
+
+		err = r.DeleteImagePullerFinalizer(instance)
+		if err != nil {
+			logrus.Errorf("Error deleting finalizer: %v", err)
+			return reconcile.Result{}, err
+		}
+
 	}
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
@@ -497,6 +506,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// delete oAuthClient before CR is deleted
 		if instance.Spec.Auth.OpenShiftoAuth {
 			if err := r.ReconcileFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+
+		if instance.Spec.ImagePuller.Enable {
+			if err := r.ReconcileImagePullerFinalizer(instance); err != nil {
 				return reconcile.Result{}, err
 			}
 		}

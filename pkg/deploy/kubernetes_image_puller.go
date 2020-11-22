@@ -69,7 +69,7 @@ func GetPackageManifest(ctx *DeployContext) (*packagesv1.PackageManifest, error)
 // OperatorGroup was created, and any error returned during the List and Create operation
 func CreateOperatorGroupIfNotFound(ctx *DeployContext) (bool, error) {
 	operatorGroupList := &operatorsv1.OperatorGroupList{}
-	err := ctx.ClusterAPI.NonCachedClient.List(context.TODO(), operatorGroupList, &client.ListOptions{})
+	err := ctx.ClusterAPI.NonCachedClient.List(context.TODO(), operatorGroupList, &client.ListOptions{Namespace: ctx.CheCluster.Namespace})
 	if err != nil {
 		return false, err
 	}
@@ -79,6 +79,9 @@ func CreateOperatorGroupIfNotFound(ctx *DeployContext) (bool, error) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "kubernetes-imagepuller-operator",
 				Namespace: ctx.CheCluster.Namespace,
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(ctx.CheCluster, ctx.CheCluster.GroupVersionKind()),
+				},
 			},
 			Spec: operatorsv1.OperatorGroupSpec{
 				TargetNamespaces: []string{
@@ -120,6 +123,9 @@ func GetExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.Pac
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes-imagepuller-operator",
 			Namespace: ctx.CheCluster.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(ctx.CheCluster, ctx.CheCluster.GroupVersionKind()),
+			},
 		},
 		Spec: &operatorsv1alpha1.SubscriptionSpec{
 			CatalogSource:          packageManifest.Status.CatalogSource,
