@@ -545,9 +545,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// create exec and view roles for CheCluster server and workspaces
-	role, err := deploy.SyncRoleToCluster(deployContext, "exec", []string{"pods/exec"}, []string{"*"})
-	if role == nil {
+	// create exec role for CheCluster server and workspaces
+	execRole, err := deploy.SyncExecRoleToCluster(deployContext)
+	if execRole == nil {
 		logrus.Info("Waiting on role 'exec' to be created")
 		if err != nil {
 			logrus.Error(err)
@@ -557,7 +557,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	viewRole, err := deploy.SyncRoleToCluster(deployContext, "view", []string{"pods"}, []string{"list"})
+	// create view role for CheCluster server and workspaces
+	viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
 	if viewRole == nil {
 		logrus.Info("Waiting on role 'view' to be created")
 		if err != nil {
