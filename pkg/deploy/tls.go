@@ -48,12 +48,12 @@ const (
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 	DefaultCheTLSSecretName               = "che-tls"
 
+	// CheCACertsConfigMapLabelKey is the label key which marks config map with additional CA certificates
+	CheCACertsConfigMapLabelKey = "app.kubernetes.io/component"
+	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
+	CheCACertsConfigMapLabelValue = "ca-bundle"
 	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
 	CheAllCACertsConfigMapName = "che-ca-certs-merged"
-	// CheCACertsConfigMapLabelKey is the label key which marks config map with additional CA certificates
-	CheCACertsConfigMapLabelKey = "che-ca-certs"
-	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
-	CheCACertsConfigMapLabelValue = "true"
 	// CheMergedCAConfigMapRevisionsLabelKey is label name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
 	CheMergedCAConfigMapRevisionsLabelKey = "included-cm"
 
@@ -564,9 +564,10 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
-	labelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
+	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
+	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement("app.kubernetes.io/part-of", selection.Equals, []string{"che.eclipse.org"})
 	listOptions := &client.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*labelSelectorRequirement),
+		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
 	}
 	if err := deployContext.ClusterAPI.Client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
 		return nil, err
