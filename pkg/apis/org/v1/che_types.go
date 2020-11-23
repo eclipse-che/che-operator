@@ -527,7 +527,7 @@ type CheClusterSpecMetrics struct {
 // Configuration settings for installation and configuration of the Kubernetes Image Puller
 // See https://github.com/che-incubator/kubernetes-image-puller-operator
 type CheClusterSpecImagePuller struct {
-	// Install and configure a KubernetesImagePuller? if true and no spec is provided,
+	// Install and configure a KubernetesImagePuller. If true and no spec is provided,
 	// create a default KubernetesImagePuller.  If false, the the KubernetesImagePuller will
 	// deleted, and the operator will be uninstalled, regardless of whether or not a spec is provided.
 	Enable bool `json:"enable"`
