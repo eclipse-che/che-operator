@@ -85,7 +85,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 	}
 
 	depl := getGatewayDeploymentSpec(instance)
-	if err := deploy.Sync(deployContext, &depl, deploymentDiffOpts); err != nil {
+	if err := deploy.Sync(deployContext, &depl, deploy.DeploymentDiffOpts); err != nil {
 		return err
 	}
 
