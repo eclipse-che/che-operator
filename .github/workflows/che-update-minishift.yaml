@@ -19,7 +19,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=stable
     - name: Install and start minishift OCP 3.11 cluster
       run: |
         brew cask install minishift
