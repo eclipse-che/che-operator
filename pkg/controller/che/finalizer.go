@@ -68,6 +68,16 @@ func (r *ReconcileChe) DeleteFinalizer(instance *orgv1.CheCluster) (err error) {
 	return nil
 }
 
+func (r *ReconcileChe) HasImagePullerFinalizer(instance *orgv1.CheCluster) bool {
+	finalizers := instance.ObjectMeta.GetFinalizers()
+	for _, finalizer := range finalizers {
+		if finalizer == imagePullerFinalizerName {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *ReconcileChe) ReconcileImagePullerFinalizer(instance *orgv1.CheCluster) (err error) {
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !util.ContainsString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName) {

@@ -174,7 +174,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:   "image puller enabled, no operatorgroup, should create an operatorgroup",
-			initCR: CheCRWithImagePullerEnabled(),
+			initCR: InitCheCRWithImagePullerEnabled(),
 			initObjects: []runtime.Object{
 				packageManifest,
 			},
@@ -182,7 +182,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, operatorgroup exists, should create a subscription",
-			initCR: CheCRWithImagePullerEnabled(),
+			initCR: InitCheCRWithImagePullerEnabled(),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
@@ -191,7 +191,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, subscription created but has changed, should update subscription, this shouldn't happen",
-			initCR: CheCRWithImagePullerEnabled(),
+			initCR: InitCheCRWithImagePullerEnabled(),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
@@ -200,8 +200,18 @@ func TestImagePullerConfiguration(t *testing.T) {
 			expectedSubscription: subscription,
 		},
 		{
-			name:   "image puller enabled but default values are empty, subscription exists, should update the CR",
-			initCR: CheCRWithImagePullerEnabled(),
+			name:       "image puller enabled, subscription created, should add finalizer",
+			initCR:     InitCheCRWithImagePullerEnabled(),
+			expectedCR: ExpectedCheCRWithImagePullerFinalizer(),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+			},
+		},
+		{
+			name:   "image puller enabled with finalizer but default values are empty, subscription exists, should update the CR",
+			initCR: InitCheCRWithImagePullerFinalizer(),
 			expectedCR: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -211,6 +221,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 					Name:            name,
 					Namespace:       namespace,
 					ResourceVersion: "1",
+					Finalizers: []string{
+						"kubernetesimagepullers.finalizers.che.eclipse.org",
+					},
 				},
 				Spec: orgv1.CheClusterSpec{
 					ImagePuller: orgv1.CheClusterSpecImagePuller{
@@ -230,7 +243,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled default values already set, subscription exists, should create a KubernetesImagePuller",
-			initCR: CheCRWithImagePullerEnabledAndDefaultValuesSet(),
+			initCR: InitCheCRWithImagePullerEnabledAndDefaultValuesSet(),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
@@ -240,7 +253,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, KubernetesImagePuller created and spec in CheCluster is different, should update the KubernetesImagePuller",
-			initCR: CheCRWithImagePullerEnabledAndNewValuesSet(),
+			initCR: InitCheCRWithImagePullerEnabledAndNewValuesSet(),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
@@ -276,7 +289,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller already created, imagePuller disabled, should delete everything",
-			initCR: CheCRWithImagePullerDisabled(),
+			initCR: InitCheCRWithImagePullerDisabled(),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
@@ -932,7 +945,7 @@ func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	return fake.NewFakeClient(objs...), fakeDiscovery, *scheme
 }
 
-func CheCRWithImagePullerEnabled() *orgv1.CheCluster {
+func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -946,7 +959,46 @@ func CheCRWithImagePullerEnabled() *orgv1.CheCluster {
 	}
 }
 
-func CheCRWithImagePullerDisabled() *orgv1.CheCluster {
+func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
+	return &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
+		},
+		Spec: orgv1.CheClusterSpec{
+			ImagePuller: orgv1.CheClusterSpecImagePuller{
+				Enable: true,
+			},
+		},
+	}
+}
+
+func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
+	return &orgv1.CheCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CheCluster",
+			APIVersion: "org.eclipse.che/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
+			ResourceVersion: "1",
+		},
+		Spec: orgv1.CheClusterSpec{
+			ImagePuller: orgv1.CheClusterSpecImagePuller{
+				Enable: true,
+			},
+		},
+	}
+}
+
+func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -960,11 +1012,14 @@ func CheCRWithImagePullerDisabled() *orgv1.CheCluster {
 	}
 }
 
-func CheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
+func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
@@ -978,11 +1033,14 @@ func CheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 	}
 }
 
-func CheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
+func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{

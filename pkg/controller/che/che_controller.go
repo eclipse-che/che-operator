@@ -318,7 +318,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// If the image puller should be installed but the APIServer doesn't know about PackageManifests/Subscriptions, log a warning and requeue
-	if instance.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI || !foundKubernetesImagePullerAPI) {
+	if instance.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI) {
 		logrus.Infof("Couldn't find Operator Lifecycle Manager types to install the Kubernetes Image Puller Operator.  Please install Operator Lifecycle Manager to install the operator or disable the image puller by setting spec.imagePuller.enable to false.")
 		return reconcile.Result{Requeue: true}, nil
 	}
@@ -372,7 +372,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 				return reconcile.Result{Requeue: true}, nil
 			}
+
+			// Add the image puller finalizer
+			if !r.HasImagePullerFinalizer(instance) {
+				if err := r.ReconcileImagePullerFinalizer(instance); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
 		}
+
 		// If the KubernetesImagePuller API service exists, attempt to reconcile creation/update
 		if foundKubernetesImagePullerAPI {
 			// Check KubernetesImagePuller options
@@ -430,12 +439,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{Requeue: true}, nil
 		}
 
-		err = r.DeleteImagePullerFinalizer(instance)
-		if err != nil {
-			logrus.Errorf("Error deleting finalizer: %v", err)
-			return reconcile.Result{}, err
+		if r.HasImagePullerFinalizer(instance) {
+			err = r.DeleteImagePullerFinalizer(instance)
+			if err != nil {
+				logrus.Errorf("Error deleting finalizer: %v", err)
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{Requeue: true}, nil
 		}
-
 	}
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
@@ -510,11 +521,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		if instance.Spec.ImagePuller.Enable {
-			if err := r.ReconcileImagePullerFinalizer(instance); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
 	}
 
 	// Read proxy configuration
