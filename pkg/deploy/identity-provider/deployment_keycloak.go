@@ -17,12 +17,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/eclipse/che-operator/pkg/deploy/server"
-
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/postgres"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
