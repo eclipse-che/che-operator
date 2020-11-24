@@ -15,7 +15,6 @@
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-echo "===================PATH to compare"
 readlink -f "$0"
 
 if [ -z "${OPERATOR_REPO}" ]; then
