@@ -55,10 +55,12 @@ const (
 	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
 	CheAllCACertsConfigMapName = "che-ca-certs-merged"
 	// CheMergedCAConfigMapRevisionsLabelKey is label name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
-	CheMergedCAConfigMapRevisionsLabelKey = "included-cm"
+	CheMergedCAConfigMapRevisionsLabelKey = "cm_revision"
 
 	// Local constants
+	// labelEqualSign consyant is used as a replacement for '=' symbol in labels because '=' is not allowed there
 	labelEqualSign = "-"
+	// labelCommaSign consyant is used as a replacement for ',' symbol in labels because ',' is not allowed there
 	labelCommaSign = "."
 )
 
@@ -549,7 +551,7 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 		return nil, err
 	}
 	mergedCAConfigMapSpec.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey] = revisions
-	mergedCAConfigMapSpec.ObjectMeta.Labels["warning"] = "do-not-edit-manually"
+	mergedCAConfigMapSpec.ObjectMeta.Labels[PartOfCheLabelKey] = PartOfCheLabelValue
 
 	logrus.Infof("Updating additional CA certs config map: %s", CheAllCACertsConfigMapName)
 	mergedCAConfigMap, err = SyncConfigMapToCluster(deployContext, mergedCAConfigMapSpec)
@@ -565,7 +567,7 @@ func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, err
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
 	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
-	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement("app.kubernetes.io/part-of", selection.Equals, []string{"che.eclipse.org"})
+	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(PartOfCheLabelKey, selection.Equals, []string{PartOfCheLabelValue})
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
 	}

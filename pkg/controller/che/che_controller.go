@@ -1060,6 +1060,14 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
 		// No, it is not form CR
 		// Check for labels
+
+		// Check for part of Che label
+		if value, exists := obj.Meta.GetLabels()[deploy.PartOfCheLabelKey]; !exists || value != deploy.PartOfCheLabelValue {
+			// Labels do not match
+			return false, reconcile.Request{}
+		}
+
+		// Check for CA bundle label
 		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
 			// Labels do not match
 			return false, reconcile.Request{}
