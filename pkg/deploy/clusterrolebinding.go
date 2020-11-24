@@ -15,13 +15,22 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var crbDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(rbac.ClusterRoleBinding{}, "TypeMeta", "ObjectMeta"),
+	cmp.Comparer(func(x, y resource.Quantity) bool {
+		return x.Cmp(y) == 0
+	}),
+}
 
 func SyncClusterRoleBindingToCluster(
 	deployContext *DeployContext,
@@ -45,7 +54,7 @@ func SyncClusterRoleBindingToCluster(
 		return nil, err
 	}
 
-	diff := cmp.Diff(clusterRB, specCRB, pvcDiffOpts)
+	diff := cmp.Diff(clusterRB, specCRB, crbDiffOpts)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existed object: %s, name: %s", clusterRB.Kind, clusterRB.Name)
 		fmt.Printf("Difference:\n%s", diff)
