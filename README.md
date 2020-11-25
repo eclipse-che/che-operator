@@ -37,7 +37,7 @@ chectl supports cluster platforms: "minikube", "minishift", "k8s", "openshift", 
 
 ### Deploy che-operator with chectl via `operator` installer
 
-If you want to test modified che-operator using chectl, you have to build custom che-operator image.
+If you want to test modified che-operator using chectl, you have to build a custom che-operator image.
 See more: [Build custom che-operator image](#build-custom-che-operator-image)
 
 Launch test cluster. Install Eclipse Che:
@@ -46,7 +46,7 @@ Launch test cluster. Install Eclipse Che:
 $ chectl deploy:server -n che --installer operator -p ${platform} --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
 ```
 
-where is `platform` it's a cluster platform supported by chectl.
+where `platform` it's a cluster platform supported by chectl.
 
 > INFO: if you changed che-operator deployment or role/cluster role, CRD, CR you have to provide `--templates` argument.
 This argument will points chectl to your modificated che-operator `deploy` folder path.
@@ -88,7 +88,7 @@ spec:
     registryPoll:
       interval: 5m
 ```
-Replace value of `image` field with your catalog source image. Don't forget to specify desired platform.
+Replace value of `image` field with your catalog source image. Don't forget to specify the desired platform.
 
 5. Deploy Che using chectl:
 ```sh
@@ -138,7 +138,7 @@ You can update Che configuration using: command `chectl server:update` and flag 
 
 ## OpenShift oAuth
 
-The OpenShift clusters includes a built-in OAuth server. che-operator supports this authentication way.
+OpenShift clusters includes a built-in OAuth server. che-operator supports this authentication way.
 There is CR property 'openShiftoAuth' to enable/disable this feature. It's enabled by default.
 
 To disable this feature:
@@ -196,7 +196,7 @@ $ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=
 ### Deploy multi-user Che
 
 che-operator deploys Eclipse Che with enabled multi-user mode by default.
-To start work each user should login/register using form, after that user with be redirected to the user dashboard.
+To start work each user should login/register using form, after that user will be redirected to the user dashboard.
 
 ### Deploy single user Che
 
@@ -235,13 +235,13 @@ If cluster router uses certificate signed by self-signed one, then parent/root C
 #### K8S
 
 By default self-signed certificates for Che will be generated automatically.
-If it is needed to use own certificates, create `che-tls` secret (see `k8s.tlsSecretName` option) with `key.crt` and `tls.crt` fields. In case of self-signed certificate `self-signed-certificate` secret should be created with public part of CA certificate under `ca.crt` key in secret data.
+If it is needed to use your own certificates, create `che-tls` secret (see `k8s.tlsSecretName` option) with `key.crt` and `tls.crt` fields. In case of self-signed certificate `self-signed-certificate` secret should be created with the public part of CA certificate under `ca.crt` key in secret data.
 
 ## How to Configure
 
 The operator watches all objects it creates and reconciles them with CR state. It means that if you edit a configMap **che**, the operator will revert changes.
 Since not all Che configuration properties are custom resource spec fields (there are simply too many of them), the operator creates a second configMap called **custom**
-which you can use for any environment variables not supported by CR field. The operator will not reconcile configMap custom.
+which you can use for any environment variables not supported by the CR field. The operator will not reconcile configMap custom.
 
 ## Build and Deploy to a local cluster:
 
@@ -384,27 +384,27 @@ To format che-operator execute command:
 $ go fmt ./...
 ```
 
-Also you can use VSCode task: `Format che-operator code`.
+Also you can use the VSCode task: `Format che-operator code`.
 
 ### Update golang dependencies
 
-che-operator uses go modules and vendor folder. To update golang dependencies execute command:
+che-operator uses go modules and a vendor folder. To update golang dependencies execute command:
 
 ```bash
 $ go mod vendor
 ```
 
 Also you can use VSCode task `Update che-operator dependencies`.
-New golang dependencies in the vendor folder should be commited and included to the pull request.
+New golang dependencies in the vendor folder should be committed and included to the pull request.
 
 ## How to add new role/cluster role to che-operator
 
 che-operator uses Kubernetes api to manage Eclipse Che lifecycle.
-To request any resouce objects from Kubernetes api, che-operator should pass authorization.
-Kubernetes api authorization uses role-based access control(RBAC) api(see more https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has got service account, like process inside a pod.
-Service account provides identity for che-operator. To service account can be bound some roles(or cluster roles).
-This roles allows che-operator to request some Kubernetes api resources.
-Role(or cluster role) bindings we are using to bind roles(or cluster roles) to che-operator service account.
+To request any resource objects from Kubernetes api, che-operator should pass authorization.
+Kubernetes api authorization uses role-based access control(RBAC) api(see more https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has got a service account, like a process inside a pod.
+Service account provides identity for che-operator. The service account can be bound to some roles(or cluster roles).
+These roles allow che-operator to request some Kubernetes api resources.
+Role(or cluster role) bindings we are using to bind roles(or cluster roles) to the che-operator service account.
 
 che-operator roles and cluster roles yaml definition located in the `deploy` folder.
 For example `role.yaml`. When you need to provide access to new Kubernetes api part for che-operator, you need
@@ -430,5 +430,5 @@ import (
 ...
 ```
 
-Then you can use in che-operator controller code new Kubernetes api part. When code complited and your pr is ready you should
+Then you can use in the che-operator controller code the new Kubernetes api part. When code completed and your pr is ready you should
 generate new OLM bundle.
