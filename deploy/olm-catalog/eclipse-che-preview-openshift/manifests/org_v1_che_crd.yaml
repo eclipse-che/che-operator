@@ -232,6 +232,41 @@ spec:
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
               type: object
+            imagePuller:
+              description: Kubernetes Image Puller configuration
+              properties:
+                enable:
+                  description: Install and configure a KubernetesImagePuller. If true
+                    and no spec is provided, create a default KubernetesImagePuller.  If
+                    false, the the KubernetesImagePuller will deleted, and the operator
+                    will be uninstalled, regardless of whether or not a spec is provided.
+                  type: boolean
+                spec:
+                  description: A KubernetesImagePullerSpec to configure the image
+                    puller in the CheCluster
+                  properties:
+                    cachingCPULimit:
+                      type: string
+                    cachingCPURequest:
+                      type: string
+                    cachingIntervalHours:
+                      type: string
+                    cachingMemoryLimit:
+                      type: string
+                    cachingMemoryRequest:
+                      type: string
+                    configMapName:
+                      type: string
+                    daemonsetName:
+                      type: string
+                    deploymentName:
+                      type: string
+                    images:
+                      type: string
+                    nodeSelector:
+                      type: string
+                  type: object
+              type: object
             k8s:
               description: Configuration settings specific to Che installations made
                 on upstream Kubernetes.
