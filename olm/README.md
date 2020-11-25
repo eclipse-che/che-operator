@@ -31,17 +31,32 @@ changes in the file `pkg/apis/org/v1/che_types.go` and launch script in the `olm
 $ update-crd-files.sh
 ```
 
+> Notice: this script contains commands to make this crd compatible with Openshift 3.
+
 In the VSCode you can use task `Update cr/crd files`.
 
 # 4. Che cluster custom resource
+
 che-operator installs Eclipse Che using configuration stored in the kubernetes custom resource(CR).
 CR object structure defined in the code using `pkg/apis/org/v1/che_types.go` file. Field name
 defined using serialization tag `json`, for example `json:"openShiftoAuth"`.
 Che operator default CR sample stored in the `deploy/crds/org_v1_che_cr.yaml`. 
 This file should be directly modified if it's a required to apply new fields with default values,
 or in case of changing default values for existed fields.
-It is mandatory to update Olm bundle After modification CR sample to install che-operator using Olm.
-Also user/developer could apply CR manually using `kubectl/oc apply -f deploy/crds/org_v1_che_cr.yaml -n namespace-che`.
+Also you can apply in the field comments openshift ui annotations: to dispaly some
+interactive information about this fields on the Openshift ui.
+For example:
+
+```go
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Eclipse Che URL"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
+```
+
+This comment-annotations displays on the openshift ui clicable link with a text "Eclipse Che URL"
+
+It is mandatory to update OLM bundle after modification CR sample to install che-operator using Olm.
+Also user/developer could apply CR manually using `kubectl/oc apply -f deploy/crds/org_v1_che_cr.yaml -n ${che-namespace}`.
 But before that should be applied custom resource definion CRD, because kubernetes api need to get
 information about new custom resource type and structure before storing custom resource.
 
@@ -70,11 +85,11 @@ or Che cluster custom resource. There are most frequently changes which should b
   - operator custom resource CR `deploy/crds/org_v1_che_cr.yaml`. This file contains default CheCluster sample.
   Also this file is default Olm CheCluster sample.
   - Che cluster custom resource definition `deploy/crds/org_v1_che_cr.yaml`. For example you want
-  to fix some propeties description or apply new che type properties with default values. 
+  to fix some properties description or apply new che type properties with default values. 
   - add openshift ui annotations for che types properties to display information or interactive elements on the Openshift user interface.
 
 For all these cases it's a nessuary to generate new Olm bundle to make these changes working with Olm.
-So, first of all: make sure if you need to update crd, becasue crd it's a part of the Olm bundle.
+So, first of all: make sure if you need to update CRD, becasue CRD it's a part of the Olm bundle.
 See more about update [Che cluster CRD](Che_cluster_custom_resource_definition)
 
 To generate new Olm bundle use script in `olm` folder
@@ -91,7 +106,7 @@ $ ./update-nightly-bundle.sh
 $ ./docker-run.sh update-nightly-bundle.sh
 ```
 
-Every change will be included to the deploy/olm-catalog bundles and override all previous changes.
+Every change will be included to the `deploy/olm-catalog` bundles and override all previous changes.
 Olm bundle changes should be commited to the pull request.
 
 To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you want to increment the bundle version and time creation, when all desired changes were completed:
@@ -257,4 +272,3 @@ There are some often used test script arguments:
  - `channel` - installation Olm channel: 'nightly' or 'stable'
  - `namespace` - kubernetes namespace to deploy che-operator, for example 'che'
  - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
-
