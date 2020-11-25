@@ -15,9 +15,9 @@ Example : `$ docker-run.sh update-nightly-bundle.sh`
 
 # 2. Eclipse Che operator
 
-Eclipse Che application it's a kubernetes api controller to install Eclipse Che application and manage its
+Eclipse Che application it's a Kubernetes api controller to install Eclipse Che application and manage its
 lifecycle. It does such kind of operations for Eclipse Che: installation, update, change configuration, uninstallation, display current status and some useful information like links to Che services.
-Che operator implemented using [operator framework](https://github.com/operator-framework) and golang programming language. Eclipse Che configuration defined using custom resource definition object and stored in the custom kubernetes resouce named CheCluster(kubernetes api group `org.eclipse.checluster`). Che operator extends kubernetes api to embed Eclipse Che to Kubernetes cluster in a native way.
+Che operator implemented using [operator framework](https://github.com/operator-framework) and golang programming language. Eclipse Che configuration defined using a custom resource definition object and stored in the custom Kubernetes resource named CheCluster(Kubernetes api group `org.eclipse.checluster`). Che operator extends Kubernetes api to embed Eclipse Che to Kubernetes cluster in a native way.
 
 # 3. Che cluster custom resource definition
 
@@ -31,20 +31,20 @@ changes in the file `pkg/apis/org/v1/che_types.go` and launch script in the `olm
 $ update-crd-files.sh
 ```
 
-> Notice: this script contains commands to make this crd compatible with Openshift 3.
+> Notice: this script contains commands to make this CRD compatible with Openshift 3.
 
 In the VSCode you can use task `Update cr/crd files`.
 
 # 4. Che cluster custom resource
 
-che-operator installs Eclipse Che using configuration stored in the kubernetes custom resource(CR).
+che-operator installs Eclipse Che using configuration stored in the Kubernetes custom resource(CR).
 CR object structure defined in the code using `pkg/apis/org/v1/che_types.go` file. Field name
-defined using serialization tag `json`, for example `json:"openShiftoAuth"`.
+defined using the serialization tag `json`, for example `json:"openShiftoAuth"`.
 Che operator default CR sample stored in the `deploy/crds/org_v1_che_cr.yaml`. 
 This file should be directly modified if it's a required to apply new fields with default values,
-or in case of changing default values for existed fields.
-Also you can apply in the field comments openshift ui annotations: to dispaly some
-interactive information about this fields on the Openshift ui.
+or in case of changing default values for existing fields.
+Also you can apply in the field comments Openshift ui annotations: to display some
+interactive information about these fields on the Openshift ui.
 For example:
 
 ```go
@@ -53,46 +53,46 @@ For example:
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
 ```
 
-This comment-annotations displays on the openshift ui clicable link with a text "Eclipse Che URL"
+This comment-annotations displays clickable link on the Openshift ui with a text "Eclipse Che URL"
 
-It is mandatory to update OLM bundle after modification CR sample to install che-operator using Olm.
-Also user/developer could apply CR manually using `kubectl/oc apply -f deploy/crds/org_v1_che_cr.yaml -n ${che-namespace}`.
-But before that should be applied custom resource definion CRD, because kubernetes api need to get
-information about new custom resource type and structure before storing custom resource.
+It is mandatory to update the OLM bundle after modification of the CR sample to deploy a Eclipse Che using OLM.
+Also users/developers could apply CR manually using `kubectl/oc apply -f deploy/crds/org_v1_che_cr.yaml -n ${che-namespace}`.
+But before that should be applied custom resource definition CRD, because Kubernetes api need to get
+information about new custom resource type and structure before storing the custom resource.
 
 # 5. Eclipse Che OLM bundles
 
-OLM(operator lifycycle manager) provides a ways how to install operators. One of the convinient way how to
-achieve it - it's a using OLM bundles. See more about format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md
+OLM(operator lifecycle manager) provides ways how to install operators. One of the convenient way how to
+achieve it - it's using OLM bundles. See more about format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md
 There two "nightly" platform specific OLM bundles for che-operator:
 
 `deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
 `deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
 
 Each bundle consists of a cluster service version file(CSV) and a custom resource definition file(CRD). 
-CRD file describes "checluster" kubernetes api resource object(object fields name, format, description and so on).
+CRD file describes "checluster" Kubernetes api resource object(object fields name, format, description and so on).
 Kubernetes api needs this information to correctly store a custom resource object "checluster".
 Custom resource object users could modify to change Eclipse Che configuration.
 Che operator watches "checluster" object and re-deploy Che with desired configuration.
-The CSV file contains all "deploy" and "permission" specific information, which Olm needs to install The Eclipse Che operator.
+The CSV file contains all "deploy" and "permission" specific information, which OLM needs to install The Eclipse Che operator.
 
 # 6. Make new changes to OLM bundle
 
 Sometimes, during development, you need to modify some yaml definitions in the `deploy` folder 
-or Che cluster custom resource. There are most frequently changes which should be included to the new Olm bundle:
+or Che cluster custom resource. There are most frequently changes which should be included to the new OLM bundle:
   - operator deployment `deploy/operator.yaml`
-  - operator role/cluster role permissions. They defined like role/rolebinding or cluster role/rolebinding yamls in the `deploy` folder.
-  - operator custom resource CR `deploy/crds/org_v1_che_cr.yaml`. This file contains default CheCluster sample.
-  Also this file is default Olm CheCluster sample.
+  - operator role/cluster role permissions. They are defined like role/rolebinding or cluster role/rolebinding yamls in the `deploy` folder.
+  - operator custom resource CR `deploy/crds/org_v1_che_cr.yaml`. This file contains the default CheCluster sample.
+  Also this file is the default OLM CheCluster sample.
   - Che cluster custom resource definition `deploy/crds/org_v1_che_cr.yaml`. For example you want
   to fix some properties description or apply new che type properties with default values. 
-  - add openshift ui annotations for che types properties to display information or interactive elements on the Openshift user interface.
+  - add Openshift ui annotations for che types properties to display information or interactive elements on the Openshift user interface.
 
-For all these cases it's a nessuary to generate new Olm bundle to make these changes working with Olm.
-So, first of all: make sure if you need to update CRD, becasue CRD it's a part of the Olm bundle.
+For all these cases it's a nessuary to generate a new OLM bundle to make these changes working with OLM.
+So, first of all: make sure if you need to update CRD, because CRD it's a part of the OLM bundle.
 See more about update [Che cluster CRD](Che_cluster_custom_resource_definition)
 
-To generate new Olm bundle use script in `olm` folder
+To generate new OLM bundle use script in `olm` folder
 
 - If all dependencies are installed on the system:
 
@@ -107,7 +107,7 @@ $ ./docker-run.sh update-nightly-bundle.sh
 ```
 
 Every change will be included to the `deploy/olm-catalog` bundles and override all previous changes.
-Olm bundle changes should be commited to the pull request.
+OLM bundle changes should be committed to the pull request.
 
 To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you want to increment the bundle version and time creation, when all desired changes were completed:
 
@@ -118,15 +118,17 @@ $ export NO_DATE_UPDATE="true" && export NO_INCREMENT="true" && ./update-nightly
 In the VSCode you can use task `Update csv bundle files`.
 
 # 7. Test scripts pre-requisites
-Start your kubernetes/openshift cluster. For openshift cluster make sure that you was logged in like
+
+Start your Kubernetes/Openshift cluster. For Openshift cluster make sure that you was logged in like
 "system:admin" or "kube:admin".
 
 # 8.Test installation "stable" Eclipse Che using Application registry(Deprecated)
-Notice: this stuf doesn't for openshift >=4.6
+
+Notice: this stuff doesn't work for Openshift >=4.6
 
 To test stable versions che-operator you have to use Eclipse Che application registry.
 
-To test the latest stable Che launch test script in the olm folder:
+To test the latest stable Che launch test script in the `olm` folder:
 
 ```bash
 $ ./testCatalogSource.sh ${platform} "stable" ${namespace} "Marketplace"
@@ -142,12 +144,12 @@ See more information about test arguments in the chapter: [Test arguments](#test
 
 ## 9. Test installation "nightly" Eclipse Che using CatalogSource(index) image
 
-To test nightly che-operator you have to use Olm CatalogSource(index) image. 
-CatalogSource image stores in the internal database information about Olm bundles with different versions of the Eclipse Che.
+To test nightly che-operator you have to use the OLM CatalogSource(index) image. 
+CatalogSource image stores in the internal database information about OLM bundles with different versions of the Eclipse Che.
 For nightly channel (dependent on platform) Eclipse Che provides two CatalogSource images:
  
- - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:preview` for kubernetes platform;
- - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview` for openshift platform;
+ - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:preview` for Kubernetes platform;
+ - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview` for Openshift platform;
 
 For each new nightly version Eclipse Che provides nightly bundle image with name pattern:
 
@@ -267,8 +269,9 @@ $ export IMAGE_REGISTRY_HOST="localhost:5000" && \
 But local installation minikube required 'sudo'.
 
 ### 12. Test script arguments
+
 There are some often used test script arguments:
  - `platform` - 'openshift' or 'kubernetes'
- - `channel` - installation Olm channel: 'nightly' or 'stable'
- - `namespace` - kubernetes namespace to deploy che-operator, for example 'che'
- - `optional-source-install` - installation method: 'Marketplace'(deprecated olm feature) or 'catalog'. By default will be used 'Marketplace'.
+ - `channel` - installation OLM channel: 'nightly' or 'stable'
+ - `namespace` - Kubernetes namespace to deploy che-operator, for example 'che'
+ - `optional-source-install` - installation method: 'Marketplace'(deprecated OLM feature) or 'catalog'. By default will be used 'Marketplace'.

@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Check Che operator compilation",
+            "label": "Compile che-operator code",
             "command": "GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go",
             "options": {
                 "env": {
@@ -56,7 +56,7 @@
             "group": "build"
         },
         {
-            "label": "Run mock tests",
+            "label": "Run che-operator mock tests",
             "command": "go test -mod=vendor -v ./...",
             "options": {
                 "env": {
