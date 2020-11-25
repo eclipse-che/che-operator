@@ -120,7 +120,7 @@ func newCheCluster() (cr *orgv1.CheCluster) {
 		},
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
-				ServiceHostnames: true,
+				UseInternalClusterSVCNames: true,
 			},
 		},
 	}

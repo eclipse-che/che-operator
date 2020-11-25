@@ -555,11 +555,6 @@ spec:
                     signed with self-signed cert. So, Che server must be aware of
                     its CA cert to be able to request it. This is disabled by default.
                   type: string
-                serviceHostnames:
-                  description: Use internal host names provided by cluster dns. It
-                    should be usefull to speed internal services traffic. Also it
-                    could avoid some proxy issues. Default value is true.
-                  type: boolean
                 singleHostGatewayConfigMapLabels:
                   additionalProperties:
                     type: string
@@ -580,6 +575,13 @@ spec:
                   description: Deprecated. Instructs the operator to deploy Che in
                     TLS mode. This is enabled by default. Disabling TLS may cause
                     malfunction of some Che components.
+                  type: boolean
+                useInternalClusterSVCNames:
+                  description: Use internal host names provided by cluster dns. It
+                    should be usefull to speed internal services traffic. Also it
+                    could avoid some proxy issues. Default value is true. Use internal
+                    cluster svc names to communicate between components to speed up
+                    the traffic and avoid proxy issues. The default value is `true`.
                   type: boolean
                 workspaceNamespaceDefault:
                   description: 'Defines Kubernetes default namespace in which user''s

@@ -146,7 +146,10 @@ type CheClusterSpecServer struct {
 	// It should be usefull to speed internal services traffic.
 	// Also it could avoid some proxy issues.
 	// Default value is true.
-	ServiceHostnames bool `json:"serviceHostnames"`
+	// Use internal cluster svc names to communicate between components to speed up the traffic
+	// and avoid proxy issues.
+	// The default value is `true`.
+	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
 
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
 	// You should set it ONLY if you use an external devfile registry (see the `externalDevfileRegistry` field).

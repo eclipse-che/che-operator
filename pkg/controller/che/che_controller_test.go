@@ -350,7 +350,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
-	cheCR.Spec.Server.ServiceHostnames = true
+	cheCR.Spec.Server.UseInternalClusterSVCNames = true
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Errorf("Failed to update CheCluster custom resource")
 	}
@@ -439,7 +439,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Server.ServiceHostnames = false
+	cheCR.Spec.Server.UseInternalClusterSVCNames = false
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -449,24 +449,24 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 		t.Fatalf("reconcile: (%v)", err)
 	}
 
-	cheCmWithDisabledServiceHostnames := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cheCmWithDisabledServiceHostnames); err != nil {
+	cheCmWithDisabledInternalClusterSVCNames := &corev1.ConfigMap{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cheCmWithDisabledInternalClusterSVCNames); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
 	}
 
-	cheAPIInternal = cheCmWithDisabledServiceHostnames.Data["CHE_API_INTERNAL"]
+	cheAPIInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_API_INTERNAL"]
 	cheAPIInternalExpected = "http://che-host/api"
 	if cheAPIInternal != cheAPIInternalExpected {
 		t.Fatalf("Che API internal url must be %s", cheAPIInternalExpected)
 	}
 
-	pluginRegistryInternal = cheCmWithDisabledServiceHostnames.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
+	pluginRegistryInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
 	pluginRegistryInternalExpected = "http://plugin-registry/v3"
 	if pluginRegistryInternal != pluginRegistryInternalExpected {
 		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
 	}
 
-	devRegistryInternal = cheCmWithDisabledServiceHostnames.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
+	devRegistryInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
 	devRegistryInternalExpected = "http://devfile-registry"
 	if devRegistryInternal != devRegistryInternalExpected {
 		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
