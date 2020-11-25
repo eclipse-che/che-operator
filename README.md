@@ -112,11 +112,11 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
     ingressDomain: '192.168.99.101.nip.io'
 ```
 
-### Edit Che cluster CR using command line interface(terminal)
+### Edit checluster CR using command line interface(terminal)
 
 Any kubernetes object you can modify using UI(for example openshift console).
 But also you can do the same using terminal.
-You can edit checluster CR objecct using command line editor: 
+You can edit checluster CR object using command line editor: 
 
 ```bash
 $ oc edit checluster ${che-cluster-name} -n ${namespace}
@@ -124,28 +124,105 @@ $ oc edit checluster ${che-cluster-name} -n ${namespace}
 
 Where is ${che-cluster-name} is custom resource name, by default 'eclipse-che'.
 
-Also you can modify checluster using `oc patch`. For example:
+Also you can modify checluster using `kubectl patch`. For example:
 
 ```bash
-$ todo
+$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
 ```
-todo
 
 ### Update checluster using chectl
-todo
 
-### OpenShift oAuth
+You can update Che configuration using: command `chectl server:update` and flag `--cr-patch`
 
-Bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
+## OpenShift oAuth
+
+The OpenShift clusters includes a built-in OAuth server. che-operator supports this authentication way.
+There is CR propery 'openShiftoAuth' to enable/disable this feature. It's enabled by default.
+
+To disable this feature:
+
+- using command line:
+
+```bash
+$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
+```
+
+- Also you can create `cr-patch.yaml` and use it with chectl:
+
+```yaml
+spec:
+  auth:
+    openShiftoAuth: false
+```
+
+And update che-cluster using chectl:
+
+```
+$ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
+```
+
+> INFO: If you are using scripts to deploy che-operator, then  bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
 There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
 Make sure your current user has cluster-admin privileges.
 
-### TLS
+## TLS
 
 TLS is enabled by default.
 Turning it off is not recommended as it will cause malfunction of some components.
+But for development purpose you can do that.
+
+- using command line:
+
+```bash
+$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"server":{"tlsSupport": false}}}'
+```
+
+- Also you can create `cr-patch.yaml` and use it with chectl:
+
+```yaml
+spec:
+  server:
+    tlsSupport: false
+```
+
+And update che-cluster using chectl:
+
+```
+$ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
+```
 
 ### Deploy multi-user Che
+
+che-operator deploys Eclipse Che with enabled multi-user mode by default.
+To start work each user should login/register using form, after that user with be redirected to the user dashboard.
+
+### Deploy single user Che
+
+To enable single user Che you can:
+
+- use command line:
+
+```bash
+$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"server": {"customCheProperties": {"CHE_MULTIUSER": "false"}}}}'
+```
+
+- Also you can create `cr-patch.yaml` and use it with chectl:
+
+```yaml
+spec:
+  server:
+    customCheProperties:
+      CHE_MULTIUSER: "false"
+```
+
+And update che-cluster using chectl:
+
+```
+$ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
+```
+
+### Deploy Che with single host strategy
+
 todo
 
 #### OpenShift
