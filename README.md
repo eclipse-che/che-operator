@@ -1,6 +1,6 @@
 ## Che/CodeReady Workspaces Operator
 
-Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a multi user Eclipse Che/CodeReady Workspaces cluster.
+Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a single or multi user Eclipse Che/CodeReady Workspaces cluster.
 
 The operator watches for a Custom Resource of Kind `CheCluster`, and operator controller executes its business logic when a new Che object is created, namely:
 
@@ -14,15 +14,11 @@ The operator watches for a Custom Resource of Kind `CheCluster`, and operator co
     * turn on/off OpenShift oAuth (login with OpenShift in Che) (create identity provider, oAuth client, update Che ConfigMap)
 * updates Che deployment with a new image:tag when a new operator version brings in a new Che tag
 
-## Project State: Beta
-
-The project is in its early development and breaking changes are possible.
-
 ## How to Deploy
 
 **IMPORTANT! Cluster Admin privileges are required**
 
-```
+```bash
 ./deploy.sh $namespace
 ```
 
@@ -37,7 +33,35 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
     ingressDomain: '192.168.99.101.nip.io'
 ```
 
-### How to test operator via OLM
+### Build custom che-operator image
+You can build custom che-operator image using command:
+
+```bash
+$ 
+```
+
+> Notice: you can use VSCode task `Build and push custom che-operator image`. But you need to specify
+env variables: IMAGE_REGISTRY_HOST, IMAGE_REGISTRY_USER_NAME(for regular development you can use .bashrc for this purpose).
+This task will build and push image with name `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly`
+to the registry.
+
+### Test che-operator with chectl via `operator` installer
+If you want to test modified che-operator using chectl, you have to build custom che-operator image.
+
+
+
+Launch test cluster. Install Eclipse Che:
+
+```bash
+$ chectl deploy:server -n che --installer operator -p ${platform} --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
+```
+
+where is `platform` it's a cluster platform.
+
+> INFO: if you changed che-operator deployment or role/cluster role, CRD, CR you have to provide `--templates` argument.
+This argument will points chectl to your modificated che-operator `deploy` folder path.
+
+### How to test che-operator with chectl via OLM
 
 The following instructions show how to test Che operator under development using OLM installer.
 
@@ -208,6 +232,114 @@ Subsequent checks verify that the installation is reconfigured, for example uses
 
 TODO: add more scenarios
 
+### che-operator CI pull request checks
+
+che-operator uses two CI to launch all required checks for operator's pull requests:
+  - github actions CI
+  - openshift CI
+
+Openshift CI configuration defined in the `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse/che-operator` yamls. openshift ci scripts located in the che-operator repository in the folder `.ci`
+
+Github actions defined in the `.github/workflows` yamls. Scripts located in the `.github/action_scripts`
+
+To relaunch failed openshift CI checks onto your pull request you can use github comment `/retest`.
+To relaunch failed github action checks you have to use github ui(`Re-run jobs` button). 
+Unfortunately you can't relanch only one special check for github actions, github doesn't support such case.
+
+### Debug test scripts
+
+To debug test scripts you can use the "Bash debug" VSCode extension. 
+For a lot of test scripts you can find different debug configurations in the `.vscode/launch.json`.
+
+### Local debug che-operator(outside cluster)
+
+To run che-operator in debug mode you can use `local-debug.sh` script. After process execution you should attach IDE debugger to debug port: 2345. Also you can see this port number in the process output.
+`local-debug.sh` script has got two arguments:
+ - `-n` - Eclipse Che installation namespace. Default value is `che`.
+ - `-cr` - path to the custom resource yaml definition. Default value points to file `./deploy/crds/org_v1_che_cr.yaml`.
+For VSCode we have launch.json configuration `Che Operator`. So in the VSCode debugger you can find this debug
+configuration, select it, click `Start debugging` button. VSCode will attach debugger to che-operator process.
+
+### Check che-operator compilation
+
+To check Che operator compilation you can use command:
+
+```bash
+GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
+```
+
+From command you can see operator will be compiled
+to binary to folder `/tmp/che-operator/che-operator`. 
+This command is usefull to make sure that che-opeator is still compiling after your changes.
+
+Also we have corresponding VSCode task:`Check Che operator compilation`. 
+
+### Format code
+
+Use command to format code:
+
+
+### Update golang dependencies
+Todo
+
+
+### 18. Debug che-operator tests in VSCode 
+
+To debug che-operator tests you can use VSCode `Launch Current File` debug configuration.
+For that you have to open file with test, for example `pkg/controller/che/che_controller_test.go`,
+set up some breakpoints, select debug tab, select `Launch Current File` configuration in the debug panel
+and click `Start debugging` button. Test will be executed with env variable `` to enable "mocks" mode.
+
+## How to add new role/cluster role to che-operator
+
+che-operator uses kubernetes api to manage Eclipse Che lifecycle.
+To request any resouce objects from kubernetes api, che-operator should pass authorization.
+Kubernetes api authorization uses role-based access control(RBAC) api(see more https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has got service account, like process inside a pod.
+Service account provides identity for che-operator. To service account can be bound some roles(or cluster roles).
+This roles allows che-operator to request some kubernetes api resources.
+Role(or cluster role) bindings we are using to bind roles(or cluster roles) to che-operator service account.
+
+che-operator roles and cluster roles yaml definition located in the `deploy` folder.
+For example `role.yaml`. When you need to provide access to new kubernetes api part for che-operator, you need
+include to this file such information like:
+
+  - api group
+  - resource/s name
+  - verbs - actions which che-operator can do on this resource/s
+
+When this role/cluster role was updated you should also register `api` cshema in the `pkg/controller/che/che_controller.go` in the `add` method:
+
+```go
+import (
+  ...
+	userv1 "github.com/openshift/api/user/v1"
+  ...
+)
+
+...
+		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift User to scheme: %s", err)
+    }
+...
+```
+
+Then you can use in che-operator controller code new kubernetes api part. When code complited and your pr is ready you should
+generate new OLM bundle.
+
+### Using chectl to test che-operator
+
+To test che-operator changes you can use chectl: https://github.com/che-incubator/chectl
+chectl has got two installer types corresponding to che-operator: `operator` and `olm`.
+With `operator` installer chectl reuses copies of che-operator deployment and role(cluster role) yamls from folder `deploy`.
+With `olm` installer chectl uses catalog source index image with olm bundles from `deploy/olm-catalog`.
+chectl supports cluster platforms: "minikube", "minishift", "k8s", "openshift", "microk8s", "docker-desktop", "crc".
+
+
+### Test che-operator with chectl and `olm` installer
+todo
+
+### Test che-operator with chectl and cr patch file
+todo
 
 
 
