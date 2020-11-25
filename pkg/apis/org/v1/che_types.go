@@ -142,10 +142,6 @@ type CheClusterSpecServer struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	TlsSupport bool `json:"tlsSupport"`
 
-	// Use internal host names provided by cluster dns.
-	// It should be usefull to speed internal services traffic.
-	// Also it could avoid some proxy issues.
-	// Default value is true.
 	// Use internal cluster svc names to communicate between components to speed up the traffic
 	// and avoid proxy issues.
 	// The default value is `true`.

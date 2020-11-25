@@ -578,11 +578,9 @@ spec:
                     malfunction of some Che components.
                   type: boolean
                 useInternalClusterSVCNames:
-                  description: Use internal host names provided by cluster dns. It
-                    should be usefull to speed internal services traffic. Also it
-                    could avoid some proxy issues. Default value is true. Use internal
-                    cluster svc names to communicate between components to speed up
-                    the traffic and avoid proxy issues. The default value is `true`.
+                  description: Use internal cluster svc names to communicate between
+                    components to speed up the traffic and avoid proxy issues. The
+                    default value is `true`.
                   type: boolean
                 workspaceNamespaceDefault:
                   description: 'Defines Kubernetes default namespace in which user''s
