@@ -298,7 +298,7 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		role, err := SyncRoleToCluster(deployContext, CheTLSJobRoleName, []string{"secrets"}, []string{"create"})
+		role, err := SyncTLSRoleToCluster(deployContext)
 		if role == nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}

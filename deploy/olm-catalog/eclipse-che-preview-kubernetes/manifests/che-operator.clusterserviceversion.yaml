@@ -89,7 +89,7 @@ metadata:
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.22.0-37.nightly
+  name: eclipse-che-preview-kubernetes.v7.22.0-34.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -431,6 +431,15 @@ spec:
                 - '*'
               verbs:
                 - '*'
+            - apiGroups:
+                - metrics.k8s.io
+              resources:
+                - pods
+                - nodes
+              verbs:
+                - get
+                - list
+                - watch
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
@@ -462,4 +471,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.22.0-37.nightly
+  version: 7.22.0-34.nightly

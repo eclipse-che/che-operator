@@ -1,0 +1,34 @@
+--- /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.21.2/eclipse-che-preview-openshift.crd.yaml	2020-11-20 14:14:56.435152294 +0000
++++ /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.22.0/eclipse-che-preview-openshift.crd.yaml	2020-11-20 14:19:51.006005483 +0000
+@@ -25,16 +25,18 @@
+     status: {}
+   validation:
+     openAPIV3Schema:
++      description: The `CheCluster` custom resource allows defining and managing a
++        Che server installation
+       properties:
+         apiVersion:
+           description: 'APIVersion defines the versioned schema of this representation
+             of an object. Servers should convert recognized schemas to the latest
+-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
++            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+           type: string
+         kind:
+           description: 'Kind is a string value representing the REST resource this
+             object represents. Servers may infer this from the endpoint the client
+-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
++            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+           type: string
+         metadata:
+           type: object
+@@ -272,7 +274,9 @@
+                   type: string
+                 tlsSecretName:
+                   description: Name of a secret that will be used to setup ingress
+-                    TLS termination if TLS is enabled. See also the `tlsSupport` field.
++                    TLS termination if TLS is enabled. If the field is empty string,
++                    then default cluster certificate will be used. See also the `tlsSupport`
++                    field.
+                   type: string
+               type: object
+             metrics:
