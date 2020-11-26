@@ -13,7 +13,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -22,7 +21,6 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -67,37 +65,37 @@ func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
 func syncAll(deployContext *deploy.DeployContext) error {
 	instance := deployContext.CheCluster
 	sa := getGatewayServiceAccountSpec(instance)
-	if err := sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
 		return err
 	}
 
 	role := getGatewayRoleSpec(instance)
-	if err := sync(deployContext, &role, roleDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &role, roleDiffOpts); err != nil {
 		return err
 	}
 
 	roleBinding := getGatewayRoleBindingSpec(instance)
-	if err := sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
 		return err
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
-	if err := sync(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
 		return err
 	}
 
 	depl := getGatewayDeploymentSpec(instance)
-	if err := sync(deployContext, &depl, deploy.DeploymentDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &depl, deploy.DeploymentDiffOpts); err != nil {
 		return err
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if err := sync(deployContext, &service, serviceDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &service, serviceDiffOpts); err != nil {
 		return err
 	}
 
 	serverConfig := getGatewayServerConfigSpec(deployContext)
-	if err := sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
 		return err
 	}
 
@@ -169,108 +167,6 @@ func deleteAll(deployContext *deploy.DeployContext) error {
 	}
 
 	return nil
-}
-
-// sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
-func sync(deployContext *deploy.DeployContext, blueprint metav1.Object, diffOpts cmp.Option) error {
-	clusterAPI := deployContext.ClusterAPI
-
-	blueprintObject, ok := blueprint.(runtime.Object)
-	if !ok {
-		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
-	}
-
-	key := client.ObjectKey{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
-
-	actual := blueprintObject.DeepCopyObject()
-
-	if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
-		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
-			return getErr
-		}
-		actual = nil
-	}
-
-	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
-
-	if actual == nil {
-		logrus.Infof("Creating a new object: %s, name %s", kind, blueprint.GetName())
-		obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
-		if err != nil {
-			return err
-		}
-
-		err = clusterAPI.Client.Create(context.TODO(), obj)
-		if err != nil {
-			if !errors.IsAlreadyExists(err) {
-				return err
-			}
-
-			// ok, we got an already-exists error. So let's try to load the object into "actual".
-			// if we fail this retry for whatever reason, just give up rather than retrying this in a loop...
-			// the reconciliation loop will lead us here again in the next round.
-			if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
-				return getErr
-			}
-		}
-	}
-
-	if actual != nil {
-		actualMeta := actual.(metav1.Object)
-
-		diff := cmp.Diff(actual, blueprint, diffOpts)
-		if len(diff) > 0 {
-			logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
-			fmt.Printf("Difference:\n%s", diff)
-
-			if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-				err := clusterAPI.Client.Delete(context.TODO(), actual)
-				if err != nil {
-					return err
-				}
-
-				obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
-				if err != nil {
-					return err
-				}
-
-				err = clusterAPI.Client.Create(context.TODO(), obj)
-				if err != nil {
-					return err
-				}
-			} else {
-				obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
-				if err != nil {
-					return err
-				}
-
-				err = clusterAPI.Client.Update(context.TODO(), obj)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func isUpdateUsingDeleteCreate(kind string) bool {
-	return "Service" == kind || "Ingress" == kind || "Route" == kind
-}
-
-func setOwnerReferenceAndConvertToRuntime(deployContext *deploy.DeployContext, obj metav1.Object) (runtime.Object, error) {
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	robj, ok := obj.(runtime.Object)
-	if !ok {
-		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
-	}
-
-	return robj, nil
 }
 
 func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {

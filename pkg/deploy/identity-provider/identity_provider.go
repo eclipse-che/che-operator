@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy/expose"
 
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -27,6 +28,10 @@ import (
 
 const (
 	Keycloak = "keycloak"
+)
+
+var (
+	oAuthClientDiffOpts = cmpopts.IgnoreFields(oauth.OAuthClient{}, "TypeMeta", "ObjectMeta")
 )
 
 // SyncIdentityProviderToCluster instantiates the identity provider (Keycloak) in the cluster. Returns true if
@@ -123,11 +128,8 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	if isOpenShift {
 		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
 		if doInstallOpenShiftoAuthProvider {
-			openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
-			if !openShiftIdentityProviderStatus {
-				if err := CreateIdentityProviderItems(deployContext, cheFlavor); err != nil {
-					return false, err
-				}
+			if err := SyncIdentityProviderItems(deployContext, cheFlavor); err != nil {
+				return false, err
 			}
 		}
 	}
@@ -135,7 +137,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	return true, nil
 }
 
-func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor string) error {
+func SyncIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor string) error {
 	instance := deployContext.CheCluster
 	tests := util.IsTestMode()
 	isOpenShift4 := util.IsOpenShift4
@@ -152,7 +154,7 @@ func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor 
 	if len(oauthSecret) < 1 {
 		oauthSecret = util.GeneratePasswd(12)
 		instance.Spec.Auth.OAuthSecret = oauthSecret
-		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthC secret name", oauthSecret); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "oAuth secret name", oauthSecret); err != nil {
 			return err
 		}
 	}
@@ -160,11 +162,13 @@ func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor 
 	keycloakURL := instance.Spec.Auth.IdentityProviderURL
 	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
-	if err := createNewOauthClient(deployContext, oAuthClient); err != nil {
+	if _, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts); err != nil {
 		return err
 	}
 
-	if !tests {
+	if !tests && !instance.Status.OpenShiftoAuthProvisioned {
+		// note that this uses the instance.Spec.Auth.IdentityProviderRealm and instance.Spec.Auth.IdentityProviderClientId.
+		// because we're not doing much of a change detection on those fields, we can't react on them changing here.
 		openShiftIdentityProviderCommand, err := GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, isOpenShift4)
 		if err != nil {
 			logrus.Errorf("Failed to build identity provider provisioning command")
@@ -188,25 +192,6 @@ func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor 
 				break
 			}
 		}
-	}
-	return nil
-}
-
-func createNewOauthClient(deployContext *deploy.DeployContext, oAuthClient *oauth.OAuthClient) error {
-	oAuthClientFound := &oauth.OAuthClient{}
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: oAuthClient.Name, Namespace: oAuthClient.Namespace}, oAuthClientFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", oAuthClient.Kind, oAuthClient.Name)
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), oAuthClient)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-
-		return err
 	}
 	return nil
 }
