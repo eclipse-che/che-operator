@@ -73,6 +73,8 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 			}
 		}
 
+		deployContext.InternalService.DevfileRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistry, deployContext.CheCluster.Namespace)
+
 		// Deploy devfile registry
 		deploymentStatus := SyncDevfileRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {

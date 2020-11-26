@@ -139,7 +139,7 @@
       "program": "${file}"
     },
     {
-      "name": "Launch Current File",
+      "name": "Launch Current Test *.go File",
       "type": "go",
       "request": "launch",
       "mode": "test",
@@ -147,6 +147,12 @@
       "env": {
         "MOCK_API": true
       },
+    },
+    {
+      "name": "Launch Main *.go File",
+      "type": "go",
+      "request": "launch",
+      "program": "${file}",
     },
     {
       "useApiV1": false,

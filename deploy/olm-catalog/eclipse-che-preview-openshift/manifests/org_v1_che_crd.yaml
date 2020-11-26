@@ -577,6 +577,11 @@ spec:
                     TLS mode. This is enabled by default. Disabling TLS may cause
                     malfunction of some Che components.
                   type: boolean
+                useInternalClusterSVCNames:
+                  description: Use internal cluster svc names to communicate between
+                    components to speed up the traffic and avoid proxy issues. The
+                    default value is `true`.
+                  type: boolean
                 workspaceNamespaceDefault:
                   description: 'Defines Kubernetes default namespace in which user''s
                     workspaces are created if user does not override it. It''s possible

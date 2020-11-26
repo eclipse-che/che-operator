@@ -294,6 +294,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	deployContext := &deploy.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: instance,
+		InternalService: deploy.InternalService{},
 	}
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
@@ -754,6 +755,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
+
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
@@ -779,19 +782,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
 		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels)
-		if !tests {
-			if route == nil {
-				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
-				if err != nil {
-					logrus.Error(err)
-				}
+		if route == nil {
+			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+			if err != nil {
+				logrus.Error(err)
+			}
 
-				return reconcile.Result{RequeueAfter: time.Second * 1}, err
-			}
-			cheHost = route.Spec.Host
-			if customHost == "" {
-				deployContext.DefaultCheHost = cheHost
-			}
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+		cheHost = route.Spec.Host
+		if customHost == "" {
+			deployContext.DefaultCheHost = cheHost
 		}
 	}
 	if instance.Spec.Server.CheHost != cheHost {

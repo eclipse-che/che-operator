@@ -141,6 +141,12 @@ type CheClusterSpecServer struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Tls support"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	TlsSupport bool `json:"tlsSupport"`
+
+	// Use internal cluster svc names to communicate between components to speed up the traffic
+	// and avoid proxy issues.
+	// The default value is `true`.
+	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
+
 	// Public URL of the Devfile registry, that serves sample, ready-to-use devfiles.
 	// You should set it ONLY if you use an external devfile registry (see the `externalDevfileRegistry` field).
 	// By default this will be automatically calculated by the operator.
