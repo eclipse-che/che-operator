@@ -332,8 +332,8 @@ There's a script `run-okd-local.sh` which is more of a CI thing, however, if you
 Tests create a number of k8s/OpenShift objects and generally assume that a fresh installation of OpenShift is available.
 TODO: handle AlreadyExists errors to either remove Che namespace or create a new one with a unique name.
 
-### What do tests check?
-
+### What/How we are testing?
+Documentation about all che operator test cases can be found [here](https://github.com/eclipse/che-operator/tree/master/.ci/README.md)
 #### Installation of Che/CRW
 
 A custom resource is created, which signals the operator to deploy Che/CRW with default settings.
@@ -347,21 +347,6 @@ Once an successful installation of Che/CRW is verified, tests patch custom resou
 
 Subsequent checks verify that the installation is reconfigured, for example uses secure routes or ConfigMap has the right Login-with-OpenShift values
 
-TODO: add more scenarios
-
-### che-operator CI pull request checks
-
-che-operator uses two CI to launch all required checks for operator's pull requests:
-  - Github actions CI
-  - Openshift CI
-
-Openshift CI configuration defined in the `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse/che-operator` yamls. Openshift ci scripts located in the che-operator repository in the folder `.ci`
-
-Github actions defined in the `.github/workflows` yamls. Scripts located in the `.github/action_scripts`
-
-To relaunch failed Openshift CI checks onto your pull request you can use github comment `/retest`.
-To relaunch failed github action checks you have to use github ui(`Re-run jobs` button). 
-Unfortunately you can't relanch only one special check for github actions, github doesn't support such a case.
 
 ### Check che-operator compilation
 
