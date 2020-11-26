@@ -30,7 +30,7 @@ All che operator actions are defined in the `.github/workflows` yamls. Scripts a
 ###### Jobs
 For minikube we currently have:
 - Eclipse Che Updates. This job basically installs the last official Eclipse Che release and then update Che to the new release detected in PR. Note this PR check runs against `main` branch and all 7.* branches.
-- Eclipse Che Nightly OLM files. Job which deploy Eclipse Che nightly using latest version.
+- Eclipse Che Nightly OLM files. A job that deploys Eclipse Che nightly using the latest version.
 - Eclipse Che Single host mode. Deploy eclipse che in single host mode(native and gateway) and verify the workspaces startups.
 
 For Minishift currently we have:
