@@ -33,7 +33,7 @@ $ ./update-crd-files.sh
 
 > Notice: this script contains commands to make the CRD compatible with Openshift 3.
 
-In the VSCode you can use task `Update cr/crd files`.
+In the VSCode you can use the task `Update cr/crd files`.
 
 # 4. Che cluster custom resource
 
