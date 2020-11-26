@@ -165,7 +165,7 @@ func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor 
 	keycloakURL := instance.Spec.Auth.IdentityProviderURL
 	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
-	if err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts); err != nil {
 		return err
 	}
 

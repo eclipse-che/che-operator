@@ -65,37 +65,37 @@ func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
 func syncAll(deployContext *deploy.DeployContext) error {
 	instance := deployContext.CheCluster
 	sa := getGatewayServiceAccountSpec(instance)
-	if err := deploy.Sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &sa, serviceAccountDiffOpts); err != nil {
 		return err
 	}
 
 	role := getGatewayRoleSpec(instance)
-	if err := deploy.Sync(deployContext, &role, roleDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &role, roleDiffOpts); err != nil {
 		return err
 	}
 
 	roleBinding := getGatewayRoleBindingSpec(instance)
-	if err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
 		return err
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
-	if err := deploy.Sync(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &traefikConfig, configMapDiffOpts); err != nil {
 		return err
 	}
 
 	depl := getGatewayDeploymentSpec(instance)
-	if err := deploy.Sync(deployContext, &depl, deploy.DeploymentDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &depl, deploy.DeploymentDiffOpts); err != nil {
 		return err
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if err := deploy.Sync(deployContext, &service, serviceDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &service, serviceDiffOpts); err != nil {
 		return err
 	}
 
 	serverConfig := getGatewayServerConfigSpec(deployContext)
-	if err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
 		return err
 	}
 

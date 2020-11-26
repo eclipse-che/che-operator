@@ -13,14 +13,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner. The sync is always done using
-// a delete and re-creation.
-func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) error {
-	clusterAPI := deployContext.ClusterAPI
-
+// Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
+// Returns true if the object was created or updated, false if there was no change detected.
+func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
 	blueprintObject, ok := blueprint.(runtime.Object)
 	if !ok {
-		return fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
 	}
 
 	key := client.ObjectKey{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
@@ -29,76 +27,100 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 
 	if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
-			return getErr
+			return false, getErr
 		}
 		actual = nil
 	}
 
-	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
-
 	if actual == nil {
-		logrus.Infof("Creating a new object: %s, name %s", kind, blueprint.GetName())
-		obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+		_, err := create(deployContext, key, blueprint)
 		if err != nil {
-			return err
+			return false, err
 		}
 
-		err = clusterAPI.Client.Create(context.TODO(), obj)
-		if err != nil {
-			if !errors.IsAlreadyExists(err) {
-				return err
-			}
+		return true, nil
+	}
 
-			// ok, we got an already-exists error. So let's try to load the object into "actual".
-			// if we fail this retry for whatever reason, just give up rather than retrying this in a loop...
-			// the reconciliation loop will lead us here again in the next round.
-			if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
-				return getErr
-			}
+	return update(deployContext, actual, blueprint, diffOpts)
+}
+
+func create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (runtime.Object, error) {
+	blueprintObject, ok := blueprint.(runtime.Object)
+	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
+	if !ok {
+		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
+	}
+
+	actual := blueprintObject.DeepCopyObject()
+
+	clusterAPI := deployContext.ClusterAPI
+	logrus.Infof("Creating a new object: %s, name %s", kind, blueprint.GetName())
+	obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+	if err != nil {
+		return nil, err
+	}
+
+	err = clusterAPI.Client.Create(context.TODO(), obj)
+	if err != nil {
+		if !errors.IsAlreadyExists(err) {
+			return nil, err
+		}
+
+		// ok, we got an already-exists error. So let's try to load the object into "actual".
+		// if we fail this retry for whatever reason, just give up rather than retrying this in a loop...
+		// the reconciliation loop will lead us here again in the next round.
+		if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
+			return nil, getErr
 		}
 	}
 
-	if actual != nil {
-		actualMeta := actual.(metav1.Object)
+	return actual, nil
+}
 
-		diff := cmp.Diff(actual, blueprint, diffOpts)
-		if len(diff) > 0 {
-			logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
-			fmt.Printf("Difference:\n%s", diff)
+func update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	clusterAPI := deployContext.ClusterAPI
 
-			if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-				err := clusterAPI.Client.Delete(context.TODO(), actual)
-				if err != nil {
-					return err
-				}
+	actualMeta := actual.(metav1.Object)
 
-				obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
-				if err != nil {
-					return err
-				}
+	diff := cmp.Diff(actual, blueprint, diffOpts)
+	if len(diff) > 0 {
+		kind := actual.GetObjectKind().GroupVersionKind().Kind
+		logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
+		fmt.Printf("Difference:\n%s", diff)
 
-				err = clusterAPI.Client.Create(context.TODO(), obj)
-				if err != nil {
-					return err
-				}
-			} else {
-				obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
-				if err != nil {
-					return err
-				}
+		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
+			err := clusterAPI.Client.Delete(context.TODO(), actual)
+			if err != nil {
+				return false, err
+			}
 
-				// to be able to update, we need to set the resource version of the object that we know of
-				obj.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
+			obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+			if err != nil {
+				return false, err
+			}
 
-				err = clusterAPI.Client.Update(context.TODO(), obj)
-				if err != nil {
-					return err
-				}
+			err = clusterAPI.Client.Create(context.TODO(), obj)
+			if err != nil {
+				return false, err
+			}
+		} else {
+			obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+			if err != nil {
+				return false, err
+			}
+
+			// to be able to update, we need to set the resource version of the object that we know of
+			obj.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
+
+			err = clusterAPI.Client.Update(context.TODO(), obj)
+			if err != nil {
+				return false, err
 			}
 		}
-	}
 
-	return nil
+		return true, nil
+	}
+	return false, nil
 }
 
 func isUpdateUsingDeleteCreate(kind string) bool {
