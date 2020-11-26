@@ -128,7 +128,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	if isOpenShift {
 		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
 		if doInstallOpenShiftoAuthProvider {
-			if err := CreateIdentityProviderItems(deployContext, cheFlavor); err != nil {
+			if err := SyncIdentityProviderItems(deployContext, cheFlavor); err != nil {
 				return false, err
 			}
 		}
@@ -137,29 +137,26 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	return true, nil
 }
 
-func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor string) error {
+func SyncIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor string) error {
 	instance := deployContext.CheCluster
 	tests := util.IsTestMode()
 	isOpenShift4 := util.IsOpenShift4
 	keycloakDeploymentName := KeycloakDeploymentName
 	oAuthClientName := instance.Spec.Auth.OAuthClientName
-	initializeKeycloak := false
 	if len(oAuthClientName) < 1 {
 		oAuthClientName = instance.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
 		instance.Spec.Auth.OAuthClientName = oAuthClientName
 		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthClient name", oAuthClientName); err != nil {
 			return err
 		}
-		initializeKeycloak = true
 	}
 	oauthSecret := instance.Spec.Auth.OAuthSecret
 	if len(oauthSecret) < 1 {
 		oauthSecret = util.GeneratePasswd(12)
 		instance.Spec.Auth.OAuthSecret = oauthSecret
-		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthC secret name", oauthSecret); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "oAuth secret name", oauthSecret); err != nil {
 			return err
 		}
-		initializeKeycloak = true
 	}
 
 	keycloakURL := instance.Spec.Auth.IdentityProviderURL
@@ -169,7 +166,9 @@ func CreateIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor 
 		return err
 	}
 
-	if !tests && initializeKeycloak {
+	if !tests && !instance.Status.OpenShiftoAuthProvisioned {
+		// note that this uses the instance.Spec.Auth.IdentityProviderRealm and instance.Spec.Auth.IdentityProviderClientId.
+		// because we're not doing much of a change detection on those fields, we can't react on them changing here.
 		openShiftIdentityProviderCommand, err := GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, isOpenShift4)
 		if err != nil {
 			logrus.Errorf("Failed to build identity provider provisioning command")
