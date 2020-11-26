@@ -31,7 +31,7 @@ changes in the file `pkg/apis/org/v1/che_types.go` and launch the script in the 
 $ ./update-crd-files.sh
 ```
 
-> Notice: this script contains commands to make this CRD compatible with Openshift 3.
+> Notice: this script contains commands to make the CRD compatible with Openshift 3.
 
 In the VSCode you can use task `Update cr/crd files`.
 
