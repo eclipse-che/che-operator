@@ -309,6 +309,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	deployContext := &deploy.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: instance,
+		InternalService: deploy.InternalService{},
 	}
 	// Determine what server groups the API Server knows about
 	foundPackagesAPI, foundOperatorsAPI, foundKubernetesImagePullerAPI, err := deploy.CheckNeededImagePullerApis(deployContext)
