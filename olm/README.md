@@ -40,7 +40,7 @@ In the VSCode you can use the task `Update cr/crd files`.
 che-operator installs Eclipse Che using configuration stored in the Kubernetes custom resource(CR).
 CR object structure defined in the code using `pkg/apis/org/v1/che_types.go` file. Field name
 defined using the serialization tag `json`, for example `json:"openShiftoAuth"`.
-Che operator default CR sample stored in the `deploy/crds/org_v1_che_cr.yaml`. 
+Che operator default CR sample is stored in the `deploy/crds/org_v1_che_cr.yaml`. 
 This file should be directly modified if you want to apply new fields with default values,
 or in case of changing default values for existing fields.
 Also, you can apply in the field comments Openshift UI annotations: to display some
