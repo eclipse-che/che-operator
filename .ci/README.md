@@ -18,7 +18,7 @@ All che-operator jobs configurations are defined in `https://github.com/openshif
 All Openshift CI checks name in pull request have a special nomenclature. Example: ci/prow/v3-che-operator-update where: `v3` is Openshift4 version and `che-operator-update` is the name of the job.
 
 ###### Triggers
-All available plugins to trigger in github Pull Request can be found [here](https://github.com/openshift/release/blob/master/core-services/prow/02_config/_plugins.yaml#L3607). The most important plugin is `test ?`, this trigger show in the PR all available triggers. 
+All available plugins to trigger in GitHub Pull Request can be found [here](https://github.com/openshift/release/blob/master/core-services/prow/02_config/_plugins.yaml#L3607). The most important plugin is `test ?`, this trigger displays all the available triggers in the PR. 
 In case of job failure openshift-robot write a comment about how to trigger a job which fail.
 
 #### Github Actions
