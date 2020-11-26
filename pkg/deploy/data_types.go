@@ -33,6 +33,7 @@ type DeployContext struct {
 }
 
 type InternalService struct {
+	KeycloakHost string
 	DevfileRegistryHost string
 	PluginRegistryHost string
 	CheHost string

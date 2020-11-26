@@ -60,6 +60,7 @@ type CheConfigMap struct {
 	DbPassword                             string `json:"CHE_JDBC_PASSWORD,omitempty"`
 	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
 	KeycloakURL                            string `json:"CHE_KEYCLOAK_AUTH__SERVER__URL,omitempty"`
+	KeycloakInternalURL                    string `json:"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL,omitempty"`
 	KeycloakRealm                          string `json:"CHE_KEYCLOAK_REALM,omitempty"`
 	KeycloakClientId                       string `json:"CHE_KEYCLOAK_CLIENT__ID,omitempty"`
 	OpenShiftIdentityProvider              string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
@@ -183,15 +184,17 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 
 	cheAPI := protocol + "://" + cheHost + "/api"
 
-	var pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
+	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
 
 	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
 		devfileRegistryInternalURL = deployContext.InternalService.DevfileRegistryHost
 		pluginRegistryInternalURL = deployContext.InternalService.PluginRegistryHost
+		keycloakInternalURL = deployContext.InternalService.KeycloakHost
 		cheInternalAPI = deployContext.InternalService.CheHost + "/api"
 	} else {
 		devfileRegistryInternalURL = devfileRegistryURL
 		pluginRegistryInternalURL = pluginRegistryURL
+		keycloakInternalURL = keycloakURL
 		cheInternalAPI = cheAPI
 	}
 
@@ -241,6 +244,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 
 	if cheMultiUser == "true" {
 		data.KeycloakURL = keycloakURL + "/auth"
+		data.KeycloakInternalURL = keycloakInternalURL + "/auth"
 		data.KeycloakRealm = keycloakRealm
 		data.KeycloakClientId = keycloakClientId
 		data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
