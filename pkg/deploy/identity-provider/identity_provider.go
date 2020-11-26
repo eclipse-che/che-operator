@@ -13,6 +13,7 @@ package identity_provider
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -75,6 +76,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		return false, err
 	}
 	keycloakURL := protocol + "://" + endpoint
+	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d", "http", "keycloak", deployContext.CheCluster.Namespace, 8080)
 
 	if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
 		instance.Spec.Auth.IdentityProviderURL = keycloakURL

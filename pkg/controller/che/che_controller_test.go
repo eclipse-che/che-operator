@@ -438,6 +438,12 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 		t.Fatalf("Devfile registry internal url must be %s", pluginRegistryInternalExpected)
 	}
 
+	keycloakInternal := cheCm.Data["CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL"]
+	keycloakInternalExpected := "http://keycloak.eclipse-che.svc:8080/auth"
+	if keycloakInternal != keycloakInternalExpected {
+		t.Fatalf("Keycloak registry internal url must be %s", keycloakInternalExpected)
+	}
+
 	// update CR and make sure Che configmap has been updated
 	cheCR.Spec.Server.UseInternalClusterSVCNames = false
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
@@ -470,6 +476,12 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	devRegistryInternalExpected = "http://devfile-registry"
 	if devRegistryInternal != devRegistryInternalExpected {
 		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
+	}
+
+	keycloakInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL"]
+	keycloakInternalExpected = "http://keycloak/auth"
+	if keycloakInternal != keycloakInternalExpected {
+		t.Fatalf("Keycloak internal url must be %s", keycloakInternalExpected)
 	}
 }
 
