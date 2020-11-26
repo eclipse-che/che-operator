@@ -12,11 +12,12 @@
 package identity_provider
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"context"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/postgres"
@@ -489,13 +490,20 @@ func getSpecKeycloakDeployment(
 		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
 	if cheFlavor == "codeready" {
+		addUsernameReadonlyTheme := "baseTemplate=/opt/eap/themes/base/login/login-update-profile.ftl" +
+			" && readOnlyTemplateDir=/opt/eap/themes/codeready-username-readonly/login" +
+			" && readOnlyTemplate=${readOnlyTemplateDir}/login-update-profile.ftl" +
+			" && if [ ! -d ${readOnlyTemplateDir} ]; then" +
+			" mkdir -p ${readOnlyTemplateDir}" +
+			" && cp ${baseTemplate} ${readOnlyTemplate}" +
+			" && echo \"parent=rh-sso\" > ${readOnlyTemplateDir}/theme.properties" +
+			" && sed -i 's|id=\"username\" name=\"username\"|id=\"username\" readonly name=\"username\"|g' ${readOnlyTemplate}; fi"
 		addUsernameValidationForKeycloakTheme := "sed -i  's|id=\"username\" name=\"username\"|" +
 			"id=\"username\" " +
 			"pattern=\"[a-z]([-a-z0-9]{0,61}[a-z0-9])?\" " +
 			"title=\"Username has to comply with the DNS naming convention. An alphanumeric (a-z, and 0-9) string, with a maximum length of 63 characters, with the '-' character allowed anywhere except the first or last character.\" " +
-			"name=\"username\"|g' " +
-			"/opt/eap/themes/base/login/login-update-profile.ftl"
-		command = addUsernameValidationForKeycloakTheme + " && " + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
+			"name=\"username\"|g' ${baseTemplate}"
+		command = addUsernameReadonlyTheme + " && " + addUsernameValidationForKeycloakTheme + " && " + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
 			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties  " +
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
