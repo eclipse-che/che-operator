@@ -44,7 +44,7 @@ Che operator default CR sample stored in the `deploy/crds/org_v1_che_cr.yaml`.
 This file should be directly modified if you want to apply new fields with default values,
 or in case of changing default values for existing fields.
 Also, you can apply in the field comments Openshift UI annotations: to display some
-interactive information about these fields on the Openshift ui.
+interactive information about these fields on the Openshift UI.
 For example:
 
 ```go
