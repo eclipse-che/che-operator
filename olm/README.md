@@ -15,7 +15,7 @@ Example : `$ docker-run.sh update-nightly-bundle.sh`
 
 # 2. Eclipse Che operator
 
-Eclipse Che application it's a Kubernetes api controller to install Eclipse Che application and manage its
+Eclipse Che application is a Kubernetes API controller to install Eclipse Che application and manage its
 lifecycle. It does such kind of operations for Eclipse Che: installation, update, change configuration, uninstallation, display current status and some useful information like links to Che services.
 Che operator implemented using [operator framework](https://github.com/operator-framework) and golang programming language. Eclipse Che configuration defined using a custom resource definition object and stored in the custom Kubernetes resource named CheCluster(Kubernetes api group `org.eclipse.checluster`). Che operator extends Kubernetes api to embed Eclipse Che to Kubernetes cluster in a native way.
 
