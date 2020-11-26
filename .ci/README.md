@@ -12,7 +12,7 @@ All documentation about how to onboard components in Openshift CI can be found i
 All che-operator jobs configurations are defined in `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse/che-operator`.
 
 ###### Jobs
-- Eclipse Che Updates. This job basically install latest official Eclipse Che release and then update Che to the new release detected in PR. Note this PR check runs against `main` branch and all 7.* branches.
+- Eclipse Che Updates. This job basically installs the latest official Eclipse Che release and then update Che to the new release detected in PR. Note this PR check runs against `main` branch and all 7.* branches.
 - Eclipse Che Nightly OLM files. Job which deploy Eclipse Che nightly using latest version.
 
 All Openshift CI checks name in pull request have a special nomenclature. Example: ci/prow/v3-che-operator-update where: `v3` is Openshift4 version and `che-operator-update` is the name of the job.
