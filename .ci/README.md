@@ -7,7 +7,7 @@ Che Operator currently support two CI launch cases for Pull Request checks:
 
 Openshift is a Kubernetes based CI/CD system. Jobs can be triggered by various types of events and report their status to many different services. In addition to job execution, Openshift CI provides GitHub automation in the form of policy enforcement, chat-ops via /foo style commands, and automatic PR merging.
 
-All documentation about how to onboard components in Openshift CI can be found in the Openshift CI jobs [repository](https://github.com/openshift/release). One of the requirement to make changes in openshift ci jobs is being openshift github member.
+All documentation about how to onboard components in Openshift CI can be found in the Openshift CI jobs [repository](https://github.com/openshift/release). One of the requirements to make changes in Openshift CI jobs is being an openshift GitHub member.
 
 All che-operator jobs configurations are defined in `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse/che-operator`.
 
