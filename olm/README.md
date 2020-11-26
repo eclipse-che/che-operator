@@ -67,7 +67,7 @@ chectl includes CR automatically during deploy Che using 'operator' or 'olm' ins
 
 OLM (operator lifecycle manager) provides ways of installing operators. One of the convenient way how to
 achieve it is by using OLM bundles. See more about the format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md.
-There two "nightly" platform specific OLM bundles for che-operator:
+There two "nightly" platform-specific OLM bundles for che-operator:
 
 - `deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
 - `deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
