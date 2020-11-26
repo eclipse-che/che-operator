@@ -60,7 +60,7 @@ Also users/developers could apply CR manually using `kubectl/oc apply -f deploy/
 But before that should be applied custom resource definition CRD, because Kubernetes api need to get
 information about new custom resource type and structure before storing the custom resource.
 
-Openshift 4 provides ui to apply default CR. 
+Openshift 4 provides UI to apply default CR. 
 chectl includes CR automatically during deploy Che using 'operator' or 'olm' installer.
 
 # 5. Eclipse Che OLM bundles
