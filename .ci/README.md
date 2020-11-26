@@ -19,7 +19,7 @@ All Openshift CI checks name in pull request have a special nomenclature. Exampl
 
 ###### Triggers
 All available plugins to trigger in GitHub Pull Request can be found [here](https://github.com/openshift/release/blob/master/core-services/prow/02_config/_plugins.yaml#L3607). The most important plugin is `test ?`, this trigger displays all the available triggers in the PR. 
-In case of job failure openshift-robot write a comment about how to trigger a job which fail.
+In case of a job failure openshift-robot writes a comment about how to trigger a job which fails.
 
 #### Github Actions
 
