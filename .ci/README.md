@@ -33,7 +33,7 @@ For minikube we currently have:
 - Eclipse Che Nightly OLM files. A job that deploys Eclipse Che nightly using the latest version.
 - Eclipse Che Single host mode. Deploy Eclipse Che in single-host mode (native and gateway) and verify the workspaces startups.
 
-For Minishift currently we have:
+For Minishift we currently have:
 - Eclipse Che Update
 - Deploy Eclipse Che nightly
 
