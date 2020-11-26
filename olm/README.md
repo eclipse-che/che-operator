@@ -22,7 +22,7 @@ Che operator is implemented using [operator framework](https://github.com/operat
 # 3. Che cluster custom resource definition
 
 Che cluster custom resource definition (CRD) defines Eclipse CheCluster custom resource object. It contains information about object structure, field types, field descriptions.
-CRD file - it's a yaml definition located in the `deploy/crds/org_v1_che_crd.yaml`.
+CRD file is a YAML definition located in the `deploy/crds/org_v1_che_crd.yaml`.
 But this file is auto-generated. So, to update this file you should not edit this file directly.
 If you want to add new fields or fix descriptions in the crd you should make your
 changes in the file `pkg/apis/org/v1/che_types.go` and launch script in the `olm` folder:
