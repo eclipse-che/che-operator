@@ -28,7 +28,7 @@ GitHub Actions is an API for cause and effect on GitHub: orchestrate any workflo
 All che operator actions are defined in the `.github/workflows` yamls. Scripts are located in `.github/action_scripts` folder. 
 
 ###### Jobs
-For minikube currently we have:
+For minikube we currently have:
 - Eclipse Che Updates. This job basically install last official Eclipse Che release and then update Che to the new release detected in PR. Note this PR check runs against `main` branch and all 7.* branches.
 - Eclipse Che Nightly OLM files. Job which deploy Eclipse Che nightly using latest version.
 - Eclipse Che Single host mode. Deploy eclipse che in single host mode(native and gateway) and verify the workspaces startups.
