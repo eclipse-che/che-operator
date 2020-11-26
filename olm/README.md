@@ -81,7 +81,7 @@ The CSV file contains all "deploy" and "permission" specific information, which 
 
 # 6. Make new changes to OLM bundle
 
-Sometimes, during development, you need to modify some yaml definitions in the `deploy` folder 
+Sometimes, during development, you need to modify some YAML definitions in the `deploy` folder 
 or Che cluster custom resource. There are most frequently changes which should be included to the new OLM bundle:
   - operator deployment `deploy/operator.yaml`
   - operator role/cluster role permissions. They are defined like role/rolebinding or cluster role/rolebinding yamls in the `deploy` folder.
