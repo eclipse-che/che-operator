@@ -29,7 +29,7 @@ to the registry.
 
 ### Using chectl to deploy che-operator
 
-To test che-operator changes you can use chectl: https://github.com/che-incubator/chectl
+To test che-operator changes you can use chectl: https://github.com/che-incubator/chectl.
 chectl has got two installer types corresponding to che-operator: `operator` and `olm`.
 With `operator` installer chectl reuses copies of che-operator deployment and role(cluster role) yamls, CR, CRD from folder `deploy`.
 With `olm` installer chectl uses catalog source index image with olm bundles based on `deploy/olm-catalog`.
@@ -49,13 +49,13 @@ $ chectl deploy:server -n che --installer operator -p ${platform} --che-operator
 where `platform` it's a cluster platform supported by chectl.
 
 > INFO: if you changed che-operator deployment or role/cluster role, CRD, CR you have to provide `--templates` argument.
-This argument will points chectl to your modificated che-operator `deploy` folder path.
+This argument will point chectl to your modificated che-operator `deploy` folder path.
 
 ### Deploy che-operator with chectl via OLM
 
 The following instructions show how to test Che operator under development using OLM installer.
 
-1. Build your custom operator image and use it in the operator deployment: [How to Build che-operator Image](#how-to-build-operator-image).
+1. Build your custom operator image and use it in the operator deployment: [How to Build che-operator Image](#build-custom-che-operator-image).
 Push operator image to an image registry.
 
 2. Create newer OLM files by executing: `olm/update-nightly-bundle.sh`
@@ -141,6 +141,10 @@ You can update Che configuration using: command `chectl server:update` and flag 
 OpenShift clusters includes a built-in OAuth server. che-operator supports this authentication way.
 There is CR property 'openShiftoAuth' to enable/disable this feature. It's enabled by default.
 
+> INFO: If you are [using scripts to deploy che-operator](#deploy_che_operator_using_scripts), then  bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
+There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
+Make sure your current user has cluster-admin privileges.
+
 To disable this feature:
 
 - using command line:
@@ -162,10 +166,6 @@ And update che-cluster using chectl:
 ```
 $ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
 ```
-
-> INFO: If you are using scripts to deploy che-operator, then  bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
-There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
-Make sure your current user has cluster-admin privileges.
 
 ## TLS
 
@@ -401,7 +401,7 @@ New golang dependencies in the vendor folder should be committed and included to
 
 che-operator uses Kubernetes api to manage Eclipse Che lifecycle.
 To request any resource objects from Kubernetes api, che-operator should pass authorization.
-Kubernetes api authorization uses role-based access control(RBAC) api(see more https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has got a service account, like a process inside a pod.
+Kubernetes authorization api uses role-based access control(RBAC) api(see more https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has got a service account, like a process inside a pod.
 Service account provides identity for che-operator. The service account can be bound to some roles(or cluster roles).
 These roles allow che-operator to request some Kubernetes api resources.
 Role(or cluster role) bindings we are using to bind roles(or cluster roles) to the che-operator service account.
@@ -430,5 +430,5 @@ import (
 ...
 ```
 
-Then you can use in the che-operator controller code the new Kubernetes api part. When code completed and your pr is ready you should
+Then you can use the new Kubernetes api part in the che-operator controller code. When code completed and your pr is ready you should
 generate new OLM bundle.

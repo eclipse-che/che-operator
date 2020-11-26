@@ -28,7 +28,7 @@ If you want to add new fields or fix descriptions in the crd you should make you
 changes in the file `pkg/apis/org/v1/che_types.go` and launch script in the `olm` folder:
 
 ```bash
-$ update-crd-files.sh
+$ ./update-crd-files.sh
 ```
 
 > Notice: this script contains commands to make this CRD compatible with Openshift 3.
@@ -55,26 +55,29 @@ For example:
 
 This comment-annotations displays clickable link on the Openshift ui with a text "Eclipse Che URL"
 
-It is mandatory to update the OLM bundle after modification of the CR sample to deploy a Eclipse Che using OLM.
+It is mandatory to update the OLM bundle after modification of the CR sample to deploy Eclipse Che using OLM.
 Also users/developers could apply CR manually using `kubectl/oc apply -f deploy/crds/org_v1_che_cr.yaml -n ${che-namespace}`.
 But before that should be applied custom resource definition CRD, because Kubernetes api need to get
 information about new custom resource type and structure before storing the custom resource.
 
+Openshift 4 provides ui to apply default CR. 
+chectl includes CR automatically during deploy Che using 'operator' or 'olm' installer.
+
 # 5. Eclipse Che OLM bundles
 
 OLM(operator lifecycle manager) provides ways how to install operators. One of the convenient way how to
-achieve it - it's using OLM bundles. See more about format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md
+achieve it - it's using OLM bundles. See more about format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md.
 There two "nightly" platform specific OLM bundles for che-operator:
 
-`deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
-`deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
+- `deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
+- `deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
 
 Each bundle consists of a cluster service version file(CSV) and a custom resource definition file(CRD). 
 CRD file describes "checluster" Kubernetes api resource object(object fields name, format, description and so on).
 Kubernetes api needs this information to correctly store a custom resource object "checluster".
 Custom resource object users could modify to change Eclipse Che configuration.
 Che operator watches "checluster" object and re-deploy Che with desired configuration.
-The CSV file contains all "deploy" and "permission" specific information, which OLM needs to install The Eclipse Che operator.
+The CSV file contains all "deploy" and "permission" specific information, which OLM needs to install Eclipse Che operator.
 
 # 6. Make new changes to OLM bundle
 
@@ -84,9 +87,11 @@ or Che cluster custom resource. There are most frequently changes which should b
   - operator role/cluster role permissions. They are defined like role/rolebinding or cluster role/rolebinding yamls in the `deploy` folder.
   - operator custom resource CR `deploy/crds/org_v1_che_cr.yaml`. This file contains the default CheCluster sample.
   Also this file is the default OLM CheCluster sample.
-  - Che cluster custom resource definition `deploy/crds/org_v1_che_cr.yaml`. For example you want
-  to fix some properties description or apply new che type properties with default values. 
-  - add Openshift ui annotations for che types properties to display information or interactive elements on the Openshift user interface.
+  - Che cluster custom resource definition `pkg/apis/org/v1/che_types.go`.
+  For example you want to fix some properties description 
+  or apply new Che type properties with default values.
+  These changes affect CRD `deploy/crds/org_v1_che_crd.yaml`.
+  - add Openshift ui annotations for Che types properties(`pkg/apis/org/v1/che_types.go`) to display information or interactive elements on the Openshift user interface.
 
 For all these cases it's a nessuary to generate a new OLM bundle to make these changes working with OLM.
 So, first of all: make sure if you need to update CRD, because CRD it's a part of the OLM bundle.
@@ -124,7 +129,7 @@ Start your Kubernetes/Openshift cluster. For Openshift cluster make sure that yo
 
 # 8.Test installation "stable" Eclipse Che using Application registry(Deprecated)
 
-Notice: this stuff doesn't work for Openshift >=4.6
+Notice: this stuff doesn't work for Openshift >= 4.6
 
 To test stable versions che-operator you have to use Eclipse Che application registry.
 
@@ -247,7 +252,7 @@ Also you can test your changes without a public registry. You can use the miniku
 `olm/minikube-private-registry.sh`. This script creates port forward to minikube private registry thought `localhost:5000`:
 
 ```bash
-$ minikube-registry-addon.sh
+$ ./minikube-registry-addon.sh
 ```
 
 This script should be launched before test execution in the separated terminal. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
