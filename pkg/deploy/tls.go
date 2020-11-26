@@ -53,9 +53,9 @@ const (
 	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
 	CheCACertsConfigMapLabelValue = "ca-bundle"
 	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
-	CheAllCACertsConfigMapName = "che-ca-certs-merged"
-	// CheMergedCAConfigMapRevisionsLabelKey is label name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
-	CheMergedCAConfigMapRevisionsLabelKey = "cm_revision"
+	CheAllCACertsConfigMapName = "ca-certs-merged"
+	// CheMergedCAConfigMapRevisionsAnnotationKey is annotation name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
+	CheMergedCAConfigMapRevisionsAnnotationKey = "che.eclipse.org/included-configmaps"
 
 	// Local constants
 	// labelEqualSign consyant is used as a replacement for '=' symbol in labels because '=' is not allowed there
@@ -500,21 +500,23 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 	mergedCAConfigMap := &corev1.ConfigMap{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheAllCACertsConfigMapName}, mergedCAConfigMap)
 	if err == nil {
-		// Merged config map exists. Check if it up to date.
+		// Merged config map exists. Check if it is up to date.
 		caConfigMapsCurrentRevisions := make(map[string]string)
 		for _, cm := range caConfigMaps {
 			caConfigMapsCurrentRevisions[cm.Name] = cm.ResourceVersion
 		}
 
 		caConfigMapsCachedRevisions := make(map[string]string)
-		if revisions, exists := mergedCAConfigMap.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey]; exists {
-			for _, cmNameRevision := range strings.Split(revisions, labelCommaSign) {
-				nameRevision := strings.Split(cmNameRevision, labelEqualSign)
-				if len(nameRevision) != 2 {
-					// The label value is invalid, recreate merged config map
-					break
+		if mergedCAConfigMap.ObjectMeta.Annotations != nil {
+			if revisions, exists := mergedCAConfigMap.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey]; exists {
+				for _, cmNameRevision := range strings.Split(revisions, labelCommaSign) {
+					nameRevision := strings.Split(cmNameRevision, labelEqualSign)
+					if len(nameRevision) != 2 {
+						// The label value is invalid, recreate merged config map
+						break
+					}
+					caConfigMapsCachedRevisions[nameRevision[0]] = nameRevision[1]
 				}
-				caConfigMapsCachedRevisions[nameRevision[0]] = nameRevision[1]
 			}
 		}
 
@@ -550,8 +552,12 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 	if err != nil {
 		return nil, err
 	}
-	mergedCAConfigMapSpec.ObjectMeta.Labels[CheMergedCAConfigMapRevisionsLabelKey] = revisions
 	mergedCAConfigMapSpec.ObjectMeta.Labels[PartOfCheLabelKey] = PartOfCheLabelValue
+
+	if mergedCAConfigMapSpec.ObjectMeta.Annotations == nil {
+		mergedCAConfigMapSpec.ObjectMeta.Annotations = make(map[string]string)
+	}
+	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
 
 	logrus.Infof("Updating additional CA certs config map: %s", CheAllCACertsConfigMapName)
 	mergedCAConfigMap, err = SyncConfigMapToCluster(deployContext, mergedCAConfigMapSpec)
