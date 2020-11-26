@@ -38,4 +38,4 @@ For Minishift we currently have:
 - Deploy Eclipse Che nightly
 
 ###### Triggers
-To relaunch failed github action checks you have to use github ui(`Re-run jobs` button). Note the button execute the whole worflow.
+To relaunch failed GitHub action checks you have to use GitHub UI(`Re-run jobs` button). Note the button executes the whole workflow.
