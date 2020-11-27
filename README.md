@@ -399,7 +399,7 @@ include to this file such information like:
   - resource/s name
   - verbs - actions which che-operator can do on this resource/s
 
-When this role/cluster role was updated you should also register `api` cshema in the `pkg/controller/che/che_controller.go` in the `add` method:
+When this role/cluster role was updated you should register `api` schema in the `pkg/controller/che/che_controller.go` in the `add` method:
 
 ```go
 import (
