@@ -363,7 +363,7 @@ Also you can use the corresponding VSCode task:`Compile che-operator code`.
 
 ### Format code
 
-To format che-operator execute command:
+To format che-operator execute the following command:
 
 ```bash
 $ go fmt ./...
