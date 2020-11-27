@@ -153,7 +153,7 @@ To disable OAuth:
 $ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
 ```
 
-- Also you can create `cr-patch.yaml` and use it with chectl:
+- You can also create `cr-patch.yaml` and use it with chectl:
 
 ```yaml
 spec:
