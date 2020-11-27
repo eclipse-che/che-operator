@@ -139,7 +139,7 @@ You can update Che configuration using the `chectl server:update` command and th
 ## OpenShift OAuth
 
 OpenShift clusters include a built-in OAuth server. che-operator supports this authentication method.
-There is CR property 'openShiftoAuth' to enable/disable this feature. It's enabled by default.
+Use  'openShiftoAuth' CR property to enable/disable OAuth authentication. It's enabled by default.
 
 > INFO: If you are [using scripts to deploy che-operator](#deploy_che_operator_using_scripts), then  bear in mind that che-operator service account needs to have cluster admin privileges so that the operator can create oauthclient at a cluster scope.
 There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
