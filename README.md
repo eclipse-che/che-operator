@@ -31,7 +31,7 @@ to the registry.
 
 To test che-operator changes you can use chectl: https://github.com/che-incubator/chectl.
 chectl has got two installer types corresponding to che-operator: `operator` and `olm`.
-With `operator` installer chectl reuses copies of che-operator deployment and role(cluster role) yamls, CR, CRD from folder `deploy`.
+With the `operator` installer chectl reuses copies of che-operator deployment and role (cluster role) YAMLs, CR, CRD from the `deploy` directory.
 With `olm` installer chectl uses catalog source index image with olm bundles based on `deploy/olm-catalog`.
 chectl supports cluster platforms: "minikube", "minishift", "k8s", "openshift", "microk8s", "docker-desktop", "crc".
 
