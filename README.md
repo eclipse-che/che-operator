@@ -48,7 +48,7 @@ $ chectl deploy:server -n che --installer operator -p ${platform} --che-operator
 
 `platform` is a cluster platform supported by chectl.
 
-> INFO: if you changed che-operator deployment or role/cluster role, CRD, CR you have to provide `--templates` argument.
+> INFO: if you changed che-operator deployment or role/cluster role, CRD, CR, you must provide `--templates` argument.
 This argument will point chectl to your modificated che-operator `deploy` folder path.
 
 ### Deploy che-operator with chectl via OLM
