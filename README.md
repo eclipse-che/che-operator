@@ -392,7 +392,7 @@ These roles allow che-operator to request some Kubernetes api resources.
 Role(or cluster role) bindings we are using to bind roles(or cluster roles) to the che-operator service account.
 
 che-operator roles and cluster roles yaml definition located in the `deploy` folder.
-For example `role.yaml`. When you need to provide access to new Kubernetes api part for che-operator, you need
+For example `role.yaml`. When you need to provide access to the new Kubernetes API part for che-operator, you need
 include to this file such information like:
 
   - api group
