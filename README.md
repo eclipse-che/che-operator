@@ -46,7 +46,7 @@ Launch test cluster. Install Eclipse Che:
 $ chectl deploy:server -n che --installer operator -p ${platform} --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
 ```
 
-where `platform` it's a cluster platform supported by chectl.
+`platform` is a cluster platform supported by chectl.
 
 > INFO: if you changed che-operator deployment or role/cluster role, CRD, CR you have to provide `--templates` argument.
 This argument will point chectl to your modificated che-operator `deploy` folder path.
