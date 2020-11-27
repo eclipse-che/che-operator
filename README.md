@@ -136,7 +136,7 @@ $ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge 
 
 You can update Che configuration using the `chectl server:update` command and the `--cr-patch` flag.
 
-## OpenShift oAuth
+## OpenShift OAuth
 
 OpenShift clusters includes a built-in OAuth server. che-operator supports this authentication way.
 There is CR property 'openShiftoAuth' to enable/disable this feature. It's enabled by default.
