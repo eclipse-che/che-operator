@@ -415,5 +415,5 @@ import (
 ...
 ```
 
-Then you can use the new Kubernetes api part in the che-operator controller code. When code completed and your pr is ready you should
+Then you can use the new Kubernetes API part in the che-operator controller code. When code completed and your pr is ready you should
 generate a new OLM bundle.
