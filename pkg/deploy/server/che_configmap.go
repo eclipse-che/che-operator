@@ -236,7 +236,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		CheServerSecureExposerJwtProxyImage:    deploy.DefaultCheServerSecureExposerJwtProxyImage(deployContext.CheCluster),
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
-		CheTrustedCABundlesConfigMap:           deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName,
+		CheTrustedCABundlesConfigMap:           deploy.CheAllCACertsConfigMapName,
 		ServerStrategy:                         ingressStrategy,
 		WorkspaceExposure:                      workspaceExposure,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,

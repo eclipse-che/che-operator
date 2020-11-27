@@ -54,14 +54,3 @@ func SyncTrustStoreConfigMapToCluster(deployContext *deploy.DeployContext) (*cor
 
 	return clusterConfigMap, nil
 }
-
-func GetTrustStoreConfigMapVersion(deployContext *deploy.DeployContext) string {
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		trustStoreConfigMap, _ := deploy.GetClusterConfigMap(deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-		if trustStoreConfigMap != nil {
-			return trustStoreConfigMap.ResourceVersion
-		}
-	}
-
-	return ""
-}

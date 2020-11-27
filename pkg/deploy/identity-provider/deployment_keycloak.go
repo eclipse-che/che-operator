@@ -18,12 +18,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/eclipse/che-operator/pkg/deploy/server"
-
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/postgres"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -109,7 +106,7 @@ func getSpecKeycloakDeployment(
 		}
 	}
 
-	cmResourceVersions := server.GetTrustStoreConfigMapVersion(deployContext)
+	cmResourceVersions := deploy.GetAdditionalCACertsConfigMapVersion(deployContext)
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
@@ -139,14 +136,12 @@ func getSpecKeycloakDeployment(
 
 	customPublicCertsDir := "/public-certs"
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		customPublicCertsVolumeSource = corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName,
-				},
+	customPublicCertsVolumeSource = corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: deploy.CheAllCACertsConfigMapName,
 			},
-		}
+		},
 	}
 	customPublicCertsVolume := corev1.Volume{
 		Name:         "che-public-certs",
