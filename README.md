@@ -356,7 +356,7 @@ To check Che operator compilation, use the following command:
 GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 ```
 
-From command you can see the operator will be compiled to binary  `/tmp/che-operator/che-operator`. 
+The operator will be compiled to the binary `/tmp/che-operator/che-operator`. 
 This command is useful to make sure that che-operator is still compiling after your changes.
 
 You can also use the corresponding VSCode task:`Compile che-operator code`. 
