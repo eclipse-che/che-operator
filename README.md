@@ -116,7 +116,7 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
 
 ### Edit checluster CR using a command-line interface (terminal)
 
-Any Kubernetes object you can modify using the UI(for example Openshift console).
+You can modify any Kubernetes object using the UI (for example OpenShift web console).
 But also you can do the same using terminal.
 You can edit checluster CR object using command line editor: 
 
