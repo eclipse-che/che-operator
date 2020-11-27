@@ -22,7 +22,7 @@ You can build a custom che-operator image using the following command in the roo
 $ docker build -t ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly .
 ```
 
-> Notice: you can use VSCode task `Build and push custom che-operator image`. But you need to specify env variables: 
+> Notice: you can use VSCode task `Build and push custom che-operator image`, but you need to specify env variables: 
 IMAGE_REGISTRY_HOST, IMAGE_REGISTRY_USER_NAME(for regular development you can use `.bashrc` file for this purpose).
 This task will build and push image with name `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly`
 to the registry.
