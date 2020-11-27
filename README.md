@@ -373,7 +373,7 @@ Also you can use the VSCode task: `Format che-operator code`.
 
 ### Update golang dependencies
 
-che-operator uses go modules and a vendor folder. To update golang dependencies execute command:
+che-operator uses Go modules and a vendor folder. To update golang dependencies execute the following command:
 
 ```bash
 $ go mod vendor
