@@ -350,7 +350,7 @@ Subsequent checks verify that the installation is reconfigured, for example uses
 
 ### Check che-operator compilation
 
-To check Che operator compilation you can use command:
+To check Che operator compilation, use the following command:
 
 ```bash
 GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
