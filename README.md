@@ -126,7 +126,7 @@ $ oc edit checluster ${che-cluster-name} -n ${namespace}
 
 Where ${che-cluster-name} is a custom resource name, by default 'eclipse-che'.
 
-Also you can modify the CheCluster using the `kubectl patch`. For example:
+You can also modify the CheCluster using the `kubectl patch`. For example:
 
 ```bash
 $ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
