@@ -134,7 +134,7 @@ $ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge 
 
 ### Update checluster using chectl
 
-You can update Che configuration using: command `chectl server:update` and flag `--cr-patch`
+You can update Che configuration using the `chectl server:update` command and the `--cr-patch` flag.
 
 ## OpenShift oAuth
 
