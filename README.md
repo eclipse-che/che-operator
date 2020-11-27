@@ -103,7 +103,7 @@ $ chectl server:deploy --installer=olm --platform=${platform} -n ${che-namespace
 ./deploy.sh $namespace
 ```
 
-The script will create sa, role, role binding, operator deployment, CRD and CR.
+The script will create sa, role, role binding, operator deployment, CRD, and CR.
 
 Wait until Che deployment is scaled to 1 and Che route is created.
 
