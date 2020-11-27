@@ -145,7 +145,7 @@ Use  'openShiftoAuth' CR property to enable/disable OAuth authentication. It's e
 There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
 Make sure your current user has cluster-admin privileges.
 
-To disable this feature:
+To disable OAuth:
 
 - using command line:
 
