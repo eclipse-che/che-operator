@@ -114,7 +114,7 @@ When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/
     ingressDomain: '192.168.99.101.nip.io'
 ```
 
-### Edit checluster CR using command line interface(terminal)
+### Edit checluster CR using a command-line interface (terminal)
 
 Any Kubernetes object you can modify using the UI(for example Openshift console).
 But also you can do the same using terminal.
