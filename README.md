@@ -380,16 +380,16 @@ $ go mod vendor
 ```
 
 Also you can use VSCode task `Update che-operator dependencies`.
-New golang dependencies in the vendor folder should be committed and included to the pull request.
+New golang dependencies in the vendor folder should be committed and included in the pull request.
 
 ## How to add new role/cluster role to che-operator
 
 che-operator uses Kubernetes api to manage Eclipse Che lifecycle.
 To request any resource objects from Kubernetes api, che-operator should pass authorization.
-Kubernetes authorization api uses role-based access control(RBAC) api(see more https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has got a service account, like a process inside a pod.
-Service account provides identity for che-operator. The service account can be bound to some roles(or cluster roles).
-These roles allow che-operator to request some Kubernetes api resources.
-Role(or cluster role) bindings we are using to bind roles(or cluster roles) to the che-operator service account.
+Kubernetes authorization API uses role-based access control (RBAC) API(to learn more, see https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has a service account, like a process inside a pod.
+Service account provides an identity for che-operator. The service account can be bound to some roles (or cluster roles).
+These roles allow the che-operator to request Kubernetes API resources.
+Role (or cluster role) bindings are used to bind roles (or cluster roles) to the che-operator service account.
 
 che-operator roles and cluster roles yaml definition located in the `deploy` folder.
 For example `role.yaml`. When you need to provide access to the new Kubernetes API part for che-operator, you need
