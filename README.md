@@ -37,7 +37,7 @@ chectl supports cluster platforms: "minikube", "minishift", "k8s", "openshift", 
 
 ### Deploy che-operator with chectl via `operator` installer
 
-If you want to test modified che-operator using chectl, you have to build a custom che-operator image.
+If you want to test a modified che-operator using chectl, you have to build a custom che-operator image.
 See more: [Build custom che-operator image](#build-custom-che-operator-image)
 
 Launch test cluster. Install Eclipse Che:
