@@ -16,7 +16,7 @@ The operator watches for a Custom Resource of Kind `CheCluster`, and operator co
 
 ### Build custom che-operator image
 
-You can build a custom che-operator image using command in the root of the che-operator project:
+You can build a custom che-operator image using the following command in the root of the che-operator project:
 
 ```bash
 $ docker build -t ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly .
