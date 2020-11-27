@@ -98,22 +98,19 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 		} else {
 			// the empty string for a host is intentional here - we let OpenShift decide on the hostname
 			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, additionalLabels)
-			if !util.IsTestMode() {
-				if route == nil {
-					logrus.Infof("Waiting on route '%s' to be ready", endpointName)
-					if err != nil {
-						logrus.Error(err)
-					}
-
-					return "", false, err
+			if route == nil {
+				logrus.Infof("Waiting on route '%s' to be ready", endpointName)
+				if err != nil {
+					logrus.Error(err)
 				}
+				return "", false, err
 			}
+
 			if err := gateway.DeleteGatewayRouteConfig(gatewayConfig, deployContext); !util.IsTestMode() && err != nil {
 				logrus.Error(err)
 			}
-			if !util.IsTestMode() {
-				endpoint = route.Spec.Host
-			}
+
+			endpoint = route.Spec.Host
 		}
 	}
 	return endpoint, true, nil

@@ -119,7 +119,9 @@ func newCheCluster() (cr *orgv1.CheCluster) {
 			Kind: kind,
 		},
 		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{},
+			Server: orgv1.CheClusterSpecServer{
+				UseInternalClusterSVCNames: true,
+			},
 		},
 	}
 	return cr

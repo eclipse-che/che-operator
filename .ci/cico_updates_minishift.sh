@@ -62,6 +62,7 @@ function init() {
   export lastOperatorTemplate=${lastOperatorPath}/chectl/templates
   export previousOperatorTemplate=${previousOperatorPath}/chectl/templates
 
+  rm -rf tmp
   # Create tmp folder to save "operator" installer templates
   mkdir -p "${OPERATOR_REPO}/tmp" && chmod 777 "${OPERATOR_REPO}/tmp"
 

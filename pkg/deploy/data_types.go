@@ -25,10 +25,18 @@ type ProvisioningStatus struct {
 }
 
 type DeployContext struct {
-	CheCluster     *orgv1.CheCluster
-	ClusterAPI     ClusterAPI
-	Proxy          *Proxy
+	CheCluster *orgv1.CheCluster
+	ClusterAPI ClusterAPI
+	Proxy *Proxy
+	InternalService InternalService
 	DefaultCheHost string
+}
+
+type InternalService struct {
+	KeycloakHost string
+	DevfileRegistryHost string
+	PluginRegistryHost string
+	CheHost string
 }
 
 type ClusterAPI struct {
