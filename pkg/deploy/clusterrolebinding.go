@@ -83,6 +83,7 @@ func getSpecClusterRoleBinding(
 	roleName string) (*rbac.ClusterRoleBinding, error) {
 
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
+	labels["namespace"] = deployContext.CheCluster.Namespace
 	clusterRoleBinding := &rbac.ClusterRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterRoleBinding",
