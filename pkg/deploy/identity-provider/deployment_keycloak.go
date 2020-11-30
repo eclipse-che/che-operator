@@ -13,16 +13,14 @@ package identity_provider
 
 import (
 	"context"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/eclipse/che-operator/pkg/deploy/server"
-
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/postgres"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -92,6 +90,10 @@ func getSpecKeycloakDeployment(
 		// writable dir in the upstream Keycloak image
 		jbossDir = "/scripts"
 	}
+	jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"
+	if cheFlavor == "codeready" {
+		jbossCli = "/opt/eap/bin/jboss-cli.sh"
+	}
 
 	if clusterDeployment != nil {
 		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
@@ -104,7 +106,7 @@ func getSpecKeycloakDeployment(
 		}
 	}
 
-	cmResourceVersions := server.GetTrustStoreConfigMapVersion(deployContext)
+	cmResourceVersions := deploy.GetAdditionalCACertsConfigMapVersion(deployContext)
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
@@ -134,14 +136,12 @@ func getSpecKeycloakDeployment(
 
 	customPublicCertsDir := "/public-certs"
 	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		customPublicCertsVolumeSource = corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName,
-				},
+	customPublicCertsVolumeSource = corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: deploy.CheAllCACertsConfigMapName,
 			},
-		}
+		},
 	}
 	customPublicCertsVolume := corev1.Volume{
 		Name:         "che-public-certs",
@@ -205,10 +205,8 @@ func getSpecKeycloakDeployment(
 			quotedNoProxy += "\"" + noProxyEntry + ";NO_PROXY\""
 		}
 
-		jbossCli := "/opt/jboss/keycloak/bin/jboss-cli.sh"
 		serverConfig := "standalone.xml"
 		if cheFlavor == "codeready" {
-			jbossCli = "/opt/eap/bin/jboss-cli.sh"
 			serverConfig = "standalone-openshift.xml"
 		}
 		addProxyCliCommand = " && echo Configuring Proxy && " +
@@ -486,8 +484,37 @@ func getSpecKeycloakDeployment(
 		keycloakEnv = append(keycloakEnv, envvar)
 	}
 
-	command := addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand + " && " + changeConfigCommand +
-		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
+	var enableFixedHostNameProvider string
+	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+		if cheFlavor == "che" {
+			keycloakURL, err := url.Parse(deployContext.CheCluster.Status.KeycloakURL)
+			if err != nil {
+				return nil, err
+			}
+			hostname := keycloakURL.Hostname()
+			enableFixedHostNameProvider = " && echo 'Use fixed hostname provider to make working internal network requests' && " +
+			"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
+			"/subsystem=keycloak-server/spi=hostname:write-attribute(name=default-provider, value=\"fixed\") \n" +
+			"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.hostname,value=\"" + hostname + "\") \n"
+			if deployContext.CheCluster.Spec.Server.TlsSupport {
+				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpsPort,value=\"443\") \n"  +
+				"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.alwaysHttps,value=\"true\") \n"
+			} else {
+				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpPort,value=\"80\") \n"
+			}
+			enableFixedHostNameProvider += "stop-embedded-server\" > " + jbossDir  + "/use_fixed_hostname_provider.cli && " +
+			jbossCli + " --file=" + jbossDir + "/use_fixed_hostname_provider.cli "
+		}
+		if cheFlavor == "codeready" {
+			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+				Name: "KEYCLOAK_FRONTEND_URL",
+				Value: deployContext.CheCluster.Status.KeycloakURL + "/auth",
+			});
+		}
+	}
+
+	command := addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand + " && " + changeConfigCommand + enableFixedHostNameProvider +
+		" && /opt/jboss/docker-entrypoint.sh --debug -b 0.0.0.0 -c standalone.xml"
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
 	if cheFlavor == "codeready" {
 		addUsernameReadonlyTheme := "baseTemplate=/opt/eap/themes/base/login/login-update-profile.ftl" +

@@ -295,6 +295,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	deployContext := &deploy.DeployContext{
 		ClusterAPI: clusterAPI,
 		CheCluster: instance,
+		InternalService: deploy.InternalService{},
 	}
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
@@ -456,6 +457,18 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
+	}
+
+	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
+	cm, err := deploy.SyncAdditionalCACertsConfigMapToCluster(instance, deployContext)
+	if err != nil {
+		logrus.Errorf("Error updating additional CA config map: %v", err)
+		return reconcile.Result{}, err
+	}
+	if cm == nil && !tests {
+		// Config map update is in progress
+		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
+		return reconcile.Result{}, err
 	}
 
 	// Get custom ConfigMap
@@ -773,6 +786,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
+
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
@@ -798,19 +813,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
 		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels)
-		if !tests {
-			if route == nil {
-				logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
-				if err != nil {
-					logrus.Error(err)
-				}
+		if route == nil {
+			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+			if err != nil {
+				logrus.Error(err)
+			}
 
-				return reconcile.Result{RequeueAfter: time.Second * 1}, err
-			}
-			cheHost = route.Spec.Host
-			if customHost == "" {
-				deployContext.DefaultCheHost = cheHost
-			}
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+		cheHost = route.Spec.Host
+		if customHost == "" {
+			deployContext.DefaultCheHost = cheHost
 		}
 	}
 	if instance.Spec.Server.CheHost != cheHost {
@@ -1052,6 +1065,7 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 	return deploy.CheServiceName
 }
 
+// isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
 func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
 	checlusters := &orgv1.CheClusterList{}
 	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
@@ -1062,8 +1076,22 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 		return false, reconcile.Request{}
 	}
 
+	// Check if config map is the config map from CR
 	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
-		return false, reconcile.Request{}
+		// No, it is not form CR
+		// Check for labels
+
+		// Check for part of Che label
+		if value, exists := obj.Meta.GetLabels()[deploy.PartOfCheLabelKey]; !exists || value != deploy.PartOfCheLabelValue {
+			// Labels do not match
+			return false, reconcile.Request{}
+		}
+
+		// Check for CA bundle label
+		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
+			// Labels do not match
+			return false, reconcile.Request{}
+		}
 	}
 
 	return true, reconcile.Request{

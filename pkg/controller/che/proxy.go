@@ -13,10 +13,10 @@ package che
 
 import (
 	"context"
-	"github.com/eclipse/che-operator/pkg/deploy/server"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"github.com/eclipse/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,7 +36,7 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 
 		// If proxy configuration exists in CR then cluster wide proxy configuration is ignored
 		// otherwise cluster wide proxy configuration is used and non proxy hosts
-		// are merted with defined ones in CR
+		// are merged with defined ones in CR
 		if proxy.HttpProxy == "" && clusterProxy.Status.HTTPProxy != "" {
 			proxy, err = deploy.ReadClusterWideProxyConfiguration(clusterProxy, proxy.NoProxy)
 			if err != nil {

@@ -26,6 +26,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// SyncConfigMapToCluster makes sure that given config map spec is actual.
+// It compares config map data and labels.
+// If returned config map is nil then it means that the config map update is in progress and reconcile loop probably should be restarted.
 func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
 	clusterConfigMap, err := GetClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
@@ -38,11 +41,13 @@ func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.
 		return nil, err
 	}
 
-	diff := cmp.Diff(clusterConfigMap.Data, specConfigMap.Data)
-	if len(diff) > 0 {
+	dataDiff := cmp.Diff(clusterConfigMap.Data, specConfigMap.Data)
+	labelsDiff := cmp.Diff(clusterConfigMap.ObjectMeta.Labels, specConfigMap.ObjectMeta.Labels)
+	if len(dataDiff) > 0 || len(labelsDiff) > 0 {
 		logrus.Infof("Updating existing object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
-		fmt.Printf("Difference:\n%s", diff)
+		fmt.Printf("Difference:\n%s\n%s", dataDiff, labelsDiff)
 		clusterConfigMap.Data = specConfigMap.Data
+		clusterConfigMap.ObjectMeta.Labels = specConfigMap.ObjectMeta.Labels
 		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterConfigMap)
 		return nil, err
 	}
@@ -50,6 +55,7 @@ func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.
 	return clusterConfigMap, nil
 }
 
+// GetSpecConfigMap returns config map spec template
 func GetSpecConfigMap(
 	deployContext *DeployContext,
 	name string,
@@ -79,6 +85,7 @@ func GetSpecConfigMap(
 	return configMap, nil
 }
 
+// GetClusterConfigMap reads config map from cluster
 func GetClusterConfigMap(name string, namespace string, client runtimeClient.Client) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
 	namespacedName := types.NamespacedName{

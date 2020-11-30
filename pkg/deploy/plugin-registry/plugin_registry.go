@@ -74,6 +74,8 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 			}
 		}
 
+		deployContext.InternalService.PluginRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistry, deployContext.CheCluster.Namespace)
+
 		// Deploy plugin registry
 		deploymentStatus := SyncPluginRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {

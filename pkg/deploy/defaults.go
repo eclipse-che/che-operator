@@ -14,10 +14,11 @@ package deploy
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -61,6 +62,7 @@ const (
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
 	DefaultPluginRegistryMemoryRequest = "16Mi"
 
+	// DefaultKube
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
@@ -97,6 +99,9 @@ const (
 	OldDefaultCodeReadyServerImageRepo = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	OldDefaultCodeReadyServerImageTag  = "1.2"
 	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
+
+	PartOfCheLabelKey   = "app.kubernetes.io/part-of"
+	PartOfCheLabelValue = "che.eclipse.org"
 )
 
 func InitDefaults(defaultsPath string) {

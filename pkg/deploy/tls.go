@@ -18,9 +18,11 @@ import (
 	"encoding/pem"
 	stderrors "errors"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -28,7 +30,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -42,6 +47,21 @@ const (
 	CheTLSJobComponentName                = "che-create-tls-secret-job"
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 	DefaultCheTLSSecretName               = "che-tls"
+
+	// CheCACertsConfigMapLabelKey is the label key which marks config map with additional CA certificates
+	CheCACertsConfigMapLabelKey = "app.kubernetes.io/component"
+	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
+	CheCACertsConfigMapLabelValue = "ca-bundle"
+	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
+	CheAllCACertsConfigMapName = "ca-certs-merged"
+	// CheMergedCAConfigMapRevisionsAnnotationKey is annotation name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
+	CheMergedCAConfigMapRevisionsAnnotationKey = "che.eclipse.org/included-configmaps"
+
+	// Local constants
+	// labelEqualSign consyant is used as a replacement for '=' symbol in labels because '=' is not allowed there
+	labelEqualSign = "-"
+	// labelCommaSign consyant is used as a replacement for ',' symbol in labels because ',' is not allowed there
+	labelCommaSign = "."
 )
 
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
@@ -459,4 +479,117 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 	if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), job); err != nil {
 		logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
 	}
+}
+
+// SyncAdditionalCACertsConfigMapToCluster makes sure that additional CA certs config map is up to date if any
+func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext *DeployContext) (*corev1.ConfigMap, error) {
+	// Get all source config maps, if any
+	caConfigMaps, err := getCACertsConfigMaps(deployContext)
+	if err != nil {
+		return nil, err
+	}
+	if len(cr.Spec.Server.ServerTrustStoreConfigMapName) > 0 {
+		crConfigMap := &corev1.ConfigMap{}
+		err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cr.Spec.Server.ServerTrustStoreConfigMapName}, crConfigMap)
+		if err != nil {
+			return nil, err
+		}
+		caConfigMaps = append(caConfigMaps, *crConfigMap)
+	}
+
+	mergedCAConfigMap := &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheAllCACertsConfigMapName}, mergedCAConfigMap)
+	if err == nil {
+		// Merged config map exists. Check if it is up to date.
+		caConfigMapsCurrentRevisions := make(map[string]string)
+		for _, cm := range caConfigMaps {
+			caConfigMapsCurrentRevisions[cm.Name] = cm.ResourceVersion
+		}
+
+		caConfigMapsCachedRevisions := make(map[string]string)
+		if mergedCAConfigMap.ObjectMeta.Annotations != nil {
+			if revisions, exists := mergedCAConfigMap.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey]; exists {
+				for _, cmNameRevision := range strings.Split(revisions, labelCommaSign) {
+					nameRevision := strings.Split(cmNameRevision, labelEqualSign)
+					if len(nameRevision) != 2 {
+						// The label value is invalid, recreate merged config map
+						break
+					}
+					caConfigMapsCachedRevisions[nameRevision[0]] = nameRevision[1]
+				}
+			}
+		}
+
+		if reflect.DeepEqual(caConfigMapsCurrentRevisions, caConfigMapsCachedRevisions) {
+			// Existing merged config map is up to date, do nothing
+			return mergedCAConfigMap, nil
+		}
+	} else {
+		if !errors.IsNotFound(err) {
+			return nil, err
+		}
+		// Merged config map doesn't exist. Create it.
+	}
+
+	// Merged config map is out of date or doesn't exist
+	// Merge all config maps into single one to mount inside Che components and workspaces
+	data := make(map[string]string)
+	revisions := ""
+	for _, cm := range caConfigMaps {
+		// Copy data
+		for key, dataRecord := range cm.Data {
+			data[cm.ObjectMeta.Name+"."+key] = dataRecord
+		}
+
+		// Save source config map revision
+		if revisions != "" {
+			revisions += labelCommaSign
+		}
+		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
+	}
+
+	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data)
+	if err != nil {
+		return nil, err
+	}
+	mergedCAConfigMapSpec.ObjectMeta.Labels[PartOfCheLabelKey] = PartOfCheLabelValue
+
+	if mergedCAConfigMapSpec.ObjectMeta.Annotations == nil {
+		mergedCAConfigMapSpec.ObjectMeta.Annotations = make(map[string]string)
+	}
+	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
+
+	logrus.Infof("Updating additional CA certs config map: %s", CheAllCACertsConfigMapName)
+	mergedCAConfigMap, err = SyncConfigMapToCluster(deployContext, mergedCAConfigMapSpec)
+	if err != nil {
+		return nil, err
+	}
+	return mergedCAConfigMap, nil
+}
+
+// getCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
+// The selection is based on the specific label
+func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
+	CACertsConfigMapList := &corev1.ConfigMapList{}
+
+	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
+	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(PartOfCheLabelKey, selection.Equals, []string{PartOfCheLabelValue})
+	listOptions := &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
+	}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
+		return nil, err
+	}
+
+	return CACertsConfigMapList.Items, nil
+}
+
+// GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
+func GetAdditionalCACertsConfigMapVersion(deployContext *DeployContext) string {
+	trustStoreConfigMap, _ := GetClusterConfigMap(CheAllCACertsConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if trustStoreConfigMap != nil {
+		return trustStoreConfigMap.ResourceVersion
+	}
+
+	return ""
 }

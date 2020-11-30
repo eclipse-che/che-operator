@@ -196,7 +196,7 @@ $ export IMAGE_REGISTRY_HOST="localhost:5000" && \
 > Tips: If minikube was installed locally(driver 'none', local installation minikube), then registry is available on the host 0.0.0.0 without port forwarding.
 But local installation minikube required 'sudo'.
 
-### 8. Test script arguments
+### 8. Test scripts arguments
 There are some often used test script arguments:
  - `platform` - 'openshift' or 'kubernetes'
  - `channel` - installation Olm channel: 'nightly' or 'stable'
