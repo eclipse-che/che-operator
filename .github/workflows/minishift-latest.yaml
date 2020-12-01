@@ -43,7 +43,7 @@ jobs:
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Generate Minishift certificates
-      run: /bin/bash .github/action_scripts/minishift_cert_gen.sh
+      run: /bin/bash .github/bin/minishift/certs.sh
     - name: Run tests
       run: /bin/bash .github/bin/minishift/test.sh
     # Run this step even the previous step fail
