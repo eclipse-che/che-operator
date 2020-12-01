@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
@@ -250,7 +249,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileChe{}
 var oAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
-var imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
 
 // ReconcileChe reconciles a CheCluster object
 type ReconcileChe struct {
@@ -311,143 +309,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		CheCluster:      instance,
 		InternalService: deploy.InternalService{},
 	}
-	// Determine what server groups the API Server knows about
-	foundPackagesAPI, foundOperatorsAPI, foundKubernetesImagePullerAPI, err := deploy.CheckNeededImagePullerApis(deployContext)
+
+	// Reconcile the imagePuller section of the CheCluster
+	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
 	if err != nil {
-		logrus.Errorf("Error discovering image puller APIs: %v", err)
-		return reconcile.Result{}, err
+		return imagePullerResult, err
 	}
-
-	// If the image puller should be installed but the APIServer doesn't know about PackageManifests/Subscriptions, log a warning and requeue
-	if instance.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI) {
-		logrus.Infof("Couldn't find Operator Lifecycle Manager types to install the Kubernetes Image Puller Operator.  Please install Operator Lifecycle Manager to install the operator or disable the image puller by setting spec.imagePuller.enable to false.")
-		return reconcile.Result{Requeue: true}, nil
-	}
-
-	if instance.Spec.ImagePuller.Enable {
-		// Check subscription, operatorgroup, clusterserviceversion
-		if foundOperatorsAPI && foundPackagesAPI {
-			// Get PackageManifest information about the kubernetes image puller operator
-			packageManifest, err := deploy.GetPackageManifest(deployContext)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					logrus.Info("There is no PackageManifest for the Kubernetes Image Puller Operator.  Install the Operator Lifecycle Manager and the Community Operators Catalog")
-					return reconcile.Result{Requeue: true}, nil
-				}
-				logrus.Errorf("Error getting packagemanifest: %v", err)
-				return reconcile.Result{}, err
-			}
-
-			// Create the operator group if it does not exist
-			createdOperatorGroup, err := deploy.CreateOperatorGroupIfNotFound(deployContext)
-			if err != nil {
-				logrus.Infof("Erorr creating OperatorGroup: %v", err)
-				return reconcile.Result{}, err
-			}
-			if createdOperatorGroup {
-				return reconcile.Result{Requeue: true}, nil
-			}
-
-			createdOperatorSubscription, err := deploy.CreateImagePullerSubscription(deployContext, packageManifest)
-			if err != nil {
-				logrus.Infof("Error creating Subscription: %v", err)
-				return reconcile.Result{}, err
-			}
-			if createdOperatorSubscription {
-				return reconcile.Result{Requeue: true}, nil
-			}
-
-			subscriptionsAreEqual, err := deploy.CompareExpectedSubscription(deployContext, packageManifest)
-			if err != nil {
-				logrus.Infof("Error checking Subscription equality: %v", err)
-				return reconcile.Result{}, nil
-			}
-			// If the Subscription Spec changed for some reason, update it
-			if !subscriptionsAreEqual {
-				updatedOperatorSubscription := deploy.GetExpectedSubscription(deployContext, packageManifest)
-				logrus.Infof("Updating Subscription")
-				err = r.nonCachedClient.Update(context.TODO(), updatedOperatorSubscription, &client.UpdateOptions{})
-				if err != nil {
-					logrus.Errorf("Error updating Subscription: %v", err)
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{Requeue: true}, nil
-			}
-
-			// Add the image puller finalizer
-			if !r.HasImagePullerFinalizer(instance) {
-				if err := r.ReconcileImagePullerFinalizer(instance); err != nil {
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{Requeue: true}, nil
-			}
-		}
-
-		// If the KubernetesImagePuller API service exists, attempt to reconcile creation/update
-		if foundKubernetesImagePullerAPI {
-			// Check KubernetesImagePuller options
-			imagePuller := &chev1alpha1.KubernetesImagePuller{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name + "-image-puller"}, imagePuller)
-			if err != nil {
-				if errors.IsNotFound(err) {
-
-					// If the image puller spec is empty, set default values, update the CheCluster CR and requeue
-					// These assignments are needed because the image puller operator updates the CR with a default configmap and deployment name
-					// if none are given.  Without these, che-operator will be stuck in an update loop
-					if instance.IsImagePullerSpecEmpty() {
-						logrus.Infof("Updating CheCluster to set KubernetesImagePuller default values")
-						_, err := deploy.UpdateImagePullerSpecIfEmpty(deployContext)
-						if err != nil {
-							logrus.Errorf("Error updating CheCluster: %v", err)
-							return reconcile.Result{}, err
-						}
-						return reconcile.Result{Requeue: true}, nil
-					}
-
-					logrus.Infof("Creating KubernetesImagePuller for CheCluster %v", instance.Name)
-					createdImagePuller, err := deploy.CreateKubernetesImagePuller(deployContext)
-					if err != nil {
-						logrus.Error("Error creating KubernetesImagePuller: ", err)
-						return reconcile.Result{}, err
-					}
-					if createdImagePuller {
-						return reconcile.Result{}, nil
-					}
-				}
-				logrus.Errorf("Error getting KubernetesImagePuller: %v", err)
-				return reconcile.Result{}, err
-			}
-
-			// If ImagePuller specs are different, update the KubernetesImagePuller CR
-			if imagePuller.Spec != instance.Spec.ImagePuller.Spec {
-				imagePuller.Spec = instance.Spec.ImagePuller.Spec
-				logrus.Infof("Updating KubernetesImagePuller %v", imagePuller.Name)
-				if err = r.client.Update(context.TODO(), imagePuller, &client.UpdateOptions{}); err != nil {
-					logrus.Errorf("Error updating KubernetesImagePuller: %v", err)
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{Requeue: true}, nil
-			}
-		}
-	} else {
-		removed, err := deploy.UninstallImagePullerOperator(deployContext)
-		if err != nil {
-			logrus.Errorf("Error uninstalling Image Puller: %v", err)
-			return reconcile.Result{}, err
-		}
-
-		if removed {
-			return reconcile.Result{Requeue: true}, nil
-		}
-
-		if r.HasImagePullerFinalizer(instance) {
-			err = r.DeleteImagePullerFinalizer(instance)
-			if err != nil {
-				logrus.Errorf("Error deleting finalizer: %v", err)
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{Requeue: true}, nil
-		}
+	if imagePullerResult.Requeue {
+		return imagePullerResult, err
 	}
 
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
