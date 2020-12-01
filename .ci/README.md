@@ -1,5 +1,5 @@
 # Che-Operator CI
-Che Operator currently support two CI launch cases for Pull Request checks:
+Che Operator currently support two CI flows for Pull Request checks:
   - [Github Actions](https://github.com/eclipse/che-operator/actions)
   - [Openshift CI](https://prow.ci.openshift.org/?job=*che*operator*)
 

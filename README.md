@@ -204,8 +204,13 @@ When the cluster is configured to use self-signed certificates for the router, t
 
 #### TLS with K8S
 
-By default self-signed certificates for Che will be generated automatically.
-If it is needed to use your own certificates, create `che-tls` secret (see `k8s.tlsSecretName` option) with `key.crt` and `tls.crt` fields. In case of self-signed certificate `self-signed-certificate` secret should be created with the public part of CA certificate under `ca.crt` key in secret data.
+By default self-signed certificates for Che will be generated automatically. If it is needed to use your own certificates, create `che-tls` secret (see `k8s.tlsSecretName` option) with `key.crt` and `tls.crt` fields. In case of self-signed certificate `self-signed-certificate` secret should be created with the public part of CA certificate under `ca.crt` key in secret data. It is possible to use default certificate of Kubernetes cluster by passing empty string as a value of tlsSecretName:
+
+```yaml
+spec:
+  k8s:
+    tlsSecretName: ''
+```
 
 ## Update Che operator deployment
 
