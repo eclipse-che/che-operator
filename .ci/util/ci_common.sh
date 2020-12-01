@@ -74,3 +74,19 @@ function getCheClusterLogs() {
   kubectl get events -n ${NAMESPACE}| tee get_events.log
   kubectl get all | tee get_all.log
 }
+
+function installYq() {
+  YQ=$(command -v yq) || true
+  if [[ ! -x "${YQ}" ]]; then
+    pip3 install wheel
+    pip3 install yq
+  fi
+  echo "[INFO] $(yq --version)"
+  echo "[INFO] $(jq --version)"
+}
+
+# Graps Eclipse Che logs
+function collectCheLogWithChectl() {
+  mkdir -p ${ARTIFACTS_DIR}
+  chectl server:logs --directory=${ARTIFACTS_DIR}
+}

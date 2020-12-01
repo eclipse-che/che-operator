@@ -52,7 +52,7 @@ jobs:
         eval $(minishift oc-env)
         eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
 
-        /bin/bash .ci/cico_minishift_nightly.sh
+        /bin/bash .ci/cico_minishift.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
