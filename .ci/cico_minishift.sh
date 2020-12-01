@@ -97,4 +97,5 @@ source "${OPERATOR_REPO}"/.ci/util/ci_common.sh
 
 init
 installYq
+prepareTemplates
 runTest
