@@ -315,7 +315,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil {
 		return imagePullerResult, err
 	}
-	if imagePullerResult.Requeue {
+	if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
 		return imagePullerResult, err
 	}
 
