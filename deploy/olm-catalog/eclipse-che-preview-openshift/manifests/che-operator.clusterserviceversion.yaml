@@ -82,68 +82,12 @@ metadata:
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.23.0-38.nightly
+  name: eclipse-che-preview-openshift.v7.23.0-42.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: The `CheCluster` custom resource allows defining and managing
-          a Che server installation
-        displayName: Eclipse Che Cluster
-        kind: CheCluster
-        name: checlusters.org.eclipse.che
-        specDescriptors:
-          - description: Deprecated. Instructs the operator to deploy Che in TLS mode.
-              This is enabled by default. Disabling TLS may cause malfunction of some
-              Che components.
-            displayName: Tls support
-            path: server.tlsSupport
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-        statusDescriptors:
-          - description: Status of a Che installation. Can be `Available`, `Unavailable`,
-              or `Available, Rolling Update in Progress`
-            displayName: Status
-            path: cheClusterRunning
-            x-descriptors:
-              - urn:alm:descriptor:io.kubernetes.phase
-          - description: Public URL to the Che server
-            displayName: Eclipse Che URL
-            path: cheURL
-            x-descriptors:
-              - urn:alm:descriptor:org.w3:link
-          - description: Current installed Che version
-            displayName: 'displayName: Eclipse Che version'
-            path: cheVersion
-            x-descriptors:
-              - urn:alm:descriptor:org.w3:link
-          - description: A URL that can point to some URL where to find help related
-              to the current Operator status.
-            displayName: Help link
-            path: helpLink
-            x-descriptors:
-              - urn:alm:descriptor:org.w3:link
-          - description: Public URL to the Identity Provider server (Keycloak / RH
-              SSO).
-            displayName: Keycloak Admin Console URL
-            path: keycloakURL
-            x-descriptors:
-              - urn:alm:descriptor:org.w3:link
-          - description: A human readable message indicating details about why the
-              pod is in this condition.
-            displayName: Message
-            path: message
-            x-descriptors:
-              - urn:alm:descriptor:text
-          - description: A brief CamelCase message indicating details about why the
-              pod is in this state.
-            displayName: Reason
-            path: reason
-            x-descriptors:
-              - urn:alm:descriptor:io.kubernetes.phase:reason
-              - urn:alm:descriptor:text
-        version: v1
       - description: The `CheCluster` custom resource allows defining and managing
           a Che server installation
         displayName: Eclipse Che Cluster
@@ -570,4 +514,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.23.0-38.nightly
+  version: 7.23.0-42.nightly
