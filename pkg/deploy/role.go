@@ -40,12 +40,12 @@ func SyncTLSRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			Resources: []string{
 				"secrets",
 			},
-			Verbs:     []string{
+			Verbs: []string{
 				"create",
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)	
+	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)
 }
 
 func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
@@ -57,12 +57,12 @@ func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			Resources: []string{
 				"pods/exec",
 			},
-			Verbs:     []string{
+			Verbs: []string{
 				"*",
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, "exec", execPolicyRule)	
+	return SyncRoleToCluster(deployContext, "exec", execPolicyRule)
 }
 
 func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
@@ -74,7 +74,7 @@ func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			Resources: []string{
 				"pods",
 			},
-			Verbs:     []string{
+			Verbs: []string{
 				"list", "get",
 			},
 		},
@@ -85,12 +85,12 @@ func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			Resources: []string{
 				"pods",
 			},
-			Verbs:     []string{
+			Verbs: []string{
 				"list", "get", "watch",
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, "view", viewPolicyRule)	
+	return SyncRoleToCluster(deployContext, "view", viewPolicyRule)
 }
 
 func SyncRoleToCluster(
@@ -113,7 +113,7 @@ func SyncRoleToCluster(
 		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRole)
 		return nil, err
 	}
-	
+
 	diff := cmp.Diff(clusterRole, specRole, roleDiffOpts)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existed object: %s, name: %s", clusterRole.Kind, clusterRole.Name)

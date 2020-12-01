@@ -2,11 +2,11 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Update vendor folder",
-            "command": "go mod vendor",
+            "label": "Compile che-operator code",
+            "command": "GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go",
             "options": {
                 "env": {
-                    "MOCK_API": "true"
+                    "ARCH": "amd64"
                 }
             },
             "type": "shell",
@@ -20,7 +20,43 @@
             "group": "build"
         },
         {
-            "label": "Run mock tests",
+            "label": "Format che-operator code",
+            "command": "go fmt ./...",
+            "options": {
+                "env": {
+                    "ARCH": "amd64"
+                }
+            },
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Update che-operator dependencies",
+            "command": "go mod vendor",
+            "options": {
+                "env": {
+                    "ARCH": "amd64"
+                }
+            },
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Run che-operator mock tests",
             "command": "go test -mod=vendor -v ./...",
             "options": {
                 "env": {

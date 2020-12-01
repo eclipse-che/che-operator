@@ -9,22 +9,27 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
-#set -e
+
+set -e
+set -x
 
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
-oc apply -f ${BASE_DIR}/deploy/service_account.yaml
-oc apply -f ${BASE_DIR}/deploy/role.yaml
-oc apply -f ${BASE_DIR}/deploy/role_binding.yaml
-oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role.yaml
-oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role_binding.yaml
-oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml
+NAMESPACE=$1
+
+oc apply -f ${BASE_DIR}/deploy/service_account.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/role.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/role_binding.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role_binding.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
 # sometimes the operator cannot get CRD right away
 sleep 2
 
 # uncomment if you need Login with OpenShift
 #oc new-app -f ${BASE_DIR}/deploy/role_binding_oauth.yaml -p NAMESPACE=$1 -n=$1
-#oc apply -f ${BASE_DIR}/deploy/cluster_role.yaml -n=$1
+#oc apply -f ${BASE_DIR}/deploy/cluster_role.yaml -n $NAMESPACE
+#oc apply -f ${BASE_DIR}/deploy/cluster_role_binding.yaml -n $NAMESPACE
 
-oc apply -f ${BASE_DIR}/deploy/operator.yaml
-oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml
+oc apply -f ${BASE_DIR}/deploy/operator.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml -n $NAMESPACE
