@@ -1,79 +1,100 @@
-## Che/CodeReady Workspaces Operator
+# Che/CodeReady Workspaces Operator
 
 Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a single or multi-user Eclipse Che/CodeReady Workspaces cluster.
 
 The operator watches for a Custom Resource of Kind `CheCluster`, and operator controller executes its business logic when a new Che object is created, namely:
 
 * creates k8s/OpenShift objects
-* verifies successful deployment of Postgres, Keycloak and Che
+* verifies successful deployment of Postgres, Keycloak, Devfile/Plugin registries and Che server
 * runs exec into Postgres and Keycloak pods to provisions databases, users, realm and clients
 * updates CR spec and status (passwords, URLs, provisioning statuses etc.)
 * continuously watches CR, update Che ConfigMap accordingly and schedule a new Che deployment
 * changes state of certain objects depending on CR fields:
     * turn on/off TLS mode (reconfigure routes, update ConfigMap)
     * turn on/off OpenShift oAuth (login with OpenShift in Che) (create identity provider, oAuth client, update Che ConfigMap)
-* updates Che deployment with a new image:tag when a new operator version brings in a new Che tag
+* etc
 
-### Build custom che-operator image
+Che operator is implemented using [operator framework](https://github.com/operator-framework) and the Go programming language. Eclipse Che configuration defined using a custom resource definition object and stored in the custom Kubernetes resource named CheCluster (Kubernetes API group `org.eclipse.checluster`). Che operator extends Kubernetes API to embed Eclipse Che to Kubernetes cluster in a native way.
 
-You can build a custom che-operator image using the following command in the root of the che-operator project:
+## CheCluster custom resource
+
+Che operator deploys Eclipse Che using configuration stored in the Kubernetes custom resource(CR). CR object structure defined in the code using `pkg/apis/org/v1/che_types.go` file. Field name defined using the serialization tag `json`, for example `json:"openShiftoAuth"`. Che operator default CR sample is stored in the `deploy/crds/org_v1_che_cr.yaml`. This file should be directly modified if you want to apply new fields with default values, or in case of changing default values for existing fields.
+Also, you can apply in the field comments Openshift UI annotations: to display some
+interactive information about these fields on the Openshift UI.
+For example:
+
+```go
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Eclipse Che URL"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
+```
+
+This comment-annotations displays clickable link on the Openshift ui with a text "Eclipse Che URL"
+
+It is mandatory to update the OLM bundle after modification of the CR sample to deploy Eclipse Che using OLM.
+
+## Build and push custom Che operator image
+
+1. Export environment variables:
+
+```bash
+$ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
+  export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
+```
+
+Where:
+- `IMAGE_REGISTRY_USER_NAME` - docker image registry account name.
+- `IMAGE_REGISTRY_HOST` - docker image registry hostname, for example: "docker.io", "quay.io". Host could be with a non default port: localhost:5000, 127.0.0.1:3000 and etc.
+
+2. Run VSCode task `Build and push custom che-operator image` or use the terminal:
 
 ```bash
 $ docker build -t ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly .
+$ docker push ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
 ```
 
-> Notice: you can use VSCode task `Build and push custom che-operator image`, but you need to specify env variables: 
-IMAGE_REGISTRY_HOST, IMAGE_REGISTRY_USER_NAME (use `.bashrc` for regular development).
-This task will build and push image with name `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly`
-to the registry.
+## Deploy Che operator
 
-### Using chectl to deploy che-operator
+### Deploy Che operator with chectl
 
-To test che-operator changes you can use chectl: https://github.com/che-incubator/chectl.
-chectl has got two installer types corresponding to che-operator: `operator` and `olm`.
-With the `operator` installer chectl reuses copies of che-operator deployment and role (cluster role) YAMLs, CR, CRD from the `deploy` directory.
-With `olm` installer chectl uses catalog source index image with olm bundles based on `deploy/olm-catalog`.
-chectl supports cluster platforms: "minikube", "minishift", "k8s", "openshift", "microk8s", "docker-desktop", "crc".
+To deploy Che operator you can use [chectl](https://github.com/che-incubator/chectl). It has got two installer types corresponding to Che operator: `operator` and `olm`. With the `--installer operator` chectl reuses copies of Che operator deployment and roles (cluster roles) YAMLs, CR, CRD from the `deploy` directory of the project. With `--installer olm` chectl uses catalog source index image with olm bundles from the `deploy/olm-catalog` directory.
 
-### Deploy che-operator with chectl via `operator` installer
+#### Deploy Che operator with chectl using `--installer operator` flag
 
-If you want to test a modified che-operator using chectl, you have to build a custom che-operator image.
-To learn more, see [Build custom che-operator image](#build-custom-che-operator-image)
+1. Build your custom operator image, see [How to Build che-operator Image](#build-and-push-custom-che-operator-image).
 
-Launch test cluster. Install Eclipse Che:
+2. Deploy Eclipse Che on a running k8s cluster:
 
 ```bash
-$ chectl deploy:server -n che --installer operator -p ${platform} --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
+$ chectl deploy:deploy --installer operator -p <PLATFORM> --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
 ```
 
-`platform` is a cluster platform supported by chectl.
+Where:
+- `PLATFORM` - k8s platform supported by chectl.
 
-> INFO: if you changed che-operator deployment or role/cluster role, CRD, CR, you must provide `--templates` argument.
-This argument will point chectl to your modified che-operator `deploy` folder path.
-
-### Deploy che-operator with chectl via OLM
-
-The following instructions show how to test Che operator under development using OLM installer.
-
-1. Build your custom operator image and use it in the operator deployment: [How to Build che-operator Image](#build-custom-che-operator-image).
-Push operator image to an image registry.
-
-2. Create newer OLM files by executing: `olm/update-nightly-bundle.sh`
-
-3. Build catalog source and bundle images.
-Use `olm/buildAndPushInitialBundle.sh` script with `platform` argument('openshift' or 'kubernetes'):
+> INFO: if you have changed Che operator deployment, roles, cluster roles, CRD or CR then you must use `--templates` flag to point chectl to modified Che operator templates. Copy all files from the `deploy` folder of the che-operator project into a folder `<SOME_PATH>/templates/che-operator` and use it with chectl:
 
 ```bash
-$ export IMAGE_REGISTRY_USER_NAME=${userName} && \
-  export IMAGE_REGISTRY_HOST=${imageRegistryHost} && \
-  olm/buildAndPushInitialBundle.sh ${platform}
+$ chectl deploy:deploy --installer operator -p <PLATFORM> --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly --templates <SOME_PATH>/templates
 ```
 
-Where are:
-  - `IMAGE_REGISTRY_USER_NAME` - your user account name in the image registry.
-  - `IMAGE_REGISTRY_HOST` - host of the image registry, for example: "docker.io", "quay.io". Host could be with a non default port: localhost:5000, 127.0.0.1:3000 and etc.
+#### Deploy Che operator with chectl using `--installer olm` flag
 
-4. Create custom catalog source yaml(update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
+1. Build your custom operator image, see [How to Build Che operator Image](#build-and-push-custom-che-operator-image).
+
+2. Create newer OLM files:
+
+```bash
+$ olm/update-nightly-bundle.sh
+```
+
+3. Build catalog source and bundle images:
+
+```bash
+$ olm/buildAndPushInitialBundle.sh <openshift|kubernentes>
+```
+
+4. Create a custom catalog source yaml (update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
 
 ```yaml
 apiVersion:  operators.coreos.com/v1alpha1
@@ -82,133 +103,47 @@ metadata:
   name:         eclipse-che-preview-custom
   namespace:    che-namespace
 spec:
-  image:        ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-catalog:preview
+  image:        <IMAGE_REGISTRY_HOST>/<IMAGE_REGISTRY_USER_NAME>/eclipse-che-<openshift|kubernentes>-opm-catalog:preview
   sourceType:  grpc
   updateStrategy:
     registryPoll:
       interval: 5m
 ```
-Replace value of `image` field with your catalog source image. Don't forget to specify the desired platform.
 
-5. Deploy Che using chectl:
-```sh
-$ chectl server:deploy --installer=olm --platform=${platform} -n ${che-namespace} --catalog-source-yaml ${path_to_custom_catalog_source_yaml} --olm-channel=nightly --package-manifest-name=eclipse-che-preview-${platform}
+5. Deploy Che operator:
+
+```bash
+$ chectl server:deploy --installer=olm --platform=<PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=nightly --package-manifest-name=eclipse-che-preview-<openshift|kubernentes>
 ```
 
-## Deploy che-operator using scripts
+### Deploy Che operator using bash script
 
-**IMPORTANT! Cluster Admin privileges are required**
+> WARNING: Cluster Admin privileges are required
 
 ```bash
 ./deploy.sh $namespace
 ```
 
-The script will create sa, role, role binding, operator deployment, CRD, and CR.
-
-Wait until Che deployment is scaled to 1 and Che route is created.
-
-When on pure k8s, make sure you provide a global ingress domain in `deploy/crds/org_v1_che_cr.yaml` for example:
+The script creates service account, roles, roles binding, operator deployment, CRD, and CR resources. Wait until Che deployment is scaled to 1 and Che pod is run. Make sure you provide a global ingress domain in `deploy/crds/org_v1_che_cr.yaml` for k8s platform, for example:
 
 ```bash
   k8s:
     ingressDomain: '192.168.99.101.nip.io'
 ```
 
-### Edit checluster CR using a command-line interface (terminal)
+## Deploy Che operator for different usecases
 
-You can modify any Kubernetes object using the UI (for example OpenShift web console).
-You can also modify Kubernetes objects using the terminal.
-You can edit checluster CR object using the command-line editor: 
+### Single user mode
 
-```bash
-$ oc edit checluster ${che-cluster-name} -n ${namespace}
-```
+Che operator deploys Eclipse Che with enabled multi-user mode by default. To start work each user should login/register using form, after that user will be redirected to the user dashboard.
 
-Where ${che-cluster-name} is a custom resource name, by default 'eclipse-che'.
-
-You can also modify the CheCluster using the `kubectl patch`. For example:
+To enable single user mode use the command line:
 
 ```bash
-$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
+$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"server": {"customCheProperties": {"CHE_MULTIUSER": "false"}}}}'
 ```
 
-### Update checluster using chectl
-
-You can update Che configuration using the `chectl server:update` command and the `--cr-patch` flag.
-
-## OpenShift OAuth
-
-OpenShift clusters include a built-in OAuth server. che-operator supports this authentication method.
-Use  'openShiftoAuth' CR property to enable/disable OAuth authentication. It's enabled by default.
-
-> INFO: If you are [using scripts to deploy che-operator](#deploy_che_operator_using_scripts), note that the che-operator service account needs to have cluster-admin privileges so that the operator can create OAuth client at a cluster scope.
-There is `oc adm` command in both deploy scripts. Uncomment it if you need this feature.
-Make sure your current user has cluster-admin privileges.
-
-To disable OAuth:
-
-- using command line:
-
-```bash
-$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
-```
-
-- You can also create `cr-patch.yaml` and use it with chectl:
-
-```yaml
-spec:
-  auth:
-    openShiftoAuth: false
-```
-
-And update che-cluster using chectl:
-
-```
-$ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
-```
-
-## TLS
-
-TLS is enabled by default.
-Turning it off is not recommended as it will cause malfunction of some components.
-But for development purposes you can do that.
-
-- using command line:
-
-```bash
-$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"server":{"tlsSupport": false}}}'
-```
-
-- Also you can create `cr-patch.yaml` and use it with chectl:
-
-```yaml
-spec:
-  server:
-    tlsSupport: false
-```
-
-And update che-cluster using chectl:
-
-```
-$ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
-```
-
-### Deploy multi-user Che
-
-che-operator deploys Eclipse Che with enabled multi-user mode by default.
-To start work each user should login/register using form, after that user will be redirected to the user dashboard.
-
-### Deploy single user Che
-
-To enable single user Che you can:
-
-- use command line:
-
-```bash
-$ kubectl patch checluster/eclipse-che -n ${eclipse-che-namespace} --type=merge -p '{"spec":{"server": {"customCheProperties": {"CHE_MULTIUSER": "false"}}}}'
-```
-
-- Also you can create `cr-patch.yaml` and use it with chectl:
+or create `cr-patch.yaml` and use it with chectl:
 
 ```yaml
 spec:
@@ -217,203 +152,197 @@ spec:
       CHE_MULTIUSER: "false"
 ```
 
-And update che-cluster using chectl:
-
 ```
-$ chectl server:update -n ${eclipse-che-namespace} --che-operator-cr-patch-yaml=/path/to/cr-patch.yaml
+$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
 ```
 
-### Deploy Che with single host strategy
+### OpenShift OAuth
 
-todo
+OpenShift clusters include a built-in OAuth server. Che operator supports this authentication method. It's enabled by default.
 
-#### OpenShift
+To disable OpenShift OAuth use command line:
 
-When the cluster is configured to use self-signed certificates for the router, the certificate will be automatically propagated to Che components as trusted.
-If cluster router uses certificate signed by self-signed one, then parent/root CA certificate should be added into corresponding config map of additional trusted certificates (see `serverTrustStoreConfigMapName` option).
+```bash
+$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
+```
 
-#### K8S
+or create `cr-patch.yaml` and use it with chectl:
+
+```yaml
+spec:
+  auth:
+    openShiftoAuth: false
+```
+
+```
+$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
+```
+
+### TLS
+
+TLS is enabled by default. Turning it off is not recommended as it will cause malfunction of some components. But for development purposes you can do that:
+
+```bash
+$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"server":{"tlsSupport": false}}}'
+```
+
+or create `cr-patch.yaml` and use it with chectl:
+
+```yaml
+spec:
+  server:
+    tlsSupport: false
+```
+
+```
+$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
+```
+
+#### TLS with OpenShift
+
+When the cluster is configured to use self-signed certificates for the router, the certificate is automatically propagated to Che components as trusted. If cluster router uses certificate signed by self-signed one, then parent/root CA certificate should be added into corresponding config map of additional trusted certificates (see `serverTrustStoreConfigMapName` option).
+
+#### TLS with K8S
 
 By default self-signed certificates for Che will be generated automatically.
 If it is needed to use your own certificates, create `che-tls` secret (see `k8s.tlsSecretName` option) with `key.crt` and `tls.crt` fields. In case of self-signed certificate `self-signed-certificate` secret should be created with the public part of CA certificate under `ca.crt` key in secret data.
 
-## How to Configure
+## Update Che operator deployment
 
-The operator watches all objects it creates and reconciles them with CR state. It means that if you edit a configMap **che**, the operator will revert changes.
-Since not all Che configuration properties are custom resource spec fields (there are simply too many of them), the operator creates a second configMap called **custom**
-which you can use for any environment variables not supported by the CR field. The operator will not reconcile configMap custom.
+### Edit checluster custom resource using a command-line interface (terminal)
 
-## Build and Deploy to a local cluster:
+You can modify any Kubernetes object using the UI (for example OpenShift web console) or you can also modify Kubernetes objects using the terminal:
 
-There's a little script that will build a local Docker image and deploy an operator to a selected namespace,
-as well as create a service account, role, role binding, CRD and example CR.
-
-```
-oc new-project $namespace
-build_deploy_local.sh $namespace
-
+```bash
+$ kubectl edit checluster eclipse-che -n <ECLIPSE-CHE-NAMESPACE>
 ```
 
-The above method will work only with Docker 17.x (does not work if you want to build in MiniShift/MiniKube). Mostly useful if you run `oc cluster up` locally.
+or:
 
-### Local debug che-operator(outside cluster)
+```bash
+$ kubectl patch checluster/eclipse-che --type=merge -p '<PATCH_JSON>' -n <ECLIPSE-CHE-NAMESPACE>
+```
 
-You can run/debug this operator on your local machine (not deployed to a k8s cluster)
+### Update checluster using chectl
 
-Go client grabs kubeconfig either from InClusterConfig or `~/.kube` locally.
-Make sure you oc login for Openshift cluster (or your current kubectl context points to a target cluster and namespace),
-and a current user/server account can create objects in a target namespace.
+You can update Che configuration using the `chectl server:update` command providing `--cr-patch` flag. See [chectl](https://github.com/che-incubator/chectl) for more details.
 
-To run che-operator in debug mode you can use `local-debug.sh` script. After process execution you should attach IDE debugger to debug port: 2345. Also you can see this port number in the process output.
-`local-debug.sh` script has got two arguments:
- - `-n` - Eclipse Che installation namespace. Default value is `che`.
- - `-cr` - path to the custom resource yaml definition. Default value points to file `./deploy/crds/org_v1_che_cr.yaml`.
+## Development
 
-For VSCode we have launch.json configuration `Che Operator`. So in the VSCode debugger you can find this debug
-configuration, select it, click `Start debugging` button. VSCode will attach a debugger to the che-operator process.
+### Debug Che operator
 
-## Debug test scripts
+You can run/debug this operator on your local machine (without deploying to a k8s cluster).
 
-che-operator has a lot of scripts and e2e test scripts to check che-operator code and detect regressions.
-This scripts using shell.
-To debug test scripts you can use the "Bash debug" VSCode extension.
-For a lot of test scripts you can find different debug configurations in the `.vscode/launch.json`.
+Go client grabs kubeconfig either from InClusterConfig or `~/.kube` locally. Make sure  your current kubectl context points to a target cluster and namespace and a current user can create objects in a target namespace.
 
-## Mock tests
-che-operator covered with mock tests.
+```bash
+`./local-debug.sh -n <ECLIPSE-CHE-NAMESPACE> -cr <CUSTOM_RESOURCE>
+```
 
-### Execute tests
+Where:
+* `ECLIPSE-CHE-NAMESPACE` - namespace name to deploy Che operator into, default is `che`
+* `CUSTOM_RESOURCE` - path to custom resource yaml, default is `./deploy/crds/org_v1_che_cr.yaml`
 
-You can execute tests using command:
+Use VSCode debug configuration `Che Operator` to attach to the running process.
+
+### Run and debug mock tests
+
+Che operator covered with mock tests. To run them use VSCode task `Run che-operator mock tests` or run in the terminal in the root of the project:
 
 ```bash
 $ export MOCK_API="true"; go test -mod=vendor -v ./...
 ```
 
-Also you can use VSCode task `Run che-operator mock tests`.
+To debug Che operator tests you can use VSCode `Launch Current File` debug configuration.
+For that you have to open file with a test, for example `pkg/controller/che/che_controller_test.go`, set up some breakpoints, select debug tab, select `Launch Current File` configuration in the debug panel and click the `Start debugging` button. Test will be executed with the environment variable `MOCK_API=true` to enable "mocks" mode.
 
-### Debug che-operator mock tests in VSCode 
-
-To debug che-operator tests you can use VSCode `Launch Current File` debug configuration.
-For that you have to open file with test, for example `pkg/controller/che/che_controller_test.go`,
-set up some breakpoints, select debug tab, select `Launch Current File` configuration in the debug panel
-and click the `Start debugging` button. Test will be executed with the environment variable `MOCK_API=true` to enable "mocks" mode.
-
-## E2E Tests
+### Run E2E tests
 
 `e2e` directory contains end-to-end tests that create a custom resource, operator deployment, required RBAC.
 
 Pre-reqs to run end-to-end (e2e) tests:
 
-* a running OpenShift instance (3.11+)
+* a running Minishift cluster
 * current oc/kubectl context as a cluster admin user
 
-### How to build tests binary
 ```bash
-OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $GOPATH/src/github.com/eclipse/che-operator/run-tests $GOPATH/src/github.com/eclipse/che-operator/e2e/*.go
+$ e2e/run_tests.sh
 ```
 
-Or you can build in a container:
+### Compile Che operator code
 
-```bash
-docker run -ti -v /tmp:/tmp -v ${OPERATOR_REPO}:/opt/app-root/src/go/src/github.com/eclipse/che-operator registry.redhat.io/devtools/go-toolset-rhel7:1.11.5-3 sh -c "OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/run-tests /opt/app-root/src/go/src/github.com/eclipse/che-operator/e2e/*.go"
-cp /tmp/run-tests ${OPERATOR_REPO}/run-tests
-```
-
-### How to run tests using real cluster(e2e)
-
-The resulting binary is created in the root of the repo. Make sure it is run from this location since it uses relative paths to yamls that are then deserialized.
-There's a script `run-okd-local.sh` which is more of a CI thing, however, if you can run `oc cluster up` in your environment, you are unlikely to have any issues.
-
-```
-./run-tests
-```
-
-Tests create a number of k8s/OpenShift objects and generally assume that a fresh installation of OpenShift is available.
-TODO: handle AlreadyExists errors to either remove Che namespace or create a new one with a unique name.
-
-### What/How we are testing?
-Documentation about all che operator test cases can be found [here](https://github.com/eclipse/che-operator/tree/master/.ci/README.md)
-#### Installation of Che/CRW
-
-A custom resource is created, which signals the operator to deploy Che/CRW with default settings.
-
-#### Configuration changes in runtime
-
-Once an successful installation of Che/CRW is verified, tests patch custom resource to:
-
-* enable oAuth
-* enable TLS mode
-
-Subsequent checks verify that the installation is reconfigured, for example uses secure routes or ConfigMap has the right Login-with-OpenShift values
-
-
-### Check che-operator compilation
-
-To check Che operator compilation, use the following command:
+The operator will be compiled to the binary `/tmp/che-operator/che-operator`.
+This command is useful to make sure that che-operator is still compiling after your changes. Run VSCode task: `Compile che-operator code` or use the terminal:
 
 ```bash
 GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 ```
 
-The operator will be compiled to the binary `/tmp/che-operator/che-operator`. 
-This command is useful to make sure that che-operator is still compiling after your changes.
-
-You can also use the corresponding VSCode task:`Compile che-operator code`. 
-
 ### Format code
 
-To format che-operator execute the following command:
+Run the VSCode task: `Format che-operator code` or use the terminal:
 
 ```bash
 $ go fmt ./...
 ```
 
-Also you can use the VSCode task: `Format che-operator code`.
-
 ### Update golang dependencies
 
-che-operator uses Go modules and a vendor folder. To update golang dependencies execute the following command:
+Che operator uses Go modules and a vendor folder. Run the VSCode task: `Update che-operator dependencies` or use the terminal:
 
 ```bash
 $ go mod vendor
 ```
 
-Also you can use VSCode task `Update che-operator dependencies`.
 New golang dependencies in the vendor folder should be committed and included in the pull request.
 
-## How to add new role/cluster role to che-operator
+### Updating Custom Resource Definition file
 
-che-operator uses Kubernetes api to manage Eclipse Che lifecycle.
-To request any resource objects from Kubernetes api, che-operator should pass authorization.
-Kubernetes authorization API uses role-based access control (RBAC) API(to learn more, see https://kubernetes.io/docs/reference/access-authn-authz/rbac/). che-operator has a service account, like a process inside a pod.
-Service account provides an identity for che-operator. The service account can be bound to some roles (or cluster roles).
-These roles allow the che-operator to request Kubernetes API resources.
-Role (or cluster role) bindings are used to bind roles (or cluster roles) to the che-operator service account.
+Che cluster custom resource definition (CRD) defines Eclipse CheCluster custom resource object. It contains information about object structure, field types, field descriptions.
+CRD file is a YAML definition located in the `deploy/crds/org_v1_che_crd.yaml`. The file is auto-generated, so do not edit it directly to update it. If you want to add new fields or fix descriptions in the CRD, make your changes in the file `pkg/apis/org/v1/che_types.go` and run VSCode task `Update cr/crd files` or use the terminal
 
-che-operator roles and cluster roles yaml definition located in the `deploy` folder.
-For example `role.yaml`. When you need to provide access to the new Kubernetes API part for che-operator, you need
-to add the following information to this file: 
+```bash
+$ olm/update-crd-files.sh
+```
+or
 
-  - api group
-  - resource/s name
-  - verbs - actions which che-operator can do on this resource/s
-
-When this role/cluster role was updated you should register `api` schema in the `pkg/controller/che/che_controller.go` in the `add` method:
-
-```go
-import (
-  ...
-	userv1 "github.com/openshift/api/user/v1"
-  ...
-)
-
-...
-		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
-			logrus.Errorf("Failed to add OpenShift User to scheme: %s", err)
-    }
-...
+```bash
+$ ./docker-run.sh olm/update-crd-files.sh
 ```
 
-Then you can use the new Kubernetes API part in the che-operator controller code. When code completed and your pr is ready you should
-generate a new OLM bundle.
+> Notice: this script contains commands to make the CRD compatible with Openshift 3.
+
+### Update nightly OLM bundle
+
+Sometimes, during development, you need to modify some YAML definitions in the `deploy` folder or Che cluster custom resource. There are most frequently changes which should be included to the new OLM bundle:
+  - operator deployment `deploy/operator.yaml`
+  - operator roles/cluster roles permissions. They are defined like role/rolebinding or cluster role/rolebinding yamls in the `deploy` folder.
+  - operator custom resource CR `deploy/crds/org_v1_che_cr.yaml`. This file contains the default CheCluster sample. Also this file is the default OLM CheCluster sample.
+  - Che cluster custom resource definition `pkg/apis/org/v1/che_types.go`. For example you want to fix some properties description or apply new Che type properties with default values. These changes affect CRD `deploy/crds/org_v1_che_crd.yaml`.
+  - add Openshift ui annotations for Che types properties (`pkg/apis/org/v1/che_types.go`) to display information or interactive elements on the Openshift user interface.
+
+For all these cases it's a necessary to generate a new OLM bundle to make these changes working with OLM. Run the VSCode tasks `Update csv bundle files` or use the terminal:
+
+```bash
+$ olm/update-nightly-bundle.sh
+```
+
+or
+
+```bash
+$ ./docker-run.sh olm/update-nightly-bundle.sh
+```
+
+Every changes will be included to the `deploy/olm-catalog` bundles and will override all previous changes. OLM bundle changes should be committed to the pull request.
+
+To update a bundle without version incrementation and time update you can use env variables `NO_DATE_UPDATE` and `NO_INCREMENT`. For example, during development you need to update bundle a lot of times with changed che-operator deployment or role, rolebinding and etc, but you don't want to increment the bundle version and time creation, when all desired changes were completed:
+
+```bash
+$ export NO_DATE_UPDATE="true" \
+&& export NO_INCREMENT="true" \
+&& olm/update-nightly-bundle.sh
+```
+
+### Che operator PR checks
+
+Documentation about all Che operator test cases can be found [here](https://github.com/eclipse/che-operator/tree/master/.ci/README.md)
