@@ -86,7 +86,16 @@ function installYq() {
 }
 
 # Graps Eclipse Che logs
-function collectCheLogWithChectl() {
+collectCheLogWithChectl() {
   mkdir -p ${ARTIFACTS_DIR}
   chectl server:logs --directory=${ARTIFACTS_DIR}
+}
+
+# Build latest operator image
+buildCheOperatorImage() {
+    docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+}
+
+copyCheOperatorImageToMinikube() {
+    eval $(minikube docker-env) && docker load -i operator.tar && rm operator.tar
 }
