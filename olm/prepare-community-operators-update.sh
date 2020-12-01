@@ -16,6 +16,9 @@ CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 source ${BASE_DIR}/check-yq.sh
 
+base_branch="master"
+fork_org="che-incubator"
+
 FORCE="" # normally, don't allow pushing to an existing branch
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -52,10 +55,10 @@ do
 
   rm -Rf "${communityOperatorsLocalGitFolder}"
   mkdir -p "${communityOperatorsLocalGitFolder}"
-  git clone https://github.com/che-incubator/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
+  git clone https://github.com/${fork_org}/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
   cd "${communityOperatorsLocalGitFolder}"
   git remote add upstream https://github.com/operator-framework/community-operators.git
-  git fetch upstream master:upstream/master
+  git fetch upstream ${base_branch}:upstream/${base_branch}
 
   branch="update-eclipse-che"
   if [ "${platform}" == "kubernetes" ]
@@ -65,7 +68,7 @@ do
   branch="${branch}-operator-${lastPackagePreReleaseVersion}"
   echo
   echo "   - Create branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
-  git checkout upstream/master
+  git checkout upstream/${base_branch}
   git checkout -b "${branch}" 2>&1 | sed -e 's/^/      /'
   cd "${packageBaseFolderPath}"
 
@@ -118,7 +121,30 @@ updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
   git add --all
   git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
   echo
-  echo "   - Push branch ${branch} to the 'che-incubator/community-operators' GitHub repository"
-  git push ${FORCE} "git@github.com:che-incubator/community-operators.git" "${branch}" 
+  echo "   - Push branch ${branch} to the '${fork_org}/community-operators' GitHub repository"
+  git push ${FORCE} "git@github.com:${fork_org}/community-operators.git" "${branch}"
+
+  echo
+  template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
+  HUB=$(command -v hub 2>/dev/null)
+  if [[ $HUB ]] && [[ -x $HUB ]]; then 
+    echo "   - Use $HUB to generate PR from template: ${template_file}"
+    PRbody=$(curl -sSLo - ${template_file} | \
+    sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
+
+    lastCommitComment="$(git log -1 --pretty=%B)"
+  $HUB pull-request -o -f -m "${lastCommitComment}
+
+${lastCommitComment}
+
+${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
+  else 
+    echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
+${template_file}
+
+https://github.com/${fork_org}/community-operators/pull/new/${branch}
+"
+  fi
+
 done
 cd "${CURRENT_DIR}"
