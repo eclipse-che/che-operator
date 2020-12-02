@@ -30,6 +30,7 @@ runTest() {
   prepareTemplates
   deployEclipseChe "operator" "minishift" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
+  waitWorkspaceStart
 }
 
 init

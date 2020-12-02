@@ -20,9 +20,6 @@ trap "catchFinish" EXIT SIGINT
 
 runTest() {
   source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" ${NAMESPACE} "catalog" "my_image"
-
-  sleep 5s
-
   startNewWorkspace
   waitWorkspaceStart
 }

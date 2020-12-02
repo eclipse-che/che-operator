@@ -193,11 +193,9 @@ updateEclipseChe() {
 
 startNewWorkspace() {
   # Create and start a workspace
+  sleep 5s
   chectl auth:login -u admin -p admin
   chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
-
-  # Wait for workspace to be up
-  waitWorkspaceStart
 }
 
 createWorkspace() {
