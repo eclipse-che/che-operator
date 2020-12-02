@@ -25,5 +25,5 @@ runTests() {
 }
 
 init
-initStableTemplates
+initStableTemplates "openshift" "stable"
 runTests

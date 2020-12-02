@@ -28,5 +28,5 @@ runTests() {
 }
 
 init
-initStableTemplates
+initStableTemplates "kubernetes" "stable"
 runTest
