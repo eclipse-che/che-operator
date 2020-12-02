@@ -199,11 +199,13 @@ startNewWorkspace() {
 }
 
 createWorkspace() {
+  sleep 5s
   chectl auth:login -u admin -p admin
   chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
 }
 
 startExistedWorkspace() {
+  sleep 5s
   chectl auth:login -u admin -p admin
   chectl workspace:list
   workspaceList=$(chectl workspace:list)

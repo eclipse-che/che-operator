@@ -29,14 +29,10 @@ runTest() {
   prepareTemplates
 
   deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}" ${PREVIOUS_OPERATOR_TEMPLATE}
-  sleep 5s
-
   createWorkspace
-  sleep 5s
 
   updateEclipseChe "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
-  sleep 5s
 
   startExistedWorkspace
   waitWorkspaceStart
