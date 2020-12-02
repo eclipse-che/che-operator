@@ -219,24 +219,24 @@ startExistedWorkspace() {
 }
 
 disableOpenShiftOAuth() {
-  updateYaml "'.spec.auth.openShiftoAuth = false'" "${1}/che-operator/crds/org_v1_che_cr.yaml"
+  updateYaml ".spec.auth.openShiftoAuth = false" "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 disableUpdateAdminPassword() {
-  updateYaml "'.spec.auth.updateAdminPassword = false'" "${1}/che-operator/crds/org_v1_che_cr.yaml"
+  updateYaml ".spec.auth.updateAdminPassword = false" "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 setServerExposureStrategy() {
-  updateYaml "'.spec.server.serverExposureStrategy = '${2}" "${1}/che-operator/crds/org_v1_che_cr.yaml"
+  updateYaml ".spec.server.serverExposureStrategy = ${2}" "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 setSingleHostExposureType() {
-  updateYaml "'.spec.k8s.singleHostExposureType = '${2}" "${1}/che-operator/crds/org_v1_che_cr.yaml"
+  updateYaml ".spec.k8s.singleHostExposureType = ${2}" "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 setCustomOperatorImage() {
-  updateYaml "'.spec.template.spec.containers[0].image = '${2}" "${1}/che-operator/operator.yaml"
-  updateYaml "'.spec.template.spec.containers[0].imagePullPolicy = IfNotPresent'" "${1}/che-operator/operator.yaml"
+  updateYaml ".spec.template.spec.containers[0].image = ${2}" "${1}/che-operator/operator.yaml"
+  updateYaml ".spec.template.spec.containers[0].imagePullPolicy = IfNotPresent" "${1}/che-operator/operator.yaml"
 }
 
 updateYaml() {
