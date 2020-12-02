@@ -44,11 +44,8 @@ jobs:
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Replace Minishift default certificates
       run: /bin/bash .github/bin/minishift/certs.sh
-    - name: Install operator courier
-      run: |
-        python -m pip install --upgrade pip
-        pip install operator-courier==2.1.7
-        pip install yq
+    - name: Install jq
+      run: sudo pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minishift/test-latest-operator.sh
     # Run this step even the previous step fail

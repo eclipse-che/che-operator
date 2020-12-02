@@ -32,13 +32,13 @@ prepareTemplates() {
 }
 
 runTests() {
-  prepareTemplates
   deployEclipseChe "operator" "openshift" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
   waitWorkspaceStart
 }
 
 init
-initLatestTemplates
 overrideDefaults
+initLatestTemplates
+prepareTemplates
 runTests

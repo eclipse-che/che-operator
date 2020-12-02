@@ -27,7 +27,6 @@ prepareTemplates() {
 }
 
 runTest() {
-  prepareTemplates
   deployEclipseChe "operator" "minishift" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
   waitWorkspaceStart
@@ -35,6 +34,7 @@ runTest() {
 
 init
 initLatestTemplates
+prepareTemplates
 # build is done on previous github action step
 copyCheOperatorImageToMinishift
 runTest

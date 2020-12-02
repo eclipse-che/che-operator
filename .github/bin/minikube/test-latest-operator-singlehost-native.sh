@@ -29,7 +29,6 @@ prepareTemplates() {
 }
 
 runTest() {
-  prepareTemplates
   deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
   waitWorkspaceStart
@@ -37,6 +36,7 @@ runTest() {
 
 init
 initLatestTemplates
+prepareTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest

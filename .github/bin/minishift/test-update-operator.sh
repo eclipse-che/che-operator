@@ -26,8 +26,6 @@ prepareTemplates() {
 }
 
 runTest() {
-  prepareTemplates
-
   deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}" ${PREVIOUS_OPERATOR_TEMPLATE}
   createWorkspace
 
@@ -40,4 +38,5 @@ runTest() {
 
 init
 initStableTemplates "openshift" "stable"
+prepareTemplates
 runTest

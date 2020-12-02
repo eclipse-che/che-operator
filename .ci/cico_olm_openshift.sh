@@ -28,7 +28,6 @@ function runTests() {
 
     # Execute test catalog source script
     source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "openshift" "nightly" ${NAMESPACE} "catalog" "che-catalog"
-    oc project ${NAMESPACE}
     startNewWorkspace
     waitWorkspaceStart
 }
