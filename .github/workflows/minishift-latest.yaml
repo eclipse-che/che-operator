@@ -47,7 +47,9 @@ jobs:
     - name: Install jq
       run: sudo pip install yq
     - name: Run tests
-      run: /bin/bash .github/bin/minishift/test-latest-operator.sh
+      run: |
+        eval $(minishift oc-env)
+        /bin/bash .github/bin/minishift/test-latest-operator.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

@@ -25,6 +25,7 @@ jobs:
       run: /bin/bash .github/bin/minishift/certs.sh
     - name: Run tests
       run: |
+        eval $(minishift oc-env)
         oc apply -f deploy/crds/org_v1_che_crd.yaml
         go mod tidy
         go run e2e/*.go

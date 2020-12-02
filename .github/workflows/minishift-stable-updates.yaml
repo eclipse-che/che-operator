@@ -30,7 +30,9 @@ jobs:
     - name: Replace Minishift default certificates
       run: /bin/bash .github/bin/minishift/certs.sh
     - name: Update minishift deprecated certificates and run e2e
-      run: /bin/bash .github/bin/minishift/test-update-operator.sh
+      run: |
+        eval $(minishift oc-env)
+        /bin/bash .github/bin/minishift/test-update-operator.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

@@ -155,6 +155,7 @@ deployEclipseChe() {
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
     --che-operator-image ${image} \
+    --skip-kubernetes-health-check \
     --che-operator-cr-yaml ${templates}/che-operator/crds/org_v1_che_cr.yaml \
     --templates ${templates}
 }
