@@ -238,3 +238,20 @@ setCustomOperatorImage() {
   yq -riSY  '.spec.template.spec.containers[0].image = '${2} "${1}/che-operator/operator.yaml"
   yq -riSY  '.spec.template.spec.containers[0].imagePullPolicy = IfNotPresent' "${1}/che-operator/operator.yaml"
 }
+
+insecurePrivateDockerRegistry() {
+  IMAGE_REGISTRY_HOST="0.0.0.0:5000"
+  export IMAGE_REGISTRY_HOST
+
+  local dockerDaemonConfig="/etc/docker/daemon.json"
+  sudo mkdir -p "/etc/docker"
+  sudo touch "${dockerDaemonConfig}"
+
+  config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
+  echo "${config}" | sudo tee "${dockerDaemonConfig}"
+
+  if [ -x "$(command -v docker)" ]; then
+      echo "[INFO] Restart docker daemon to set up private registry info."
+      sudo service docker restart
+  fi
+}

@@ -18,14 +18,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install minikube kubernetes cluster
-      run: /bin/bash .github/bin/minikube/provision-cluster.sh
-    - name: Install jq
-      run: sudo pip install yq
+    - name: Provision Minikube cluster
+      run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Run che operator updates minikube
-      run: /bin/bash .ci/cico_olm_minikube.sh
+      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Install operator courier
+      run: |
+        python -m pip install --upgrade pip
+        pip install operator-courier==2.1.7
+        pip install yq
+    - name: Run tests
+      run: /bin/bash .github/bin/minikube/test-latest-olm.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
