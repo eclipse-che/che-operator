@@ -44,6 +44,8 @@ jobs:
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Generate Minishift certificates
       run: /bin/bash .github/bin/minishift/certs.sh
+    - name: Install jq
+      run: sudo pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minishift/test-latest-operator.sh
     # Run this step even the previous step fail

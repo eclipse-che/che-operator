@@ -38,6 +38,8 @@ jobs:
       run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Install jq
+      run: sudo pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-latest-operator-singlehost-native.sh
     # Run this step even the previous step fail to upload artifacts to GH

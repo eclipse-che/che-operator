@@ -41,9 +41,6 @@ init() {
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
-
-  # install dependencies
-  installYq
 }
 
 initLatestTemplates() {
@@ -51,37 +48,37 @@ initLatestTemplates() {
 }
 
 initStableTemplates() {
-    export PLATFORM="openshift"
-  export NAMESPACE="che"
-  export CHANNEL="stable"
+  local platform=$1
+  local channel=$2
 
   # Get Stable and new release versions from olm files openshift.
-  export packageName=eclipse-che-preview-${PLATFORM}
+  export packageName=eclipse-che-preview-${platform}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
   export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
   export packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
 
-  export lastCSV=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${packageFilePath}")
-  export lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
+  export lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
+  export LAST_PACKAGE_VERSION=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
+
   export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
-  export previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+  export PREVIOUS_PACKAGE_VERSION=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
   export lastOperatorPath=${OPERATOR_REPO}/tmp/${lastPackageVersion}
   export previousOperatorPath=${OPERATOR_REPO}/tmp/${previousPackageVersion}
 
-  export lastOperatorTemplate=${lastOperatorPath}/chectl/templates
-  export previousOperatorTemplate=${previousOperatorPath}/chectl/templates
+  export LAST_OPERATOR_TEMPLATE=${lastOperatorPath}/chectl/templates
+  export PREVIOUS_OPERATOR_TEMPLATE=${previousOperatorPath}/chectl/templates
 
   # clone the exact versions to use their templates
   git clone --depth 1 --branch ${previousPackageVersion} https://github.com/eclipse/che-operator/ ${previousOperatorPath}
   git clone --depth 1 --branch ${lastPackageVersion} https://github.com/eclipse/che-operator/ ${lastOperatorPath}
 
   # chectl requires 'che-operator' template folder
-  mkdir -p "${lastOperatorTemplate}/che-operator"
-  mkdir -p "${previousOperatorTemplate}/che-operator"
+  mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"
+  mkdir -p "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
 
-  cp -rf ${previousOperatorPath}/deploy/* "${previousOperatorTemplate}/che-operator"
-  cp -rf ${lastOperatorPath}/deploy/* "${lastOperatorTemplate}/che-operator"
+  cp -rf ${previousOperatorPath}/deploy/* "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
+  cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
 }
 
 # Utility to wait for a workspace to be started after workspace:create.
@@ -162,6 +159,31 @@ deployEclipseChe() {
     --templates ${templates}
 }
 
+waitEclipseCheDeployed() {
+  local version=$1
+  export n=0
+
+  while [ $n -le 500 ]
+  do
+    cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
+    cheIsRunning=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheClusterRunning}" )
+    oc get pods -n ${NAMESPACE}
+    if [ "${cheVersion}" == "${version}" ] && [ "${cheIsRunning}" == "Available" ]
+    then
+      echo -e "\u001b[32m Eclipse Che ${version} has been succesfully deployed \u001b[0m"
+      break
+    fi
+    sleep 6
+    n=$(( n+1 ))
+  done
+
+  if [ $n -gt 360 ]
+  then
+    echo "Failed to deploy Eclipse Che ${version}"
+    exit 1
+  fi
+}
+
 updateEclipseChe() {
   local image=$1
   local templates=$2
@@ -169,13 +191,31 @@ updateEclipseChe() {
   chectl server:update -y --che-operator-image=${image} --templates=${templates}
 }
 
-startWorkspace() {
+startNewWorkspace() {
   # Create and start a workspace
   chectl auth:login -u admin -p admin
   chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
 
   # Wait for workspace to be up
   waitWorkspaceStart
+}
+
+createWorkspace() {
+  chectl auth:login -u admin -p admin
+  chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
+}
+
+startExistedWorkspace() {
+  chectl auth:login -u admin -p admin
+  chectl workspace:list
+  workspaceList=$(chectl workspace:list)
+
+  # Grep applied to MacOS
+  workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
+  workspaceID="${workspaceID%'ID'}"
+  echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
+
+  chectl workspace:start $workspaceID
 }
 
 disableOpenShiftOAuth() {

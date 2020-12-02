@@ -31,7 +31,7 @@ prepareTemplates() {
 runTest() {
   prepareTemplates
   deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
-  startWorkspace
+  startNewWorkspace
 }
 
 init

@@ -20,6 +20,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Install jq
+      run: sudo pip install yq
     - name: Install and start minishift OCP 3.11 cluster
       run: |
         brew cask install minishift
