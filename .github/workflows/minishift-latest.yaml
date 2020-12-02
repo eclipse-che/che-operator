@@ -42,7 +42,7 @@ jobs:
         minishift start --memory=5500 --vm-driver=virtualbox
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Generate Minishift certificates
+    - name: Replace Minishift default certificates
       run: /bin/bash .github/bin/minishift/certs.sh
     - name: Install jq
       run: sudo pip install yq

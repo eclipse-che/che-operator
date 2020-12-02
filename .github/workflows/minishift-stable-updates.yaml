@@ -18,23 +18,19 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install jq
-      run: sudo pip install yq
-    - name: Install and start minishift OCP 3.11 cluster
+    - name: Provision Minishift cluster
       run: |
         brew cask install minishift
         export MINISHIFT_GITHUB_API_TOKEN=${{ secrets.GITHUB_TOKEN }}
         minishift start --memory=5500 --vm-driver=virtualbox
-    - name: Generate minishift certificates
-      run: /bin/bash .github/action_scripts/minishift_cert_gen.sh
+    - name: Install chectl
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=stable
+    - name: Install jq
+      run: sudo pip install yq
+    - name: Replace Minishift default certificates
+      run: /bin/bash .github/bin/minishift/certs.sh
     - name: Update minishift deprecated certificates and run e2e
-      run: |
-        # Run E2E tests
-        eval $(minishift oc-env)
-        pip install yq
-        /bin/bash .github/bin/minishift/test-update-operator.sh
+      run: /bin/bash .github/bin/minishift/test-update-operator.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
