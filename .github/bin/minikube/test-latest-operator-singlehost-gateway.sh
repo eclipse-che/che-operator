@@ -25,7 +25,7 @@ prepareTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
-  setSingleHostExposureType ${TEMPLATES}"gateway"
+  setSingleHostExposureType ${TEMPLATES} "gateway"
 }
 
 runTest() {

@@ -60,18 +60,18 @@ initStableTemplates() {
   export lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
   export LAST_PACKAGE_VERSION=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
 
-  export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
+  export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${LAST_PACKAGE_VERSION}/${packageName}.v${LAST_PACKAGE_VERSION}.clusterserviceversion.yaml")
   export PREVIOUS_PACKAGE_VERSION=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
 
-  export lastOperatorPath=${OPERATOR_REPO}/tmp/${lastPackageVersion}
-  export previousOperatorPath=${OPERATOR_REPO}/tmp/${previousPackageVersion}
+  export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
+  export previousOperatorPath=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}
 
   export LAST_OPERATOR_TEMPLATE=${lastOperatorPath}/chectl/templates
   export PREVIOUS_OPERATOR_TEMPLATE=${previousOperatorPath}/chectl/templates
 
   # clone the exact versions to use their templates
-  git clone --depth 1 --branch ${previousPackageVersion} https://github.com/eclipse/che-operator/ ${previousOperatorPath}
-  git clone --depth 1 --branch ${lastPackageVersion} https://github.com/eclipse/che-operator/ ${lastOperatorPath}
+  git clone --depth 1 --branch ${PREVIOUS_PACKAGE_VERSION} https://github.com/eclipse/che-operator/ ${previousOperatorPath}
+  git clone --depth 1 --branch ${LAST_PACKAGE_VERSION} https://github.com/eclipse/che-operator/ ${lastOperatorPath}
 
   # chectl requires 'che-operator' template folder
   mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"
