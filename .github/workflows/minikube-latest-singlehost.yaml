@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Provision Minikube cluster
-      run:  /bin/bash .ci/start-minikube.sh
+      run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
@@ -35,7 +35,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Provision Minikube cluster
-      run:  /bin/bash .ci/start-minikube.sh
+      run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests

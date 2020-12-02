@@ -19,7 +19,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install minikube kubernetes cluster
-      run: /bin/bash .ci/start-minikube.sh
+      run: /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install jq
       run: sudo pip install yq
     - name: Install chectl

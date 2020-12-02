@@ -41,9 +41,47 @@ init() {
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
-  cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
 
+  # install dependencies
   installYq
+}
+
+initLatestTemplates() {
+  cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
+}
+
+initStableTemplates() {
+    export PLATFORM="openshift"
+  export NAMESPACE="che"
+  export CHANNEL="stable"
+
+  # Get Stable and new release versions from olm files openshift.
+  export packageName=eclipse-che-preview-${PLATFORM}
+  export platformPath=${OPERATOR_REPO}/olm/${packageName}
+  export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
+  export packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+
+  export lastCSV=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${packageFilePath}")
+  export lastPackageVersion=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
+  export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
+  export previousPackageVersion=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+
+  export lastOperatorPath=${OPERATOR_REPO}/tmp/${lastPackageVersion}
+  export previousOperatorPath=${OPERATOR_REPO}/tmp/${previousPackageVersion}
+
+  export lastOperatorTemplate=${lastOperatorPath}/chectl/templates
+  export previousOperatorTemplate=${previousOperatorPath}/chectl/templates
+
+  # clone the exact versions to use their templates
+  git clone --depth 1 --branch ${previousPackageVersion} https://github.com/eclipse/che-operator/ ${previousOperatorPath}
+  git clone --depth 1 --branch ${lastPackageVersion} https://github.com/eclipse/che-operator/ ${lastOperatorPath}
+
+  # chectl requires 'che-operator' template folder
+  mkdir -p "${lastOperatorTemplate}/che-operator"
+  mkdir -p "${previousOperatorTemplate}/che-operator"
+
+  cp -rf ${previousOperatorPath}/deploy/* "${previousOperatorTemplate}/che-operator"
+  cp -rf ${lastOperatorPath}/deploy/* "${lastOperatorTemplate}/che-operator"
 }
 
 # Utility to wait for a workspace to be started after workspace:create.
@@ -106,20 +144,29 @@ copyCheOperatorImageToMinishift() {
 deployEclipseChe() {
   local installer=$1
   local platform=$2
+  local image=$3
+  local templates=$4
 
   echo "[INFO] Eclipse Che custom resource"
-  cat ${TEMPLATES}/che-operator/crds/org_v1_che_cr.yaml
+  cat ${templates}/che-operator/crds/org_v1_che_cr.yaml
 
   echo "[INFO] Eclipse Che operator deployment"
-  cat ${TEMPLATES}/che-operator/operator.yaml
+  cat ${templates}/che-operator/operator.yaml
 
   chectl server:deploy \
     --platform=${platform} \
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
-    --che-operator-image ${OPERATOR_IMAGE} \
-    --che-operator-cr-yaml ${TEMPLATES}/che-operator/crds/org_v1_che_cr.yaml \
-    --templates ${TEMPLATES}
+    --che-operator-image ${image} \
+    --che-operator-cr-yaml ${templates}/che-operator/crds/org_v1_che_cr.yaml \
+    --templates ${templates}
+}
+
+updateEclipseChe() {
+  local image=$1
+  local templates=$2
+
+  chectl server:update -y --che-operator-image=${image} --templates=${templates}
 }
 
 startWorkspace() {
@@ -132,22 +179,22 @@ startWorkspace() {
 }
 
 disableOpenShiftOAuth() {
-  yq -riSY  '.spec.auth.openShiftoAuth = false' "${TEMPLATES}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -riSY  '.spec.auth.openShiftoAuth = false' "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 disableUpdateAdminPassword() {
-  yq -riSY  '.spec.auth.updateAdminPassword = false' "${TEMPLATES}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -riSY  '.spec.auth.updateAdminPassword = false' "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 setServerExposureStrategy() {
-  yq -riSY  '.spec.server.serverExposureStrategy = '$1 "${TEMPLATES}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -riSY  '.spec.server.serverExposureStrategy = '${2} "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 setSingleHostExposureType() {
-  yq -riSY  '.spec.k8s.singleHostExposureType = '$1 "${TEMPLATES}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -riSY  '.spec.k8s.singleHostExposureType = '${2} "${1}/che-operator/crds/org_v1_che_cr.yaml"
 }
 
 setCustomOperatorImage() {
-  yq -riSY  '.spec.template.spec.containers[0].image = '${OPERATOR_IMAGE} "${TEMPLATES}/che-operator/operator.yaml"
-  yq -riSY  '.spec.template.spec.containers[0].imagePullPolicy = IfNotPresent' "${TEMPLATES}/che-operator/operator.yaml"
+  yq -riSY  '.spec.template.spec.containers[0].image = '${2} "${1}/che-operator/operator.yaml"
+  yq -riSY  '.spec.template.spec.containers[0].imagePullPolicy = IfNotPresent' "${1}/che-operator/operator.yaml"
 }

@@ -32,7 +32,7 @@ jobs:
         # Run E2E tests
         eval $(minishift oc-env)
         pip install yq
-        /bin/bash .ci/cico_updates_minishift.sh
+        /bin/bash .github/bin/minishift/test-update-operator.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

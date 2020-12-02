@@ -14,27 +14,28 @@ set -e
 set -x
 set -u
 
-export OPERATOR_REPO=$(dirname $(dirname $(dirname $(readlink -f "$0"))));
+export OPERATOR_REPO=$(dirname $(dirname $(dirname $(dirname $(readlink -f "$0")))))
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 prepareTemplates() {
-  disableOpenShiftOAuth
-  disableUpdateAdminPassword
-  setCustomOperatorImage
-  setServerExposureStrategy "single-host"
-  setSingleHostExposureType "gateway"
+  disableOpenShiftOAuth ${TEMPLATES}
+  disableUpdateAdminPassword ${TEMPLATES}
+  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
+  setServerExposureStrategy ${TEMPLATES} "single-host"
+  setSingleHostExposureType ${TEMPLATES}"gateway"
 }
 
 runTest() {
   prepareTemplates
-  deployEclipseChe "operator" "minikube"
+  deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
   startWorkspace
 }
 
 init
+initLatestTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest
