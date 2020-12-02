@@ -238,6 +238,11 @@ setSingleHostExposureType() {
   yq -rSY '.spec.k8s.singleHostExposureType = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
+removeIngressDomain() {
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -rSY '.spec.k8s.ingressDomain = ""' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+}
+
 setCustomOperatorImage() {
   local file="${1}/che-operator/operator.yaml"
   yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}

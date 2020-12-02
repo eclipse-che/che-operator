@@ -26,6 +26,7 @@ prepareTemplates() {
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
   setSingleHostExposureType ${TEMPLATES} "gateway"
+  removeIngressDomain ${TEMPLATES}
 }
 
 runTest() {
