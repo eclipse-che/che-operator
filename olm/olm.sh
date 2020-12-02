@@ -13,13 +13,7 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-if [ -z "${BASE_DIR}" ]; then
-  SCRIPT=$(readlink -f "$0")
-  export SCRIPT
-
-  BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
-  export BASE_DIR
-fi
+BASE_DIR=${BASE_DIR:-$(dirname $(dirname $(readlink -f "$0")))/olm}
 
 ROOT_DIR=$(dirname "${BASE_DIR}")
 
@@ -64,7 +58,7 @@ else
     echo "[ERROR] Stable preview channel doesn't support installation using 'catalog'. Use 'Marketplace' instead of it."
     exit 1
   fi
-  
+
   platformPath="${BASE_DIR}/${packageName}"
   packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
   CSV_FILE="${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
@@ -105,7 +99,7 @@ EOF
 createRpcCatalogSource() {
 NAMESPACE=${1}
 indexIp=${2}
-cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $? 
+cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -411,7 +405,7 @@ getBundleListFromCatalogSource() {
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${CATALOG_IP}:${CATALOG_PORT}" api.Registry.ListBundles
   )
-  
+
   LIST_BUNDLES=$(echo "${LIST_BUNDLES}" | head -n -1)
 
   echo "${LIST_BUNDLES}"

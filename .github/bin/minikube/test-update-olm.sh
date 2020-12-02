@@ -20,7 +20,7 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-runTests() {
+runTest() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh "kubernetes" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   startNewWorkspace
