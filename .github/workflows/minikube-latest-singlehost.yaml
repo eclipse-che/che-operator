@@ -21,6 +21,11 @@ jobs:
       run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Install operator courier
+      run: |
+        python -m pip install --upgrade pip
+        pip install operator-courier==2.1.7
+        pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-latest-operator-singlehost-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
@@ -38,8 +43,11 @@ jobs:
       run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install jq
-      run: sudo pip install yq
+    - name: Install operator courier
+      run: |
+        python -m pip install --upgrade pip
+        pip install operator-courier==2.1.7
+        pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-latest-operator-singlehost-native.sh
     # Run this step even the previous step fail to upload artifacts to GH
