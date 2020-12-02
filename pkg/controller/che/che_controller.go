@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -590,6 +591,24 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		if !tests {
 			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	if len(instance.Spec.Server.CheClusterRoles) > 0 {
+		cheClusterRoles := strings.Split(instance.Spec.Server.CheClusterRoles, ",")
+		for _, cheClusterRole := range cheClusterRoles {
+			cheClusterRole := strings.TrimSpace(cheClusterRole)
+			cheClusterRoleBindingName := instance.Namespace + "-che-" + cheClusterRole
+			cheClusterRoleBinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
+			if cheClusterRoleBinding == nil {
+				logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
+				if err != nil {
+					logrus.Error(err)
+				}
+				if !tests {
+					return reconcile.Result{RequeueAfter: time.Second}, err
+				}
+			}
 		}
 	}
 

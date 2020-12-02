@@ -35,21 +35,21 @@ func SyncRoleBindingToCluster(
 		return nil, err
 	}
 
-	clusterRB, err := getClusterRoleBiding(specRB.Name, specRB.Namespace, deployContext.ClusterAPI.Client)
+	roleBinding, err := getRoleBiding(specRB.Name, specRB.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
 
-	if clusterRB == nil {
+	if roleBinding == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specRB.Kind, specRB.Name)
 		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRB)
 		return nil, err
 	}
 
-	return clusterRB, nil
+	return roleBinding, nil
 }
 
-func getClusterRoleBiding(name string, namespace string, client runtimeClient.Client) (*rbac.RoleBinding, error) {
+func getRoleBiding(name string, namespace string, client runtimeClient.Client) (*rbac.RoleBinding, error) {
 	roleBinding := &rbac.RoleBinding{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,

@@ -60,3 +60,4 @@ rules:
       - list
       - create
       - watch
+      - update

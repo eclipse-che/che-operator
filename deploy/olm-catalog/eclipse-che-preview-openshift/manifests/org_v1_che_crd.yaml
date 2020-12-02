@@ -311,6 +311,12 @@ spec:
                     to configured true without OAuth configured. This property is
                     also used by the OpenShift infra.
                   type: boolean
+                cheClusterRoles:
+                  description: Comma-separated list of ClusterRoles that will be assigned
+                    to che ServiceAccount. Be aware that che-operator has to already
+                    have all permissions in these ClusterRoles to be able to grant
+                    them.
+                  type: string
                 cheDebug:
                   description: Enables the debug mode for Che server. Defaults to
                     `false`.

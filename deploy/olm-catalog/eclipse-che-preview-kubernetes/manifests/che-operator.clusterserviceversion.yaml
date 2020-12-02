@@ -45,6 +45,7 @@ metadata:
             },
             "server": {
               "allowUserDefinedWorkspaceNamespaces": false,
+              "cheClusterRoles": "che-namespace-editor",
               "cheFlavor": "",
               "cheImage": "",
               "cheImageTag": "",
@@ -272,6 +273,7 @@ spec:
                 - list
                 - create
                 - watch
+                - update
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
