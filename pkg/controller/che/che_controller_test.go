@@ -162,7 +162,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Auth.OpenShiftoAuth = true
+	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}

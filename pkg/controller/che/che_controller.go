@@ -319,55 +319,21 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			host, err := getDefaultCheHost(deployContext)
 			if host == "" {
 				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
-			} else {
-				deployContext.DefaultCheHost = host
 			}
+			deployContext.DefaultCheHost = host
 		}
 	}
 
-	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth {
-		if isOpenShift4 {
-			oauthv1 := &oauthv1.OAuth{}
-			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
-				getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
-				logrus.Errorf(getOAuthV1ErrMsg)
-				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getOAuthV1ErrMsg, ""); err != nil {
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{}, err
-			}
-			if len(oauthv1.Spec.IdentityProviders) < 1 {
-				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
-				instance.Spec.Auth.OpenShiftoAuth = false
-				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-		} else {
-			users := &userv1.UserList{}
-			listOptions := &client.ListOptions{}
-			if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
-				getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
-				logrus.Errorf(getUsersErrMsg)
-				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, getUsersErrMsg, ""); err != nil {
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{}, err
-			}
-			if len(users.Items) < 1 {
-				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
-				instance.Spec.Auth.OpenShiftoAuth = false
-				if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", strconv.FormatBool(false)); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
+	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
+		if reconcileResult, err := r.autoEnableOAuth(instance, request, isOpenShift4); err != nil {
+			return reconcileResult, err
 		}
+	}
 
-		// delete oAuthClient before CR is deleted
-		if instance.Spec.Auth.OpenShiftoAuth {
-			if err := r.ReconcileFinalizer(instance); err != nil {
-				return reconcile.Result{}, err
-			}
+	// delete oAuthClient before CR is deleted
+	if instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth {
+		if err := r.ReconcileFinalizer(instance); err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -409,7 +375,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
+			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -425,7 +391,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		if instance.Spec.Auth.OpenShiftoAuth {
+		if instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
 			if err != nil {
@@ -1100,4 +1066,51 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 			Name:      checlusters.Items[0].Name,
 		},
 	}
+}
+
+func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
+	var message, reason string
+	if isOpenShift4 {
+		oauthv1 := &oauthv1.OAuth{}
+		if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
+			getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
+			logrus.Errorf(getOAuthV1ErrMsg)
+			message = getOAuthV1ErrMsg
+			reason = failedNoOpenshiftUserReason
+			cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+		} else {
+			cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(len(oauthv1.Spec.IdentityProviders) >= 1)
+			if !*cr.Spec.Auth.OpenShiftoAuth {
+				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
+			}
+		}
+	// openshift 3
+	} else {
+		users := &userv1.UserList{}
+		listOptions := &client.ListOptions{}
+		if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
+			getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
+			logrus.Errorf(getUsersErrMsg)
+			message = getUsersErrMsg
+			reason = failedNoOpenshiftUserReason
+			cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+		}
+
+		cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(len(users.Items) >= 1)
+		if !*cr.Spec.Auth.OpenShiftoAuth {
+			logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+		}
+	}
+
+	if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(*cr.Spec.Auth.OpenShiftoAuth)); err != nil {
+		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+	}
+
+	if message != "" && reason != "" {
+		if err := r.SetStatusDetails(cr, request, message, reason, ""); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	return reconcile.Result{}, nil
 }

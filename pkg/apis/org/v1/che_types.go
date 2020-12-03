@@ -406,7 +406,7 @@ type CheClusterSpecAuth struct {
 	// and have their workspaces created under personal OpenShift namespaces.
 	// WARNING: the `kubeadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.
 	// +optional
-	OpenShiftoAuth bool `json:"openShiftoAuth"`
+	OpenShiftoAuth *bool `json:"openShiftoAuth"`
 	// Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank.
 	// See also the `OpenShiftoAuth` field.
 	// +optional

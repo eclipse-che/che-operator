@@ -127,12 +127,9 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		}
 	}
 
-	if isOpenShift {
-		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
-		if doInstallOpenShiftoAuthProvider {
-			if err := SyncIdentityProviderItems(deployContext, cheFlavor); err != nil {
-				return false, err
-			}
+	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth {
+		if err := SyncIdentityProviderItems(deployContext, cheFlavor); err != nil {
+			return false, err
 		}
 	}
 

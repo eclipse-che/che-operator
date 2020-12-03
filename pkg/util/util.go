@@ -330,3 +330,10 @@ func GetArchitectureDependentEnv(env string) string {
 
 	return env
 }
+
+// GetBoolPointer returns `bool` pointer to value in the memory. 
+// Unfortunately golang hasn't got syntax to create `bool` pointer.
+func GetBoolPointer(value bool) *bool {
+	variable := value
+	return &variable
+}

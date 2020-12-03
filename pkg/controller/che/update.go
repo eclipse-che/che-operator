@@ -46,7 +46,7 @@ func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField 
 }
 
 func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isOpenShift4 bool) (deleted bool, err error) {
-	if instance.Spec.Auth.OpenShiftoAuth == false && instance.Status.OpenShiftoAuthProvisioned == true {
+	if instance.Spec.Auth.OpenShiftoAuth != nil && !*instance.Spec.Auth.OpenShiftoAuth && instance.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: instance.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
