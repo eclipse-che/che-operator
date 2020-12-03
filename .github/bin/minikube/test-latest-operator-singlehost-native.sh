@@ -26,7 +26,7 @@ prepareTemplates() {
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
   setSingleHostExposureType ${TEMPLATES} "native"
-  removeIngressDomain ${TEMPLATES}
+  setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
 }
 
 runTest() {
