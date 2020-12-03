@@ -152,6 +152,7 @@ buildBundleImage() {
 
   # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
+  SKIP_TLS_VERIFY=""
   if [ "${imageTool}" == "podman" ]; then
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
