@@ -87,8 +87,7 @@ waitWorkspaceStart() {
   export x=0
   while [ $x -le 180 ]
   do
-    getCheAcessToken
-
+    chectl auth:login -u admin -p admin
     chectl workspace:list
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')

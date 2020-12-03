@@ -13,9 +13,10 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-BASE_DIR=${BASE_DIR:-$(dirname $(dirname $(readlink -f "$0")))/olm}
-
+BASE_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))/olm
 ROOT_DIR=$(dirname "${BASE_DIR}")
+
+source ${ROOT_DIR}/olm/check-yq.sh
 
 SOURCE_INSTALL=$4
 
