@@ -177,11 +177,14 @@ buildCatalogImage() {
 
   imageTool=${3:-docker}
 
-  FROM_INDEX=${4}
-  if [ -n "${FROM_INDEX}" ]; then
+  FROM_INDEX=${4:-""}
+  BUILD_INDEX_IMAGE_ARG=""
+  if [ ! "${FROM_INDEX}" == "" ]; then
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
   fi
 
+  SKIP_TLS_ARG=""
+  SKIP_TLS_VERIFY=""
   if [ "${imageTool}" == "podman" ]; then
     SKIP_TLS_ARG=" --skip-tls"
     SKIP_TLS_VERIFY=" --tls-verify=false"
