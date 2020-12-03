@@ -17,7 +17,7 @@ BASE_DIR=${BASE_DIR:-$(dirname $(dirname $(readlink -f "$0")))/olm}
 
 ROOT_DIR=$(dirname "${BASE_DIR}")
 
-source ${ROOT_DIR}/olm/check-yq.sh
+source $(dirname $(dirname $(readlink -f "$0")))/olm/check-yq.sh
 
 SOURCE_INSTALL=$4
 
