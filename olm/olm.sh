@@ -297,10 +297,7 @@ installOperatorMarketPlace() {
 }
 
 subscribeToInstallation() {
-  CSV_NAME="${1}"
-  if [ -z "${CSV_NAME}" ]; then
-    CSV_NAME="${CSV}"
-  fi
+  CSV_NAME="${1-${CSV}}"
 
   echo "Subscribing to version: ${CSV_NAME}"
 

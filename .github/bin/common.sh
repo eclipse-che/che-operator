@@ -38,6 +38,10 @@ init() {
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
+  export XDG_DATA_HOME=/tmp/chectl/data
+  export XDG_CACHE_HOME=/tmp/chectl/cache
+  export XDG_CONFIG_HOME=/tmp/chectl/config
+
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
