@@ -74,3 +74,28 @@ function getCheClusterLogs() {
   kubectl get events -n ${NAMESPACE}| tee get_events.log
   kubectl get all | tee get_all.log
 }
+
+function installYq() {
+  YQ=$(command -v yq) || true
+  if [[ ! -x "${YQ}" ]]; then
+    pip3 install wheel
+    pip3 install yq
+  fi
+  echo "[INFO] $(yq --version)"
+  echo "[INFO] $(jq --version)"
+}
+
+# Graps Eclipse Che logs
+collectCheLogWithChectl() {
+  mkdir -p ${ARTIFACTS_DIR}
+  chectl server:logs --directory=${ARTIFACTS_DIR}
+}
+
+# Build latest operator image
+buildCheOperatorImage() {
+    docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+}
+
+copyCheOperatorImageToMinikube() {
+    eval $(minikube docker-env) && docker load -i operator.tar && rm operator.tar
+}

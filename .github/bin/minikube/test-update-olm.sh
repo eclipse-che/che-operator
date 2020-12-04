@@ -13,16 +13,19 @@
 set -e
 set -x
 
-export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+export OPERATOR_REPO=$(dirname $(dirname $(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))))
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 
-runTests() {
-  "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
+# Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
+runTest() {
+  "${OPERATOR_REPO}"/olm/testUpdate.sh "kubernetes" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   startNewWorkspace
   waitWorkspaceStart
 }
 
 init
-initStableTemplates "openshift" "stable"
-runTests
+initStableTemplates "kubernetes" "stable"
+runTest

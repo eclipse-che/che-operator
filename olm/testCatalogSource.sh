@@ -83,9 +83,7 @@ fi
 # Assign catalog source image
 CATALOG_SOURCE_IMAGE=$5
 
-if [ -z "${IMAGE_REGISTRY_USER_NAME}" ]; then
-  IMAGE_REGISTRY_USER_NAME=eclipse
-fi
+IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
 echo "[INFO] Image 'IMAGE_REGISTRY_USER_NAME': ${IMAGE_REGISTRY_USER_NAME}"
 
 init() {
@@ -118,7 +116,7 @@ init() {
 
 buildOLMImages() {
   # Manage catalog source for every platform in part.
-  # 1. Kubernetes: 
+  # 1. Kubernetes:
   #    a) Use Minikube cluster. Enable registry addon, build catalog source and olm bundle images, push them to embedded private registry.
   #    b) Provide image registry env variables to push images to the real public registry(docker.io, quay.io etc).
   # 2. Openshift: build bundle image and push it using image stream. Launch deployment with custom grpc based catalog source image to install the latest bundle.
@@ -127,7 +125,7 @@ buildOLMImages() {
     echo "[INFO]: Kubernetes platform detected"
 
     # Build operator image
-    if [ -n "${OPERATOR_IMAGE}" ];then 
+    if [ -n "${OPERATOR_IMAGE}" ];then
       echo "[INFO]: Build operator image ${OPERATOR_IMAGE}..."
       cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
@@ -257,7 +255,7 @@ run() {
   if [ ! ${PLATFORM} == "openshift" ] && [ "${CHANNEL}" == "nightly" ]; then
     forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
   fi
-  
+
   installOperatorMarketPlace
   subscribeToInstallation
 

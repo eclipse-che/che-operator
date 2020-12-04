@@ -17,36 +17,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install minikube kubernetes cluster
-      run:  /bin/bash .ci/start-minikube.sh
+    - name: Provision Minikube cluster
+      run:  /bin/bash .github/bin/minikube/provision-cluster.sh
+    - name: Install chectl
+      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Install jq
       run: sudo pip install yq
-    - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Run che operator single host tests
-      run: /bin/bash .github/action_scripts/nightly/minikube/single-host-gateway.sh
+    - name: Run tests
+      run: /bin/bash .github/bin/minikube/test-latest-operator-singlehost-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-single-host-gateway
+        name: minikube-single-host-gateway-artifacts
         path: /tmp/artifacts-che
   minikube-native:
     name: Testing latest changes (single-host/native)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install minikube kubernetes cluster
-      run:  /bin/bash .ci/start-minikube.sh
-    - name: Install jq
-      run: sudo pip install yq
+    - name: Provision Minikube cluster
+      run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Run che operator single host tests
-      run: /bin/bash .github/action_scripts/nightly/minikube/single-host-native.sh
+    - name: Install jq
+      run: sudo pip install yq
+    - name: Run tests
+      run: /bin/bash .github/bin/minikube/test-latest-operator-singlehost-native.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-single-host-native
+        name: minikube-single-host-native-artifacts
         path: /tmp/artifacts-che
