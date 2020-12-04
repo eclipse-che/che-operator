@@ -12,7 +12,6 @@
 
 set -e
 set -x
-set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(dirname $(dirname "${BASH_SOURCE[0]}"))))
 source "${OPERATOR_REPO}"/.github/bin/common.sh

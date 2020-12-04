@@ -163,7 +163,7 @@ buildBundleImage() {
 
 # Build catalog source image with index based on bundle image.
 buildCatalogImage() {
-  export CATALOG_IMAGENAME=${1}
+  CATALOG_IMAGENAME=${1}
   if [ -z "${CATALOG_IMAGENAME}" ]; then
     echo "Please specify first argument: catalog image"
     exit 1

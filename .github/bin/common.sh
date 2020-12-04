@@ -11,8 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -o pipefail
-set -u
 set -x
 
 catchFinish() {

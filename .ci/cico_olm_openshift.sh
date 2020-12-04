@@ -10,7 +10,6 @@
 
 set -e
 set -x
-set -u
 
 # Component is defined in Openshift CI job configuration. See: https://github.com/openshift/release/blob/master/ci-operator/config/devfile/devworkspace-operator/devfile-devworkspace-operator-master__v4.yaml#L8
 export CI_COMPONENT="che-operator-catalog"
@@ -27,7 +26,7 @@ function runTests() {
     export OAUTH="false"
 
     # Execute test catalog source script
-    source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "openshift" "nightly" ${NAMESPACE} "catalog" "che-catalog"
+    "${OPERATOR_REPO}"/olm/testCatalogSource.sh "openshift" "nightly" ${NAMESPACE} "catalog" "che-catalog"
     startNewWorkspace
     waitWorkspaceStart
 }
