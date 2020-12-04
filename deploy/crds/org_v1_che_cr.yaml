@@ -30,10 +30,9 @@ spec:
     # the difference is in images, labels, exec commands
     cheFlavor: ''
     # Comma-separated list of ClusterRoles that will be assigned
-    # to che ServiceAccount. By default it is set to `che-namespace-editor`, which is used by Che
-    # to label the namespaces. Set it empty to not grant any cluster-wide permissions to Che ServiceAccount.
-    # Be aware that che-operator has to already have all permissions in these ClusterRoles to be able to grant them.
-    cheClusterRoles: 'che-namespace-editor'
+    # to che ServiceAccount. Be aware that che-operator has to already have all permissions in these
+    # ClusterRoles to be able to grant them.
+    cheClusterRoles: ''
     # specifies a custom cluster role to user for the Che workspaces
     # Uses the default roles if left blank.
     cheWorkspaceClusterRole: ''
