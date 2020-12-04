@@ -37,9 +37,10 @@ function waitWorkspaceStart() {
   do
     getCheAcessToken
 
-    chectl workspace:list
+    chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
+    echo -e ""
 
     if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
     then
@@ -53,6 +54,49 @@ function waitWorkspaceStart() {
   if [ $x -gt 180 ]
   then
     echo "[ERROR] Workspace didn't start after 3 minutes."
+    exit 1
+  fi
+}
+
+# Create cheCluster object in Openshift ci with desired values
+function applyCRCheCluster() {
+  echo "Creating Custom Resource"
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
+  CR=$(echo "$CRs" | yq -r ".[0]")
+  if [ "${PLATFORM}" == "kubernetes" ]
+  then
+    CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
+  fi
+  if [ "${PLATFORM}" == "openshift" ] && [ "${OAUTH}" == "false" ]; then
+    CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = false")
+  fi
+
+  echo "$CR" | oc apply -n "${NAMESPACE}" -f -
+}
+
+# Wait for CheCluster object to be ready
+function waitCheServerDeploy() {
+  echo "[INFO] Waiting for Che server to be deployed"
+  set +e
+
+  i=0
+  while [[ $i -le 480 ]]
+  do
+    status=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o jsonpath={.status.cheClusterRunning})
+    echo -e ""
+    echo -e "[INFO] Che deployment status:"
+    oc get pods -n "${NAMESPACE}"
+    if [ "${status:-UNAVAILABLE}" == "Available" ]
+    then
+      break
+    fi
+    sleep 10
+    ((i++))
+  done
+
+  if [ $i -gt 480 ]
+  then
+    echo "[ERROR] Che server did't start after 8 minutes"
     exit 1
   fi
 }
