@@ -148,3 +148,9 @@ https://github.com/${fork_org}/community-operators/pull/new/${branch}
 
 done
 cd "${CURRENT_DIR}"
+
+echo 
+echo "Generated pull requests will be here:
+
+https://github.com/operator-framework/community-operators/pulls?q=is%3Apr+%22Update+eclipse-che+operator+for%22+is%3Aopen
+"
