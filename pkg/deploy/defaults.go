@@ -375,7 +375,7 @@ func InitDefaultsFromEnv() {
 	if !util.IsOpenShift {
 		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
-	defaultKubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.3"
+	defaultKubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
 }
 
 func InitTestDefaultsFromDeployment(deploymentFile string) error {
