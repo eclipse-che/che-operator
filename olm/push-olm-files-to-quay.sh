@@ -74,6 +74,14 @@ do
     }
 }' | jq -r '.token')
   # if [[ ${AUTH_TOKEN} ]]; then echo "[DEBUG] Got token"; fi
+
+  # move all diff files away so we don't get warnings about invalid file names
+  find . -name "*.yaml.diff" -exec rm -f {} \; || true
+
+  # push new applications to quay.io/application/eclipse-che-operator-*
   operator-courier push generated/flatten "${quayNamespace}" "${packageName}" "${applicationVersion}" "${AUTH_TOKEN}"
+
+  # now put them back
+  git checkout . || true
 done
 cd "${CURRENT_DIR}"
