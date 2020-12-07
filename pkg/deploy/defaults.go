@@ -48,7 +48,6 @@ var (
 		"app":       "che",
 		"component": "che-gateway-config",
 	}
-	defaultKubernetesImagePullerOperatorCSV string
 )
 
 const (
@@ -85,6 +84,8 @@ const (
 	DefaultServerMemoryLimit        = "1Gi"
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
+
+	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
 
 	DefaultServerExposureStrategy           = "multi-host"
 	DefaultKubernetesSingleHostExposureType = "native"
@@ -263,7 +264,7 @@ func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
 }
 
 func DefaultKubernetesImagePullerOperatorCSV() string {
-	return defaultKubernetesImagePullerOperatorCSV
+	return KubernetesImagePullerOperatorCSV
 }
 
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
@@ -375,7 +376,6 @@ func InitDefaultsFromEnv() {
 	if !util.IsOpenShift {
 		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
-	defaultKubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
 }
 
 func InitTestDefaultsFromDeployment(deploymentFile string) error {

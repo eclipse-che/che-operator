@@ -60,7 +60,7 @@ import (
 var (
 	name            = "eclipse-che"
 	namespace       = "eclipse-che"
-	csvName         = "kubernetes-imagepuller-operator.v0.0.3"
+	csvName         = "kubernetes-imagepuller-operator.v0.0.4"
 	packageManifest = &packagesv1.PackageManifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes-imagepuller-operator",
