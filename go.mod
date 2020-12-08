@@ -3,18 +3,20 @@ module github.com/eclipse/che-operator
 go 1.13
 
 require (
-	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20200901231735-f852a5a3ea5c // indirect
+	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20200901231735-f852a5a3ea5c
 	github.com/google/go-cmp v0.4.0
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
+	github.com/operator-framework/api v0.3.20
+	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20191115003340-16619cd27fa5
 	github.com/operator-framework/operator-sdk v0.15.2
 	github.com/prometheus/common v0.7.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
-	gopkg.in/yaml.v2 v2.2.5
-	k8s.io/api v0.17.0
-	k8s.io/apimachinery v0.17.1
+	gopkg.in/yaml.v2 v2.2.8
+	k8s.io/api v0.18.2
+	k8s.io/apimachinery v0.18.2
 	k8s.io/client-go v12.0.0+incompatible
-	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/controller-runtime v0.6.0
 )
 
 // Pinned to kubernetes-1.16.2
@@ -40,6 +42,7 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.0.0-20191016115753-cf0698c3a16b
 	k8s.io/metrics => k8s.io/metrics v0.0.0-20191016113814-3b1a734dba6e
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20191016112829-06bb3c9d77c9
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
 )
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
