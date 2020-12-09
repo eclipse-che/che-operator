@@ -76,13 +76,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2020-12-04T12:44:49Z"
+    createdAt: "2020-12-08T17:07:23Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.23.0-38.nightly
+  name: eclipse-che-preview-openshift.v7.23.0-46.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -338,7 +338,7 @@ spec:
                       - name: RELATED_IMAGE_pvc_jobs
                         value: registry.access.redhat.com/ubi8-minimal:8.3-201
                       - name: RELATED_IMAGE_postgres
-                        value: centos/postgresql-96-centos7:9.6
+                        value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_keycloak
                         value: quay.io/eclipse/che-keycloak:nightly
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
@@ -463,6 +463,27 @@ spec:
                 - get
                 - list
                 - watch
+            - apiGroups:
+                - che.eclipse.org
+              resources:
+                - kubernetesimagepullers
+              verbs:
+                - '*'
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - subscriptions
+                - clusterserviceversions
+                - operatorgroups
+              verbs:
+                - '*'
+            - apiGroups:
+                - packages.operators.coreos.com
+              resources:
+                - packagemanifests
+              verbs:
+                - get
+                - list
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
@@ -493,4 +514,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.23.0-36.nightly
+  version: 7.23.0-46.nightly
