@@ -252,7 +252,7 @@ setCustomOperatorImage() {
 }
 
 insecurePrivateDockerRegistry() {
-  IMAGE_REGISTRY_HOST="$(minikube ip):5000"
+  IMAGE_REGISTRY_HOST="0.0.0.0:5000"
   export IMAGE_REGISTRY_HOST
 
   local dockerDaemonConfig="/etc/docker/daemon.json"
