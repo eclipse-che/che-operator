@@ -13,14 +13,7 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-if [ -z "${BASE_DIR}" ]; then
-  SCRIPT=$(readlink -f "$0")
-  export SCRIPT
-
-  BASE_DIR=$(dirname "$(dirname "$SCRIPT")")/olm;
-  export BASE_DIR
-fi
-
+BASE_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))/olm
 ROOT_DIR=$(dirname "${BASE_DIR}")
 
 source ${ROOT_DIR}/olm/check-yq.sh
@@ -64,7 +57,7 @@ else
     echo "[ERROR] Stable preview channel doesn't support installation using 'catalog'. Use 'Marketplace' instead of it."
     exit 1
   fi
-  
+
   platformPath="${BASE_DIR}/${packageName}"
   packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
   CSV_FILE="${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
@@ -105,7 +98,7 @@ EOF
 createRpcCatalogSource() {
 NAMESPACE=${1}
 indexIp=${2}
-cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $? 
+cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -159,6 +152,7 @@ buildBundleImage() {
 
   # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
+  SKIP_TLS_VERIFY=""
   if [ "${imageTool}" == "podman" ]; then
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
@@ -183,11 +177,14 @@ buildCatalogImage() {
 
   imageTool=${3:-docker}
 
-  FROM_INDEX=${4}
-  if [ -n "${FROM_INDEX}" ]; then
+  FROM_INDEX=${4:-""}
+  BUILD_INDEX_IMAGE_ARG=""
+  if [ ! "${FROM_INDEX}" == "" ]; then
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
   fi
 
+  SKIP_TLS_ARG=""
+  SKIP_TLS_VERIFY=""
   if [ "${imageTool}" == "podman" ]; then
     SKIP_TLS_ARG=" --skip-tls"
     SKIP_TLS_VERIFY=" --tls-verify=false"
@@ -300,10 +297,7 @@ installOperatorMarketPlace() {
 }
 
 subscribeToInstallation() {
-  CSV_NAME="${1}"
-  if [ -z "${CSV_NAME}" ]; then
-    CSV_NAME="${CSV}"
-  fi
+  CSV_NAME="${1-${CSV}}"
 
   echo "Subscribing to version: ${CSV_NAME}"
 
@@ -411,7 +405,7 @@ getBundleListFromCatalogSource() {
   --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
   --  -plaintext "${CATALOG_IP}:${CATALOG_PORT}" api.Registry.ListBundles
   )
-  
+
   LIST_BUNDLES=$(echo "${LIST_BUNDLES}" | head -n -1)
 
   echo "${LIST_BUNDLES}"

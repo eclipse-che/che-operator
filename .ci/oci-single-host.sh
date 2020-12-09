@@ -50,11 +50,11 @@ export NAMESPACE
 export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE:-"quay.io/eclipse/che-operator:nightly"}
 
 # Get nightly CSV
-export CSV_FILE
 CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
+export CSV_FILE
 
 # Define Che exposure strategy
-CHE_EXPOSURE_STRATEGY="multiuser"
+CHE_EXPOSURE_STRATEGY="single-host"
 export CHE_EXPOSURE_STRATEGY
 
 # Import common functions utilities
@@ -79,25 +79,25 @@ function catchFinish() {
 
 # Utility to print objects created by Openshift CI automatically
 function printOlmCheObjects() {
-  echo -e "[INFO] Operator Group object created in namespace: ${NAMESPACE}"
+  echo -e "[INFO] Operator Group object created in namespace ${NAMESPACE}:"
   oc get operatorgroup -n "${NAMESPACE}" -o yaml
 
-  echo -e "[INFO] Catalog Source object created in namespace: ${NAMESPACE}"
+  echo -e "[INFO] Catalog Source object created in namespace ${NAMESPACE}:"
   oc get catalogsource -n "${NAMESPACE}" -o yaml
 
-  echo -e "[INFO] Subscription object created in namespace: ${NAMESPACE}"
+  echo -e "[INFO] Subscription object created in namespace ${NAMESPACE}"
   oc get subscription -n "${NAMESPACE}" -o yaml
 }
 
 # Patch che operator image with image builded from source in Openshift CI job.
 function patchCheOperatorImage() {
-    echo -e "[INFO] Getting che operator pod name..."
+    echo "[INFO] Getting che operator pod name..."
     OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
     oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
-    
+
     # The following command retrieve the operator image
     OPERATOR_POD_IMAGE=$(oc get pods -n ${NAMESPACE} -o json | jq -r '.items[] | select(.metadata.name | test("che-operator-")).spec.containers[].image')
-    echo -e "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
+    echo "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
 }
 
 # Run che deployment after patch operator image.

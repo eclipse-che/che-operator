@@ -83,9 +83,7 @@ fi
 # Assign catalog source image
 CATALOG_SOURCE_IMAGE=$5
 
-if [ -z "${IMAGE_REGISTRY_USER_NAME}" ]; then
-  IMAGE_REGISTRY_USER_NAME=eclipse
-fi
+IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
 echo "[INFO] Image 'IMAGE_REGISTRY_USER_NAME': ${IMAGE_REGISTRY_USER_NAME}"
 
 init() {
@@ -118,16 +116,15 @@ init() {
 
 buildOLMImages() {
   # Manage catalog source for every platform in part.
-  # 1. Kubernetes: 
+  # 1. Kubernetes:
   #    a) Use Minikube cluster. Enable registry addon, build catalog source and olm bundle images, push them to embedded private registry.
   #    b) Provide image registry env variables to push images to the real public registry(docker.io, quay.io etc).
-  # 2. Openshift: build bundle image and push it using image stream. Launch deployment with custom grpc based catalog source image to install the latest bundle.
   if [[ "${PLATFORM}" == "kubernetes" ]]
   then
     echo "[INFO]: Kubernetes platform detected"
 
     # Build operator image
-    if [ -n "${OPERATOR_IMAGE}" ];then 
+    if [ -n "${OPERATOR_IMAGE}" ];then
       echo "[INFO]: Build operator image ${OPERATOR_IMAGE}..."
       cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 
@@ -150,101 +147,6 @@ buildOLMImages() {
     fi
 
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
-  elif [[ "${PLATFORM}" == "openshift" ]]
-  then
-    if [ "${INSTALLATION_TYPE}" == "Marketplace" ];then
-      return
-    fi
-    echo "[INFO]: Starting to build catalog image and push to ImageStream."
-
-    echo "============"
-    echo "[INFO] Current user is $(oc whoami)"
-    echo "============"
-
-    oc new-project "${NAMESPACE}" || true
-
-    pull_user="puller"
-    pull_password="puller"
-    add_user "${pull_user}" "${pull_password}"
-
-    if [ -z "${KUBECONFIG}" ]; then
-      KUBECONFIG="${HOME}/.kube/config"
-    fi
-    TEMP_KUBE_CONFIG="/tmp/$pull_user.kubeconfig"
-    rm -rf "${TEMP_KUBE_CONFIG}"
-    cp "${KUBECONFIG}" "${TEMP_KUBE_CONFIG}"
-    sleep 180
-
-    loginLogFile="/tmp/login-log"
-    touch "${loginLogFile}"
-    loginCMD="oc login --kubeconfig=${TEMP_KUBE_CONFIG}  --username=${pull_user} --password=${pull_password} > ${loginLogFile}"
-    timeout 900 bash -c "${loginCMD}" || echo "[ERROR] Login Fail"
-    echo "[INFO] $(cat "${loginLogFile}" || true)"
-
-    echo "[INFO] Applying policy registry-viewer to user '${pull_user}'..."
-    oc -n "$NAMESPACE" policy add-role-to-user registry-viewer "$pull_user"
-
-    echo "[INFO] Trying to retrieve user '${pull_user}' token..."
-    token=$(oc --kubeconfig=${TEMP_KUBE_CONFIG} whoami -t)
-    echo "[INFO] User '${pull_user}' token is: ${token}"
-
-    oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
-
-    cp -rf "${PACKAGE_FOLDER_PATH}/bundle.Dockerfile" "${PACKAGE_FOLDER_PATH}/Dockerfile"
-    if oc -n "${NAMESPACE}" start-build serverless-bundle --from-dir "${PACKAGE_FOLDER_PATH}"; then
-      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
-    else
-      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
-      echo "[ERROR ]Failed to build bundle image."
-      exit 1
-    fi
-
-cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: catalog-source-app
-spec:
-  selector:
-    matchLabels:
-      app: catalog-source-app
-  template:
-    metadata:
-      labels:
-        app: catalog-source-app
-    spec:
-      containers:
-      - name: registry
-        image: quay.io/openshift-knative/index
-        ports:
-        - containerPort: 50051
-          name: grpc
-          protocol: TCP
-        livenessProbe:
-          exec:
-            command:
-            - grpc_health_probe
-            - -addr=localhost:50051
-        readinessProbe:
-          exec:
-            command:
-            - grpc_health_probe
-            - -addr=localhost:50051
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          podman login -u ${pull_user} -p ${token} image-registry.openshift-image-registry.svc:5000
-          /bin/opm registry add --container-tool=podman -d index.db --mode=semver -b image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/serverless-bundle && \
-          /bin/opm registry serve -d index.db -p 50051
-EOF
-
-  # Wait for the index pod to be up to avoid inconsistencies with the catalog source.
-  kubectl wait --for=condition=ready "pods" -l app=catalog-source-app --timeout=120s -n "${NAMESPACE}" || true
-  indexip="$(oc -n "$NAMESPACE" get pods -l app=catalog-source-app -o jsonpath='{.items[0].status.podIP}')"
-
-  # Install the catalogsource.
-  createRpcCatalogSource "${NAMESPACE}" "${indexip}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
     printHelp
@@ -257,50 +159,13 @@ run() {
   if [ ! ${PLATFORM} == "openshift" ] && [ "${CHANNEL}" == "nightly" ]; then
     forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
   fi
-  
+
   installOperatorMarketPlace
   subscribeToInstallation
 
   installPackage
   applyCRCheCluster
   waitCheServerDeploy
-}
-
-function add_user {
-  name=$1
-  pass=$2
-
-  echo "Creating user $name:$pass"
-
-  PASSWD_TEMP_DIR="$(mktemp -q -d -t "passwd_XXXXXX" 2>/dev/null || mktemp -q -d)"
-  HT_PASSWD_FILE="${PASSWD_TEMP_DIR}/users.htpasswd"
-  touch "${HT_PASSWD_FILE}"
-
-  htpasswd -b "${HT_PASSWD_FILE}" "$name" "$pass"
-  echo "HTPASSWD content is:======================="
-  cat "${HT_PASSWD_FILE}"
-  echo "==================================="
-
-  if ! kubectl get secret htpass-secret -n openshift-config 2>/dev/null; then
-  kubectl create secret generic htpass-secret \
-    --from-file=htpasswd="${HT_PASSWD_FILE}" \
-    -n openshift-config
-  fi
-
-cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
-apiVersion: config.openshift.io/v1
-kind: OAuth
-metadata:
-  name: cluster
-spec:
-  identityProviders:
-  - name: my_htpasswd_provider
-    mappingMethod: claim
-    type: HTPasswd
-    htpasswd:
-      fileData:
-        name: htpass-secret
-EOF
 }
 
 init

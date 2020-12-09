@@ -59,12 +59,13 @@ do
   esac
   if [ -z "${QUAY_ECLIPSE_CHE_USERNAME}" ] || [ -z "${QUAY_ECLIPSE_CHE_PASSWORD}" ]
   then
-    echo "#### ERROR: "
-    echo "You should have set ${QUAY_USERNAME_PLATFORM_VAR} and ${QUAY_PASSWORD_PLATFORM_VAR} environment variables"
-    echo "with a user that has write access to the following Quay.io namespace: ${quayNamespace}"
-    echo "or QUAY_ECLIPSE_CHE_USERNAME and QUAY_ECLIPSE_CHE_PASSWORD if the same user can access both namespaces 'eclipse-che-operator-kubernetes' and 'eclipse-che-operator-openshift'"
+    echo "[ERROR] Must set ${QUAY_USERNAME_PLATFORM_VAR} and ${QUAY_PASSWORD_PLATFORM_VAR} environment variables"
+    echo "[ERROR] with a user that has write access to the following Quay.io application namespace: ${quayNamespace}"
+    echo "[ERROR] or QUAY_ECLIPSE_CHE_USERNAME and QUAY_ECLIPSE_CHE_PASSWORD if the same user can access both "
+    echo "[ERROR] application namespaces 'eclipse-che-operator-kubernetes' and 'eclipse-che-operator-openshift'"
     exit 1
   fi
+  # echo "[DEBUG] Authenticating with: QUAY_ECLIPSE_CHE_USERNAME = ${QUAY_ECLIPSE_CHE_USERNAME}"
   AUTH_TOKEN=$(curl -sH "Content-Type: application/json" -XPOST https://quay.io/cnr/api/v1/users/login -d '
 {
     "user": {
@@ -72,7 +73,15 @@ do
         "password": "'"${QUAY_ECLIPSE_CHE_PASSWORD}"'"
     }
 }' | jq -r '.token')
+  # if [[ ${AUTH_TOKEN} ]]; then echo "[DEBUG] Got token"; fi
 
+  # move all diff files away so we don't get warnings about invalid file names
+  find . -name "*.yaml.diff" -exec rm -f {} \; || true
+
+  # push new applications to quay.io/application/eclipse-che-operator-*
   operator-courier push generated/flatten "${quayNamespace}" "${packageName}" "${applicationVersion}" "${AUTH_TOKEN}"
+
+  # now put them back
+  git checkout . || true
 done
 cd "${CURRENT_DIR}"

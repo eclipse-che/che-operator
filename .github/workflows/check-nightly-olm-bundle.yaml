@@ -10,12 +10,12 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 
-name: Check nightly "opm" bundle
+name: Check nightly OLM bundle
 on: pull_request
 jobs:
 
   build:
-    name: Check nightly "opm" bundle
+    name: Check nightly OLM bundle
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -28,4 +28,4 @@ jobs:
         echo "GOPATH: ${GOPATH}" &&
         export GITHUB_WORKSPACE="${GOPATH}/src/github.com/eclipse/${{ github.repository }}" &&
         cd ${GITHUB_WORKSPACE} &&
-        .github/action_scripts/operator_code_check.sh
+        .github/bin/check-nightly-olm-bundle.sh

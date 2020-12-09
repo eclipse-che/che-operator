@@ -151,11 +151,10 @@ releaseOperatorCode() {
   echo "[INFO] Validating changes for $operatorlocalyaml"
   checkImageReferences $operatorlocalyaml
 
-  echo "[INFO] List of changed files:"
-  git status -s
-
   echo "[INFO] Commiting changes"
-  git commit -am "Update defaults tags to "$RELEASE --signoff
+  if git status --porcelain; then
+    git commit -am "Update defaults tags to "$RELEASE --signoff
+  fi
 
   echo "[INFO] Building operator image"
   docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
@@ -173,12 +172,10 @@ updateNightlyOlmFiles() {
   . ${BASE_DIR}/update-nightly-bundle.sh nightly
   unset BASE_DIR
 
-  echo "[INFO] List of changed files:"
-  git status -s
-
   echo "[INFO] Commiting changes"
-  git add -A
-  git commit -m "Update nightly olm files" --signoff
+  if git status --porcelain; then
+    git commit -am "Update nightly olm files" --signoff
+  fi
 }
 
 releaseOlmFiles() {
@@ -199,13 +196,10 @@ releaseOlmFiles() {
   test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
   test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
 
-  echo "[INFO] List of changed files:"
-  git status -s
-  echo git status -s
-
   echo "[INFO] Commiting changes"
-  git add -A
-  git commit -m "Release OLM files to "$RELEASE --signoff
+  if git status --porcelain; then
+    git commit -am "Release OLM files to "$RELEASE --signoff
+  fi
 }
 
 pushOlmFilesToQuayIo() {
@@ -234,8 +228,9 @@ createPRToMasterBranch() {
   git checkout -B $tmpBranch
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply -3
   . ${RELEASE_DIR}/replace-images-tags.sh nightly master
-  git add -A
-  git commit -m "Copy "$RELEASE" csv to master" --signoff
+  if git status --porcelain; then
+    git commit -am "Copy "$RELEASE" csv to master" --signoff
+  fi
   git push origin $tmpBranch -f
   hub pull-request --base master --head ${tmpBranch} -m "Copy "$RELEASE" csv to master"
 }
