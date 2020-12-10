@@ -301,7 +301,7 @@ applyOlmCR() {
 
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
-  CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = \"${OAUTH}\"")
+  CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = ${OAUTH}")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
 
   echo -e "$CR"
