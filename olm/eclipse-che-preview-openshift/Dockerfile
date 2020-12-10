@@ -11,7 +11,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-FROM quay.io/operator-framework/upstream-registry-builder as builder
+FROM quay.io/operator-framework/upstream-registry-builder:v1.15.3 as builder
 
 COPY deploy manifests/eclipse-che-preview-openshift
 RUN /bin/initializer -o ./bundles.db
