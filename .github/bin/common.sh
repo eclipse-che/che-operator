@@ -36,9 +36,14 @@ init() {
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
+  export CHE_EXPOSURE_STRATEGY="multi-host"
+  export OAUTH="false"
+
   export XDG_DATA_HOME=/tmp/chectl/data
   export XDG_CACHE_HOME=/tmp/chectl/cache
   export XDG_CONFIG_HOME=/tmp/chectl/config
+
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 
   # prepare templates directory
   rm -rf ${TEMPLATES}
@@ -269,7 +274,7 @@ insecurePrivateDockerRegistry() {
 }
 
 # Utility to print objects created by Openshift CI automatically
-function printOlmCheObjects() {
+printOlmCheObjects() {
   echo -e "[INFO] Operator Group object created in namespace: ${NAMESPACE}"
   oc get operatorgroup -n "${NAMESPACE}" -o yaml
 
@@ -278,4 +283,27 @@ function printOlmCheObjects() {
 
   echo -e "[INFO] Subscription object created in namespace: ${NAMESPACE}"
   oc get subscription -n "${NAMESPACE}" -o yaml
+}
+
+# Patch subscription with image builded from source in Openshift CI job.
+patchEclipseCheOperatorSubscription() {
+  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
+  oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
+
+  # The following command retrieve the operator image
+  OPERATOR_POD_IMAGE=$(oc get pods -n ${NAMESPACE} -o json | jq -r '.items[] | select(.metadata.name | test("che-operator-")).spec.containers[].image')
+  echo -e "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
+}
+
+# Create CheCluster object in Openshift ci with desired values
+applyOlmCR() {
+  echo "Creating Custom Resource"
+
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
+  CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = \"${OAUTH}\"")
+  CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
+
+  echo -e "$CR"
+  echo "$CR" | oc apply -n "${NAMESPACE}" -f -
 }
