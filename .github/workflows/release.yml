@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-        with: 
+        with:
           fetch-depth: 0
       - name: Set up Python 3.6
         uses: actions/setup-python@v2
@@ -36,6 +36,7 @@ jobs:
           echo "CHE_VERSION=${CHE_VERSION}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
+          hub version
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
           export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
@@ -80,4 +81,4 @@ jobs:
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
-          ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests  
+          ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests
