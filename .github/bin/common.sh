@@ -267,3 +267,15 @@ insecurePrivateDockerRegistry() {
       sudo service docker restart
   fi
 }
+
+# Utility to print objects created by Openshift CI automatically
+function printOlmCheObjects() {
+  echo -e "[INFO] Operator Group object created in namespace: ${NAMESPACE}"
+  oc get operatorgroup -n "${NAMESPACE}" -o yaml
+
+  echo -e "[INFO] Catalog Source object created in namespace: ${NAMESPACE}"
+  oc get catalogsource -n "${NAMESPACE}" -o yaml
+
+  echo -e "[INFO] Subscription object created in namespace: ${NAMESPACE}"
+  oc get subscription -n "${NAMESPACE}" -o yaml
+}
