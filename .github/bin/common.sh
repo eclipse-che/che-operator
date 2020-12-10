@@ -31,7 +31,7 @@ init() {
   export SCRIPT=$(readlink -f "$0")
   export SCRIPT_DIR=$(dirname "$SCRIPT")
   export RAM_MEMORY=8192
-  export NAMESPACE="che"
+  export NAMESPACE="eclipse-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
@@ -89,7 +89,7 @@ waitWorkspaceStart() {
   export x=0
   while [ $x -le 180 ]
   do
-    chectl auth:login -u admin -p admin
+    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
     chectl workspace:list
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
@@ -123,7 +123,7 @@ installYq() {
 # Graps Eclipse Che logs
 collectCheLogWithChectl() {
   mkdir -p ${ARTIFACTS_DIR}
-  chectl server:logs --directory=${ARTIFACTS_DIR}
+  chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
 }
 
 # Build latest operator image
@@ -190,27 +190,27 @@ updateEclipseChe() {
   local image=$1
   local templates=$2
 
-  chectl server:update -y --che-operator-image=${image} --templates=${templates}
+  chectl server:update --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
 }
 
 startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
-  chectl auth:login -u admin -p admin
-  chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
+  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
 }
 
 createWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin
-  chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
+  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl workspace:create --chenamespace=${NAMESPACE} --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
 }
 
 startExistedWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin
-  chectl workspace:list
-  workspaceList=$(chectl workspace:list)
+  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl workspace:list --chenamespace=${NAMESPACE}
+  workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
 
   # Grep applied to MacOS
   workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')

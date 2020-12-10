@@ -17,6 +17,7 @@ export XDG_CONFIG_HOME=/tmp/chectl/config
 export XDG_CACHE_HOME=/tmp/chectl/cache
 export XDG_DATA_HOME=/tmp/chectl/data
 
+
 # exit immediately when a command fails
 set -e
 # only exit with zero if all commands of the pipeline exit successfully
@@ -58,7 +59,7 @@ CHE_EXPOSURE_STRATEGY="multiuser"
 export CHE_EXPOSURE_STRATEGY
 
 # Import common functions utilities
-source "${OPERATOR_REPO}"/.ci/common.sh
+source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 # catchFinish is executed after finish script.
 function catchFinish() {
@@ -100,13 +101,29 @@ function patchCheOperatorImage() {
     echo -e "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
 }
 
+# Create CheCluster object in Openshift ci with desired values
+function applyCRCheCluster() {
+  echo "Creating Custom Resource"
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
+  CR=$(echo "$CRs" | yq -r ".[0]")
+  if [ "${PLATFORM}" == "openshift" ] && [ "${OAUTH}" == "false" ]; then
+    CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = false")
+  fi
+  if [ "${CHE_EXPOSURE_STRATEGY}" == "single-host" ]
+  then
+    CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
+  fi
+  echo -e "$CR"
+  echo "$CR" | oc apply -n "${NAMESPACE}" -f -
+}
+
 # Run che deployment after patch operator image.
 function deployEclipseChe() {
     export OAUTH="false"
 
     # Deploy Eclipse Che applying CR
     applyCRCheCluster
-    waitCheServerDeploy
+    waitEclipseCheDeployed
 
     startNewWorkspace
 
