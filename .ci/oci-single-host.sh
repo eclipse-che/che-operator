@@ -9,14 +9,13 @@
 #
 
 ################################ !!!   IMPORTANT   !!! ################################
-########### THIS JOB use Openshift CI operators workflows to run nightly olm tests ####
+########### THIS JOB USE openshift ci operators workflows to run  #####################
 ##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
 #######################################################################################################################################################
 
 export XDG_CONFIG_HOME=/tmp/chectl/config
 export XDG_CACHE_HOME=/tmp/chectl/cache
 export XDG_DATA_HOME=/tmp/chectl/data
-
 
 # exit immediately when a command fails
 set -e
@@ -51,11 +50,15 @@ export NAMESPACE
 export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE:-"quay.io/eclipse/che-operator:nightly"}
 
 # Get nightly CSV
-export CSV_FILE
 CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
+export CSV_FILE
+
+# Define Che exposure strategy
+CHE_EXPOSURE_STRATEGY="single-host"
+export CHE_EXPOSURE_STRATEGY
 
 # Import common functions utilities
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}"/.ci/common.sh
 
 # catchFinish is executed after finish script.
 function catchFinish() {
@@ -91,7 +94,7 @@ function patchCheOperatorImage() {
     echo "[INFO] Getting che operator pod name..."
     OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
     oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
-    
+
     # The following command retrieve the operator image
     OPERATOR_POD_IMAGE=$(oc get pods -n ${NAMESPACE} -o json | jq -r '.items[] | select(.metadata.name | test("che-operator-")).spec.containers[].image')
     echo "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
@@ -121,12 +124,8 @@ function deployEclipseChe() {
     applyCRCheCluster
     waitEclipseCheDeployed
 
-    # Create a workspace
-    getCheAcessToken
-    chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+    startNewWorkspace
 
-    # Start a workspace and wait until workspace it is alive
-    getCheAcessToken
     chectl workspace:list --chenamespace=${NAMESPACE}
     waitWorkspaceStart
 }

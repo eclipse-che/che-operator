@@ -52,12 +52,12 @@ sleep 60
 eval $(minishift oc-env)
 
 oc login -u system:admin --insecure-skip-tls-verify=true
-oc create namespace che
+oc create namespace eclipse-che
 oc project default
 
 oc delete secret router-certs
 cat domain.crt domain.key > minishift.crt
 oc create secret tls router-certs --key=domain.key --cert=minishift.crt
 oc rollout latest router
-oc create secret generic self-signed-certificate --from-file=ca.crt -n=che
+oc create secret generic self-signed-certificate --from-file=ca.crt -n=eclipse-che
 oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p developer 
