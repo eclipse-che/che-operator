@@ -41,6 +41,6 @@ runTests() {
 
 init
 overrideDefaults
-patchCheOperEclipseCheOperatorSubscription
+patchEclipseCheOperatorSubscription
 printOlmCheObjects
 runTests
