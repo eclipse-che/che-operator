@@ -90,7 +90,7 @@ waitWorkspaceStart() {
   while [ $x -le 180 ]
   do
     chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-    chectl workspace:list
+    chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
 
