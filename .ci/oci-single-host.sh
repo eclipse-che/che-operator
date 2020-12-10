@@ -58,36 +58,7 @@ CHE_EXPOSURE_STRATEGY="single-host"
 export CHE_EXPOSURE_STRATEGY
 
 # Import common functions utilities
-source "${OPERATOR_REPO}"/.ci/common.sh
-
-# catchFinish is executed after finish script.
-function catchFinish() {
-  result=$?
-  mkdir -p ${ARTIFACTS_DIR}/che-logs
-
-  if [ "$result" != "0" ]; then
-    echo "[ERROR] Please check openshift ci artifacts"
-    chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}/che-logs
-    exit 1
-  fi
-
-  echo "[INFO] Job finished Successfully. Please check the artifacts in openshift ci artifacts"
-  chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}/che-logs
-
-  exit $result
-}
-
-# Utility to print objects created by Openshift CI automatically
-function printOlmCheObjects() {
-  echo -e "[INFO] Operator Group object created in namespace ${NAMESPACE}:"
-  oc get operatorgroup -n "${NAMESPACE}" -o yaml
-
-  echo -e "[INFO] Catalog Source object created in namespace ${NAMESPACE}:"
-  oc get catalogsource -n "${NAMESPACE}" -o yaml
-
-  echo -e "[INFO] Subscription object created in namespace ${NAMESPACE}"
-  oc get subscription -n "${NAMESPACE}" -o yaml
-}
+source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 # Patch che operator image with image builded from source in Openshift CI job.
 function patchCheOperatorImage() {
