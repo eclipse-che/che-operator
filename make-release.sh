@@ -216,10 +216,12 @@ pushOlmFilesToQuayIo() {
 
 pushGitChanges() {
   echo "[INFO] Push git changes into $RELEASE_BRANCH branch"
+  git pull origin $RELEASE_BRANCH || true
   git push origin $RELEASE_BRANCH ${FORCE_UPDATE}
   if [[ $FORCE_UPDATE == "--force" ]]; then # if forced update, delete existing tag so we can replace it
     if git rev-parse "$RELEASE" >/dev/null 2>&1; then # if tag exists
-      git push origin :${RELEASE}
+      git tag -d $RELEASE
+      git push origin :$RELEASE
     fi
   fi
   git tag -a $RELEASE -m $RELEASE
