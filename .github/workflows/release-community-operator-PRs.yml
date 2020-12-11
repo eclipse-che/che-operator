@@ -1,0 +1,42 @@
+# This Workflow creates PRs for the release of the latest che-operator to the community operators in OperatorHub
+name: Release community operator PRs
+on:
+  # workflow_dispatch:
+  #   inputs:
+  #     forceflag:
+  #       description: 'To update an existing PR, use -f or --force flag here'
+  #       default: ''
+
+  # trigger on commit to master branch of new CSVs, eg.,
+  # https://github.com/eclipse/che-operator/pull/571/files
+  push:
+    branches: 
+      - master
+    paths:
+      - 'olm/eclipse-che-preview-*/deploy/olm-catalog/eclipse-che-preview-*/eclipse-che-preview-*.package.yaml'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install yq
+        run: |
+          python -m pip install --upgrade pip
+          pip install yq
+      # - name: Install homebrew and hub
+      #   run: |
+      #     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; brew install hub
+      - name: Release community operator PRs
+        run: |
+          hub version
+          git config --global user.name "Mykhailo Kuznietsov"
+          git config --global user.email "mkuznets@redhat.com"
+          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+          ./olm/prepare-community-operators-update.sh ${{ github.event.inputs.forceflag }}
