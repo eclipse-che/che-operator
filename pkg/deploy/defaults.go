@@ -85,6 +85,8 @@ const (
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
+	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
+
 	DefaultServerExposureStrategy           = "multi-host"
 	DefaultKubernetesSingleHostExposureType = "native"
 	DefaultOpenShiftSingleHostExposureType  = "gateway"
@@ -259,6 +261,10 @@ func DefaultSingleHostGatewayImage(cr *orgv1.CheCluster) string {
 
 func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
+}
+
+func DefaultKubernetesImagePullerOperatorCSV() string {
+	return KubernetesImagePullerOperatorCSV
 }
 
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {

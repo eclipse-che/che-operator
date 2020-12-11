@@ -1,0 +1,35 @@
+#
+#  Copyright (c) 2012-2020 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+name: Minishift
+on: pull_request
+jobs:
+  minishift-e2e:
+    name: e2e tests
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Provision Minishift cluster
+      run: |
+        brew cask install minishift
+        export MINISHIFT_GITHUB_API_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        minishift start --memory=5500 --vm-driver=virtualbox
+    - name: Replace Minishift default certificates
+      run: /bin/bash .github/bin/minishift/certs.sh
+    - name: Run tests
+      run: |
+        eval $(minishift oc-env)
+        oc apply -f deploy/crds/org_v1_che_crd.yaml
+        go mod tidy
+        go run e2e/*.go
+    - uses: actions/upload-artifact@v2
+      with:
+        name: minishift-e2e-artifacts
+        path: /tmp/artifacts-che

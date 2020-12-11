@@ -172,7 +172,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
-	devfileRegistryURL:= deployContext.CheCluster.Status.DevfileRegistryURL
+	devfileRegistryURL := deployContext.CheCluster.Status.DevfileRegistryURL
 	pluginRegistryURL := deployContext.CheCluster.Status.PluginRegistryURL
 	cheLogLevel := util.GetValue(deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
 	cheDebug := util.GetValue(deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
@@ -203,7 +203,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		CheHost:                                cheHost,
 		ChePort:                                "8080",
 		CheApi:                                 cheAPI,
-		CheApiInternal:							cheInternalAPI,
+		CheApiInternal:                         cheInternalAPI,
 		CheWebSocketEndpoint:                   wsprotocol + "://" + cheHost + "/api/websocket",
 		WebSocketEndpointMinor:                 wsprotocol + "://" + cheHost + "/api/websocket-minor",
 		CheDebugServer:                         cheDebug,

@@ -15,6 +15,7 @@ package deploy
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,23 +26,25 @@ type ProvisioningStatus struct {
 }
 
 type DeployContext struct {
-	CheCluster *orgv1.CheCluster
-	ClusterAPI ClusterAPI
-	Proxy *Proxy
+	CheCluster      *orgv1.CheCluster
+	ClusterAPI      ClusterAPI
+	Proxy           *Proxy
 	InternalService InternalService
-	DefaultCheHost string
+	DefaultCheHost  string
 }
 
 type InternalService struct {
-	KeycloakHost string
+	KeycloakHost        string
 	DevfileRegistryHost string
-	PluginRegistryHost string
-	CheHost string
+	PluginRegistryHost  string
+	CheHost             string
 }
 
 type ClusterAPI struct {
-	Client client.Client
-	Scheme *runtime.Scheme
+	Client          client.Client
+	NonCachedClient client.Client
+	DiscoveryClient discovery.DiscoveryInterface
+	Scheme          *runtime.Scheme
 }
 
 type Proxy struct {

@@ -111,6 +111,9 @@ func getSpecKeycloakDeployment(
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 
+	// holds bash functions that should be available when run init commands in shell
+	bashFunctions := ""
+
 	// add various certificates to Java trust store so that Keycloak can connect to OpenShift API
 	// certificate that OpenShift router uses (for 4.0 only)
 	addRouterCrt := "if [ ! -z \"${CHE_SELF__SIGNED__CERT}\" ]; then echo \"${CHE_SELF__SIGNED__CERT}\" > " + jbossDir + "/che.crt && " +
@@ -153,9 +156,10 @@ func getSpecKeycloakDeployment(
 	}
 	addCustomPublicCertsCommand := "if [[ -d \"" + customPublicCertsDir + "\" && -n \"$(find " + customPublicCertsDir + " -type f)\" ]]; then " +
 		"for certfile in " + customPublicCertsDir + "/* ; do " +
-		"keytool -importcert -alias CERT_$(basename $certfile) -keystore " + jbossDir + "/openshift.jks -file $certfile -storepass " + trustpass + " -noprompt; " +
+		"jks_import_ca_bundle $certfile " + jbossDir + "/openshift.jks " + trustpass + " ; " +
 		"done; fi"
 
+	bashFunctions += getImportCABundleScript()
 	addCertToTrustStoreCommand := addRouterCrt + " && " + addOpenShiftAPICrt + " && " + addMountedCrt + " && " + addMountedServiceCrt + " && " + importJavaCacerts + " && " + addCustomPublicCertsCommand
 
 	// upstream Keycloak has a bit different mechanism of adding jks
@@ -493,27 +497,27 @@ func getSpecKeycloakDeployment(
 			}
 			hostname := keycloakURL.Hostname()
 			enableFixedHostNameProvider = " && echo 'Use fixed hostname provider to make working internal network requests' && " +
-			"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
-			"/subsystem=keycloak-server/spi=hostname:write-attribute(name=default-provider, value=\"fixed\") \n" +
-			"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.hostname,value=\"" + hostname + "\") \n"
+				"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
+				"/subsystem=keycloak-server/spi=hostname:write-attribute(name=default-provider, value=\"fixed\") \n" +
+				"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.hostname,value=\"" + hostname + "\") \n"
 			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpsPort,value=\"443\") \n"  +
-				"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.alwaysHttps,value=\"true\") \n"
+				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpsPort,value=\"443\") \n" +
+					"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.alwaysHttps,value=\"true\") \n"
 			} else {
 				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpPort,value=\"80\") \n"
 			}
-			enableFixedHostNameProvider += "stop-embedded-server\" > " + jbossDir  + "/use_fixed_hostname_provider.cli && " +
-			jbossCli + " --file=" + jbossDir + "/use_fixed_hostname_provider.cli "
+			enableFixedHostNameProvider += "stop-embedded-server\" > " + jbossDir + "/use_fixed_hostname_provider.cli && " +
+				jbossCli + " --file=" + jbossDir + "/use_fixed_hostname_provider.cli "
 		}
 		if cheFlavor == "codeready" {
 			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-				Name: "KEYCLOAK_FRONTEND_URL",
+				Name:  "KEYCLOAK_FRONTEND_URL",
 				Value: deployContext.CheCluster.Status.KeycloakURL + "/auth",
-			});
+			})
 		}
 	}
 
-	command := addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand + " && " + changeConfigCommand + enableFixedHostNameProvider +
+	command := bashFunctions + "\n" + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand + " && " + changeConfigCommand + enableFixedHostNameProvider +
 		" && /opt/jboss/docker-entrypoint.sh --debug -b 0.0.0.0 -c standalone.xml"
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
 	if cheFlavor == "codeready" {
@@ -530,7 +534,7 @@ func getSpecKeycloakDeployment(
 			"pattern=\"[a-z]([-a-z0-9]{0,61}[a-z0-9])?\" " +
 			"title=\"Username has to comply with the DNS naming convention. An alphanumeric (a-z, and 0-9) string, with a maximum length of 63 characters, with the '-' character allowed anywhere except the first or last character.\" " +
 			"name=\"username\"|g' ${baseTemplate}"
-		command = addUsernameReadonlyTheme + " && " + addUsernameValidationForKeycloakTheme + " && " + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
+		command = bashFunctions + "\n" + addUsernameReadonlyTheme + " && " + addUsernameValidationForKeycloakTheme + " && " + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
 			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties  " +
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}
@@ -713,4 +717,52 @@ func ProvisionKeycloakResources(deployContext *deploy.DeployContext) error {
 
 	_, err = util.K8sclient.ExecIntoPod(podToExec, keycloakProvisionCommand, "create realm, client and user", deployContext.CheCluster.Namespace)
 	return err
+}
+
+// getImportCABundleScript returns string which contains bash function that imports ca-bundle into jks
+// The function has three arguments:
+// - absolute path to ca-bundle file
+// - absolute path to java keystore
+// - java keystore password
+func getImportCABundleScript() string {
+	return `
+	function jks_import_ca_bundle {
+		CA_FILE=$1
+		KEYSTORE_PATH=$2
+		KEYSTORE_PASSWORD=$3
+
+		if [ ! -f $CA_FILE ]; then
+			# CA bundle file doesn't exist, skip it
+			echo "Failed to import CA certificates from ${CA_FILE}. File doesn't exist"
+			return
+		fi
+
+		bundle_name=$(basename $CA_FILE)
+		certs_imported=0
+		cert_index=0
+		tmp_file=/tmp/cert.pem
+		is_cert=false
+		while IFS= read -r line; do
+			if [ "$line" == "-----BEGIN CERTIFICATE-----" ]; then
+				# Start copying a new certificate
+				is_cert=true
+				cert_index=$((cert_index+1))
+				# Reset destination file and add header line
+				echo $line > ${tmp_file}
+			elif [ "$line" == "-----END CERTIFICATE-----" ]; then
+				# End of the certificate is reached, add it to trust store
+				is_cert=false
+				echo $line >> ${tmp_file}
+				keytool -importcert -alias "${bundle_name}_${cert_index}" -keystore $KEYSTORE_PATH -file $tmp_file -storepass $KEYSTORE_PASSWORD -noprompt && \
+				certs_imported=$((certs_imported+1))
+			elif [ "$is_cert" == true ]; then
+				# In the middle of a certificate, copy line to target file
+				echo $line >> ${tmp_file}
+			fi
+		done < "$CA_FILE"
+		echo "Imported ${certs_imported} certificates from ${CA_FILE}"
+		# Clean up
+		rm -f $tmp_file
+	}
+	`
 }

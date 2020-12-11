@@ -96,3 +96,24 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - che.eclipse.org
+  resources:
+  - kubernetesimagepullers
+  verbs:
+  - '*'
+- apiGroups:
+  - operators.coreos.com
+  resources:
+  - subscriptions
+  - clusterserviceversions
+  - operatorgroups
+  verbs:
+  - '*'
+- apiGroups:
+  - packages.operators.coreos.com
+  resources:
+  - packagemanifests
+  verbs:
+  - get
+  - list
