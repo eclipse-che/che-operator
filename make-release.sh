@@ -24,6 +24,7 @@ init() {
   RELEASE_OLM_FILES=false
   UPDATE_NIGHTLY_OLM_FILES=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  FORCE_UPDATE=""
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -35,6 +36,7 @@ init() {
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
       '--update-nightly-olm-files') UPDATE_NIGHTLY_OLM_FILES=true; shift 0;;
+      '--force') FORCE_UPDATE="--force"; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
     shift 1
@@ -214,9 +216,14 @@ pushOlmFilesToQuayIo() {
 
 pushGitChanges() {
   echo "[INFO] Push git changes into $RELEASE_BRANCH branch"
-  git push origin $RELEASE_BRANCH
+  git push origin $RELEASE_BRANCH ${FORCE_UPDATE}
+  if [[ $FORCE_UPDATE == "--force" ]]; then # if forced update, delete existing tag so we can replace it
+    if git rev-parse "$RELEASE" >/dev/null 2>&1; then # if tag exists
+      git push origin :${RELEASE}
+    fi
+  fi
   git tag -a $RELEASE -m $RELEASE
-  git push --tags origin
+  git push --tags origin 
 }
 
 createPRToXBranch() {
