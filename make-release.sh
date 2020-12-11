@@ -216,7 +216,6 @@ pushOlmFilesToQuayIo() {
 
 pushGitChanges() {
   echo "[INFO] Push git changes into $RELEASE_BRANCH branch"
-  git pull origin $RELEASE_BRANCH || true
   git push origin $RELEASE_BRANCH ${FORCE_UPDATE}
   if [[ $FORCE_UPDATE == "--force" ]]; then # if forced update, delete existing tag so we can replace it
     if git rev-parse "$RELEASE" >/dev/null 2>&1; then # if tag exists
@@ -230,7 +229,9 @@ pushGitChanges() {
 
 createPRToXBranch() {
   echo "[INFO] createPRToXBranch :: Create pull request into ${BRANCH} branch"
-  hub pull-request --base ${BRANCH} --head ${RELEASE_BRANCH} -m "Release version ${RELEASE}"
+  if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
+  hub pull-request $FORCE_UPDATE --base ${BRANCH} --head ${RELEASE_BRANCH} -m "Release version ${RELEASE}"
+  set -e
 }
 
 createPRToMasterBranch() {
@@ -245,7 +246,9 @@ createPRToMasterBranch() {
     git commit -am "Copy "$RELEASE" csv to master" --signoff
   fi
   git push origin $tmpBranch -f
-  hub pull-request --base master --head ${tmpBranch} -m "Copy "$RELEASE" csv to master"
+  if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
+  hub pull-request $FORCE_UPDATE --base master --head ${tmpBranch} -m "Copy "$RELEASE" csv to master"
+  set -e
 }
 
 run() {
