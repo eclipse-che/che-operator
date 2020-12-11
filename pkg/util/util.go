@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,21 +93,28 @@ func MapToKeyValuePairs(m map[string]string) string {
 
 func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 	tests := IsTestMode()
-	if !tests {
-		apiGroups, err := getApiList()
-		if err != nil {
-			return false, false, err
+	if tests {
+		openshiftVersionEnv := os.Getenv("OPENSHIFT_VERSION")
+		openshiftVersion, err := strconv.ParseInt(openshiftVersionEnv, 0, 64)
+		if err == nil && openshiftVersion == 4 {
+			return true, true, nil
 		}
-		for _, apiGroup := range apiGroups {
-			if apiGroup.Name == "route.openshift.io" {
-				isOpenshift = true
-			}
-			if apiGroup.Name == "config.openshift.io" {
-				isOpenshift4 = true
-			}
-		}
-		return
+		return true, false, nil
 	}
+
+	apiGroups, err := getApiList()
+	if err != nil {
+		return false, false, err
+	}
+	for _, apiGroup := range apiGroups {
+		if apiGroup.Name == "route.openshift.io" {
+			isOpenshift = true
+		}
+		if apiGroup.Name == "config.openshift.io" {
+			isOpenshift4 = true
+		}
+	}
+
 	return true, false, nil
 }
 
@@ -331,7 +339,7 @@ func GetArchitectureDependentEnv(env string) string {
 	return env
 }
 
-// GetBoolPointer returns `bool` pointer to value in the memory. 
+// GetBoolPointer returns `bool` pointer to value in the memory.
 // Unfortunately golang hasn't got syntax to create `bool` pointer.
 func GetBoolPointer(value bool) *bool {
 	variable := value

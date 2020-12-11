@@ -293,8 +293,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	deployContext := &deploy.DeployContext{
-		ClusterAPI: clusterAPI,
-		CheCluster: instance,
+		ClusterAPI:      clusterAPI,
+		CheCluster:      instance,
 		InternalService: deploy.InternalService{},
 	}
 
@@ -1084,7 +1084,7 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
 			}
 		}
-	// openshift 3
+		// openshift 3
 	} else {
 		users := &userv1.UserList{}
 		listOptions := &client.ListOptions{}

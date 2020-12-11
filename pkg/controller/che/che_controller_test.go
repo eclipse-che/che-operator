@@ -25,6 +25,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	oauth_config "github.com/openshift/api/config/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -63,10 +64,11 @@ func init() {
 }
 
 func TestCheController(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	cl, scheme := Init()
+	cl, scheme := CreateOpenshift3Client(true)
 
 	// Create a ReconcileChe object with the scheme and fake client
 	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
@@ -284,10 +286,11 @@ func TestCheController(t *testing.T) {
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	cl, scheme := Init()
+	cl, scheme := CreateOpenshift3Client(true)
 
 	// Create a ReconcileChe object with the scheme and fake client
 	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
@@ -336,10 +339,12 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 }
 
 func TestConfiguringInternalNetworkTest(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	cl, scheme := Init()
+	cl, scheme := CreateOpenshift3Client(true)
 
 	// Create a ReconcileChe object with the scheme and fake client
 	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
@@ -486,7 +491,442 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 }
 
-func Init() (client.Client, runtime.Scheme) {
+func TestAutoEnableOAuthForOpenshift4(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "4")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := CreateOpenshift4Client(true)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	if cheCR.Spec.Auth.OpenShiftoAuth != nil {
+		t.Fatal("Openshift oAuth should not be set up by default")
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(true)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func TestAutoEnableOAuthForOpenshift3(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := CreateOpenshift3Client(true)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	if cheCR.Spec.Auth.OpenShiftoAuth != nil {
+		t.Fatal("Openshift oAuth should not be set up by default")
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(true)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func TestAutoDisableOAuthForOpenshift3(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := CreateOpenshift3Client(false)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	if cheCR.Spec.Auth.OpenShiftoAuth != nil {
+		t.Fatal("Openshift oAuth should not be set up by default")
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(false)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func TestRespectEnablingOAuthFromUserOpenshift3(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := CreateOpenshift3Client(false)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// update CR
+	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(true)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func TestRespectDisablingOAuthFromUserOpenshift3(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := CreateOpenshift3Client(true)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// update CR
+	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(false)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func TestAutoDisableOAuthForOpenshift4(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "4")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	cl, scheme := CreateOpenshift4Client(false)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(false)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be disabled")
+	}
+}
+
+func TestRespectEnablingOAuthFromUserOpenshift4(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "4")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	// Create fake client which returns no identity providers.
+	cl, scheme := CreateOpenshift4Client(false)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// update CR
+	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(true)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func TestRespectDisablingOAuthFromUserOpenshift4(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "4")
+
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	// Create fake client which returns non zero quantity identity providers.
+	cl, scheme := CreateOpenshift4Client(true)
+
+	// Create a ReconcileChe object with the scheme and fake client
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, tests: true}
+
+	// get CR
+	cheCR := &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	// update CR
+	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+	if err := cl.Update(context.TODO(), cheCR); err != nil {
+		t.Error("Failed to update CheCluster custom resource")
+	}
+
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource .
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	cheCR = &orgv1.CheCluster{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+		t.Errorf("CR not found")
+	}
+
+	value := util.GetBoolPointer(false)
+	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
+		t.Errorf("Openshift oAuth should be enabled")
+	}
+}
+
+func CreateOpenshift4Client(withUsers bool) (client.Client, runtime.Scheme) {
+	objs, scheme := createAPIObjects()
+
+	oAuth := &oauth_config.OAuth{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: namespace,
+		},
+		Spec: oauth_config.OAuthSpec{},
+	}
+
+	if withUsers {
+		oAuth.Spec.IdentityProviders = []oauth_config.IdentityProvider{
+			{
+				Name: "htpasswd",
+			},
+		}
+	}
+
+	objs = append(objs, oAuth)
+	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuth)
+
+	// Create a fake client to mock API calls
+	return fake.NewFakeClient(objs...), scheme
+}
+
+func CreateOpenshift3Client(withUsers bool) (client.Client, runtime.Scheme) {
+	objs, scheme := createAPIObjects()
+
+	userList := &userv1.UserList{
+		Items: []userv1.User{},
+	}
+
+	if withUsers {
+		userList.Items = append(userList.Items, userv1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "user1",
+			},
+		})
+		userList.Items = append(userList.Items, userv1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "user2",
+			},
+		})
+	}
+
+	// Objects to track in the fake client.
+	objs = append(objs, userList)
+
+	oAuthClient := &oauth.OAuthClient{}
+	users := &userv1.UserList{}
+	user := &userv1.User{}
+
+	// Register operator types with the runtime scheme
+	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+
+	// Create a fake client to mock API calls
+	return fake.NewFakeClient(objs...), scheme
+}
+
+func createAPIObjects() ([]runtime.Object, runtime.Scheme) {
 	pgPod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -515,21 +955,6 @@ func Init() (client.Client, runtime.Scheme) {
 		},
 	}
 
-	userList := &userv1.UserList{
-		Items: []userv1.User{
-			userv1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "user1",
-				},
-			},
-			userv1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "user2",
-				},
-			},
-		},
-	}
-
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploy.DefaultCheFlavor(cheCR),
@@ -538,20 +963,14 @@ func Init() (client.Client, runtime.Scheme) {
 	}
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		cheCR, pgPod, userList, route,
+		cheCR, pgPod, route,
 	}
-	oAuthClient := &oauth.OAuthClient{}
-	users := &userv1.UserList{}
-	user := &userv1.User{}
 
 	// Register operator types with the runtime scheme
 	scheme := scheme.Scheme
 	scheme.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
 	scheme.AddKnownTypes(routev1.SchemeGroupVersion, route)
-	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
 
-	// Create a fake client to mock API calls
-	return fake.NewFakeClient(objs...), *scheme
+	return objs, *scheme
 }
