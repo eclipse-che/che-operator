@@ -9,6 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+set -ex
 
 # Minikube environments config
 export MINIKUBE_VERSION=v1.8.2

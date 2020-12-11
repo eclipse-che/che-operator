@@ -10,6 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-**/*.diff
-**/*.sh
-**/*Dockerfile
+metadata:
+ name: e2e-tests
+apiVersion: 1.0.0

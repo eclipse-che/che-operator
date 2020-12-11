@@ -31,14 +31,19 @@ init() {
   export SCRIPT=$(readlink -f "$0")
   export SCRIPT_DIR=$(dirname "$SCRIPT")
   export RAM_MEMORY=8192
-  export NAMESPACE="che"
+  export NAMESPACE="eclipse-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
 
+  export CHE_EXPOSURE_STRATEGY="multi-host"
+  export OAUTH="false"
+
   export XDG_DATA_HOME=/tmp/chectl/data
   export XDG_CACHE_HOME=/tmp/chectl/cache
   export XDG_CONFIG_HOME=/tmp/chectl/config
+
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 
   # prepare templates directory
   rm -rf ${TEMPLATES}
@@ -89,8 +94,8 @@ waitWorkspaceStart() {
   export x=0
   while [ $x -le 180 ]
   do
-    chectl auth:login -u admin -p admin
-    chectl workspace:list
+    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+    chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
 
@@ -123,7 +128,7 @@ installYq() {
 # Graps Eclipse Che logs
 collectCheLogWithChectl() {
   mkdir -p ${ARTIFACTS_DIR}
-  chectl server:logs --directory=${ARTIFACTS_DIR}
+  chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
 }
 
 # Build latest operator image
@@ -190,27 +195,27 @@ updateEclipseChe() {
   local image=$1
   local templates=$2
 
-  chectl server:update -y --che-operator-image=${image} --templates=${templates}
+  chectl server:update --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
 }
 
 startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
-  chectl auth:login -u admin -p admin
-  chectl workspace:create --start --devfile=$OPERATOR_REPO/.ci/util/devfile-test.yaml
+  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
 }
 
 createWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin
-  chectl workspace:create --devfile=${OPERATOR_REPO}/.ci/util/devfile-test.yaml
+  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl workspace:create --chenamespace=${NAMESPACE} --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
 }
 
 startExistedWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin
-  chectl workspace:list
-  workspaceList=$(chectl workspace:list)
+  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl workspace:list --chenamespace=${NAMESPACE}
+  workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
 
   # Grep applied to MacOS
   workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
@@ -266,4 +271,39 @@ insecurePrivateDockerRegistry() {
       echo "[INFO] Restart docker daemon to set up private registry info."
       sudo service docker restart
   fi
+}
+
+# Utility to print objects created by Openshift CI automatically
+printOlmCheObjects() {
+  echo -e "[INFO] Operator Group object created in namespace: ${NAMESPACE}"
+  oc get operatorgroup -n "${NAMESPACE}" -o yaml
+
+  echo -e "[INFO] Catalog Source object created in namespace: ${NAMESPACE}"
+  oc get catalogsource -n "${NAMESPACE}" -o yaml
+
+  echo -e "[INFO] Subscription object created in namespace: ${NAMESPACE}"
+  oc get subscription -n "${NAMESPACE}" -o yaml
+}
+
+# Patch subscription with image builded from source in Openshift CI job.
+patchEclipseCheOperatorSubscription() {
+  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
+  oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
+
+  # The following command retrieve the operator image
+  OPERATOR_POD_IMAGE=$(oc get pods -n ${NAMESPACE} -o json | jq -r '.items[] | select(.metadata.name | test("che-operator-")).spec.containers[].image')
+  echo -e "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
+}
+
+# Create CheCluster object in Openshift ci with desired values
+applyOlmCR() {
+  echo "Creating Custom Resource"
+
+  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
+  CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = ${OAUTH}")
+  CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
+
+  echo -e "$CR"
+  echo "$CR" | oc apply -n "${NAMESPACE}" -f -
 }
