@@ -1,0 +1,70 @@
+--- /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.22.2/eclipse-che-preview-openshift.crd.yaml	2020-12-14 15:40:21.971106662 +0000
++++ /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.23.0/eclipse-che-preview-openshift.crd.yaml	2020-12-14 15:45:21.409446126 +0000
+@@ -232,6 +232,42 @@
+                     `latest` images, and `IfNotPresent` in other cases.
+                   type: string
+               type: object
++            imagePuller:
++              description: Kubernetes Image Puller configuration
++              properties:
++                enable:
++                  description: Install and configure the Kubernetes Image Puller Operator.
++                    If true and no spec is provided, it will create a default KubernetesImagePuller
++                    object to be managed by the Operator. If false, the KubernetesImagePuller
++                    object will be deleted, and the operator will be uninstalled,
++                    regardless of whether or not a spec is provided.
++                  type: boolean
++                spec:
++                  description: A KubernetesImagePullerSpec to configure the image
++                    puller in the CheCluster
++                  properties:
++                    cachingCPULimit:
++                      type: string
++                    cachingCPURequest:
++                      type: string
++                    cachingIntervalHours:
++                      type: string
++                    cachingMemoryLimit:
++                      type: string
++                    cachingMemoryRequest:
++                      type: string
++                    configMapName:
++                      type: string
++                    daemonsetName:
++                      type: string
++                    deploymentName:
++                      type: string
++                    images:
++                      type: string
++                    nodeSelector:
++                      type: string
++                  type: object
++              type: object
+             k8s:
+               description: Configuration settings specific to Che installations made
+                 on upstream Kubernetes.
+@@ -311,6 +347,12 @@
+                     to configured true without OAuth configured. This property is
+                     also used by the OpenShift infra.
+                   type: boolean
++                cheClusterRoles:
++                  description: Comma-separated list of ClusterRoles that will be assigned
++                    to che ServiceAccount. Be aware that che-operator has to already
++                    have all permissions in these ClusterRoles to be able to grant
++                    them.
++                  type: string
+                 cheDebug:
+                   description: Enables the debug mode for Che server. Defaults to
+                     `false`.
+@@ -577,6 +619,11 @@
+                     TLS mode. This is enabled by default. Disabling TLS may cause
+                     malfunction of some Che components.
+                   type: boolean
++                useInternalClusterSVCNames:
++                  description: Use internal cluster svc names to communicate between
++                    components to speed up the traffic and avoid proxy issues. The
++                    default value is `true`.
++                  type: boolean
+                 workspaceNamespaceDefault:
+                   description: 'Defines Kubernetes default namespace in which user''s
+                     workspaces are created if user does not override it. It''s possible
