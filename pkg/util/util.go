@@ -115,7 +115,7 @@ func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 		}
 	}
 
-	return true, false, nil
+	return isOpenshift, isOpenshift4, nil
 }
 
 func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
