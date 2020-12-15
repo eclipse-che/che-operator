@@ -23,6 +23,7 @@ init() {
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
   UPDATE_NIGHTLY_OLM_FILES=false
+  PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
 
@@ -36,6 +37,7 @@ init() {
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
       '--update-nightly-olm-files') UPDATE_NIGHTLY_OLM_FILES=true; shift 0;;
+      '--prepare-community-operators-update') PREPARE_COMMUNITY_OPERATORS_UPDATE=true; shift 0;;
       '--force') FORCE_UPDATE="--force"; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
@@ -251,6 +253,9 @@ createPRToMasterBranch() {
   set -e
 }
 
+prepareCommunityOperatorsUpdate() {
+  "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
+}
 run() {
   checkoutToReleaseBranch
   releaseOperatorCode
@@ -280,4 +285,11 @@ fi
 if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
   createPRToXBranch
   createPRToMasterBranch
+fi
+
+if [[ $PREPARE_COMMUNITY_OPERATORS_UPDATE == "true" ]]; then
+  if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
+    updateNightlyOlmFiles
+  fi
+  prepareCommunityOperatorsUpdate
 fi

@@ -1,11 +1,11 @@
 # This Workflow creates PRs for the release of the latest che-operator to the community operators in OperatorHub
 name: Release community operator PRs
 on:
-  # workflow_dispatch:
-  #   inputs:
-  #     forceflag:
-  #       description: 'To update an existing PR, use -f or --force flag here'
-  #       default: ''
+  workflow_dispatch:
+    inputs:
+      forceflag:
+        description: 'To update an existing PR, use -f or --force flag here'
+        default: ''
 
   # trigger on commit to master branch of new CSVs, eg.,
   # https://github.com/eclipse/che-operator/pull/571/files
@@ -39,4 +39,4 @@ jobs:
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
           export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
-          ./olm/prepare-community-operators-update.sh ${{ github.event.inputs.forceflag }}
+          ./make-release.sh nightly --update-nightly-olm-files --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
