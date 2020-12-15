@@ -14,26 +14,38 @@ set -e
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-source ${BASE_DIR}/check-yq.sh
+source "${BASE_DIR}/check-yq.sh"
 
 base_branch="master"
+GITHUB_USER="che-bot"
 fork_org="che-incubator"
 
 FORCE="" # normally, don't allow pushing to an existing branch
 while [[ "$#" -gt 0 ]]; do
   case $1 in
+    '-u'|'--user') GITHUB_USER="$2"; shift 1;;
+    '-t'|'--token') GITHUB_TOKEN="$2"; shift 1;;
     '-f'|'--force') FORCE="-f";;
     '-h'|'--help') usage;;
   esac
   shift 1
 done
+if [[ ! ${GITHUB_TOKEN} ]]; then 
+  echo "Error: Must export GITHUB_TOKEN=[your token here] in order to generate pull request!"
+  exit 1
+fi
+
+GIT_REMOTE_FORK="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${fork_org}/community-operators.git"
+GIT_REMOTE_FORK_CLEAN="https://${GITHUB_USER}:***@github.com/${fork_org}/community-operators.git"
 
 usage ()
 {
   echo "Usage: $0
 
 Options:
-    --force   |  if pull request branch already exists, force push new commits
+    --force               |  if pull request branch already exists, force push new commits
+    --user che-bot        |  specify which user to use for pull/push
+    --token GITHUB_TOKEN  |  specify a token to use for pull/push, if not using 'export GITHUB_TOKEN=...'
 "
 }
 
@@ -55,7 +67,7 @@ do
 
   rm -Rf "${communityOperatorsLocalGitFolder}"
   mkdir -p "${communityOperatorsLocalGitFolder}"
-  git clone https://github.com/${fork_org}/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
+  git clone "${GIT_REMOTE_FORK}" "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
   cd "${communityOperatorsLocalGitFolder}"
   git remote add upstream https://github.com/operator-framework/community-operators.git
   git fetch upstream ${base_branch}:upstream/${base_branch}
@@ -121,8 +133,8 @@ updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
   git add --all
   git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
   echo
-  echo "   - Push branch ${branch} to the '${fork_org}/community-operators' GitHub repository"
-  git push ${FORCE} "git@github.com:${fork_org}/community-operators.git" "${branch}"
+  echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
+  git push ${FORCE} origin "${branch}"
 
   echo
   template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
@@ -142,7 +154,7 @@ ${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
     echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
 ${template_file}
 
-https://github.com/${fork_org}/community-operators/pull/new/${branch}
+${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
 "
   fi
 
