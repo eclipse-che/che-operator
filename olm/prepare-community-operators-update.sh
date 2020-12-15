@@ -36,7 +36,7 @@ if [[ ! ${GITHUB_TOKEN} ]]; then
 fi
 
 GIT_REMOTE_FORK="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${fork_org}/community-operators.git"
-GIT_REMOTE_FORK_CLEAN="https://${GITHUB_USER}:***@github.com/${fork_org}/community-operators.git"
+GIT_REMOTE_FORK_CLEAN="https://github.com/${fork_org}/community-operators.git"
 
 usage ()
 {
