@@ -25,10 +25,18 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
-      - name: Install yq
+      - name: Install operator courier, yq, and base32 wrapper
         run: |
           python -m pip install --upgrade pip
+          pip install operator-courier==2.1.7
           pip install yq
+          # get base32 util from che-release project
+          wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
+          # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts) 
+          sudo cp -f $(pwd)/base32 /usr/local/bin/ 
+          sudo chmod +x /usr/local/bin/base32
+          #remove base32 from current directory to avoid it being commited during release
+          rm $(pwd)/base32 
       - name: Release community operator PRs
         run: |
           hub version
