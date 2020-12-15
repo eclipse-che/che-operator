@@ -254,7 +254,9 @@ createPRToMasterBranch() {
 }
 
 prepareCommunityOperatorsUpdate() {
+  export BASE_DIR=${RELEASE_DIR}/olm
   "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
+  unset BASE_DIR
 }
 run() {
   checkoutToReleaseBranch
