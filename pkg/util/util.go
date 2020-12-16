@@ -339,9 +339,18 @@ func GetArchitectureDependentEnv(env string) string {
 	return env
 }
 
-// GetBoolPointer returns `bool` pointer to value in the memory.
+// NewBoolPointer returns `bool` pointer to value in the memory.
 // Unfortunately golang hasn't got syntax to create `bool` pointer.
-func GetBoolPointer(value bool) *bool {
+func NewBoolPointer(value bool) *bool {
 	variable := value
 	return &variable
+}
+
+
+// IsOAuthEnabled return true when oAuth is enable for CheCluster resource, otherwise false.
+func IsOAuthEnabled(c *orgv1.CheCluster) bool {
+	if c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth {
+		return true
+	}
+	return false
 }

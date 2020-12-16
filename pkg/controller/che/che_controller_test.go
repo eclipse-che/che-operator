@@ -533,7 +533,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -900,7 +900,7 @@ func TestAutoEnableOAuthForOpenshift4(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(true)
+	value := util.NewBoolPointer(true)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}
@@ -946,7 +946,7 @@ func TestAutoEnableOAuthForOpenshift3(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(true)
+	value := util.NewBoolPointer(true)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}
@@ -992,7 +992,7 @@ func TestAutoDisableOAuthForOpenshift3(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(false)
+	value := util.NewBoolPointer(false)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}
@@ -1016,7 +1016,7 @@ func TestRespectEnablingOAuthFromUserOpenshift3(t *testing.T) {
 	}
 
 	// update CR
-	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -1040,7 +1040,7 @@ func TestRespectEnablingOAuthFromUserOpenshift3(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(true)
+	value := util.NewBoolPointer(true)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}
@@ -1064,7 +1064,7 @@ func TestRespectDisablingOAuthFromUserOpenshift3(t *testing.T) {
 	}
 
 	// update CR
-	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -1088,7 +1088,7 @@ func TestRespectDisablingOAuthFromUserOpenshift3(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(false)
+	value := util.NewBoolPointer(false)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}
@@ -1130,7 +1130,7 @@ func TestAutoDisableOAuthForOpenshift4(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(false)
+	value := util.NewBoolPointer(false)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be disabled")
 	}
@@ -1155,7 +1155,7 @@ func TestRespectEnablingOAuthFromUserOpenshift4(t *testing.T) {
 	}
 
 	// update CR
-	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -1179,7 +1179,7 @@ func TestRespectEnablingOAuthFromUserOpenshift4(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(true)
+	value := util.NewBoolPointer(true)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}
@@ -1204,7 +1204,7 @@ func TestRespectDisablingOAuthFromUserOpenshift4(t *testing.T) {
 	}
 
 	// update CR
-	cheCR.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -1228,7 +1228,7 @@ func TestRespectDisablingOAuthFromUserOpenshift4(t *testing.T) {
 		t.Errorf("CR not found")
 	}
 
-	value := util.GetBoolPointer(false)
+	value := util.NewBoolPointer(false)
 	if cheCR.Spec.Auth.OpenShiftoAuth == nil || *cheCR.Spec.Auth.OpenShiftoAuth != *value {
 		t.Errorf("Openshift oAuth should be enabled")
 	}

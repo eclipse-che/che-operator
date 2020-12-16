@@ -352,7 +352,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// delete oAuthClient before CR is deleted
-	if instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth {
+	if util.IsOAuthEnabled(instance) {
 		if err := r.ReconcileFinalizer(instance); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -397,7 +397,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
+			(isOpenShift4 && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -413,7 +413,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		if instance.Spec.Auth.OpenShiftoAuth != nil && *instance.Spec.Auth.OpenShiftoAuth {
+		if util.IsOAuthEnabled(instance) {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
 			if err != nil {
@@ -1099,9 +1099,9 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getOAuthV1ErrMsg)
 			message = getOAuthV1ErrMsg
 			reason = failedNoOpenshiftUserReason
-			cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
 		} else {
-			cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(len(oauthv1.Spec.IdentityProviders) >= 1)
+			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(len(oauthv1.Spec.IdentityProviders) >= 1)
 			if !*cr.Spec.Auth.OpenShiftoAuth {
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
 			}
@@ -1115,16 +1115,17 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getUsersErrMsg)
 			message = getUsersErrMsg
 			reason = failedNoOpenshiftUserReason
-			cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(false)
+			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
 		}
 
-		cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(len(users.Items) >= 1)
+		cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(len(users.Items) >= 1)
 		if !*cr.Spec.Auth.OpenShiftoAuth {
 			logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
 		}
 	}
 
-	if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(*cr.Spec.Auth.OpenShiftoAuth)); err != nil {
+	oauth := *cr.Spec.Auth.OpenShiftoAuth
+	if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(oauth)); err != nil {
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
 

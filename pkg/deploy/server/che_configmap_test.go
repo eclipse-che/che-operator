@@ -28,7 +28,7 @@ func TestNewCheConfigMap(t *testing.T) {
 	cr := &orgv1.CheCluster{}
 	cr.Spec.Server.CheHost = "myhostname.com"
 	cr.Spec.Server.TlsSupport = true
-	cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
 	deployContext := &deploy.DeployContext{
 		CheCluster: cr,
 		Proxy:      &deploy.Proxy{},
@@ -58,7 +58,7 @@ func TestConfigMapOverride(t *testing.T) {
 	cr.Spec.Server.CustomCheProperties = map[string]string{
 		"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 	}
-	cr.Spec.Auth.OpenShiftoAuth = util.GetBoolPointer(true)
+	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
 	deployContext := &deploy.DeployContext{
 		CheCluster: cr,
 		Proxy:      &deploy.Proxy{},

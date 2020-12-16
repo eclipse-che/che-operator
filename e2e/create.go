@@ -124,7 +124,7 @@ func newCheCluster() (cr *orgv1.CheCluster) {
 				UseInternalClusterSVCNames: true,
 			},
 			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.GetBoolPointer(true),
+				OpenShiftoAuth: util.NewBoolPointer(true),
 			},
 		},
 	}
