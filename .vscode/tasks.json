@@ -87,8 +87,8 @@
             "group": "build"
         },
         {
-            "label": "Update csv bundle files",
-            "command": "./olm/update-nightly-bundle.sh",
+            "label": "Update OLM bundle files",
+            "command": "./olm/update-crd-files.sh && ./olm/update-nightly-bundle.sh",
             "type": "shell",
             "args": [],
             "problemMatcher": [
