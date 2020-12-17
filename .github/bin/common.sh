@@ -28,8 +28,6 @@ catchFinish() {
 }
 
 init() {
-  export SCRIPT=$(readlink -f "$0")
-  export SCRIPT_DIR=$(dirname "$SCRIPT")
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
