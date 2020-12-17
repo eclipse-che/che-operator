@@ -37,6 +37,7 @@ runTest() {
 }
 
 init
+installYq
 initStableTemplates "openshift" "stable"
 prepareTemplates
 runTest
