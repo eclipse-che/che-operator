@@ -1099,7 +1099,6 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getOAuthV1ErrMsg)
 			message = getOAuthV1ErrMsg
 			reason = failedNoOpenshiftUserReason
-			oauth = false
 		} else {
 			oauth = len(oauthv1.Spec.IdentityProviders) >= 1
 			if !oauth {
@@ -1115,12 +1114,11 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getUsersErrMsg)
 			message = getUsersErrMsg
 			reason = failedNoOpenshiftUserReason
-			oauth = false
-		}
-
-		oauth = len(users.Items) >= 1
-		if !oauth {
-			logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+		} else {
+			oauth = len(users.Items) >= 1
+			if !oauth {
+				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+			}
 		}
 	}
 
