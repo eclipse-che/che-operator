@@ -1100,7 +1100,7 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getOAuthV1ErrMsg)
 			message = getOAuthV1ErrMsg
 			reason = failedNoOpenshiftUserReason
-			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
+			oauth = util.NewBoolPointer(false)
 		} else {
 			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(len(oauthv1.Spec.IdentityProviders) >= 1)
 			if !*cr.Spec.Auth.OpenShiftoAuth {
