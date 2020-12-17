@@ -10,8 +10,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-set -x
-
 connectToKeycloak() {
   {{ .Script }} config credentials --server http://0.0.0.0:8080/auth --realm master --user {{ .KeycloakAdminUserName }} --password {{ .KeycloakAdminPassword }}
 }

@@ -692,7 +692,7 @@ func getSslRequiredForMasterRealm(cr *orgv1.CheCluster) (string, error) {
 		func(cr *orgv1.CheCluster) (string, error) {
 			return selectSslRequiredCommand, nil
 		},
-		"Check if 'ssl_required' is set")
+		"")
 	return strings.TrimSpace(stdout), err
 }
 

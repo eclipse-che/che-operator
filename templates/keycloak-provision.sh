@@ -10,18 +10,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-set -x
-
-		Script                string
-		KeycloakAdminUserName string
-		KeycloakAdminPassword string
-		KeycloakRealm         string
-		RealmDisplayName      string
-		KeycloakTheme         string
-		CheHost               string
-		KeycloakClientId      string
-		RequiredActions       string
-
 connectToKeycloak() {
   {{ .Script }} config credentials --server http://0.0.0.0:8080/auth --realm master --user {{ .KeycloakAdminUserName }} --password {{ .KeycloakAdminPassword }}
 }
@@ -53,9 +41,9 @@ provisionKeycloak() {
     -r '{{ .KeycloakRealm }}' \
     -s clientId={{ .KeycloakClientId }} \
     -s id={{ .KeycloakClientId }} \
-    -s 'webOrigins=["http://{{ .CheHost }}", "https://{{ .CheHost }}"]' \
-    -s 'redirectUris=["http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/workspace-loader/*", "https://{{ .CheHost }}/workspace-loader/*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"]' \
-    -s 'directAccessGrantsEnabled'=true \
+    -s webOrigins='["http://{{ .CheHost }}", "https://{{ .CheHost }}"]' \
+    -s redirectUris='["http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/workspace-loader/*", "https://{{ .CheHost }}/workspace-loader/*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"]' \
+    -s directAccessGrantsEnabled=true \
     -s publicClient=true
 
   {{ .Script }} create users \
@@ -63,14 +51,23 @@ provisionKeycloak() {
     -s username=admin \
     -s email=\"admin@admin.com\" \
     -s enabled=true \
-    -s 'requiredActions=[{{ .RequiredActions }}]'
+    -s requiredActions='[{{ .RequiredActions }}]'
 
-  {{ .Script }} set-password  -r '{{ .KeycloakRealm }}' --username admin -new-password admin
+  {{ .Script }} set-password \
+    -r '{{ .KeycloakRealm }}' \
+    --username admin \
+    --new-password admin
 
-  {{ .Script }} add-roles -r '{{ .KeycloakRealm }}' --uusername admin --cclientid broker --rolename read-token
+  {{ .Script }} add-roles \
+    -r '{{ .KeycloakRealm }}' \
+    --uusername admin \
+    --cclientid broker \
+    --rolename read-token
 
-  CLIENT_ID=$({{ .Script }} get clients -r '{{ .KeycloakRealm }}' -q clientId=broker | sed -n 's/.*"id" *: *"\([^"]\+\).*/\1/p') \
-  {{ .Script }} update clients/${CLIENT_ID} -r '{{ .KeycloakRealm }}' -s "defaultRoles+=read-token"
+  CLIENT_ID=$({{ .Script }} get clients -r '{{ .KeycloakRealm }}' -q clientId=broker | sed -n 's/.*"id" *: *"\([^"]\+\).*/\1/p')
+  {{ .Script }} update clients/${CLIENT_ID} \
+    -r '{{ .KeycloakRealm }}' \
+    -s "defaultRoles+=read-token"
 }
 
 connectToKeycloak

@@ -70,11 +70,13 @@ func (cl *k8s) ExecIntoPod(
 		return "", err
 	}
 
-	return cl.DoExecIntoPod(pod, command, reason, cr.Namespace)
+	return cl.DoExecIntoPod(cr.Namespace, pod, command, reason)
 }
 
 func (cl *k8s) DoExecIntoPod(namespace string, podName string, command string, reason string) (string, error) {
-	logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
+	if reason != "" {
+		logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
+	}
 
 	args := []string{"/bin/bash", "-c", command}
 	stdout, stderr, err := cl.RunExec(args, podName, namespace)
@@ -84,7 +86,9 @@ func (cl *k8s) DoExecIntoPod(namespace string, podName string, command string, r
 		return stdout, err
 	}
 
-	logrus.Info("Exec successfully completed.")
+	if reason != "" {
+		logrus.Info("Exec successfully completed.")
+	}
 	return stdout, nil
 }
 
