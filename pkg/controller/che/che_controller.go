@@ -1101,7 +1101,7 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			reason = failedNoOpenshiftUserReason
 			oauth = false
 		} else {
-			oauth =len(oauthv1.Spec.IdentityProviders) >= 1
+			oauth = len(oauthv1.Spec.IdentityProviders) >= 1
 			if !oauth {
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
 			}
