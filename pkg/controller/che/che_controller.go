@@ -1091,8 +1091,7 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 }
 
 func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
-	var message, reason string
-	oauth := *cr.Spec.Auth.OpenShiftoAuth
+	var message, reason string; var oauth bool
 	if isOpenShift4 {
 		oauthv1 := &oauthv1.OAuth{}
 		if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
@@ -1100,10 +1099,10 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getOAuthV1ErrMsg)
 			message = getOAuthV1ErrMsg
 			reason = failedNoOpenshiftUserReason
-			oauth = util.NewBoolPointer(false)
+			oauth = false
 		} else {
-			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(len(oauthv1.Spec.IdentityProviders) >= 1)
-			if !*cr.Spec.Auth.OpenShiftoAuth {
+			oauth =len(oauthv1.Spec.IdentityProviders) >= 1
+			if !oauth {
 				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
 			}
 		}
@@ -1116,16 +1115,16 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 			logrus.Errorf(getUsersErrMsg)
 			message = getUsersErrMsg
 			reason = failedNoOpenshiftUserReason
-			cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
+			oauth = false
 		}
 
-		cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(len(users.Items) >= 1)
-		if !*cr.Spec.Auth.OpenShiftoAuth {
+		oauth = len(users.Items) >= 1
+		if !oauth {
 			logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
 		}
 	}
 
-	oauth := *cr.Spec.Auth.OpenShiftoAuth
+	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(oauth)
 	if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(oauth)); err != nil {
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
