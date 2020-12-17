@@ -713,7 +713,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	cl, discoveryClient ,scheme := CreateOpenshift3Client(true) // Todo rename, it's not only client...
+	cl, discoveryClient, scheme := CreateOpenshift3Client(true) // Todo rename, it's not only client...
 
 	// Create a ReconcileChe object with the scheme and fake client
 	r := &ReconcileChe{client: cl, nonCachedClient: cl, discoveryClient: discoveryClient, scheme: &scheme, tests: true}

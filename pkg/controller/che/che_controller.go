@@ -1091,7 +1091,8 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 }
 
 func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
-	var message, reason string; var oauth bool
+	var message, reason string
+	oauth := false
 	if isOpenShift4 {
 		oauthv1 := &oauthv1.OAuth{}
 		if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {

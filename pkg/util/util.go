@@ -346,7 +346,6 @@ func NewBoolPointer(value bool) *bool {
 	return &variable
 }
 
-
 // IsOAuthEnabled return true when oAuth is enable for CheCluster resource, otherwise false.
 func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	if c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth {

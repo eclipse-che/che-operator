@@ -407,7 +407,7 @@ type CheClusterSpecAuth struct {
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
 	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth.
 	// Empty value on the OpenShift platform by default.
-	// If user changes this empty value to true/false, then che-operator respect this value. 
+	// If user changes this empty value to true/false, then che-operator respect this value.
 	// Otherwise che-operator tries to auto detect if Openshift oAuth can be enabled and change empty value,
 	// correspondly to auto-detection result.
 	// This property allows users to directly login with their Openshift user through the Openshift login,
