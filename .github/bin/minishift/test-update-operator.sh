@@ -13,7 +13,8 @@
 set -e
 set -x
 
-export OPERATOR_REPO=$(dirname $(dirname $(dirname $(dirname "${BASH_SOURCE[0]}"))))
+# Get absolute path for root repo directory from github actions context: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
+export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 # Stop execution on any error
