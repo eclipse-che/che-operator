@@ -33,6 +33,7 @@ runTest() {
 }
 
 init
+installYq
 initLatestTemplates
 prepareTemplates
 # build is done on previous github action step
