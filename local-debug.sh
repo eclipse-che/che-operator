@@ -57,8 +57,9 @@ echo "[INFO] CR file path: ${CR}"
 
 kubectl apply -f deploy/crds/org_v1_che_crd.yaml
 kubectl apply -f "${CR}" -n $CHE_NAMESPACE
-cp templates/keycloak_provision /tmp/keycloak_provision
-cp templates/oauth_provision /tmp/oauth_provision
+cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
+cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
+cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 
 ENV_FILE=/tmp/che-operator-debug.env
 rm -rf "${ENV_FILE}"

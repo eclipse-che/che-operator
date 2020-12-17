@@ -741,15 +741,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					}
 					identityProviderPostgresPassword = password
 				}
-				pgCommand := identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword)
 				dbStatus := instance.Status.DbProvisoned
 				// provision Db and users for Che and Keycloak servers
 				if !dbStatus {
-					podToExec, err := util.K8sclient.GetDeploymentPod(postgres.PostgresDeploymentName, instance.Namespace)
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-					_, err = util.K8sclient.ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
+					_, err := util.K8sclient.ExecIntoPod(
+						instance,
+						postgres.PostgresDeploymentName,
+						func(cr *orgv1.CheCluster) (string, error) {
+							return identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword), nil
+						},
+						"create Keycloak DB, user, privileges")
 					if err == nil {
 						for {
 							instance.Status.DbProvisoned = true

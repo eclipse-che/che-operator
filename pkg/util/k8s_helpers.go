@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 
+	v1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,10 +54,27 @@ func GetK8Client() *k8s {
 	return nil
 }
 
-func (cl *k8s) ExecIntoPod(podName string, command string, reason string, namespace string) (string, error) {
-	if reason != "" {
-		logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
+func (cl *k8s) ExecIntoPod(
+	cr *v1.CheCluster,
+	deploymentName string,
+	getCommand func(*v1.CheCluster) (string, error),
+	reason string) (string, error) {
+
+	command, err := getCommand(cr)
+	if err != nil {
+		return "", err
 	}
+
+	pod, err := cl.GetDeploymentPod(deploymentName, cr.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	return cl.DoExecIntoPod(pod, command, reason, cr.Namespace)
+}
+
+func (cl *k8s) DoExecIntoPod(namespace string, podName string, command string, reason string) (string, error) {
+	logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
 
 	args := []string{"/bin/bash", "-c", command}
 	stdout, stderr, err := cl.RunExec(args, podName, namespace)
@@ -66,9 +84,7 @@ func (cl *k8s) ExecIntoPod(podName string, command string, reason string, namesp
 		return stdout, err
 	}
 
-	if reason != "" {
-		logrus.Info("Exec successfully completed.")
-	}
+	logrus.Info("Exec successfully completed.")
 	return stdout, nil
 }
 
@@ -162,6 +178,14 @@ func (cl *k8s) ReadSecret(name string, ns string) (user string, password string,
 		return "", "", err
 	}
 	return string(secret.Data["user"]), string(secret.Data["password"]), nil
+}
+
+func (cl *k8s) ReadRawSecret(name string, ns string) (map[string][]byte, error) {
+	secret, err := cl.clientset.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return secret.Data, nil
 }
 
 func (cl *k8s) RunExec(command []string, podName, namespace string) (string, string, error) {
