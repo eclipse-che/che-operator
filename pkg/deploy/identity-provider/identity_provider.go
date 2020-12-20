@@ -47,7 +47,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	cheFlavor := deploy.DefaultCheFlavor(instance)
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 	tests := util.IsTestMode()
-	isOpenShift := util.IsOpenShift
+	isOpenShift := util.IsOpenshift()
 
 	if instance.Spec.Auth.ExternalIdentityProvider {
 		return true, nil
@@ -75,7 +75,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		}
 	}
 
-	additionalLabels := (map[bool]string{true: instance.Spec.Auth.IdentityProviderRoute.Labels, false: instance.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenShift]
+	additionalLabels := (map[bool]string{true: instance.Spec.Auth.IdentityProviderRoute.Labels, false: instance.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenshift()]
 	endpoint, done, err := expose.Expose(deployContext, cheHost, Keycloak, additionalLabels)
 	if !done {
 		return false, err
@@ -139,7 +139,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 func SyncIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor string) error {
 	instance := deployContext.CheCluster
 	tests := util.IsTestMode()
-	isOpenShift4 := util.IsOpenShift4
+	isOpenShift4 := util.IsOpenshift4()
 	keycloakDeploymentName := KeycloakDeploymentName
 	oAuthClientName := instance.Spec.Auth.OAuthClientName
 	if len(oAuthClientName) < 1 {

@@ -28,7 +28,7 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 		return nil, err
 	}
 
-	if util.IsOpenShift4 {
+	if util.IsOpenshift4() {
 		clusterProxy := &configv1.Proxy{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, clusterProxy); err != nil {
 			return nil, err

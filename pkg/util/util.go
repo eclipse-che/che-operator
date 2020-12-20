@@ -24,7 +24,6 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	// "strconv"
 	"strings"
 	"time"
 
@@ -32,15 +31,21 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	// v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
-	// "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 var (
 	k8sclient                 = GetK8Client()
-	IsOpenShift, IsOpenShift4 bool
+	isOpenShift, isOpenShift4 bool
 )
+
+func IsOpenshift() bool {
+	return isOpenShift
+}
+
+func IsOpenshift4() bool {
+	return isOpenShift4
+}
 
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {
@@ -91,22 +96,21 @@ func MapToKeyValuePairs(m map[string]string) string {
 	return strings.TrimSuffix(buff.String(), ",")
 }
 
-func DetectOpenShift(di discovery.DiscoveryInterface) (bool, isOpenshift4 bool, anError error) {
+func DetectOpenShift(di discovery.DiscoveryInterface) (anError error) {
 	apiList, err := di.ServerGroups()
 	if err != nil {
-		return false, false, err
+		return err
 	}
 
 	for _, apiGroup := range apiList.Groups {
 		if apiGroup.Name == "route.openshift.io" {
-			IsOpenShift = true
+			isOpenShift = true
 		}
 		if apiGroup.Name == "config.openshift.io" {
-			isOpenshift4 = true
+			isOpenShift4 = true
 		}
 	}
-
-	return IsOpenShift, isOpenshift4, nil
+	return nil
 }
 
 func GetValue(key string, defaultValue string) (value string) {
@@ -141,7 +145,7 @@ func MergeMaps(first map[string]string, second map[string]string) map[string]str
 
 func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string {
 	strategy := c.Spec.Server.ServerExposureStrategy
-	if IsOpenShift {
+	if IsOpenshift() {
 		strategy = GetValue(strategy, defaultValue)
 	} else {
 		if strategy == "" {

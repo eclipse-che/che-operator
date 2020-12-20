@@ -91,7 +91,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-	isOpenShift, _, err := util.DetectOpenShift(discoveryClient)
+	err = util.DetectOpenShift(discoveryClient)
 
 	onAllExceptGenericEventsPredicate := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
@@ -117,7 +117,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 	// register OpenShift specific types in the scheme
-	if isOpenShift {
+	if util.IsOpenshift() {
 		if err := routev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift route to scheme: %s", err)
 		}
@@ -216,7 +216,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	if isOpenShift {
+	if util.IsOpenshift() {
 		err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
@@ -324,13 +324,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return imagePullerResult, err
 	}
 
-	isOpenShift, isOpenShift4, err := util.DetectOpenShift(clusterAPI.DiscoveryClient)
+	err = util.DetectOpenShift(clusterAPI.DiscoveryClient)
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
 
 	// Check Che CR correctness
-	if err := ValidateCheCR(instance, isOpenShift); err != nil {
+	if err := ValidateCheCR(instance, util.IsOpenshift()); err != nil {
 		// Che cannot be deployed with current configuration.
 		// Print error message in logs and wait until the configuration is changed.
 		logrus.Error(err)
@@ -341,7 +341,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsTestMode() {
-		if isOpenShift && deployContext.DefaultCheHost == "" {
+		if util.IsOpenshift() && deployContext.DefaultCheHost == "" {
 			host, err := getDefaultCheHost(deployContext)
 			if host == "" {
 				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
@@ -350,8 +350,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
-		if reconcileResult, err := r.autoEnableOAuth(instance, request, isOpenShift4); err != nil {
+	if util.IsOpenshift() && instance.Spec.Auth.OpenShiftoAuth == nil {
+		if reconcileResult, err := r.autoEnableOAuth(instance, request, util.IsOpenshift4()); err != nil {
 			return reconcileResult, err
 		}
 	}
@@ -396,13 +396,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	if isOpenShift {
+	if util.IsOpenshift() {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if selfSignedCertUsed ||
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
+			(util.IsOpenshift4() && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -420,7 +420,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		if util.IsOAuthEnabled(instance) {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
+			baseURL, err := util.GetClusterPublicHostname(util.IsOpenshift4())
 			if err != nil {
 				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 			} else {
@@ -783,7 +783,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
-	if !isOpenShift {
+	if !util.IsOpenshift() {
 		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
 		ingress, err := deploy.SyncIngressToCluster(deployContext, cheFlavor, instance.Spec.Server.CheHost, exposedServiceName, 8080, additionalLabels)
 		if !tests {
@@ -927,14 +927,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// we can now try to create consolelink, after che instance is available
-	if err := createConsoleLink(isOpenShift4, protocol, instance, r); err != nil {
+	if err := createConsoleLink(util.IsOpenshift4(), protocol, instance, r); err != nil {
 		logrus.Errorf("An error occurred during console link provisioning: %s", err)
 		return reconcile.Result{}, err
 	}
 
 	// Delete OpenShift identity provider if OpenShift oAuth is false in spec
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
-	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
+	deleted, err := r.ReconcileIdentityProvider(instance, util.IsOpenshift4())
 	if deleted {
 		for {
 			if err := r.DeleteFinalizer(instance); err != nil &&

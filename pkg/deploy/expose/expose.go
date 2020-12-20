@@ -48,9 +48,9 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 
 	gatewayConfig := "che-gateway-route-" + endpointName
 	singleHostExposureType := deploy.GetSingleHostExposureType(deployContext.CheCluster)
-	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
+	useGateway := exposureStrategy == "single-host" && (util.IsOpenshift() || singleHostExposureType == "gateway")
 
-	if !util.IsOpenShift {
+	if !util.IsOpenshift() {
 		if useGateway {
 			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+pathPrefix, 10, "http://"+endpointName+":8080", stripPrefix)
 			clusterCfg, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)

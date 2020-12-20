@@ -209,6 +209,12 @@ var (
 			},
 		},
 	}
+	clusterProxy = &oauth_config.Proxy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: "cluster",
+		},
+	}
 )
 
 func init() {
@@ -296,6 +302,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
+				clusterProxy,
 			},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: nil,
@@ -305,6 +312,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
+				clusterProxy,
 			},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: nil,
@@ -314,6 +322,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			name: "che-operator should respect oAuth = true even if there no indentity providers on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
+				clusterProxy,
 			},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(true),
@@ -323,16 +332,17 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
+				clusterProxy,
 			},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(true),
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
-
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
+				clusterProxy,
 			},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
@@ -342,6 +352,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			name: "che-operator should respect oAuth = false even if there are some users on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
+				clusterProxy,
 			},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
@@ -349,7 +360,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		},
 		{
 			name:              "che-operator should auto disable oAuth on error retieve identity providers",
-			initObjects:       []runtime.Object{},
+			initObjects:       []runtime.Object{clusterProxy},
 			apiResources:      openshift4ApiResources,
 			initialOAuthValue: nil,
 			oAuthExpected:     util.NewBoolPointer(false),
@@ -364,6 +375,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
 			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
+			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.Proxy{})
 
 			initCR := InitCheWithSimpleCR()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
@@ -431,6 +443,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			initCR: InitCheCRWithImagePullerEnabled(),
 			initObjects: []runtime.Object{
 				packageManifest,
+				clusterProxy,
 			},
 			expectedOperatorGroup: operatorGroup,
 		},
@@ -502,6 +515,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				packageManifest,
 				operatorGroup,
 				subscription,
+				clusterProxy,
 			},
 			expectedImagePuller: defaultImagePuller,
 		},
@@ -550,6 +564,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				subscription,
 				clusterServiceVersion,
 				defaultImagePuller,
+				clusterProxy,
 			},
 			shouldDelete: true,
 		},
@@ -686,7 +701,6 @@ func TestImagePullerConfiguration(t *testing.T) {
 }
 
 func TestCheController(t *testing.T) {
-	os.Setenv("OPENSHIFT_VERSION", "3")
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -805,12 +819,12 @@ func TestCheController(t *testing.T) {
 		t.Errorf("ConfigMap wasn't updated properly. Extecting empty string, got: '%s'", cm.Data["CHE_INFRA_OPENSHIFT_PROJECT"])
 	}
 
-	_, isOpenshiftv4, err := util.DetectOpenShift(di)
+	err = util.DetectOpenShift(di)
 	if err != nil {
 		logrus.Errorf("Error detecting openshift version: %v", err)
 	}
 	expectedIdentityProviderName := "openshift-v3"
-	if isOpenshiftv4 {
+	if util.IsOpenshift4() {
 		expectedIdentityProviderName = "openshift-v4"
 	}
 
@@ -961,8 +975,6 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 }
 
 func TestConfiguringInternalNetworkTest(t *testing.T) {
-	os.Setenv("OPENSHIFT_VERSION", "3")
-
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -1139,6 +1151,7 @@ func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	// Register operator types with the runtime scheme
 	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+	scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.Proxy{})
 
 	// Create a fake client to mock API calls
 	return fake.NewFakeClient(objs...), ds, scheme
@@ -1178,7 +1191,7 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		cheCR, pgPod, route, packageManifest,
+		cheCR, pgPod, route, packageManifest, clusterProxy,
 	}
 
 	// Register operator types with the runtime scheme

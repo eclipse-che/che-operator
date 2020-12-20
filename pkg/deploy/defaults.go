@@ -131,7 +131,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
 
 	// Don't get some k8s specific env
-	if !util.IsOpenShift {
+	if !util.IsOpenshift() {
 		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }
@@ -290,7 +290,7 @@ func GetCheMultiUser(cr *orgv1.CheCluster) string {
 }
 
 func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	if util.IsOpenShift {
+	if util.IsOpenshift() {
 		return DefaultOpenShiftSingleHostExposureType
 	}
 
@@ -373,7 +373,7 @@ func InitDefaultsFromEnv() {
 	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
 
 	// Don't get some k8s specific env
-	if !util.IsOpenShift {
+	if !util.IsOpenshift() {
 		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }

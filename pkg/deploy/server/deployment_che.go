@@ -46,7 +46,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) deploy.Depl
 }
 
 func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
-	isOpenShift, _, err := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
+	err := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +352,7 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		}
 	}
 
-	if !isOpenShift {
+	if !util.IsOpenshift() {
 		runAsUser, err := strconv.ParseInt(util.GetValue(deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
 			return nil, err

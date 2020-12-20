@@ -72,14 +72,17 @@ func printVersion(cfg *rest.Config) {
 	logrus.Infof(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
 	logrus.Infof(fmt.Sprintf("operator-sdk Version: %v", sdkVersion.Version))
 	di, err := discovery.NewDiscoveryClientForConfig(cfg)
-	isOpenShift, isOpenShift4, err := util.DetectOpenShift(di)
+	if err != nil {
+		logrus.Fatalf("Unable to create discovery client: %s", err)
+	}
+	err = util.DetectOpenShift(di)
 	if err != nil {
 		logrus.Fatalf("Operator is exiting. An error occurred when detecting current infra: %s", err)
 	}
 	infra := "Kubernetes"
-	if isOpenShift {
+	if util.IsOpenshift() {
 		infra = "OpenShift"
-		if isOpenShift4 {
+		if util.IsOpenshift4() {
 			infra += " v4.x"
 		} else {
 			infra += " v3.x"

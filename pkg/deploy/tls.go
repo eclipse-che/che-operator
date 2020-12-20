@@ -81,7 +81,7 @@ func IsSelfSignedCertificateUsed(deployContext *DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if !util.IsOpenShift {
+	if !util.IsOpenshift() {
 		// Handle custom tls secret for Che ingresses
 		cheTLSSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 		if cheTLSSecretName != "" {
@@ -132,7 +132,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 	var useTestEndpoint bool = len(endpointURL) < 1
 	var requestURL string
 	if useTestEndpoint {
-		if util.IsOpenShift {
+		if util.IsOpenshift() {
 			// Create test route to get certificates chain.
 			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
 			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels

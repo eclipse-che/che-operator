@@ -58,10 +58,10 @@ func TestNewCheConfigMap(t *testing.T) {
 	cheEnv, _ := GetCheConfigMapData(deployContext)
 	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv)
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
-	_, isOpenshiftv4, _ := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
+	util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
 	protocol := strings.Split(testCm.Data["CHE_API"], "://")[0]
 	expectedIdentityProvider := "openshift-v3"
-	if isOpenshiftv4 {
+	if util.IsOpenshift4() {
 		expectedIdentityProvider = "openshift-v4"
 	}
 	if identityProvider != expectedIdentityProvider {
