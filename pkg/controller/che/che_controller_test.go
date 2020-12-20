@@ -181,6 +181,34 @@ var (
 			},
 		},
 	}
+	openshift3ApiResources = []*metav1.APIResourceList{
+		{
+			GroupVersion: "route.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Kind: "Route",
+				},
+			},
+		},
+	}
+	openshift4ApiResources = []*metav1.APIResourceList{
+		{
+			GroupVersion: "route.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Kind: "Route",
+				},
+			},
+		},
+		{
+			GroupVersion: "config.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Kind: "APIServer",
+				},
+			},
+		},
+	}
 )
 
 func init() {
@@ -198,7 +226,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 	type testCase struct {
 		name              string
 		initObjects       []runtime.Object
-		openshiftVersion  string
+		apiResources      []*metav1.APIResourceList
 		initialOAuthValue *bool
 		oAuthExpected     *bool
 	}
@@ -210,7 +238,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				nonEmptyUserList,
 				&oauth.OAuthClient{},
 			},
-			openshiftVersion:  "3",
+			apiResources:      openshift3ApiResources,
 			initialOAuthValue: nil,
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -220,7 +248,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				&userv1.UserList{},
 				&oauth.OAuthClient{},
 			},
-			openshiftVersion:  "3",
+			apiResources:      openshift3ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
@@ -230,7 +258,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				&userv1.UserList{},
 				&oauth.OAuthClient{},
 			},
-			openshiftVersion:  "3",
+			apiResources:      openshift3ApiResources,
 			initialOAuthValue: util.NewBoolPointer(true),
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -240,7 +268,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				nonEmptyUserList,
 				&oauth.OAuthClient{},
 			},
-			openshiftVersion:  "3",
+			apiResources:      openshift3ApiResources,
 			initialOAuthValue: util.NewBoolPointer(true),
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -250,7 +278,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				nonEmptyUserList,
 				&oauth.OAuthClient{},
 			},
-			openshiftVersion:  "3",
+			apiResources:      openshift3ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
@@ -260,7 +288,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				&userv1.UserList{},
 				&oauth.OAuthClient{},
 			},
-			openshiftVersion:  "3",
+			apiResources:      openshift3ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
@@ -269,7 +297,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
 			},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: nil,
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -278,7 +306,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
 			},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: nil,
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
@@ -287,7 +315,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
 			},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(true),
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -296,7 +324,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
 			},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(true),
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -306,7 +334,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
 			},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
@@ -315,14 +343,14 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
 			},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: util.NewBoolPointer(false),
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
 		{
 			name:              "che-operator should auto disable oAuth on error retieve identity providers",
 			initObjects:       []runtime.Object{},
-			openshiftVersion:  "4",
+			apiResources:      openshift4ApiResources,
 			initialOAuthValue: nil,
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
@@ -345,7 +373,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+			fakeDiscovery.Fake.Resources = testCase.apiResources
 
 			if !ok {
 				t.Fatal("Error creating fake discovery client")
@@ -363,8 +391,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 					Namespace: namespace,
 				},
 			}
-
-			os.Setenv("OPENSHIFT_VERSION", testCase.openshiftVersion)
 
 			_, err := r.Reconcile(req)
 			if err != nil {
@@ -664,10 +690,10 @@ func TestCheController(t *testing.T) {
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	cl, dc, scheme := Init()
+	cl, di, scheme := Init()
 
 	// Create a ReconcileChe object with the scheme and fake client
-	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, discoveryClient: dc, tests: true}
+	r := &ReconcileChe{client: cl, nonCachedClient: cl, scheme: &scheme, discoveryClient: di, tests: true}
 
 	// get CR
 	cheCR := &orgv1.CheCluster{}
@@ -779,7 +805,7 @@ func TestCheController(t *testing.T) {
 		t.Errorf("ConfigMap wasn't updated properly. Extecting empty string, got: '%s'", cm.Data["CHE_INFRA_OPENSHIFT_PROJECT"])
 	}
 
-	_, isOpenshiftv4, err := util.DetectOpenShift()
+	_, isOpenshiftv4, err := util.DetectOpenShift(di)
 	if err != nil {
 		logrus.Errorf("Error detecting openshift version: %v", err)
 	}
@@ -1089,6 +1115,22 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 
 func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	objs, ds, scheme := createAPIObjects()
+
+	fakeDiscovery, ok := ds.(*fakeDiscovery.FakeDiscovery)
+	if !ok {
+		fmt.Errorf("Discavery should be fake")
+		os.Exit(1)
+	}
+	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
+		{
+			GroupVersion: "route.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Kind: "Route",
+				},
+			},
+		},
+	}
 
 	oAuthClient := &oauth.OAuthClient{}
 	users := &userv1.UserList{}

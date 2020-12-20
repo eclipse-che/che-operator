@@ -33,7 +33,9 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
+	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -64,15 +66,15 @@ func setLogLevel() {
 	}
 }
 
-func printVersion() {
+func printVersion(cfg *rest.Config) {
 	setLogLevel()
 	logrus.Infof(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	logrus.Infof(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
 	logrus.Infof(fmt.Sprintf("operator-sdk Version: %v", sdkVersion.Version))
-	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
+	di, err := discovery.NewDiscoveryClientForConfig(cfg)
+	isOpenShift, isOpenShift4, err := util.DetectOpenShift(di)
 	if err != nil {
 		logrus.Fatalf("Operator is exiting. An error occurred when detecting current infra: %s", err)
-
 	}
 	infra := "Kubernetes"
 	if isOpenShift {
@@ -89,7 +91,6 @@ func printVersion() {
 func main() {
 	flag.Parse()
 	deploy.InitDefaults(defaultsPath)
-	printVersion()
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		logrus.Errorf("Failed to get watch namespace. Using default namespace eclipse-che: %s", err)
@@ -102,6 +103,7 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+	printVersion(cfg)
 
 	// Become the leader before proceeding
 	leader.Become(context.TODO(), "che-operator-lock")

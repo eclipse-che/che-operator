@@ -86,7 +86,12 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	isOpenShift, _, err := util.DetectOpenShift()
+	// todo detect openshift one time and cache result!!!
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		return err
+	}
+	isOpenShift, _, err := util.DetectOpenShift(discoveryClient)
 
 	onAllExceptGenericEventsPredicate := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
@@ -131,7 +136,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
 		}
-		if hasConsolelinkObject() {
+		if hasConsolelinkObject(discoveryClient) {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
 			}
@@ -319,7 +324,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return imagePullerResult, err
 	}
 
-	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
+	isOpenShift, isOpenShift4, err := util.DetectOpenShift(clusterAPI.DiscoveryClient)
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
@@ -964,7 +969,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 }
 
 func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCluster, r *ReconcileChe) error {
-	if !isOpenShift4 || !hasConsolelinkObject() {
+	if !isOpenShift4 || !hasConsolelinkObject(r.discoveryClient) {
 		logrus.Debug("Console link won't be created. It's not supported by cluster")
 		// console link is supported only on OpenShift >= 4.2
 		return nil
@@ -1011,8 +1016,8 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 	}
 }
 
-func hasConsolelinkObject() bool {
-	resourceList, err := util.GetServerResources()
+func hasConsolelinkObject(di discovery.DiscoveryInterface) bool {
+	resourceList, err := di.ServerResources()
 	if err != nil {
 		return false
 	}

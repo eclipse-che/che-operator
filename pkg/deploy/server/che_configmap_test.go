@@ -18,7 +18,26 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	fakeclientset "k8s.io/client-go/kubernetes/fake"
 )
+
+func createFakeDiscovery() *fakeDiscovery.FakeDiscovery {
+	clientSet := fakeclientset.NewSimpleClientset()
+	fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
+		{
+			GroupVersion: "route.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Kind: "Route",
+				},
+			},
+		},
+	}
+	return fakeDiscovery
+}
 
 func TestNewCheConfigMap(t *testing.T) {
 
@@ -32,12 +51,14 @@ func TestNewCheConfigMap(t *testing.T) {
 	deployContext := &deploy.DeployContext{
 		CheCluster: cr,
 		Proxy:      &deploy.Proxy{},
-		ClusterAPI: deploy.ClusterAPI{},
+		ClusterAPI: deploy.ClusterAPI{
+			DiscoveryClient: createFakeDiscovery(),
+		},
 	}
 	cheEnv, _ := GetCheConfigMapData(deployContext)
 	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv)
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
-	_, isOpenshiftv4, _ := util.DetectOpenShift()
+	_, isOpenshiftv4, _ := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
 	protocol := strings.Split(testCm.Data["CHE_API"], "://")[0]
 	expectedIdentityProvider := "openshift-v3"
 	if isOpenshiftv4 {
@@ -62,7 +83,9 @@ func TestConfigMapOverride(t *testing.T) {
 	deployContext := &deploy.DeployContext{
 		CheCluster: cr,
 		Proxy:      &deploy.Proxy{},
-		ClusterAPI: deploy.ClusterAPI{},
+		ClusterAPI: deploy.ClusterAPI{
+			DiscoveryClient: createFakeDiscovery(),
+		},
 	}
 	cheEnv, _ := GetCheConfigMapData(deployContext)
 	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv)

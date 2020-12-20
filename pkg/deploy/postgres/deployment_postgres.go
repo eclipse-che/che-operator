@@ -48,7 +48,7 @@ func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) deploy
 }
 
 func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
-	isOpenShift, _, err := util.DetectOpenShift()
+	isOpenShift, _, err := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
 	if err != nil {
 		return nil, err
 	}

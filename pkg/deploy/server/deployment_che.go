@@ -46,7 +46,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) deploy.Depl
 }
 
 func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
-	isOpenShift, _, err := util.DetectOpenShift()
+	isOpenShift, _, err := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
 	if err != nil {
 		return nil, err
 	}

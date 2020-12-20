@@ -104,7 +104,7 @@ func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.Con
 func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string]string, err error) {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
-	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
+	isOpenShift, isOpenshift4, err := util.DetectOpenShift(deployContext.ClusterAPI.DiscoveryClient)
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}

@@ -24,7 +24,7 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
+	// "strconv"
 	"strings"
 	"time"
 
@@ -32,14 +32,14 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	// "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 var (
-	k8sclient                    = GetK8Client()
-	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
+	k8sclient                 = GetK8Client()
+	IsOpenShift, IsOpenShift4 bool
 )
 
 func ContainsString(slice []string, s string) bool {
@@ -91,59 +91,22 @@ func MapToKeyValuePairs(m map[string]string) string {
 	return strings.TrimSuffix(buff.String(), ",")
 }
 
-func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
-	tests := IsTestMode()
-	if tests {
-		openshiftVersionEnv := os.Getenv("OPENSHIFT_VERSION")
-		openshiftVersion, err := strconv.ParseInt(openshiftVersionEnv, 0, 64)
-		if err == nil && openshiftVersion == 4 {
-			return true, true, nil
-		}
-		return true, false, nil
-	}
-
-	apiGroups, err := getApiList()
+func DetectOpenShift(di discovery.DiscoveryInterface) (bool, isOpenshift4 bool, anError error) {
+	apiList, err := di.ServerGroups()
 	if err != nil {
 		return false, false, err
 	}
-	for _, apiGroup := range apiGroups {
+
+	for _, apiGroup := range apiList.Groups {
 		if apiGroup.Name == "route.openshift.io" {
-			isOpenshift = true
+			IsOpenShift = true
 		}
 		if apiGroup.Name == "config.openshift.io" {
 			isOpenshift4 = true
 		}
 	}
 
-	return isOpenshift, isOpenshift4, nil
-}
-
-func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
-	kubeconfig, err := config.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	return discovery.NewDiscoveryClientForConfig(kubeconfig)
-}
-
-func getApiList() ([]v1.APIGroup, error) {
-	discoveryClient, err := getDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-	apiList, err := discoveryClient.ServerGroups()
-	if err != nil {
-		return nil, err
-	}
-	return apiList.Groups, nil
-}
-
-func GetServerResources() ([]*v1.APIResourceList, error) {
-	discoveryClient, err := getDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-	return discoveryClient.ServerResources()
+	return IsOpenShift, isOpenshift4, nil
 }
 
 func GetValue(key string, defaultValue string) (value string) {
