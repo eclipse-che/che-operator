@@ -41,7 +41,7 @@ var (
 		syncDeployment,
 		syncKeycloakResources,
 		syncOpenShiftIdentityProvider,
-		syncGitHubIdentitProvider,
+		syncGitHubFederatedIdentity,
 	}
 )
 
@@ -221,39 +221,41 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-func syncGitHubIdentitProvider(deployContext *deploy.DeployContext) (bool, error) {
+func syncGitHubFederatedIdentity(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if cr.Spec.Auth.IdentityProviders.GiHub.Enable {
-		if !cr.Status.GitHubIdentityProviderProvisioned {
+	if cr.Spec.Auth.FederatedIdentities.GiHub.Enable {
+		if !cr.Status.GitHubFederatedIdentityProvisioned {
 			_, err := util.K8sclient.ExecIntoPod(
 				cr,
 				IdentityProviderDeploymentName,
-				GetGitHubIdentityProviderProvisionCommand,
-				"Create GitHub identity provider")
+				func(cr *orgv1.CheCluster) (string, error) {
+					return GetGitHubIdentityProviderProvisionCommand(deployContext)
+				},
+				"Create GitHub federated identity")
 			if err != nil {
 				return false, err
 			}
 
-			cr.Status.GitHubIdentityProviderProvisioned = true
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub identity provider provisioned", "true"); err != nil {
+			cr.Status.GitHubFederatedIdentityProvisioned = true
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub federated identity provisioned", "true"); err != nil {
 				return false, err
 			}
 		}
 	} else {
-		if cr.Status.GitHubIdentityProviderProvisioned {
+		if cr.Status.GitHubFederatedIdentityProvisioned {
 			_, err := util.K8sclient.ExecIntoPod(
 				cr,
 				IdentityProviderDeploymentName,
 				func(cr *orgv1.CheCluster) (string, error) {
 					return GetDeleteIdentityProviderCommand(cr, "github")
 				},
-				"Delete GitHub identity provider")
+				"Delete GitHub federated identity")
 			if err != nil {
 				return false, err
 			}
 
-			cr.Status.GitHubIdentityProviderProvisioned = false
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub identity provider provisioned", "false"); err != nil {
+			cr.Status.GitHubFederatedIdentityProvisioned = false
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub federated identity provisioned", "false"); err != nil {
 				return false, err
 			}
 		}

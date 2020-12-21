@@ -99,19 +99,22 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 	return getCommandFromTemplateFile(cr, "/tmp/oauth-provision.sh", data)
 }
 
-func GetGitHubIdentityProviderProvisionCommand(cr *v1.CheCluster) (string, error) {
-	secret := cr.Spec.Auth.IdentityProviders.GiHub.CredentialsSecret
-	if secret == "" {
+func GetGitHubIdentityProviderProvisionCommand(deployContext *deploy.DeployContext) (string, error) {
+	cr := deployContext.CheCluster
+	secretName := cr.Spec.Auth.FederatedIdentities.GiHub.CredentialsSecret
+	if secretName == "" {
 		return "", errors.New("GitHub credentials secret is empty")
 	}
 
-	secretData, err := util.K8sclient.ReadRawSecret(secret, cr.Namespace)
+	secret, err := deploy.GetClusterSecret(secretName, cr.Namespace, deployContext.ClusterAPI)
 	if err != nil {
 		return "", err
+	} else if secret == nil {
+		return "", errors.New("GitHub credentials secret '" + secretName + "' not found.")
 	}
 
-	githubClientId := string(secretData["clientId"])
-	githuhClientSecret := string(secretData["clientSecret"])
+	githubClientId := string(secret.Data["clientId"])
+	githuhClientSecret := string(secret.Data["clientSecret"])
 	script, keycloakRealm, _, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
 	data := struct {
 		Script                string

@@ -437,20 +437,20 @@ type CheClusterSpecAuth struct {
 	// Route custom settings
 	// +optional
 	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
-	// Identity providers
+	// Federated identities
 	// +optional
-	IdentityProviders IdentityProviders `json:"identityProviders,omitempty"`
+	FederatedIdentities FederatedIdentities `json:"federatedIdentities,omitempty"`
 }
 
-// Identity providers
-type IdentityProviders struct {
-	// GitHub identity provider
+// Federated identities
+type FederatedIdentities struct {
+	// GitHub federated identity
 	// +optional
-	GiHub GitHubIdentityProviderSettings `json:"gitHub"`
+	GiHub GitHubFederatedIdentity `json:"gitHub"`
 }
 
-// GitHub identity provider settings
-type GitHubIdentityProviderSettings struct {
+// GitHub federated identities settings
+type GitHubFederatedIdentity struct {
 	// +optional
 	Enable bool `json:"enable"`
 	// Secret containing `clientId` and `clientSecret` keys
@@ -573,9 +573,9 @@ type CheClusterStatus struct {
 	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the OpenShift OAuth.
 	// +optional
 	OpenShiftoAuthProvisioned bool `json:"openShiftoAuthProvisioned"`
-	// Indicates whether an GitHub Identity Provider has been configured.
+	// Indicates whether an GitHub Federated Identity has been configured.
 	// +optional
-	GitHubIdentityProviderProvisioned bool `json:"gitHubIdentityProviderProvisioned"`
+	GitHubFederatedIdentityProvisioned bool `json:"gitHubFederatedIdentityProvisioned"`
 	// Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`
 	// +optional
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true

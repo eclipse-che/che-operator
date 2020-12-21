@@ -184,14 +184,6 @@ func (cl *k8s) ReadSecret(name string, ns string) (user string, password string,
 	return string(secret.Data["user"]), string(secret.Data["password"]), nil
 }
 
-func (cl *k8s) ReadRawSecret(name string, ns string) (map[string][]byte, error) {
-	secret, err := cl.clientset.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return secret.Data, nil
-}
-
 func (cl *k8s) RunExec(command []string, podName, namespace string) (string, string, error) {
 
 	req := cl.clientset.CoreV1().RESTClient().Post().
