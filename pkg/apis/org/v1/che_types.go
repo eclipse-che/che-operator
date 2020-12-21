@@ -439,7 +439,7 @@ type CheClusterSpecAuth struct {
 	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
 	// Identity providers
 	// +optional
-	IdentityProviders IdentityProviders `json:"identityProviders"`
+	IdentityProviders IdentityProviders `json:"identityProviders,omitempty"`
 }
 
 // Identity providers

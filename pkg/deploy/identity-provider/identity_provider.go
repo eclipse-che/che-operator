@@ -201,7 +201,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 				func(cr *orgv1.CheCluster) (string, error) {
 					return GetOpenShiftIdentityProviderProvisionCommand(cr, oAuthClientName, oauthSecret)
 				},
-				"Create GitHub identity provider")
+				"Create OpenShift identity provider")
 			if err != nil {
 				return false, err
 			}
@@ -247,7 +247,7 @@ func syncGitHubIdentitProvider(deployContext *deploy.DeployContext) (bool, error
 				func(cr *orgv1.CheCluster) (string, error) {
 					return GetDeleteIdentityProviderCommand(cr, "github")
 				},
-				"Create GitHub identity provider")
+				"Delete GitHub identity provider")
 			if err != nil {
 				return false, err
 			}

@@ -148,6 +148,21 @@ spec:
                     By default this will be automatically calculated and set by the
                     operator.
                   type: string
+                identityProviders:
+                  description: Identity providers
+                  properties:
+                    gitHub:
+                      description: GitHub identity provider
+                      properties:
+                        credentialsSecret:
+                          description: Secret containing `clientId` and `clientSecret`
+                            keys for Client ID and Client secret of GitHub OAuth app
+                            correspondingly.
+                          type: string
+                        enable:
+                          type: boolean
+                      type: object
+                  type: object
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
                     setup identity federation on the OpenShift side. Auto-generated
@@ -697,6 +712,10 @@ spec:
             devfileRegistryURL:
               description: Public URL to the Devfile registry
               type: string
+            gitHubIdentityProviderProvisioned:
+              description: Indicates whether an GitHub Identity Provider has been
+                configured.
+              type: boolean
             helpLink:
               description: A URL that can point to some URL where to find help related
                 to the current Operator status.
