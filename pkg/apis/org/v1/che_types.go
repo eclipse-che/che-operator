@@ -405,12 +405,16 @@ type CheClusterSpecAuth struct {
 	// Forces the default `admin` Che user to update password on first login. Defaults to `false`.
 	// +optional
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
-	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth. Enabled by default on OpenShift.
-	// This will allow users to directly login with their Openshift user through the Openshift login,
+	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth.
+	// Empty value on the OpenShift platform by default.
+	// If user changes this empty value to true/false, then che-operator respect this value.
+	// Otherwise che-operator tries to auto detect if Openshift oAuth can be enabled and change empty value,
+	// correspondly to auto-detection result.
+	// This property allows users to directly login with their Openshift user through the Openshift login,
 	// and have their workspaces created under personal OpenShift namespaces.
 	// WARNING: the `kubeadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.
 	// +optional
-	OpenShiftoAuth bool `json:"openShiftoAuth"`
+	OpenShiftoAuth *bool `json:"openShiftoAuth"`
 	// Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank.
 	// See also the `OpenShiftoAuth` field.
 	// +optional

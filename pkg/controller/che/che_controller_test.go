@@ -29,6 +29,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
+	oauth_config "github.com/openshift/api/config/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -146,6 +147,40 @@ var (
 			Name:      csvName,
 		},
 	}
+	nonEmptyUserList = &userv1.UserList{
+		Items: []userv1.User{
+			userv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "user1",
+				},
+			},
+			userv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "user2",
+				},
+			},
+		},
+	}
+	oAuthClient                  = &oauth.OAuthClient{}
+	oAuthWithNoIdentityProviders = &oauth_config.OAuth{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: namespace,
+		},
+	}
+	oAuthWithIdentityProvider = &oauth_config.OAuth{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster",
+			Namespace: namespace,
+		},
+		Spec: oauth_config.OAuthSpec{
+			IdentityProviders: []oauth_config.IdentityProvider{
+				{
+					Name: "htpasswd",
+				},
+			},
+		},
+	}
 )
 
 func init() {
@@ -156,6 +191,199 @@ func init() {
 		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
 			os.Setenv(env.Name, env.Value)
 		}
+	}
+}
+
+func TestCaseAutoDetectOAuth(t *testing.T) {
+	type testCase struct {
+		name              string
+		initObjects       []runtime.Object
+		openshiftVersion  string
+		initialOAuthValue *bool
+		oAuthExpected     *bool
+	}
+
+	testCases := []testCase{
+		{
+			name: "che-operator should auto enable oAuth when Che CR with oAuth nil value on the Openshift 3 with users > 0",
+			initObjects: []runtime.Object{
+				nonEmptyUserList,
+				&oauth.OAuthClient{},
+			},
+			openshiftVersion:  "3",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should auto disable oAuth when Che CR with nil oAuth on the Openshift 3 with no users",
+			initObjects: []runtime.Object{
+				&userv1.UserList{},
+				&oauth.OAuthClient{},
+			},
+			openshiftVersion:  "3",
+			initialOAuthValue: util.NewBoolPointer(false),
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+		{
+			name: "che-operator should respect oAuth = true even if there no users on the Openshift 3",
+			initObjects: []runtime.Object{
+				&userv1.UserList{},
+				&oauth.OAuthClient{},
+			},
+			openshiftVersion:  "3",
+			initialOAuthValue: util.NewBoolPointer(true),
+			oAuthExpected:     util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 3",
+			initObjects: []runtime.Object{
+				nonEmptyUserList,
+				&oauth.OAuthClient{},
+			},
+			openshiftVersion:  "3",
+			initialOAuthValue: util.NewBoolPointer(true),
+			oAuthExpected:     util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should respect oAuth = false even if there are some users on the Openshift 3",
+			initObjects: []runtime.Object{
+				nonEmptyUserList,
+				&oauth.OAuthClient{},
+			},
+			openshiftVersion:  "3",
+			initialOAuthValue: util.NewBoolPointer(false),
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+		{
+			name: "che-operator should respect oAuth = false even if no users on the Openshift 3",
+			initObjects: []runtime.Object{
+				&userv1.UserList{},
+				&oauth.OAuthClient{},
+			},
+			openshiftVersion:  "3",
+			initialOAuthValue: util.NewBoolPointer(false),
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+		{
+			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
+			initObjects: []runtime.Object{
+				oAuthWithIdentityProvider,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+		{
+			name: "che-operator should respect oAuth = true even if there no indentity providers on the Openshift 4",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: util.NewBoolPointer(true),
+			oAuthExpected:     util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
+			initObjects: []runtime.Object{
+				oAuthWithIdentityProvider,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: util.NewBoolPointer(true),
+			oAuthExpected:     util.NewBoolPointer(true),
+		},
+
+		{
+			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: util.NewBoolPointer(false),
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+		{
+			name: "che-operator should respect oAuth = false even if there are some users on the Openshift 4",
+			initObjects: []runtime.Object{
+				oAuthWithIdentityProvider,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: util.NewBoolPointer(false),
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+		{
+			name:              "che-operator should auto disable oAuth on error retieve identity providers",
+			initObjects:       []runtime.Object{},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(false),
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
+			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
+
+			initCR := InitCheWithSimpleCR()
+			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
+			testCase.initObjects = append(testCase.initObjects, initCR)
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			os.Setenv("OPENSHIFT_VERSION", testCase.openshiftVersion)
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cheCR := &orgv1.CheCluster{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+				t.Errorf("CR not found")
+			}
+
+			if cheCR.Spec.Auth.OpenShiftoAuth == nil {
+				t.Error("OAuth should not stay with nil value.")
+			}
+
+			if *cheCR.Spec.Auth.OpenShiftoAuth != *testCase.oAuthExpected {
+				t.Errorf("Openshift oAuth should be %t", *testCase.oAuthExpected)
+			}
+		})
 	}
 }
 
@@ -432,6 +660,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 }
 
 func TestCheController(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -531,7 +760,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Auth.OpenShiftoAuth = true
+	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
 	if err := cl.Update(context.TODO(), cheCR); err != nil {
 		t.Error("Failed to update CheCluster custom resource")
 	}
@@ -653,6 +882,7 @@ func TestCheController(t *testing.T) {
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -705,6 +935,8 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 }
 
 func TestConfiguringInternalNetworkTest(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -856,6 +1088,21 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 }
 
 func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
+	objs, ds, scheme := createAPIObjects()
+
+	oAuthClient := &oauth.OAuthClient{}
+	users := &userv1.UserList{}
+	user := &userv1.User{}
+
+	// Register operator types with the runtime scheme
+	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+
+	// Create a fake client to mock API calls
+	return fake.NewFakeClient(objs...), ds, scheme
+}
+
+func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime.Scheme) {
 	pgPod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -871,33 +1118,7 @@ func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	}
 
 	// A CheCluster custom resource with metadata and spec
-	cheCR := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: orgv1.CheClusterSpec{
-			// todo add some spec to check controller ifs like external db, ssl etc
-			Server: orgv1.CheClusterSpecServer{
-				CheWorkspaceClusterRole: "cluster-admin",
-			},
-		},
-	}
-
-	userList := &userv1.UserList{
-		Items: []userv1.User{
-			userv1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "user1",
-				},
-			},
-			userv1.User{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "user2",
-				},
-			},
-		},
-	}
+	cheCR := InitCheWithSimpleCR()
 
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
@@ -915,19 +1136,13 @@ func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		cheCR, pgPod, userList, route, packageManifest,
+		cheCR, pgPod, route, packageManifest,
 	}
-
-	oAuthClient := &oauth.OAuthClient{}
-	users := &userv1.UserList{}
-	user := &userv1.User{}
 
 	// Register operator types with the runtime scheme
 	scheme := scheme.Scheme
 	scheme.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
 	scheme.AddKnownTypes(routev1.SchemeGroupVersion, route)
-	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
 	chev1alpha1.AddToScheme(scheme)
 	packagesv1.AddToScheme(scheme)
@@ -942,7 +1157,22 @@ func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	}
 
 	// Create a fake client to mock API calls
-	return fake.NewFakeClient(objs...), fakeDiscovery, *scheme
+	return objs, fakeDiscovery, *scheme
+}
+
+func InitCheWithSimpleCR() *orgv1.CheCluster {
+	return &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: orgv1.CheClusterSpec{
+			// todo add some spec to check controller ifs like external db, ssl etc
+			Server: orgv1.CheClusterSpecServer{
+				CheWorkspaceClusterRole: "cluster-admin",
+			},
+		},
+	}
 }
 
 func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
