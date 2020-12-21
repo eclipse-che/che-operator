@@ -124,9 +124,6 @@ spec:
     identityProviderRealm: ''
     # id of a keycloak client. This client will be created, when externalIdentityProvider is false, otherwise passed to Che server
     identityProviderClientId: ''
-    # instructs an Operator to enable OpenShift v3 identity provider in Keycloak,
-    # as well as create respective oAuthClient and configure Che configMap accordingly
-    openShiftoAuth: true
     # name of oAuthClient used in OpenShift v3 identity provider in Keycloak realm. Auto generated if left blank
     oAuthClientName: ''
     # secret used in oAuthClient. Auto generated if left blank

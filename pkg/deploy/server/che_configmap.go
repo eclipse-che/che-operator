@@ -115,9 +115,8 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	openshiftOAuth := deployContext.CheCluster.Spec.Auth.OpenShiftoAuth
 	defaultTargetNamespaceDefault := deployContext.CheCluster.Namespace // By default Che SA has right in the namespace where Che in installed ...
-	if openshiftOAuth && isOpenShift {
+	if isOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
 		// ... But if the workspace is created under the openshift identity of the end-user,
 		// Then we'll have rights to create any new namespace
 		defaultTargetNamespaceDefault = "<username>-" + cheFlavor

@@ -326,7 +326,7 @@ Sometimes, during development, you need to modify some YAML definitions in the `
   - Che cluster custom resource definition `pkg/apis/org/v1/che_types.go`. For example you want to fix some properties description or apply new Che type properties with default values. These changes affect CRD `deploy/crds/org_v1_che_crd.yaml`.
   - add Openshift ui annotations for Che types properties (`pkg/apis/org/v1/che_types.go`) to display information or interactive elements on the Openshift user interface.
 
-For all these cases it's a necessary to generate a new OLM bundle to make these changes working with OLM. Run the VSCode tasks `Update csv bundle files` or use the terminal:
+For all these cases it's a necessary to generate a new OLM bundle to make these changes working with OLM. Run the VSCode tasks `Update OLM bundle files` or use the terminal:
 
 ```bash
 $ olm/update-nightly-bundle.sh
