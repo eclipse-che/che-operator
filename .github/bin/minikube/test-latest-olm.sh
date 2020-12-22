@@ -19,7 +19,8 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" ${NAMESPACE} "catalog" "my_image"
+  export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/operator:test"
+  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" ${NAMESPACE} "catalog"
   startNewWorkspace
   waitWorkspaceStart
 }

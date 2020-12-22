@@ -127,10 +127,15 @@ buildOLMImages() {
     # Build operator image
     if [ -n "${OPERATOR_IMAGE}" ];then
       echo "[INFO]: Build operator image ${OPERATOR_IMAGE}..."
-      cd "${OPERATOR_REPO}" && docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+      pushd "${OPERATOR_REPO}" || true
+      docker build --no-cache -t "${OPERATOR_IMAGE}" -f Dockerfile .
+      docker push "${OPERATOR_IMAGE}"
+      echo "${OPERATOR_IMAGE}"
+      popd || true
 
       # Use operator image in the latest CSV
       if [ "${CHANNEL}" == "nightly" ]; then
+        sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CLUSTER_SERVICE_VERSION_FILE}"
         sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
       else
         sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"

@@ -127,7 +127,7 @@ Also you can test your changes without a public registry. You can use the miniku
 $ olm/minikube-registry-addon.sh
 ```
 
-This script creates port forward to minikube private registry: `localhost:5000`. Should be launched before test execution in the separated terminal. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
+This script creates port forward to minikube private registry: `127.0.0.1:5000`. Should be launched before test execution in the separated terminal. To stop this script you can use `Ctrl+C`. You can check that private registry was forwarded to the localhost:
 
 ```bash
 $ curl -X GET localhost:5000/v2/_catalog
@@ -137,7 +137,7 @@ $ curl -X GET localhost:5000/v2/_catalog
 With this private registry you can test Che operator from development bundle:
 
 ```bash
-$ export IMAGE_REGISTRY_HOST="localhost:5000" && \
+$ export IMAGE_REGISTRY_HOST="127.0.0.1:5000" && \
   export IMAGE_REGISTRY_USER_NAME="" && \
   ./testCatalogSource.sh "kubernetes" "nightly" <ECLIPSE_CHE_NAMESPACE> "catalog"
 ```
