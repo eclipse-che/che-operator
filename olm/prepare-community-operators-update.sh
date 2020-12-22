@@ -145,9 +145,7 @@ updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
 
     lastCommitComment="$(git log -1 --pretty=%B)"
-  $HUB pull-request -o -f -m "${lastCommitComment}
-
-${lastCommitComment}
+  $HUB pull-request -f -m "${lastCommitComment}
 
 ${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
   else 
