@@ -310,6 +310,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		InternalService: deploy.InternalService{},
 	}
 
+	// delete oAuthClient before CR is deleted
+	// todo check 
+	// instance.Status.OpenShiftoAuthProvisioned
+	if util.IsOpenShift && util.IsOAuthEnabled(instance) {
+		if err := r.ReconcileFinalizer(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// Reconcile the imagePuller section of the CheCluster
 	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
 	if err != nil {
@@ -349,14 +358,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if reconcileResult, err := r.autoEnableOAuth(instance, request, isOpenShift4); err != nil {
 			return reconcileResult, err
 		}
-	}
-
-	// delete oAuthClient before CR is deleted
-	if util.IsOAuthEnabled(instance) {
-		if err := r.ReconcileFinalizer(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-
 	}
 
 	// Read proxy configuration
