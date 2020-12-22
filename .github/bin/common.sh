@@ -255,20 +255,20 @@ setCustomOperatorImage() {
 }
 
 insecurePrivateDockerRegistry() {
-  IMAGE_REGISTRY_HOST="0.0.0.0:5000"
+  IMAGE_REGISTRY_HOST="127.0.0.1:5000"
   export IMAGE_REGISTRY_HOST
 
-  local dockerDaemonConfig="/etc/docker/daemon.json"
-  sudo mkdir -p "/etc/docker"
-  sudo touch "${dockerDaemonConfig}"
+  # local dockerDaemonConfig="/etc/docker/daemon.json"
+  # sudo mkdir -p "/etc/docker"
+  # sudo touch "${dockerDaemonConfig}"
 
-  config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
-  echo "${config}" | sudo tee "${dockerDaemonConfig}"
+  # config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
+  # echo "${config}" | sudo tee "${dockerDaemonConfig}"
 
-  if [ -x "$(command -v docker)" ]; then
-      echo "[INFO] Restart docker daemon to set up private registry info."
-      sudo service docker restart
-  fi
+  # if [ -x "$(command -v docker)" ]; then
+  #     echo "[INFO] Restart docker daemon to set up private registry info."
+  #     sudo service docker restart
+  # fi
 }
 
 # Utility to print objects created by Openshift CI automatically
