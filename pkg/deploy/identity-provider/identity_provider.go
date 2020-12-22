@@ -223,7 +223,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 
 func syncGitHubFederatedIdentity(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if cr.Spec.Auth.FederatedIdentities.GiHub.Enable {
+	if cr.Spec.Auth.FederatedIdentities.GitHub.Enable {
 		if !cr.Status.GitHubFederatedIdentityProvisioned {
 			_, err := util.K8sclient.ExecIntoPod(
 				cr,

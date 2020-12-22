@@ -446,7 +446,7 @@ type CheClusterSpecAuth struct {
 type FederatedIdentities struct {
 	// GitHub federated identity
 	// +optional
-	GiHub GitHubFederatedIdentity `json:"gitHub"`
+	GitHub GitHubFederatedIdentity `json:"gitHub"`
 }
 
 // GitHub federated identities settings

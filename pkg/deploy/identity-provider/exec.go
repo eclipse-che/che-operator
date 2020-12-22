@@ -101,7 +101,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 
 func GetGitHubIdentityProviderProvisionCommand(deployContext *deploy.DeployContext) (string, error) {
 	cr := deployContext.CheCluster
-	secretName := cr.Spec.Auth.FederatedIdentities.GiHub.CredentialsSecret
+	secretName := cr.Spec.Auth.FederatedIdentities.GitHub.CredentialsSecret
 	if secretName == "" {
 		return "", errors.New("GitHub credentials secret is empty")
 	}
