@@ -371,7 +371,7 @@ waitCheServerDeploy() {
   set +e -x
 
   i=0
-  while [[ $i -le 480 ]]
+  while [[ $i -le 20 ]]
   do
     status=$(kubectl get checluster/eclipse-che -n "${namespace}" -o jsonpath={.status.cheClusterRunning})
     kubectl get pods -n "${namespace}"
@@ -383,7 +383,7 @@ waitCheServerDeploy() {
     ((i++))
   done
 
-  if [ $i -gt 480 ]
+  if [ $i -gt 20 ]
   then
     echo "Che server did't start after 8 minutes"
     exit 1
