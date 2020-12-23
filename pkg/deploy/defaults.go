@@ -102,8 +102,12 @@ const (
 	OldDefaultCodeReadyServerImageTag  = "1.2"
 	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
 
-	PartOfCheLabelKey   = "app.kubernetes.io/part-of"
-	PartOfCheLabelValue = "che.eclipse.org"
+	KubernetesComponentLabelKey = "app.kubernetes.io/component"
+	KubernetesPartOfLabelKey    = "app.kubernetes.io/part-of"
+	CheEclipseOrg               = "che.eclipse.org"
+	CheEclipseOrgMountPath      = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs        = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName        = "che.eclipse.org/env-name"
 )
 
 func InitDefaults(defaultsPath string) {
