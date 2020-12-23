@@ -13,7 +13,6 @@ package identity_provider
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"text/template"
 
@@ -101,20 +100,6 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 
 func GetGitHubIdentityProviderProvisionCommand(deployContext *deploy.DeployContext) (string, error) {
 	cr := deployContext.CheCluster
-	secretName := cr.Spec.Auth.FederatedIdentities.GitHub.CredentialsSecret
-	if secretName == "" {
-		return "", errors.New("GitHub credentials secret is empty")
-	}
-
-	secret, err := deploy.GetClusterSecret(secretName, cr.Namespace, deployContext.ClusterAPI)
-	if err != nil {
-		return "", err
-	} else if secret == nil {
-		return "", errors.New("GitHub credentials secret '" + secretName + "' not found.")
-	}
-
-	githubClientId := string(secret.Data["clientId"])
-	githuhClientSecret := string(secret.Data["clientSecret"])
 	script, keycloakRealm, _, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
 	data := struct {
 		Script                string
@@ -122,16 +107,12 @@ func GetGitHubIdentityProviderProvisionCommand(deployContext *deploy.DeployConte
 		KeycloakAdminPassword string
 		KeycloakRealm         string
 		ProviderId            string
-		GithubClientId        string
-		GithubClientSecret    string
 	}{
 		script,
 		keycloakUserEnvVar,
 		keycloakPasswordEnvVar,
 		keycloakRealm,
 		"github",
-		githubClientId,
-		githuhClientSecret,
 	}
 	return getCommandFromTemplateFile(cr, "/tmp/create-github-identity-provider.sh", data)
 }

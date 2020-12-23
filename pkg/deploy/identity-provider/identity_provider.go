@@ -41,7 +41,7 @@ var (
 		syncDeployment,
 		syncKeycloakResources,
 		syncOpenShiftIdentityProvider,
-		syncGitHubFederatedIdentity,
+		syncGitHubOAuth,
 	}
 )
 
@@ -221,41 +221,41 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-func syncGitHubFederatedIdentity(deployContext *deploy.DeployContext) (bool, error) {
+func syncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 	if cr.Spec.Auth.FederatedIdentities.GitHub.Enable {
-		if !cr.Status.GitHubFederatedIdentityProvisioned {
+		if !cr.Status.GitHubOAuthProvisioned {
 			_, err := util.K8sclient.ExecIntoPod(
 				cr,
 				IdentityProviderDeploymentName,
 				func(cr *orgv1.CheCluster) (string, error) {
 					return GetGitHubIdentityProviderProvisionCommand(deployContext)
 				},
-				"Create GitHub federated identity")
+				"Create GitHub OAuth")
 			if err != nil {
 				return false, err
 			}
 
-			cr.Status.GitHubFederatedIdentityProvisioned = true
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub federated identity provisioned", "true"); err != nil {
+			cr.Status.GitHubOAuthProvisioned = true
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub OAuth provisioned", "true"); err != nil {
 				return false, err
 			}
 		}
 	} else {
-		if cr.Status.GitHubFederatedIdentityProvisioned {
+		if cr.Status.GitHubOAuthProvisioned {
 			_, err := util.K8sclient.ExecIntoPod(
 				cr,
 				IdentityProviderDeploymentName,
 				func(cr *orgv1.CheCluster) (string, error) {
 					return GetDeleteIdentityProviderCommand(cr, "github")
 				},
-				"Delete GitHub federated identity")
+				"Delete GitHub OAuth")
 			if err != nil {
 				return false, err
 			}
 
-			cr.Status.GitHubFederatedIdentityProvisioned = false
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub federated identity provisioned", "false"); err != nil {
+			cr.Status.GitHubOAuthProvisioned = false
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub OAuth provisioned", "false"); err != nil {
 				return false, err
 			}
 		}

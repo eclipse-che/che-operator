@@ -437,26 +437,6 @@ type CheClusterSpecAuth struct {
 	// Route custom settings
 	// +optional
 	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
-	// Federated identities
-	// +optional
-	FederatedIdentities FederatedIdentities `json:"federatedIdentities,omitempty"`
-}
-
-// Federated identities
-type FederatedIdentities struct {
-	// GitHub federated identity
-	// +optional
-	GitHub GitHubFederatedIdentity `json:"gitHub"`
-}
-
-// GitHub federated identities settings
-type GitHubFederatedIdentity struct {
-	// +optional
-	Enable bool `json:"enable"`
-	// Secret containing `clientId` and `clientSecret` keys
-	// for Client ID and Client secret of GitHub OAuth app correspondingly.
-	// +optional
-	CredentialsSecret string `json:"credentialsSecret"`
 }
 
 // Ingress custom settings, can be extended in the future
@@ -573,9 +553,9 @@ type CheClusterStatus struct {
 	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the OpenShift OAuth.
 	// +optional
 	OpenShiftoAuthProvisioned bool `json:"openShiftoAuthProvisioned"`
-	// Indicates whether an GitHub Federated Identity has been configured.
+	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the GitHub OAuth.
 	// +optional
-	GitHubFederatedIdentityProvisioned bool `json:"gitHubFederatedIdentityProvisioned"`
+	GitHubOAuthProvisioned bool `json:"gitHubOAuthProvisioned"`
 	// Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`
 	// +optional
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true

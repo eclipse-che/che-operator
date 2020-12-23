@@ -27,8 +27,8 @@ createIdentityProvider() {
     -s enabled=true \
     -s storeToken=true \
     -s config.useJwksUrl=true \
-    -s config.clientId={{ .GithubClientId}} \
-    -s config.clientSecret={{ .GithubClientSecret}} \
+    -s config.clientId=${GITHUB_CLIENT_ID} \
+    -s config.clientSecret=${GITHUB_SECRET} \
     -s config.defaultScope=repo,user,write:public_key
   fi
 }

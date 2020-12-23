@@ -60,21 +60,6 @@ spec:
                     identity provider you want to use. See also all the other fields
                     starting with: `identityProvider`.'
                   type: boolean
-                federatedIdentities:
-                  description: Federated identities
-                  properties:
-                    gitHub:
-                      description: GitHub federated identity
-                      properties:
-                        credentialsSecret:
-                          description: Secret containing `clientId` and `clientSecret`
-                            keys for Client ID and Client secret of GitHub OAuth app
-                            correspondingly.
-                          type: string
-                        enable:
-                          type: boolean
-                      type: object
-                  type: object
                 identityProviderAdminUserName:
                   description: Overrides the name of the Identity Provider admin user.
                     Defaults to `admin`.
@@ -711,9 +696,9 @@ spec:
             devfileRegistryURL:
               description: Public URL to the Devfile registry
               type: string
-            gitHubFederatedIdentityProvisioned:
-              description: Indicates whether an GitHub Federated Identity has been
-                configured.
+            gitHubOAuthProvisioned:
+              description: Indicates whether an Identity Provider instance (Keycloak
+                / RH SSO) has been configured to integrate with the GitHub OAuth.
               type: boolean
             helpLink:
               description: A URL that can point to some URL where to find help related
