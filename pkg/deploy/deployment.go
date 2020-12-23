@@ -22,14 +22,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"errors"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -126,7 +124,7 @@ func GetClusterDeployment(name string, namespace string, client runtimeClient.Cl
 	}
 	err := client.Get(context.TODO(), namespacedName, deployment)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -134,6 +132,10 @@ func GetClusterDeployment(name string, namespace string, client runtimeClient.Cl
 	return deployment, nil
 }
 
+// It mounts secrets into a container as a file or as environment variable.
+// Secrets are selected by the following labels:
+// - app.kubernetes.io/part-of=che.eclipse.org
+// - app.kubernetes.io/component=<DEPLOYMENT-NAME>-secret
 func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContext) error {
 	secrets := &corev1.SecretList{}
 
@@ -147,7 +149,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 		return err
 	}
 
-	// sort secret first to have the same order every time
+	// sort secrets by name first to have the same order every time
 	sort.Slice(secrets.Items, func(i, j int) bool {
 		return strings.Compare(secrets.Items[i].Name, secrets.Items[j].Name) < 0
 	})
@@ -179,7 +181,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 			if err != nil {
 				return err
 			} else if secret == nil {
-				return errors.New("Secret " + secretObj.Name + " not found.")
+				return fmt.Errorf("Secret '%s' not found", secretObj.Name)
 			}
 
 			// grab all keys and sort first to have the same order every time
@@ -201,9 +203,9 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 					// check if there is only one env name to mount
 					envName, envNameExists = secretObj.Annotations[CheEclipseOrgEnvName]
 					if len(secret.Data) > 1 {
-						return errors.New("There are more than one environment variable to mount. Use annotation '" + envNameAnnotation + "' to specify a name.")
+						return fmt.Errorf("There are more than one environment variable to mount. Use annotation '%s' to specify a name", envNameAnnotation)
 					} else if !envNameExists {
-						return errors.New("Environment name to mount secret key not found. Use annotation '" + CheEclipseOrgEnvName + "' to specify a name.")
+						return fmt.Errorf("Environment name to mount secret key not found. Use annotation '%s' to specify a name", CheEclipseOrgEnvName)
 					}
 				}
 
