@@ -14,6 +14,7 @@ set -e
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+PLATFORMS="'kubernetes' 'openshift'"
 source "${BASE_DIR}/check-yq.sh"
 
 base_branch="master"
@@ -26,6 +27,7 @@ while [[ "$#" -gt 0 ]]; do
     '-u'|'--user') GITHUB_USER="$2"; shift 1;;
     '-t'|'--token') GITHUB_TOKEN="$2"; shift 1;;
     '-f'|'--force') FORCE="-f";;
+    '-p'|'--platform') PLATFORMS="$2";shift 1;;
     '-h'|'--help') usage;;
   esac
   shift 1
@@ -49,7 +51,7 @@ Options:
 "
 }
 
-for platform in 'kubernetes' 'openshift'
+for platform in $PLATFORMS
 do
   packageName="eclipse-che-preview-${platform}"
   echo

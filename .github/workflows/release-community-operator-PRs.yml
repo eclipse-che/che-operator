@@ -7,6 +7,9 @@ on:
       forceflag:
         description: 'To update an existing PR, use -f or --force flag here'
         default: ''
+      platforms:
+        description: 'List platforms for which to create PRs, which could be \'openshift\', \'kubernetes\' or both
+        default: '\'kubernetes\' \'openshift\''  
   # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse/che-operator/pull/571/files
   push:
     branches: 
@@ -61,4 +64,4 @@ jobs:
           export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
           export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
-          ./make-release.sh nightly --update-nightly-olm-files --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
+          ./make-release.sh nightly --update-nightly-olm-files --prepare-community-operators-update ${{ github.event.inputs.forceflag }} -p ${{ github.event.inputs.platforms }}
