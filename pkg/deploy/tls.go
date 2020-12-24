@@ -552,7 +552,7 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 	if err != nil {
 		return nil, err
 	}
-	mergedCAConfigMapSpec.ObjectMeta.Labels[PartOfCheLabelKey] = PartOfCheLabelValue
+	mergedCAConfigMapSpec.ObjectMeta.Labels[KubernetesPartOfLabelKey] = CheEclipseOrg
 
 	if mergedCAConfigMapSpec.ObjectMeta.Annotations == nil {
 		mergedCAConfigMapSpec.ObjectMeta.Annotations = make(map[string]string)
@@ -573,7 +573,7 @@ func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, err
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
 	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
-	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(PartOfCheLabelKey, selection.Equals, []string{PartOfCheLabelValue})
+	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
 	}

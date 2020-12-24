@@ -173,17 +173,29 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	var toRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
+	var toTrustedBundleConfigMapRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
 		isTrusted, reconcileRequest := isTrustedBundleConfigMap(mgr, obj)
 		if isTrusted {
 			return []reconcile.Request{reconcileRequest}
 		}
 		return []reconcile.Request{}
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: toRequestMapper,
-	}, onAllExceptGenericEventsPredicate)
-	if err != nil {
+	if err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: toTrustedBundleConfigMapRequestMapper,
+	}, onAllExceptGenericEventsPredicate); err != nil {
+		return err
+	}
+
+	var toEclipseCheSecretRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
+		isEclipseCheSecret, reconcileRequest := isEclipseCheSecret(mgr, obj)
+		if isEclipseCheSecret {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: toEclipseCheSecretRequestMapper,
+	}, onAllExceptGenericEventsPredicate); err != nil {
 		return err
 	}
 
@@ -311,7 +323,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// delete oAuthClient before CR is deleted
-	// todo check 
+	// todo check
 	// instance.Status.OpenShiftoAuthProvisioned
 	if util.IsOpenShift && util.IsOAuthEnabled(instance) {
 		if err := r.ReconcileFinalizer(instance); err != nil {
@@ -1071,7 +1083,7 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 		// Check for labels
 
 		// Check for part of Che label
-		if value, exists := obj.Meta.GetLabels()[deploy.PartOfCheLabelKey]; !exists || value != deploy.PartOfCheLabelValue {
+		if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
 			// Labels do not match
 			return false, reconcile.Request{}
 		}
@@ -1136,4 +1148,29 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 	}
 
 	return reconcile.Result{}, nil
+}
+
+// isEclipseCheSecret indicates if there is a secret with
+// the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
+func isEclipseCheSecret(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
+	checlusters := &orgv1.CheClusterList{}
+	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
+		return false, reconcile.Request{}
+	}
+
+	if len(checlusters.Items) != 1 {
+		return false, reconcile.Request{}
+	}
+
+	if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+		// Labels do not match
+		return false, reconcile.Request{}
+	}
+
+	return true, reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checlusters.Items[0].Namespace,
+			Name:      checlusters.Items[0].Name,
+		},
+	}
 }
