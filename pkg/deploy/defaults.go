@@ -109,9 +109,10 @@ const (
 	CheEclipseOrg = "che.eclipse.org"
 
 	// che.eclipse.org annotations
-	CheEclipseOrgMountPath = "che.eclipse.org/mount-path"
-	CheEclipseOrgMountAs   = "che.eclipse.org/mount-as"
-	CheEclipseOrgEnvName   = "che.eclipse.org/env-name"
+	CheEclipseOrgMountPath              = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
+	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
 )
 
 func InitDefaults(defaultsPath string) {

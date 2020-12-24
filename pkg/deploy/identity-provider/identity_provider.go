@@ -16,15 +16,19 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/expose"
-
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -41,7 +45,7 @@ var (
 		syncDeployment,
 		syncKeycloakResources,
 		syncOpenShiftIdentityProvider,
-		syncGitHubOAuth,
+		SyncGitHubOAuth,
 	}
 )
 
@@ -221,19 +225,47 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-func syncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
+// SyncGitHubOAuth provisions GitHub OAuth if secret with
+// annotation `che.eclipse.org/github-oauth-credentials=true` is mounted into a container
+func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if cr.Spec.Auth.FederatedIdentities.GitHub.Enable {
+
+	// find mounted GitHug OAuth credentials
+	secrets := &corev1.SecretList{}
+
+	kubernetesPartOfLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.Equals, []string{deploy.CheEclipseOrg})
+	kubernetesComponentLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesComponentLabelKey, selection.Equals, []string{IdentityProviderDeploymentName + "-secret"})
+
+	listOptions := &client.ListOptions{
+		LabelSelector: labels.NewSelector().
+			Add(*kubernetesPartOfLabelSelectorRequirement).
+			Add(*kubernetesComponentLabelSelectorRequirement),
+	}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), secrets, listOptions); err != nil {
+		return false, err
+	}
+
+	isGitHubOAuthCredentialsExists := false
+	for _, secret := range secrets.Items {
+		if secret.Annotations[deploy.CheEclipseOrgGithubOAuthCredentials] == "true" {
+			isGitHubOAuthCredentialsExists = true
+			break
+		}
+	}
+
+	if isGitHubOAuthCredentialsExists {
 		if !cr.Status.GitHubOAuthProvisioned {
-			_, err := util.K8sclient.ExecIntoPod(
-				cr,
-				IdentityProviderDeploymentName,
-				func(cr *orgv1.CheCluster) (string, error) {
-					return GetGitHubIdentityProviderProvisionCommand(deployContext)
-				},
-				"Create GitHub OAuth")
-			if err != nil {
-				return false, err
+			if !util.IsTestMode() {
+				_, err := util.K8sclient.ExecIntoPod(
+					cr,
+					IdentityProviderDeploymentName,
+					func(cr *orgv1.CheCluster) (string, error) {
+						return GetGitHubIdentityProviderProvisionCommand(deployContext)
+					},
+					"Create GitHub OAuth")
+				if err != nil {
+					return false, err
+				}
 			}
 
 			cr.Status.GitHubOAuthProvisioned = true
@@ -243,15 +275,17 @@ func syncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 		}
 	} else {
 		if cr.Status.GitHubOAuthProvisioned {
-			_, err := util.K8sclient.ExecIntoPod(
-				cr,
-				IdentityProviderDeploymentName,
-				func(cr *orgv1.CheCluster) (string, error) {
-					return GetDeleteIdentityProviderCommand(cr, "github")
-				},
-				"Delete GitHub OAuth")
-			if err != nil {
-				return false, err
+			if !util.IsTestMode() {
+				_, err := util.K8sclient.ExecIntoPod(
+					cr,
+					IdentityProviderDeploymentName,
+					func(cr *orgv1.CheCluster) (string, error) {
+						return GetDeleteIdentityProviderCommand(cr, "github")
+					},
+					"Delete GitHub OAuth")
+				if err != nil {
+					return false, err
+				}
 			}
 
 			cr.Status.GitHubOAuthProvisioned = false
