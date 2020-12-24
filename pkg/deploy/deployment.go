@@ -132,7 +132,7 @@ func GetClusterDeployment(name string, namespace string, client runtimeClient.Cl
 	return deployment, nil
 }
 
-// It mounts secrets into a container as a file or as environment variable.
+// MountSecrets mounts secrets into a container as a file or as environment variable.
 // Secrets are selected by the following labels:
 // - app.kubernetes.io/part-of=che.eclipse.org
 // - app.kubernetes.io/component=<DEPLOYMENT-NAME>-secret

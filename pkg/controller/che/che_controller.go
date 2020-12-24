@@ -1151,7 +1151,7 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 }
 
 // isEclipseCheSecret indicates if there is a secret with
-// the label 'app.kubernetes.io/part-of=che.eclipse.org' in a namespace
+// the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
 func isEclipseCheSecret(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
 	checlusters := &orgv1.CheClusterList{}
 	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
