@@ -14,6 +14,13 @@ metadata:
   name: che-operator
 rules:
   - apiGroups:
+    - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - create
+  - apiGroups:
       - oauth.openshift.io
     resources:
       - oauthclients
@@ -34,6 +41,7 @@ rules:
     verbs:
       - get
       - list
+      - patch
       - watch
   - apiGroups:
       - user.openshift.io

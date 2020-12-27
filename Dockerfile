@@ -22,7 +22,8 @@ ADD . /che-operator
 WORKDIR /che-operator
 
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    export MOCK_API=true && go test -mod=vendor -v ./... && \
+    export MOCK_API=true && \
+    go test -mod=vendor -v ./... && \
     GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
@@ -32,7 +33,7 @@ COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /che-operator/templates/keycloak_provision /tmp/keycloak_provision
 COPY --from=builder /che-operator/templates/oauth_provision /tmp/oauth_provision
 # apply CVE fixes, if required
-RUN microdnf update -y librepo libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
+RUN microdnf update -y librepo libnghttp2 && microdnf install httpd-tools && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
 
 # append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator.Jenkinsfile)

@@ -367,7 +367,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
-		if reconcileResult, err := r.autoEnableOAuth(instance, request, isOpenShift4); err != nil {
+		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, isOpenShift4); err != nil {
 			return reconcileResult, err
 		}
 	}
@@ -1103,21 +1103,18 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 	}
 }
 
-func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
+func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
 	var message, reason string
 	oauth := false
+	cr := deployContext.CheCluster
 	if isOpenShift4 {
-		oauthv1 := &oauthv1.OAuth{}
-		if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
+		if err := HandleOauthInitialUser(deployContext.ClusterAPI.NonCachedClient); err != nil {
 			getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
 			logrus.Errorf(getOAuthV1ErrMsg)
 			message = getOAuthV1ErrMsg
 			reason = failedNoOpenshiftUserReason
 		} else {
-			oauth = len(oauthv1.Spec.IdentityProviders) >= 1
-			if !oauth {
-				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
-			}
+			oauth = true
 		}
 		// openshift 3
 	} else {

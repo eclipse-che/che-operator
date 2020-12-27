@@ -13,6 +13,7 @@ package che
 
 import (
 	"context"
+	errorMsg "errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,6 +21,8 @@ import (
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	"github.com/golang/mock/gomock"
+
 	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
 
@@ -36,10 +39,14 @@ import (
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+
+	mocks "github.com/eclipse/che-operator/mocks"
+
 	rbacapi "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,12 +156,12 @@ var (
 	}
 	nonEmptyUserList = &userv1.UserList{
 		Items: []userv1.User{
-			userv1.User{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "user1",
 				},
 			},
-			userv1.User{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "user2",
 				},
@@ -191,6 +198,137 @@ func init() {
 		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
 			os.Setenv(env.Name, env.Value)
 		}
+	}
+}
+
+func TestCreateNewUserForOAuth(t *testing.T) {
+	type testCase struct {
+		name              string
+		initObjects       []runtime.Object
+		openshiftVersion  string
+		initialOAuthValue *bool
+		oAuthExpected     *bool
+		mockFunction      func(ctrl *gomock.Controller)
+	}
+
+	testCases := []testCase{
+		{
+			name: "che-operator should create initial user, if there is no identity providers and enable oAuth when Che CR with nil oAuth value",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(true),
+			mockFunction: func(ctrl *gomock.Controller) {
+				m := mocks.NewMockRunnable(ctrl)
+				util.NewUserCmd = m
+				m.EXPECT().Run()
+				m.EXPECT().GetStdOut().Return("dev:$apr1$xlna8mhb$HoKUFRl30oR.ieTgakugz1")
+				m.EXPECT().GetStdErr().Return("")
+			},
+		},
+		{
+			name: "should disable oAuth if generation htpasswd provider return error",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(false),
+			mockFunction: func(ctrl *gomock.Controller) {
+				m := mocks.NewMockRunnable(ctrl)
+				util.NewUserCmd = m
+				m.EXPECT().Run().Return(errorMsg.New("htpasswd not found"))
+			},
+		},
+		{
+			name: "should disable oAuth if generation htpasswd provider return unexpected error output",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(false),
+			mockFunction: func(ctrl *gomock.Controller) {
+				m := mocks.NewMockRunnable(ctrl)
+				util.NewUserCmd = m
+				m.EXPECT().Run()
+				call := m.EXPECT().GetStdErr().Return("Something went wrong...")
+				call.MinTimes(2)
+			},
+		},
+		{
+			name:              "should disable oAuth, because fail to get oAuth",
+			initObjects:       []runtime.Object{},
+			openshiftVersion:  "4",
+			initialOAuthValue: nil,
+			oAuthExpected:     util.NewBoolPointer(false),
+			mockFunction:      func(ctrl *gomock.Controller) {},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
+			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
+
+			initCR := InitCheWithSimpleCR()
+			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
+			testCase.initObjects = append(testCase.initObjects, initCR)
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			os.Setenv("OPENSHIFT_VERSION", "4")
+
+			ctrl := gomock.NewController(t)
+			testCase.mockFunction(ctrl)
+			defer ctrl.Finish()
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cheCR := &orgv1.CheCluster{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
+				t.Errorf("CR not found")
+			}
+
+			if cheCR.Spec.Auth.OpenShiftoAuth == nil {
+				t.Error("OAuth should not stay with nil value.")
+			}
+
+			if *cheCR.Spec.Auth.OpenShiftoAuth != *testCase.oAuthExpected {
+				t.Errorf("Openshift oAuth should be %t", *testCase.oAuthExpected)
+			}
+		})
 	}
 }
 
@@ -272,15 +410,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			openshiftVersion:  "4",
 			initialOAuthValue: nil,
 			oAuthExpected:     util.NewBoolPointer(true),
-		},
-		{
-			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
-			initObjects: []runtime.Object{
-				oAuthWithNoIdentityProviders,
-			},
-			openshiftVersion:  "4",
-			initialOAuthValue: nil,
-			oAuthExpected:     util.NewBoolPointer(false),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there no indentity providers on the Openshift 4",

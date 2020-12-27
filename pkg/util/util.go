@@ -40,7 +40,14 @@ import (
 var (
 	k8sclient                    = GetK8Client()
 	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
+	NewUserCmd                   Runnable
 )
+
+/** Create new Openshift 4 user command */
+func NewUserCommand() {
+	password := GeneratePasswd(6)
+	NewUserCmd = NewProcess("htpasswd", "-n", "che-user", password)
+}
 
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {
