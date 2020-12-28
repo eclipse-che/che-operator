@@ -53,7 +53,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 					ResourceVersion: "1",
 				},
 				Status: orgv1.CheClusterStatus{
-					GitHubOAuthProvisioned: true,
+					GitHubIdentityProviderFederationProvisioned: true,
 				},
 			},
 			initObjects: []runtime.Object{
@@ -118,7 +118,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Status: orgv1.CheClusterStatus{
-					GitHubOAuthProvisioned: true,
+					GitHubIdentityProviderFederationProvisioned: true,
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
@@ -127,7 +127,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 					ResourceVersion: "1",
 				},
 				Status: orgv1.CheClusterStatus{
-					GitHubOAuthProvisioned: false,
+					GitHubIdentityProviderFederationProvisioned: false,
 				},
 			},
 			initObjects: []runtime.Object{},
@@ -149,7 +149,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 				},
 			}
 
-			_, err := SyncGitHubOAuth(deployContext)
+			_, err := SyncGitHubIdentityProvividerFederation(deployContext)
 			if err != nil {
 				t.Fatalf("Error mounting secret: %v", err)
 			}

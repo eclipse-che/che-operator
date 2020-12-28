@@ -45,7 +45,7 @@ var (
 		SyncKeycloakDeploymentToCluster,
 		syncKeycloakResources,
 		syncOpenShiftIdentityProvider,
-		SyncGitHubOAuth,
+		SyncGitHubIdentityProvividerFederation,
 	}
 )
 
