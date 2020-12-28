@@ -220,9 +220,9 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-// SyncGitHubOAuth provisions GitHub OAuth if secret with
+// SyncGitHubIdentityProvividerFederation provisions GitHub identity provider federation if secret with
 // annotation `che.eclipse.org/github-oauth-credentials=true` is mounted into a container
-func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
+func SyncGitHubIdentityProvividerFederation(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 
 	// find mounted GitHug OAuth credentials
