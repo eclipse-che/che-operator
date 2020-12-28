@@ -42,7 +42,7 @@ var (
 	syncItems           = []func(*deploy.DeployContext) (bool, error){
 		syncService,
 		syncExposure,
-		syncDeployment,
+		SyncKeycloakDeploymentToCluster,
 		syncKeycloakResources,
 		syncOpenShiftIdentityProvider,
 		SyncGitHubOAuth,
@@ -69,7 +69,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		provisioned, err := syncItem(deployContext)
 		if !util.IsTestMode() {
 			if !provisioned {
-				return provisioned, err
+				return false, err
 			}
 		}
 	}
@@ -150,11 +150,6 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func syncDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	deploymentStatus := SyncKeycloakDeploymentToCluster(deployContext)
-	return deploymentStatus.Continue, deploymentStatus.Err
 }
 
 func syncOpenShiftIdentityProvider(deployContext *deploy.DeployContext) (bool, error) {
@@ -254,7 +249,7 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	if isGitHubOAuthCredentialsExists {
-		if !cr.Status.GitHubOAuthProvisioned {
+		if !cr.Status.GitHubIdentityProviderFederationProvisioned {
 			if !util.IsTestMode() {
 				_, err := util.K8sclient.ExecIntoPod(
 					cr,
@@ -262,19 +257,19 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 					func(cr *orgv1.CheCluster) (string, error) {
 						return GetGitHubIdentityProviderProvisionCommand(deployContext)
 					},
-					"Create GitHub OAuth")
+					"Create GitHub identity provider federation")
 				if err != nil {
 					return false, err
 				}
 			}
 
-			cr.Status.GitHubOAuthProvisioned = true
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub OAuth provisioned", "true"); err != nil {
+			cr.Status.GitHubIdentityProviderFederationProvisioned = true
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub identity provider federation provisioned", "true"); err != nil {
 				return false, err
 			}
 		}
 	} else {
-		if cr.Status.GitHubOAuthProvisioned {
+		if cr.Status.GitHubIdentityProviderFederationProvisioned {
 			if !util.IsTestMode() {
 				_, err := util.K8sclient.ExecIntoPod(
 					cr,
@@ -282,14 +277,14 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 					func(cr *orgv1.CheCluster) (string, error) {
 						return GetDeleteIdentityProviderCommand(cr, "github")
 					},
-					"Delete GitHub OAuth")
+					"Delete GitHub identity provider federation")
 				if err != nil {
 					return false, err
 				}
 			}
 
-			cr.Status.GitHubOAuthProvisioned = false
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub OAuth provisioned", "false"); err != nil {
+			cr.Status.GitHubIdentityProviderFederationProvisioned = false
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub identity provider federation provisioned", "false"); err != nil {
 				return false, err
 			}
 		}

@@ -553,9 +553,10 @@ type CheClusterStatus struct {
 	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the OpenShift OAuth.
 	// +optional
 	OpenShiftoAuthProvisioned bool `json:"openShiftoAuthProvisioned"`
-	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the GitHub OAuth.
+	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured
+	// to work with the GitHub identity provider federation.
 	// +optional
-	GitHubOAuthProvisioned bool `json:"gitHubOAuthProvisioned"`
+	GitHubIdentityProviderFederationProvisioned bool `json:"gitHubIdentityProviderFederationProvisioned"`
 	// Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`
 	// +optional
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true

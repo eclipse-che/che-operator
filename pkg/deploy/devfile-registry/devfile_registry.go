@@ -76,15 +76,14 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 		deployContext.InternalService.DevfileRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistry, deployContext.CheCluster.Namespace)
 
 		// Deploy devfile registry
-		deploymentStatus := SyncDevfileRegistryDeploymentToCluster(deployContext)
+		provisioned, err := SyncDevfileRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {
-			if !deploymentStatus.Continue {
+			if !provisioned {
 				logrus.Info("Waiting on deployment '" + deploy.DevfileRegistry + "' to be ready")
-				if deploymentStatus.Err != nil {
-					logrus.Error(deploymentStatus.Err)
+				if err != nil {
+					logrus.Error(err)
 				}
-
-				return false, deploymentStatus.Err
+				return provisioned, err
 			}
 		}
 	}

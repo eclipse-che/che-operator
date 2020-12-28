@@ -14,6 +14,7 @@ package plugin_registry
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/expose"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -77,15 +78,14 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 		deployContext.InternalService.PluginRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistry, deployContext.CheCluster.Namespace)
 
 		// Deploy plugin registry
-		deploymentStatus := SyncPluginRegistryDeploymentToCluster(deployContext)
+		provisioned, err := SyncPluginRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {
-			if !deploymentStatus.Continue {
+			if !provisioned {
 				logrus.Info("Waiting on deployment '" + deploy.PluginRegistry + "' to be ready")
-				if deploymentStatus.Err != nil {
-					logrus.Error(deploymentStatus.Err)
+				if err != nil {
+					logrus.Error(err)
 				}
-
-				return false, deploymentStatus.Err
+				return provisioned, err
 			}
 		}
 	}

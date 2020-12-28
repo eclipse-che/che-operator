@@ -20,6 +20,10 @@ createIdentityProvider() {
     echo "{{ .ProviderId }} identity provider exists."
   else
     echo "Create new {{ .ProviderId }} identity provider."
+    if [ -z "${GITHUB_CLIENT_ID}" ] || [ -z "${GITHUB_SECRET}" ]; then
+      echo "Either 'GITHUB_CLIENT_ID' or 'GITHUB_SECRET' aren't set" 1>&2
+      exit 1
+    fi
     {{ .Script }} create identity-provider/instances \
     -r {{ .KeycloakRealm }} \
     -s alias={{ .ProviderId }} \
