@@ -98,7 +98,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 	return getCommandFromTemplateFile(cr, "/tmp/oauth-provision.sh", data)
 }
 
-func GetGitHubIdentityProviderProvisionCommand(deployContext *deploy.DeployContext) (string, error) {
+func GetGitHubIdentityProviderFederationProvisionCommand(deployContext *deploy.DeployContext) (string, error) {
 	cr := deployContext.CheCluster
 	script, keycloakRealm, _, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
 	data := struct {

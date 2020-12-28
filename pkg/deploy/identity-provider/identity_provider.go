@@ -255,7 +255,7 @@ func SyncGitHubIdentityProvividerFederation(deployContext *deploy.DeployContext)
 					cr,
 					IdentityProviderDeploymentName,
 					func(cr *orgv1.CheCluster) (string, error) {
-						return GetGitHubIdentityProviderProvisionCommand(deployContext)
+						return GetGitHubIdentityProviderFederationProvisionCommand(deployContext)
 					},
 					"Create GitHub identity provider federation")
 				if err != nil {
