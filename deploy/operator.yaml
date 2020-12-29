@@ -23,6 +23,10 @@ spec:
     metadata:
       labels:
         app: che-operator
+        app.kubernetes.io/name: che
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/part-of: che.eclipse.org
+        app.kubernetes.io/managed-by: operator-sdk
     spec:
       containers:
         - name: che-operator
