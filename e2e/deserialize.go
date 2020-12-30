@@ -22,7 +22,7 @@ import (
 )
 
 func deserializeOperatorDeployment() (operatorDeployment *appsv1.Deployment, err error) {
-	fileLocation, err := filepath.Abs("deploy/operator-local.yaml")
+	fileLocation, err := filepath.Abs("deploy/operator.yaml")
 	if err != nil {
 		logrus.Fatalf("Failed to locate operator deployment yaml, %s", err)
 	}
