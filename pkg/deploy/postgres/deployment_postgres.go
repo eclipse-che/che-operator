@@ -18,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -137,6 +138,18 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 									},
 								},
 								InitialDelaySeconds: 15,
+								FailureThreshold:    10,
+								SuccessThreshold:    1,
+								PeriodSeconds:       10,
+								TimeoutSeconds:      5,
+							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(5432),
+									},
+								},
+								InitialDelaySeconds: 30,
 								FailureThreshold:    10,
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
