@@ -151,10 +151,6 @@ releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatoryaml"
   checkImageReferences $operatoryaml
 
-  local operatorlocalyaml=$RELEASE_DIR/deploy/operator-local.yaml
-  echo "[INFO] releaseOperatorCode :: Validate changes for $operatorlocalyaml"
-  checkImageReferences $operatorlocalyaml
-
   echo "[INFO] releaseOperatorCode :: Commit changes"
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
@@ -226,7 +222,7 @@ pushGitChanges() {
     fi
   fi
   git tag -a $RELEASE -m $RELEASE
-  git push --tags origin 
+  git push --tags origin
 }
 
 createPRToXBranch() {

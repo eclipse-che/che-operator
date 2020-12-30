@@ -38,13 +38,10 @@ case $OPERATOR_SDK_VERSION in
 esac
 
 OPERATOR_YAML="${BASE_DIR}"/../deploy/operator.yaml
-OPERATOR_LOCAL_YAML="${BASE_DIR}"/../deploy/operator-local.yaml
 NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
-NEW_OPERATOR_LOCAL_YAML="${OPERATOR_LOCAL_YAML}.new"
 
 # copy licence header
 eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
-eval head -10 "${OPERATOR_LOCAL_YAML}" > ${NEW_OPERATOR_LOCAL_YAML}
 
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
@@ -66,14 +63,6 @@ yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").
 yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE_RELEASE}\"" \
 >> "${NEW_OPERATOR_YAML}"
 mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
-
-cat "${OPERATOR_LOCAL_YAML}" | \
-yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"${UBI8_MINIMAL_IMAGE}\"" | \
-yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE_RELEASE}\"" | \
-yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE_RELEASE}\"" | \
-yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE_RELEASE}\"" \
->> "${NEW_OPERATOR_LOCAL_YAML}"
-mv "${NEW_OPERATOR_LOCAL_YAML}" "${OPERATOR_LOCAL_YAML}"
 
 DOCKERFILE=${BASE_DIR}/../Dockerfile
 sed -i 's|registry.access.redhat.com/ubi8-minimal:.*|'${UBI8_MINIMAL_IMAGE}'|g' $DOCKERFILE
