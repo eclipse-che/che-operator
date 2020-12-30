@@ -616,6 +616,18 @@ func getSpecKeycloakDeployment(
 								PeriodSeconds:       10,
 								SuccessThreshold:    1,
 							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 30,
+								FailureThreshold:    10,
+								TimeoutSeconds:      5,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+							},
 							Env: keycloakEnv,
 							VolumeMounts: []corev1.VolumeMount{
 								customPublicCertsVolumeMount,

@@ -99,8 +99,8 @@ func GetSpecRegistryDeployment(
 								InitialDelaySeconds: 3,
 								FailureThreshold:    10,
 								TimeoutSeconds:      3,
-								PeriodSeconds:       10,
 								SuccessThreshold:    1,
+								PeriodSeconds:       10,
 							},
 							LivenessProbe: &v1.Probe{
 								Handler: v1.Handler{

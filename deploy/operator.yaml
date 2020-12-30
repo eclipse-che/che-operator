@@ -86,6 +86,24 @@ spec:
               value: che-postgres-secret
             - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
               value: ca-certs
+          livenessProbe:
+            httpGet:
+              path: /readyz
+              port: 6789
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 6789
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5
