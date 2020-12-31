@@ -27,7 +27,7 @@ spec:
         app.kubernetes.io/instance: che
         app.kubernetes.io/component: che-operator
         app.kubernetes.io/part-of: che.eclipse.org
-        app.kubernetes.io/managed-by: operator-sdk
+        app.kubernetes.io/managed-by: che-operator
     spec:
       containers:
         - name: che-operator
