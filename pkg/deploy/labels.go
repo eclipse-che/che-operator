@@ -21,9 +21,10 @@ func GetLabels(cr *orgv1.CheCluster, component string) (labels map[string]string
 	cheFlavor := DefaultCheFlavor(cr)
 	labels = map[string]string{
 		KubernetesNameLabelKey:      cheFlavor,
-		KubernetesInstanceLabelKey:  cheFlavor,
 		KubernetesPartOfLabelKey:    CheEclipseOrg,
+		KubernetesInstanceLabelKey:  cheFlavor + "-" + cr.Namespace,
 		KubernetesManagedByLabelKey: cheFlavor + "-operator",
+		KubernetesComponentLabelKey: component,
 
 		// for backward compatability
 		"app":       cheFlavor,
