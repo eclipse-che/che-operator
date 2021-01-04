@@ -11,7 +11,10 @@
 #
 
 name: Minishift
-on: pull_request
+on:
+  pull_request:
+    branches:
+     - 7.*
 jobs:
   minishift-update:
     name: Testing stable versions updates
