@@ -12,12 +12,21 @@
 package deploy
 
 import (
+	"strings"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 )
 
 func GetLabels(cr *orgv1.CheCluster, component string) (labels map[string]string) {
-	cheFlavor := util.GetValue(cr.Spec.Server.CheFlavor, DefaultCheFlavor)
-	labels = map[string]string{"app": cheFlavor, "component": component}
+	labels = map[string]string{"app": DefaultCheFlavor(cr), "component": component}
 	return labels
+}
+
+func MergeLabels(labels map[string]string, additionalLabels string) {
+	for _, l := range strings.Split(additionalLabels, ",") {
+		pair := strings.SplitN(l, "=", 2)
+		if len(pair) == 2 {
+			labels[pair[0]] = pair[1]
+		}
+	}
 }

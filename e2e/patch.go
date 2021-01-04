@@ -20,9 +20,9 @@ import (
 func patchCustomResource(path string, value bool) (err error) {
 
 	type PatchSpec struct {
-		Operation    string `json:"op"`
-		Path  string `json:"path"`
-		Value bool `json:"value"`
+		Operation string `json:"op"`
+		Path      string `json:"path"`
+		Value     bool   `json:"value"`
 	}
 
 	fields := make([]PatchSpec, 1)

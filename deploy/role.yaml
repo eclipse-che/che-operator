@@ -21,9 +21,16 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
+  - routes/custom-host
   verbs:
   - '*'
 - apiGroups:
@@ -82,3 +89,33 @@ rules:
   - checlusters/finalizers
   verbs:
   - '*'
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - che.eclipse.org
+  resources:
+  - kubernetesimagepullers
+  verbs:
+  - '*'
+- apiGroups:
+  - operators.coreos.com
+  resources:
+  - subscriptions
+  - clusterserviceversions
+  - operatorgroups
+  verbs:
+  - '*'
+- apiGroups:
+  - packages.operators.coreos.com
+  resources:
+  - packagemanifests
+  verbs:
+  - get
+  - list

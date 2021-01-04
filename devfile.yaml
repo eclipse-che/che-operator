@@ -1,0 +1,54 @@
+metadata:
+  name: che-operator
+projects:
+  - name: che-operator
+    source:
+      location: 'https://github.com/eclipse/che-operator.git'
+      type: git
+      branch: master
+    clonePath: src/github.com/eclipse/che-operator
+components:
+  - id: ms-vscode/go/latest
+    memoryLimit: 1G
+    preferences:
+      go.lintFlags: '--fast'
+      go.useLanguageServer: true
+      go.lintTool: golangci-lint
+    type: chePlugin
+    alias: ms-vscode.go
+    env:
+      - value: 'on'
+        name: GO111MODULE
+  - mountSources: true
+    memoryLimit: 1G
+    type: dockerimage
+    alias: dev
+    image: 'quay.io/eclipse/che-golang-1.12:nightly'
+    env:
+      - value: /go
+        name: GOPATH
+      - value: /tmp/.cache
+        name: GOCACHE
+apiVersion: 1.0.0
+commands:
+  - name: compile
+    actions:
+      - workdir: /projects/che-operator
+        type: exec
+        command: >-
+          BINARY_PATH=/tmp/che-operator/che-operator && OOS=linux GOARCH=$ARCH
+          CGO_ENABLED=0 go build -o ${BINARY_PATH} cmd/manager/main.go && echo
+          "Compiled to $BINARY_PATH" && printf "\033[32mDone.\033[0m"
+        component: dev
+  - name: test
+    actions:
+      - workdir: /projects/che-operator
+        type: exec
+        command: export MOCK_API=true && go test ./...
+        component: dev
+  - name: format
+    actions:
+      - workdir: /projects/che-operator
+        type: exec
+        command: 'go fmt ./... && printf "\033[32mDone.\033[0m"'
+        component: dev

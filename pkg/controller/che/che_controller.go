@@ -14,11 +14,21 @@ package che
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
+	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/gateway"
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	plugin_registry "github.com/eclipse/che-operator/pkg/deploy/plugin-registry"
+	"github.com/eclipse/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse/che-operator/pkg/deploy/server"
 	"github.com/eclipse/che-operator/pkg/util"
+	configv1 "github.com/openshift/api/config/v1"
+	oauthv1 "github.com/openshift/api/config/v1"
 	consolev1 "github.com/openshift/api/console/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -29,24 +39,22 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var log = logf.Log.WithName("controller_che")
-var (
-	k8sclient = GetK8Client()
-)
 
 // Add creates a new CheCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -64,16 +72,36 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 	if err != nil {
 		return nil, err
 	}
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		return nil, err
+	}
 	return &ReconcileChe{
 		client:          mgr.GetClient(),
 		nonCachedClient: noncachedClient,
 		scheme:          mgr.GetScheme(),
+		discoveryClient: discoveryClient,
 	}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	isOpenShift, _, err := util.DetectOpenShift()
+
+	onAllExceptGenericEventsPredicate := predicate.Funcs{
+		UpdateFunc: func(evt event.UpdateEvent) bool {
+			return true
+		},
+		CreateFunc: func(evt event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(evt event.DeleteEvent) bool {
+			return true
+		},
+		GenericFunc: func(evt event.GenericEvent) bool {
+			return false
+		},
+	}
 
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
@@ -93,6 +121,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}
 		if err := userv1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift User to scheme: %s", err)
+		}
+		if err := oauthv1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift OAuth to scheme: %s", err)
+		}
+		if err := configv1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift Config to scheme: %s", err)
+		}
+		if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
+			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
 		}
 		if hasConsolelinkObject() {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
@@ -133,6 +170,32 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		OwnerType:    &orgv1.CheCluster{},
 	})
 	if err != nil {
+		return err
+	}
+
+	var toTrustedBundleConfigMapRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
+		isTrusted, reconcileRequest := isTrustedBundleConfigMap(mgr, obj)
+		if isTrusted {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+	if err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: toTrustedBundleConfigMapRequestMapper,
+	}, onAllExceptGenericEventsPredicate); err != nil {
+		return err
+	}
+
+	var toEclipseCheSecretRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []reconcile.Request {
+		isEclipseCheSecret, reconcileRequest := isEclipseCheSecret(mgr, obj)
+		if isEclipseCheSecret {
+			return []reconcile.Request{reconcileRequest}
+		}
+		return []reconcile.Request{}
+	}
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: toEclipseCheSecretRequestMapper,
+	}, onAllExceptGenericEventsPredicate); err != nil {
 		return err
 	}
 
@@ -213,25 +276,39 @@ type ReconcileChe struct {
 	// to simply read objects thta we don't intend
 	// to further watch
 	nonCachedClient client.Client
+	// A discovery client to check for the existence of certain APIs registered
+	// in the API Server
+	discoveryClient discovery.DiscoveryInterface
 	scheme          *runtime.Scheme
 	tests           bool
 }
 
 const (
-	failedNoOpenshiftUserReason  = "InstallOrUpdateFailed"
-	failedNoOpenshiftUserMessage = "No real user exists in the OpenShift cluster." +
-		" Either disable OpenShift OAuth integration or add at least one user (details in the Help link)"
-	howToCreateAUserLinkOS4 = "https://docs.openshift.com/container-platform/4.1/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
-	howToCreateAUserLinkOS3 = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
+	failedValidationReason            = "InstallOrUpdateFailed"
+	failedNoOpenshiftUserReason       = "InstallOrUpdateFailed"
+	warningNoIdentityProvidersMessage = "No Openshift identity providers. Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
+	warningNoRealUsersMessage         = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
+	failedUnableToGetOAuth            = "Unable to get openshift oauth."
+	failedUnableToGetOpenshiftUsers   = "Unable to get users on the OpenShift cluster."
+
+	howToAddIdentityProviderLinkOS4 = "https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
+	howToConfigureOAuthLinkOS3      = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
 )
 
 // Reconcile reads that state of the cluster for a CheCluster object and makes changes based on the state read
 // and what is in the CheCluster.Spec. The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	clusterAPI := deploy.ClusterAPI{
+		Client:          r.client,
+		NonCachedClient: r.nonCachedClient,
+		DiscoveryClient: r.discoveryClient,
+		Scheme:          r.scheme,
+	}
 	// Fetch the CheCluster instance
 	tests := r.tests
 	instance, err := r.GetCR(request)
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -243,19 +320,160 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
+	deployContext := &deploy.DeployContext{
+		ClusterAPI:      clusterAPI,
+		CheCluster:      instance,
+		InternalService: deploy.InternalService{},
+	}
+
+	// delete oAuthClient before CR is deleted
+	// todo check
+	// instance.Status.OpenShiftoAuthProvisioned
+	if util.IsOpenShift && util.IsOAuthEnabled(instance) {
+		if err := r.ReconcileFinalizer(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Reconcile the imagePuller section of the CheCluster
+	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
+	if err != nil {
+		return imagePullerResult, err
+	}
+	if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
+		return imagePullerResult, err
+	}
+
 	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("An error occurred when detecting current infra: %s", err)
 	}
 
+	// Check Che CR correctness
+	if err := ValidateCheCR(instance, isOpenShift); err != nil {
+		// Che cannot be deployed with current configuration.
+		// Print error message in logs and wait until the configuration is changed.
+		logrus.Error(err)
+		if err := r.SetStatusDetails(instance, request, failedValidationReason, err.Error(), ""); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	if !util.IsTestMode() {
+		if isOpenShift && deployContext.DefaultCheHost == "" {
+			host, err := getDefaultCheHost(deployContext)
+			if host == "" {
+				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
+			}
+			deployContext.DefaultCheHost = host
+		}
+	}
+
+	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
+		if reconcileResult, err := r.autoEnableOAuth(instance, request, isOpenShift4); err != nil {
+			return reconcileResult, err
+		}
+	}
+
+	// Read proxy configuration
+	proxy, err := r.getProxyConfiguration(instance)
+	if err != nil {
+		logrus.Errorf("Error on reading proxy configuration: %v", err)
+		return reconcile.Result{}, err
+	}
+	// Assign Proxy to the deploy context
+	deployContext.Proxy = proxy
+
+	if proxy.TrustedCAMapName != "" {
+		provisioned, err := r.putOpenShiftCertsIntoConfigMap(deployContext)
+		if !provisioned {
+			configMapName := instance.Spec.Server.ServerTrustStoreConfigMapName
+			if err != nil {
+				logrus.Errorf("Error on provisioning config map '%s': %v", configMapName, err)
+			} else {
+				logrus.Infof("Waiting on provisioning config map '%s'", configMapName)
+			}
+			return reconcile.Result{}, err
+		}
+	}
+
+	cheFlavor := deploy.DefaultCheFlavor(instance)
+	cheDeploymentName := cheFlavor
+
+	// Detect whether self-signed certificate is used
+	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
+	if err != nil {
+		logrus.Errorf("Failed to detect if self-signed certificate used. Cause: %v", err)
+		return reconcile.Result{}, err
+	}
+
 	if isOpenShift {
-		// delete oAuthClient before CR is deleted
-		doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
-		if doInstallOpenShiftoAuthProvider {
-			if err := r.ReconcileFinalizer(instance); err != nil {
+		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
+		if selfSignedCertUsed ||
+			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
+			// and NOT from the Openshift API Master URL (as in v3)
+			// So we also need the self-signed certificate to access them (same as the Che server)
+			(isOpenShift4 && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
+			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
+
+		if !tests {
+			deployment := &appsv1.Deployment{}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentName, Namespace: instance.Namespace}, deployment)
+			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
+				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
+					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				}
+			}
+		}
+
+		if util.IsOAuthEnabled(instance) {
+			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
+			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
+			if err != nil {
+				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
+			} else {
+				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, baseURL, "openshift-api-crt"); err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+		}
+	} else {
+		// Handle Che TLS certificates on Kubernetes infrastructure
+		if instance.Spec.Server.TlsSupport {
+			if instance.Spec.K8s.TlsSecretName != "" {
+				// Self-signed certificate should be created to secure Che ingresses
+				result, err := deploy.K8sHandleCheTLSSecrets(deployContext)
+				if result.Requeue || result.RequeueAfter > 0 {
+					if err != nil {
+						logrus.Error(err)
+					}
+					if !tests {
+						return result, err
+					}
+				}
+			} else if selfSignedCertUsed {
+				// Use default self-signed ingress certificate
+				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+		}
+	}
+
+	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
+	cm, err := deploy.SyncAdditionalCACertsConfigMapToCluster(instance, deployContext)
+	if err != nil {
+		logrus.Errorf("Error updating additional CA config map: %v", err)
+		return reconcile.Result{}, err
+	}
+	if cm == nil && !tests {
+		// Config map update is in progress
+		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
+		return reconcile.Result{}, err
 	}
 
 	// Get custom ConfigMap
@@ -292,8 +510,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		logrus.Errorf("Error getting devfile-registry ConfigMap: %v", err)
 		return reconcile.Result{}, err
 	}
-	if err == nil && !instance.IsAirGapMode() {
-		logrus.Info("Found devfile-registry ConfigMap and not in airgap mode.  Deleting.")
+	if err == nil && instance.Spec.Server.ExternalDevfileRegistry {
+		logrus.Info("Found devfile-registry ConfigMap and while using an external devfile registry.  Deleting.")
 		if err = r.client.Delete(context.TODO(), devfileRegistryConfigMap); err != nil {
 			logrus.Errorf("Error deleting devfile-registry ConfigMap: %v", err)
 			return reconcile.Result{}, err
@@ -301,6 +519,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	// If the plugin-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
 	pluginRegistryConfigMap := &corev1.ConfigMap{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "plugin-registry"}, pluginRegistryConfigMap)
 	if err != nil && !errors.IsNotFound(err) {
@@ -316,345 +535,236 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	// If the plugin-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
-
-	if isOpenShift {
-		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-		if instance.Spec.Server.SelfSignedCert ||
-			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
-			// and NOT from the Openshift API Master URL (as in v3)
-			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && instance.Spec.Auth.OpenShiftoAuth && !instance.Spec.Server.TlsSupport) {
-			if err := r.CreateTLSSecret(instance, "", "self-signed-certificate"); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-
-		if !tests {
-			deployment := &appsv1.Deployment{}
-			name := "che"
-			cheFlavor := instance.Spec.Server.CheFlavor
-			if cheFlavor == "codeready" {
-				name = cheFlavor
-			}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
-			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
-				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-		}
-
-		if instance.Spec.Auth.OpenShiftoAuth {
-			users := &userv1.UserList{}
-			listOptions := &client.ListOptions{}
-			if err := r.nonCachedClient.List(context.TODO(), listOptions, users); err != nil {
-				return reconcile.Result{}, err
-			}
-			if len(users.Items) < 1 {
-				helpLink := ""
-				if isOpenShift4 {
-					helpLink = howToCreateAUserLinkOS4
-				} else {
-					helpLink = howToCreateAUserLinkOS3
-				}
-				if err := r.SetStatusDetails(instance, request, failedNoOpenshiftUserReason, failedNoOpenshiftUserMessage, helpLink); err != nil {
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 10}, nil
-			}
-
-			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
-			if err != nil {
-				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
-			} else {
-				if err := r.CreateTLSSecret(instance, baseURL, "openshift-api-crt"); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
-		}
-	}
-
 	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	if err := createServiceAccounts(instance, r); err != nil {
-		return reconcile.Result{}, err
+	// create service accounts:
+	// che is the one which token is used to create workspace objects
+	// che-workspace is SA used by plugins like exec and terminal with limited privileges
+	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che")
+	if cheSA == nil {
+		logrus.Info("Waiting on service account 'che' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
 
-	if err := r.GenerateAndSaveFields(instance, request); err != nil {
+	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
+	if cheWorkspaceSA == nil {
+		logrus.Info("Waiting on service account 'che-workspace' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	// create exec role for CheCluster server and workspaces
+	execRole, err := deploy.SyncExecRoleToCluster(deployContext)
+	if execRole == nil {
+		logrus.Info("Waiting on role 'exec' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	// create view role for CheCluster server and workspaces
+	viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
+	if viewRole == nil {
+		logrus.Info("Waiting on role 'view' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che", "che", "edit", "ClusterRole")
+	if cheRoleBinding == nil {
+		logrus.Info("Waiting on role binding 'che' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	if len(instance.Spec.Server.CheClusterRoles) > 0 {
+		cheClusterRoles := strings.Split(instance.Spec.Server.CheClusterRoles, ",")
+		for _, cheClusterRole := range cheClusterRoles {
+			cheClusterRole := strings.TrimSpace(cheClusterRole)
+			cheClusterRoleBindingName := instance.Namespace + "-che-" + cheClusterRole
+			cheClusterRoleBinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
+			if cheClusterRoleBinding == nil {
+				logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
+				if err != nil {
+					logrus.Error(err)
+				}
+				if !tests {
+					return reconcile.Result{RequeueAfter: time.Second}, err
+				}
+			}
+		}
+	}
+
+	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
+	if cheWSExecRoleBinding == nil {
+		logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-view", "che-workspace", "view", "Role")
+	if cheWSViewRoleBinding == nil {
+		logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
+		if err != nil {
+			logrus.Error(err)
+		}
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	}
+
+	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
+	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
+	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
+	if workspaceClusterRole != "" {
+		cheWSCustomRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
+		if cheWSCustomRoleBinding == nil {
+			logrus.Info("Waiting on role binding 'che-workspace-custom' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+		}
+	}
+
+	if err := r.GenerateAndSaveFields(deployContext, request); err != nil {
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
-	chePostgresPassword := instance.Spec.Database.ChePostgresPassword
-	keycloakPostgresPassword := instance.Spec.Auth.IdentityProviderPostgresPassword
-	keycloakAdminPassword := instance.Spec.Auth.IdentityProviderPassword
+	cheMultiUser := deploy.GetCheMultiUser(instance)
 
-	cheFlavor := util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor)
+	if cheMultiUser == "false" {
+		labels := deploy.GetLabels(instance, cheFlavor)
+		pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", labels)
+		if !tests {
+			if !pvcStatus.Continue {
+				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
+				if pvcStatus.Err != nil {
+					logrus.Error(pvcStatus.Err)
+				}
+				return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 1}, pvcStatus.Err
+			}
+		}
+
+		if util.K8sclient.IsPVCExists(deploy.DefaultPostgresVolumeClaimName, instance.Namespace) {
+			util.K8sclient.DeletePVC(deploy.DefaultPostgresVolumeClaimName, instance.Namespace)
+		}
+	} else {
+		if !tests {
+			if util.K8sclient.IsPVCExists(deploy.DefaultCheVolumeClaimName, instance.Namespace) {
+				util.K8sclient.DeletePVC(deploy.DefaultCheVolumeClaimName, instance.Namespace)
+			}
+		}
+	}
 
 	// Create Postgres resources and provisioning unless an external DB is used
 	externalDB := instance.Spec.Database.ExternalDb
 	if !externalDB {
-		// Create a new postgres service
-		postgresLabels := deploy.GetLabels(instance, "postgres")
-		postgresService := deploy.NewService(instance, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
-		if err := r.CreateService(instance, postgresService, false); err != nil {
-			return reconcile.Result{}, err
-		}
-		// Create a new Postgres PVC object
-		pvc := deploy.NewPvc(instance, "postgres-data", "1Gi", postgresLabels)
-		if err := r.CreatePVC(instance, pvc); err != nil {
-			return reconcile.Result{}, err
-		}
-		if !tests {
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: instance.Namespace}, pvc)
-			if pvc.Status.Phase != "Bound" {
-				k8sclient.GetPostgresStatus(pvc, instance.Namespace)
-			}
-		}
-		// Create a new Postgres deployment
-		postgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
-
-		if err := r.CreateNewDeployment(instance, postgresDeployment); err != nil {
-			return reconcile.Result{}, err
-		}
-		time.Sleep(time.Duration(1) * time.Second)
-		pgDeployment, err := r.GetEffectiveDeployment(instance, postgresDeployment.Name)
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", postgresDeployment.Name, err)
-			return reconcile.Result{}, err
-		}
-		if !tests {
-			if pgDeployment.Status.AvailableReplicas != 1 {
-				scaled := k8sclient.GetDeploymentStatus("postgres", instance.Namespace)
-				if !scaled {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-				}
-			}
-
-			desiredImage := util.GetValue(instance.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(instance, cheFlavor))
-			effectiveImage := pgDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
-			effectiveImagePullPolicy := string(pgDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
-			if effectiveImage != desiredImage ||
-				effectiveImagePullPolicy != desiredImagePullPolicy {
-				newPostgresDeployment := deploy.NewPostgresDeployment(instance, chePostgresPassword, isOpenShift, cheFlavor)
-				logrus.Infof(`Updating Postgres deployment with:
-	- Docker Image: %s => %s
-	- Image Pull Policy: %s => %s`,
-					effectiveImage, desiredImage,
-					effectiveImagePullPolicy, desiredImagePullPolicy,
-				)
-				if err := controllerutil.SetControllerReference(instance, newPostgresDeployment, r.scheme); err != nil {
-					logrus.Errorf("An error occurred: %s", err)
-				}
-				if err := r.client.Update(context.TODO(), newPostgresDeployment); err != nil {
-					logrus.Errorf("Failed to update Postgres deployment: %s", err)
-				}
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-			}
-
-			pgCommand := deploy.GetPostgresProvisionCommand(instance)
-			dbStatus := instance.Status.DbProvisoned
-			// provision Db and users for Che and Keycloak servers
-			if !dbStatus {
-				podToExec, err := k8sclient.GetDeploymentPod(pgDeployment.Name, instance.Namespace)
-				if err != nil {
-					return reconcile.Result{}, err
-				}
-				provisioned := ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
-				if provisioned {
-					for {
-						instance.Status.DbProvisoned = true
-						if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
-							errors.IsConflict(err) {
-							instance, _ = r.GetCR(request)
-							continue
-						}
-						break
-					}
-				} else {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-				}
-			}
-		}
-	}
-
-	ingressStrategy := util.GetValue(instance.Spec.K8s.IngressStrategy, deploy.DefaultIngressStrategy)
-	ingressDomain := instance.Spec.K8s.IngressDomain
-	tlsSupport := instance.Spec.Server.TlsSupport
-	protocol := "http"
-	if tlsSupport {
-		protocol = "https"
-	}
-
-	// create Che service and route
-	cheLabels := deploy.GetLabels(instance, util.GetValue(instance.Spec.Server.CheFlavor, deploy.DefaultCheFlavor))
-
-	if _, err := deploy.NewCheService(instance, cheLabels, r); err != nil {
-		return reconcile.Result{}, err
-	}
-	if !isOpenShift {
-		cheIngress := deploy.NewIngress(instance, cheFlavor, "che-host", 8080)
-		if err := r.CreateNewIngress(instance, cheIngress); err != nil {
-			return reconcile.Result{}, err
-		}
-		cheHost := ingressDomain
-		if ingressStrategy == "multi-host" {
-			cheHost = cheFlavor + "-" + instance.Namespace + "." + ingressDomain
-		}
-		if len(instance.Spec.Server.CheHost) == 0 {
-			instance.Spec.Server.CheHost = cheHost
-			if err := r.UpdateCheCRSpec(instance, "CheHost URL", cheHost); err != nil {
-				instance, _ = r.GetCR(request)
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-			}
-		}
-	} else {
-		cheRoute := deploy.NewRoute(instance, cheFlavor, "che-host", 8080)
-		if tlsSupport {
-			cheRoute = deploy.NewTlsRoute(instance, cheFlavor, "che-host", 8080)
-		}
-		if err := r.CreateNewRoute(instance, cheRoute); err != nil {
-			return reconcile.Result{}, err
-		}
-		if len(instance.Spec.Server.CheHost) == 0 {
-			instance.Spec.Server.CheHost = cheRoute.Spec.Host
-			if len(cheRoute.Spec.Host) < 1 {
-				cheRoute := r.GetEffectiveRoute(instance, cheRoute.Name)
-				instance.Spec.Server.CheHost = cheRoute.Spec.Host
-			}
-			if err := r.UpdateCheCRSpec(instance, "CheHost URL", instance.Spec.Server.CheHost); err != nil {
-				instance, _ = r.GetCR(request)
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-			}
-		}
-	}
-
-	// create and provision Keycloak related objects
-	ExternalKeycloak := instance.Spec.Auth.ExternalIdentityProvider
-
-	if !ExternalKeycloak {
-		keycloakLabels := deploy.GetLabels(instance, "keycloak")
-		keycloakService := deploy.NewService(instance, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
-		if err := r.CreateService(instance, keycloakService, false); err != nil {
-			return reconcile.Result{}, err
-		}
-		// create Keycloak ingresses when on k8s
-		if !isOpenShift {
-			keycloakIngress := deploy.NewIngress(instance, "keycloak", "keycloak", 8080)
-			if err := r.CreateNewIngress(instance, keycloakIngress); err != nil {
-				return reconcile.Result{}, err
-			}
-			keycloakURL := protocol + "://" + ingressDomain
-			if ingressStrategy == "multi-host" {
-				keycloakURL = protocol + "://keycloak-" + instance.Namespace + "." + ingressDomain
-			}
-			if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
-				instance.Spec.Auth.IdentityProviderURL = keycloakURL
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
+		if cheMultiUser == "false" {
+			if util.K8sclient.IsDeploymentExists(postgres.PostgresDeploymentName, instance.Namespace) {
+				util.K8sclient.DeleteDeployment(postgres.PostgresDeploymentName, instance.Namespace)
 			}
 		} else {
-			// create Keycloak route
-			keycloakRoute := deploy.NewRoute(instance, "keycloak", "keycloak", 8080)
-			if tlsSupport {
-				keycloakRoute = deploy.NewTlsRoute(instance, "keycloak", "keycloak", 8080)
-			}
-			if err = r.CreateNewRoute(instance, keycloakRoute); err != nil {
-				return reconcile.Result{}, err
-			}
-			keycloakURL := keycloakRoute.Spec.Host
-			if len(instance.Spec.Auth.IdentityProviderURL) == 0 {
-				instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
-				if len(keycloakURL) < 1 {
-					keycloakURL := r.GetEffectiveRoute(instance, keycloakRoute.Name).Spec.Host
-					instance.Spec.Auth.IdentityProviderURL = protocol + "://" + keycloakURL
-				}
-				if err := r.UpdateCheCRSpec(instance, "Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-				instance.Status.KeycloakURL = protocol + "://" + keycloakURL
-				if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", instance.Spec.Auth.IdentityProviderURL); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-		}
-		keycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor,
-			r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate"),
-			r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt"))
-		if err := r.CreateNewDeployment(instance, keycloakDeployment); err != nil {
-			return reconcile.Result{}, err
-		}
-		time.Sleep(time.Duration(1) * time.Second)
-		effectiveKeycloakDeployment, err := r.GetEffectiveDeployment(instance, keycloakDeployment.Name)
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", keycloakDeployment.Name, err)
-			return reconcile.Result{}, err
-		}
-		if !tests {
-			if effectiveKeycloakDeployment.Status.AvailableReplicas != 1 {
-				scaled := k8sclient.GetDeploymentStatus(keycloakDeployment.Name, instance.Namespace)
-				if !scaled {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+			postgresLabels := deploy.GetLabels(instance, postgres.PostgresDeploymentName)
+
+			// Create a new postgres service
+			serviceStatus := deploy.SyncServiceToCluster(deployContext, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
+			if !tests {
+				if !serviceStatus.Continue {
+					logrus.Info("Waiting on service 'postgres' to be ready")
+					if serviceStatus.Err != nil {
+						logrus.Error(serviceStatus.Err)
+					}
+
+					return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
 				}
 			}
 
-			if effectiveKeycloakDeployment.Status.Replicas > 1 {
-				logrus.Infof("Deployment %s is in the rolling update state", "keycloak")
-				k8sclient.GetDeploymentRollingUpdateStatus("keycloak", instance.Namespace)
+			// Create a new Postgres PVC object
+			pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", postgresLabels)
+			if !tests {
+				if !pvcStatus.Continue {
+					logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
+					if pvcStatus.Err != nil {
+						logrus.Error(pvcStatus.Err)
+					}
+
+					return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 1}, pvcStatus.Err
+				}
 			}
 
-			desiredImage := util.GetValue(instance.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(instance, cheFlavor))
-			effectiveImage := effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].Image
-			desiredImagePullPolicy := util.GetValue(string(instance.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(desiredImage))
-			effectiveImagePullPolicy := string(effectiveKeycloakDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
-			cheCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "self-signed-certificate")
-			storedCheCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.self-signed-certificate.version"]
-			openshiftApiCertSecretVersion := r.GetEffectiveSecretResourceVersion(instance, "openshift-api-crt")
-			storedOpenshiftApiCertSecretVersion := effectiveKeycloakDeployment.Annotations["che.openshift-api-crt.version"]
-			if effectiveImage != desiredImage ||
-				effectiveImagePullPolicy != desiredImagePullPolicy ||
-				cheCertSecretVersion != storedCheCertSecretVersion ||
-				openshiftApiCertSecretVersion != storedOpenshiftApiCertSecretVersion {
-				newKeycloakDeployment := deploy.NewKeycloakDeployment(instance, keycloakPostgresPassword, keycloakAdminPassword, cheFlavor, cheCertSecretVersion, openshiftApiCertSecretVersion)
-				logrus.Infof(`Updating Keycloak deployment with:
-	- Docker Image: %s => %s
-	- Image Pull Policy: %s => %s
-	- Self-Signed Certificate Version: %s => %s
-	- OpenShift API Certificate Version: %s => %s`,
-					effectiveImage, desiredImage,
-					effectiveImagePullPolicy, desiredImagePullPolicy,
-					cheCertSecretVersion, storedCheCertSecretVersion,
-					openshiftApiCertSecretVersion, storedOpenshiftApiCertSecretVersion,
-				)
-				if err := controllerutil.SetControllerReference(instance, newKeycloakDeployment, r.scheme); err != nil {
-					logrus.Errorf("An error occurred: %s", err)
-				}
-				if err := r.client.Update(context.TODO(), newKeycloakDeployment); err != nil {
-					logrus.Errorf("Failed to update Keycloak deployment: %s", err)
-				}
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-			}
-			keycloakRealmClientStatus := instance.Status.KeycloakProvisoned
-			if !keycloakRealmClientStatus {
-				if err := r.CreateKyecloakResources(instance, request, keycloakDeployment.Name); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-				}
-			}
-		}
+			// Create a new Postgres deployment
+			deploymentStatus := postgres.SyncPostgresDeploymentToCluster(deployContext)
+			if !tests {
+				if !deploymentStatus.Continue {
+					logrus.Infof("Waiting on deployment '%s' to be ready", postgres.PostgresDeploymentName)
+					if deploymentStatus.Err != nil {
+						logrus.Error(deploymentStatus.Err)
+					}
 
-		if isOpenShift {
-			doInstallOpenShiftoAuthProvider := instance.Spec.Auth.OpenShiftoAuth
-			if doInstallOpenShiftoAuthProvider {
-				openShiftIdentityProviderStatus := instance.Status.OpenShiftoAuthProvisioned
-				if !openShiftIdentityProviderStatus {
-					if err := r.CreateIdentityProviderItems(instance, request, cheFlavor, keycloakDeployment.Name, isOpenShift4); err != nil {
+					return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
+				}
+			}
+
+			if !tests {
+				identityProviderPostgresPassword := instance.Spec.Auth.IdentityProviderPostgresPassword
+				identityProviderPostgresSecret := instance.Spec.Auth.IdentityProviderPostgresSecret
+				if len(identityProviderPostgresSecret) > 0 {
+					_, password, err := util.K8sclient.ReadSecret(identityProviderPostgresSecret, instance.Namespace)
+					if err != nil {
+						logrus.Errorf("Failed to read '%s' secret: %s", identityProviderPostgresSecret, err)
+						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
+					}
+					identityProviderPostgresPassword = password
+				}
+				pgCommand := identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword)
+				dbStatus := instance.Status.DbProvisoned
+				// provision Db and users for Che and Keycloak servers
+				if !dbStatus {
+					podToExec, err := util.K8sclient.GetDeploymentPod(postgres.PostgresDeploymentName, instance.Namespace)
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+					_, err = util.K8sclient.ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
+					if err == nil {
+						for {
+							instance.Status.DbProvisoned = true
+							if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
+								errors.IsConflict(err) {
+								instance, _ = r.GetCR(request)
+								continue
+							}
+							break
+						}
+					} else {
 						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
 					}
 				}
@@ -662,346 +772,169 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	addRegistryRoute := func(registryType string) (string, error) {
-		registryName := registryType + "-registry"
-		host := ""
-		if !isOpenShift {
-			ingress := deploy.NewIngress(instance, registryName, registryName, 8080)
-			if err := r.CreateNewIngress(instance, ingress); err != nil {
-				return "", err
-			}
-			host = ingressDomain
-			if ingressStrategy == "multi-host" {
-				host = registryName + "-" + instance.Namespace + "." + ingressDomain
-			}
-		} else {
-			route := deploy.NewRoute(instance, registryName, registryName, 8080)
-			if tlsSupport {
-				route = deploy.NewTlsRoute(instance, registryName, registryName, 8080)
-			}
-			if err := r.CreateNewRoute(instance, route); err != nil {
-				return "", err
-			}
-			host = route.Spec.Host
-			if len(host) < 1 {
-				cheRoute := r.GetEffectiveRoute(instance, route.Name)
-				host = cheRoute.Spec.Host
-			}
-		}
-		return protocol + "://" + host, nil
+	tlsSupport := instance.Spec.Server.TlsSupport
+	protocol := "http"
+	if tlsSupport {
+		protocol = "https"
 	}
 
-	addRegistryDeployment := func(
-		registryType string,
-		registryImage string,
-		registryImagePullPolicy corev1.PullPolicy,
-		registryMemoryLimit string,
-		registryMemoryRequest string,
-		probePath string,
-	) (*reconcile.Result, error) {
-		registryName := registryType + "-registry"
+	// create Che service and route
+	serviceStatus := server.SyncCheServiceToCluster(deployContext)
+	if !tests {
+		if !serviceStatus.Continue {
+			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceName)
+			if serviceStatus.Err != nil {
+				logrus.Error(serviceStatus.Err)
+			}
 
-		// Create a new registry service
-		registryLabels := deploy.GetLabels(instance, registryName)
-		registryService := deploy.NewService(instance, registryName, []string{"http"}, []int32{8080}, registryLabels)
-		if err := r.CreateService(instance, registryService, true); err != nil {
-			return &reconcile.Result{}, err
+			return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
 		}
-		// Create a new registry deployment
-		registryDeployment := deploy.NewRegistryDeployment(
-			instance,
-			registryType,
-			registryImage,
-			registryImagePullPolicy,
-			registryMemoryLimit,
-			registryMemoryRequest,
-			probePath,
-		)
-		if err := r.CreateNewDeployment(instance, registryDeployment); err != nil {
-			return &reconcile.Result{}, err
-		}
-		time.Sleep(time.Duration(1) * time.Second)
-		effectiveDeployment, err := r.GetEffectiveDeployment(instance, registryDeployment.Name)
-		if err != nil {
-			logrus.Errorf("Failed to get %s deployment: %s", registryDeployment.Name, err)
-			return &reconcile.Result{}, err
-		}
+	}
+
+	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
+
+	exposedServiceName := getServerExposingServiceName(instance)
+	cheHost := ""
+	if !isOpenShift {
+		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
+		ingress, err := deploy.SyncIngressToCluster(deployContext, cheFlavor, instance.Spec.Server.CheHost, exposedServiceName, 8080, additionalLabels)
 		if !tests {
-			if effectiveDeployment.Status.AvailableReplicas != 1 {
-				scaled := k8sclient.GetDeploymentStatus(registryName, instance.Namespace)
-				if !scaled {
-					return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-				}
-			}
-
-			if effectiveDeployment.Status.Replicas > 1 {
-				logrus.Infof("Deployment %s is in the rolling update state", registryName)
-				k8sclient.GetDeploymentRollingUpdateStatus(registryName, instance.Namespace)
-			}
-
-			desiredMemRequest, err := resource.ParseQuantity(registryMemoryRequest)
-			if err != nil {
-				logrus.Errorf("Wrong quantity for %s deployment Memory Request: %s", registryName, err)
-				return &reconcile.Result{}, err
-			}
-			effectiveMemRequest := effectiveDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
-			desiredMemLimit, err := resource.ParseQuantity(registryMemoryLimit)
-			if err != nil {
-				logrus.Errorf("Wrong quantity for %s deployment Memory Limit: %s", registryName, err)
-				return &reconcile.Result{}, err
-			}
-			effectiveMemLimit := effectiveDeployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
-			effectiveRegistryImage := effectiveDeployment.Spec.Template.Spec.Containers[0].Image
-			effectiveRegistryImagePullPolicy := effectiveDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy
-			if effectiveRegistryImage != registryImage ||
-				effectiveMemRequest.Cmp(desiredMemRequest) != 0 ||
-				effectiveMemLimit.Cmp(desiredMemLimit) != 0 ||
-				effectiveRegistryImagePullPolicy != registryImagePullPolicy {
-				newDeployment := deploy.NewRegistryDeployment(
-					instance,
-					registryType,
-					registryImage,
-					registryImagePullPolicy,
-					registryMemoryLimit,
-					registryMemoryRequest,
-					probePath,
-				)
-				logrus.Infof(`Updating %s registry deployment with:
-	- Docker Image: %s => %s
-	- Image Pull Policy: %s => %s
-	- Memory Request: %s => %s
-	- Memory Limit: %s => %s`, registryType,
-					effectiveRegistryImage, registryImage,
-					effectiveRegistryImagePullPolicy, registryImagePullPolicy,
-					effectiveMemRequest.String(), desiredMemRequest.String(),
-					effectiveMemLimit.String(), desiredMemLimit.String(),
-				)
-				if err := controllerutil.SetControllerReference(instance, newDeployment, r.scheme); err != nil {
-					logrus.Errorf("An error occurred: %s", err)
-				}
-				if err := r.client.Update(context.TODO(), newDeployment); err != nil {
-					logrus.Errorf("Failed to update %s registry deployment: %s", registryType, err)
-				}
-				return &reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-			}
-		}
-		return nil, nil
-	}
-
-	devfileRegistryURL := instance.Spec.Server.DevfileRegistryUrl
-
-	// Create devfile registry resources unless an external registry is used
-	externalDevfileRegistry := instance.Spec.Server.ExternalDevfileRegistry
-	if !externalDevfileRegistry {
-		guessedDevfileRegistryURL, err := addRegistryRoute("devfile")
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		if devfileRegistryURL == "" {
-			devfileRegistryURL = guessedDevfileRegistryURL
-		}
-		if instance.IsAirGapMode() {
-			devFileRegistryConfigMap := &corev1.ConfigMap{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: instance.Namespace}, devFileRegistryConfigMap)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
-					err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
-					if err != nil {
-						logrus.Errorf("An error occurred: %v", err)
-						return reconcile.Result{}, err
-					}
-					logrus.Info("Creating devfile registry airgap configmap")
-					err = r.client.Create(context.TODO(), devFileRegistryConfigMap)
-					if err != nil {
-						logrus.Errorf("Error creating devfile registry configmap: %v", err)
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{Requeue: true}, nil
-				} else {
-					logrus.Errorf("Could not get devfile-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
-			} else {
-				devFileRegistryConfigMap = deploy.CreateDevfileRegistryConfigMap(instance, devfileRegistryURL)
-				err = controllerutil.SetControllerReference(instance, devFileRegistryConfigMap, r.scheme)
+			if ingress == nil {
+				logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
 				if err != nil {
-					logrus.Errorf("An error occurred: %v", err)
-					return reconcile.Result{}, err
+					logrus.Error(err)
 				}
-				logrus.Info("Updating devfile-registry ConfigMap")
-				err = r.client.Update(context.TODO(), devFileRegistryConfigMap)
-				if err != nil {
-					logrus.Errorf("Error updating devfile-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
+
+				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
+			cheHost = ingress.Spec.Rules[0].Host
+		}
+	} else {
+		customHost := instance.Spec.Server.CheHost
+		if deployContext.DefaultCheHost == customHost {
+			// let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
+			customHost = ""
 		}
 
-		devfileRegistryImage := util.GetValue(instance.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(instance, cheFlavor))
-		result, err := addRegistryDeployment(
-			"devfile",
-			devfileRegistryImage,
-			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(devfileRegistryImage))),
-			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryLimit), deploy.DefaultDevfileRegistryMemoryLimit),
-			util.GetValue(string(instance.Spec.Server.DevfileRegistryMemoryRequest), deploy.DefaultDevfileRegistryMemoryRequest),
-			"/devfiles/",
-		)
-		if err != nil || result != nil {
-			return *result, err
+		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
+		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels)
+		if route == nil {
+			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+			if err != nil {
+				logrus.Error(err)
+			}
+
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+		cheHost = route.Spec.Host
+		if customHost == "" {
+			deployContext.DefaultCheHost = cheHost
 		}
 	}
-	if devfileRegistryURL != instance.Status.DevfileRegistryURL {
-		instance.Status.DevfileRegistryURL = devfileRegistryURL
-		if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
+	if instance.Spec.Server.CheHost != cheHost {
+		instance.Spec.Server.CheHost = cheHost
+		if err := r.UpdateCheCRSpec(instance, "CheHost URL", cheHost); err != nil {
 			instance, _ = r.GetCR(request)
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 
-	pluginRegistryURL := instance.Spec.Server.PluginRegistryUrl
-	// Create Plugin registry resources unless an external registry is used
-	externalPluginRegistry := instance.Spec.Server.ExternalPluginRegistry
-	if !externalPluginRegistry {
-		if instance.IsAirGapMode() {
-			pluginRegistryConfigMap := &corev1.ConfigMap{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: instance.Namespace}, pluginRegistryConfigMap)
+	// create and provision Keycloak related objects
+	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
+	if !tests {
+		if !provisioned {
 			if err != nil {
-				if errors.IsNotFound(err) {
-					pluginRegistryConfigMap = deploy.CreatePluginRegistryConfigMap(instance)
-					err = controllerutil.SetControllerReference(instance, pluginRegistryConfigMap, r.scheme)
-					if err != nil {
-						logrus.Errorf("An error occurred: %v", err)
-						return reconcile.Result{}, err
-					}
-					logrus.Info("Creating plugin registry airgap configmap")
-					err = r.client.Create(context.TODO(), pluginRegistryConfigMap)
-					if err != nil {
-						logrus.Errorf("Error creating plugin registry configmap: %v", err)
-						return reconcile.Result{}, err
-					}
-					return reconcile.Result{Requeue: true}, nil
-				} else {
-					logrus.Errorf("Could not get plugin-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
-			} else {
-				pluginRegistryConfigMap = deploy.CreatePluginRegistryConfigMap(instance)
-				err = controllerutil.SetControllerReference(instance, pluginRegistryConfigMap, r.scheme)
-				if err != nil {
-					logrus.Errorf("An error occurred: %v", err)
-					return reconcile.Result{}, err
-				}
-				logrus.Info(" Updating plugin-registry ConfigMap")
-				err = r.client.Update(context.TODO(), pluginRegistryConfigMap)
-				if err != nil {
-					logrus.Errorf("Error updating plugin-registry ConfigMap: %v", err)
-					return reconcile.Result{}, err
-				}
+				logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
 			}
-		}
-		guessedPluginRegistryURL, err := addRegistryRoute("plugin")
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		guessedPluginRegistryURL += "/v3"
-		if pluginRegistryURL == "" {
-			pluginRegistryURL = guessedPluginRegistryURL
-		}
-
-		pluginRegistryImage := util.GetValue(instance.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(instance, cheFlavor))
-		result, err := addRegistryDeployment(
-			"plugin",
-			pluginRegistryImage,
-			corev1.PullPolicy(util.GetValue(string(instance.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(pluginRegistryImage))),
-			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryLimit), deploy.DefaultPluginRegistryMemoryLimit),
-			util.GetValue(string(instance.Spec.Server.PluginRegistryMemoryRequest), deploy.DefaultPluginRegistryMemoryRequest),
-			"/v3/plugins/",
-		)
-		if err != nil || result != nil {
-			return *result, err
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
 	}
-	if pluginRegistryURL != instance.Status.PluginRegistryURL {
-		instance.Status.PluginRegistryURL = pluginRegistryURL
-		if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", pluginRegistryURL); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+
+	provisioned, err = devfile_registry.SyncDevfileRegistryToCluster(deployContext, cheHost)
+	if !tests {
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistry, err)
+			}
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		}
+	}
+
+	provisioned, err = plugin_registry.SyncPluginRegistryToCluster(deployContext, cheHost)
+	if !tests {
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistry, err)
+			}
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
 	}
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
-	cheHost := instance.Spec.Server.CheHost
-	cheEnv := deploy.GetConfigMapData(instance)
-	cheConfigMap := deploy.NewCheConfigMap(instance, cheEnv)
-	if err := r.CreateNewConfigMap(instance, cheConfigMap); err != nil {
+	cheConfigMap, err := server.SyncCheConfigMapToCluster(deployContext)
+	if !tests {
+		if cheConfigMap == nil {
+			logrus.Infof("Waiting on config map '%s' to be created", server.CheConfigMapName)
+			if err != nil {
+				logrus.Error(err)
+			}
+			return reconcile.Result{}, err
+		}
+	}
+
+	err = gateway.SyncGatewayToCluster(deployContext)
+	if err != nil {
+		logrus.Errorf("Failed to create the Server Gateway: %s", err)
 		return reconcile.Result{}, err
 	}
 
-	// configMap resource version will be an env in Che deployment to easily update it when a ConfigMap changes
-	// which will automatically trigger Che rolling update
-	cmResourceVersion := cheConfigMap.ResourceVersion
-	// create Che deployment
-	cheImageRepo := util.GetValue(instance.Spec.Server.CheImage, deploy.DefaultCheServerImageRepo(instance, cheFlavor))
-	cheImageTag := util.GetValue(instance.Spec.Server.CheImageTag, deploy.DefaultCheServerImageTag(cheFlavor))
-	cheDeploymentToCreate, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if err = r.CreateNewDeployment(instance, cheDeploymentToCreate); err != nil {
-		return reconcile.Result{}, err
-	}
-	// sometimes Get cannot find deployment right away
-	time.Sleep(time.Duration(1) * time.Second)
-	effectiveCheDeployment, err := r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
-	if err != nil {
-		logrus.Errorf("Failed to get %s deployment: %s", cheDeploymentToCreate.Name, err)
-		return reconcile.Result{}, err
-	}
+	// Create a new che deployment
+	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext)
 	if !tests {
-		if effectiveCheDeployment.Status.Replicas > 1 {
-			// Specific case: a Rolling update is happening
-			logrus.Infof("Deployment %s is in the rolling update state", cheDeploymentToCreate.Name)
-			if err := r.SetCheRollingUpdateStatus(instance, request); err != nil {
-				instance, _ = r.GetCR(request)
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		if !deploymentStatus.Continue {
+			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
+			if deploymentStatus.Err != nil {
+				logrus.Error(deploymentStatus.Err)
 			}
-			k8sclient.GetDeploymentRollingUpdateStatus(cheDeploymentToCreate.Name, instance.Namespace)
-			deployment, _ := r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
-			if deployment.Status.Replicas == 1 {
-				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-			}
-		} else {
-			if effectiveCheDeployment.Status.AvailableReplicas < 1 {
-				// Deployment was just created
-				instance, _ := r.GetCR(request)
-				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-				scaled := k8sclient.GetDeploymentStatus(cheDeploymentToCreate.Name, instance.Namespace)
-				if !scaled {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-				}
-				effectiveCheDeployment, err = r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
-			}
-			if effectiveCheDeployment.Status.AvailableReplicas == 1 &&
-				instance.Status.CheClusterRunning != AvailableStatus {
-				if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
-					instance, _ = r.GetCR(request)
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
-				if instance.Status.CheVersion != cheImageTag {
-					instance.Status.CheVersion = cheImageTag
-					if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
-						instance, _ = r.GetCR(request)
-						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+
+			deployment, err := r.GetEffectiveDeployment(instance, cheFlavor)
+			if err == nil {
+				if deployment.Status.AvailableReplicas < 1 {
+					if instance.Status.CheClusterRunning != UnavailableStatus {
+						if err := r.SetCheUnavailableStatus(instance, request); err != nil {
+							instance, _ = r.GetCR(request)
+							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+						}
+					}
+				} else if deployment.Status.Replicas != 1 {
+					if instance.Status.CheClusterRunning != RollingUpdateInProgressStatus {
+						if err := r.SetCheRollingUpdateStatus(instance, request); err != nil {
+							instance, _ = r.GetCR(request)
+							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+						}
 					}
 				}
 			}
+			return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
+		}
+	}
+	// Update available status
+	if instance.Status.CheClusterRunning != AvailableStatus {
+		cheHost := instance.Spec.Server.CheHost
+		if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
+	}
+
+	// Update Che version status
+	cheVersion := EvaluateCheServerVersion(instance)
+	if instance.Status.CheVersion != cheVersion {
+		instance.Status.CheVersion = cheVersion
+		if err := r.UpdateCheCRStatus(instance, "version", cheVersion); err != nil {
+			instance, _ = r.GetCR(request)
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 
@@ -1011,51 +944,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	if effectiveCheDeployment.Spec.Template.Spec.Containers[0].Image != cheDeploymentToCreate.Spec.Template.Spec.Containers[0].Image {
-		if err := controllerutil.SetControllerReference(instance, cheDeploymentToCreate, r.scheme); err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-		logrus.Infof("Updating %s %s with image %s:%s", cheDeploymentToCreate.Name, cheDeploymentToCreate.Kind, cheImageRepo, cheImageTag)
-		instance.Status.CheVersion = cheImageTag
-		if err := r.UpdateCheCRStatus(instance, "version", cheImageTag); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-		if err := r.client.Update(context.TODO(), cheDeploymentToCreate); err != nil {
-			logrus.Errorf("Failed to update %s %s: %s", effectiveCheDeployment.Kind, effectiveCheDeployment.Name, err)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-
-		}
-	}
-
-	// reconcile routes/ingresses before reconciling Che deployment
-	activeConfigMap := &corev1.ConfigMap{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: instance.Namespace}, activeConfigMap); err != nil {
-		logrus.Errorf("ConfigMap %s not found: %s", activeConfigMap.Name, err)
-	}
-	if !tlsSupport && activeConfigMap.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] == "true" {
-		routesUpdated, err := r.ReconcileTLSObjects(instance, request, cheFlavor, tlsSupport, isOpenShift)
-		if err != nil {
-			logrus.Errorf("An error occurred when updating routes %s", err)
-		}
-		if routesUpdated {
-			logrus.Info("Routes have been updated with TLS config")
-		}
-	}
-	if tlsSupport && activeConfigMap.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] == "false" {
-		routesUpdated, err := r.ReconcileTLSObjects(instance, request, cheFlavor, tlsSupport, isOpenShift)
-		if err != nil {
-			logrus.Errorf("An error occurred when updating routes %s", err)
-		}
-		if routesUpdated {
-			logrus.Info("Routes have been updated with TLS config")
-		}
-	}
-	// Reconcile Che ConfigMap to align with CR spec
-	cmUpdated, err := r.UpdateConfigMap(instance)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 	// Delete OpenShift identity provider if OpenShift oAuth is false in spec
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
 	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
@@ -1089,244 +977,181 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if cmUpdated {
-		// sometimes an old cm resource version is returned ie get happens too fast - before server updates CM
-		time.Sleep(time.Duration(1) * time.Second)
-		cm := r.GetEffectiveConfigMap(instance, cheConfigMap.Name)
-		cmResourceVersion := cm.ResourceVersion
-		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
-		if err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-		if err := r.client.Update(context.TODO(), cheDeployment); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-	effectiveCheDeployment, _ = r.GetEffectiveDeployment(instance, cheDeploymentToCreate.Name)
-	effectiveMemRequest := effectiveCheDeployment.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
-	effectiveMemLimit := effectiveCheDeployment.Spec.Template.Spec.Containers[0].Resources.Limits[corev1.ResourceMemory]
-	desiredMemRequest, err := resource.ParseQuantity(util.GetValue(instance.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest))
-	if err != nil {
-		logrus.Errorf("Wrong quantity for Che deployment Memory Request: %s", err)
-		return reconcile.Result{}, err
-	}
-	desiredMemLimit, err := resource.ParseQuantity(util.GetValue(instance.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit))
-	if err != nil {
-		logrus.Errorf("Wrong quantity for Che deployment Memory Limit: %s", err)
-		return reconcile.Result{}, err
-	}
-	desiredImagePullPolicy := util.GetValue(string(instance.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageRepo+":"+cheImageTag))
-	effectiveImagePullPolicy := string(effectiveCheDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
-	desiredSelfSignedCert := instance.Spec.Server.SelfSignedCert
-	desiredGitSelfSignedCert := instance.Spec.Server.GitSelfSignedCert
-	effectiveSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_SELF__SIGNED__CERT") != nil
-	effectiveGitSelfSignedCert := r.GetDeploymentEnvVarSource(effectiveCheDeployment, "CHE_GIT_SELF__SIGNED__CERT") != nil
-	if desiredMemRequest.Cmp(effectiveMemRequest) != 0 ||
-		desiredMemLimit.Cmp(effectiveMemLimit) != 0 ||
-		effectiveImagePullPolicy != desiredImagePullPolicy ||
-		effectiveSelfSignedCert != desiredSelfSignedCert ||
-		effectiveGitSelfSignedCert != desiredGitSelfSignedCert {
-		cheDeployment, err := deploy.NewCheDeployment(instance, cheImageRepo, cheImageTag, cmResourceVersion, isOpenShift)
-		if err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-		if err := controllerutil.SetControllerReference(instance, cheDeployment, r.scheme); err != nil {
-			logrus.Errorf("An error occurred: %s", err)
-		}
-		logrus.Infof(`Updating deployment %s with:
-	- Memory Request: %s => %s
-	- Memory Limit: %s => %s
-	- Image Pull Policy: %s => %s
-	- Self-Signed Cert: %t => %t`,
-			cheDeployment.Name,
-			effectiveMemRequest.String(), desiredMemRequest.String(),
-			effectiveMemLimit.String(), desiredMemLimit.String(),
-			effectiveImagePullPolicy, desiredImagePullPolicy,
-			effectiveSelfSignedCert, desiredSelfSignedCert,
-		)
-		if err := r.client.Update(context.TODO(), cheDeployment); err != nil {
-			logrus.Errorf("Failed to update deployment: %s", err)
-			return reconcile.Result{}, err
-		}
-	}
 	return reconcile.Result{}, nil
 }
 
 // creates `che` serviceaccount with needed permissions
-func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
-	// create service accounts:
-	// che is the one which token is used to create workspace objects
-	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
-	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
-		return err
-	}
+// func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
+// 	// create service accounts:
+// 	// che is the one which token is used to create workspace objects
+// 	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
+// 	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
+// 		return err
+// 	}
 
-	if !instance.Spec.Auth.OpenShiftoAuth {
+// 	if !instance.Spec.Auth.OpenShiftoAuth {
 
-		if instance.Namespace == instance.Spec.Server.WorkspaceNamespaceDefault {
-			// this role is needed to manage che-workspace serviceaccount inside che namespace
-			cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
-				{
-					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-					Resources: []string{"roles"},
-					Verbs:     []string{"get", "create"},
-				},
-				{
-					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-					Resources: []string{"rolebindings"},
-					Verbs:     []string{"get", "update", "create"},
-				},
-			})
-			if err := r.CreateNewRole(instance, cheRole); err != nil {
-				return err
-			}
-			cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, cheRole.Name, "Role")
-			if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
-				return err
-			}
+// 		if instance.Namespace == instance.Spec.Server.WorkspaceNamespaceDefault {
+// 			// this role is needed to manage che-workspace serviceaccount inside che namespace
+// 			cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
+// 				{
+// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+// 					Resources: []string{"roles"},
+// 					Verbs:     []string{"get", "create"},
+// 				},
+// 				{
+// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+// 					Resources: []string{"rolebindings"},
+// 					Verbs:     []string{"get", "update", "create"},
+// 				},
+// 			})
+// 			if err := r.CreateNewRole(instance, cheRole); err != nil {
+// 				return err
+// 			}
+// 			cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, cheRole.Name, "Role")
+// 			if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
+// 				return err
+// 			}
 
-			// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-			cheRoleBinding := deploy.NewRoleBinding(instance, "che-edit", cheServiceAccount.Name, "edit", "ClusterRole")
-			if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
-				return err
-			}
-		} else {
-			cheCreateNamespacesName := fmt.Sprintf(cheCreateNamespaces, instance.Namespace)
-			cheCreateNameSpacesRole := deploy.NewClusterRole(instance, cheCreateNamespacesName, []rbac.PolicyRule{
-				{
-					APIGroups: []string{"project.openshift.io"},
-					Resources: []string{"projectrequests"},
-					Verbs: []string{"create", "update"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"namespaces"},
-					Verbs: []string{"create", "update"},
-				},
-			})
-			if err := r.CreateNewClusterRole(instance, cheCreateNameSpacesRole); err != nil {
-				return err
-			}
+// 			// create RoleBindings for created (and existing ClusterRole) roles and service accounts
+// 			cheRoleBinding := deploy.NewRoleBinding(instance, "che-edit", cheServiceAccount.Name, "edit", "ClusterRole")
+// 			if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
+// 				return err
+// 			}
+// 		} else {
+// 			cheCreateNamespacesName := fmt.Sprintf(cheCreateNamespaces, instance.Namespace)
+// 			cheCreateNameSpacesRole := deploy.NewClusterRole(instance, cheCreateNamespacesName, []rbac.PolicyRule{
+// 				{
+// 					APIGroups: []string{"project.openshift.io"},
+// 					Resources: []string{"projectrequests"},
+// 					Verbs: []string{"create", "update"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"namespaces"},
+// 					Verbs: []string{"create", "update"},
+// 				},
+// 			})
+// 			if err := r.CreateNewClusterRole(instance, cheCreateNameSpacesRole); err != nil {
+// 				return err
+// 			}
 
-			// this binding is needed to create new namespaces for workspaces
-			// `${namespace}-clusterrole-create-namespaces` ClusterRole should be created during che-operator deploy
-			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, cheCreateNamespacesName, cheServiceAccount.Name, cheCreateNameSpacesRole.Name, "ClusterRole")
-			if err := r.CreateNewClusterRoleBinding(instance, cheCreateNamespaceRoleBinding); err != nil {
-				return err
-			}
+// 			// this binding is needed to create new namespaces for workspaces
+// 			// `${namespace}-clusterrole-create-namespaces` ClusterRole should be created during che-operator deploy
+// 			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, cheCreateNamespacesName, cheServiceAccount.Name, cheCreateNameSpacesRole.Name, "ClusterRole")
+// 			if err := r.CreateNewClusterRoleBinding(instance, cheCreateNamespaceRoleBinding); err != nil {
+// 				return err
+// 			}
 
-			cheManageNamespacesName := fmt.Sprintf(cheManageNamespaces, instance.Namespace)
-			cheManageNameSpacesRole := deploy.NewClusterRole(instance, cheManageNamespacesName, []rbac.PolicyRule{
-				{
-					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-					Resources: []string{"roles"},
-					Verbs: []string{"get", "create"},
-				},
-				{
-					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-					Resources: []string{"rolebindings"},
-					Verbs: []string{"get", "update", "create"},
-				},
-				{
-					APIGroups: []string{"project.openshift.io"},
-					Resources: []string{"projects"},
-					Verbs: []string{"get"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"serviceaccounts"},
-					Verbs: []string{"get", "create", "watch"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"pods/exec"},
-					Verbs: []string{"create"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"persistentvolumeclaims", "configmaps"},
-					Verbs: []string{"list"},
-				},
-				{
-					APIGroups: []string{"apps"},
-					Resources: []string{"secrets"},
-					Verbs: []string{"list"},
-				},
+// 			cheManageNamespacesName := fmt.Sprintf(cheManageNamespaces, instance.Namespace)
+// 			cheManageNameSpacesRole := deploy.NewClusterRole(instance, cheManageNamespacesName, []rbac.PolicyRule{
+// 				{
+// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+// 					Resources: []string{"roles"},
+// 					Verbs: []string{"get", "create"},
+// 				},
+// 				{
+// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+// 					Resources: []string{"rolebindings"},
+// 					Verbs: []string{"get", "update", "create"},
+// 				},
+// 				{
+// 					APIGroups: []string{"project.openshift.io"},
+// 					Resources: []string{"projects"},
+// 					Verbs: []string{"get"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"serviceaccounts"},
+// 					Verbs: []string{"get", "create", "watch"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"pods/exec"},
+// 					Verbs: []string{"create"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"persistentvolumeclaims", "configmaps"},
+// 					Verbs: []string{"list"},
+// 				},
+// 				{
+// 					APIGroups: []string{"apps"},
+// 					Resources: []string{"secrets"},
+// 					Verbs: []string{"list"},
+// 				},
 
-				{
-					APIGroups: []string{""},
-					Resources: []string{"secrets"},
-					Verbs: []string{"list", "create", "delete"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"persistentvolumeclaims"},
-					Verbs: []string{"get", "create", "watch"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"pods"},
-					Verbs: []string{"get", "create", "list", "watch", "delete"},
-				},
-				{
-					APIGroups: []string{"apps"},
-					Resources: []string{"deployments"},
-					Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"services"},
-					Verbs: []string{"create", "list", "delete"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"configmaps"},
-					Verbs: []string{"create", "delete"},
-				},
-				{
-					APIGroups: []string{"route.openshift.io"},
-					Resources: []string{"routes"},
-					Verbs: []string{"list", "create", "delete"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"events"},
-					Verbs: []string{"watch"},
-				},
-				{
-					APIGroups: []string{"apps"},
-					Resources: []string{"replicasets"},
-					Verbs: []string{"list", "get", "patch", "delete"},
-				},
-				{
-					APIGroups: []string{"extensions"},
-					Resources: []string{"ingresses"},
-					Verbs: []string{"list", "create", "watch", "get", "delete"},
-				},
-				{
-					APIGroups: []string{""},
-					Resources: []string{"namespaces"},
-					Verbs: []string{"get"},
-				},
-			})
-			if err := r.CreateNewClusterRole(instance, cheManageNameSpacesRole); err != nil {
-				return err
-			}
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"secrets"},
+// 					Verbs: []string{"list", "create", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"persistentvolumeclaims"},
+// 					Verbs: []string{"get", "create", "watch"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"pods"},
+// 					Verbs: []string{"get", "create", "list", "watch", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{"apps"},
+// 					Resources: []string{"deployments"},
+// 					Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"services"},
+// 					Verbs: []string{"create", "list", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"configmaps"},
+// 					Verbs: []string{"create", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{"route.openshift.io"},
+// 					Resources: []string{"routes"},
+// 					Verbs: []string{"list", "create", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"events"},
+// 					Verbs: []string{"watch"},
+// 				},
+// 				{
+// 					APIGroups: []string{"apps"},
+// 					Resources: []string{"replicasets"},
+// 					Verbs: []string{"list", "get", "patch", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{"extensions"},
+// 					Resources: []string{"ingresses"},
+// 					Verbs: []string{"list", "create", "watch", "get", "delete"},
+// 				},
+// 				{
+// 					APIGroups: []string{""},
+// 					Resources: []string{"namespaces"},
+// 					Verbs: []string{"get"},
+// 				},
+// 			})
+// 			if err := r.CreateNewClusterRole(instance, cheManageNameSpacesRole); err != nil {
+// 				return err
+// 			}
 
-			// this binding is needed to manage che workspaces out of che namespace
-			// `${namespace}-clusterrole-manage-namespaces` ClusterRole should be created during che-operator deploy
-			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, cheManageNamespacesName, cheServiceAccount.Name, cheManageNameSpacesRole.Name, "ClusterRole")
-			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
-				return err
-			}
-		}
-	}
+// 			// this binding is needed to manage che workspaces out of che namespace
+// 			// `${namespace}-clusterrole-manage-namespaces` ClusterRole should be created during che-operator deploy
+// 			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, cheManageNamespacesName, cheServiceAccount.Name, cheManageNameSpacesRole.Name, "ClusterRole")
+// 			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCluster, r *ReconcileChe) error {
 	if !isOpenShift4 || !hasConsolelinkObject() {
@@ -1340,27 +1165,26 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 		// console link is supported only with https
 		return nil
 	}
-	cheFlavor := instance.Spec.Server.CheFlavor
 	cheHost := instance.Spec.Server.CheHost
 	preparedConsoleLink := &consolev1.ConsoleLink{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: deploy.DefaultConsoleLinkName,
+			Name: deploy.DefaultConsoleLinkName(),
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
 				Href: protocol + "://" + cheHost,
-				Text: deploy.DefaultConsoleLinkDisplayName(cheFlavor)},
+				Text: deploy.DefaultConsoleLinkDisplayName()},
 			Location: consolev1.ApplicationMenu,
 			ApplicationMenu: &consolev1.ApplicationMenuSpec{
-				Section:  deploy.DefaultConsoleLinkSection,
-				ImageURL: fmt.Sprintf("%s://%s%s", protocol, cheHost, deploy.DefaultConsoleLinkImage),
+				Section:  deploy.DefaultConsoleLinkSection(),
+				ImageURL: fmt.Sprintf("%s://%s%s", protocol, cheHost, deploy.DefaultConsoleLinkImage()),
 			},
 		},
 	}
 
 	existingConsoleLink := &consolev1.ConsoleLink{}
 
-	if getErr := r.nonCachedClient.Get(context.TODO(), client.ObjectKey{Name: deploy.DefaultConsoleLinkName}, existingConsoleLink); getErr == nil {
+	if getErr := r.nonCachedClient.Get(context.TODO(), client.ObjectKey{Name: deploy.DefaultConsoleLinkName()}, existingConsoleLink); getErr == nil {
 		// if found, update existing one. We need ResourceVersion from current one.
 		preparedConsoleLink.ResourceVersion = existingConsoleLink.ResourceVersion
 		logrus.Debugf("Updating the object: ConsoleLink, name: %s", existingConsoleLink.Name)
@@ -1390,4 +1214,140 @@ func hasConsolelinkObject() bool {
 		}
 	}
 	return false
+}
+
+// EvaluateCheServerVersion evaluate che version
+// based on Checluster information and image defaults from env variables
+func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
+	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
+}
+
+func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
+	routeName := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
+	route, err := deploy.SyncRouteToCluster(deployContext, routeName, "", getServerExposingServiceName(deployContext.CheCluster), 8080, additionalLabels)
+	if route == nil {
+		logrus.Infof("Waiting on route '%s' to be ready", routeName)
+		if err != nil {
+			logrus.Error(err)
+		}
+		return "", err
+	}
+	return route.Spec.Host, nil
+}
+
+func getServerExposingServiceName(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.ServerExposureStrategy == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
+		return gateway.GatewayServiceName
+	}
+	return deploy.CheServiceName
+}
+
+// isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
+func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
+	checlusters := &orgv1.CheClusterList{}
+	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
+		return false, reconcile.Request{}
+	}
+
+	if len(checlusters.Items) != 1 {
+		return false, reconcile.Request{}
+	}
+
+	// Check if config map is the config map from CR
+	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
+		// No, it is not form CR
+		// Check for labels
+
+		// Check for part of Che label
+		if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+			// Labels do not match
+			return false, reconcile.Request{}
+		}
+
+		// Check for CA bundle label
+		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
+			// Labels do not match
+			return false, reconcile.Request{}
+		}
+	}
+
+	return true, reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checlusters.Items[0].Namespace,
+			Name:      checlusters.Items[0].Name,
+		},
+	}
+}
+
+func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
+	var message, reason string
+	oauth := false
+	if isOpenShift4 {
+		oauthv1 := &oauthv1.OAuth{}
+		if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
+			getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
+			logrus.Errorf(getOAuthV1ErrMsg)
+			message = getOAuthV1ErrMsg
+			reason = failedNoOpenshiftUserReason
+		} else {
+			oauth = len(oauthv1.Spec.IdentityProviders) >= 1
+			if !oauth {
+				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
+			}
+		}
+		// openshift 3
+	} else {
+		users := &userv1.UserList{}
+		listOptions := &client.ListOptions{}
+		if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
+			getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
+			logrus.Errorf(getUsersErrMsg)
+			message = getUsersErrMsg
+			reason = failedNoOpenshiftUserReason
+		} else {
+			oauth = len(users.Items) >= 1
+			if !oauth {
+				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+			}
+		}
+	}
+
+	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(oauth)
+	if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(oauth)); err != nil {
+		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+	}
+
+	if message != "" && reason != "" {
+		if err := r.SetStatusDetails(cr, request, message, reason, ""); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	return reconcile.Result{}, nil
+}
+
+// isEclipseCheSecret indicates if there is a secret with
+// the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
+func isEclipseCheSecret(mgr manager.Manager, obj handler.MapObject) (bool, reconcile.Request) {
+	checlusters := &orgv1.CheClusterList{}
+	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
+		return false, reconcile.Request{}
+	}
+
+	if len(checlusters.Items) != 1 {
+		return false, reconcile.Request{}
+	}
+
+	if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+		// Labels do not match
+		return false, reconcile.Request{}
+	}
+
+	return true, reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checlusters.Items[0].Namespace,
+			Name:      checlusters.Items[0].Name,
+		},
+	}
 }

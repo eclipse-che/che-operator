@@ -3,13 +3,14 @@ $script config credentials --server http://0.0.0.0:8080/auth \
                                         --user $keycloakAdminUserName \
                                         --password $keycloakAdminPassword \
 && $script update realms/master -s sslRequired=none \
+&& $script config truststore --trustpass ${SSO_TRUSTSTORE_PASSWORD} ${SSO_TRUSTSTORE_DIR}/${SSO_TRUSTSTORE} \
 && $script get realms/$keycloakRealm; \
 if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
 && $script create realms  -s realm='$keycloakRealm' \
                                         -s displayName='$realmDisplayName' \
                                         -s enabled=true \
                                         -s sslRequired=none \
-                                        -s registrationAllowed=true \
+                                        -s registrationAllowed=false \
                                         -s resetPasswordAllowed=true \
                                         -s loginTheme=$keycloakTheme \
                                         -s accountTheme=$keycloakTheme \
@@ -19,7 +20,7 @@ if [ $? -eq 0 ]; then echo "Realm exists"; exit 0; fi \
                                         -s clientId=$keycloakClientId \
                                         -s id=$keycloakClientId \
                                         -s 'webOrigins=["http://$cheHost", "https://$cheHost"]' \
-                                        -s 'redirectUris=["http://$cheHost/*", "https://$cheHost/*"]' \
+                                        -s 'redirectUris=["http://$cheHost/dashboard/*", "https://$cheHost/dashboard/*", "http://$cheHost/workspace-loader/*", "https://$cheHost/workspace-loader/*", "http://$cheHost/_app/*", "https://$cheHost/_app/*", "http://$cheHost/swagger/*", "https://$cheHost/swagger/*"]' \
                                         -s 'directAccessGrantsEnabled'=true \
                                         -s publicClient=true \
 && $script create users   -s username=admin \

@@ -26,22 +26,11 @@ spec:
         - name: che-operator
           image: quay.io/eclipse/che-operator:nightly
           ports:
-          - containerPort: 60000
-            name: metrics
+            - containerPort: 60000
+              name: metrics
           command:
-          - /usr/local/bin/che-operator
+            - /usr/local/bin/che-operator
           imagePullPolicy: Always
-#          TODO: to be uncommented when issue
-#          https://github.com/operator-framework/operator-sdk/issues/1234
-#          is fixed
-#          readinessProbe:
-#            exec:
-#              command:
-#                - stat
-#                - /tmp/operator-sdk-ready
-#            initialDelaySeconds: 4
-#            periodSeconds: 10
-#            failureThreshold: 1
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -52,7 +41,69 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "che-operator"
+              value: che-operator
+            - name: CHE_VERSION
+              value: nightly
+            - name: RELATED_IMAGE_che_server
+              value: quay.io/eclipse/che-server:nightly
+            - name: RELATED_IMAGE_plugin_registry
+              value: quay.io/eclipse/che-plugin-registry:nightly
+            - name: RELATED_IMAGE_devfile_registry
+              value: quay.io/eclipse/che-devfile-registry:nightly
+            - name: RELATED_IMAGE_che_tls_secrets_creation_job
+              value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
+            - name: RELATED_IMAGE_pvc_jobs
+              value: registry.access.redhat.com/ubi8-minimal:8.3-230
+            - name: RELATED_IMAGE_postgres
+              value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
+            - name: RELATED_IMAGE_keycloak
+              value: quay.io/eclipse/che-keycloak:nightly
+            - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
+              value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
+            - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
+              value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
+            - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
+              value: quay.io/eclipse/che-jwtproxy:0.10.0
+            - name: RELATED_IMAGE_single_host_gateway
+              value: docker.io/traefik:v2.2.8
+            - name: RELATED_IMAGE_single_host_gateway_config_sidecar
+              value: quay.io/che-incubator/configbump:0.1.4
+            - name: CHE_FLAVOR
+              value: che
+            - name: CONSOLE_LINK_NAME
+              value: che
+            - name: CONSOLE_LINK_DISPLAY_NAME
+              value: Eclipse Che
+            - name: CONSOLE_LINK_SECTION
+              value: Red Hat Applications
+            - name: CONSOLE_LINK_IMAGE
+              value: /dashboard/assets/branding/loader.svg
+            - name: CHE_IDENTITY_SECRET
+              value: che-identity-secret
+            - name: CHE_IDENTITY_POSTGRES_SECRET
+              value: che-identity-postgres-secret
+            - name: CHE_POSTGRES_SECRET
+              value: che-postgres-secret
+            - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+              value: ca-certs
+          livenessProbe:
+            httpGet:
+              path: /readyz
+              port: 6789
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 6789
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5

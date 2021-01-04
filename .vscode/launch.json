@@ -1,0 +1,190 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (release-olm-files.sh)",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/release-olm-files.sh",
+      "args": [
+        "7.13.2"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che",
+        "Marketplace"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che",
+        "catalog",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift nightly",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che",
+        "catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift stable",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che",
+        "Marketplace"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che"
+      ]
+    }, 
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildAndPushInitialBundle.sh) kubernetes",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "args": [
+        "kubernetes"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildAndPushInitialBundle.sh) openshift",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "args": [
+        "openshift"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (simplest configuration)",
+      "program": "${file}"
+    },
+    {
+      "name": "Launch Current Test *.go File",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${file}",
+      "env": {
+        "MOCK_API": true
+      },
+    },
+    {
+      "name": "Launch Main *.go File",
+      "type": "go",
+      "request": "launch",
+      "program": "${file}",
+    },
+    {
+      "useApiV1": false,
+      "dlvLoadConfig": {
+        "followPointers": true,
+        "maxVariableRecurse": 1,
+        "maxStringLen": 3000,
+        "maxArrayValues": 100,
+        "maxStructFields": -1
+      },
+      "name": "Che Operator",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/manager/main.go",
+      "env": {
+        "CHE_FLAVOR": "che",
+        "CONSOLE_LINK_NAME": "che",
+        "CONSOLE_LINK_DISPLAY_NAME": "Eclipse Che",
+        "CONSOLE_LINK_SECTION": "Red Hat Applications",
+        "CONSOLE_LINK_IMAGE": "/dashboard/assets/branding/loader.svg",
+        "CHE_IDENTITY_SECRET": "che-identity-secret",
+        "CHE_IDENTITY_POSTGRES_SECRET": "che-identity-postgres-secret",
+        "CHE_POSTGRES_SECRET": "che-postgres-secret",
+        "CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME": "ca-certs"
+      },
+      "envFile": "/tmp/che-operator-debug.env",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--defaults-path",
+        "deploy/operator.yaml"
+      ]
+    }
+  ]
+}

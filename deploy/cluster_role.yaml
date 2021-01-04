@@ -29,8 +29,12 @@ rules:
       - config.openshift.io
     resources:
       - infrastructures
+      - oauths
+      - proxies
     verbs:
       - get
+      - list
+      - watch
   - apiGroups:
       - user.openshift.io
     resources:
@@ -54,8 +58,9 @@ rules:
       - clusterrolebindings
     verbs:
       - list
-      - watch
       - create
+      - watch
+      - update
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:

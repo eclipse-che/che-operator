@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2019-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,13 +14,46 @@ set -e
 
 CURRENT_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-source ${BASE_DIR}/check-yq.sh
+source "${BASE_DIR}/check-yq.sh"
+
+base_branch="master"
+GITHUB_USER="che-bot"
+fork_org="che-incubator"
+
+FORCE="" # normally, don't allow pushing to an existing branch
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    '-u'|'--user') GITHUB_USER="$2"; shift 1;;
+    '-t'|'--token') GITHUB_TOKEN="$2"; shift 1;;
+    '-f'|'--force') FORCE="-f";;
+    '-h'|'--help') usage;;
+  esac
+  shift 1
+done
+if [[ ! ${GITHUB_TOKEN} ]]; then 
+  echo "Error: Must export GITHUB_TOKEN=[your token here] in order to generate pull request!"
+  exit 1
+fi
+
+GIT_REMOTE_FORK="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${fork_org}/community-operators.git"
+GIT_REMOTE_FORK_CLEAN="https://github.com/${fork_org}/community-operators.git"
+
+usage ()
+{
+  echo "Usage: $0
+
+Options:
+    --force               |  if pull request branch already exists, force push new commits
+    --user che-bot        |  specify which user to use for pull/push
+    --token GITHUB_TOKEN  |  specify a token to use for pull/push, if not using 'export GITHUB_TOKEN=...'
+"
+}
 
 for platform in 'kubernetes' 'openshift'
 do
   packageName="eclipse-che-preview-${platform}"
   echo
-  echo "## Preparing the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
+  echo "## Prepare the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
 
   packageBaseFolderPath="${BASE_DIR}/${packageName}"
   cd "${packageBaseFolderPath}"
@@ -30,14 +63,14 @@ do
   communityOperatorsLocalGitFolder="${packageBaseFolderPath}/generated/community-operators"
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
 
-  echo "   - Cloning the 'community-operators' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
+  echo "   - Clone the 'community-operators' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
 
   rm -Rf "${communityOperatorsLocalGitFolder}"
   mkdir -p "${communityOperatorsLocalGitFolder}"
-  git clone https://github.com/che-incubator/community-operators.git "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
+  git clone "${GIT_REMOTE_FORK}" "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
   cd "${communityOperatorsLocalGitFolder}"
   git remote add upstream https://github.com/operator-framework/community-operators.git
-  git fetch upstream master:upstream/master
+  git fetch upstream ${base_branch}:upstream/${base_branch}
 
   branch="update-eclipse-che"
   if [ "${platform}" == "kubernetes" ]
@@ -46,8 +79,8 @@ do
   fi
   branch="${branch}-operator-${lastPackagePreReleaseVersion}"
   echo
-  echo "   - Creating branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
-  git checkout upstream/master
+  echo "   - Create branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
+  git checkout upstream/${base_branch}
   git checkout -b "${branch}" 2>&1 | sed -e 's/^/      /'
   cd "${packageBaseFolderPath}"
 
@@ -64,8 +97,7 @@ do
   echo
   echo "   - Last package pre-release version of local package: ${lastPackagePreReleaseVersion}"
   echo "   - Last package release version of cloned 'community-operators' repository: ${lastPublishedPackageVersion}"
-  if [ "${lastPackagePreReleaseVersion}" == "${lastPublishedPackageVersion}" ]
-  then
+  if [[ "${lastPackagePreReleaseVersion}" == "${lastPublishedPackageVersion}" ]] && [[ "${FORCE}" == "" ]]; then
     echo "#### ERROR ####"
     echo "Release ${lastPackagePreReleaseVersion} already exists in the '${platformSubFolder}/eclipse-che' package !"
     exit 1
@@ -82,34 +114,53 @@ do
   > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
   echo
-  echo "   - Updating the CRD file"
+  echo "   - Update the CRD file"
   cp "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
   "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
   echo
-  echo "   - Updating the 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
+  echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
   mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
   echo
-  echo "   - Committing changes"
+
+  echo "   - Generate ci.yaml file"
+  echo "---
+# Use \`replaces-mode\` or \`semver-mode\`. Once you switch to \`semver-mode\`, there is no easy way back.
+updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
+
+  echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
   git add --all
   git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
   echo
-  echo "   - Pushing branch ${branch} to the 'che-incubator/community-operators' GitHub repository"
-  if [ -z "${GIT_USER}" ] || [ -z "${GIT_PASSWORD}" ]
-  then
-    echo
-    echo "#### WARNING ####"
-    echo "####"
-    echo "#### You shoud define GIT_USER and GIT_PASSWORD environment variable"
-    echo "#### to be able to push release branches to the 'che-incubator/community-operators' repository"
-    echo "####"
-    echo "#### As soon as you have set them, you can push by running the following command:"
-    echo "####    cd \"${communityOperatorsLocalGitFolder}\" && git push \"https://\${GIT_USER}:\${GIT_PASSWORD}@github.com/che-incubator/community-operators.git\" \"${branch}\""
-    echo "####"
-    echo "#################"
-  else
-    git push "https://${GIT_USER}:${GIT_PASSWORD}@github.com/che-incubator/community-operators.git" "${branch}"
+  echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
+  git push ${FORCE} origin "${branch}"
+
+  echo
+  template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
+  HUB=$(command -v hub 2>/dev/null)
+  if [[ $HUB ]] && [[ -x $HUB ]]; then 
+    echo "   - Use $HUB to generate PR from template: ${template_file}"
+    PRbody=$(curl -sSLo - ${template_file} | \
+    sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
+
+    lastCommitComment="$(git log -1 --pretty=%B)"
+  $HUB pull-request -f -m "${lastCommitComment}
+
+${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
+  else 
+    echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
+${template_file}
+
+${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
+"
   fi
+
 done
 cd "${CURRENT_DIR}"
+
+echo 
+echo "Generated pull requests will be here:
+
+https://github.com/operator-framework/community-operators/pulls?q=is%3Apr+%22Update+eclipse-che+operator+for%22+is%3Aopen
+"

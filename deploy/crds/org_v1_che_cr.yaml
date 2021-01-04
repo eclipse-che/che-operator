@@ -16,28 +16,33 @@ metadata:
   name: eclipse-che
 spec:
   server:
+    # use internal host names provided by cluster dns.
+    useInternalClusterSVCNames: true
     # server image used in Che deployment
     cheImage: ''
     # tag of an image used in Che deployment
-    cheImageTag: 'nightly'
+    cheImageTag: ''
     # image:tag used in Devfile registry deployment
-    devfileRegistryImage: 'quay.io/eclipse/che-devfile-registry:nightly'
+    devfileRegistryImage: ''
     # image:tag used in plugin registry deployment
-    pluginRegistryImage: 'quay.io/eclipse/che-plugin-registry:nightly'
+    pluginRegistryImage: ''
     # defaults to `che`. When set to `codeready`, CodeReady Workspaces is deployed
     # the difference is in images, labels, exec commands
     cheFlavor: ''
+    # Comma-separated list of ClusterRoles that will be assigned
+    # to che ServiceAccount. Be aware that che-operator has to already have all permissions in these
+    # ClusterRoles to be able to grant them.
+    cheClusterRoles: ''
     # specifies a custom cluster role to user for the Che workspaces
     # Uses the default roles if left blank.
     cheWorkspaceClusterRole: ''
-    # when set to true the operator will attempt to get a secret in OpenShift router namespace
-    # to add it to Java trust store of Che server. Requires cluster-admin privileges for operator service account
-    selfSignedCert: false
-    ## If enabled then the certificate from `che-git-self-signed-cert` config map
-    ## will be propagated to the Che components and provide particular configuration for Git.
+    # Name of the config-map with public certificates to add to Java trust store of the Che server.
+    serverTrustStoreConfigMapName: ''
+    # If enabled then the certificate from `che-git-self-signed-cert` config map
+    # will be propagated to the Che components and provide particular configuration for Git.
     gitSelfSignedCert: false
-    # TLS mode for Che. Make sure you either have public cert, or set selfSignedCert to true
-    tlsSupport: false
+    # TLS mode for Che. It is not recommended to turn this off.
+    tlsSupport: true
     # protocol+hostname of a proxy server. Automatically added as JAVA_OPTS and https(s)_proxy
     # to Che server and workspaces containers
     proxyURL: ''
@@ -57,6 +62,24 @@ spec:
     workspaceNamespaceDefault: ''
     # defines if user is able to specify namespace different from the default
     allowUserDefinedWorkspaceNamespaces: false
+    # Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
+    # Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every required
+    # endpoint.
+    # "single-host" makes Che exposed on a single hostname with workspaces exposed on subpaths. Please read the docs
+    # to learn about the limitations of this approach. Also consult the `singleHostExposureType` property to further configure
+    # how the operator and Che server make that happen on Kubernetes.
+    # "default-host" exposes che server on the host of the cluster. Please read the docs to learn about
+    # the limitations of this approach.
+    serverExposureStrategy: ''
+    # The image used for the gateway in the single host mode.
+    # Omit it or leave it empty to use the defaut container image provided by the operator.
+    singleHostGatewayImage: ''
+    # The image used for the gateway sidecar that provides configuration to the gateway.
+    # Omit it or leave it empty to use the defaut container image provided by the operator.
+    singleHostGatewayConfigSidecarImage: ''
+    # The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
+    singleHostGatewayConfigMapLabels: {}
+
   database:
     # when set to true, the operator skips deploying Postgres, and passes connection details of existing DB to Che server
     # otherwise a Postgres deployment is created
@@ -71,7 +94,7 @@ spec:
     chePostgresPassword: ''
     # Postgres database name that Che server uses to connect to. Defaults to dbche
     chePostgresDb: ''
-    # Postgres deployment in format image:tag. Defaults to registry.redhat.io/rhscl/postgresql-96-rhel7 (see pkg/deploy/defaults.go for latest tag)
+    # Postgres deployment in format image:tag. Default in https://github.com/eclipse/che-operator/blob/master/deploy/operator.yaml#L57-L58 or operator metadata CSV environment variable RELATED_IMAGE_postgres)
     postgresImage: ''
   storage:
     # persistent volume claim strategy for Che server. Can be common (all workspaces PVCs in one volume),
@@ -93,25 +116,20 @@ spec:
     externalIdentityProvider: false
     # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)
     identityProviderURL: ''
-    # password for keycloak database user. Auto generated if left blank
-    keycloakPostgresPassword: ''
     # desired admin username of Keycloak admin user (applicable only when externalIdentityProvider is false)
     identityProviderAdminUserName: ''
     # desired password of Keycloak admin user (applicable only when externalIdentityProvider is false)
-    identityProviderPassword: 'admin'
+    identityProviderPassword: ''
     # name of a keycloak realm. This realm will be created, when externalIdentityProvider is true, otherwise passed to Che server
     identityProviderRealm: ''
     # id of a keycloak client. This client will be created, when externalIdentityProvider is false, otherwise passed to Che server
     identityProviderClientId: ''
-    # instructs an Operator to enable OpenShift v3 identity provider in Keycloak,
-    # as well as create respective oAuthClient and configure Che configMap accordingly
-    openShiftoAuth: false
     # name of oAuthClient used in OpenShift v3 identity provider in Keycloak realm. Auto generated if left blank
     oAuthClientName: ''
     # secret used in oAuthClient. Auto generated if left blank
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
-    identityProviderImage: 'quay.io/eclipse/che-keycloak:nightly'
+    identityProviderImage: ''
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
@@ -121,12 +139,20 @@ spec:
     # Can be multi-host (host is explicitly provided in ingress, <ingress-name>-<namespace>.<global-ingress-domain>),
     # single-host (host is provided, path based rules, <ingress-domain>/path) and default-host *(no host is provided, path based rules)
     ingressStrategy: ''
-    # secret name used for tls termination
-    tlsSecretName: ''
+    # Secret name used for tls termination.
+    # If the field is empty string, then default cluster certificate will be used.
+    tlsSecretName: 'che-tls'
     # FSGroup the Che POD and Workspace pod containers should run in
     securityContextFsGroup: ''
     # User the Che POD and Workspace pod containers should run as
     securityContextRunAsUser: ''
+    # When the serverExposureStrategy is set to "single-host", the way the server, registries and workspaces
+    # are exposed is further configured by this property. The possible values are "native" (which means
+    # that the server and workspaces are exposed using ingresses on K8s) or "gateway" where the server
+    # and workspaces are exposed using a custom gateway based on Traefik. All the endpoints whether backed by the ingress
+    # or gateway "route" always point to the subpaths on the same domain.
+    # Defaults to "native".
+    singleHostExposureType: ''
   metrics:
     # Enables '/metrics' endpoint of Che server.
-    enable: false
+    enable: true

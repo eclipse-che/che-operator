@@ -12,66 +12,9 @@
 package util
 
 import (
-	"github.com/sirupsen/logrus"
-	"os"
 	"reflect"
 	"testing"
 )
-
-const (
-	proxyHost                               = "https://myproxy.com"
-	proxyPort                               = "1234"
-	nonProxyHosts                           = "localhost|myhost.com"
-	proxyUser                               = "user"
-	proxyPassword                           = "password"
-	expectedProxyURLWithUsernamePassword    = "https://user:password@myproxy.com:1234"
-	expectedProxyURLWithoutUsernamePassword = "https://myproxy.com:1234"
-	expectedNoProxy                         = "localhost,myhost.com"
-)
-
-func TestGenerateProxyEnvs(t *testing.T) {
-
-	proxyUrl, noProxy := GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword)
-
-	if !reflect.DeepEqual(proxyUrl, expectedProxyURLWithUsernamePassword) {
-		t.Errorf("Test failed. Expected %s but got %s", expectedProxyURLWithUsernamePassword, proxyUrl)
-	}
-
-	if !reflect.DeepEqual(noProxy, expectedNoProxy) {
-		t.Errorf("Test failed. Expected %s but got %s", expectedNoProxy, noProxy)
-
-	}
-
-	proxyUrl, _ = GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword)
-	if !reflect.DeepEqual(proxyUrl, expectedProxyURLWithoutUsernamePassword) {
-		t.Errorf("Test failed. Expected %s but got %s", expectedProxyURLWithoutUsernamePassword, proxyUrl)
-	}
-
-}
-
-func TestGenerateProxyJavaOpts(t *testing.T) {
-	if err := os.Setenv("KUBERNETES_SERVICE_HOST", "172.30.0.1"); err != nil {
-		logrus.Errorf("Failed to set env %s", err)
-	}
-
-	javaOpts := GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword)
-	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
-		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password"
-	if !reflect.DeepEqual(javaOpts,expectedJavaOpts) {
-		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOpts, javaOpts)
-
-	}
-
-	javaOpts = GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword)
-	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
-
-	if !reflect.DeepEqual(javaOpts ,expectedJavaOptsWithoutUsernamePassword) {
-		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
-
-	}
-}
 
 func TestGeneratePasswd(t *testing.T) {
 	chars := 12
@@ -83,7 +26,7 @@ func TestGeneratePasswd(t *testing.T) {
 	}
 
 	passwd1 := GeneratePasswd(12)
-	if reflect.DeepEqual (passwd, passwd1) {
+	if reflect.DeepEqual(passwd, passwd1) {
 		t.Errorf("Test failed. Passwords are identical, %s: %s", passwd, passwd1)
 	}
 }

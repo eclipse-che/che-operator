@@ -12,15 +12,12 @@
 package che
 
 import (
-	"k8s.io/apimachinery/pkg/api/errors"
 	"context"
+
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	oauth "github.com/openshift/api/oauth/v1"
-	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -28,54 +25,7 @@ import (
 func (r *ReconcileChe) GetEffectiveDeployment(instance *orgv1.CheCluster, name string) (deployment *appsv1.Deployment, err error) {
 	deployment = &appsv1.Deployment{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, deployment)
-	if err != nil {
-		logrus.Errorf("Failed to get %s deployment: %s", name, err)
-		return nil, err
-	}
-	return deployment, nil
-}
-
-func (r *ReconcileChe) GetEffectiveIngress(instance *orgv1.CheCluster, name string) (ingress *v1beta1.Ingress) {
-	ingress = &v1beta1.Ingress{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, ingress)
-	if err != nil {
-		logrus.Errorf("Failed to get %s ingress: %s", name, err)
-		return nil
-	}
-	return ingress
-}
-
-func (r *ReconcileChe) GetEffectiveRoute(instance *orgv1.CheCluster, name string) (route *routev1.Route) {
-	route = &routev1.Route{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, route)
-	if err != nil {
-		logrus.Errorf("Failed to get %s route: %s", name, err)
-		return nil
-	}
-	return route
-}
-
-func (r *ReconcileChe) GetEffectiveConfigMap(instance *orgv1.CheCluster, name string) (configMap *corev1.ConfigMap) {
-	configMap = &corev1.ConfigMap{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, configMap)
-	if err != nil {
-		logrus.Errorf("Failed to get %s config map: %s", name, err)
-		return nil
-	}
-	return configMap
-
-}
-
-func (r *ReconcileChe) GetEffectiveSecretResourceVersion(instance *orgv1.CheCluster, name string) string {
-	secret := &corev1.Secret{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: instance.Namespace}, secret)
-	if err != nil {
-		if !errors.IsNotFound(err){
-			logrus.Errorf("Failed to get %s secret: %s", name, err)
-		}
-		return ""
-	}
-	return secret.ResourceVersion
+	return deployment, err
 }
 
 func (r *ReconcileChe) GetCR(request reconcile.Request) (instance *orgv1.CheCluster, err error) {
@@ -95,28 +45,4 @@ func (r *ReconcileChe) GetOAuthClient(oAuthClientName string) (oAuthClient *oaut
 		return nil, err
 	}
 	return oAuthClient, nil
-}
-
-func (r *ReconcileChe)GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
-	env := deployment.Spec.Template.Spec.Containers[0].Env
-	for i := range env {
-		name := env[i].Name
-		if name == key {
-			value = env[i].Value
-			break
-		}
-	}
-	return value
-}
-
-func (r *ReconcileChe)GetDeploymentEnvVarSource(deployment *appsv1.Deployment, key string) (valueFrom *corev1.EnvVarSource) {
-	env := deployment.Spec.Template.Spec.Containers[0].Env
-	for i := range env {
-		name := env[i].Name
-		if name == key {
-			valueFrom = env[i].ValueFrom
-			break
-		}
-	}
-	return valueFrom
 }

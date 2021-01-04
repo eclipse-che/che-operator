@@ -14,48 +14,68 @@ package deploy
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
+
+	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
+var (
+	defaultCheServerImage                      string
+	defaultCheVersion                          string
+	defaultPluginRegistryImage                 string
+	defaultDevfileRegistryImage                string
+	defaultCheTLSSecretsCreationJobImage       string
+	defaultPvcJobsImage                        string
+	defaultPostgresImage                       string
+	defaultKeycloakImage                       string
+	defaultSingleHostGatewayImage              string
+	defaultSingleHostGatewayConfigSidecarImage string
+
+	defaultCheWorkspacePluginBrokerMetadataImage  string
+	defaultCheWorkspacePluginBrokerArtifactsImage string
+	defaultCheServerSecureExposerJwtProxyImage    string
+	DefaultSingleHostGatewayConfigMapLabels       = map[string]string{
+		"app":       "che",
+		"component": "che-gateway-config",
+	}
+)
+
 const (
-	defaultCheServerImageRepo           = "quay.io/eclipse/che-server"
-	defaultCodeReadyServerImageRepo     = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	defaultCheServerImageTag            = "7.8.0"
-	defaultCodeReadyServerImageTag      = "2.1"
-	DefaultCheFlavor                    = "che"
-	DefaultChePostgresUser              = "pgche"
-	DefaultChePostgresHostName          = "postgres"
-	DefaultChePostgresPort              = "5432"
-	DefaultChePostgresDb                = "dbche"
-	DefaultPvcStrategy                  = "common"
-	DefaultPvcClaimSize                 = "1Gi"
-	DefaultIngressStrategy              = "multi-host"
-	DefaultIngressClass                 = "nginx"
-	defaultPluginRegistryImage          = "registry.redhat.io/codeready-workspaces/pluginregistry-rhel8:2.1"
-	defaultPluginRegistryUpstreamImage  = "quay.io/eclipse/che-plugin-registry:7.8.0"
-	DefaultPluginRegistryMemoryLimit    = "256Mi"
-	DefaultPluginRegistryMemoryRequest  = "16Mi"
-	defaultDevfileRegistryImage         = "registry.redhat.io/codeready-workspaces/devfileregistry-rhel8:2.1"
-	defaultDevfileRegistryUpstreamImage = "quay.io/eclipse/che-devfile-registry:7.8.0"
+	DefaultChePostgresUser     = "pgche"
+	DefaultChePostgresHostName = "postgres"
+	DefaultChePostgresPort     = "5432"
+	DefaultChePostgresDb       = "dbche"
+	DefaultPvcStrategy         = "common"
+	DefaultPvcClaimSize        = "1Gi"
+	DefaultIngressClass        = "nginx"
+
+	DefaultPluginRegistryMemoryLimit   = "256Mi"
+	DefaultPluginRegistryMemoryRequest = "16Mi"
+
+	// DefaultKube
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultKeycloakAdminUserName        = "admin"
 	DefaultCheLogLevel                  = "INFO"
 	DefaultCheDebug                     = "false"
+	DefaultCheMultiUser                 = "true"
 	DefaultCheMetricsPort               = int32(8087)
 	DefaultCheDebugPort                 = int32(8000)
-	defaultPvcJobsImage                 = "registry.redhat.io/ubi8-minimal:8.0-213"
-	defaultPvcJobsUpstreamImage         = "registry.access.redhat.com/ubi8-minimal:8.0-213"
-	defaultPostgresImage                = "registry.redhat.io/rhscl/postgresql-96-rhel7:1-47"
-	defaultPostgresUpstreamImage        = "centos/postgresql-96-centos7:9.6"
-	defaultKeycloakImage                = "registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-15"
-	defaultKeycloakUpstreamImage        = "quay.io/eclipse/che-keycloak:7.8.0"
-	DefaultJavaOpts                     = "-XX:MaxRAMFraction=2 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 " +
-		"-XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 " +
-		"-XX:AdaptiveSizePolicyWeight=90 -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap " +
-		"-Dsun.zip.disableMemoryMapping=true -Xms20m"
+	DefaultCheVolumeMountPath           = "/data"
+	DefaultCheVolumeClaimName           = "che-data-volume"
+	DefaultPostgresVolumeClaimName      = "postgres-data"
+
+	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
 	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
@@ -65,14 +85,11 @@ const (
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
-	// CRW images for that are mentioned in the Che server che.properties
-	// For CRW these should be synced by hand with images stored in RH registries
-	// instead of being synced by script with the content of the upstream `che.properties` file
-	// NB:
-	// The upstream equivalent are stored in the generated `extra_images.go` source file.
-	defaultCheWorkspacePluginBrokerMetadataImage    = "quay.io/crw/pluginbroker-metadata-rhel8:2.1"
-	defaultCheWorkspacePluginBrokerArtifactsImage = "quay.io/crw/pluginbroker-artifacts-rhel8:2.1"
-	defaultCheServerSecureExposerJwtProxyImage  = "quay.io/crw/jwtproxy-rhel8:2.1"
+	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
+
+	DefaultServerExposureStrategy           = "multi-host"
+	DefaultKubernetesSingleHostExposureType = "native"
+	DefaultOpenShiftSingleHostExposureType  = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
@@ -85,127 +102,177 @@ const (
 	OldDefaultCodeReadyServerImageTag  = "1.2"
 	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
 
-	// ConsoleLink default
-	DefaultConsoleLinkName                = "che"
-	DefaultConsoleLinkSection             = "Red Hat Applications"
-	DefaultConsoleLinkImage               = "/dashboard/assets/branding/loader.svg"
-	defaultConsoleLinkUpstreamDisplayName = "Eclipse Che"
-	defaultConsoleLinkDisplayName         = "CodeReady Workspaces"
+	// kubernetes default labels
+	KubernetesComponentLabelKey = "app.kubernetes.io/component"
+	KubernetesPartOfLabelKey    = "app.kubernetes.io/part-of"
+
+	CheEclipseOrg = "che.eclipse.org"
+
+	// che.eclipse.org annotations
+	CheEclipseOrgMountPath = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs   = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName   = "che.eclipse.org/env-name"
 )
+
+func InitDefaults(defaultsPath string) {
+	if defaultsPath == "" {
+		InitDefaultsFromEnv()
+	} else {
+		InitDefaultsFromFile(defaultsPath)
+	}
+}
+
+func InitDefaultsFromFile(defaultsPath string) {
+	operatorDeployment := getDefaultsFromFile(defaultsPath)
+
+	defaultCheVersion = util.GetDeploymentEnv(operatorDeployment, "CHE_VERSION")
+	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+
+	// Don't get some k8s specific env
+	if !util.IsOpenShift {
+		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+	}
+}
+
+func getDefaultsFromFile(defaultsPath string) *v1.Deployment {
+	bytes, err := ioutil.ReadFile(defaultsPath)
+	if err != nil {
+		logrus.Fatalf("Unable to read file with defaults by path %s", defaultsPath)
+	}
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, err := decode(bytes, nil, nil)
+	if err != nil {
+		logrus.Fatalf(fmt.Sprintf("Error while decoding YAML object with defaults. Err was: %s", err))
+	}
+
+	deployment, ok := obj.(*v1.Deployment)
+	if ok {
+		return deployment
+	}
+	logrus.Fatalf("File %s doesn't contains real deployment.", defaultsPath)
+	return nil
+}
+
+func getDefaultFromEnv(envName string) string {
+	value := os.Getenv(envName)
+
+	if len(value) == 0 {
+		logrus.Fatalf("Failed to initialize default value: '%s'. Environment variable with default value was not found.", envName)
+	}
+
+	return value
+}
 
 func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	if cr.Spec.Server.CheFlavor == "codeready" &&
 		strings.HasPrefix(cr.Status.CheVersion, "1.2") &&
-		strings.HasPrefix(defaultCodeReadyServerImageTag, "2.0") {
+		strings.HasPrefix(defaultCheVersion, "2.0") {
 		return true
 	}
 	return false
 }
 
-func DefaultConsoleLinkDisplayName(cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return defaultConsoleLinkDisplayName
-	}
-	return defaultConsoleLinkUpstreamDisplayName
+func DefaultServerTrustStoreConfigMapName() string {
+	return getDefaultFromEnv("CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME")
 }
 
-func DefaultCheServerImageTag(cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return defaultCodeReadyServerImageTag
-	}
-	return defaultCheServerImageTag
+func DefaultCheFlavor(cr *orgv1.CheCluster) string {
+	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
 }
 
-func DefaultCheServerImageRepo(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return patchDefaultImageName(cr, defaultCodeReadyServerImageRepo)
-	} else {
-		return patchDefaultImageName(cr, defaultCheServerImageRepo)
-	}
+func DefaultConsoleLinkName() string {
+	return getDefaultFromEnv("CONSOLE_LINK_NAME")
 }
 
-func DefaultPvcJobsImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return patchDefaultImageName(cr, defaultPvcJobsImage)
-	}
-	return patchDefaultImageName(cr, defaultPvcJobsUpstreamImage)
+func DefaultConsoleLinkDisplayName() string {
+	return getDefaultFromEnv("CONSOLE_LINK_DISPLAY_NAME")
 }
 
-func DefaultPostgresImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return patchDefaultImageName(cr, defaultPostgresImage)
-	} else {
-		return patchDefaultImageName(cr, defaultPostgresUpstreamImage)
-	}
+func DefaultConsoleLinkSection() string {
+	return getDefaultFromEnv("CONSOLE_LINK_SECTION")
 }
 
-func DefaultKeycloakImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return patchDefaultImageName(cr, defaultKeycloakImage)
-	} else {
-		return patchDefaultImageName(cr, defaultKeycloakUpstreamImage)
-	}
+func DefaultConsoleLinkImage() string {
+	return getDefaultFromEnv("CONSOLE_LINK_IMAGE")
 }
 
-func DefaultPluginRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return patchDefaultImageName(cr, defaultPluginRegistryImage)
-	} else {
-		return patchDefaultImageName(cr, defaultPluginRegistryUpstreamImage)
-	}
+func DefaultCheIdentitySecret() string {
+	return getDefaultFromEnv("CHE_IDENTITY_SECRET")
 }
 
-func DefaultDevfileRegistryImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		return patchDefaultImageName(cr, defaultDevfileRegistryImage)
-	} else {
-		return patchDefaultImageName(cr, defaultDevfileRegistryUpstreamImage)
-	}
+func DefaultCheIdentityPostgresSecret() string {
+	return getDefaultFromEnv("CHE_IDENTITY_POSTGRES_SECRET")
 }
 
-func DefaultCheWorkspacePluginBrokerMetadataImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		// In the CRW case, we should always set the plugin broker image in the Che config map
-		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataImage)
-	} else {
-		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
-		// if we return an empty string here.
-		// We only need to override it in case of AirGap mode
-		if cr.IsAirGapMode() {
-			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataUpstreamImage)
-		}
-		return ""
-	}
+func DefaultChePostgresSecret() string {
+	return getDefaultFromEnv("CHE_POSTGRES_SECRET")
 }
 
-func DefaultCheWorkspacePluginBrokerArtifactsImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		// In the CRW case, we should always set the plugin broker image in the Che config map
-		return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsImage)
-	} else {
-		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
-		// if we return an empty string here.
-		// We only need to override it in case of AirGap mode
-		if cr.IsAirGapMode() {
-			return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsUpstreamImage)
-		}
-		return ""
-	}
+func DefaultCheVersion() string {
+	return defaultCheVersion
 }
 
-func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster, cheFlavor string) string {
-	if cheFlavor == "codeready" {
-		// In the CRW case, we should always set the jwt-proxy image in the Che config map
-		return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
-	} else {
-		// In the Upstream Che case, the default will be provided by the Che server `che.properties` file
-		// if we return an empty string here.
-		// We only need to override it in case of AirGap mode
-		if cr.IsAirGapMode() {
-			return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyUpstreamImage)
-		}
-		return ""
-	}
+func DefaultCheServerImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultCheServerImage)
+}
+
+func DefaultCheTLSSecretsCreationJobImage() string {
+	return defaultCheTLSSecretsCreationJobImage
+}
+
+func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultPvcJobsImage)
+}
+
+func DefaultPostgresImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultPostgresImage)
+}
+
+func DefaultKeycloakImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultKeycloakImage)
+}
+
+func DefaultPluginRegistryImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultPluginRegistryImage)
+}
+
+func DefaultDevfileRegistryImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultDevfileRegistryImage)
+}
+
+func DefaultCheWorkspacePluginBrokerMetadataImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerMetadataImage)
+}
+
+func DefaultCheWorkspacePluginBrokerArtifactsImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultCheWorkspacePluginBrokerArtifactsImage)
+}
+
+func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
+}
+
+func DefaultSingleHostGatewayImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultSingleHostGatewayImage)
+}
+
+func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
+}
+
+func DefaultKubernetesImagePullerOperatorCSV() string {
+	return KubernetesImagePullerOperatorCSV
 }
 
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
@@ -218,6 +285,24 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 		return "Always"
 	}
 	return "IfNotPresent"
+}
+
+func GetCheMultiUser(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.CustomCheProperties != nil {
+		cheMultiUser := cr.Spec.Server.CustomCheProperties["CHE_MULTIUSER"]
+		if cheMultiUser == "false" {
+			return "false"
+		}
+	}
+	return DefaultCheMultiUser
+}
+
+func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
+	if util.IsOpenShift {
+		return DefaultOpenShiftSingleHostExposureType
+	}
+
+	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
@@ -275,4 +360,51 @@ func getOrganizationFromImage(image string) string {
 		organization = imageParts[1]
 	}
 	return organization
+}
+
+func InitDefaultsFromEnv() {
+	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
+	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+
+	// CRW images for that are mentioned in the Che server che.properties
+	// For CRW these should be synced by hand with images stored in RH registries
+	// instead of being synced by script with the content of the upstream `che.properties` file
+	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+
+	// Don't get some k8s specific env
+	if !util.IsOpenShift {
+		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+	}
+}
+
+func InitTestDefaultsFromDeployment(deploymentFile string) error {
+	operator := &appsv1.Deployment{}
+	data, err := ioutil.ReadFile(deploymentFile)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(data, operator)
+	if err != nil {
+		return err
+	}
+
+	for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
+		err = os.Setenv(env.Name, env.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	InitDefaultsFromEnv()
+	return nil
 }

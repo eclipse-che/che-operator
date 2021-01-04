@@ -13,10 +13,75 @@ package deploy
 
 import (
 	"fmt"
+	"os"
 	"testing"
+
+	"github.com/eclipse/che-operator/pkg/util"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
+
+func TestDefaultFromEnv(t *testing.T) {
+
+	cheVersionTest := os.Getenv("CHE_VERSION")
+
+	cheServerImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+
+	pluginRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	devfileRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	pvcJobsImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	postgresImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	keycloakImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	brokerMetadataTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	brokerArtifactsTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	jwtProxyTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+
+	if DefaultCheVersion() != cheVersionTest {
+		t.Errorf("Expected %s but was %s", cheVersionTest, DefaultCheVersion())
+	}
+
+	cheCluster := &orgv1.CheCluster{
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{},
+		},
+	}
+
+	if DefaultCheServerImage(cheCluster) != cheServerImageTest {
+		t.Errorf("Expected %s but was %s", cheServerImageTest, DefaultCheServerImage(cheCluster))
+	}
+
+	if DefaultPluginRegistryImage(cheCluster) != pluginRegistryImageTest {
+		t.Errorf("Expected %s but was %s", pluginRegistryImageTest, DefaultPluginRegistryImage(cheCluster))
+	}
+
+	if DefaultDevfileRegistryImage(cheCluster) != devfileRegistryImageTest {
+		t.Errorf("Expected %s but was %s", devfileRegistryImageTest, DefaultDevfileRegistryImage(cheCluster))
+	}
+
+	if DefaultPvcJobsImage(cheCluster) != pvcJobsImageTest {
+		t.Errorf("Expected %s but was %s", pvcJobsImageTest, DefaultPvcJobsImage(cheCluster))
+	}
+
+	if DefaultPostgresImage(cheCluster) != postgresImageTest {
+		t.Errorf("Expected %s but was %s", postgresImageTest, DefaultPostgresImage(cheCluster))
+	}
+
+	if DefaultKeycloakImage(cheCluster) != keycloakImageTest {
+		t.Errorf("Expected %s but was %s", keycloakImageTest, DefaultKeycloakImage(cheCluster))
+	}
+
+	if DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster) != brokerMetadataTest {
+		t.Errorf("Expected '%s', but was %s", brokerMetadataTest, DefaultCheWorkspacePluginBrokerMetadataImage(cheCluster))
+	}
+
+	if DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster) != brokerArtifactsTest {
+		t.Errorf("Expected '%s', but was %s", brokerArtifactsTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
+	}
+
+	if DefaultCheServerSecureExposerJwtProxyImage(cheCluster) != jwtProxyTest {
+		t.Errorf("Expected '%s', but was %s", jwtProxyTest, DefaultCheWorkspacePluginBrokerArtifactsImage(cheCluster))
+	}
+}
 
 func TestCorrectImageName(t *testing.T) {
 	testCases := map[string]string{
@@ -44,11 +109,11 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	var (
 		airGapRegistryHostname                                   = "myregistry.org"
 		airGapRegistryOrganization                               = "myorg"
-		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresUpstreamImage))
-		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresUpstreamImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresUpstreamImage))
+		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
 		expectedAirGapCRWPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
 		expectedAirGapCRWPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
-		expectedAirGapKeyCloakImageOnlyHostnameChanged           = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultKeycloakUpstreamImage), getImageNameFromFullImage(defaultKeycloakUpstreamImage))
+		expectedAirGapKeyCloakImageOnlyHostnameChanged           = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultKeycloakImage), getImageNameFromFullImage(defaultKeycloakImage))
 		expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
 	)
 
@@ -113,14 +178,14 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	testCases := map[string]testcase{
-		"upstream default postgres":                           {image: defaultPostgresUpstreamImage, expected: defaultPostgresUpstreamImage, cr: upstream},
-		"airgap upstream postgres":                            {image: defaultPostgresUpstreamImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
-		"upstream with only the org changed":                  {image: defaultPostgresUpstreamImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
+		"default postgres":          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: upstream},
+		"airgap postgres":           {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
+		"with only the org changed": {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
 		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: expectedAirGapCRWPluginRegistryOnlyOrgChanged, cr: crwOnlyOrg},
-		"CRW postgres":                                        {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
-		"CRW airgap postgres":                                 {image: defaultPostgresImage, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
-		"upstream airgap with only hostname defined":          {image: defaultKeycloakUpstreamImage, expected: expectedAirGapKeyCloakImageOnlyHostnameChanged, cr: upstreamOnlyHostname},
-		"crw airgap with only hostname defined":               {image: defaultDevfileRegistryImage, expected: expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged, cr: crwOnlyHostname},
+		"CRW postgres":                          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
+		"CRW airgap postgres":                   {image: defaultPostgresImage, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
+		"airgap with only hostname defined":     {image: defaultKeycloakImage, expected: expectedAirGapKeyCloakImageOnlyHostnameChanged, cr: upstreamOnlyHostname},
+		"crw airgap with only hostname defined": {image: defaultDevfileRegistryImage, expected: expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged, cr: crwOnlyHostname},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(*testing.T) {

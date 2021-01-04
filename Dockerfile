@@ -13,24 +13,26 @@
 # NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
 # NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.12.12-4 as builder
-ENV PATH=/opt/rh/go-toolset-1.12/root/usr/bin:$PATH \
+FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.4-18  as builder
+ENV PATH=/opt/rh/go-toolset-1.13/root/usr/bin:${PATH} \
     GOPATH=/go/
 
 USER root
-ADD . /go/src/github.com/eclipse/che-operator
+ADD . /che-operator
+WORKDIR /che-operator
 
-# do no break RUN lines when building with UBI base images. https://projects.engineering.redhat.com/browse/OSBS-7398 & OSBS-7399
-RUN cd /go/src/github.com/eclipse/che-operator && export MOCK_API=true && go test -v ./... && OOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/che-operator/che-operator /go/src/github.com/eclipse/che-operator/cmd/manager/main.go && cd ..
+RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
+    export MOCK_API=true && go test -mod=vendor -v ./... && \
+    GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.1-328
+FROM registry.access.redhat.com/ubi8-minimal:8.3-230
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
-COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/keycloak_provision /tmp/keycloak_provision
-COPY --from=builder /go/src/github.com/eclipse/che-operator/templates/oauth_provision /tmp/oauth_provision
+COPY --from=builder /che-operator/templates/keycloak_provision /tmp/keycloak_provision
+COPY --from=builder /che-operator/templates/oauth_provision /tmp/oauth_provision
 # apply CVE fixes, if required
-RUN microdnf update -y libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
+RUN microdnf update -y librepo libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
 
 # append Brew metadata here (it will be appended via https://github.com/redhat-developer/codeready-workspaces-operator/blob/master/operator.Jenkinsfile)

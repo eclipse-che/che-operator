@@ -15,24 +15,38 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/util"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"github.com/prometheus/common/log"
-	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
 
+	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
+	"github.com/eclipse/che-operator/pkg/util"
+	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
+
 	"github.com/eclipse/che-operator/pkg/apis"
 	"github.com/eclipse/che-operator/pkg/controller"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
-	//logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
+
+var (
+	defaultsPath string
+)
+
+func init() {
+	flag.StringVar(&defaultsPath, "defaults-path", "", "Path to file with operator deployment defaults. This option is useful for local development.")
+}
 
 func setLogLevel() {
 	logLevel, isFound := os.LookupEnv("LOG_LEVEL")
@@ -75,7 +89,7 @@ func printVersion() {
 
 func main() {
 	flag.Parse()
-	//logf.SetLogger(logf.ZapLogger(false))
+	deploy.InitDefaults(defaultsPath)
 	printVersion()
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
@@ -102,7 +116,11 @@ func main() {
 	defer r.Unset()
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{Namespace: namespace})
+	options := manager.Options{
+		Namespace:              namespace,
+		HealthProbeBindAddress: ":6789",
+	}
+	mgr, err := manager.New(cfg, options)
 	if err != nil {
 		log.Error(err, "")
 		os.Exit(1)
@@ -116,9 +134,39 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := image_puller_api.AddToScheme(mgr.GetScheme()); err != nil {
+		logrus.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := packagesv1.AddToScheme(mgr.GetScheme()); err != nil {
+		logrus.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := operatorsv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := operatorsv1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	// Setup health checks
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		log.Error(err, "Unable to set up health check")
+		os.Exit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		log.Error(err, "Unable to set up ready check")
 		os.Exit(1)
 	}
 

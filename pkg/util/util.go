@@ -12,24 +12,35 @@
 package util
 
 import (
-	"sort"
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"io/ioutil"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"math/rand"
 	"net/http"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"regexp"
+	"runtime"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"bytes"
-	"fmt"
+
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
+var (
+	k8sclient                    = GetK8Client()
+	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
+)
 
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {
@@ -82,22 +93,29 @@ func MapToKeyValuePairs(m map[string]string) string {
 
 func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 	tests := IsTestMode()
-	if !tests {
-		apiGroups, err := getApiList()
-		if err != nil{
-			return false, false, err
+	if tests {
+		openshiftVersionEnv := os.Getenv("OPENSHIFT_VERSION")
+		openshiftVersion, err := strconv.ParseInt(openshiftVersionEnv, 0, 64)
+		if err == nil && openshiftVersion == 4 {
+			return true, true, nil
 		}
-		for _, apiGroup := range apiGroups {
-			if apiGroup.Name == "route.openshift.io" {
-				isOpenshift = true
-			}
-			if apiGroup.Name == "config.openshift.io" {
-				isOpenshift4 = true
-			}
-		}
-		return
+		return true, false, nil
 	}
-	return true, false, nil
+
+	apiGroups, err := getApiList()
+	if err != nil {
+		return false, false, err
+	}
+	for _, apiGroup := range apiGroups {
+		if apiGroup.Name == "route.openshift.io" {
+			isOpenshift = true
+		}
+		if apiGroup.Name == "config.openshift.io" {
+			isOpenshift4 = true
+		}
+	}
+
+	return isOpenshift, isOpenshift4, nil
 }
 
 func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
@@ -129,7 +147,6 @@ func GetServerResources() ([]*v1.APIResourceList, error) {
 }
 
 func GetValue(key string, defaultValue string) (value string) {
-
 	value = key
 	if len(key) < 1 {
 		value = defaultValue
@@ -137,8 +154,42 @@ func GetValue(key string, defaultValue string) (value string) {
 	return value
 }
 
-func IsTestMode() (isTesting bool) {
+func GetMapValue(value map[string]string, defaultValue map[string]string) map[string]string {
+	ret := value
+	if len(value) < 1 {
+		ret = defaultValue
+	}
 
+	return ret
+}
+
+func MergeMaps(first map[string]string, second map[string]string) map[string]string {
+	ret := make(map[string]string)
+	for k, v := range first {
+		ret[k] = v
+	}
+
+	for k, v := range second {
+		ret[k] = v
+	}
+
+	return ret
+}
+
+func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string {
+	strategy := c.Spec.Server.ServerExposureStrategy
+	if IsOpenShift {
+		strategy = GetValue(strategy, defaultValue)
+	} else {
+		if strategy == "" {
+			strategy = GetValue(c.Spec.K8s.IngressStrategy, defaultValue)
+		}
+	}
+
+	return strategy
+}
+
+func IsTestMode() (isTesting bool) {
 	testMode := os.Getenv("MOCK_API")
 	if len(testMode) == 0 {
 		return false
@@ -147,11 +198,15 @@ func IsTestMode() (isTesting bool) {
 }
 
 func GetClusterPublicHostname(isOpenShift4 bool) (hostname string, err error) {
+	// Could be set for debug scripts.
+	CLUSTER_API_URL := os.Getenv("CLUSTER_API_URL")
+	if CLUSTER_API_URL != "" {
+		return CLUSTER_API_URL, nil
+	}
 	if isOpenShift4 {
 		return getClusterPublicHostnameForOpenshiftV4()
-	} else {
-		return getClusterPublicHostnameForOpenshiftV3()
 	}
+	return getClusterPublicHostnameForOpenshiftV3()
 }
 
 // getClusterPublicHostnameForOpenshiftV3 is a hacky way to get OpenShift API public DNS/IP
@@ -199,7 +254,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	token := string(file)
 
 	req.Header = http.Header{
-		"Authorization": []string{ "Bearer " + token },
+		"Authorization": []string{"Bearer " + token},
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -207,7 +262,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode / 100 != 2 {
+	if resp.StatusCode/100 != 2 {
 		message := url + " - " + resp.Status
 		logrus.Errorf("An error occurred when getting API public hostname: %s", message)
 		return "", errors.New(message)
@@ -227,7 +282,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	switch status := jsonData["status"].(type) {
 	case map[string]interface{}:
 		hostname = status["apiServerURL"].(string)
-	default:	
+	default:
 		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", body)
 		return "", errors.New(string(body))
 	}
@@ -235,31 +290,66 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	return hostname, nil
 }
 
-func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string) (javaOpts string) {
-
-	proxyHost := strings.TrimLeft(proxyURL, "https://")
-	proxyUserPassword := ""
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		proxyUserPassword =
-			" -Dhttp.proxyUser=" + proxyUser + " -Dhttp.proxyPassword=" + proxyPassword +
-				" -Dhttps.proxyUser=" + proxyUser + " -Dhttps.proxyPassword=" + proxyPassword
+func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
+	for i := range env {
+		name := env[i].Name
+		if name == key {
+			value = env[i].Value
+			break
+		}
 	}
-	javaOpts =
-		" -Dhttp.proxyHost=" + proxyHost + " -Dhttp.proxyPort=" + proxyPort +
-			" -Dhttps.proxyHost=" + proxyHost + " -Dhttps.proxyPort=" + proxyPort +
-			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "'" + proxyUserPassword
-	return javaOpts
+	return value
 }
 
-func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string) (proxyUrl string, noProxy string) {
-	proxyUrl = proxyHost + ":" + proxyPort
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		protocol := strings.Split(proxyHost, "://")[0]
-		host := strings.Split(proxyHost, "://")[1]
-		proxyUrl = protocol + "://" + proxyUser + ":" + proxyPassword + "@" + host + ":" + proxyPort
+func GetDeploymentEnvVarSource(deployment *appsv1.Deployment, key string) (valueFrom *corev1.EnvVarSource) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
+	for i := range env {
+		name := env[i].Name
+		if name == key {
+			valueFrom = env[i].ValueFrom
+			break
+		}
+	}
+	return valueFrom
+}
+
+func GetEnvByRegExp(regExp string) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		envName := pair[0]
+		rxp := regexp.MustCompile(regExp)
+		if rxp.MatchString(envName) {
+			envName = GetArchitectureDependentEnv(envName)
+			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
+		}
+	}
+	return env
+}
+
+// GetArchitectureDependentEnv returns environment variable dependending on architecture
+// by adding "_<ARCHITECTURE>" suffix. If variable is not set then the default will be return.
+func GetArchitectureDependentEnv(env string) string {
+	archEnv := env + "_" + runtime.GOARCH
+	if _, ok := os.LookupEnv(archEnv); ok {
+		return archEnv
 	}
 
-	noProxy = strings.Replace(nonProxyHosts, "|", ",", -1)
+	return env
+}
 
-	return proxyUrl, noProxy
+// NewBoolPointer returns `bool` pointer to value in the memory.
+// Unfortunately golang hasn't got syntax to create `bool` pointer.
+func NewBoolPointer(value bool) *bool {
+	variable := value
+	return &variable
+}
+
+// IsOAuthEnabled return true when oAuth is enable for CheCluster resource, otherwise false.
+func IsOAuthEnabled(c *orgv1.CheCluster) bool {
+	if c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth {
+		return true
+	}
+	return false
 }

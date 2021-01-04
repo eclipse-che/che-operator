@@ -13,6 +13,7 @@ package main
 
 import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +47,7 @@ func createOperatorServiceAccountRole(operatorServiceAccountRole *rbac.Role) (er
 func createOperatorServiceAccountClusterRole(operatorServiceAccountClusterRole *rbac.ClusterRole) (err error) {
 
 	operatorServiceAccountClusterRole, err = client.clientset.RbacV1().ClusterRoles().Create(operatorServiceAccountClusterRole)
-	if err != nil && ! errors.IsAlreadyExists(err) {
+	if err != nil && !errors.IsAlreadyExists(err) {
 		logrus.Fatalf("Failed to create role %s: %s", operatorServiceAccountClusterRole.Name, err)
 		return err
 	}
@@ -87,18 +88,16 @@ func deployOperator(deployment *appsv1.Deployment) (err error) {
 
 }
 
-func newNamespace() (ns *corev1.Namespace){
+func newNamespace() (ns *corev1.Namespace) {
 
 	return &corev1.Namespace{
-
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Namespace",
+			Kind:       "Namespace",
 			APIVersion: corev1.SchemeGroupVersion.Version,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:namespace,
+			Name: namespace,
 		},
-
 	}
 }
 
@@ -106,11 +105,10 @@ func createNamespace(ns *corev1.Namespace) (err error) {
 
 	ns, err = client.clientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
-		logrus.Fatalf("Failed to create namespace %s: %s", ns.Name, err)
+		logrus.Warn(err)
 		return err
 	}
 	return nil
-
 }
 
 func newCheCluster() (cr *orgv1.CheCluster) {
@@ -121,9 +119,12 @@ func newCheCluster() (cr *orgv1.CheCluster) {
 		TypeMeta: metav1.TypeMeta{
 			Kind: kind,
 		},
-		Spec:orgv1.CheClusterSpec{
-			Server:orgv1.CheClusterSpecServer{
-				SelfSignedCert: true,
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				UseInternalClusterSVCNames: true,
+			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(true),
 			},
 		},
 	}

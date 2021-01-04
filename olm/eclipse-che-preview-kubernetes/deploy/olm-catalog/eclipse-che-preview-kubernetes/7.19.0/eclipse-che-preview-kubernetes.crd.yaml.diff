@@ -1,0 +1,74 @@
+--- /home/mykhailo/projects/release/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.18.2/eclipse-che-preview-kubernetes.crd.yaml	2020-09-18 14:13:56.768967922 +0300
++++ /home/mykhailo/projects/release/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.19.0/eclipse-che-preview-kubernetes.crd.yaml	2020-09-24 11:45:19.934132794 +0300
+@@ -230,7 +230,10 @@
+                   description: Strategy for ingress creation. This can be `multi-host`
+                     (host is explicitly provided in ingress), `single-host` (host
+                     is provided, path-based rules) and `default-host.*`(no host is
+-                    provided, path-based rules). Defaults to `"multi-host`
++                    provided, path-based rules). Defaults to `"multi-host` Deprecated
++                    in favor of "serverExposureStrategy" in the "server" section,
++                    which defines this regardless of the cluster type. If both are
++                    defined, `serverExposureStrategy` takes precedence.
+                   type: string
+                 securityContextFsGroup:
+                   description: FSGroup the Che pod and Workspace pods containers should
+@@ -240,6 +243,16 @@
+                   description: ID of the user the Che pod and Workspace pods containers
+                     should run as. Default to `1724`.
+                   type: string
++                singleHostExposureType:
++                  description: When the serverExposureStrategy is set to "single-host",
++                    the way the server, registries and workspaces are exposed is further
++                    configured by this property. The possible values are "native"
++                    (which means that the server and workspaces are exposed using
++                    ingresses on K8s) or "gateway" where the server and workspaces
++                    are exposed using a custom gateway based on Traefik. All the endpoints
++                    whether backed by the ingress or gateway "route" always point
++                    to the subpaths on the same domain. Defaults to "native".
++                  type: string
+                 tlsSecretName:
+                   description: Name of a secret that will be used to setup ingress
+                     TLS termination if TLS is enabled. See also the `tlsSupport` field.
+@@ -445,6 +458,19 @@
+                     operator will automatically detect if router certificate is self-signed.
+                     If so it will be propagated to Che server and some other components.
+                   type: boolean
++                serverExposureStrategy:
++                  description: Sets the server and workspaces exposure type. Possible
++                    values are "multi-host", "single-host", "default-host". Defaults
++                    to "multi-host" which creates a separate ingress (or route on
++                    OpenShift) for every required endpoint. "single-host" makes Che
++                    exposed on a single hostname with workspaces exposed on subpaths.
++                    Please read the docs to learn about the limitations of this approach.
++                    Also consult the `singleHostExposureType` property to further
++                    configure how the operator and Che server make that happen on
++                    Kubernetes. "default-host" exposes che server on the host of the
++                    cluster. Please read the docs to learn about the limitations of
++                    this approach.
++                  type: string
+                 serverMemoryLimit:
+                   description: Overrides the memory limit used in the Che server deployment.
+                     Defaults to 1Gi.
+@@ -460,6 +486,22 @@
+                     signed with self-signed cert. So, Che server must be aware of
+                     its CA cert to be able to request it. This is disabled by default.
+                   type: string
++                singleHostGatewayConfigMapLabels:
++                  additionalProperties:
++                    type: string
++                  description: The labels that need to be present (and are put) on
++                    the configmaps representing the gateway configuration.
++                  type: object
++                singleHostGatewayConfigSidecarImage:
++                  description: The image used for the gateway sidecar that provides
++                    configuration to the gateway. Omit it or leave it empty to use
++                    the defaut container image provided by the operator.
++                  type: string
++                singleHostGatewayImage:
++                  description: The image used for the gateway in the single host mode.
++                    Omit it or leave it empty to use the defaut container image provided
++                    by the operator.
++                  type: string
+                 tlsSupport:
+                   description: Deprecated. Instructs the operator to deploy Che in
+                     TLS mode. This is enabled by default. Disabling TLS may cause

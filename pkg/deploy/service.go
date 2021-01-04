@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2020-2020 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,15 +9,101 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package deploy
 
 import (
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"context"
+	"fmt"
+	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func NewService(cr *orgv1.CheCluster, name string, portName []string, portNumber []int32, labels map[string]string) *corev1.Service {
+type ServiceProvisioningStatus struct {
+	ProvisioningStatus
+}
+
+const (
+	CheServiceName = "che-host"
+)
+
+var portsDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort"),
+}
+
+func SyncServiceToCluster(
+	deployContext *DeployContext,
+	name string,
+	portName []string,
+	portNumber []int32,
+	labels map[string]string) ServiceProvisioningStatus {
+	specService, err := GetSpecService(deployContext, name, portName, portNumber, labels)
+	if err != nil {
+		return ServiceProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	return DoSyncServiceToCluster(deployContext, specService)
+}
+
+func DoSyncServiceToCluster(deployContext *DeployContext, specService *corev1.Service) ServiceProvisioningStatus {
+
+	clusterService, err := getClusterService(specService.Name, specService.Namespace, deployContext.ClusterAPI.Client)
+	if err != nil {
+		return ServiceProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Err: err},
+		}
+	}
+
+	if clusterService == nil {
+		logrus.Infof("Creating a new object: %s, name %s", specService.Kind, specService.Name)
+		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specService)
+		return ServiceProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	diffPorts := cmp.Diff(clusterService.Spec.Ports, specService.Spec.Ports, portsDiffOpts)
+	diffSelectors := cmp.Diff(clusterService.Spec.Selector, specService.Spec.Selector)
+	if len(diffPorts) > 0 || len(diffSelectors) > 0 {
+		logrus.Infof("Updating existed object: %s, name: %s", specService.Kind, specService.Name)
+		fmt.Printf("Ports difference:\n%s", diffPorts)
+		fmt.Printf("Selectors difference:\n%s", diffSelectors)
+
+		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterService)
+		if err != nil {
+			return ServiceProvisioningStatus{
+				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+			}
+		}
+
+		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specService)
+		return ServiceProvisioningStatus{
+			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
+		}
+	}
+
+	return ServiceProvisioningStatus{
+		ProvisioningStatus: ProvisioningStatus{Continue: true},
+	}
+}
+
+func GetSpecService(
+	deployContext *DeployContext,
+	name string,
+	portName []string,
+	portNumber []int32,
+	labels map[string]string) (*corev1.Service, error) {
+
 	ports := []corev1.ServicePort{}
 	for i := range portName {
 		port := corev1.ServicePort{
@@ -27,14 +113,15 @@ func NewService(cr *orgv1.CheCluster, name string, portName []string, portNumber
 		}
 		ports = append(ports, port)
 	}
-	return &corev1.Service{
+
+	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: cr.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
@@ -42,16 +129,29 @@ func NewService(cr *orgv1.CheCluster, name string, portName []string, portNumber
 			Selector: labels,
 		},
 	}
+
+	if !util.IsTestMode() {
+		err := controllerutil.SetControllerReference(deployContext.CheCluster, service, deployContext.ClusterAPI.Scheme)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return service, nil
 }
 
-// Writes only mutable fields from `in` into `out` service.
-//
-// This is useful when doing service update, because we have to get existing service,
-// update just mutable fields and leave the rest as is.
-//
-// Be aware that function is not doing any copy/deepcopy.
-func MergeServices(out *corev1.Service, in *corev1.Service) {
-	out.ObjectMeta.Labels = in.ObjectMeta.Labels
-	out.Spec.Ports = in.Spec.Ports
-	out.Spec.Selector = in.Spec.Selector
+func getClusterService(name string, namespace string, client runtimeClient.Client) (*corev1.Service, error) {
+	service := &corev1.Service{}
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := client.Get(context.TODO(), namespacedName, service)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return service, nil
 }

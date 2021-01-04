@@ -1,0 +1,64 @@
+# This Workflow creates PRs for the release of the latest che-operator to the community operators in OperatorHub
+name: Release community operator PRs
+on:
+  # manual trigger if required
+  workflow_dispatch:
+    inputs:
+      forceflag:
+        description: 'To update an existing PR, use -f or --force flag here'
+        default: ''
+  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse/che-operator/pull/571/files
+  push:
+    branches: 
+      - master
+    paths:
+      - 'olm/eclipse-che-preview-*/deploy/olm-catalog/eclipse-che-preview-*/eclipse-che-preview-*.package.yaml'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install operator courier, yq, and base32 wrapper
+        run: |
+          python -m pip install --upgrade pip
+          pip install operator-courier==2.1.7
+          pip install yq
+          # get base32 util from che-release project
+          wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
+          # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts) 
+          sudo cp -f $(pwd)/base32 /usr/local/bin/ 
+          sudo chmod +x /usr/local/bin/base32
+          #remove base32 from current directory to avoid it being commited during release
+          rm $(pwd)/base32 
+      - name: Release community operator PRs
+        run: |
+          hub version
+          git config --global user.name "Mykhailo Kuznietsov"
+          git config --global user.email "mkuznets@redhat.com"
+          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+          set -e
+          OP_SDK_DIR=/opt/operator-sdk
+          mkdir -p $OP_SDK_DIR
+          if [[ ${CHE_VERSION%.*} == 7.21 ]];then
+            wget https://github.com/operator-framework/operator-sdk/releases/download/v0.10.0/operator-sdk-v0.10.0-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk 
+          else
+            OPERATOR_SDK=$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
+            wget https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK}/operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk 
+          fi
+          chmod +x $OP_SDK_DIR/operator-sdk
+          export PATH="$PATH:$OP_SDK_DIR"
+          export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
+          export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
+
+          export QUAY_USERNAME_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_USERNAME }}
+          export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
+          export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
+          export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
+          ./make-release.sh nightly --update-nightly-olm-files --prepare-community-operators-update ${{ github.event.inputs.forceflag }}

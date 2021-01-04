@@ -80,6 +80,7 @@ anaconda-mode/
 *.dll
 *.so
 *.dylib
+cmd/manager/__debug_bin
 
 # Test binary, build with 'go test -c'
 *.test
@@ -107,6 +108,8 @@ tags
 .history
 
 build/
-bin/
+olm/generated
+deploy/olm-catalog/eclipse-che-preview-kubernetes/generated
+deploy/olm-catalog/eclipse-che-preview-openshift/generated
 
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
