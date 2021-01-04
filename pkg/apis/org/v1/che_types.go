@@ -500,9 +500,10 @@ type CheClusterSpecK8SOnly struct {
 	// NB: This drives the `is kubernetes.io/ingress.class` annotation on Che-related ingresses.
 	// +optional
 	IngressClass string `json:"ingressClass,omitempty"`
-	// Name of a secret that will be used to setup ingress TLS termination if TLS is enabled.
-	// If the field is empty string, then default cluster certificate will be used.
-	// See also the `tlsSupport` field.
+	// Name of a secret that is used to set ingress TLS termination if TLS is enabled. If the specified secret does not exist,
+	// a self-signed certificate will be created. If the value is empty or omitted, the default ingress controller certificate
+	// will be used. See also the `tlsSupport` field. Note, when switching to the default ingress controller certificate,
+	// `self-signed-certificate` secret should be deleted manually.
 	// +optional
 	TlsSecretName string `json:"tlsSecretName,omitempty"`
 	// FSGroup the Che pod and Workspace pods containers should run in. Defaults to `1724`.

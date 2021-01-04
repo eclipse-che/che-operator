@@ -316,10 +316,13 @@ spec:
                     to the subpaths on the same domain. Defaults to "native".
                   type: string
                 tlsSecretName:
-                  description: Name of a secret that will be used to setup ingress
-                    TLS termination if TLS is enabled. If the field is empty string,
-                    then default cluster certificate will be used. See also the `tlsSupport`
-                    field.
+                  description: Name of a secret that is used to set ingress TLS termination
+                    if TLS is enabled. If the specified secret does not exist, a self-signed
+                    certificate will be created. If the value is empty or omitted,
+                    the default ingress controller certificate will be used. See also
+                    the `tlsSupport` field. Note, when switching to the default ingress
+                    controller certificate, `self-signed-certificate` secret should
+                    be deleted manually.
                   type: string
               type: object
             metrics:
