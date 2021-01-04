@@ -61,7 +61,7 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isO
 			instance,
 			keycloakDeployment.Name,
 			func(cr *orgv1.CheCluster) (string, error) {
-				return identity_provider.GetDeleteIdentityProviderCommand(instance, providerName)
+				return identity_provider.GetIdentityProviderDeleteCommand(instance, providerName)
 			},
 			"delete OpenShift identity provider")
 		if err == nil {

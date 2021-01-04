@@ -45,7 +45,7 @@ var (
 		SyncKeycloakDeploymentToCluster,
 		syncKeycloakResources,
 		syncOpenShiftIdentityProvider,
-		SyncGitHubIdentityProvividerFederation,
+		SyncGitHubOAuth,
 	}
 )
 
@@ -220,9 +220,9 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-// SyncGitHubIdentityProvividerFederation provisions GitHub identity provider federation if secret with
+// SyncGitHubOAuth provisions GitHub OAuth if secret with
 // annotation `che.eclipse.org/github-oauth-credentials=true` is mounted into a container
-func SyncGitHubIdentityProvividerFederation(deployContext *deploy.DeployContext) (bool, error) {
+func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 
 	// find mounted GitHug OAuth credentials
@@ -249,42 +249,42 @@ func SyncGitHubIdentityProvividerFederation(deployContext *deploy.DeployContext)
 	}
 
 	if isGitHubOAuthCredentialsExists {
-		if !cr.Status.GitHubIdentityProviderFederationProvisioned {
+		if !cr.Status.GitHubOAuthProvisioned {
 			if !util.IsTestMode() {
 				_, err := util.K8sclient.ExecIntoPod(
 					cr,
 					IdentityProviderDeploymentName,
 					func(cr *orgv1.CheCluster) (string, error) {
-						return GetGitHubIdentityProviderFederationProvisionCommand(deployContext)
+						return GetGitHubIdentityProviderCreateCommand(deployContext)
 					},
-					"Create GitHub identity provider federation")
+					"Create GitHub OAuth")
 				if err != nil {
 					return false, err
 				}
 			}
 
-			cr.Status.GitHubIdentityProviderFederationProvisioned = true
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub identity provider federation provisioned", "true"); err != nil {
+			cr.Status.GitHubOAuthProvisioned = true
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub OAuth provisioned", "true"); err != nil {
 				return false, err
 			}
 		}
 	} else {
-		if cr.Status.GitHubIdentityProviderFederationProvisioned {
+		if cr.Status.GitHubOAuthProvisioned {
 			if !util.IsTestMode() {
 				_, err := util.K8sclient.ExecIntoPod(
 					cr,
 					IdentityProviderDeploymentName,
 					func(cr *orgv1.CheCluster) (string, error) {
-						return GetDeleteIdentityProviderCommand(cr, "github")
+						return GetIdentityProviderDeleteCommand(cr, "github")
 					},
-					"Delete GitHub identity provider federation")
+					"Delete GitHub OAuth")
 				if err != nil {
 					return false, err
 				}
 			}
 
-			cr.Status.GitHubIdentityProviderFederationProvisioned = false
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub identity provider federation provisioned", "false"); err != nil {
+			cr.Status.GitHubOAuthProvisioned = false
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: GitHub OAuth provisioned", "false"); err != nil {
 				return false, err
 			}
 		}
