@@ -152,9 +152,34 @@ spec:
       CHE_MULTIUSER: "false"
 ```
 
-```
+```bash
 $ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
 ```
+
+### Workspace namespace strategy
+
+Workspace namespace strategy defines default namespace in which user's workspaces are created.
+It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>).
+In that case, new namespace will be created for each user (or workspace).
+For OpenShift infrastructure this property used to to specify Project(instead of namespace conception).
+
+To set up namespace workspace strategy use command line:
+
+```bash
+$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"server": {"customCheProperties": {"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT": "che-workspace-<username>"}}}}'
+```
+
+or create `cr-patch.yaml` and use it with chectl:
+
+```yaml
+spec:
+  server:
+    customCheProperties:
+      CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT: "che-workspace-<username>"
+```
+
+```bash
+$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
 
 ### OpenShift OAuth
 
@@ -174,7 +199,7 @@ spec:
     openShiftoAuth: false
 ```
 
-```
+```bash
 $ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
 ```
 
@@ -194,7 +219,7 @@ spec:
     tlsSupport: false
 ```
 
-```
+```bash
 $ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
 ```
 
