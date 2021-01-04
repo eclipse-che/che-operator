@@ -696,10 +696,9 @@ spec:
             devfileRegistryURL:
               description: Public URL to the Devfile registry
               type: string
-            gitHubIdentityProviderFederationProvisioned:
+            gitHubOAuthProvisioned:
               description: Indicates whether an Identity Provider instance (Keycloak
-                / RH SSO) has been configured to work with the GitHub identity provider
-                federation.
+                / RH SSO) has been configured to integrate with the GitHub OAuth.
               type: boolean
             helpLink:
               description: A URL that can point to some URL where to find help related
