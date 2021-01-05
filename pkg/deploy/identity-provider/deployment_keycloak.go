@@ -81,7 +81,7 @@ func getSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
 	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	optionalEnv := true
-	labels := deploy.GetLabels(deployContext.CheCluster, KeycloakDeploymentName)
+	labels, selector := deploy.GetDeploymentLabels(deployContext.CheCluster, KeycloakDeploymentName)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	keycloakImage := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(keycloakImage)))
@@ -563,7 +563,7 @@ func getSpecKeycloakDeployment(
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},

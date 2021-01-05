@@ -55,7 +55,7 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels := deploy.GetLabels(deployContext.CheCluster, PostgresDeploymentName)
+	labels, selector := deploy.GetDeploymentLabels(deployContext.CheCluster, PostgresDeploymentName)
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
 	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
@@ -81,7 +81,7 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.DeploymentStrategyType("Recreate"),
 			},

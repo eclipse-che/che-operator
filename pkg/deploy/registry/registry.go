@@ -4,7 +4,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	v12 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -23,7 +23,7 @@ func GetSpecRegistryDeployment(
 
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
-	labels := deploy.GetLabels(deployContext.CheCluster, name)
+	labels, selector := deploy.GetDeploymentLabels(deployContext.CheCluster, name)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)
@@ -41,7 +41,7 @@ func GetSpecRegistryDeployment(
 		Spec: v12.DeploymentSpec{
 			Replicas:             &_1,
 			RevisionHistoryLimit: &_2,
-			Selector:             &v13.LabelSelector{MatchLabels: labels},
+			Selector:             &v13.LabelSelector{MatchLabels: selector},
 			Strategy: v12.DeploymentStrategy{
 				Type: v12.RollingUpdateDeploymentStrategyType,
 				RollingUpdate: &v12.RollingUpdateDeployment{

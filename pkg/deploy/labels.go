@@ -20,17 +20,28 @@ import (
 func GetLabels(cr *orgv1.CheCluster, component string) (labels map[string]string) {
 	cheFlavor := DefaultCheFlavor(cr)
 	labels = map[string]string{
+		"app":       cheFlavor,
+		"component": component,
+	}
+	return labels
+}
+
+func GetDeploymentLabels(cr *orgv1.CheCluster, component string) (map[string]string, map[string]string) {
+	cheFlavor := DefaultCheFlavor(cr)
+	labels := map[string]string{
 		KubernetesNameLabelKey:      cheFlavor,
-		KubernetesPartOfLabelKey:    CheEclipseOrg,
-		KubernetesInstanceLabelKey:  cheFlavor + "-" + cr.Namespace,
+		KubernetesInstanceLabelKey:  cheFlavor,
 		KubernetesManagedByLabelKey: cheFlavor + "-operator",
-		KubernetesComponentLabelKey: component,
 
 		// for backward compatability
 		"app":       cheFlavor,
 		"component": component,
 	}
-	return labels
+	selector := map[string]string{
+		"app":       cheFlavor,
+		"component": component,
+	}
+	return labels, selector
 }
 
 func MergeLabels(labels map[string]string, additionalLabels string) {
