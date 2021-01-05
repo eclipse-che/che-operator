@@ -12,7 +12,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -30,7 +29,6 @@ import (
 	"github.com/eclipse/che-operator/pkg/apis"
 	"github.com/eclipse/che-operator/pkg/controller"
 	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -104,9 +102,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Become the leader before proceeding
-	leader.Become(context.TODO(), "che-operator-lock")
-
 	r := ready.NewFileReady()
 	err = r.Set()
 	if err != nil {
@@ -119,6 +114,8 @@ func main() {
 	options := manager.Options{
 		Namespace:              namespace,
 		HealthProbeBindAddress: ":6789",
+		LeaderElection:         true,
+		LeaderElectionID:       "che-operator-lock",
 	}
 	mgr, err := manager.New(cfg, options)
 	if err != nil {
