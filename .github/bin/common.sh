@@ -92,9 +92,9 @@ waitWorkspaceStart() {
   export x=0
   while [ $x -le 180 ]
   do
-    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-    chectl workspace:list --chenamespace=${NAMESPACE}
-    workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
+    chectl auth:login -u admin -p admin --telemetry=off --chenamespace=${NAMESPACE}
+    chectl workspace:list --telemetry=off --chenamespace=${NAMESPACE}
+    workspaceList=$(chectl workspace:list --telemetry=off --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
 
     if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
@@ -126,7 +126,7 @@ installYq() {
 # Graps Eclipse Che logs
 collectCheLogWithChectl() {
   mkdir -p ${ARTIFACTS_DIR}
-  chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
+  chectl server:logs telemetry=off --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
 }
 
 # Build latest operator image
@@ -157,6 +157,7 @@ deployEclipseChe() {
   chectl server:deploy \
     --platform=${platform} \
     --installer ${installer} \
+    --telemetry=off \
     --chenamespace ${NAMESPACE} \
     --che-operator-image ${image} \
     --skip-kubernetes-health-check \
@@ -193,34 +194,34 @@ updateEclipseChe() {
   local image=$1
   local templates=$2
 
-  chectl server:update --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
+  chectl server:update --telemetry=off --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
 }
 
 startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
   chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
+  chectl workspace:create --start --telemetry=off --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
 }
 
 createWorkspace() {
   sleep 5s
   chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:create --chenamespace=${NAMESPACE} --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
+  chectl workspace:create --telemetry=off --chenamespace=${NAMESPACE} --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
 }
 
 startExistedWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:list --chenamespace=${NAMESPACE}
-  workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
+  chectl auth:login -u admin -p admin --telemetry=off --chenamespace=${NAMESPACE}
+  chectl workspace:list --telemetry=off --chenamespace=${NAMESPACE}
+  workspaceList=$(chectl workspace:list --telemetry=off --chenamespace=${NAMESPACE})
 
   # Grep applied to MacOS
   workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
   workspaceID="${workspaceID%'ID'}"
   echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
 
-  chectl workspace:start $workspaceID
+  chectl workspace:start $workspaceID --telemetry=off
 }
 
 disableOpenShiftOAuth() {
