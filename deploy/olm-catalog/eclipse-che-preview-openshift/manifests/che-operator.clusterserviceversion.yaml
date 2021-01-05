@@ -81,7 +81,7 @@ metadata:
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.24.0-56.nightly
+  name: eclipse-che-preview-openshift.v7.24.0-58.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -306,7 +306,8 @@ spec:
             selector:
               matchLabels:
                 app: che-operator
-            strategy: {}
+            strategy:
+              type: Recreate
             template:
               metadata:
                 labels:
@@ -531,4 +532,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.24.0-56.nightly
+  version: 7.24.0-58.nightly
