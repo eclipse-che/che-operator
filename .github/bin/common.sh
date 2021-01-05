@@ -126,7 +126,7 @@ installYq() {
 # Graps Eclipse Che logs
 collectCheLogWithChectl() {
   mkdir -p ${ARTIFACTS_DIR}
-  chectl server:logs telemetry=off --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
+  chectl server:logs --telemetry=off --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
 }
 
 # Build latest operator image
