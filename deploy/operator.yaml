@@ -17,6 +17,8 @@ spec:
   selector:
     matchLabels:
       app: che-operator
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
