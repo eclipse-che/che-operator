@@ -200,7 +200,7 @@ updateEclipseChe() {
 startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
-  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  chectl auth:login -u admin -p admin --telemetry=off --chenamespace=${NAMESPACE}
   chectl workspace:create --start --telemetry=off --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
 }
 
