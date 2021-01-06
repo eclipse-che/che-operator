@@ -27,7 +27,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -588,10 +587,17 @@ func getSpecKeycloakDeployment(
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Memory,
+										deploy.DefaultIdentityProviderMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("2Gi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Limits.Memory,
+										deploy.DefaultIdentityProviderMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Limits.Cpu,
+										deploy.DefaultIdentityProviderCpuLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{

@@ -111,6 +111,12 @@ spec:
             capabilities:
               drop:
                 - ALL
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 100m
+            requests:
+              memory: 128Mi
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5

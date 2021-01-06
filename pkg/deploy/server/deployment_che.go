@@ -21,7 +21,6 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -59,7 +58,6 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	labels := deploy.GetLabels(deployContext.CheCluster, cheFlavor)
 	optionalEnv := true
-	memRequest := util.GetValue(deployContext.CheCluster.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest)
 	selfSignedCertEnv := corev1.EnvVar{
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
@@ -182,7 +180,6 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 					FieldPath:  "metadata.namespace"}},
 		})
 
-	memLimit := util.GetValue(deployContext.CheCluster.Spec.Server.ServerMemoryLimit, deploy.DefaultServerMemoryLimit)
 	cheImageAndTag := GetFullCheServerImageLink(deployContext.CheCluster)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))
 
@@ -235,10 +232,17 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(memRequest),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Server.ServerMemoryRequest,
+										deploy.DefaultServerMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(memLimit),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Server.ServerMemoryLimit,
+										deploy.DefaultServerMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Server.ServerCpuLimit,
+										deploy.DefaultServerCpuLimit),
 								},
 							},
 							SecurityContext: &corev1.SecurityContext{

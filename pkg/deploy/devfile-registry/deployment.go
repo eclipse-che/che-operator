@@ -21,9 +21,7 @@ import (
 func SyncDevfileRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	registryType := "devfile"
 	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(deployContext.CheCluster))
-	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
-	registryMemoryLimit := util.GetValue(string(deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryLimit), deploy.DefaultDevfileRegistryMemoryLimit)
-	registryMemoryRequest := util.GetValue(string(deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryRequest), deploy.DefaultDevfileRegistryMemoryRequest)
+	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
 	probePath := "/devfiles/"
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
@@ -32,14 +30,29 @@ func SyncDevfileRegistryDeploymentToCluster(deployContext *deploy.DeployContext)
 		return false, err
 	}
 
+	resources := v1.ResourceRequirements{
+		Requests: v1.ResourceList{
+			v1.ResourceMemory: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryRequest,
+				deploy.DefaultDevfileRegistryMemoryRequest),
+		},
+		Limits: v1.ResourceList{
+			v1.ResourceMemory: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryLimit,
+				deploy.DefaultDevfileRegistryMemoryLimit),
+			v1.ResourceCPU: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.DevfileRegistryCpuLimit,
+				deploy.DefaultDevfileRegistryCpuLimit),
+		},
+	}
+
 	specDeployment, err := registry.GetSpecRegistryDeployment(
 		deployContext,
 		registryType,
 		registryImage,
 		devfileImagesEnv,
 		registryImagePullPolicy,
-		registryMemoryLimit,
-		registryMemoryRequest,
+		resources,
 		probePath)
 
 	if err != nil {

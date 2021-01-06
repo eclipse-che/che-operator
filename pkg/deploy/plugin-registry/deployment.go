@@ -22,8 +22,6 @@ func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) 
 	registryType := "plugin"
 	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(deployContext.CheCluster))
 	registryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
-	registryMemoryLimit := util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryMemoryLimit), deploy.DefaultPluginRegistryMemoryLimit)
-	registryMemoryRequest := util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryMemoryRequest), deploy.DefaultPluginRegistryMemoryRequest)
 	probePath := "/v3/plugins/"
 	pluginImagesEnv := util.GetEnvByRegExp("^.*plugin_registry_image.*$")
 
@@ -32,14 +30,29 @@ func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) 
 		return false, err
 	}
 
+	resources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceMemory: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.PluginRegistryMemoryRequest,
+				deploy.DefaultPluginRegistryMemoryRequest),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceMemory: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.PluginRegistryMemoryLimit,
+				deploy.DefaultPluginRegistryMemoryLimit),
+			corev1.ResourceCPU: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.PluginRegistryCpuLimit,
+				deploy.DefaultPluginRegistryCpuLimit),
+		},
+	}
+
 	specDeployment, err := registry.GetSpecRegistryDeployment(
 		deployContext,
 		registryType,
 		registryImage,
 		pluginImagesEnv,
 		registryImagePullPolicy,
-		registryMemoryLimit,
-		registryMemoryRequest,
+		resources,
 		probePath)
 
 	if err != nil {

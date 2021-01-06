@@ -71,6 +71,34 @@ spec:
                     field). If omitted or left blank, it will be set to the value
                     of the `flavour` field suffixed with `-public`.
                   type: string
+                identityProviderContainerResources:
+                  description: Identity provider container custom settings
+                  properties:
+                    limits:
+                      description: Limits describes the maximum amount of compute
+                        resources allowed.
+                      properties:
+                        cpu:
+                          description: CPU, in cores. (500m = .5 cores)
+                          type: string
+                        memory:
+                          description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024
+                            * 1024 * 1024)
+                          type: string
+                      type: object
+                    request:
+                      description: Requests describes the minimum amount of compute
+                        resources required.
+                      properties:
+                        cpu:
+                          description: CPU, in cores. (500m = .5 cores)
+                          type: string
+                        memory:
+                          description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024
+                            * 1024 * 1024)
+                          type: string
+                      type: object
+                  type: object
                 identityProviderImage:
                   description: Overrides the container image used in the Identity
                     Provider (Keycloak / RH SSO) deployment. This includes the image
@@ -178,6 +206,34 @@ spec:
               description: Configuration settings related to the database used by
                 the Che installation.
               properties:
+                chePostgresContainerResources:
+                  description: Postgres container custom settings
+                  properties:
+                    limits:
+                      description: Limits describes the maximum amount of compute
+                        resources allowed.
+                      properties:
+                        cpu:
+                          description: CPU, in cores. (500m = .5 cores)
+                          type: string
+                        memory:
+                          description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024
+                            * 1024 * 1024)
+                          type: string
+                      type: object
+                    request:
+                      description: Requests describes the minimum amount of compute
+                        resources required.
+                      properties:
+                        cpu:
+                          description: CPU, in cores. (500m = .5 cores)
+                          type: string
+                        memory:
+                          description: Memory, in bytes. (500Gi = 500GiB = 500 * 1024
+                            * 1024 * 1024)
+                          type: string
+                      type: object
+                  type: object
                 chePostgresDb:
                   description: Postgres database name that the Che server uses to
                     connect to the DB. Defaults to `dbche`.
@@ -431,6 +487,10 @@ spec:
                     config map from other CR fields, then the value defined in the
                     `customCheProperties` will be used instead.
                   type: object
+                devfileRegistryCpuLimit:
+                  description: Overrides the cpu limit used in the Devfile registry
+                    deployment
+                  type: string
                 devfileRegistryImage:
                   description: Overrides the container image used in the Devfile registry
                     deployment. This includes the image tag. Omit it or leave it empty
@@ -501,6 +561,10 @@ spec:
                     configuration and ones defined in the custom resources. (see the
                     doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html)
                     (see also the `proxyURL` fields).'
+                  type: string
+                pluginRegistryCpuLimit:
+                  description: Overrides the cpu limit used in the Plugin registry
+                    deployment
                   type: string
                 pluginRegistryImage:
                   description: Overrides the container image used in the Plugin registry
@@ -579,6 +643,9 @@ spec:
                     operator will automatically detect if router certificate is self-signed.
                     If so it will be propagated to Che server and some other components.
                   type: boolean
+                serverCpuLimit:
+                  description: Overrides the cpu limit used in the Che server deployment
+                  type: string
                 serverExposureStrategy:
                   description: Sets the server and workspaces exposure type. Possible
                     values are "multi-host", "single-host", "default-host". Defaults

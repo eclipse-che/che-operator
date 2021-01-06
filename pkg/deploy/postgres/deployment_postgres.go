@@ -16,7 +16,6 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -110,10 +109,17 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
+										deploy.DefaultPostgresMemoryRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1Gi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
+										deploy.DefaultPostgresMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
+										deploy.DefaultPostgresCpuLimit),
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{

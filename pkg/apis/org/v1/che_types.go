@@ -174,6 +174,9 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
+	// Overrides the cpu limit used in the Devfile registry deployment
+	// +optional
+	DevfileRegistryCpuLimit string `json:"devfileRegistryCpuLimit,omitempty"`
 	// Devfile registry ingress custom settings
 	// +optional
 	DevfileRegistryIngress IngressCustomSettings `json:"devfileRegistryIngress,omitempty"`
@@ -202,6 +205,9 @@ type CheClusterSpecServer struct {
 	// Overrides the memory limit used in the Plugin registry deployment. Defaults to 256Mi.
 	// +optional
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit,omitempty"`
+	// Overrides the cpu limit used in the Plugin registry deployment
+	// +optional
+	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
 	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
@@ -266,6 +272,9 @@ type CheClusterSpecServer struct {
 	// Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
+	// Overrides the cpu limit used in the Che server deployment
+	// +optional
+	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
 
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
 	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every required
@@ -345,6 +354,9 @@ type CheClusterSpecDB struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
+	// Postgres container custom settings
+	// +optional
+	ChePostgresContainerResources ResourcesCustomSettings `json:"chePostgresContainerResources,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -437,6 +449,9 @@ type CheClusterSpecAuth struct {
 	// Route custom settings
 	// +optional
 	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
+	// Identity provider container custom settings
+	// +optional
+	IdentityProviderContainerResources ResourcesCustomSettings `json:"identityProviderContainerResources,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
@@ -451,6 +466,26 @@ type RouteCustomSettings struct {
 	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
 	// +optional
 	Labels string `json:"labels,omitempty"`
+}
+
+// ResourceRequirements describes the compute resource requirements.
+type ResourcesCustomSettings struct {
+	// Requests describes the minimum amount of compute resources required.
+	// +optional
+	Requests Resources `json:"request,omitempty"`
+	// Limits describes the maximum amount of compute resources allowed.
+	// +optional
+	Limits Resources `json:"limits,omitempty"`
+}
+
+// List of resources
+type Resources struct {
+	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	// +optional
+	Memory string `json:"memory,omitempty"`
+	// CPU, in cores. (500m = .5 cores)
+	// +optional
+	Cpu string `json:"cpu,omitempty"`
 }
 
 // +k8s:openapi-gen=true

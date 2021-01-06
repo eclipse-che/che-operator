@@ -59,29 +59,21 @@ const (
 	DefaultPvcClaimSize        = "1Gi"
 	DefaultIngressClass        = "nginx"
 
-	DefaultPluginRegistryMemoryLimit   = "256Mi"
-	DefaultPluginRegistryMemoryRequest = "16Mi"
-
-	// DefaultKube
-	DefaultDevfileRegistryMemoryLimit   = "256Mi"
-	DefaultDevfileRegistryMemoryRequest = "16Mi"
-	DefaultKeycloakAdminUserName        = "admin"
-	DefaultCheLogLevel                  = "INFO"
-	DefaultCheDebug                     = "false"
-	DefaultCheMultiUser                 = "true"
-	DefaultCheMetricsPort               = int32(8087)
-	DefaultCheDebugPort                 = int32(8000)
-	DefaultCheVolumeMountPath           = "/data"
-	DefaultCheVolumeClaimName           = "che-data-volume"
-	DefaultPostgresVolumeClaimName      = "postgres-data"
+	DefaultKeycloakAdminUserName   = "admin"
+	DefaultCheLogLevel             = "INFO"
+	DefaultCheDebug                = "false"
+	DefaultCheMultiUser            = "true"
+	DefaultCheMetricsPort          = int32(8087)
+	DefaultCheDebugPort            = int32(8000)
+	DefaultCheVolumeMountPath      = "/data"
+	DefaultCheVolumeClaimName      = "che-data-volume"
+	DefaultPostgresVolumeClaimName = "postgres-data"
 
 	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
 	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
-	DefaultServerMemoryRequest      = "512Mi"
-	DefaultServerMemoryLimit        = "1Gi"
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
@@ -113,6 +105,27 @@ const (
 	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
 	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
 	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
+
+	// limits
+	DefaultPluginRegistryMemoryLimit   = "256Mi"
+	DefaultPluginRegistryMemoryRequest = "16Mi"
+	DefaultPluginRegistryCpuLimit      = "500m"
+
+	DefaultDevfileRegistryMemoryLimit   = "256Mi"
+	DefaultDevfileRegistryMemoryRequest = "16Mi"
+	DefaultDevfileRegistryCpuLimit      = "500m"
+
+	DefaultServerMemoryRequest = "512Mi"
+	DefaultServerMemoryLimit   = "1Gi"
+	DefaultServerCpuLimit      = "1"
+
+	DefaultIdentityProviderMemoryRequest = "512Mi"
+	DefaultIdentityProviderMemoryLimit   = "2Gi"
+	DefaultIdentityProviderCpuLimit      = "500m"
+
+	DefaultPostgresMemoryRequest = "512Mi"
+	DefaultPostgresMemoryLimit   = "1Gi"
+	DefaultPostgresCpuLimit      = "500m"
 )
 
 func InitDefaults(defaultsPath string) {
