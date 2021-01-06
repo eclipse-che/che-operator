@@ -35,6 +35,7 @@ import (
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -103,9 +104,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Become the leader before proceeding
-	leader.Become(context.TODO(), "che-operator-lock")
-
 	r := ready.NewFileReady()
 	err = r.Set()
 	if err != nil {
@@ -114,10 +112,15 @@ func main() {
 	}
 	defer r.Unset()
 
+	// Become the leader before proceeding
+	leader.Become(context.TODO(), "che-operator-lock")
+
 	// Create a new Cmd to provide shared dependencies and start components
 	options := manager.Options{
-		Namespace: namespace,
+		Namespace:              namespace,
+		HealthProbeBindAddress: ":6789",
 	}
+
 	mgr, err := manager.New(cfg, options)
 	if err != nil {
 		log.Error(err, "")
@@ -155,6 +158,12 @@ func main() {
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	// Setup health checks
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		log.Error(err, "Unable to set up health check")
 		os.Exit(1)
 	}
 
