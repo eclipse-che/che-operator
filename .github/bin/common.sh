@@ -37,13 +37,13 @@ init() {
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OAUTH="false"
 
-  export XDG_DATA_HOME=/tmp/chectl/data
-  export XDG_CACHE_HOME=/tmp/chectl/cache
-  export XDG_CONFIG_HOME=/tmp/chectl/config
+  export XDG_DATA_HOME=/tmp/xdg_data
+  export XDG_CACHE_HOME=/tmp/xdg_cache
+  export XDG_CONFIG_HOME=/tmp/xdg_config
 
   # turn off telemetry
-  mkdir -p ${XDG_CONFIG_HOME}
-  echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/config.json
+  mkdir -p ${XDG_CONFIG_HOME}/chectl
+  echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/chectl/config.json
 
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 
