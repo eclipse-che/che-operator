@@ -42,6 +42,7 @@ init() {
   export XDG_CONFIG_HOME=/tmp/chectl/config
 
   # turn off telemetry
+  mkdir -p ${XDG_CONFIG_HOME}
   echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/config.json
 
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
