@@ -35,7 +35,7 @@ jobs:
     - name: Update minishift deprecated certificates and run e2e
       run: |
         eval $(minishift oc-env)
-        /bin/bash .github/bin/minishift/test-latest-updates.sh
+        /bin/bash .github/bin/minishift/test-latest-update.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

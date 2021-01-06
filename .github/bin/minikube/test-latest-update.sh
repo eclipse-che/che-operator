@@ -20,11 +20,16 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
+prepareTemplates() {
+  disableUpdateAdminPassword ${LAST_OPERATOR_TEMPLATE}
+  setIngressDomain ${LAST_OPERATOR_TEMPLATE} "$(minikube ip).nip.io"
+}
+
 runTest() {
   deployEclipseChe "operator" "minikube" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
   createWorkspace
 
-  updateEclipseChe  ${OPERATOR_IMAGE} ${TEMPLATES}
+  updateEclipseChe ${OPERATOR_IMAGE} ${TEMPLATES}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   startExistedWorkspace
@@ -34,6 +39,7 @@ runTest() {
 init
 initLatestTemplates
 initStableTemplates "kubernetes" "stable"
+prepareTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest
