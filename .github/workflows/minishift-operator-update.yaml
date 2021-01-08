@@ -17,7 +17,7 @@ on:
      - master
 jobs:
   minishift:
-    name: Testing latest updates
+    name: Operator update from stable to nightly
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
@@ -49,10 +49,10 @@ jobs:
       run: sudo pip install yq
     - name: Replace Minishift default certificates
       run: /bin/bash .github/bin/minishift/certs.sh
-    - name: Update minishift deprecated certificates and run e2e
+    - name: Tests
       run: |
         eval $(minishift oc-env)
-        /bin/bash .github/bin/minishift/test-latest-update.sh
+        /bin/bash .github/bin/minishift/test-operator-update.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

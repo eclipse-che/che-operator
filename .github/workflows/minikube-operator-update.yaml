@@ -17,7 +17,7 @@ on:
       - master
 jobs:
   minikube:
-    name: Testing latest updates
+    name: Operator update from stable to nightly
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -27,8 +27,8 @@ jobs:
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=stable
     - name: Install jq
       run: sudo pip install yq
-    - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-latest-update.sh
+    - name: Tests
+      run: /bin/bash .github/bin/minikube/test-operator-update.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
