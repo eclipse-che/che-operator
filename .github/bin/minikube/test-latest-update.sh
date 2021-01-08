@@ -23,6 +23,7 @@ trap "catchFinish" EXIT SIGINT
 prepareTemplates() {
   disableUpdateAdminPassword ${LAST_OPERATOR_TEMPLATE}
   setIngressDomain ${LAST_OPERATOR_TEMPLATE} "$(minikube ip).nip.io"
+  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
 }
 
 runTest() {

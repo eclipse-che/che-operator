@@ -22,7 +22,7 @@ trap "catchFinish" EXIT SIGINT
 
 prepareTemplates() {
   disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
-  disableOpenShiftOAuth ${TEMPLATES}
+  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
 }
 
 runTest() {
