@@ -1,14 +1,12 @@
 #!/bin/bash
 #
-# Copyright (c) 2020 Red Hat, Inc.
+# Copyright (c) 2012-2020 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Contributors:
-#   Red Hat, Inc. - initial API and implementation
 
 set -e
 set -x
@@ -20,26 +18,13 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-prepareTemplates() {
-  disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
-  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
-}
-
 runTest() {
-  deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
-  createWorkspace
-
-  updateEclipseChe  ${OPERATOR_IMAGE} ${TEMPLATES}
-  waitEclipseCheDeployed "nightly"
-
-  startExistedWorkspace
+  export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
+  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" ${NAMESPACE} "catalog"
+  startNewWorkspace
   waitWorkspaceStart
 }
 
 init
-installYq
-initLatestTemplates
-initStableTemplates "openshift" "stable"
-prepareTemplates
-copyCheOperatorImageToMinishift
+insecurePrivateDockerRegistry
 runTest

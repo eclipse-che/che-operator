@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (c) 2020 Red Hat, Inc.
 # This program and the accompanying materials are made
@@ -12,6 +12,7 @@
 
 set -e
 set -x
+set -u
 
 # Get absolute path for root repo directory from github actions context: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
@@ -21,25 +22,22 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 prepareTemplates() {
-  disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
+  disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
+  setServerExposureStrategy ${TEMPLATES} "single-host"
+  setSingleHostExposureType ${TEMPLATES} "gateway"
+  setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
 }
 
 runTest() {
-  deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
-  createWorkspace
-
-  updateEclipseChe  ${OPERATOR_IMAGE} ${TEMPLATES}
-  waitEclipseCheDeployed "nightly"
-
-  startExistedWorkspace
+  deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
+  startNewWorkspace
   waitWorkspaceStart
 }
 
 init
-installYq
 initLatestTemplates
-initStableTemplates "openshift" "stable"
 prepareTemplates
-copyCheOperatorImageToMinishift
+buildCheOperatorImage
+copyCheOperatorImageToMinikube
 runTest

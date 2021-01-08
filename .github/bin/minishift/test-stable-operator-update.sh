@@ -21,16 +21,16 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 prepareTemplates() {
+  disableOpenShiftOAuth ${PREVIOUS_OPERATOR_TEMPLATE}
   disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
-  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
 }
 
 runTest() {
-  deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
+  deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}" ${PREVIOUS_OPERATOR_TEMPLATE}
   createWorkspace
 
-  updateEclipseChe  ${OPERATOR_IMAGE} ${TEMPLATES}
-  waitEclipseCheDeployed "nightly"
+  updateEclipseChe "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
+  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   startExistedWorkspace
   waitWorkspaceStart
@@ -38,8 +38,6 @@ runTest() {
 
 init
 installYq
-initLatestTemplates
 initStableTemplates "openshift" "stable"
 prepareTemplates
-copyCheOperatorImageToMinishift
 runTest

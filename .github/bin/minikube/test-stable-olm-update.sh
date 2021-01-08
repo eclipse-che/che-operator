@@ -20,26 +20,13 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-prepareTemplates() {
-  disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
-  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
-}
-
 runTest() {
-  deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
-  createWorkspace
-
-  updateEclipseChe  ${OPERATOR_IMAGE} ${TEMPLATES}
-  waitEclipseCheDeployed "nightly"
-
-  startExistedWorkspace
+  "${OPERATOR_REPO}"/olm/testUpdate.sh "kubernetes" "stable" ${NAMESPACE}
+  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
+  startNewWorkspace
   waitWorkspaceStart
 }
 
 init
-installYq
-initLatestTemplates
-initStableTemplates "openshift" "stable"
-prepareTemplates
-copyCheOperatorImageToMinishift
+initStableTemplates "kubernetes" "stable"
 runTest
