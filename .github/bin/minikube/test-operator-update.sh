@@ -31,7 +31,7 @@ runTest() {
   createWorkspace
 
   updateEclipseChe ${OPERATOR_IMAGE} ${TEMPLATES}
-  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
+  waitEclipseCheDeployed "nightly"
 
   startExistedWorkspace
   waitWorkspaceStart

@@ -17,7 +17,7 @@ on:
      - master
 jobs:
   minishift:
-    name: Operator update from stable to nightly
+    name: Test Eclipse Che update from stable to nightly
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1

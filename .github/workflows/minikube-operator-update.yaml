@@ -17,7 +17,7 @@ on:
       - master
 jobs:
   minikube:
-    name: Operator update from stable to nightly
+    name: Test Eclipse Che update from stable to nightly
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
