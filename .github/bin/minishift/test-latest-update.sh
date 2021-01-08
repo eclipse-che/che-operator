@@ -39,6 +39,6 @@ runTest() {
 init
 installYq
 initLatestTemplates
-initStableTemplates "kubernetes" "stable"
+initStableTemplates "openshift" "stable"
 prepareTemplates
 runTest
