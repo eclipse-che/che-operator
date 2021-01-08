@@ -21,7 +21,6 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 prepareTemplates() {
-  disableOpenShiftOAuth ${TEMPLATES}
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
