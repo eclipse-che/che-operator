@@ -22,6 +22,7 @@ trap "catchFinish" EXIT SIGINT
 
 prepareTemplates() {
   disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
+  disableUpdateAdminPassword ${LAST_OPERATOR_TEMPLATE}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
 }
 
