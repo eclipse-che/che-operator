@@ -69,6 +69,7 @@ rules:
       - list
       - create
       - watch
+      - update
   - apiGroups:
       - authorization.openshift.io
       - rbac.authorization.k8s.io
@@ -184,6 +185,7 @@ rules:
     resources:
       - configmaps
     verbs:
+      - get
       - create
       - delete
       - list

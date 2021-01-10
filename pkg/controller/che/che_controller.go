@@ -376,6 +376,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	r.setWorkspaceNamespaceDefaultField(instance)
+
 	// Read proxy configuration
 	proxy, err := r.getProxyConfiguration(instance)
 	if err != nil {
@@ -553,49 +555,221 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
-	if cheWorkspaceSA == nil {
-		logrus.Info("Waiting on service account 'che-workspace' to be created")
-		if err != nil {
-			logrus.Error(err)
+	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+		cheManageNamespacesName := fmt.Sprintf(cheManageNamespaces, instance.Namespace)
+		cheManageNamespacesClusterRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, []rbac.PolicyRule{
+			{
+				APIGroups: []string{"project.openshift.io"},
+				Resources: []string{"projectrequests"},
+				Verbs: []string{"create", "update"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"namespaces"},
+				Verbs: []string{"create", "update"},
+			},
+		});
+		if cheManageNamespacesClusterRole == nil {
+			logrus.Infof("Waiting on clusterrole '%s' to be created", cheManageNamespacesName)
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+		cheManageNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheManageNamespacesName, cheSA.Name, cheManageNamespacesName)
+		if cheManageNamespacesRolebinding == nil {
+			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", cheManageNamespacesName)
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
-	}
 
-	// create exec role for CheCluster server and workspaces
-	execRole, err := deploy.SyncExecRoleToCluster(deployContext)
-	if execRole == nil {
-		logrus.Info("Waiting on role 'exec' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
+		cheCreateNamespacesName := fmt.Sprintf(cheCreateNamespaces, instance.Namespace)
+		cheCreateNamespacesRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, []rbac.PolicyRule{
+			{
+				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+				Resources: []string{"roles"},
+				Verbs: []string{"get", "create"},
+			},
+			{
+				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
+				Resources: []string{"rolebindings"},
+				Verbs: []string{"get", "update", "create"},
+			},
+			{
+				APIGroups: []string{"project.openshift.io"},
+				Resources: []string{"projects"},
+				Verbs: []string{"get"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"serviceaccounts"},
+				Verbs: []string{"get", "create", "watch"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"pods/exec"},
+				Verbs: []string{"create"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"persistentvolumeclaims", "configmaps"},
+				Verbs: []string{"list"},
+			},
+			{
+				APIGroups: []string{"apps"},
+				Resources: []string{"secrets"},
+				Verbs: []string{"list"},
+			},
 
-	// create view role for CheCluster server and workspaces
-	viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
-	if viewRole == nil {
-		logrus.Info("Waiting on role 'view' to be created")
-		if err != nil {
-			logrus.Error(err)
+			{
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+				Verbs: []string{"list", "create", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"persistentvolumeclaims"},
+				Verbs: []string{"get", "create", "watch"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"pods"},
+				Verbs: []string{"get", "create", "list", "watch", "delete"},
+			},
+			{
+				APIGroups: []string{"apps"},
+				Resources: []string{"deployments"},
+				Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"services"},
+				Verbs: []string{"create", "list", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"configmaps"},
+				Verbs: []string{"get", "create", "delete"},
+			},
+			{
+				APIGroups: []string{"route.openshift.io"},
+				Resources: []string{"routes"},
+				Verbs: []string{"list", "create", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"events"},
+				Verbs: []string{"watch"},
+			},
+			{
+				APIGroups: []string{"apps"},
+				Resources: []string{"replicasets"},
+				Verbs: []string{"list", "get", "patch", "delete"},
+			},
+			{
+				APIGroups: []string{"extensions"},
+				Resources: []string{"ingresses"},
+				Verbs: []string{"list", "create", "watch", "get", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"namespaces"},
+				Verbs: []string{"get"},
+			},
+		})
+		if cheCreateNamespacesRole == nil {
+			logrus.Infof("Waiting on clusterrole '%s' to be created", cheCreateNamespacesName)
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+		cheCreateNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheCreateNamespacesName, cheSA.Name, cheCreateNamespacesName)
+		if cheCreateNamespacesRolebinding == nil {
+			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", cheCreateNamespacesName)
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
-	}
+		// Default workspaces namespace is the same with Che
+	} else {
+		cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
+		if cheWorkspaceSA == nil {
+			logrus.Info("Waiting on service account 'che-workspace' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+		}
 
-	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che", "che", "edit", "ClusterRole")
-	if cheRoleBinding == nil {
-		logrus.Info("Waiting on role binding 'che' to be created")
-		if err != nil {
-			logrus.Error(err)
+		// create view role for CheCluster server and workspaces
+		viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
+		if viewRole == nil {
+			logrus.Info("Waiting on role 'view' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+
+		cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-view", "che-workspace", "view", "Role")
+		if cheWSViewRoleBinding == nil {
+			logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+		}
+
+		// create exec role for CheCluster server and workspaces
+		execRole, err := deploy.SyncExecRoleToCluster(deployContext)
+		if execRole == nil {
+			logrus.Info("Waiting on role 'exec' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+		}
+	
+		cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
+		if cheWSExecRoleBinding == nil {
+			logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+		}
+
+		cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che", "che", "edit", "ClusterRole")
+		if cheRoleBinding == nil {
+			logrus.Info("Waiting on role binding 'che' to be created")
+			if err != nil {
+				logrus.Error(err)
+			}
+			if !tests {
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
 		}
 	}
 
@@ -614,28 +788,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{RequeueAfter: time.Second}, err
 				}
 			}
-		}
-	}
-
-	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
-	if cheWSExecRoleBinding == nil {
-		logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
-	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-view", "che-workspace", "view", "Role")
-	if cheWSViewRoleBinding == nil {
-		logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -1321,6 +1473,19 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 	if message != "" && reason != "" {
 		if err := r.SetStatusDetails(cr, request, message, reason, ""); err != nil {
 			return reconcile.Result{}, err
+		}
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileChe) setWorkspaceNamespaceDefaultField(cr *orgv1.CheCluster) (reconcile.Result, error) {
+	if util.IsOpenShift && util.IsOAuthEnabled(cr) && len(cr.Spec.Server.WorkspaceNamespaceDefault) == 0 {
+		// If the workspace is created under the openshift identity of the end-user,
+		// Then we'll have rights to create any new namespace
+		cr.Spec.Server.WorkspaceNamespaceDefault  = "<username>-" + deploy.DefaultCheFlavor(cr)
+		if err := r.UpdateCheCRSpec(cr, "WorkspaceNamespaceDefault", cr.Spec.Server.WorkspaceNamespaceDefault); err != nil {
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 

@@ -103,7 +103,7 @@ func SyncRoleToCluster(
 		return nil, err
 	}
 
-	clusterRole, err := getClusterRole(specRole.Name, specRole.Namespace, deployContext.ClusterAPI.Client)
+	clusterRole, err := getCheClusterRole(specRole.Name, specRole.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func SyncRoleToCluster(
 	return clusterRole, nil
 }
 
-func getClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
+func getCheClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
 	role := &rbac.Role{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
