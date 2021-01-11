@@ -299,7 +299,7 @@ patchEclipseCheOperatorSubscription() {
 
 # Create CheCluster object in Openshift ci with desired values
 applyOlmCR() {
-  echo "Creating Custom Resource"
+  echo "[INFO] Creating Custom Resource"
 
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
@@ -308,4 +308,21 @@ applyOlmCR() {
 
   echo -e "$CR"
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
+}
+
+# Create admin user inside of openshift cluster and login
+function provisionOpenshiftUsers() {
+  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config            
+  oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
+  oc adm policy add-cluster-role-to-user cluster-admin admin
+
+  echo -e "[INFO] Waiting for htpasswd auth to be working up to 5 minutes"
+  CURRENT_TIME=$(date +%s)
+  ENDTIME=$(($CURRENT_TIME + 300))
+  while [ $(date +%s) -lt $ENDTIME ]; do
+      if oc login -u admin -p admin --insecure-skip-tls-verify=false; then
+          break
+      fi
+      sleep 10
+  done
 }
