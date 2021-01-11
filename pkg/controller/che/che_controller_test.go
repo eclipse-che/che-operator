@@ -987,7 +987,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// Set up che host for route
-	cheRoute, _ := deploy.GetSpecRoute(deployContext, "che", "che-host", "che-host", 8080, "")
+	cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(cheCR), "che-host", "che-host", 8080, "")
 	cl.Update(context.TODO(), cheRoute)
 
 	// reconsile to update Che route
