@@ -623,6 +623,11 @@ func getSpecKeycloakDeployment(
 								PeriodSeconds:       10,
 								SuccessThreshold:    1,
 							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+							},
 							Env: keycloakEnv,
 							VolumeMounts: []corev1.VolumeMount{
 								customPublicCertsVolumeMount,

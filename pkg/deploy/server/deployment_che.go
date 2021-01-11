@@ -241,6 +241,11 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 									corev1.ResourceMemory: resource.MustParse(memLimit),
 								},
 							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{

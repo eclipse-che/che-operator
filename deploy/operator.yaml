@@ -107,6 +107,10 @@ spec:
             failureThreshold: 10
             successThreshold: 1
             timeoutSeconds: 5
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5

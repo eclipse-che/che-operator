@@ -151,6 +151,11 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
 							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "POSTGRESQL_DATABASE",
