@@ -57,7 +57,7 @@ function oauthProvisioned() {
   curl --location -k --request POST ''$IDP_HOST'/auth/admin/realms/che/users/'$USER_ID'/federated-identity/openshift-v4' \
   --header 'Authorization: Bearer '$TOKEN_RESULT'' \
   --header 'Content-Type: application/json' \
-  --data-raw '{
+  --data '{
       "identityProvider": "openshift-v4",
       "userId": "'$OCP_USER_UID'",
       "userName": "admin"
