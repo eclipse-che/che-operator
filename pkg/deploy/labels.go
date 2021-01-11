@@ -33,7 +33,8 @@ func GetDeploymentLabels(cr *orgv1.CheCluster, component string) (map[string]str
 		KubernetesInstanceLabelKey:  cheFlavor,
 		KubernetesManagedByLabelKey: cheFlavor + "-operator",
 
-		// for backward compatability
+		// for backward compatability, we have to keep these labels for the selector
+		// otherwise deployment update fails
 		"app":       cheFlavor,
 		"component": component,
 	}
