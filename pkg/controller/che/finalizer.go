@@ -55,7 +55,7 @@ func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error
 	return nil
 }
 
-func (r *ReconcileChe) DeleteFinalizer(instance *orgv1.CheCluster) (err error) {
+func (r *ReconcileChe) DeleteOAuthFinalizer(instance *orgv1.CheCluster) (err error) {
 	instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, oAuthFinalizerName)
 	logrus.Infof("Removing OAuth finalizer on %s CR", instance.Name)
 	if err := r.client.Update(context.Background(), instance); err != nil {

@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	
 	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -196,7 +197,7 @@ func SyncClusterRoleToCheCluster(
 		return nil, err
 	}
 
-	clusterRole, err := getClusterRole(specClusterRole.Name, deployContext.ClusterAPI.Client)
+	clusterRole, err := GetClusterRole(specClusterRole.Name, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +220,7 @@ func SyncClusterRoleToCheCluster(
 	return clusterRole, nil
 }
 
-func getClusterRole(name string, client runtimeClient.Client) (*rbac.ClusterRole, error) {
+func GetClusterRole(name string, client runtimeClient.Client) (*rbac.ClusterRole, error) {
 	clusterRole := &rbac.ClusterRole{}
 	namespacedName := types.NamespacedName{
 		Name:      name,
@@ -247,11 +248,6 @@ func getSpecClusterRole(deployContext *DeployContext, name string, policyRule []
 		},
 		Rules: policyRule,
 	}
-
-	// err := controllerutil.SetControllerReference(deployContext.CheCluster, clusterRole, deployContext.ClusterAPI.Scheme)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	return clusterRole, nil
 }

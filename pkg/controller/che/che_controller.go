@@ -262,8 +262,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 var (
 	_ reconcile.Reconciler = &ReconcileChe{}
 	oAuthFinalizerName     = "oauthclients.finalizers.che.eclipse.org"
-	cheCreateNamespaces    = "%s-clusterrole-create-namespaces"
-	cheManageNamespaces    = "%s-clusterrole-manage-namespaces"
+	clusterPermissionsFinalizerName = "cluster.permissions.finalizers.che.eclipse.org"
+	CheCreateNamespaces    = "%s-clusterrole-create-namespaces"
+	CheManageNamespaces    = "%s-clusterrole-manage-namespaces"
 )
 
 // ReconcileChe reconciles a CheCluster object
@@ -331,6 +332,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// instance.Status.OpenShiftoAuthProvisioned
 	if util.IsOpenShift && util.IsOAuthEnabled(instance) {
 		if err := r.ReconcileFinalizer(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+	if util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+		if err := r.RemoveWorkspaceClusterPermissions(instance); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
@@ -556,7 +562,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
-		cheManageNamespacesName := fmt.Sprintf(cheManageNamespaces, instance.Namespace)
+		// todo add check code...
+		if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+
+		cheManageNamespacesName := fmt.Sprintf(CheManageNamespaces, instance.Namespace)
 		cheManageNamespacesClusterRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, []rbac.PolicyRule{
 			{
 				APIGroups: []string{"project.openshift.io"},
@@ -589,7 +600,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		cheCreateNamespacesName := fmt.Sprintf(cheCreateNamespaces, instance.Namespace)
+		cheCreateNamespacesName := fmt.Sprintf(CheCreateNamespaces, instance.Namespace)
 		cheCreateNamespacesRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, []rbac.PolicyRule{
 			{
 				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
@@ -704,6 +715,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		// Default workspaces namespace is the same with Che
 	} else {
+		// err := r.RemoveClusterPermissionsFinalizer(instance)
+		// todo check error handling here...
+		// if !tests {
+		// 	return reconcile.Result{RequeueAfter: time.Second}, err
+		// }
+
 		cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
 		if cheWorkspaceSA == nil {
 			logrus.Info("Waiting on service account 'che-workspace' to be created")
@@ -1101,7 +1118,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
 	if deleted {
 		for {
-			if err := r.DeleteFinalizer(instance); err != nil &&
+			if err := r.DeleteOAuthFinalizer(instance); err != nil &&
 				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
