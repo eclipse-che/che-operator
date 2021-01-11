@@ -119,9 +119,9 @@ func GetSpecRegistryDeployment(
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 							},
-							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{"ALL"},
+							SecurityContext: &v1.SecurityContext{
+								Capabilities: &v1.Capabilities{
+									Drop: []v1.Capability{"ALL"},
 								},
 							},
 						},
