@@ -71,9 +71,10 @@ func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string) {
 		"$cheHost", cr.Spec.Server.CheHost,
 		"$requiredActions", requiredActions)
 	createRealmClientUserCommand := r.Replace(str)
-	command = createRealmClientUserCommand
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + createRealmClientUserCommand
+	} else {
+		command = "export JAVA_TOOL_OPTIONS=-Duser.home=/home/jboss && " + createRealmClientUserCommand
 	}
 	return command
 }
@@ -146,10 +147,10 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 		return "", err
 	}
 
-	command = buffer.String()
-
 	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + command
+		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + buffer.String()
+	} else {
+		command = "export JAVA_TOOL_OPTIONS=-Duser.home=/home/jboss  && " + buffer.String()
 	}
 	return command, nil
 }
@@ -175,9 +176,10 @@ func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, isOpe
 			"--realm master --user " + keycloakUserEnvVar + " --password " + keycloakPasswordEnvVar + " && " +
 			"if " + script + " get identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; then " +
 			script + " delete identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; fi"
-	command = deleteOpenShiftIdentityProviderCommand
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + deleteOpenShiftIdentityProviderCommand
+	} else {
+		command = "export JAVA_TOOL_OPTIONS=-Duser.home=/home/jboss  && " + deleteOpenShiftIdentityProviderCommand
 	}
 	return command
 }
