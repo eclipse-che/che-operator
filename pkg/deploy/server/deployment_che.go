@@ -61,7 +61,7 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 
 	terminationGracePeriodSeconds := int64(30)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	labels, labelSelector := deploy.GetDeploymentLabelsAndSelector(deployContext.CheCluster, cheFlavor)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, cheFlavor)
 	optionalEnv := true
 	memRequest := util.GetValue(deployContext.CheCluster.Spec.Server.ServerMemoryRequest, deploy.DefaultServerMemoryRequest)
 	selfSignedCertEnv := corev1.EnvVar{

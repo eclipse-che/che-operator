@@ -19,7 +19,6 @@ import (
 func GetSpecCheService(deployContext *deploy.DeployContext) (*v1.Service, error) {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
-	labels := deploy.GetLabels(deployContext.CheCluster, deploy.DefaultCheFlavor(deployContext.CheCluster))
 
 	if deployContext.CheCluster.Spec.Metrics.Enable {
 		portName = append(portName, "metrics")
@@ -31,7 +30,7 @@ func GetSpecCheService(deployContext *deploy.DeployContext) (*v1.Service, error)
 		portNumber = append(portNumber, deploy.DefaultCheDebugPort)
 	}
 
-	return deploy.GetSpecService(deployContext, deploy.CheServiceName, portName, portNumber, labels)
+	return deploy.GetSpecService(deployContext, deploy.CheServiceName, portName, portNumber, deploy.DefaultCheFlavor(deployContext.CheCluster))
 }
 
 func SyncCheServiceToCluster(deployContext *deploy.DeployContext) deploy.ServiceProvisioningStatus {

@@ -43,9 +43,10 @@ func SyncIngressToCluster(
 	host string,
 	serviceName string,
 	servicePort int,
-	additionalLabels string) (*v1beta1.Ingress, error) {
+	additionalLabels string,
+	component string) (*v1beta1.Ingress, error) {
 
-	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels)
+	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels, component)
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +120,14 @@ func GetSpecIngress(
 	host string,
 	serviceName string,
 	servicePort int,
-	additionalLabels string) (*v1beta1.Ingress, error) {
+	additionalLabels string,
+	component string) (*v1beta1.Ingress, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
-	labels := GetLabels(deployContext.CheCluster, name)
+	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, additionalLabels)
 
 	if host == "" {

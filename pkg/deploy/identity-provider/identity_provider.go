@@ -57,9 +57,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		return true, nil
 	}
 
-	keycloakLabels := deploy.GetLabels(instance, deploy.IdentityProviderName)
-
-	serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.IdentityProviderName, []string{"http"}, []int32{8080}, keycloakLabels)
+	serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.IdentityProviderName, []string{"http"}, []int32{8080}, deploy.IdentityProviderName)
 	if !tests {
 		if !serviceStatus.Continue {
 			logrus.Infof("Waiting on service '%s' to be ready", deploy.IdentityProviderName)
@@ -72,7 +70,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	}
 
 	additionalLabels := (map[bool]string{true: instance.Spec.Auth.IdentityProviderRoute.Labels, false: instance.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenShift]
-	endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.IdentityProviderName, additionalLabels)
+	endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.IdentityProviderName, additionalLabels, deploy.IdentityProviderName)
 	if !done {
 		return false, err
 	}

@@ -51,7 +51,7 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelSelector := deploy.GetDeploymentLabelsAndSelector(deployContext.CheCluster, deploy.PostgresName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, deploy.PostgresName)
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
 	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))

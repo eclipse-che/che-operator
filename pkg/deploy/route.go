@@ -50,9 +50,10 @@ func SyncRouteToCluster(
 	host string,
 	serviceName string,
 	servicePort int32,
-	additionalLabels string) (*routev1.Route, error) {
+	additionalLabels string,
+	component string) (*routev1.Route, error) {
 
-	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, additionalLabels)
+	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, additionalLabels, component)
 	if err != nil {
 		return nil, err
 	}
@@ -131,10 +132,11 @@ func GetSpecRoute(
 	host string,
 	serviceName string,
 	servicePort int32,
-	additionalLabels string) (*routev1.Route, error) {
+	additionalLabels string,
+	component string) (*routev1.Route, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
-	labels := GetLabels(deployContext.CheCluster, name)
+	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, additionalLabels)
 
 	weight := int32(100)

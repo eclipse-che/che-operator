@@ -34,7 +34,7 @@ func GetSpecRegistryDeployment(
 
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
-	labels, labelSelector := deploy.GetDeploymentLabelsAndSelector(deployContext.CheCluster, name)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, name)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)

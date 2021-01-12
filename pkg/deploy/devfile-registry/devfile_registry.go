@@ -35,7 +35,7 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
 		additionalLabels := (map[bool]string{true: deployContext.CheCluster.Spec.Server.DevfileRegistryRoute.Labels, false: deployContext.CheCluster.Spec.Server.DevfileRegistryIngress.Labels})[util.IsOpenShift]
-		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.DevfileRegistryName, additionalLabels)
+		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.DevfileRegistryName, additionalLabels, deploy.DevfileRegistryName)
 		if !done {
 			return false, err
 		}
@@ -60,8 +60,7 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 		}
 
 		// Create a new registry service
-		registryLabels := deploy.GetLabels(deployContext.CheCluster, deploy.DevfileRegistryName)
-		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.DevfileRegistryName, []string{"http"}, []int32{8080}, registryLabels)
+		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.DevfileRegistryName, []string{"http"}, []int32{8080}, deploy.DevfileRegistryName)
 		if !util.IsTestMode() {
 			if !serviceStatus.Continue {
 				logrus.Info("Waiting on service '" + deploy.DevfileRegistryName + "' to be ready")

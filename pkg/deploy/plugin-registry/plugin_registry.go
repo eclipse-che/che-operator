@@ -35,7 +35,7 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 	pluginRegistryURL := deployContext.CheCluster.Spec.Server.PluginRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
 		additionalLabels := (map[bool]string{true: deployContext.CheCluster.Spec.Server.PluginRegistryRoute.Labels, false: deployContext.CheCluster.Spec.Server.PluginRegistryIngress.Labels})[util.IsOpenShift]
-		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.PluginRegistryName, additionalLabels)
+		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.PluginRegistryName, additionalLabels, deploy.PluginRegistryName)
 		if !done {
 			return false, err
 		}
@@ -62,8 +62,7 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 		}
 
 		// Create a new registry service
-		registryLabels := deploy.GetLabels(deployContext.CheCluster, deploy.PluginRegistryName)
-		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PluginRegistryName, []string{"http"}, []int32{8080}, registryLabels)
+		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PluginRegistryName, []string{"http"}, []int32{8080}, deploy.PluginRegistryName)
 		if !util.IsTestMode() {
 			if !serviceStatus.Continue {
 				logrus.Info("Waiting on service '" + deploy.PluginRegistryName + "' to be ready")

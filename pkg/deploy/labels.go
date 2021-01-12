@@ -17,31 +17,35 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
-func GetLabels(cr *orgv1.CheCluster, component string) (labels map[string]string) {
-	cheFlavor := DefaultCheFlavor(cr)
-	labels = map[string]string{
+func GetLegacyLabels(cheCluster *orgv1.CheCluster, component string) map[string]string {
+	return map[string]string{
+		"app":       DefaultCheFlavor(cheCluster),
+		"component": component,
+	}
+}
+
+func GetLabels(cheCluster *orgv1.CheCluster, component string) map[string]string {
+	cheFlavor := DefaultCheFlavor(cheCluster)
+	return map[string]string{
 		KubernetesNameLabelKey:      cheFlavor,
 		KubernetesInstanceLabelKey:  cheFlavor,
 		KubernetesComponentLabelKey: component,
 		KubernetesManagedByLabelKey: cheFlavor + "-operator",
 	}
-	return labels
 }
 
-func GetDeploymentLabelsAndSelector(cr *orgv1.CheCluster, component string) (map[string]string, map[string]string) {
-	cheFlavor := DefaultCheFlavor(cr)
-	labels := GetLabels(cr, component)
+func GetLabelsAndSelector(cheCluster *orgv1.CheCluster, component string) (map[string]string, map[string]string) {
+	labels := GetLabels(cheCluster, component)
+	legacyLabels := GetLegacyLabels(cheCluster, component)
 
 	// For the backward compatability
 	// We have to keep these labels for a deployment since this field is immutable
-	labels["app"] = cheFlavor
-	labels["component"] = component
+	for k, v := range legacyLabels {
+		labels[k] = v
 
-	selector := map[string]string{
-		"app":       cheFlavor,
-		"component": component,
 	}
-	return labels, selector
+
+	return labels, legacyLabels
 }
 
 func MergeLabels(labels map[string]string, additionalLabels string) {

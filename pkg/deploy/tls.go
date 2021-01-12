@@ -130,12 +130,13 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 
 	var useTestEndpoint bool = len(endpointURL) < 1
 	var requestURL string
+	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
 	if useTestEndpoint {
 		if util.IsOpenShift {
 			// Create test route to get certificates chain.
 			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
 			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-			routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels)
+			routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels, cheFlavor)
 			if err != nil {
 				return nil, err
 			}
@@ -174,7 +175,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			// Create test ingress to get certificates chain.
 			// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
 			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
-			ingressSpec, err := GetSpecIngress(deployContext, "test", "", "test", 8080, additionalLabels)
+			ingressSpec, err := GetSpecIngress(deployContext, "test", "", "test", 8080, additionalLabels, cheFlavor)
 			if err != nil {
 				return nil, err
 			}

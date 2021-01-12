@@ -15,6 +15,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -44,8 +45,8 @@ func SyncServiceToCluster(
 	name string,
 	portName []string,
 	portNumber []int32,
-	labels map[string]string) ServiceProvisioningStatus {
-	specService, err := GetSpecService(deployContext, name, portName, portNumber, labels)
+	component string) ServiceProvisioningStatus {
+	specService, err := GetSpecService(deployContext, name, portName, portNumber, component)
 	if err != nil {
 		return ServiceProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -102,8 +103,9 @@ func GetSpecService(
 	name string,
 	portName []string,
 	portNumber []int32,
-	labels map[string]string) (*corev1.Service, error) {
+	component string) (*corev1.Service, error) {
 
+	labels, selector := GetLabelsAndSelector(deployContext.CheCluster, component)
 	ports := []corev1.ServicePort{}
 	for i := range portName {
 		port := corev1.ServicePort{
@@ -126,7 +128,7 @@ func GetSpecService(
 		},
 		Spec: corev1.ServiceSpec{
 			Ports:    ports,
-			Selector: labels,
+			Selector: selector,
 		},
 	}
 
