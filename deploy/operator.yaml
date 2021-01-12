@@ -25,6 +25,7 @@ spec:
         app: che-operator
         app.kubernetes.io/name: che
         app.kubernetes.io/instance: che
+        app.kubernetes.io/component: che-operator
         app.kubernetes.io/managed-by: che-operator
     spec:
       containers:

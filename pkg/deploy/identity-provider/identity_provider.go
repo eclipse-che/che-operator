@@ -27,10 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	Keycloak = "keycloak"
-)
-
 var (
 	oAuthClientDiffOpts = cmpopts.IgnoreFields(oauth.OAuthClient{}, "TypeMeta", "ObjectMeta")
 )
@@ -54,19 +50,19 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	}
 
 	if cheMultiUser == "false" {
-		if util.K8sclient.IsDeploymentExists("keycloak", instance.Namespace) {
-			util.K8sclient.DeleteDeployment("keycloak", instance.Namespace)
+		if util.K8sclient.IsDeploymentExists(deploy.IdentityProviderName, instance.Namespace) {
+			util.K8sclient.DeleteDeployment(deploy.IdentityProviderName, instance.Namespace)
 		}
 
 		return true, nil
 	}
 
-	keycloakLabels := deploy.GetLabels(instance, "keycloak")
+	keycloakLabels := deploy.GetLabels(instance, deploy.IdentityProviderName)
 
-	serviceStatus := deploy.SyncServiceToCluster(deployContext, "keycloak", []string{"http"}, []int32{8080}, keycloakLabels)
+	serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.IdentityProviderName, []string{"http"}, []int32{8080}, keycloakLabels)
 	if !tests {
 		if !serviceStatus.Continue {
-			logrus.Info("Waiting on service 'keycloak' to be ready")
+			logrus.Infof("Waiting on service '%s' to be ready", deploy.IdentityProviderName)
 			if serviceStatus.Err != nil {
 				logrus.Error(serviceStatus.Err)
 			}
@@ -76,12 +72,12 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 	}
 
 	additionalLabels := (map[bool]string{true: instance.Spec.Auth.IdentityProviderRoute.Labels, false: instance.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenShift]
-	endpoint, done, err := expose.Expose(deployContext, cheHost, Keycloak, additionalLabels)
+	endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.IdentityProviderName, additionalLabels)
 	if !done {
 		return false, err
 	}
 	keycloakURL := protocol + "://" + endpoint
-	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d", "http", "keycloak", deployContext.CheCluster.Namespace, 8080)
+	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d", "http", deploy.IdentityProviderName, deployContext.CheCluster.Namespace, 8080)
 
 	if instance.Spec.Auth.IdentityProviderURL != keycloakURL {
 		instance.Spec.Auth.IdentityProviderURL = keycloakURL
@@ -140,7 +136,6 @@ func SyncIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor st
 	instance := deployContext.CheCluster
 	tests := util.IsTestMode()
 	isOpenShift4 := util.IsOpenShift4
-	keycloakDeploymentName := KeycloakDeploymentName
 	oAuthClientName := instance.Spec.Auth.OAuthClientName
 	if len(oAuthClientName) < 1 {
 		oAuthClientName = instance.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
@@ -173,7 +168,7 @@ func SyncIdentityProviderItems(deployContext *deploy.DeployContext, cheFlavor st
 			logrus.Errorf("Failed to build identity provider provisioning command")
 			return err
 		}
-		podToExec, err := util.K8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
+		podToExec, err := util.K8sclient.GetDeploymentPod(deploy.IdentityProviderName, instance.Namespace)
 		if err != nil {
 			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
 			return err

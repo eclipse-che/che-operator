@@ -53,7 +53,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		}
 		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
 			keycloakPostgresPassword := util.GeneratePasswd(12)
-			keycloakDeployment, err := r.GetEffectiveDeployment(deployContext.CheCluster, "keycloak")
+			keycloakDeployment, err := r.GetEffectiveDeployment(deployContext.CheCluster, deploy.IdentityProviderName)
 			if err == nil {
 				keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
 			}
@@ -72,7 +72,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 			keycloakAdminUserName := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName, "admin")
 			keycloakAdminPassword := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
 
-			keycloakDeployment, err := r.GetEffectiveDeployment(deployContext.CheCluster, "keycloak")
+			keycloakDeployment, err := r.GetEffectiveDeployment(deployContext.CheCluster, deploy.IdentityProviderName)
 			if err == nil {
 				keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
 				keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")

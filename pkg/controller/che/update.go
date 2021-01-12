@@ -13,9 +13,11 @@ package che
 
 import (
 	"context"
-	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+
+	"github.com/eclipse/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
@@ -48,7 +50,7 @@ func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField 
 func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isOpenShift4 bool) (deleted bool, err error) {
 	if !util.IsOAuthEnabled(instance) && instance.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: instance.Namespace}, keycloakDeployment); err != nil {
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: instance.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
 		}
 		deleteOpenShiftIdentityProviderProvisionCommand := identity_provider.GetDeleteOpenShiftIdentityProviderProvisionCommand(instance, isOpenShift4)

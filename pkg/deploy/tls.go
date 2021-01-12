@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -482,7 +481,8 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 }
 
 // SyncAdditionalCACertsConfigMapToCluster makes sure that additional CA certs config map is up to date if any
-func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext *DeployContext) (*corev1.ConfigMap, error) {
+func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap, error) {
+	cr := deployContext.CheCluster
 	// Get all source config maps, if any
 	caConfigMaps, err := getCACertsConfigMaps(deployContext)
 	if err != nil {
@@ -548,7 +548,7 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
-	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data)
+	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data, DefaultCheFlavor(cr))
 	if err != nil {
 		return nil, err
 	}

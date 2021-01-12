@@ -134,10 +134,7 @@ func GetSpecRoute(
 	additionalLabels string) (*routev1.Route, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
-	if name == "keycloak" {
-		labels = GetLabels(deployContext.CheCluster, name)
-	}
+	labels := GetLabels(deployContext.CheCluster, name)
 	MergeLabels(labels, additionalLabels)
 
 	weight := int32(100)

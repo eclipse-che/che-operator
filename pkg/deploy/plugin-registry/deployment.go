@@ -27,7 +27,7 @@ func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) 
 	probePath := "/v3/plugins/"
 	pluginImagesEnv := util.GetEnvByRegExp("^.*plugin_registry_image.*$")
 
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistryName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},

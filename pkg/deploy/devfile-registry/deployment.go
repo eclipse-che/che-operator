@@ -27,7 +27,7 @@ func SyncDevfileRegistryDeploymentToCluster(deployContext *deploy.DeployContext)
 	probePath := "/devfiles/"
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DevfileRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DevfileRegistryName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return deploy.DeploymentProvisioningStatus{
 			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},

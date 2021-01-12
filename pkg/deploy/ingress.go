@@ -146,12 +146,12 @@ func GetSpecIngress(
 	path := "/"
 	if ingressStrategy != "multi-host" {
 		switch name {
-		case "keycloak":
+		case IdentityProviderName:
 			path = "/auth"
-		case DevfileRegistry:
-			path = "/" + DevfileRegistry + "/(.*)"
-		case PluginRegistry:
-			path = "/" + PluginRegistry + "/(.*)"
+		case DevfileRegistryName:
+			path = "/" + DevfileRegistryName + "/(.*)"
+		case PluginRegistryName:
+			path = "/" + PluginRegistryName + "/(.*)"
 		}
 	}
 
@@ -161,7 +161,7 @@ func GetSpecIngress(
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 		"nginx.ingress.kubernetes.io/ssl-redirect":          strconv.FormatBool(tlsSupport),
 	}
-	if ingressStrategy != "multi-host" && (name == DevfileRegistry || name == PluginRegistry) {
+	if ingressStrategy != "multi-host" && (name == DevfileRegistryName || name == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 

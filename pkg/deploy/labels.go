@@ -20,24 +20,23 @@ import (
 func GetLabels(cr *orgv1.CheCluster, component string) (labels map[string]string) {
 	cheFlavor := DefaultCheFlavor(cr)
 	labels = map[string]string{
-		"app":       cheFlavor,
-		"component": component,
+		KubernetesNameLabelKey:      cheFlavor,
+		KubernetesInstanceLabelKey:  cheFlavor,
+		KubernetesComponentLabelKey: component,
+		KubernetesManagedByLabelKey: cheFlavor + "-operator",
 	}
 	return labels
 }
 
-func GetDeploymentLabels(cr *orgv1.CheCluster, component string) (map[string]string, map[string]string) {
+func GetDeploymentLabelsAndSelector(cr *orgv1.CheCluster, component string) (map[string]string, map[string]string) {
 	cheFlavor := DefaultCheFlavor(cr)
-	labels := map[string]string{
-		KubernetesNameLabelKey:      cheFlavor,
-		KubernetesInstanceLabelKey:  cheFlavor,
-		KubernetesManagedByLabelKey: cheFlavor + "-operator",
+	labels := GetLabels(cr, component)
 
-		// for backward compatability, we have to keep these labels for the selector
-		// otherwise deployment update fails
-		"app":       cheFlavor,
-		"component": component,
-	}
+	// For the backward compatability
+	// We have to keep these labels for a deployment since this field is immutable
+	labels["app"] = cheFlavor
+	labels["component"] = component
+
 	selector := map[string]string{
 		"app":       cheFlavor,
 		"component": component,

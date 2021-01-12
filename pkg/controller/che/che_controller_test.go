@@ -703,7 +703,7 @@ func TestCheController(t *testing.T) {
 
 	// get devfile-registry configmap
 	devfilecm := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: cheCR.Namespace}, devfilecm); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, devfilecm); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
 	}
 
@@ -824,13 +824,13 @@ func TestCheController(t *testing.T) {
 		t.Error("Failed to update CheCluster custom resource")
 	}
 	postgresDeployment := &appsv1.Deployment{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
 	err = r.client.Delete(context.TODO(), postgresDeployment)
 	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
 	if err == nil {
 		t.Fatalf("Deployment postgres shoud not exist")
 	}
@@ -997,15 +997,15 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// Set up keycloak host for route
-	keycloakRoute, _ := deploy.GetSpecRoute(deployContext, "keycloak", "keycloak", "keycloak", 8080, "")
+	keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "")
 	cl.Update(context.TODO(), keycloakRoute)
 
 	// Set up devfile registry host for route
-	devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, "devfile-registry", "devfile-registry", "devfile-registry", 8080, "")
+	devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "")
 	cl.Update(context.TODO(), devfileRegistryRoute)
 
 	// Set up plugin registry host for route
-	pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, "plugin-registry", "plugin-registry", "plugin-registry", 8080, "")
+	pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.PluginRegistryName, "plugin-registry", deploy.PluginRegistryName, 8080, "")
 	cl.Update(context.TODO(), pluginRegistryRoute)
 
 	_, err = r.Reconcile(req)
@@ -1112,7 +1112,7 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 			Name:      "fake-pg-pod",
 			Namespace: "eclipse-che",
 			Labels: map[string]string{
-				"component": "postgres",
+				"component": deploy.PostgresName,
 			},
 		},
 	}

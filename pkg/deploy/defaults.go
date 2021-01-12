@@ -115,6 +115,13 @@ const (
 	CheEclipseOrgMountPath = "che.eclipse.org/mount-path"
 	CheEclipseOrgMountAs   = "che.eclipse.org/mount-as"
 	CheEclipseOrgEnvName   = "che.eclipse.org/env-name"
+	CheEclipseOrgNamespace = "che.eclipse.org/namespace"
+
+	// components
+	IdentityProviderName = "keycloak"
+	DevfileRegistryName  = "devfile-registry"
+	PluginRegistryName   = "plugin-registry"
+	PostgresName         = "postgres"
 )
 
 func InitDefaults(defaultsPath string) {

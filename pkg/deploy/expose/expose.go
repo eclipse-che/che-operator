@@ -25,7 +25,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 	var pathPrefix string
 	var stripPrefix bool
 
-	if endpointName == "keycloak" {
+	if endpointName == deploy.IdentityProviderName {
 		pathPrefix = "auth"
 		stripPrefix = false
 	} else {
@@ -38,7 +38,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 		endpoint = domain
 	} else {
 		domain = cheHost
-		if endpointName == "keycloak" {
+		if endpointName == deploy.IdentityProviderName {
 			// legacy
 			endpoint = domain
 		} else {
