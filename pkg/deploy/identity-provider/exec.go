@@ -154,13 +154,11 @@ func getCommandFromTemplateFile(cr *v1.CheCluster, templateFile string, data int
 		return "", err
 	}
 
-	command := buffer.String()
 	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + buffer.String()
+		return "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + buffer.String(), nil
 	} else {
-		command = "cd /home/jboss && " + buffer.String()
+		return "cd /home/jboss && " + buffer.String(), nil
 	}
-	return command, nil
 }
 
 func getDefaults(cr *v1.CheCluster) (string, string, string, string, string) {
