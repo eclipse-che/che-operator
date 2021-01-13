@@ -17,6 +17,8 @@ spec:
   selector:
     matchLabels:
       app: che-operator
+  strategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -88,7 +90,7 @@ spec:
               value: ca-certs
           livenessProbe:
             httpGet:
-              path: /readyz
+              path: /healthz
               port: 6789
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -96,9 +98,10 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
           readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 6789
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 10

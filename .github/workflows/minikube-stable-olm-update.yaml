@@ -11,24 +11,27 @@
 #
 
 name: Minikube
-on: pull_request
+on:
+  pull_request:
+    branches:
+     - 7.*
 jobs:
   minikube-e2e:
-    name: Testing latest changes (olm installer)
+    name: Testing stable versions updates
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - name: Provision Minikube cluster
       run:  /bin/bash .github/bin/minikube/provision-cluster.sh
     - name: Install chectl
-      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=stable
     - name: Install jq
       run: sudo pip install yq
     - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-latest-olm.sh
+      run: /bin/bash .github/bin/minikube/test-stable-olm-update.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-olm-artifacts
+        name: minikube-updates-artifacts
         path: /tmp/artifacts-che

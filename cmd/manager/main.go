@@ -104,9 +104,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Become the leader before proceeding
-	leader.Become(context.TODO(), "che-operator-lock")
-
 	r := ready.NewFileReady()
 	err = r.Set()
 	if err != nil {
@@ -115,11 +112,15 @@ func main() {
 	}
 	defer r.Unset()
 
+	// Become the leader before proceeding
+	leader.Become(context.TODO(), "che-operator-lock")
+
 	// Create a new Cmd to provide shared dependencies and start components
 	options := manager.Options{
 		Namespace:              namespace,
 		HealthProbeBindAddress: ":6789",
 	}
+
 	mgr, err := manager.New(cfg, options)
 	if err != nil {
 		log.Error(err, "")
@@ -163,10 +164,6 @@ func main() {
 	// Setup health checks
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		log.Error(err, "Unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		log.Error(err, "Unable to set up ready check")
 		os.Exit(1)
 	}
 

@@ -1,3 +1,0 @@
-role-paths: [ "generated/roles/role.yaml", "generated/roles/cluster_role.yaml", "generated/roles/namespaces_cluster_role.yaml" ]
-operator-path: ../../operator.yaml
-crd-cr-paths: ["../../crds/org_v1_che_crd.yaml"]

@@ -49,7 +49,7 @@ jobs:
     - name: Run tests
       run: |
         eval $(minishift oc-env)
-        /bin/bash .github/bin/minishift/test-latest-operator.sh
+        /bin/bash .github/bin/minishift/test-operator.sh
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
