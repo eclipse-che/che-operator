@@ -100,9 +100,7 @@ func update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 			}
 
 			err = clusterAPI.Client.Create(context.TODO(), obj)
-			if err != nil {
-				return false, err
-			}
+			return false, err
 		} else {
 			obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
 			if err != nil {
@@ -113,14 +111,10 @@ func update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 			obj.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
 
 			err = clusterAPI.Client.Update(context.TODO(), obj)
-			if err != nil {
-				return false, err
-			}
+			return false, err
 		}
-
-		return true, nil
 	}
-	return false, nil
+	return true, nil
 }
 
 func isUpdateUsingDeleteCreate(kind string) bool {

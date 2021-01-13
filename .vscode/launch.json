@@ -99,7 +99,7 @@
         "stable",
         "che"
       ]
-    }, 
+    },
     {
       "type": "bashdb",
       "request": "launch",
@@ -145,7 +145,8 @@
       "mode": "test",
       "program": "${file}",
       "env": {
-        "MOCK_API": true
+        "MOCK_API": true,
+        "CHE_FLAVOR": "che"
       },
     },
     {

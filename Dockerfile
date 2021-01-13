@@ -29,8 +29,10 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
 FROM registry.access.redhat.com/ubi8-minimal:8.3-230
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
-COPY --from=builder /che-operator/templates/keycloak_provision /tmp/keycloak_provision
-COPY --from=builder /che-operator/templates/oauth_provision /tmp/oauth_provision
+COPY --from=builder /che-operator/templates/keycloak-provision.sh /tmp/keycloak-provision.sh
+COPY --from=builder /che-operator/templates/oauth-provision.sh /tmp/oauth-provision.sh
+COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
+COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 # apply CVE fixes, if required
 RUN microdnf update -y librepo libnghttp2 && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]
