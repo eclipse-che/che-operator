@@ -74,7 +74,7 @@ func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string) {
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + createRealmClientUserCommand
 	} else {
-		command = "export JAVA_TOOL_OPTIONS=-Duser.home=/home/jboss && " + createRealmClientUserCommand
+		command = "cd /home/jboss && " + createRealmClientUserCommand
 	}
 	return command
 }
@@ -150,7 +150,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + buffer.String()
 	} else {
-		command = "export JAVA_TOOL_OPTIONS=-Duser.home=/home/jboss  && " + buffer.String()
+		command = "cd /home/jboss && " + buffer.String()
 	}
 	return command, nil
 }
@@ -179,7 +179,7 @@ func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, isOpe
 	if cheFlavor == "che" {
 		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + deleteOpenShiftIdentityProviderCommand
 	} else {
-		command = "export JAVA_TOOL_OPTIONS=-Duser.home=/home/jboss  && " + deleteOpenShiftIdentityProviderCommand
+		command = "cd /home/jboss  && " + deleteOpenShiftIdentityProviderCommand
 	}
 	return command
 }
