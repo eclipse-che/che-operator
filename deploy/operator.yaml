@@ -106,4 +106,5 @@ spec:
             timeoutSeconds: 5
       restartPolicy: Always
       serviceAccountName: che-operator
-      terminationGracePeriodSeconds: 5
+      # Should be plenty long for finalizers
+      terminationGracePeriodSeconds: 20

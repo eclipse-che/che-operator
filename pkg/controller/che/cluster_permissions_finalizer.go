@@ -39,7 +39,6 @@ func (r *ReconcileChe) ReconsileClusterPermissionsFinalizer(instance *orgv1.CheC
 }
 
 func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheCluster) (err error) {
-	logrus.Info("=====================TEST================")
 	if util.ContainsString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName) {
 		logrus.Infof("Removing Cluster permissions finalizer on %s CR", instance.Name)
 
@@ -61,8 +60,9 @@ func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheClus
 
 		instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName)
 		finalizers := "[" + strings.Join(instance.ObjectMeta.Finalizers, ",") + "]"
-		if err := r.UpdateCheCRSpec(instance, "Finalizers", finalizers); err != nil {
-			logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
+		logrus.Infof("===========Finalizers %s================", finalizers)
+		if err := r.client.Update(context.Background(), instance); err != nil {
+			logrus.Errorf("============Sad CR was not updated, cause %s", err.Error())
 			return err
 		}
 	}
@@ -74,9 +74,11 @@ func (r *ReconcileChe) removeClusterRole(clusterRoleName string, cheClusterName 
 	logrus.Infof("Custom resource %s is being deleted. Deleting Cluster role %s.", cheClusterName, clusterRoleName)
 
 	clusterRole, err := deploy.GetClusterRole(clusterRoleName, r.nonCachedClient)
-	if err == nil {
+	if err == nil && clusterRole != nil {
+		// todo remove this log when pr is well tested
+		logrus.Info("Cluster role is %v", clusterRole)
 		if err := r.nonCachedClient.Delete(context.TODO(), clusterRole); err != nil {
-			logrus.Errorf("Failed to delete %s clusterRole: %s", clusterRoleName, err)
+			logrus.Errorf("Failed to delete %s clusterRole: %s", clusterRoleName, err.Error())
 			return err
 		}
 	} else if !errors.IsNotFound(err) {
@@ -90,15 +92,16 @@ func (r *ReconcileChe) removeClusterRole(clusterRoleName string, cheClusterName 
 func (r *ReconcileChe) removeClusterRoleBinding(clusterRoleBindingName string, cheClusterName string) error {
 	logrus.Infof("Custom resource %s is being deleted. Deleting Cluster rolebinding %s.", cheClusterName, clusterRoleBindingName)
 
-	// Todo, maybe nonCached client should work....
 	clusterRoleBinding, err := deploy.GetClusterRoleBiding(clusterRoleBindingName, r.nonCachedClient)
-	if err != nil {
+	if err == nil && clusterRoleBinding != nil {
+		// todo remove this log when pr is well tested
+		logrus.Info("cluster role binding is %v", clusterRoleBinding)
 		if err := r.nonCachedClient.Delete(context.TODO(), clusterRoleBinding); err != nil {
-			logrus.Errorf("Failed to delete %s clusterRoleBinding: %s", clusterRoleBindingName, err)
+			logrus.Errorf("Failed to delete %s clusterRoleBinding: %s", clusterRoleBindingName, err.Error())
 			return err
 		}
 	} else if !errors.IsNotFound(err) {
-		logrus.Errorf("Failed to get %s clusterRoleBinding: %s", clusterRoleBinding, err)
+		logrus.Errorf("Failed to get %s clusterRoleBinding: %s", clusterRoleBindingName, err)
 		return err
 	}
 

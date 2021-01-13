@@ -223,7 +223,7 @@ func SyncClusterRoleToCheCluster(
 func GetClusterRole(name string, client runtimeClient.Client) (*rbac.ClusterRole, error) {
 	clusterRole := &rbac.ClusterRole{}
 	namespacedName := types.NamespacedName{
-		Name:      name,
+		Name: name,
 	}
 	err := client.Get(context.TODO(), namespacedName, clusterRole)
 	if err != nil {

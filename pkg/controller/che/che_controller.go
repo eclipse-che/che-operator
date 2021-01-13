@@ -335,7 +335,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-	if util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+	logrus.Info("====================================Test!!!! deletion timestamp is zero %t===================================", instance.ObjectMeta.DeletionTimestamp.IsZero())
+	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+		logrus.Info("=========Reconsile finalizers!!!!====================")
+		if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+	} else {
+		logrus.Info("=============Remove workspace permissions===========")
 		if err := r.RemoveWorkspaceClusterPermissions(instance); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -563,10 +570,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
 		// todo add check code...
-		if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-
 		cheManageNamespacesName := fmt.Sprintf(CheManageNamespaces, instance.Namespace)
 		cheManageNamespacesClusterRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, []rbac.PolicyRule{
 			{

@@ -61,6 +61,8 @@ rules:
       - create
       - watch
       - update
+      - get
+      - delete
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -70,6 +72,8 @@ rules:
       - create
       - watch
       - update
+      - get
+      - delete
   - apiGroups:
       - authorization.openshift.io
       - rbac.authorization.k8s.io
@@ -90,6 +94,7 @@ rules:
   - apiGroups:
       - org.eclipse.che
     resources:
+      - checlusters
       - checlusters/finalizers
     verbs:
       - '*'

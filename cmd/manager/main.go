@@ -16,7 +16,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
+	"time"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -37,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 var (
@@ -173,8 +175,47 @@ func main() {
 	logrus.Info("Starting the Cmd")
 
 	// Start the Cmd
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(SetupSignalHandler()); err != nil {
 		logrus.Error(err, "Manager exited non-zero")
 		os.Exit(1)
+	}
+}
+
+func SetupSignalHandler() (stopCh <-chan struct{}) {
+	logrus.Info("Set up process signal handler")
+	var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT}
+
+	stop := make(chan struct{})
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, shutdownSignals...)
+	go func() {
+		sig := <-c
+		PrintSignal(sig)
+
+		time.Sleep(20 * time.Second)
+		logrus.Info("Stop and exit che-operator.")
+		close(stop)
+		os.Exit(1) // Exit directly.
+	}()
+
+	return stop
+}
+
+func PrintSignal(signal os.Signal) {
+	switch signal {
+		case syscall.SIGHUP:
+			logrus.Info("Signal SIGHUP")
+
+		case syscall.SIGINT:
+			fmt.Println("Signal SIGINT (ctrl+c)")
+
+		case syscall.SIGTERM:
+			fmt.Println("Signal SIGTERM stop")
+
+		case syscall.SIGQUIT:
+			fmt.Println("Signal SIGQUIT (top and core dump)")
+	
+		default:
+			fmt.Println("Unknown signal")
 	}
 }

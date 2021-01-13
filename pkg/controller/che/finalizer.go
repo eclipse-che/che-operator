@@ -35,7 +35,7 @@ func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error
 			oAuthClient, err := r.GetOAuthClient(oAuthClientName)
 			if err == nil {
 				if err := r.client.Delete(context.TODO(), oAuthClient); err != nil {
-					logrus.Errorf("Failed to delete %s oAuthClient: %s", oAuthClientName, err)
+					logrus.Errorf("Failed to delete %s oAuthClient: %s", oAuthClientName, err.Error())
 					return err
 				}
 			} else if !errors.IsNotFound(err) {
