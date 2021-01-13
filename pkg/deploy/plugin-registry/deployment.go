@@ -18,7 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
+func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	registryType := "plugin"
 	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(deployContext.CheCluster))
 	registryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
@@ -29,9 +29,7 @@ func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) 
 
 	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	specDeployment, err := registry.GetSpecRegistryDeployment(
@@ -45,9 +43,7 @@ func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) 
 		probePath)
 
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
