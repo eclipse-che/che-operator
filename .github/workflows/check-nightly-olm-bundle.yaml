@@ -11,11 +11,12 @@
 #
 
 name: Check nightly OLM bundle
-on: pull_request
+on:
+  pull_request:
+    branches:
+      - master
 jobs:
-
   build:
-    name: Check nightly OLM bundle
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
