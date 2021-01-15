@@ -33,7 +33,7 @@ init() {
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
-
+  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OAUTH="false"
 
@@ -204,13 +204,13 @@ startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
   chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
+  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
 createWorkspace() {
   sleep 5s
   chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:create --chenamespace=${NAMESPACE} --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
+  chectl workspace:create --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
 startExistedWorkspace() {

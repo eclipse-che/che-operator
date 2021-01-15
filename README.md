@@ -1,6 +1,6 @@
 # Che/CodeReady Workspaces Operator
 
-[![Codecov](https://img.shields.io/codecov/c/github/eclipse/che-operator)](https://github.com/eclipse/che-operator)
+[![codecov](https://codecov.io/gh/eclipse/che-operator/branch/master/graph/badge.svg?token=IlYvrVU5nB)](https://codecov.io/gh/eclipse/che-operator)
 
 Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a single or multi-user Eclipse Che/CodeReady Workspaces cluster.
 
