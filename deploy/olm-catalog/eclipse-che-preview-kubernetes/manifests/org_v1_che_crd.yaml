@@ -238,11 +238,15 @@ spec:
               description: Kubernetes Image Puller configuration
               properties:
                 enable:
-                  description: Install and configure the Kubernetes Image Puller Operator.
-                    If true and no spec is provided, it will create a default KubernetesImagePuller
-                    object to be managed by the Operator. If false, the KubernetesImagePuller
-                    object will be deleted, and the operator will be uninstalled,
-                    regardless of whether or not a spec is provided.
+                  description: "Install and configure the Community Supported Kubernetes
+                    Image Puller Operator. If true and no spec is provided, it will
+                    create a default KubernetesImagePuller object to be managed by
+                    the Operator. If false, the KubernetesImagePuller object will
+                    be deleted, and the operator will be uninstalled, regardless of
+                    whether or not a spec is provided. \n Please note that while this
+                    operator and its behavior is community-supported, its payload
+                    may be commercially-supported if you use it for pulling commercially-supported
+                    images."
                   type: boolean
                 spec:
                   description: A KubernetesImagePullerSpec to configure the image
