@@ -18,7 +18,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"

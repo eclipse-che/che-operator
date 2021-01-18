@@ -113,10 +113,7 @@ spec:
                 - ALL
           resources:
             limits:
-              memory: 256Mi
-              cpu: 100m
-            requests:
-              memory: 128Mi
+              memory: "256Mi"
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 5

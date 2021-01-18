@@ -489,7 +489,7 @@ spec:
                   type: object
                 devfileRegistryCpuLimit:
                   description: Overrides the cpu limit used in the Devfile registry
-                    deployment
+                    deployment. In cores. (500m = .5 cores). Default to 500m.
                   type: string
                 devfileRegistryImage:
                   description: Overrides the container image used in the Devfile registry
@@ -506,11 +506,13 @@ spec:
                   type: object
                 devfileRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Devfile registry
-                    deployment. Defaults to 256Mi.
+                    deployment. In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
+                    Defaults to 256Mi.
                   type: string
                 devfileRegistryMemoryRequest:
                   description: Overrides the memory request used in the Devfile registry
-                    deployment. Defaults to 16Mi.
+                    deployment In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
+                    Defaults to 16Mi.
                   type: string
                 devfileRegistryPullPolicy:
                   description: Overrides the image pull policy used in the Devfile
@@ -564,7 +566,7 @@ spec:
                   type: string
                 pluginRegistryCpuLimit:
                   description: Overrides the cpu limit used in the Plugin registry
-                    deployment
+                    deployment. In cores. (500m = .5 cores). Default to 500m.
                   type: string
                 pluginRegistryImage:
                   description: Overrides the container image used in the Plugin registry
@@ -581,11 +583,13 @@ spec:
                   type: object
                 pluginRegistryMemoryLimit:
                   description: Overrides the memory limit used in the Plugin registry
-                    deployment. Defaults to 256Mi.
+                    deployment. In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
+                    Defaults to 256Mi.
                   type: string
                 pluginRegistryMemoryRequest:
                   description: Overrides the memory request used in the Plugin registry
-                    deployment. Defaults to 16Mi.
+                    deployment. In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
+                    Defaults to 16Mi.
                   type: string
                 pluginRegistryPullPolicy:
                   description: Overrides the image pull policy used in the Plugin
@@ -645,6 +649,7 @@ spec:
                   type: boolean
                 serverCpuLimit:
                   description: Overrides the cpu limit used in the Che server deployment
+                    In cores. (500m = .5 cores). Default to 1.
                   type: string
                 serverExposureStrategy:
                   description: Sets the server and workspaces exposure type. Possible
@@ -661,11 +666,13 @@ spec:
                   type: string
                 serverMemoryLimit:
                   description: Overrides the memory limit used in the Che server deployment.
-                    Defaults to 1Gi.
+                    In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults
+                    to 1Gi.
                   type: string
                 serverMemoryRequest:
                   description: Overrides the memory request used in the Che server
-                    deployment. Defaults to 512Mi.
+                    deployment. In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
+                    Defaults to 512Mi.
                   type: string
                 serverTrustStoreConfigMapName:
                   description: Name of the config-map with public certificates to

@@ -168,13 +168,16 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	DevfileRegistryPullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy,omitempty"`
-	// Overrides the memory limit used in the Devfile registry deployment. Defaults to 256Mi.
+	// Overrides the memory limit used in the Devfile registry deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 256Mi.
 	// +optional
 	DevfileRegistryMemoryLimit string `json:"devfileRegistryMemoryLimit,omitempty"`
-	// Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.
+	// Overrides the memory request used in the Devfile registry deployment
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 16Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
-	// Overrides the cpu limit used in the Devfile registry deployment
+	// Overrides the cpu limit used in the Devfile registry deployment.
+	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	DevfileRegistryCpuLimit string `json:"devfileRegistryCpuLimit,omitempty"`
 	// Devfile registry ingress custom settings
@@ -202,15 +205,18 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PluginRegistryPullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy,omitempty"`
-	// Overrides the memory limit used in the Plugin registry deployment. Defaults to 256Mi.
+	// Overrides the memory limit used in the Plugin registry deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 256Mi.
 	// +optional
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit,omitempty"`
-	// Overrides the cpu limit used in the Plugin registry deployment
-	// +optional
-	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
-	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
+	// Overrides the memory request used in the Plugin registry deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
+	// Overrides the cpu limit used in the Plugin registry deployment.
+	// In cores. (500m = .5 cores). Default to 500m.
+	// +optional
+	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
 	// Plugin registry ingress custom settings
 	// +optional
 	PluginRegistryIngress IngressCustomSettings `json:"pluginRegistryIngress,omitempty"`
@@ -266,13 +272,16 @@ type CheClusterSpecServer struct {
 	// If the secret is defined then `proxyUser` and `proxyPassword` are ignored
 	// +optional
 	ProxySecret string `json:"proxySecret,omitempty"`
-	// Overrides the memory request used in the Che server deployment. Defaults to 512Mi.
+	// Overrides the memory request used in the Che server deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 512Mi.
 	// +optional
 	ServerMemoryRequest string `json:"serverMemoryRequest,omitempty"`
-	// Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.
+	// Overrides the memory limit used in the Che server deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 1Gi.
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
 	// Overrides the cpu limit used in the Che server deployment
+	// In cores. (500m = .5 cores). Default to 1.
 	// +optional
 	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
 
