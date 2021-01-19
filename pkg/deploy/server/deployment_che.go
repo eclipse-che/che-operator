@@ -32,7 +32,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) (bool, erro
 		return false, err
 	}
 
-	specDeployment, err := getSpecCheDeployment(deployContext)
+	specDeployment, err := GetSpecCheDeployment(deployContext)
 	if err != nil {
 		return false, err
 	}
@@ -40,7 +40,7 @@ func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) (bool, erro
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
+func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err

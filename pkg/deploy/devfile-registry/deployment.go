@@ -15,20 +15,30 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/registry"
 	"github.com/eclipse/che-operator/pkg/util"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
 func SyncDevfileRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DevfileRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if err != nil {
+		return false, err
+	}
+
+	specDeployment, err := GetDevfileRegistrySpecDeployment(deployContext)
+	if err != nil {
+		return false, err
+	}
+
+	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+}
+
+func GetDevfileRegistrySpecDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
 	registryType := "devfile"
 	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(deployContext.CheCluster))
 	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
 	probePath := "/devfiles/"
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
-
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DevfileRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return false, err
-	}
 
 	resources := v1.ResourceRequirements{
 		Requests: v1.ResourceList{
@@ -54,10 +64,9 @@ func SyncDevfileRegistryDeploymentToCluster(deployContext *deploy.DeployContext)
 		registryImagePullPolicy,
 		resources,
 		probePath)
-
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+	return specDeployment, nil
 }

@@ -15,20 +15,30 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/registry"
 	"github.com/eclipse/che-operator/pkg/util"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
 func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	if err != nil {
+		return false, err
+	}
+
+	specDeployment, err := GetPluginRegistrySpecDeployment(deployContext)
+	if err != nil {
+		return false, err
+	}
+
+	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+}
+
+func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
 	registryType := "plugin"
 	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(deployContext.CheCluster))
 	registryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
 	probePath := "/v3/plugins/"
 	pluginImagesEnv := util.GetEnvByRegExp("^.*plugin_registry_image.*$")
-
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return false, err
-	}
 
 	resources := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
@@ -54,10 +64,9 @@ func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) 
 		registryImagePullPolicy,
 		resources,
 		probePath)
-
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+	return specDeployment, nil
 }

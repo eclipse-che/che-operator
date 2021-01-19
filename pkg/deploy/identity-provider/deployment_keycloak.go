@@ -63,7 +63,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 		return false, err
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecKeycloakDeployment(deployContext, clusterDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -71,7 +71,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge)
 }
 
-func getSpecKeycloakDeployment(
+func GetSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
 	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	optionalEnv := true

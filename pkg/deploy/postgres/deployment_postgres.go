@@ -35,7 +35,7 @@ func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 		return false, err
 	}
 
-	specDeployment, err := getSpecPostgresDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecPostgresDeployment(deployContext, clusterDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -43,7 +43,7 @@ func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
