@@ -746,6 +746,12 @@ func TestCheController(t *testing.T) {
 		t.Errorf("Custom config map should be deleted and merged with Che ConfigMap")
 	}
 
+	// Get the custom role binding that should have been created for the role we passed in
+	rb := &rbac.RoleBinding{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
+		t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
+	}
+
 	// run a few checks to make sure the operator reconciled tls routes and updated configmap
 	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {
 		t.Errorf("ConfigMap wasn't updated. Extecting true, got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])

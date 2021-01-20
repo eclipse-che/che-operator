@@ -59,7 +59,7 @@ spec:
     # sets mem limit for server deployment. Defaults to 1Gi
     serverMemoryLimit: ''
     # sets default namespace where new workspaces will be created
-    workspaceNamespaceDefault: ''
+    workspaceNamespaceDefault: 'dev'
     # defines if user is able to specify namespace different from the default
     allowUserDefinedWorkspaceNamespaces: false
     # Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
@@ -130,6 +130,7 @@ spec:
     oAuthSecret: ''
     # image:tag used in Keycloak deployment
     identityProviderImage: ''
+    openShiftoAuth: false
   k8s:
     # your global ingress domain
     ingressDomain: '192.168.99.101.nip.io'
