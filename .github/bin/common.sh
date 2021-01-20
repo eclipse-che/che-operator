@@ -12,7 +12,7 @@
 
 set -e
 set -x
-
+####
 catchFinish() {
   result=$?
 
