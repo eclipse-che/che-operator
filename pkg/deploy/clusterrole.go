@@ -23,169 +23,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	
-	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var clusterRoleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta"),
 	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
 }
-
-// func SyncTLSRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
-// 	tlsPolicyRule := []rbac.PolicyRule{
-// 		{
-// 			APIGroups: []string{
-// 				"",
-// 			},
-// 			Resources: []string{
-// 				"secrets",
-// 			},
-// 			Verbs: []string{
-// 				"create",
-// 			},
-// 		},
-// 	}
-// 	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)
-// }
-
-// func SyncExecClusterRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
-// 	execPolicyRule := []rbac.PolicyRule{
-// 		{
-// 			APIGroups: []string{
-// 				"",
-// 			},
-// 			Resources: []string{
-// 				"pods/exec",
-// 			},
-// 			Verbs: []string{
-// 				"*",
-// 			},
-// 		},
-// 	}
-// 	return SyncRoleToCluster(deployContext, "exec", execPolicyRule)
-// }
-
-// func SyncViewClusterRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
-// 	viewPolicyRule := []rbac.PolicyRule{
-// 		{
-// 			APIGroups: []string{
-// 				"",
-// 			},
-// 			Resources: []string{
-// 				"pods",
-// 			},
-// 			Verbs: []string{
-// 				"list", "get",
-// 			},
-// 		},
-// 		{
-// 			APIGroups: []string{
-// 				"metrics.k8s.io",
-// 			},
-// 			Resources: []string{
-// 				"pods",
-// 			},
-// 			Verbs: []string{
-// 				"list", "get", "watch",
-// 			},
-// 		},
-// 	}
-// 	return SyncRoleToCluster(deployContext, "view", viewPolicyRule)
-// }
-
-
-// {
-// 	APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-// 	Resources: []string{"roles"},
-// 	Verbs: []string{"get", "create"},
-// },
-// {
-// 	APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-// 	Resources: []string{"rolebindings"},
-// 	Verbs: []string{"get", "update", "create"},
-// },
-// {
-// 	APIGroups: []string{"project.openshift.io"},
-// 	Resources: []string{"projects"},
-// 	Verbs: []string{"get"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"serviceaccounts"},
-// 	Verbs: []string{"get", "create", "watch"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"pods/exec"},
-// 	Verbs: []string{"create"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"persistentvolumeclaims", "configmaps"},
-// 	Verbs: []string{"list"},
-// },
-// {
-// 	APIGroups: []string{"apps"},
-// 	Resources: []string{"secrets"},
-// 	Verbs: []string{"list"},
-// },
-
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"secrets"},
-// 	Verbs: []string{"list", "create", "delete"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"persistentvolumeclaims"},
-// 	Verbs: []string{"get", "create", "watch"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"pods"},
-// 	Verbs: []string{"get", "create", "list", "watch", "delete"},
-// },
-// {
-// 	APIGroups: []string{"apps"},
-// 	Resources: []string{"deployments"},
-// 	Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"services"},
-// 	Verbs: []string{"create", "list", "delete"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"configmaps"},
-// 	Verbs: []string{"create", "delete"},
-// },
-// {
-// 	APIGroups: []string{"route.openshift.io"},
-// 	Resources: []string{"routes"},
-// 	Verbs: []string{"list", "create", "delete"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"events"},
-// 	Verbs: []string{"watch"},
-// },
-// {
-// 	APIGroups: []string{"apps"},
-// 	Resources: []string{"replicasets"},
-// 	Verbs: []string{"list", "get", "patch", "delete"},
-// },
-// {
-// 	APIGroups: []string{"extensions"},
-// 	Resources: []string{"ingresses"},
-// 	Verbs: []string{"list", "create", "watch", "get", "delete"},
-// },
-// {
-// 	APIGroups: []string{""},
-// 	Resources: []string{"namespaces"},
-// 	Verbs: []string{"get"},
-// },
 
 func SyncClusterRoleToCheCluster(
 	deployContext *DeployContext,
@@ -243,8 +86,8 @@ func getSpecClusterRole(deployContext *DeployContext, name string, policyRule []
 			APIVersion: rbac.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Labels:    labels,
+			Name:   name,
+			Labels: labels,
 		},
 		Rules: policyRule,
 	}

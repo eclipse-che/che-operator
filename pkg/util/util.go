@@ -356,7 +356,7 @@ func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 
 func IsWorkspacesInTheSameNamespaceWithChe(c *orgv1.CheCluster) bool {
 	workspaceNamespaceDef := GetValue(c.Spec.Server.WorkspaceNamespaceDefault, c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"])
-	if  workspaceNamespaceDef == "" || workspaceNamespaceDef == c.Namespace {
+	if workspaceNamespaceDef == "" || workspaceNamespaceDef == c.Namespace {
 		return true
 	}
 	return false

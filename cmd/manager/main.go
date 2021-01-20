@@ -203,19 +203,19 @@ func SetupSignalHandler() (stopCh <-chan struct{}) {
 
 func PrintSignal(signal os.Signal) {
 	switch signal {
-		case syscall.SIGHUP:
-			logrus.Info("Signal SIGHUP")
+	case syscall.SIGHUP:
+		logrus.Info("Signal SIGHUP")
 
-		case syscall.SIGINT:
-			fmt.Println("Signal SIGINT (ctrl+c)")
+	case syscall.SIGINT:
+		fmt.Println("Signal SIGINT (ctrl+c)")
 
-		case syscall.SIGTERM:
-			fmt.Println("Signal SIGTERM stop")
+	case syscall.SIGTERM:
+		fmt.Println("Signal SIGTERM stop")
 
-		case syscall.SIGQUIT:
-			fmt.Println("Signal SIGQUIT (top and core dump)")
-	
-		default:
-			fmt.Println("Unknown signal")
+	case syscall.SIGQUIT:
+		fmt.Println("Signal SIGQUIT (top and core dump)")
+
+	default:
+		fmt.Println("Unknown signal")
 	}
 }

@@ -260,11 +260,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 var (
-	_ reconcile.Reconciler = &ReconcileChe{}
-	oAuthFinalizerName     = "oauthclients.finalizers.che.eclipse.org"
-	clusterPermissionsFinalizerName = "cluster.permissions.finalizers.che.eclipse.org"
-	CheCreateNamespaces    = "%s-clusterrole-create-namespaces"
-	CheManageNamespaces    = "%s-clusterrole-manage-namespaces"
+	_                               reconcile.Reconciler = &ReconcileChe{}
+	oAuthFinalizerName                                   = "oauthclients.finalizers.che.eclipse.org"
+	clusterPermissionsFinalizerName                      = "cluster.permissions.finalizers.che.eclipse.org"
+	CheServiceAccountName                                = "che"
 )
 
 // ReconcileChe reconciles a CheCluster object
@@ -335,17 +334,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-	logrus.Info("====================================Test!!!! deletion timestamp is zero %t===================================", instance.ObjectMeta.DeletionTimestamp.IsZero())
-	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
-		logrus.Info("=========Reconsile finalizers!!!!====================")
-		if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	} else {
-		logrus.Info("=============Remove workspace permissions===========")
-		if err := r.RemoveWorkspaceClusterPermissions(instance); err != nil {
-			return reconcile.Result{}, err
-		}
+	if r.reconsileWorkspacePermissionsFinalizer(instance, deployContext); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Reconcile the imagePuller section of the CheCluster
@@ -557,7 +547,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create service accounts:
 	// che is the one which token is used to create workspace objects
 	// che-workspace is SA used by plugins like exec and terminal with limited privileges
-	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che")
+	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
 	if cheSA == nil {
 		logrus.Info("Waiting on service account 'che' to be created")
 		if err != nil {
@@ -569,227 +559,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
-		// todo add check code...
-		cheManageNamespacesName := fmt.Sprintf(CheManageNamespaces, instance.Namespace)
-		cheManageNamespacesClusterRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, []rbac.PolicyRule{
-			{
-				APIGroups: []string{"project.openshift.io"},
-				Resources: []string{"projectrequests"},
-				Verbs: []string{"create", "update"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"namespaces"},
-				Verbs: []string{"create", "update"},
-			},
-		});
-		if cheManageNamespacesClusterRole == nil {
-			logrus.Infof("Waiting on clusterrole '%s' to be created", cheManageNamespacesName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
+		reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
+		if err != nil {
+			logrus.Error(err)
 		}
-		cheManageNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheManageNamespacesName, cheSA.Name, cheManageNamespacesName)
-		if cheManageNamespacesRolebinding == nil {
-			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", cheManageNamespacesName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
+		if reconcileResult.Requeue {
+			return reconcileResult, err
 		}
-
-		cheCreateNamespacesName := fmt.Sprintf(CheCreateNamespaces, instance.Namespace)
-		cheCreateNamespacesRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, []rbac.PolicyRule{
-			{
-				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-				Resources: []string{"roles"},
-				Verbs: []string{"get", "create"},
-			},
-			{
-				APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-				Resources: []string{"rolebindings"},
-				Verbs: []string{"get", "update", "create"},
-			},
-			{
-				APIGroups: []string{"project.openshift.io"},
-				Resources: []string{"projects"},
-				Verbs: []string{"get"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"serviceaccounts"},
-				Verbs: []string{"get", "create", "watch"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"pods/exec"},
-				Verbs: []string{"create"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"persistentvolumeclaims", "configmaps"},
-				Verbs: []string{"list"},
-			},
-			{
-				APIGroups: []string{"apps"},
-				Resources: []string{"secrets"},
-				Verbs: []string{"list"},
-			},
-
-			{
-				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs: []string{"list", "create", "delete"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"persistentvolumeclaims"},
-				Verbs: []string{"get", "create", "watch"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"pods"},
-				Verbs: []string{"get", "create", "list", "watch", "delete"},
-			},
-			{
-				APIGroups: []string{"apps"},
-				Resources: []string{"deployments"},
-				Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"services"},
-				Verbs: []string{"create", "list", "delete"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"configmaps"},
-				Verbs: []string{"get", "create", "delete"},
-			},
-			{
-				APIGroups: []string{"route.openshift.io"},
-				Resources: []string{"routes"},
-				Verbs: []string{"list", "create", "delete"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"events"},
-				Verbs: []string{"watch"},
-			},
-			{
-				APIGroups: []string{"apps"},
-				Resources: []string{"replicasets"},
-				Verbs: []string{"list", "get", "patch", "delete"},
-			},
-			{
-				APIGroups: []string{"extensions"},
-				Resources: []string{"ingresses"},
-				Verbs: []string{"list", "create", "watch", "get", "delete"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"namespaces"},
-				Verbs: []string{"get"},
-			},
-		})
-		if cheCreateNamespacesRole == nil {
-			logrus.Infof("Waiting on clusterrole '%s' to be created", cheCreateNamespacesName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-		}
-		cheCreateNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheCreateNamespacesName, cheSA.Name, cheCreateNamespacesName)
-		if cheCreateNamespacesRolebinding == nil {
-			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", cheCreateNamespacesName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-		}
-		// Default workspaces namespace is the same with Che
 	} else {
-		// err := r.RemoveClusterPermissionsFinalizer(instance)
-		// todo check error handling here...
-		// if !tests {
-		// 	return reconcile.Result{RequeueAfter: time.Second}, err
-		// }
-
-		cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
-		if cheWorkspaceSA == nil {
-			logrus.Info("Waiting on service account 'che-workspace' to be created")
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
+		reconcile, err := r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
+		if err != nil {
+			logrus.Error(err)
 		}
-
-		// create view role for CheCluster server and workspaces
-		viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
-		if viewRole == nil {
-			logrus.Info("Waiting on role 'view' to be created")
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-		}
-
-		cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-view", "che-workspace", "view", "Role")
-		if cheWSViewRoleBinding == nil {
-			logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-		}
-
-		// create exec role for CheCluster server and workspaces
-		execRole, err := deploy.SyncExecRoleToCluster(deployContext)
-		if execRole == nil {
-			logrus.Info("Waiting on role 'exec' to be created")
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-		}
-	
-		cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
-		if cheWSExecRoleBinding == nil {
-			logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-		}
-
-		cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che", "che", "edit", "ClusterRole")
-		if cheRoleBinding == nil {
-			logrus.Info("Waiting on role binding 'che' to be created")
-			if err != nil {
-				logrus.Error(err)
-			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
+		if reconcile.Requeue && !tests {
+			return reconcile, err
 		}
 	}
 
@@ -1152,179 +935,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	return reconcile.Result{}, nil
 }
 
-// creates `che` serviceaccount with needed permissions
-// func createServiceAccounts(instance *orgv1.CheCluster, r *ReconcileChe) error {
-// 	// create service accounts:
-// 	// che is the one which token is used to create workspace objects
-// 	cheServiceAccount := deploy.NewServiceAccount(instance, "che")
-// 	if err := r.CreateServiceAccount(instance, cheServiceAccount); err != nil {
-// 		return err
-// 	}
-
-// 	if !instance.Spec.Auth.OpenShiftoAuth {
-
-// 		if instance.Namespace == instance.Spec.Server.WorkspaceNamespaceDefault {
-// 			// this role is needed to manage che-workspace serviceaccount inside che namespace
-// 			cheRole := deploy.NewRole(instance, "che", []rbac.PolicyRule{
-// 				{
-// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-// 					Resources: []string{"roles"},
-// 					Verbs:     []string{"get", "create"},
-// 				},
-// 				{
-// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-// 					Resources: []string{"rolebindings"},
-// 					Verbs:     []string{"get", "update", "create"},
-// 				},
-// 			})
-// 			if err := r.CreateNewRole(instance, cheRole); err != nil {
-// 				return err
-// 			}
-// 			cheExecrolesRoleBinding := deploy.NewRoleBinding(instance, "che", cheServiceAccount.Name, cheRole.Name, "Role")
-// 			if err := r.CreateNewRoleBinding(instance, cheExecrolesRoleBinding); err != nil {
-// 				return err
-// 			}
-
-// 			// create RoleBindings for created (and existing ClusterRole) roles and service accounts
-// 			cheRoleBinding := deploy.NewRoleBinding(instance, "che-edit", cheServiceAccount.Name, "edit", "ClusterRole")
-// 			if err := r.CreateNewRoleBinding(instance, cheRoleBinding); err != nil {
-// 				return err
-// 			}
-// 		} else {
-// 			cheCreateNamespacesName := fmt.Sprintf(cheCreateNamespaces, instance.Namespace)
-// 			cheCreateNameSpacesRole := deploy.NewClusterRole(instance, cheCreateNamespacesName, []rbac.PolicyRule{
-// 				{
-// 					APIGroups: []string{"project.openshift.io"},
-// 					Resources: []string{"projectrequests"},
-// 					Verbs: []string{"create", "update"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"namespaces"},
-// 					Verbs: []string{"create", "update"},
-// 				},
-// 			})
-// 			if err := r.CreateNewClusterRole(instance, cheCreateNameSpacesRole); err != nil {
-// 				return err
-// 			}
-
-// 			// this binding is needed to create new namespaces for workspaces
-// 			// `${namespace}-clusterrole-create-namespaces` ClusterRole should be created during che-operator deploy
-// 			cheCreateNamespaceRoleBinding := deploy.NewClusterRoleBinding(instance, cheCreateNamespacesName, cheServiceAccount.Name, cheCreateNameSpacesRole.Name, "ClusterRole")
-// 			if err := r.CreateNewClusterRoleBinding(instance, cheCreateNamespaceRoleBinding); err != nil {
-// 				return err
-// 			}
-
-// 			cheManageNamespacesName := fmt.Sprintf(cheManageNamespaces, instance.Namespace)
-// 			cheManageNameSpacesRole := deploy.NewClusterRole(instance, cheManageNamespacesName, []rbac.PolicyRule{
-// 				{
-// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-// 					Resources: []string{"roles"},
-// 					Verbs: []string{"get", "create"},
-// 				},
-// 				{
-// 					APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-// 					Resources: []string{"rolebindings"},
-// 					Verbs: []string{"get", "update", "create"},
-// 				},
-// 				{
-// 					APIGroups: []string{"project.openshift.io"},
-// 					Resources: []string{"projects"},
-// 					Verbs: []string{"get"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"serviceaccounts"},
-// 					Verbs: []string{"get", "create", "watch"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"pods/exec"},
-// 					Verbs: []string{"create"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"persistentvolumeclaims", "configmaps"},
-// 					Verbs: []string{"list"},
-// 				},
-// 				{
-// 					APIGroups: []string{"apps"},
-// 					Resources: []string{"secrets"},
-// 					Verbs: []string{"list"},
-// 				},
-
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"secrets"},
-// 					Verbs: []string{"list", "create", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"persistentvolumeclaims"},
-// 					Verbs: []string{"get", "create", "watch"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"pods"},
-// 					Verbs: []string{"get", "create", "list", "watch", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{"apps"},
-// 					Resources: []string{"deployments"},
-// 					Verbs: []string{"get", "create", "list", "watch", "patch", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"services"},
-// 					Verbs: []string{"create", "list", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"configmaps"},
-// 					Verbs: []string{"create", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{"route.openshift.io"},
-// 					Resources: []string{"routes"},
-// 					Verbs: []string{"list", "create", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"events"},
-// 					Verbs: []string{"watch"},
-// 				},
-// 				{
-// 					APIGroups: []string{"apps"},
-// 					Resources: []string{"replicasets"},
-// 					Verbs: []string{"list", "get", "patch", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{"extensions"},
-// 					Resources: []string{"ingresses"},
-// 					Verbs: []string{"list", "create", "watch", "get", "delete"},
-// 				},
-// 				{
-// 					APIGroups: []string{""},
-// 					Resources: []string{"namespaces"},
-// 					Verbs: []string{"get"},
-// 				},
-// 			})
-// 			if err := r.CreateNewClusterRole(instance, cheManageNameSpacesRole); err != nil {
-// 				return err
-// 			}
-
-// 			// this binding is needed to manage che workspaces out of che namespace
-// 			// `${namespace}-clusterrole-manage-namespaces` ClusterRole should be created during che-operator deploy
-// 			cheClusterRoleBinding := deploy.NewClusterRoleBinding(instance, cheManageNamespacesName, cheServiceAccount.Name, cheManageNameSpacesRole.Name, "ClusterRole")
-// 			if err := r.CreateNewClusterRoleBinding(instance, cheClusterRoleBinding); err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
-
-// 	return nil
-// }
-
 func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCluster, r *ReconcileChe) error {
 	if !isOpenShift4 || !hasConsolelinkObject() {
 		logrus.Debug("Console link won't be created. It's not supported by cluster")
@@ -1503,7 +1113,7 @@ func (r *ReconcileChe) setWorkspaceNamespaceDefaultField(cr *orgv1.CheCluster) (
 	if util.IsOpenShift && util.IsOAuthEnabled(cr) && len(cr.Spec.Server.WorkspaceNamespaceDefault) == 0 {
 		// If the workspace is created under the openshift identity of the end-user,
 		// Then we'll have rights to create any new namespace
-		cr.Spec.Server.WorkspaceNamespaceDefault  = "<username>-" + deploy.DefaultCheFlavor(cr)
+		cr.Spec.Server.WorkspaceNamespaceDefault = "<username>-" + deploy.DefaultCheFlavor(cr)
 		if err := r.UpdateCheCRSpec(cr, "WorkspaceNamespaceDefault", cr.Spec.Server.WorkspaceNamespaceDefault); err != nil {
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}

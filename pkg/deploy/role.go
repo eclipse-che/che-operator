@@ -26,6 +26,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	ViewRole = "view"
+	ExecRole = "exec"
+)
+
 var roleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
 	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
@@ -62,7 +67,7 @@ func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, "exec", execPolicyRule)
+	return SyncRoleToCluster(deployContext, ExecRole, execPolicyRule)
 }
 
 func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
@@ -90,7 +95,7 @@ func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, "view", viewPolicyRule)
+	return SyncRoleToCluster(deployContext, ViewRole, viewPolicyRule)
 }
 
 func SyncRoleToCluster(
