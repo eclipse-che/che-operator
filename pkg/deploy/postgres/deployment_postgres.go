@@ -112,6 +112,9 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 									corev1.ResourceMemory: util.GetResourceQuantity(
 										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
 										deploy.DefaultPostgresMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
+										deploy.DefaultPostgresCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(

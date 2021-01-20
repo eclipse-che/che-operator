@@ -590,6 +590,9 @@ func GetSpecKeycloakDeployment(
 									corev1.ResourceMemory: util.GetResourceQuantity(
 										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Memory,
 										deploy.DefaultIdentityProviderMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Cpu,
+										deploy.DefaultIdentityProviderCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(

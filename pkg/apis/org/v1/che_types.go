@@ -180,6 +180,10 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	DevfileRegistryCpuLimit string `json:"devfileRegistryCpuLimit,omitempty"`
+	// Overrides the cpu request used in the Devfile registry deployment.
+	// In cores. (500m = .5 cores). Default to 50m.
+	// +optional
+	DevfileRegistryCpuRequest string `json:"devfileRegistryCpuRequest,omitempty"`
 	// Devfile registry ingress custom settings
 	// +optional
 	DevfileRegistryIngress IngressCustomSettings `json:"devfileRegistryIngress,omitempty"`
@@ -217,6 +221,10 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
+	// Overrides the cpu request used in the Plugin registry deployment.
+	// In cores. (500m = .5 cores). Default to 50m.
+	// +optional
+	PluginRegistryCpuRequest string `json:"pluginRegistryCpuRequest,omitempty"`
 	// Plugin registry ingress custom settings
 	// +optional
 	PluginRegistryIngress IngressCustomSettings `json:"pluginRegistryIngress,omitempty"`
@@ -281,10 +289,13 @@ type CheClusterSpecServer struct {
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
 	// Overrides the cpu limit used in the Che server deployment
-	// In cores. (500m = .5 cores). Default to 1.
+	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
-
+	// Overrides the cpu request used in the Che server deployment
+	// In cores. (500m = .5 cores). Default to 100m.
+	// +optional
+	ServerCpuRequest string `json:"serverCpuRequest,omitempty"`
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
 	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every required
 	// endpoint.

@@ -110,22 +110,27 @@ const (
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
 	DefaultPluginRegistryMemoryRequest = "16Mi"
 	DefaultPluginRegistryCpuLimit      = "500m"
+	DefaultPluginRegistryCpuRequest    = "50m"
 
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
 	DefaultDevfileRegistryMemoryRequest = "16Mi"
 	DefaultDevfileRegistryCpuLimit      = "500m"
+	DefaultDevfileRegistryCpuRequest    = "50m"
 
 	DefaultServerMemoryRequest = "512Mi"
 	DefaultServerMemoryLimit   = "1Gi"
-	DefaultServerCpuLimit      = "1"
+	DefaultServerCpuLimit      = "500m"
+	DefaultServerCpuRequest    = "100m"
 
 	DefaultIdentityProviderMemoryRequest = "512Mi"
 	DefaultIdentityProviderMemoryLimit   = "2Gi"
 	DefaultIdentityProviderCpuLimit      = "500m"
+	DefaultIdentityProviderCpuRequest    = "50m"
 
 	DefaultPostgresMemoryRequest = "512Mi"
 	DefaultPostgresMemoryLimit   = "1Gi"
 	DefaultPostgresCpuLimit      = "500m"
+	DefaultPostgresCpuRequest    = "50m"
 )
 
 func InitDefaults(defaultsPath string) {
@@ -418,6 +423,8 @@ func InitTestDefaultsFromDeployment(deploymentFile string) error {
 			return err
 		}
 	}
+
+	os.Setenv("MOCK_API", "true")
 
 	InitDefaultsFromEnv()
 	return nil

@@ -45,6 +45,9 @@ func GetDevfileRegistrySpecDeployment(deployContext *deploy.DeployContext) (*app
 			v1.ResourceMemory: util.GetResourceQuantity(
 				deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryRequest,
 				deploy.DefaultDevfileRegistryMemoryRequest),
+			v1.ResourceCPU: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.DevfileRegistryCpuRequest,
+				deploy.DefaultDevfileRegistryCpuRequest),
 		},
 		Limits: v1.ResourceList{
 			v1.ResourceMemory: util.GetResourceQuantity(

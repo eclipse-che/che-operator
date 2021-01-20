@@ -45,6 +45,9 @@ func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) (*apps
 			corev1.ResourceMemory: util.GetResourceQuantity(
 				deployContext.CheCluster.Spec.Server.PluginRegistryMemoryRequest,
 				deploy.DefaultPluginRegistryMemoryRequest),
+			corev1.ResourceCPU: util.GetResourceQuantity(
+				deployContext.CheCluster.Spec.Server.PluginRegistryCpuRequest,
+				deploy.DefaultPluginRegistryCpuRequest),
 		},
 		Limits: corev1.ResourceList{
 			corev1.ResourceMemory: util.GetResourceQuantity(

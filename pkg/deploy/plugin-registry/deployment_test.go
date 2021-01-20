@@ -29,12 +29,13 @@ import (
 	"testing"
 )
 
-func TestDeploymentLimits(t *testing.T) {
+func TestDeployment(t *testing.T) {
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
 		memoryLimit   string
 		memoryRequest string
+		cpuRequest    string
 		cpuLimit      string
 		cheCluster    *orgv1.CheCluster
 	}
@@ -46,6 +47,7 @@ func TestDeploymentLimits(t *testing.T) {
 			memoryLimit:   deploy.DefaultPluginRegistryMemoryLimit,
 			memoryRequest: deploy.DefaultPluginRegistryMemoryRequest,
 			cpuLimit:      deploy.DefaultPluginRegistryCpuLimit,
+			cpuRequest:    deploy.DefaultPluginRegistryCpuRequest,
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -55,18 +57,20 @@ func TestDeploymentLimits(t *testing.T) {
 		{
 			name:          "Test custom limits",
 			initObjects:   []runtime.Object{},
-			cpuLimit:      "100m",
-			memoryLimit:   "200Mi",
-			memoryRequest: "100Mi",
+			cpuLimit:      "250m",
+			cpuRequest:    "150m",
+			memoryLimit:   "250Mi",
+			memoryRequest: "150Mi",
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						PluginRegistryCpuLimit:      "100m",
-						PluginRegistryMemoryLimit:   "200Mi",
-						PluginRegistryMemoryRequest: "100Mi",
+						PluginRegistryCpuLimit:      "250m",
+						PluginRegistryCpuRequest:    "150m",
+						PluginRegistryMemoryLimit:   "250Mi",
+						PluginRegistryMemoryRequest: "150Mi",
 					},
 				},
 			},
@@ -94,68 +98,16 @@ func TestDeploymentLimits(t *testing.T) {
 				t.Fatalf("Error creating deployment: %v", err)
 			}
 
-			actualQuantity := deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory()
-			expectedQuantity := util.GetResourceQuantity(testCase.memoryLimit, testCase.memoryLimit)
-			if !actualQuantity.Equal(expectedQuantity) {
-				t.Errorf("Memory limit expected %s, actual %s", expectedQuantity.String(), actualQuantity.String())
-			}
-
-			actualQuantity = deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu()
-			expectedQuantity = util.GetResourceQuantity(testCase.cpuLimit, testCase.cpuLimit)
-			if !actualQuantity.Equal(expectedQuantity) {
-				t.Errorf("CPU limit expected %s, actual %s", expectedQuantity.String(), actualQuantity.String())
-			}
-
-			actualQuantity = deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()
-			expectedQuantity = util.GetResourceQuantity(testCase.memoryRequest, testCase.memoryRequest)
-			if !actualQuantity.Equal(expectedQuantity) {
-				t.Errorf("Memory request expected %s, actual %s", expectedQuantity.String(), actualQuantity.String())
-			}
-		})
-	}
-}
-
-func TestDeploymentSecurityContext(t *testing.T) {
-	type testCase struct {
-		name        string
-		initObjects []runtime.Object
-	}
-
-	testCases := []testCase{
-		{
-			name:        "Test default limits deployment",
-			initObjects: []runtime.Object{},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: &orgv1.CheCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "eclipse-che",
-					},
+			util.CompareResources(deployment,
+				util.TestExpectedResources{
+					MemoryLimit:   testCase.memoryLimit,
+					MemoryRequest: testCase.memoryRequest,
+					CpuRequest:    testCase.cpuRequest,
+					CpuLimit:      testCase.cpuLimit,
 				},
-				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
+				t)
 
-			deployment, err := GetPluginRegistrySpecDeployment(deployContext)
-			if err != nil {
-				t.Fatalf("Error creating deployment: %v", err)
-			}
-
-			if deployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop[0] != "ALL" {
-				t.Error("Deployment doesn't contain 'Capabilities Drop ALL' in a SecurityContext")
-			}
+			util.ValidateSecurityContext(deployment, t)
 		})
 	}
 }

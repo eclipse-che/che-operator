@@ -235,6 +235,9 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 									corev1.ResourceMemory: util.GetResourceQuantity(
 										deployContext.CheCluster.Spec.Server.ServerMemoryRequest,
 										deploy.DefaultServerMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Server.ServerCpuRequest,
+										deploy.DefaultServerCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
