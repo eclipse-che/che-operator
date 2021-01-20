@@ -113,9 +113,9 @@ spec:
                 - ALL
           resources:
             requests:
-              memory: "128Mi"
+              memory: "16Mi"
             limits:
-              memory: "256Mi"
+              memory: "128Mi"
               cpu: "500m"
       restartPolicy: Always
       serviceAccountName: che-operator
