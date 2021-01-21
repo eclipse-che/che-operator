@@ -718,15 +718,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			// Create a new Postgres deployment
-			deploymentStatus := postgres.SyncPostgresDeploymentToCluster(deployContext)
+			provisioned, err := postgres.SyncPostgresDeploymentToCluster(deployContext)
 			if !tests {
-				if !deploymentStatus.Continue {
+				if !provisioned {
 					logrus.Infof("Waiting on deployment '%s' to be ready", postgres.PostgresDeploymentName)
-					if deploymentStatus.Err != nil {
-						logrus.Error(deploymentStatus.Err)
+					if err != nil {
+						logrus.Error(err)
 					}
 
-					return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
+					return reconcile.Result{}, err
 				}
 			}
 
@@ -741,15 +741,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					}
 					identityProviderPostgresPassword = password
 				}
-				pgCommand := identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword)
 				dbStatus := instance.Status.DbProvisoned
 				// provision Db and users for Che and Keycloak servers
 				if !dbStatus {
-					podToExec, err := util.K8sclient.GetDeploymentPod(postgres.PostgresDeploymentName, instance.Namespace)
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-					_, err = util.K8sclient.ExecIntoPod(podToExec, pgCommand, "create Keycloak DB, user, privileges", instance.Namespace)
+					_, err := util.K8sclient.ExecIntoPod(
+						instance,
+						postgres.PostgresDeploymentName,
+						func(cr *orgv1.CheCluster) (string, error) {
+							return identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword), nil
+						},
+						"create Keycloak DB, user, privileges")
 					if err == nil {
 						for {
 							instance.Status.DbProvisoned = true
@@ -842,7 +843,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if err != nil {
 				logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
 			}
-			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -886,12 +887,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Create a new che deployment
-	deploymentStatus := server.SyncCheDeploymentToCluster(deployContext)
+	provisioned, err = server.SyncCheDeploymentToCluster(deployContext)
 	if !tests {
-		if !deploymentStatus.Continue {
+		if !provisioned {
 			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
-			if deploymentStatus.Err != nil {
-				logrus.Error(deploymentStatus.Err)
+			if err != nil {
+				logrus.Error(err)
 			}
 
 			deployment, err := r.GetEffectiveDeployment(instance, cheFlavor)
@@ -912,7 +913,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					}
 				}
 			}
-			return reconcile.Result{Requeue: deploymentStatus.Requeue}, deploymentStatus.Err
+			return reconcile.Result{}, err
 		}
 	}
 	// Update available status

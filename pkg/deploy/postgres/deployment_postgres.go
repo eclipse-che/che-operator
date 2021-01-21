@@ -30,19 +30,15 @@ var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
+func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	clusterDeployment, err := deploy.GetClusterDeployment(PostgresDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	specDeployment, err := getSpecPostgresDeployment(deployContext, clusterDeployment)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
@@ -154,6 +150,11 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
 							},
 							Env: []corev1.EnvVar{
 								{

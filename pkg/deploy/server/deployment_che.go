@@ -27,19 +27,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
+func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DefaultCheFlavor(deployContext.CheCluster), deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	specDeployment, err := getSpecCheDeployment(deployContext)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
@@ -243,6 +239,11 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: resource.MustParse(memLimit),
+								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
 								},
 							},
 							EnvFrom: []corev1.EnvFromSource{

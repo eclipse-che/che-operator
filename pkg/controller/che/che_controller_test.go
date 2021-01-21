@@ -805,7 +805,7 @@ func TestCheController(t *testing.T) {
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR); err != nil {
 		t.Errorf("Failed to get the Che custom resource %s: %s", cheCR.Name, err)
 	}
-	if err = identity_provider.SyncIdentityProviderItems(deployContext, "che"); err != nil {
+	if _, err = identity_provider.SyncOpenShiftIdentityProviderItems(deployContext); err != nil {
 		t.Errorf("Failed to create the items for the identity provider: %s", err)
 	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
@@ -987,7 +987,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// Set up che host for route
-	cheRoute, _ := deploy.GetSpecRoute(deployContext, "che", "che-host", "che-host", 8080, "")
+	cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(cheCR), "che-host", "che-host", 8080, "")
 	cl.Update(context.TODO(), cheRoute)
 
 	// reconsile to update Che route
