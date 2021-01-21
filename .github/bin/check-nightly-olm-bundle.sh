@@ -70,7 +70,7 @@ installOperatorSDK() {
   fi
 }
 
-isActualNightlyOlmBundleCSVFiles() {
+checkNightlyOlmBundle() {
   local CSV_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
   local CSV_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   local CRD_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
@@ -101,6 +101,6 @@ isActualNightlyOlmBundleCSVFiles() {
 installYq
 installOperatorSDK
 check_che_crds
-isActualNightlyOlmBundleCSVFiles
+checkNightlyOlmBundle
 
 echo "[INFO] Done."
