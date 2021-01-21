@@ -154,17 +154,15 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 }
 
 func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) error {
-	// logrus.Infof("====================================Test!!!! deletion timestamp is zero %t===================================", instance.ObjectMeta.DeletionTimestamp.IsZero())
 	tests := r.tests
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
-		// logrus.Info("=========Reconsile finalizers!!!!====================")
 		if !tests {
 			if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
+				logrus.Errorf("unable to add workspace permissions finalizers to the CR, cause %s", err.Error())
 				return err
 			}
 		}
 	} else {
-		// logrus.Info("=============Remove workspace permissions===========")
 		if !tests {
 			deniedPolicies, err := getNotPermittedPolicyRules(getDeleteClusterRoleAndBindingPolicy(), "")
 			if err != nil {
@@ -172,6 +170,7 @@ func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 			}
 			if len(deniedPolicies) == 0 {
 				if err := r.RemoveWorkspaceClusterPermissions(instance); err != nil {
+					logrus.Errorf("workspace permissions finalizers was not removed from CR, cause %s", err.Error())
 					return err
 				}
 			}

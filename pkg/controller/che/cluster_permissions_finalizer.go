@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2012-2020 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -59,10 +59,7 @@ func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheClus
 		}
 
 		instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName)
-		finalizers := "[" + strings.Join(instance.ObjectMeta.Finalizers, ",") + "]"
-		logrus.Infof("===========Finalizers %s================", finalizers)
 		if err := r.client.Update(context.Background(), instance); err != nil {
-			logrus.Errorf("============CR was not updated, cause %s", err.Error())
 			return err
 		}
 	}
@@ -75,8 +72,6 @@ func (r *ReconcileChe) removeClusterRole(clusterRoleName string, cheClusterName 
 
 	clusterRole, err := deploy.GetClusterRole(clusterRoleName, r.nonCachedClient)
 	if err == nil && clusterRole != nil {
-		// todo remove this log when pr is well tested
-		logrus.Infof("Cluster role is %v", clusterRole)
 		if err := r.nonCachedClient.Delete(context.TODO(), clusterRole); err != nil {
 			logrus.Errorf("Failed to delete %s clusterRole: %s", clusterRoleName, err.Error())
 			return err
@@ -94,8 +89,6 @@ func (r *ReconcileChe) removeClusterRoleBinding(clusterRoleBindingName string, c
 
 	clusterRoleBinding, err := deploy.GetClusterRoleBiding(clusterRoleBindingName, r.nonCachedClient)
 	if err == nil && clusterRoleBinding != nil {
-		// todo remove this log when pr is well tested
-		logrus.Infof("cluster role binding is %v", clusterRoleBinding)
 		if err := r.nonCachedClient.Delete(context.TODO(), clusterRoleBinding); err != nil {
 			logrus.Errorf("Failed to delete %s clusterRoleBinding: %s", clusterRoleBindingName, err.Error())
 			return err

@@ -43,7 +43,6 @@ func (r *ReconcileChe) ReconcileFinalizer(instance *orgv1.CheCluster) (err error
 				return err
 			}
 			instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, oAuthFinalizerName)
-			logrus.Infof("Updating %s CR", instance.Name)
 
 			if err := r.client.Update(context.Background(), instance); err != nil {
 				logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)

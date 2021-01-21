@@ -42,12 +42,12 @@ catchFinish() {
 }
 
 if [ -z "${CHE_NAMESPACE}" ];then
-    CHE_NAMESPACE=test
+    CHE_NAMESPACE=che
 fi
 echo "[INFO] Namespace: ${CHE_NAMESPACE}"
 
 set +e
-# kubectl create namespace $CHE_NAMESPACE
+kubectl create namespace $CHE_NAMESPACE
 set -e
 
 if [ -z "${CR}" ]; then
@@ -55,7 +55,7 @@ if [ -z "${CR}" ]; then
 fi
 echo "[INFO] CR file path: ${CR}"
 
-# kubectl apply -f deploy/crds/org_v1_che_crd.yaml
+kubectl apply -f deploy/crds/org_v1_che_crd.yaml
 kubectl apply -f "${CR}" -n $CHE_NAMESPACE
 cp templates/keycloak_provision /tmp/keycloak_provision
 cp templates/oauth_provision /tmp/oauth_provision
@@ -72,7 +72,7 @@ echo "WATCH_NAMESPACE='${CHE_NAMESPACE}'" >> ${ENV_FILE}
 
 echo "[WARN] Make sure that your CR contains valid ingress domain!"
 
-operator-sdk run --local --watch-namespace ${CHE_NAMESPACE} --enable-delve &
+operator-sdk run --local --namespace ${CHE_NAMESPACE} --enable-delve &
 OPERATOR_SDK_PID=$!
 
 wait ${OPERATOR_SDK_PID}
