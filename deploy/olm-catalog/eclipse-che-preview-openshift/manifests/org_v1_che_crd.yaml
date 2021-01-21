@@ -242,7 +242,7 @@ spec:
                   description: "Install and configure the Community Supported Kubernetes\
                     \ Image Puller Operator. If true and no spec is provided, it will\
                     \ create a default KubernetesImagePuller object to be managed\
-                    \ by the Operator. If false, the KubernetesImagePuller object\
+                    \ by the Operator. TEST COMMENTIf false, the KubernetesImagePuller object\
                     \ will be deleted, and the operator will be uninstalled, regardless\
                     \ of whether or not a spec is provided. \n Please note that while\
                     \ this operator and its behavior is community-supported, its payload\
