@@ -533,7 +533,7 @@ type CheClusterSpecMetrics struct {
 // See https://github.com/che-incubator/kubernetes-image-puller-operator
 type CheClusterSpecImagePuller struct {
 	// Install and configure the Community Supported Kubernetes Image Puller Operator. If true and no spec is provided,
-	// it will create a default KubernetesImagePuller object to be managed by the Operator.
+	// it will create a default KubernetesImagePuller object to be managed by the Operator. TEST COMMENT
 	// If false, the KubernetesImagePuller object will be deleted, and the operator will be uninstalled,
 	// regardless of whether or not a spec is provided.
 	//
