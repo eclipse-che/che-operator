@@ -89,7 +89,7 @@ isActualNightlyOlmBundleCSVFiles() {
   done
   echo "[INFO] Nightly Olm bundle is in actual state."
 }
-
+############ TEST
 installYq
 installOperatorSDK
 check_che_crds
