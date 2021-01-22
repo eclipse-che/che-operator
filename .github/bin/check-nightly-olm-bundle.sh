@@ -53,7 +53,7 @@ installYq() {
   echo "[INFO] $(yq --version)"
   echo "[INFO] $(jq --version)"
 }
-
+#########
 installOperatorSDK() {
   YQ=$(command -v operator-sdk) || true
   if [[ ! -x "${YQ}" ]]; then
