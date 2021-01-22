@@ -108,29 +108,29 @@ const (
 
 	// limits
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
-	DefaultPluginRegistryMemoryRequest = "16Mi"
+	DefaultPluginRegistryMemoryRequest = "32Mi"
 	DefaultPluginRegistryCpuLimit      = "500m"
-	DefaultPluginRegistryCpuRequest    = "50m"
+	DefaultPluginRegistryCpuRequest    = "100m"
 
 	DefaultDevfileRegistryMemoryLimit   = "256Mi"
-	DefaultDevfileRegistryMemoryRequest = "16Mi"
+	DefaultDevfileRegistryMemoryRequest = "32Mi"
 	DefaultDevfileRegistryCpuLimit      = "500m"
-	DefaultDevfileRegistryCpuRequest    = "50m"
+	DefaultDevfileRegistryCpuRequest    = "100m"
 
+	DefaultServerMemoryLimit   = "1024Mi"
 	DefaultServerMemoryRequest = "512Mi"
-	DefaultServerMemoryLimit   = "1Gi"
-	DefaultServerCpuLimit      = "500m"
-	DefaultServerCpuRequest    = "100m"
+	DefaultServerCpuLimit      = "2"
+	DefaultServerCpuRequest    = "500m"
 
-	DefaultIdentityProviderMemoryRequest = "512Mi"
-	DefaultIdentityProviderMemoryLimit   = "2Gi"
-	DefaultIdentityProviderCpuLimit      = "500m"
-	DefaultIdentityProviderCpuRequest    = "50m"
+	DefaultIdentityProviderMemoryLimit   = "1536Mi"
+	DefaultIdentityProviderMemoryRequest = "1024Mi"
+	DefaultIdentityProviderCpuLimit      = "2"
+	DefaultIdentityProviderCpuRequest    = "500m"
 
+	DefaultPostgresMemoryLimit   = "1024Mi"
 	DefaultPostgresMemoryRequest = "512Mi"
-	DefaultPostgresMemoryLimit   = "1Gi"
 	DefaultPostgresCpuLimit      = "500m"
-	DefaultPostgresCpuRequest    = "50m"
+	DefaultPostgresCpuRequest    = "100m"
 )
 
 func InitDefaults(defaultsPath string) {

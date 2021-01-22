@@ -173,7 +173,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	DevfileRegistryMemoryLimit string `json:"devfileRegistryMemoryLimit,omitempty"`
 	// Overrides the memory request used in the Devfile registry deployment
-	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 16Mi.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 32Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
 	// Overrides the cpu limit used in the Devfile registry deployment.
@@ -181,7 +181,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	DevfileRegistryCpuLimit string `json:"devfileRegistryCpuLimit,omitempty"`
 	// Overrides the cpu request used in the Devfile registry deployment.
-	// In cores. (500m = .5 cores). Default to 50m.
+	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	DevfileRegistryCpuRequest string `json:"devfileRegistryCpuRequest,omitempty"`
 	// Devfile registry ingress custom settings
@@ -214,7 +214,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit,omitempty"`
 	// Overrides the memory request used in the Plugin registry deployment.
-	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 16Mi.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 32Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
 	// Overrides the cpu limit used in the Plugin registry deployment.
@@ -222,7 +222,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
 	// Overrides the cpu request used in the Plugin registry deployment.
-	// In cores. (500m = .5 cores). Default to 50m.
+	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	PluginRegistryCpuRequest string `json:"pluginRegistryCpuRequest,omitempty"`
 	// Plugin registry ingress custom settings
@@ -289,11 +289,11 @@ type CheClusterSpecServer struct {
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
 	// Overrides the cpu limit used in the Che server deployment
-	// In cores. (500m = .5 cores). Default to 500m.
+	// In cores. (500m = .5 cores). Default to 2.
 	// +optional
 	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
 	// Overrides the cpu request used in the Che server deployment
-	// In cores. (500m = .5 cores). Default to 100m.
+	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	ServerCpuRequest string `json:"serverCpuRequest,omitempty"`
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".

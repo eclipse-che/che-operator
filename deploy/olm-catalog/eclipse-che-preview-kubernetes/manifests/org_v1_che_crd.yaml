@@ -493,7 +493,7 @@ spec:
                   type: string
                 devfileRegistryCpuRequest:
                   description: Overrides the cpu request used in the Devfile registry
-                    deployment. In cores. (500m = .5 cores). Default to 50m.
+                    deployment. In cores. (500m = .5 cores). Default to 100m.
                   type: string
                 devfileRegistryImage:
                   description: Overrides the container image used in the Devfile registry
@@ -516,7 +516,7 @@ spec:
                 devfileRegistryMemoryRequest:
                   description: Overrides the memory request used in the Devfile registry
                     deployment In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
-                    Defaults to 16Mi.
+                    Defaults to 32Mi.
                   type: string
                 devfileRegistryPullPolicy:
                   description: Overrides the image pull policy used in the Devfile
@@ -574,7 +574,7 @@ spec:
                   type: string
                 pluginRegistryCpuRequest:
                   description: Overrides the cpu request used in the Plugin registry
-                    deployment. In cores. (500m = .5 cores). Default to 50m.
+                    deployment. In cores. (500m = .5 cores). Default to 100m.
                   type: string
                 pluginRegistryImage:
                   description: Overrides the container image used in the Plugin registry
@@ -597,7 +597,7 @@ spec:
                 pluginRegistryMemoryRequest:
                   description: Overrides the memory request used in the Plugin registry
                     deployment. In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024).
-                    Defaults to 16Mi.
+                    Defaults to 32Mi.
                   type: string
                 pluginRegistryPullPolicy:
                   description: Overrides the image pull policy used in the Plugin
@@ -657,11 +657,11 @@ spec:
                   type: boolean
                 serverCpuLimit:
                   description: Overrides the cpu limit used in the Che server deployment
-                    In cores. (500m = .5 cores). Default to 500m.
+                    In cores. (500m = .5 cores). Default to 2.
                   type: string
                 serverCpuRequest:
                   description: Overrides the cpu request used in the Che server deployment
-                    In cores. (500m = .5 cores). Default to 100m.
+                    In cores. (500m = .5 cores). Default to 500m.
                   type: string
                 serverExposureStrategy:
                   description: Sets the server and workspaces exposure type. Possible
