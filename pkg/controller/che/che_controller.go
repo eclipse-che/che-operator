@@ -81,7 +81,7 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		nonCachedClient: noncachedClient,
 		scheme:          mgr.GetScheme(),
 		discoveryClient: discoveryClient,
-		userHandler: NewInitialUserHandler(noncachedClient),
+		userHandler:     NewInitialUserHandler(noncachedClient),
 	}, nil
 }
 
@@ -278,7 +278,7 @@ type ReconcileChe struct {
 	discoveryClient discovery.DiscoveryInterface
 	scheme          *runtime.Scheme
 	tests           bool
-	userHandler InitialUserHandler
+	userHandler     InitialUserHandler
 }
 
 const (
@@ -289,9 +289,9 @@ const (
 	failedUnableToGetOAuth            = "UnableToGetOpenshiftOAuth"
 	warningNoIdentityProvidersMessage = "No Openshift identity providers."
 
-	AddIdentityProviderMessage        = "Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
-	warningNoRealUsersMessage         = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
-	failedUnableToGetOpenshiftUsers   = "Unable to get users on the OpenShift cluster."
+	AddIdentityProviderMessage      = "Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
+	warningNoRealUsersMessage       = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
+	failedUnableToGetOpenshiftUsers = "Unable to get users on the OpenShift cluster."
 
 	howToAddIdentityProviderLinkOS4 = "https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
 	howToConfigureOAuthLinkOS3      = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
@@ -374,7 +374,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	if isOpenShift4 && !instance.Spec.Auth.CreateInitialUser {
 		if err := r.userHandler.DeleteOauthInitialUser(instance.Namespace); err != nil {
-		 logrus.Errorf("Unable to delete initial user from cluster. Cause: %s", err.Error())
+			logrus.Errorf("Unable to delete initial user from cluster. Cause: %s", err.Error())
 			return reconcile.Result{}, err
 		}
 		if instance.Status.IdentityProviderInitialUserSecret == "" {

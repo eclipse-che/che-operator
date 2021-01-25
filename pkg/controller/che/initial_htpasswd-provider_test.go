@@ -14,8 +14,6 @@ package che
 
 import (
 	"context"
-	"os"
-	"testing"
 	mocks "github.com/eclipse/che-operator/mocks"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/golang/mock/gomock"
@@ -28,9 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"testing"
 )
 
 const (
@@ -39,9 +39,9 @@ const (
 
 func TestCreateInitialUser(t *testing.T) {
 	type testCase struct {
-		name                  string
-		oAuth *oauth_config.OAuth
-		initObjects           []runtime.Object
+		name        string
+		oAuth       *oauth_config.OAuth
+		initObjects []runtime.Object
 	}
 
 	oAuth := &oauth_config.OAuth{
@@ -63,15 +63,16 @@ func TestCreateInitialUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockRunnable(ctrl)
 	m.EXPECT().Run("htpasswd", "-nbB", gomock.Any(), gomock.Any()).Return(nil)
-	m.EXPECT().GetStdOut().Return("test-string") 
+	m.EXPECT().GetStdOut().Return("test-string")
 	m.EXPECT().GetStdErr().Return("")
 	defer ctrl.Finish()
 
 	initialUserHandler := &InitialUserOperatorHandler{
 		runtimeClient: runtimeClient,
-		runnable: m,
+		runnable:      m,
 	}
-	err := initialUserHandler.CreateOauthInitialUser(testNamespace, oAuth); if err != nil {
+	err := initialUserHandler.CreateOauthInitialUser(testNamespace, oAuth)
+	if err != nil {
 		t.Errorf("Failed to create user: %s", err.Error())
 	}
 
@@ -111,7 +112,7 @@ func TestDeleteInitialUser(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name: "cluster",
 		},
-		Spec:       oauth_config.OAuthSpec{IdentityProviders: []oauth_config.IdentityProvider{*newHtpasswdProvider()}},
+		Spec: oauth_config.OAuthSpec{IdentityProviders: []oauth_config.IdentityProvider{*newHtpasswdProvider()}},
 	}
 	cheSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{

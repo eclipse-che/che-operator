@@ -45,7 +45,7 @@ type InitialUserHandler interface {
 type InitialUserOperatorHandler struct {
 	InitialUserHandler
 	runtimeClient client.Client
-	runnable util.Runnable
+	runnable      util.Runnable
 }
 
 func NewInitialUserHandler(runtimeClient client.Client) InitialUserHandler {
@@ -112,15 +112,15 @@ func (iuh *InitialUserOperatorHandler) DeleteOauthInitialUser(crNamespace string
 		if err := deleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
-	
+
 		if err := deleteSecret(initialUserSecret, crNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
-	
+
 		if err := deleteInitialUser(iuh.runtimeClient); err != nil {
 			return err
 		}
-	
+
 		if err := deleteUserIdentity(iuh.runtimeClient); err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func deleteSecret(secretName string, namespace string, runtimeClient client.Clie
 
 func deleteInitialUser(runtimeClient client.Client) error {
 	logrus.Infof("Delete initial user: %s", initialUserName)
-	
+
 	user := &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: initialUserName,
@@ -260,7 +260,7 @@ func deleteUserIdentity(runtimeClient client.Client) error {
 	return nil
 }
 
-func deleteIdentityProvider(oAuth *configv1.OAuth , runtimeClient client.Client) error {
+func deleteIdentityProvider(oAuth *configv1.OAuth, runtimeClient client.Client) error {
 	logrus.Info("Delete initial user httpasswd provider from the oAuth")
 
 	oauthPatch := client.MergeFrom(oAuth.DeepCopy())

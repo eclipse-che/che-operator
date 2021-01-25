@@ -552,7 +552,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Initial user in the cluster"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
-	IdentityProviderInitialUserSecret string `json:"identityProviderInitialUserSecret"` 
+	IdentityProviderInitialUserSecret string `json:"identityProviderInitialUserSecret"`
 	// Indicates if or not a Postgres instance has been correctly provisioned
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`

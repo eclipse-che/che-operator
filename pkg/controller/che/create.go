@@ -80,7 +80,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 
 			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
 				identityProviderSecret := deploy.DefaultCheIdentitySecret()
-				_,  err = deploy.SyncSecretToCluster(deployContext, identityProviderSecret, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
+				_, err = deploy.SyncSecretToCluster(deployContext, identityProviderSecret, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
 				if err != nil {
 					return err
 				}

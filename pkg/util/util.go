@@ -42,7 +42,6 @@ var (
 	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
 )
 
-
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {
 		if item == s {

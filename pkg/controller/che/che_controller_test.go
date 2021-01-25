@@ -320,7 +320,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
 			},
-			openshiftVersion:  "4",
+			openshiftVersion: "4",
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string) *mocks.MockInitialUserHandler {
 				m := mocks.NewMockInitialUserHandler(ctrl)
 				m.EXPECT().DeleteOauthInitialUser(crNamespace)
@@ -334,7 +334,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
 			},
-			openshiftVersion:  "4",
+			openshiftVersion: "4",
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string) *mocks.MockInitialUserHandler {
 				m := mocks.NewMockInitialUserHandler(ctrl)
 				m.EXPECT().DeleteOauthInitialUser(crNamespace)
@@ -344,9 +344,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
 		{
-			name:              "che-operator should auto disable oAuth on error retieve identity providers",
-			initObjects:       []runtime.Object{},
-			openshiftVersion:  "4",
+			name:             "che-operator should auto disable oAuth on error retieve identity providers",
+			initObjects:      []runtime.Object{},
+			openshiftVersion: "4",
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string) *mocks.MockInitialUserHandler {
 				return mocks.NewMockInitialUserHandler(ctrl)
 			},
@@ -623,7 +623,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme.Scheme,
-				userHandler: m,
+				userHandler:     m,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
