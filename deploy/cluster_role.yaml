@@ -20,6 +20,13 @@ rules:
     verbs:
       - get
       - create
+      - delete
+  - apiGroups:
+    - user.openshift.io
+    resources:
+    - identities
+    verbs:
+      - delete
   - apiGroups:
       - oauth.openshift.io
     resources:
@@ -49,6 +56,7 @@ rules:
       - users
     verbs:
       - list
+      - delete
   - apiGroups:
       - console.openshift.io
     resources:

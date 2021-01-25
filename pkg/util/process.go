@@ -18,7 +18,7 @@ import (
 )
 
 type Runnable interface {
-	Run() error
+	Run(name string, args ...string) error
 	GetStdOut() string
 	GetStdErr() string
 }
@@ -29,7 +29,12 @@ type Process struct {
 	stderr bytes.Buffer
 }
 
-func (p *Process) Run() error {
+func NewRunnable() Runnable {
+	return &Process{}
+}
+
+func (p *Process) Run(name string, args ...string) error {
+	p.cmd = exec.Command(name, args...)
 	p.cmd.Stdout = &p.stdout
 	p.cmd.Stderr = &p.stderr
 	return p.cmd.Run()
@@ -41,11 +46,4 @@ func (p *Process) GetStdOut() string {
 
 func (p *Process) GetStdErr() string {
 	return string(p.stderr.Bytes())
-}
-
-func NewProcess(name string, args ...string) Runnable {
-	cmd := exec.Command(name, args...)
-	return &Process{
-		cmd: cmd,
-	}
 }

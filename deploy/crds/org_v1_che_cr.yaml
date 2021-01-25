@@ -112,6 +112,7 @@ spec:
     workspacePVCStorageClassName: ''
 
   auth:
+    createInitialUser: true
     # instructs operator on whether or not to deploy Keycloak/RH SSO instance. When set to true provision connection details
     externalIdentityProvider: false
     # retrieved from respective route/ingress unless explicitly specified in CR (when ExternalKeycloak is true)

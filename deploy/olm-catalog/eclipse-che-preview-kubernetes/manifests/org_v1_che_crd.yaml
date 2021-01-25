@@ -50,6 +50,15 @@ spec:
               description: Configuration settings related to the Authentication used
                 by the Che installation.
               properties:
+                createInitialUser:
+                  description: 'Unfortunatly in the a lot of fresh clusters we have
+                    only "kubeadmin" user. But Openshift 4 oAuth doesn''t work with
+                    "kubeadmin". When "CreateInitialUser" is true - create initial
+                    user(with help of new htpasswd identity provider) if there are
+                    no other users. When "CreateInitialUser" is false - delete initial
+                    user htpasswd identity provider if it''s existed. Notice: "CreateInitialUser"
+                    is Openshift 4 platform specific.'
+                  type: boolean
                 externalIdentityProvider:
                   description: 'Instructs the operator on whether or not to deploy
                     a dedicated Identity Provider (Keycloak or RH SSO instance). By
@@ -696,6 +705,9 @@ spec:
             helpLink:
               description: A URL that can point to some URL where to find help related
                 to the current Operator status.
+              type: string
+            identityProviderInitialUserSecret:
+              description: Initial user create for cluster, if there are no other.
               type: string
             keycloakProvisioned:
               description: Indicates whether an Identity Provider instance (Keycloak

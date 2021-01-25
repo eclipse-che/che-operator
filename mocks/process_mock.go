@@ -33,17 +33,22 @@ func (m *MockRunnable) EXPECT() *MockRunnableMockRecorder {
 }
 
 // Run mocks base method
-func (m *MockRunnable) Run() error {
+func (m *MockRunnable) Run(name string, args ...string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Run")
+	varargs := []interface{}{name}
+	for _, a := range args {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Run", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Run indicates an expected call of Run
-func (mr *MockRunnableMockRecorder) Run() *gomock.Call {
+func (mr *MockRunnableMockRecorder) Run(name interface{}, args ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockRunnable)(nil).Run))
+	varargs := append([]interface{}{name}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockRunnable)(nil).Run), varargs...)
 }
 
 // GetStdOut mocks base method

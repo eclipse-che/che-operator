@@ -40,16 +40,8 @@ import (
 var (
 	k8sclient                    = GetK8Client()
 	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
-	NewUserCmd                   Runnable
 )
 
-/** Create new Openshift 4 user command */
-func NewUserCommand() {
-	password := GeneratePasswd(6)
-	// Todo: move password info to the secret and CR.
-	logrus.Info("====Pswd: " + password)
-	NewUserCmd = NewProcess("htpasswd", "-nb", "che-user", password)
-}
 
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {

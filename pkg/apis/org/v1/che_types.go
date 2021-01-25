@@ -350,6 +350,11 @@ type CheClusterSpecDB struct {
 // +k8s:openapi-gen=true
 // Configuration settings related to the Authentication used by the Che installation.
 type CheClusterSpecAuth struct {
+	// Unfortunatly in the a lot of fresh clusters we have only "kubeadmin" user. But Openshift 4 oAuth doesn't work with "kubeadmin".
+	// When "CreateInitialUser" is true - create initial user(with help of new htpasswd identity provider) if there are no other users.
+	// When "CreateInitialUser" is false - delete initial user htpasswd identity provider if it's existed.
+	// Notice: "CreateInitialUser" is Openshift 4 platform specific.
+	CreateInitialUser bool `json:"createInitialUser"`
 	// Instructs the operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
 	// By default a dedicated Identity Provider server is deployed as part of the Che installation.
 	// But if `externalIdentityProvider` is `true`, then no dedicated identity provider will be deployed by the operator
@@ -543,6 +548,11 @@ type CheClusterSpecImagePuller struct {
 
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
+	// Initial user create for cluster, if there are no other.
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Initial user in the cluster"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
+	IdentityProviderInitialUserSecret string `json:"identityProviderInitialUserSecret"` 
 	// Indicates if or not a Postgres instance has been correctly provisioned
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`

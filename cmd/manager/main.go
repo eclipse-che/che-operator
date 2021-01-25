@@ -157,8 +157,6 @@ func main() {
 
 	logrus.Info("Starting the Cmd")
 
-	util.NewUserCommand()
-
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logrus.Error(err, "Manager exited non-zero")
