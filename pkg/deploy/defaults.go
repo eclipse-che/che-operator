@@ -18,7 +18,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -59,29 +59,21 @@ const (
 	DefaultPvcClaimSize        = "1Gi"
 	DefaultIngressClass        = "nginx"
 
-	DefaultPluginRegistryMemoryLimit   = "256Mi"
-	DefaultPluginRegistryMemoryRequest = "16Mi"
-
-	// DefaultKube
-	DefaultDevfileRegistryMemoryLimit   = "256Mi"
-	DefaultDevfileRegistryMemoryRequest = "16Mi"
-	DefaultKeycloakAdminUserName        = "admin"
-	DefaultCheLogLevel                  = "INFO"
-	DefaultCheDebug                     = "false"
-	DefaultCheMultiUser                 = "true"
-	DefaultCheMetricsPort               = int32(8087)
-	DefaultCheDebugPort                 = int32(8000)
-	DefaultCheVolumeMountPath           = "/data"
-	DefaultCheVolumeClaimName           = "che-data-volume"
-	DefaultPostgresVolumeClaimName      = "postgres-data"
+	DefaultKeycloakAdminUserName   = "admin"
+	DefaultCheLogLevel             = "INFO"
+	DefaultCheDebug                = "false"
+	DefaultCheMultiUser            = "true"
+	DefaultCheMetricsPort          = int32(8087)
+	DefaultCheDebugPort            = int32(8000)
+	DefaultCheVolumeMountPath      = "/data"
+	DefaultCheVolumeClaimName      = "che-data-volume"
+	DefaultPostgresVolumeClaimName = "postgres-data"
 
 	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
 	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
-	DefaultServerMemoryRequest      = "512Mi"
-	DefaultServerMemoryLimit        = "1Gi"
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
@@ -113,6 +105,32 @@ const (
 	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
 	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
 	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
+
+	// limits
+	DefaultPluginRegistryMemoryLimit   = "256Mi"
+	DefaultPluginRegistryMemoryRequest = "32Mi"
+	DefaultPluginRegistryCpuLimit      = "500m"
+	DefaultPluginRegistryCpuRequest    = "100m"
+
+	DefaultDevfileRegistryMemoryLimit   = "256Mi"
+	DefaultDevfileRegistryMemoryRequest = "32Mi"
+	DefaultDevfileRegistryCpuLimit      = "500m"
+	DefaultDevfileRegistryCpuRequest    = "100m"
+
+	DefaultServerMemoryLimit   = "1024Mi"
+	DefaultServerMemoryRequest = "512Mi"
+	DefaultServerCpuLimit      = "1"
+	DefaultServerCpuRequest    = "100m"
+
+	DefaultIdentityProviderMemoryLimit   = "1536Mi"
+	DefaultIdentityProviderMemoryRequest = "1024Mi"
+	DefaultIdentityProviderCpuLimit      = "2"
+	DefaultIdentityProviderCpuRequest    = "100m"
+
+	DefaultPostgresMemoryLimit   = "1024Mi"
+	DefaultPostgresMemoryRequest = "512Mi"
+	DefaultPostgresCpuLimit      = "500m"
+	DefaultPostgresCpuRequest    = "100m"
 )
 
 func InitDefaults(defaultsPath string) {
@@ -405,6 +423,8 @@ func InitTestDefaultsFromDeployment(deploymentFile string) error {
 			return err
 		}
 	}
+
+	os.Setenv("MOCK_API", "true")
 
 	InitDefaultsFromEnv()
 	return nil

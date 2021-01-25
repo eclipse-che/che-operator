@@ -27,7 +27,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -64,7 +63,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 		return false, err
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecKeycloakDeployment(deployContext, clusterDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -72,7 +71,7 @@ func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge)
 }
 
-func getSpecKeycloakDeployment(
+func GetSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
 	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	optionalEnv := true
@@ -588,10 +587,20 @@ func getSpecKeycloakDeployment(
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Memory,
+										deploy.DefaultIdentityProviderMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Cpu,
+										deploy.DefaultIdentityProviderCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("2Gi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Limits.Memory,
+										deploy.DefaultIdentityProviderMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Limits.Cpu,
+										deploy.DefaultIdentityProviderCpuLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
@@ -605,7 +614,7 @@ func getSpecKeycloakDeployment(
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 25,
+								InitialDelaySeconds: 30,
 								FailureThreshold:    10,
 								TimeoutSeconds:      5,
 								PeriodSeconds:       10,
@@ -617,7 +626,7 @@ func getSpecKeycloakDeployment(
 										Port: intstr.FromInt(8080),
 									},
 								},
-								InitialDelaySeconds: 30,
+								InitialDelaySeconds: 90,
 								FailureThreshold:    10,
 								TimeoutSeconds:      5,
 								PeriodSeconds:       10,

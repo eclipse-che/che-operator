@@ -32,6 +32,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -352,4 +353,11 @@ func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 		return true
 	}
 	return false
+}
+
+func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
+	if value != "" {
+		return resource.MustParse(value)
+	}
+	return resource.MustParse(defaultValue)
 }
