@@ -16,7 +16,6 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -26,25 +25,21 @@ var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
+func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PostgresName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
-	specDeployment, err := getSpecPostgresDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecPostgresDeployment(deployContext, clusterDeployment)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
@@ -110,10 +105,20 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
+										deploy.DefaultPostgresMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
+										deploy.DefaultPostgresCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1Gi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
+										deploy.DefaultPostgresMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
+										deploy.DefaultPostgresCpuLimit),
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -150,6 +155,11 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
 							},
 							Env: []corev1.EnvVar{
 								{

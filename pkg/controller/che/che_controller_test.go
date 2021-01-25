@@ -37,7 +37,6 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacapi "k8s.io/api/rbac/v1"
@@ -54,6 +53,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/yaml"
 
 	"testing"
 )
@@ -805,7 +805,7 @@ func TestCheController(t *testing.T) {
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR); err != nil {
 		t.Errorf("Failed to get the Che custom resource %s: %s", cheCR.Name, err)
 	}
-	if err = identity_provider.SyncIdentityProviderItems(deployContext, "che"); err != nil {
+	if _, err = identity_provider.SyncOpenShiftIdentityProviderItems(deployContext); err != nil {
 		t.Errorf("Failed to create the items for the identity provider: %s", err)
 	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName

@@ -384,7 +384,17 @@ spec:
                       periodSeconds: 10
                       successThreshold: 1
                       timeoutSeconds: 5
-                    resources: {}
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 256Mi
+                      requests:
+                        cpu: 100m
+                        memory: 64Mi
+                    securityContext:
+                      capabilities:
+                        drop:
+                          - ALL
                 restartPolicy: Always
                 serviceAccountName: che-operator
                 terminationGracePeriodSeconds: 5

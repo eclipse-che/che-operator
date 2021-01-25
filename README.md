@@ -1,5 +1,7 @@
 # Che/CodeReady Workspaces Operator
 
+[![codecov](https://codecov.io/gh/eclipse/che-operator/branch/master/graph/badge.svg?token=IlYvrVU5nB)](https://codecov.io/gh/eclipse/che-operator)
+
 Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a single or multi-user Eclipse Che/CodeReady Workspaces cluster.
 
 The operator watches for a Custom Resource of Kind `CheCluster`, and operator controller executes its business logic when a new Che object is created, namely:
@@ -304,7 +306,7 @@ New golang dependencies in the vendor folder should be committed and included in
 ### Updating Custom Resource Definition file
 
 Che cluster custom resource definition (CRD) defines Eclipse CheCluster custom resource object. It contains information about object structure, field types, field descriptions.
-CRD file is a YAML definition located in the `deploy/crds/org_v1_che_crd.yaml`. The file is auto-generated, so do not edit it directly to update it. If you want to add new fields or fix descriptions in the CRD, make your changes in the file `pkg/apis/org/v1/che_types.go` and run VSCode task `Update cr/crd files` or use the terminal
+CRD file is a YAML definition located in the `deploy/crds/org_v1_che_crd.yaml`. The file is auto-generated, so do not edit it directly to update it. If you want to add new fields or fix descriptions in the CRD, make your changes in the file `pkg/apis/org/v1/che_types.go` and run VSCode task `Update crd files` or use the terminal
 
 ```bash
 $ olm/update-crd-files.sh
@@ -326,7 +328,7 @@ Sometimes, during development, you need to modify some YAML definitions in the `
   - Che cluster custom resource definition `pkg/apis/org/v1/che_types.go`. For example you want to fix some properties description or apply new Che type properties with default values. These changes affect CRD `deploy/crds/org_v1_che_crd.yaml`.
   - add Openshift ui annotations for Che types properties (`pkg/apis/org/v1/che_types.go`) to display information or interactive elements on the Openshift user interface.
 
-For all these cases it's a necessary to generate a new OLM bundle to make these changes working with OLM. Run the VSCode tasks `Update OLM bundle files` or use the terminal:
+For all these cases it's a necessary to generate a new OLM bundle to make these changes working with OLM. Run the VSCode tasks `Update nightly OLM bundle` or use the terminal:
 
 ```bash
 $ olm/update-nightly-bundle.sh

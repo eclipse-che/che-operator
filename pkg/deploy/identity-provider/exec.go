@@ -14,7 +14,6 @@ package identity_provider
 import (
 	"bytes"
 	"io/ioutil"
-	"strings"
 	"text/template"
 
 	v1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -34,152 +33,140 @@ func GetPostgresProvisionCommand(identityProviderPostgresPassword string) (comma
 	return command
 }
 
-func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string) {
-	requiredActions := ""
-	updateAdminPassword := cr.Spec.Auth.UpdateAdminPassword
+func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string, err error) {
 	cheFlavor := deploy.DefaultCheFlavor(cr)
-	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-	keycloakUserEnvVar := "${KEYCLOAK_USER}"
-	keycloakPasswordEnvVar := "${KEYCLOAK_PASSWORD}"
+	requiredActions := (map[bool]string{true: "\"UPDATE_PASSWORD\"", false: ""})[cr.Spec.Auth.UpdateAdminPassword]
+	keycloakTheme := (map[bool]string{true: "rh-sso", false: "che"})[cheFlavor == "codeready"]
+	realmDisplayName := (map[bool]string{true: "CodeReady Workspaces", false: "Eclipse Che"})[cheFlavor == "codeready"]
 
-	if updateAdminPassword {
-		requiredActions = "\"UPDATE_PASSWORD\""
+	script, keycloakRealm, keycloakClientId, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
+	data := struct {
+		Script                string
+		KeycloakAdminUserName string
+		KeycloakAdminPassword string
+		KeycloakRealm         string
+		RealmDisplayName      string
+		KeycloakTheme         string
+		CheHost               string
+		KeycloakClientId      string
+		RequiredActions       string
+	}{
+		script,
+		keycloakUserEnvVar,
+		keycloakPasswordEnvVar,
+		keycloakRealm,
+		realmDisplayName,
+		keycloakTheme,
+		cr.Spec.Server.CheHost,
+		keycloakClientId,
+		requiredActions,
 	}
-	file, err := ioutil.ReadFile("/tmp/keycloak_provision")
-	if err != nil {
-		logrus.Errorf("Failed to locate keycloak entrypoint file: %s", err)
-	}
-	keycloakTheme := "che"
-	realmDisplayName := "Eclipse Che"
-	script := "/opt/jboss/keycloak/bin/kcadm.sh"
-	if cheFlavor == "codeready" {
-		keycloakTheme = "rh-sso"
-		realmDisplayName = "CodeReady Workspaces"
-		script = "/opt/eap/bin/kcadm.sh"
-		keycloakUserEnvVar = "${SSO_ADMIN_USERNAME}"
-		keycloakPasswordEnvVar = "${SSO_ADMIN_PASSWORD}"
-	}
-	str := string(file)
-	r := strings.NewReplacer("$script", script,
-		"$keycloakAdminUserName", keycloakUserEnvVar,
-		"$keycloakAdminPassword", keycloakPasswordEnvVar,
-		"$keycloakRealm", keycloakRealm,
-		"$realmDisplayName", realmDisplayName,
-		"$keycloakClientId", keycloakClientId,
-		"$keycloakTheme", keycloakTheme,
-		"$cheHost", cr.Spec.Server.CheHost,
-		"$requiredActions", requiredActions)
-	createRealmClientUserCommand := r.Replace(str)
-	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + createRealmClientUserCommand
-	} else {
-		command = "cd /home/jboss && " + createRealmClientUserCommand
-	}
-	return command
+	return getCommandFromTemplateFile(cr, "/tmp/keycloak-provision.sh", data)
 }
 
-func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClientName string, oauthSecret string, isOpenShift4 bool) (command string, err error) {
-	cheFlavor := deploy.DefaultCheFlavor(cr)
+func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClientName string, oauthSecret string) (string, error) {
+	isOpenShift4 := util.IsOpenShift4
+	providerId := (map[bool]string{true: "openshift-v4", false: "openshift-v3"})[isOpenShift4]
 	openShiftApiUrl, err := util.GetClusterPublicHostname(isOpenShift4)
 	if err != nil {
 		logrus.Errorf("Failed to auto-detect public OpenShift API URL. Configure it in Identity provider details page in Keycloak admin console: %s", err)
 		return "", err
 	}
 
-	keycloakUserEnvVar := "${KEYCLOAK_USER}"
-	keycloakPasswordEnvVar := "${KEYCLOAK_PASSWORD}"
-	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	script := "/opt/jboss/keycloak/bin/kcadm.sh"
-	if cheFlavor == "codeready" {
-		script = "/opt/eap/bin/kcadm.sh"
-		keycloakUserEnvVar = "${SSO_ADMIN_USERNAME}"
-		keycloakPasswordEnvVar = "${SSO_ADMIN_PASSWORD}"
+	script, keycloakRealm, keycloakClientId, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
+	data := struct {
+		Script                string
+		KeycloakAdminUserName string
+		KeycloakAdminPassword string
+		KeycloakRealm         string
+		ProviderId            string
+		OAuthClientName       string
+		OauthSecret           string
+		OpenShiftApiUrl       string
+		KeycloakClientId      string
+	}{
+		script,
+		keycloakUserEnvVar,
+		keycloakPasswordEnvVar,
+		keycloakRealm,
+		providerId,
+		oAuthClientName,
+		oauthSecret,
+		openShiftApiUrl,
+		keycloakClientId,
 	}
-	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-
-	providerId := "openshift-v3"
-	if isOpenShift4 {
-		providerId = "openshift-v4"
-	}
-
-	file, err := ioutil.ReadFile("/tmp/oauth_provision")
-	if err != nil {
-		logrus.Errorf("Failed to locate keycloak oauth provisioning file: %s", err)
-	}
-	createOpenShiftIdentityProviderTemplate := string(file)
-	/*
-		In order to have the token-exchange currently working and easily usable, we should (in case of Keycloak) be able to
-		- Automatically redirect the user to its Keycloak account page to set those required values when the email is empty (instead of failing here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakEnvironmentInitalizationFilter.java#L125)
-		- Or at least point with a link to the place where it can be set (the KeycloakSettings PROFILE_ENDPOINT_SETTING value)
-		  (cf. here: https://github.com/eclipse/che/blob/master/multiuser/keycloak/che-multiuser-keycloak-server/src/main/java/org/eclipse/che/multiuser/keycloak/server/KeycloakSettings.java#L117)
-	*/
-
-	template, err := template.New("IdentityProviderProvisioning").Parse(createOpenShiftIdentityProviderTemplate)
-	if err != nil {
-		return "", err
-	}
-	buffer := new(bytes.Buffer)
-	err = template.Execute(
-		buffer,
-		struct {
-			Script                string
-			KeycloakAdminUserName string
-			KeycloakAdminPassword string
-			KeycloakRealm         string
-			ProviderId            string
-			OAuthClientName       string
-			OauthSecret           string
-			OpenShiftApiUrl       string
-			KeycloakClientId      string
-		}{
-			script,
-			keycloakUserEnvVar,
-			keycloakPasswordEnvVar,
-			keycloakRealm,
-			providerId,
-			oAuthClientName,
-			oauthSecret,
-			openShiftApiUrl,
-			keycloakClientId,
-		})
-	if err != nil {
-		return "", err
-	}
-
-	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + buffer.String()
-	} else {
-		command = "cd /home/jboss && " + buffer.String()
-	}
-	return command, nil
+	return getCommandFromTemplateFile(cr, "/tmp/oauth-provision.sh", data)
 }
 
-func GetDeleteOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, isOpenShift4 bool) (command string) {
+func GetGitHubIdentityProviderCreateCommand(deployContext *deploy.DeployContext) (string, error) {
+	cr := deployContext.CheCluster
+	script, keycloakRealm, _, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
+	data := struct {
+		Script                string
+		KeycloakAdminUserName string
+		KeycloakAdminPassword string
+		KeycloakRealm         string
+		ProviderId            string
+	}{
+		script,
+		keycloakUserEnvVar,
+		keycloakPasswordEnvVar,
+		keycloakRealm,
+		"github",
+	}
+	return getCommandFromTemplateFile(cr, "/tmp/create-github-identity-provider.sh", data)
+}
+
+func GetIdentityProviderDeleteCommand(cr *v1.CheCluster, identityProvider string) (string, error) {
+	script, keycloakRealm, _, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
+	data := struct {
+		Script                string
+		KeycloakRealm         string
+		KeycloakAdminUserName string
+		KeycloakAdminPassword string
+		ProviderId            string
+	}{
+		script,
+		keycloakRealm,
+		keycloakUserEnvVar,
+		keycloakPasswordEnvVar,
+		identityProvider,
+	}
+	return getCommandFromTemplateFile(cr, "/tmp/delete-identity-provider.sh", data)
+}
+
+func getCommandFromTemplateFile(cr *v1.CheCluster, templateFile string, data interface{}) (string, error) {
 	cheFlavor := deploy.DefaultCheFlavor(cr)
-	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	script := "/opt/jboss/keycloak/bin/kcadm.sh"
-	keycloakUserEnvVar := "${KEYCLOAK_USER}"
-	keycloakPasswordEnvVar := "${KEYCLOAK_PASSWORD}"
-	if cheFlavor == "codeready" {
-		script = "/opt/eap/bin/kcadm.sh"
-		keycloakUserEnvVar = "${SSO_ADMIN_USERNAME}"
-		keycloakPasswordEnvVar = "${SSO_ADMIN_PASSWORD}"
+
+	file, err := ioutil.ReadFile(templateFile)
+	if err != nil {
+		return "", err
 	}
 
-	providerName := "openshift-v3"
-	if isOpenShift4 {
-		providerName = "openshift-v4"
+	template, err := template.New("Template").Parse(string(file))
+	if err != nil {
+		return "", err
 	}
-	deleteOpenShiftIdentityProviderCommand :=
-		script + " config credentials --server http://0.0.0.0:8080/auth " +
-			"--realm master --user " + keycloakUserEnvVar + " --password " + keycloakPasswordEnvVar + " && " +
-			"if " + script + " get identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; then " +
-			script + " delete identity-provider/instances/" + providerName + " -r " + keycloakRealm + " ; fi"
+
+	buffer := new(bytes.Buffer)
+	err = template.Execute(buffer, data)
+	if err != nil {
+		return "", err
+	}
+
 	if cheFlavor == "che" {
-		command = "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + deleteOpenShiftIdentityProviderCommand
-	} else {
-		command = "cd /home/jboss  && " + deleteOpenShiftIdentityProviderCommand
+		return "cd /scripts && export JAVA_TOOL_OPTIONS=-Duser.home=. && " + buffer.String(), nil
 	}
-	return command
+	return "cd /home/jboss && " + buffer.String(), nil
+}
+
+func getDefaults(cr *v1.CheCluster) (string, string, string, string, string) {
+	cheFlavor := deploy.DefaultCheFlavor(cr)
+	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	keycloakClientId := util.GetValue(cr.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+	if cheFlavor == "codeready" {
+		return "/opt/eap/bin/kcadm.sh", keycloakRealm, keycloakClientId, "${SSO_ADMIN_USERNAME}", "${SSO_ADMIN_PASSWORD}"
+	}
+
+	return "/opt/jboss/keycloak/bin/kcadm.sh", keycloakRealm, keycloakClientId, "${KEYCLOAK_USER}", "${KEYCLOAK_PASSWORD}"
 }
