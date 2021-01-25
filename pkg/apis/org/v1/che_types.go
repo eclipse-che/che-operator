@@ -293,7 +293,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
 	// Overrides the cpu request used in the Che server deployment
-	// In cores. (500m = .5 cores). Default to 500m.
+	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	ServerCpuRequest string `json:"serverCpuRequest,omitempty"`
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".

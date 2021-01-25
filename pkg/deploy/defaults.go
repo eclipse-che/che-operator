@@ -120,12 +120,12 @@ const (
 	DefaultServerMemoryLimit   = "1024Mi"
 	DefaultServerMemoryRequest = "512Mi"
 	DefaultServerCpuLimit      = "2"
-	DefaultServerCpuRequest    = "500m"
+	DefaultServerCpuRequest    = "100m"
 
 	DefaultIdentityProviderMemoryLimit   = "1536Mi"
 	DefaultIdentityProviderMemoryRequest = "1024Mi"
 	DefaultIdentityProviderCpuLimit      = "2"
-	DefaultIdentityProviderCpuRequest    = "500m"
+	DefaultIdentityProviderCpuRequest    = "100m"
 
 	DefaultPostgresMemoryLimit   = "1024Mi"
 	DefaultPostgresMemoryRequest = "512Mi"

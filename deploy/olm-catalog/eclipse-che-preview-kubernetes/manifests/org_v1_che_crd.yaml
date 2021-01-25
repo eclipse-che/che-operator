@@ -661,7 +661,7 @@ spec:
                   type: string
                 serverCpuRequest:
                   description: Overrides the cpu request used in the Che server deployment
-                    In cores. (500m = .5 cores). Default to 500m.
+                    In cores. (500m = .5 cores). Default to 100m.
                   type: string
                 serverExposureStrategy:
                   description: Sets the server and workspaces exposure type. Possible
