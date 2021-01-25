@@ -17,13 +17,6 @@ import (
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 )
 
-func GetLegacyLabels(cheCluster *orgv1.CheCluster, component string) map[string]string {
-	return map[string]string{
-		"app":       DefaultCheFlavor(cheCluster),
-		"component": component,
-	}
-}
-
 func GetLabels(cheCluster *orgv1.CheCluster, component string) map[string]string {
 	cheFlavor := DefaultCheFlavor(cheCluster)
 	return map[string]string{
@@ -42,7 +35,6 @@ func GetLabelsAndSelector(cheCluster *orgv1.CheCluster, component string) (map[s
 	// We have to keep these labels for a deployment since this field is immutable
 	for k, v := range legacyLabels {
 		labels[k] = v
-
 	}
 
 	return labels, legacyLabels
@@ -54,5 +46,12 @@ func MergeLabels(labels map[string]string, additionalLabels string) {
 		if len(pair) == 2 {
 			labels[pair[0]] = pair[1]
 		}
+	}
+}
+
+func GetLegacyLabels(cheCluster *orgv1.CheCluster, component string) map[string]string {
+	return map[string]string{
+		"app":       DefaultCheFlavor(cheCluster),
+		"component": component,
 	}
 }

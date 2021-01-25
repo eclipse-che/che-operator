@@ -105,7 +105,7 @@ func GetSpecService(
 	portNumber []int32,
 	component string) (*corev1.Service, error) {
 
-	labels, selector := GetLabelsAndSelector(deployContext.CheCluster, component)
+	labels := GetLabels(deployContext.CheCluster, component)
 	ports := []corev1.ServicePort{}
 	for i := range portName {
 		port := corev1.ServicePort{
@@ -128,7 +128,7 @@ func GetSpecService(
 		},
 		Spec: corev1.ServiceSpec{
 			Ports:    ports,
-			Selector: selector,
+			Selector: labels,
 		},
 	}
 
