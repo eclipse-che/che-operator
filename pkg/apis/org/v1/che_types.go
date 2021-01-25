@@ -289,7 +289,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
 	// Overrides the cpu limit used in the Che server deployment
-	// In cores. (500m = .5 cores). Default to 2.
+	// In cores. (500m = .5 cores). Default to 1.
 	// +optional
 	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
 	// Overrides the cpu request used in the Che server deployment

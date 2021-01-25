@@ -119,7 +119,7 @@ const (
 
 	DefaultServerMemoryLimit   = "1024Mi"
 	DefaultServerMemoryRequest = "512Mi"
-	DefaultServerCpuLimit      = "2"
+	DefaultServerCpuLimit      = "1"
 	DefaultServerCpuRequest    = "100m"
 
 	DefaultIdentityProviderMemoryLimit   = "1536Mi"

@@ -658,7 +658,7 @@ spec:
                   type: boolean
                 serverCpuLimit:
                   description: Overrides the cpu limit used in the Che server deployment
-                    In cores. (500m = .5 cores). Default to 2.
+                    In cores. (500m = .5 cores). Default to 1.
                   type: string
                 serverCpuRequest:
                   description: Overrides the cpu request used in the Che server deployment
