@@ -97,6 +97,9 @@ const (
 	// kubernetes default labels
 	KubernetesComponentLabelKey = "app.kubernetes.io/component"
 	KubernetesPartOfLabelKey    = "app.kubernetes.io/part-of"
+	KubernetesManagedByLabelKey = "app.kubernetes.io/managed-by"
+	KubernetesInstanceLabelKey  = "app.kubernetes.io/instance"
+	KubernetesNameLabelKey      = "app.kubernetes.io/name"
 
 	CheEclipseOrg = "che.eclipse.org"
 
@@ -104,7 +107,14 @@ const (
 	CheEclipseOrgMountPath              = "che.eclipse.org/mount-path"
 	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
 	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
+	CheEclipseOrgNamespace              = "che.eclipse.org/namespace"
 	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
+
+	// components
+	IdentityProviderName = "keycloak"
+	DevfileRegistryName  = "devfile-registry"
+	PluginRegistryName   = "plugin-registry"
+	PostgresName         = "postgres"
 
 	// limits
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
@@ -423,8 +433,6 @@ func InitTestDefaultsFromDeployment(deploymentFile string) error {
 			return err
 		}
 	}
-
-	os.Setenv("MOCK_API", "true")
 
 	InitDefaultsFromEnv()
 	return nil

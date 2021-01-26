@@ -461,7 +461,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
-	cm, err := deploy.SyncAdditionalCACertsConfigMapToCluster(instance, deployContext)
+	cm, err := deploy.SyncAdditionalCACertsConfigMapToCluster(deployContext)
 	if err != nil {
 		logrus.Errorf("Error updating additional CA config map: %v", err)
 		return reconcile.Result{}, err
@@ -501,7 +501,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// If the devfile-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
 	devfileRegistryConfigMap := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "devfile-registry"}, devfileRegistryConfigMap)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: deploy.DevfileRegistryName}, devfileRegistryConfigMap)
 	if err != nil && !errors.IsNotFound(err) {
 		logrus.Errorf("Error getting devfile-registry ConfigMap: %v", err)
 		return reconcile.Result{}, err
@@ -517,7 +517,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// If the plugin-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
 	pluginRegistryConfigMap := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "plugin-registry"}, pluginRegistryConfigMap)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: deploy.PluginRegistryName}, pluginRegistryConfigMap)
 	if err != nil && !errors.IsNotFound(err) {
 		logrus.Errorf("Error getting plugin-registry ConfigMap: %v", err)
 		return reconcile.Result{}, err
@@ -658,8 +658,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 
 	if cheMultiUser == "false" {
-		labels := deploy.GetLabels(instance, cheFlavor)
-		pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", labels)
+		pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", cheFlavor)
 		if !tests {
 			if !pvcStatus.Continue {
 				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
@@ -685,14 +684,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	externalDB := instance.Spec.Database.ExternalDb
 	if !externalDB {
 		if cheMultiUser == "false" {
-			if util.K8sclient.IsDeploymentExists(postgres.PostgresDeploymentName, instance.Namespace) {
-				util.K8sclient.DeleteDeployment(postgres.PostgresDeploymentName, instance.Namespace)
+			if util.K8sclient.IsDeploymentExists(deploy.PostgresName, instance.Namespace) {
+				util.K8sclient.DeleteDeployment(deploy.PostgresName, instance.Namespace)
 			}
 		} else {
-			postgresLabels := deploy.GetLabels(instance, postgres.PostgresDeploymentName)
-
 			// Create a new postgres service
-			serviceStatus := deploy.SyncServiceToCluster(deployContext, "postgres", []string{"postgres"}, []int32{5432}, postgresLabels)
+			serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
 			if !tests {
 				if !serviceStatus.Continue {
 					logrus.Info("Waiting on service 'postgres' to be ready")
@@ -705,7 +702,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			// Create a new Postgres PVC object
-			pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", postgresLabels)
+			pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
 			if !tests {
 				if !pvcStatus.Continue {
 					logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
@@ -721,7 +718,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			provisioned, err := postgres.SyncPostgresDeploymentToCluster(deployContext)
 			if !tests {
 				if !provisioned {
-					logrus.Infof("Waiting on deployment '%s' to be ready", postgres.PostgresDeploymentName)
+					logrus.Infof("Waiting on deployment '%s' to be ready", deploy.PostgresName)
 					if err != nil {
 						logrus.Error(err)
 					}
@@ -746,7 +743,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				if !dbStatus {
 					_, err := util.K8sclient.ExecIntoPod(
 						instance,
-						postgres.PostgresDeploymentName,
+						deploy.PostgresName,
 						func(cr *orgv1.CheCluster) (string, error) {
 							return identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword), nil
 						},
@@ -794,7 +791,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheHost := ""
 	if !isOpenShift {
 		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
-		ingress, err := deploy.SyncIngressToCluster(deployContext, cheFlavor, instance.Spec.Server.CheHost, exposedServiceName, 8080, additionalLabels)
+		ingress, err := deploy.SyncIngressToCluster(
+			deployContext,
+			cheFlavor,
+			instance.Spec.Server.CheHost,
+			exposedServiceName,
+			8080,
+			additionalLabels,
+			cheFlavor)
 		if !tests {
 			if ingress == nil {
 				logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
@@ -814,7 +818,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels)
+		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels, cheFlavor)
 		if route == nil {
 			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
 			if err != nil {
@@ -851,7 +855,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !tests {
 		if !provisioned {
 			if err != nil {
-				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistry, err)
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistryName, err)
 			}
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
@@ -861,7 +865,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !tests {
 		if !provisioned {
 			if err != nil {
-				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistry, err)
+				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistryName, err)
 			}
 			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
@@ -993,6 +997,9 @@ func createConsoleLink(isOpenShift4 bool, protocol string, instance *orgv1.CheCl
 	preparedConsoleLink := &consolev1.ConsoleLink{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deploy.DefaultConsoleLinkName(),
+			Annotations: map[string]string{
+				deploy.CheEclipseOrgNamespace: instance.Namespace,
+			},
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
@@ -1047,11 +1054,11 @@ func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 }
 
 func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
-	routeName := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-	route, err := deploy.SyncRouteToCluster(deployContext, routeName, "", getServerExposingServiceName(deployContext.CheCluster), 8080, additionalLabels)
+	route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, "", getServerExposingServiceName(deployContext.CheCluster), 8080, additionalLabels, cheFlavor)
 	if route == nil {
-		logrus.Infof("Waiting on route '%s' to be ready", routeName)
+		logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
 		if err != nil {
 			logrus.Error(err)
 		}

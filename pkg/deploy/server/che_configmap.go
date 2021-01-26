@@ -91,7 +91,7 @@ func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.Con
 	if err != nil {
 		return nil, err
 	}
-	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, data)
+	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, data, deploy.DefaultCheFlavor(deployContext.CheCluster))
 	if err != nil {
 		return nil, err
 	}

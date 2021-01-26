@@ -31,12 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	IdentityProviderServiceName    = "keycloak"
-	IdentityProviderExposureName   = "keycloak"
-	IdentityProviderDeploymentName = "keycloak"
-)
-
 var (
 	oAuthClientDiffOpts = cmpopts.IgnoreFields(oauth.OAuthClient{}, "TypeMeta", "ObjectMeta")
 	syncItems           = []func(*deploy.DeployContext) (bool, error){
@@ -59,8 +53,8 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 
 	cheMultiUser := deploy.GetCheMultiUser(cr)
 	if cheMultiUser == "false" {
-		if util.K8sclient.IsDeploymentExists("keycloak", cr.Namespace) {
-			util.K8sclient.DeleteDeployment("keycloak", cr.Namespace)
+		if util.K8sclient.IsDeploymentExists(deploy.IdentityProviderName, cr.Namespace) {
+			util.K8sclient.DeleteDeployment(deploy.IdentityProviderName, cr.Namespace)
 		}
 		return true, nil
 	}
@@ -78,15 +72,12 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 }
 
 func syncService(deployContext *deploy.DeployContext) (bool, error) {
-	cr := deployContext.CheCluster
-	labels := deploy.GetLabels(cr, IdentityProviderServiceName)
-
 	serviceStatus := deploy.SyncServiceToCluster(
 		deployContext,
-		IdentityProviderServiceName,
+		deploy.IdentityProviderName,
 		[]string{"http"},
 		[]int32{8080},
-		labels)
+		deploy.IdentityProviderName)
 
 	return serviceStatus.Continue, serviceStatus.Err
 }
@@ -104,14 +95,15 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 	endpoint, done, err := expose.Expose(
 		deployContext,
 		cr.Spec.Server.CheHost,
-		IdentityProviderExposureName,
-		additionalLabels)
+		deploy.IdentityProviderName,
+		additionalLabels,
+		deploy.IdentityProviderName)
 	if !done {
 		return false, err
 	}
 
 	keycloakURL := protocol + "://" + endpoint
-	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d", "http", "keycloak", cr.Namespace, 8080)
+	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d", "http", deploy.IdentityProviderName, cr.Namespace, 8080)
 
 	if cr.Spec.Auth.IdentityProviderURL != keycloakURL {
 		cr.Spec.Auth.IdentityProviderURL = keycloakURL
@@ -196,7 +188,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 			// because we're not doing much of a change detection on those fields, we can't react on them changing here.
 			_, err := util.K8sclient.ExecIntoPod(
 				cr,
-				IdentityProviderDeploymentName,
+				deploy.IdentityProviderName,
 				func(cr *orgv1.CheCluster) (string, error) {
 					return GetOpenShiftIdentityProviderProvisionCommand(cr, oAuthClientName, oauthSecret)
 				},
@@ -229,7 +221,7 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	secrets := &corev1.SecretList{}
 
 	kubernetesPartOfLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.Equals, []string{deploy.CheEclipseOrg})
-	kubernetesComponentLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesComponentLabelKey, selection.Equals, []string{IdentityProviderDeploymentName + "-secret"})
+	kubernetesComponentLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesComponentLabelKey, selection.Equals, []string{deploy.IdentityProviderName + "-secret"})
 
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().
@@ -253,7 +245,7 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 			if !util.IsTestMode() {
 				_, err := util.K8sclient.ExecIntoPod(
 					cr,
-					IdentityProviderDeploymentName,
+					deploy.IdentityProviderName,
 					func(cr *orgv1.CheCluster) (string, error) {
 						return GetGitHubIdentityProviderCreateCommand(deployContext)
 					},
@@ -273,7 +265,7 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 			if !util.IsTestMode() {
 				_, err := util.K8sclient.ExecIntoPod(
 					cr,
-					IdentityProviderDeploymentName,
+					deploy.IdentityProviderName,
 					func(cr *orgv1.CheCluster) (string, error) {
 						return GetIdentityProviderDeleteCommand(cr, "github")
 					},

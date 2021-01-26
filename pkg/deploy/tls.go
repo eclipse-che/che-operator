@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -131,12 +130,13 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 
 	var useTestEndpoint bool = len(endpointURL) < 1
 	var requestURL string
+	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
 	if useTestEndpoint {
 		if util.IsOpenShift {
 			// Create test route to get certificates chain.
 			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
 			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-			routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels)
+			routeSpec, err := GetSpecRoute(deployContext, "test", "", "test", 8080, additionalLabels, cheFlavor)
 			if err != nil {
 				return nil, err
 			}
@@ -175,7 +175,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			// Create test ingress to get certificates chain.
 			// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
 			additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
-			ingressSpec, err := GetSpecIngress(deployContext, "test", "", "test", 8080, additionalLabels)
+			ingressSpec, err := GetSpecIngress(deployContext, "test", "", "test", 8080, additionalLabels, cheFlavor)
 			if err != nil {
 				return nil, err
 			}
@@ -482,7 +482,8 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 }
 
 // SyncAdditionalCACertsConfigMapToCluster makes sure that additional CA certs config map is up to date if any
-func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext *DeployContext) (*corev1.ConfigMap, error) {
+func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap, error) {
+	cr := deployContext.CheCluster
 	// Get all source config maps, if any
 	caConfigMaps, err := getCACertsConfigMaps(deployContext)
 	if err != nil {
@@ -548,7 +549,7 @@ func SyncAdditionalCACertsConfigMapToCluster(cr *orgv1.CheCluster, deployContext
 		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
-	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data)
+	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data, DefaultCheFlavor(cr))
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ import (
 )
 
 func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistry, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistryName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return false, err
 	}

@@ -23,6 +23,9 @@ spec:
     metadata:
       labels:
         app: che-operator
+        app.kubernetes.io/name: che
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/component: che-operator
     spec:
       containers:
         - name: che-operator

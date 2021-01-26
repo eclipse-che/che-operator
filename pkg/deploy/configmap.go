@@ -59,9 +59,9 @@ func SyncConfigMapToCluster(deployContext *DeployContext, specConfigMap *corev1.
 func GetSpecConfigMap(
 	deployContext *DeployContext,
 	name string,
-	data map[string]string) (*corev1.ConfigMap, error) {
+	data map[string]string,
+	component string) (*corev1.ConfigMap, error) {
 
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -70,7 +70,7 @@ func GetSpecConfigMap(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: deployContext.CheCluster.Namespace,
-			Labels:    labels,
+			Labels:    GetLabels(deployContext.CheCluster, component),
 		},
 		Data: data,
 	}

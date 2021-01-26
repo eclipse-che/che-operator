@@ -21,16 +21,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const (
-	PostgresDeploymentName = "postgres"
-)
-
 var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
 func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	clusterDeployment, err := deploy.GetClusterDeployment(PostgresDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PostgresName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return false, err
 	}
@@ -50,7 +46,7 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels := deploy.GetLabels(deployContext.CheCluster, PostgresDeploymentName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, deploy.PostgresName)
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
 	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
@@ -71,12 +67,12 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "postgres",
+			Name:      deploy.PostgresName,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labelSelector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.DeploymentStrategyType("Recreate"),
 			},
@@ -97,12 +93,12 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            PostgresDeploymentName,
+							Name:            deploy.PostgresName,
 							Image:           postgresImage,
 							ImagePullPolicy: pullPolicy,
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          PostgresDeploymentName,
+									Name:          deploy.PostgresName,
 									ContainerPort: 5432,
 									Protocol:      "TCP",
 								},

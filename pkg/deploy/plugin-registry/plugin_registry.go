@@ -35,7 +35,7 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 	pluginRegistryURL := deployContext.CheCluster.Spec.Server.PluginRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
 		additionalLabels := (map[bool]string{true: deployContext.CheCluster.Spec.Server.PluginRegistryRoute.Labels, false: deployContext.CheCluster.Spec.Server.PluginRegistryIngress.Labels})[util.IsOpenShift]
-		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.PluginRegistry, additionalLabels)
+		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.PluginRegistryName, additionalLabels, deploy.PluginRegistryName)
 		if !done {
 			return false, err
 		}
@@ -50,7 +50,7 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 
 		if deployContext.CheCluster.IsAirGapMode() {
 			configMapData := getPluginRegistryConfigMapData(deployContext.CheCluster)
-			configMapSpec, err := deploy.GetSpecConfigMap(deployContext, deploy.PluginRegistry, configMapData)
+			configMapSpec, err := deploy.GetSpecConfigMap(deployContext, deploy.PluginRegistryName, configMapData, deploy.PluginRegistryName)
 			if err != nil {
 				return false, err
 			}
@@ -62,11 +62,10 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 		}
 
 		// Create a new registry service
-		registryLabels := deploy.GetLabels(deployContext.CheCluster, deploy.PluginRegistry)
-		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PluginRegistry, []string{"http"}, []int32{8080}, registryLabels)
+		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PluginRegistryName, []string{"http"}, []int32{8080}, deploy.PluginRegistryName)
 		if !util.IsTestMode() {
 			if !serviceStatus.Continue {
-				logrus.Info("Waiting on service '" + deploy.PluginRegistry + "' to be ready")
+				logrus.Info("Waiting on service '" + deploy.PluginRegistryName + "' to be ready")
 				if serviceStatus.Err != nil {
 					logrus.Error(serviceStatus.Err)
 				}
@@ -75,13 +74,13 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 			}
 		}
 
-		deployContext.InternalService.PluginRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistry, deployContext.CheCluster.Namespace)
+		deployContext.InternalService.PluginRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, deployContext.CheCluster.Namespace)
 
 		// Deploy plugin registry
 		provisioned, err := SyncPluginRegistryDeploymentToCluster(deployContext)
 		if !util.IsTestMode() {
 			if !provisioned {
-				logrus.Info("Waiting on deployment '" + deploy.PluginRegistry + "' to be ready")
+				logrus.Info("Waiting on deployment '" + deploy.PluginRegistryName + "' to be ready")
 				if err != nil {
 					logrus.Error(err)
 				}

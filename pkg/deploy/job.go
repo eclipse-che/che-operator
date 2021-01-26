@@ -98,9 +98,7 @@ func getSpecJob(
 	image string,
 	serviceAccountName string,
 	env map[string]string) (*batchv1.Job, error) {
-	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
-	labels["component"] = component
-
+	labels := GetLabels(deployContext.CheCluster, component)
 	backoffLimit := int32(3)
 	parallelism := int32(1)
 	comletions := int32(1)
