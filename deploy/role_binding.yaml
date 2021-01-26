@@ -12,6 +12,10 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: che-operator
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/component: che-operator
 subjects:
 - kind: ServiceAccount
   name: che-operator
