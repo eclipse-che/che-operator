@@ -377,8 +377,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			logrus.Errorf("Unable to delete initial user from cluster. Cause: %s", err.Error())
 			return reconcile.Result{}, err
 		}
-		if instance.Status.IdentityProviderInitialUserSecret == "" {
-			instance.Status.IdentityProviderInitialUserSecret = initialUserSecret
+		if instance.Status.IdentityProviderInitialUserSecret != "" {
+			instance.Status.IdentityProviderInitialUserSecret = ""
 			if err := r.UpdateCheCRStatus(instance, "IdentityProviderInitialUserSecret", initialUserSecret); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -1144,11 +1144,11 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 					reason = failedNoIdentityProviders
 				} else {
 					oauth = true
-				}
-				if deployContext.CheCluster.Status.IdentityProviderInitialUserSecret == "" {
-					deployContext.CheCluster.Status.IdentityProviderInitialUserSecret = initialUserSecret
-					if err := r.UpdateCheCRStatus(cr, "IdentityProviderInitialUserSecret", initialUserSecret); err != nil {
-						return reconcile.Result{}, err
+					if deployContext.CheCluster.Status.IdentityProviderInitialUserSecret == "" {
+						deployContext.CheCluster.Status.IdentityProviderInitialUserSecret = initialUserSecret
+						if err := r.UpdateCheCRStatus(cr, "IdentityProviderInitialUserSecret", initialUserSecret); err != nil {
+							return reconcile.Result{}, err
+						}
 					}
 				}
 			}
