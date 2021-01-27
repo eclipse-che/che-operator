@@ -622,7 +622,7 @@ func getSpecKeycloakDeployment(
 										Port: intstr.FromInt(8080),
 									},
 								},
-								InitialDelaySeconds: 30,
+								InitialDelaySeconds: 300,
 								FailureThreshold:    10,
 								TimeoutSeconds:      5,
 								PeriodSeconds:       10,
