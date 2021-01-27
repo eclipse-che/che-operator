@@ -23,29 +23,42 @@ import (
 )
 
 func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*deploy.Proxy, error) {
-	proxy, err := deploy.ReadCheClusterProxyConfiguration(checluster)
+	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(checluster)
 	if err != nil {
 		return nil, err
 	}
 
+	// OpenShift 4.x
 	if util.IsOpenShift4 {
 		clusterProxy := &configv1.Proxy{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, clusterProxy); err != nil {
 			return nil, err
 		}
 
-		// If proxy configuration exists in CR then cluster wide proxy configuration is ignored
-		// otherwise cluster wide proxy configuration is used and non proxy hosts
-		// are merged with defined ones in CR
-		if proxy.HttpProxy == "" && clusterProxy.Status.HTTPProxy != "" {
-			proxy, err = deploy.ReadClusterWideProxyConfiguration(clusterProxy, proxy.NoProxy)
-			if err != nil {
-				return nil, err
-			}
+		clusterWideProxyConf, err := deploy.ReadClusterWideProxyConfiguration(clusterProxy)
+		if err != nil {
+			return nil, err
 		}
+
+		// If proxy configuration exists in CR then cluster wide proxy configuration is ignored
+		// Non proxy hosts are merged
+		if cheClusterProxyConf.HttpProxy != "" {
+			cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, clusterWideProxyConf.NoProxy)
+			return cheClusterProxyConf, nil
+		} else if clusterWideProxyConf.HttpProxy != "" {
+			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
+			return clusterWideProxyConf, nil
+		}
+
+		return cheClusterProxyConf, nil
+		// otherwise cluster wide proxy configuration is used.
 	}
 
-	return proxy, nil
+	if checluster.Spec.Server.UseInternalClusterSVCNames {
+		// OpenShift 3.x and k8s. Adds '.svc' to nonProxy
+		cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
+	}
+	return cheClusterProxyConf, nil
 }
 
 func (r *ReconcileChe) putOpenShiftCertsIntoConfigMap(deployContext *deploy.DeployContext) (bool, error) {

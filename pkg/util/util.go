@@ -95,6 +95,10 @@ func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 	tests := IsTestMode()
 	if tests {
 		openshiftVersionEnv := os.Getenv("OPENSHIFT_VERSION")
+		if openshiftVersionEnv == "" {
+			return false, false, nil
+		}
+
 		openshiftVersion, err := strconv.ParseInt(openshiftVersionEnv, 0, 64)
 		if err == nil && openshiftVersion == 4 {
 			return true, true, nil
