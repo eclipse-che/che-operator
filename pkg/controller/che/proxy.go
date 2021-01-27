@@ -23,11 +23,6 @@ import (
 )
 
 func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*deploy.Proxy, error) {
-	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(checluster)
-	if err != nil {
-		return nil, err
-	}
-
 	// OpenShift 4.x
 	if util.IsOpenShift4 {
 		clusterProxy := &configv1.Proxy{}
@@ -36,6 +31,11 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 		}
 
 		clusterWideProxyConf, err := deploy.ReadClusterWideProxyConfiguration(clusterProxy)
+		if err != nil {
+			return nil, err
+		}
+
+		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(checluster)
 		if err != nil {
 			return nil, err
 		}
@@ -50,12 +50,16 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 			return clusterWideProxyConf, nil
 		}
 
-		return cheClusterProxyConf, nil
-		// otherwise cluster wide proxy configuration is used.
+		// proxy isn't configured
+		return &deploy.Proxy{}, nil
 	}
 
+	// OpenShift 3.x and k8s
+	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(checluster)
+	if err != nil {
+		return nil, err
+	}
 	if checluster.Spec.Server.UseInternalClusterSVCNames {
-		// OpenShift 3.x and k8s. Adds '.svc' to nonProxy
 		cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
 	}
 	return cheClusterProxyConf, nil
