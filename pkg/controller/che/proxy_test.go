@@ -244,41 +244,8 @@ func TestReadProxyConfiguration(t *testing.T) {
 			},
 		},
 		{
-			name:             "Test checluster proxy configured, OpenShift 3.x, svc usage",
+			name:             "Test checluster proxy configured, OpenShift 3.x and k8s, svc usage",
 			openShiftVersion: "3",
-			clusterProxy:     &configv1.Proxy{},
-			cheCluster: &orgv1.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:                   "http://proxy",
-						ProxyPort:                  "3128",
-						NonProxyHosts:              "host1",
-						UseInternalClusterSVCNames: true,
-					},
-				},
-			},
-			initObjects: []runtime.Object{},
-			expectedProxyConf: &deploy.Proxy{
-				HttpProxy:        "http://proxy:3128",
-				HttpUser:         "",
-				HttpPassword:     "",
-				HttpHost:         "proxy",
-				HttpPort:         "3128",
-				HttpsProxy:       "http://proxy:3128",
-				HttpsUser:        "",
-				HttpsPassword:    "",
-				HttpsHost:        "proxy",
-				HttpsPort:        "3128",
-				NoProxy:          "host1,.svc",
-				TrustedCAMapName: "",
-			},
-		},
-		{
-			name:             "Test checluster proxy configured, svc usage",
-			openShiftVersion: "",
 			clusterProxy:     &configv1.Proxy{},
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
