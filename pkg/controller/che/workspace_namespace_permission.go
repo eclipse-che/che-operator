@@ -36,6 +36,7 @@ const (
 )
 
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
+	logrus.Info("Configure permissions for Che workspaces. Workspaces will be executed in the same namespace with Che")
 	tests := r.tests
 	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheWorkspacesServiceAccount)
 	if cheWorkspaceSA == nil {
@@ -108,15 +109,18 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 }
 
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) (reconcile.Result, error) {
+	logrus.Info("Configure permissions for Che workspaces. Workspaces will be executed in the differ namespace than Che namespace")
 	tests := r.tests
 	cheManageNamespacesName := fmt.Sprintf(CheManageNamespacesTempalate, instance.Namespace)
-	cheManageNamespacesClusterRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, getCheManageNamespacesPolicy())
-	if cheManageNamespacesClusterRole == nil {
+	roleMNSynchronized, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, getCheManageNamespacesPolicy())
+	if !roleMNSynchronized {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", cheManageNamespacesName)
 		if err != nil {
 			logrus.Error(err)
 		}
-		return reconcile.Result{RequeueAfter: time.Second}, err
+		if !tests {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 	}
 	cheManageNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheManageNamespacesName, CheServiceAccountName, cheManageNamespacesName)
 	if cheManageNamespacesRolebinding == nil {
@@ -130,8 +134,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 	}
 
 	cheCreateNamespacesName := fmt.Sprintf(CheCreateNamespacesTemplate, instance.Namespace)
-	cheCreateNamespacesRole, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, getCheCreateNamespacesPolicy())
-	if cheCreateNamespacesRole == nil {
+	roleCNsynchronized, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, getCheCreateNamespacesPolicy())
+	if !roleCNsynchronized {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", cheCreateNamespacesName)
 		if err != nil {
 			logrus.Error(err)
@@ -164,7 +168,7 @@ func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 		}
 	} else {
 		if !tests {
-			deniedPolicies, err := getNotPermittedPolicyRules(getDeleteClusterRoleAndBindingPolicy(), "")
+			deniedPolicies, err := r.permissionChecker.GetNotPermittedPolicyRules(getDeleteClusterRoleAndBindingPolicy(), "")
 			if err != nil {
 				return err
 			}

@@ -16,10 +16,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	mocks "github.com/eclipse/che-operator/mocks"
 	"reflect"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	"github.com/golang/mock/gomock"
 	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
 
@@ -36,11 +38,13 @@ import (
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1092,79 +1096,6 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 }
 
-func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
-	objs, ds, scheme := createAPIObjects()
-
-	oAuthClient := &oauth.OAuthClient{}
-	users := &userv1.UserList{}
-	user := &userv1.User{}
-
-	// Register operator types with the runtime scheme
-	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
-
-	// Create a fake client to mock API calls
-	return fake.NewFakeClient(objs...), ds, scheme
-}
-
-func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime.Scheme) {
-	pgPod := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fake-pg-pod",
-			Namespace: "eclipse-che",
-			Labels: map[string]string{
-				"component": "postgres",
-			},
-		},
-	}
-
-	// A CheCluster custom resource with metadata and spec
-	cheCR := InitCheWithSimpleCR()
-
-	route := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.DefaultCheFlavor(cheCR),
-			Namespace: namespace,
-		},
-	}
-
-	packageManifest := &packagesv1.PackageManifest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes-imagepuller-operator",
-			Namespace: namespace,
-		},
-	}
-
-	// Objects to track in the fake client.
-	objs := []runtime.Object{
-		cheCR, pgPod, route, packageManifest,
-	}
-
-	// Register operator types with the runtime scheme
-	scheme := scheme.Scheme
-	scheme.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
-	scheme.AddKnownTypes(routev1.SchemeGroupVersion, route)
-	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
-	chev1alpha1.AddToScheme(scheme)
-	packagesv1.AddToScheme(scheme)
-	operatorsv1.AddToScheme(scheme)
-	operatorsv1alpha1.AddToScheme(scheme)
-
-	cli := fakeclientset.NewSimpleClientset()
-	fakeDiscovery, ok := cli.Discovery().(*fakeDiscovery.FakeDiscovery)
-	if !ok {
-		fmt.Errorf("Error creating fake discovery client")
-		os.Exit(1)
-	}
-
-	// Create a fake client to mock API calls
-	return objs, fakeDiscovery, *scheme
-}
-
 func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
 	type testCase struct {
@@ -1274,11 +1205,20 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 				t.Fatal("Error creating fake discovery client")
 			}
 
+			var m *mocks.MockPermissionChecker
+			if testCase.clusterRole {
+				ctrl := gomock.NewController(t)
+				m = mocks.NewMockPermissionChecker(ctrl)
+				m.EXPECT().GetNotPermittedPolicyRules(gomock.Any(), "").Return([]rbac.PolicyRule{}, nil).MaxTimes(2)
+				defer ctrl.Finish()
+			}
+
 			r := &ReconcileChe{
 				client:          cli,
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
+				permissionChecker: m,
 				tests:           true,
 			}
 			req := reconcile.Request{
@@ -1343,6 +1283,151 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestShouldFallBackWorspaceNamespaceDefaultBecauseNotEnoughtPermissions(t *testing.T) {
+	// the same namespace with Che
+	cr := InitCheWithSimpleCR().DeepCopy()
+	cr.Spec.Server.WorkspaceNamespaceDefault = "che-workspace-<username>"
+
+	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+
+	scheme := scheme.Scheme
+	orgv1.SchemeBuilder.AddToScheme(scheme)
+	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
+	scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
+	scheme.AddKnownTypes(routev1.GroupVersion, route)
+
+	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
+
+	cli := fake.NewFakeClientWithScheme(scheme, cr)
+	nonCachedClient := fake.NewFakeClientWithScheme(scheme, cr)
+	clientSet := fakeclientset.NewSimpleClientset()
+	// todo do we need fake discovery
+	fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+
+	if !ok {
+		t.Fatal("Error creating fake discovery client")
+	}
+
+	var m *mocks.MockPermissionChecker
+	ctrl := gomock.NewController(t)
+	m = mocks.NewMockPermissionChecker(ctrl)
+	m.EXPECT().GetNotPermittedPolicyRules(gomock.Any(), "").Return([]rbac.PolicyRule{
+		{
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+			Verbs:     []string{"get", "create", "update"},
+		},
+	}, nil).MaxTimes(2)
+	defer ctrl.Finish()
+
+	r := &ReconcileChe{
+		client:          cli,
+		nonCachedClient: nonCachedClient,
+		discoveryClient: fakeDiscovery,
+		scheme:          scheme,
+		permissionChecker: m,
+		tests:           true,
+	}
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	_, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("Error reconciling: %v", err)
+	}
+	_, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("Error reconciling: %v", err)
+	}
+
+	cheCluster := &orgv1.CheCluster{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCluster); err != nil {
+		t.Errorf("Unable to get checluster")
+	}
+	if cheCluster.Spec.Server.WorkspaceNamespaceDefault != namespace {
+		t.Error("Failed fallback workspaceNamespaceDefault to execute workspaces in the same namespace with Che")
+	}
+}
+
+func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
+	objs, ds, scheme := createAPIObjects()
+
+	oAuthClient := &oauth.OAuthClient{}
+	users := &userv1.UserList{}
+	user := &userv1.User{}
+
+	// Register operator types with the runtime scheme
+	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+
+	// Create a fake client to mock API calls
+	return fake.NewFakeClient(objs...), ds, scheme
+}
+
+func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime.Scheme) {
+	pgPod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-pg-pod",
+			Namespace: "eclipse-che",
+			Labels: map[string]string{
+				"component": "postgres",
+			},
+		},
+	}
+
+	// A CheCluster custom resource with metadata and spec
+	cheCR := InitCheWithSimpleCR()
+
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploy.DefaultCheFlavor(cheCR),
+			Namespace: namespace,
+		},
+	}
+
+	packageManifest := &packagesv1.PackageManifest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubernetes-imagepuller-operator",
+			Namespace: namespace,
+		},
+	}
+
+	// Objects to track in the fake client.
+	objs := []runtime.Object{
+		cheCR, pgPod, route, packageManifest,
+	}
+
+	// Register operator types with the runtime scheme
+	scheme := scheme.Scheme
+	scheme.AddKnownTypes(orgv1.SchemeGroupVersion, cheCR)
+	scheme.AddKnownTypes(routev1.SchemeGroupVersion, route)
+	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
+	chev1alpha1.AddToScheme(scheme)
+	packagesv1.AddToScheme(scheme)
+	operatorsv1.AddToScheme(scheme)
+	operatorsv1alpha1.AddToScheme(scheme)
+
+	cli := fakeclientset.NewSimpleClientset()
+	fakeDiscovery, ok := cli.Discovery().(*fakeDiscovery.FakeDiscovery)
+	if !ok {
+		logrus.Error("Error creating fake discovery client")
+		os.Exit(1)
+	}
+
+	// Create a fake client to mock API calls
+	return objs, fakeDiscovery, *scheme
 }
 
 func InitCheWithSimpleCR() *orgv1.CheCluster {

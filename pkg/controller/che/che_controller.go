@@ -81,6 +81,7 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		nonCachedClient: noncachedClient,
 		scheme:          mgr.GetScheme(),
 		discoveryClient: discoveryClient,
+		permissionChecker: &K8sApiPermissionChecker{},
 	}, nil
 }
 
@@ -280,6 +281,7 @@ type ReconcileChe struct {
 	// in the API Server
 	discoveryClient discovery.DiscoveryInterface
 	scheme          *runtime.Scheme
+	permissionChecker PermissionChecker
 	tests           bool
 }
 
@@ -378,8 +380,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcileResult, err
 		}
 	}
-
-	r.setWorkspaceNamespaceDefaultField(instance)
 
 	// Read proxy configuration
 	proxy, err := r.getProxyConfiguration(instance)
@@ -559,14 +559,37 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
-		reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
+		policies := append(getCheCreateNamespacesPolicy(), getCheManageNamespacesPolicy()...)
+
+		deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
 		if err != nil {
-			logrus.Error(err)
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-		if reconcileResult.Requeue {
-			return reconcileResult, err
+		// fall back to the "narrower" workspace namespace strategy 
+		if len(deniedRules) > 0 {
+			if _, ok := instance.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]; ok {
+				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
+			}
+			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
+			if err := r.UpdateCheCRSpec(instance, "workspace namespace default", instance.Namespace); err != nil {
+				if err != nil {
+					logrus.Error(err)
+				}
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+			}
+		} else {
+			reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
+			if err != nil {
+				logrus.Error(err)
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+			if reconcileResult.Requeue && !tests {
+				return reconcileResult, err
+			}
 		}
-	} else {
+	}
+
+	if util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
 		reconcile, err := r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
 		if err != nil {
 			logrus.Error(err)
@@ -1103,19 +1126,6 @@ func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.R
 	if message != "" && reason != "" {
 		if err := r.SetStatusDetails(cr, request, message, reason, ""); err != nil {
 			return reconcile.Result{}, err
-		}
-	}
-
-	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileChe) setWorkspaceNamespaceDefaultField(cr *orgv1.CheCluster) (reconcile.Result, error) {
-	if util.IsOpenShift && util.IsOAuthEnabled(cr) && len(cr.Spec.Server.WorkspaceNamespaceDefault) == 0 {
-		// If the workspace is created under the openshift identity of the end-user,
-		// Then we'll have rights to create any new namespace
-		cr.Spec.Server.WorkspaceNamespaceDefault = "<username>-" + deploy.DefaultCheFlavor(cr)
-		if err := r.UpdateCheCRSpec(cr, "WorkspaceNamespaceDefault", cr.Spec.Server.WorkspaceNamespaceDefault); err != nil {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 

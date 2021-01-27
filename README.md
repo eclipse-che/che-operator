@@ -161,7 +161,7 @@ $ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <
 Workspace namespace strategy defines default namespace in which user's workspaces are created.
 It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>).
 In that case, new namespace will be created for each user (or workspace).
-For OpenShift infrastructure this property used to to specify Project(instead of namespace conception).
+For OpenShift infrastructure this property used to specify Project (instead of namespace conception).
 
 To set up namespace workspace strategy use command line:
 

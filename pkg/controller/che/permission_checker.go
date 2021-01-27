@@ -20,7 +20,14 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 )
 
-func getNotPermittedPolicyRules(policies []rbac.PolicyRule, namespace string) ([]rbac.PolicyRule, error) {
+type PermissionChecker interface {
+	GetNotPermittedPolicyRules(policies []rbac.PolicyRule, namespace string) ([]rbac.PolicyRule, error)
+}
+
+type K8sApiPermissionChecker struct {
+}
+
+func (pc *K8sApiPermissionChecker) GetNotPermittedPolicyRules(policies []rbac.PolicyRule, namespace string) ([]rbac.PolicyRule, error) {
 	var notPermittedPolicyRules []rbac.PolicyRule = []rbac.PolicyRule{}
 	for _, policy := range policies {
 		for _, apiGroup := range policy.APIGroups {

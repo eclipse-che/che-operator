@@ -33,22 +33,22 @@ var clusterRoleDiffOpts = cmp.Options{
 func SyncClusterRoleToCheCluster(
 	deployContext *DeployContext,
 	name string,
-	policyRule []rbac.PolicyRule) (*rbac.ClusterRole, error) {
+	policyRule []rbac.PolicyRule) (bool, error) {
 
 	specClusterRole, err := getSpecClusterRole(deployContext, name, policyRule)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	clusterRole, err := GetClusterRole(specClusterRole.Name, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	if clusterRole == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specClusterRole.Kind, specClusterRole.Name)
 		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specClusterRole)
-		return nil, err
+		return false, err
 	}
 
 	diff := cmp.Diff(clusterRole, specClusterRole, clusterRoleDiffOpts)
@@ -57,10 +57,10 @@ func SyncClusterRoleToCheCluster(
 		fmt.Printf("Difference:\n%s", diff)
 		clusterRole.Rules = specClusterRole.Rules
 		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterRole)
-		return nil, err
+		return false, err
 	}
 
-	return clusterRole, nil
+	return true, nil
 }
 
 func GetClusterRole(name string, client runtimeClient.Client) (*rbac.ClusterRole, error) {

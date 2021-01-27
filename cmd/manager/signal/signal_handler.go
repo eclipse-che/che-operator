@@ -84,11 +84,11 @@ func GetTerminationGracePeriodSeconds(k8sClient client.Reader, namespace string)
 	} else {
 		terminationPeriod := deployment.Spec.Template.Spec.TerminationGracePeriodSeconds
 		if terminationPeriod != nil {
-			logrus.Infof("Use 'terminationGracePeriodSeconds' %d from deployment", *terminationPeriod)
+			logrus.Infof("Use 'terminationGracePeriodSeconds' %d from deployment sec", *terminationPeriod)
 			return *terminationPeriod
 		}
 	}
 
-	logrus.Infof("Use default 'terminationGracePeriodSeconds' %d", defaultTerminationGracePeriodSeconds)
+	logrus.Infof("Use default 'terminationGracePeriodSeconds' %d sec", defaultTerminationGracePeriodSeconds)
 	return defaultTerminationGracePeriodSeconds
 }
