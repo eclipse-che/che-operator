@@ -405,6 +405,7 @@ func InitTestDefaultsFromDeployment(deploymentFile string) error {
 		}
 	}
 
+	os.Setenv("MOCK_API", "1")
 	InitDefaultsFromEnv()
 	return nil
 }
