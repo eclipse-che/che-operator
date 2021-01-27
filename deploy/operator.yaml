@@ -17,10 +17,15 @@ spec:
   selector:
     matchLabels:
       app: che-operator
+  strategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: che-operator
+        app.kubernetes.io/name: che
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/component: che-operator
     spec:
       containers:
         - name: che-operator
@@ -88,7 +93,7 @@ spec:
               value: ca-certs
           livenessProbe:
             httpGet:
-              path: /readyz
+              path: /healthz
               port: 6789
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -96,14 +101,26 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
           readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 6789
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 10
             successThreshold: 1
             timeoutSeconds: 5
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
       restartPolicy: Always
       serviceAccountName: che-operator
       # Should be good enough long for finalizers

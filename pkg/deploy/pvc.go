@@ -44,9 +44,9 @@ func SyncPVCToCluster(
 	deployContext *DeployContext,
 	name string,
 	claimSize string,
-	labels map[string]string) PVCProvisioningStatus {
+	component string) PVCProvisioningStatus {
 
-	specPVC, err := getSpecPVC(deployContext, name, claimSize, labels)
+	specPVC, err := getSpecPVC(deployContext, name, claimSize, component)
 	if err != nil {
 		return PVCProvisioningStatus{
 			ProvisioningStatus: ProvisioningStatus{Err: err},
@@ -91,8 +91,9 @@ func getSpecPVC(
 	deployContext *DeployContext,
 	name string,
 	claimSize string,
-	labels map[string]string) (*corev1.PersistentVolumeClaim, error) {
+	component string) (*corev1.PersistentVolumeClaim, error) {
 
+	labels := GetLabels(deployContext.CheCluster, component)
 	accessModes := []corev1.PersistentVolumeAccessMode{
 		corev1.ReadWriteOnce,
 	}

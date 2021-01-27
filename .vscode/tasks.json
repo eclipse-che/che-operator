@@ -74,7 +74,7 @@
             "group": "build"
         },
         {
-            "label": "Update cr/crd files",
+            "label": "Update crd files",
             "command": "./olm/update-crd-files.sh",
             "type": "shell",
             "args": [],
@@ -87,8 +87,8 @@
             "group": "build"
         },
         {
-            "label": "Update OLM bundle files",
-            "command": "./olm/update-crd-files.sh && ./olm/update-nightly-bundle.sh",
+            "label": "Update nightly OLM bundle",
+            "command": "./olm/update-nightly-bundle.sh",
             "type": "shell",
             "args": [],
             "problemMatcher": [

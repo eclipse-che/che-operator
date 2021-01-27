@@ -92,6 +92,9 @@ func getSpecClusterRoleBinding(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
+			Annotations: map[string]string{
+				CheEclipseOrgNamespace: deployContext.CheCluster.Namespace,
+			},
 		},
 		Subjects: []rbac.Subject{
 			{

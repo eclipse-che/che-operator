@@ -16,46 +16,37 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-)
-
-const (
-	PostgresDeploymentName = "postgres"
 )
 
 var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
-	clusterDeployment, err := deploy.GetClusterDeployment(PostgresDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PostgresName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
-	specDeployment, err := getSpecPostgresDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecPostgresDeployment(deployContext, clusterDeployment)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
 }
 
-func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	isOpenShift, _, err := util.DetectOpenShift()
 	if err != nil {
 		return nil, err
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels := deploy.GetLabels(deployContext.CheCluster, PostgresDeploymentName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, deploy.PostgresName)
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
 	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
@@ -76,12 +67,12 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "postgres",
+			Name:      deploy.PostgresName,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labelSelector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.DeploymentStrategyType("Recreate"),
 			},
@@ -102,22 +93,32 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            PostgresDeploymentName,
+							Name:            deploy.PostgresName,
 							Image:           postgresImage,
 							ImagePullPolicy: pullPolicy,
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          PostgresDeploymentName,
+									Name:          deploy.PostgresName,
 									ContainerPort: 5432,
 									Protocol:      "TCP",
 								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
+										deploy.DefaultPostgresMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
+										deploy.DefaultPostgresCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("1Gi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
+										deploy.DefaultPostgresMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
+										deploy.DefaultPostgresCpuLimit),
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -154,6 +155,11 @@ func getSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 								TimeoutSeconds:      5,
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
 							},
 							Env: []corev1.EnvVar{
 								{

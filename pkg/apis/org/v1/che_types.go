@@ -168,12 +168,22 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	DevfileRegistryPullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy,omitempty"`
-	// Overrides the memory limit used in the Devfile registry deployment. Defaults to 256Mi.
+	// Overrides the memory limit used in the Devfile registry deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 256Mi.
 	// +optional
 	DevfileRegistryMemoryLimit string `json:"devfileRegistryMemoryLimit,omitempty"`
-	// Overrides the memory request used in the Devfile registry deployment. Defaults to 16Mi.
+	// Overrides the memory request used in the Devfile registry deployment
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 32Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
+	// Overrides the cpu limit used in the Devfile registry deployment.
+	// In cores. (500m = .5 cores). Default to 500m.
+	// +optional
+	DevfileRegistryCpuLimit string `json:"devfileRegistryCpuLimit,omitempty"`
+	// Overrides the cpu request used in the Devfile registry deployment.
+	// In cores. (500m = .5 cores). Default to 100m.
+	// +optional
+	DevfileRegistryCpuRequest string `json:"devfileRegistryCpuRequest,omitempty"`
 	// Devfile registry ingress custom settings
 	// +optional
 	DevfileRegistryIngress IngressCustomSettings `json:"devfileRegistryIngress,omitempty"`
@@ -199,12 +209,22 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PluginRegistryPullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy,omitempty"`
-	// Overrides the memory limit used in the Plugin registry deployment. Defaults to 256Mi.
+	// Overrides the memory limit used in the Plugin registry deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 256Mi.
 	// +optional
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit,omitempty"`
-	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
+	// Overrides the memory request used in the Plugin registry deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 32Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
+	// Overrides the cpu limit used in the Plugin registry deployment.
+	// In cores. (500m = .5 cores). Default to 500m.
+	// +optional
+	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
+	// Overrides the cpu request used in the Plugin registry deployment.
+	// In cores. (500m = .5 cores). Default to 100m.
+	// +optional
+	PluginRegistryCpuRequest string `json:"pluginRegistryCpuRequest,omitempty"`
 	// Plugin registry ingress custom settings
 	// +optional
 	PluginRegistryIngress IngressCustomSettings `json:"pluginRegistryIngress,omitempty"`
@@ -260,13 +280,22 @@ type CheClusterSpecServer struct {
 	// If the secret is defined then `proxyUser` and `proxyPassword` are ignored
 	// +optional
 	ProxySecret string `json:"proxySecret,omitempty"`
-	// Overrides the memory request used in the Che server deployment. Defaults to 512Mi.
+	// Overrides the memory request used in the Che server deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 512Mi.
 	// +optional
 	ServerMemoryRequest string `json:"serverMemoryRequest,omitempty"`
-	// Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.
+	// Overrides the memory limit used in the Che server deployment.
+	// In bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024). Defaults to 1Gi.
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
-
+	// Overrides the cpu limit used in the Che server deployment
+	// In cores. (500m = .5 cores). Default to 1.
+	// +optional
+	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
+	// Overrides the cpu request used in the Che server deployment
+	// In cores. (500m = .5 cores). Default to 100m.
+	// +optional
+	ServerCpuRequest string `json:"serverCpuRequest,omitempty"`
 	// Sets the server and workspaces exposure type. Possible values are "multi-host", "single-host", "default-host".
 	// Defaults to "multi-host" which creates a separate ingress (or route on OpenShift) for every required
 	// endpoint.
@@ -345,6 +374,9 @@ type CheClusterSpecDB struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
+	// Postgres container custom settings
+	// +optional
+	ChePostgresContainerResources ResourcesCustomSettings `json:"chePostgresContainerResources,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -437,6 +469,9 @@ type CheClusterSpecAuth struct {
 	// Route custom settings
 	// +optional
 	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
+	// Identity provider container custom settings
+	// +optional
+	IdentityProviderContainerResources ResourcesCustomSettings `json:"identityProviderContainerResources,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
@@ -451,6 +486,26 @@ type RouteCustomSettings struct {
 	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
 	// +optional
 	Labels string `json:"labels,omitempty"`
+}
+
+// ResourceRequirements describes the compute resource requirements.
+type ResourcesCustomSettings struct {
+	// Requests describes the minimum amount of compute resources required.
+	// +optional
+	Requests Resources `json:"request,omitempty"`
+	// Limits describes the maximum amount of compute resources allowed.
+	// +optional
+	Limits Resources `json:"limits,omitempty"`
+}
+
+// List of resources
+type Resources struct {
+	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	// +optional
+	Memory string `json:"memory,omitempty"`
+	// CPU, in cores. (500m = .5 cores)
+	// +optional
+	Cpu string `json:"cpu,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -500,9 +555,10 @@ type CheClusterSpecK8SOnly struct {
 	// NB: This drives the `is kubernetes.io/ingress.class` annotation on Che-related ingresses.
 	// +optional
 	IngressClass string `json:"ingressClass,omitempty"`
-	// Name of a secret that will be used to setup ingress TLS termination if TLS is enabled.
-	// If the field is empty string, then default cluster certificate will be used.
-	// See also the `tlsSupport` field.
+	// Name of a secret that is used to set ingress TLS termination if TLS is enabled. If the specified secret does not exist,
+	// a self-signed certificate will be created. If the value is empty or omitted, the default ingress controller certificate
+	// will be used. See also the `tlsSupport` field. Note, when switching to the default ingress controller certificate,
+	// `self-signed-certificate` secret should be deleted manually.
 	// +optional
 	TlsSecretName string `json:"tlsSecretName,omitempty"`
 	// FSGroup the Che pod and Workspace pods containers should run in. Defaults to `1724`.
@@ -531,10 +587,13 @@ type CheClusterSpecMetrics struct {
 // Configuration settings for installation and configuration of the Kubernetes Image Puller
 // See https://github.com/che-incubator/kubernetes-image-puller-operator
 type CheClusterSpecImagePuller struct {
-	// Install and configure the Kubernetes Image Puller Operator. If true and no spec is provided,
+	// Install and configure the Community Supported Kubernetes Image Puller Operator. If true and no spec is provided,
 	// it will create a default KubernetesImagePuller object to be managed by the Operator.
 	// If false, the KubernetesImagePuller object will be deleted, and the operator will be uninstalled,
 	// regardless of whether or not a spec is provided.
+	//
+	// Please note that while this operator and its behavior is community-supported, its payload may be commercially-supported
+	// if you use it for pulling commercially-supported images.
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
 	// +optional
@@ -552,6 +611,9 @@ type CheClusterStatus struct {
 	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the OpenShift OAuth.
 	// +optional
 	OpenShiftoAuthProvisioned bool `json:"openShiftoAuthProvisioned"`
+	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the GitHub OAuth.
+	// +optional
+	GitHubOAuthProvisioned bool `json:"gitHubOAuthProvisioned"`
 	// Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`
 	// +optional
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true

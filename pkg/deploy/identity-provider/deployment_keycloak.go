@@ -20,14 +20,12 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -35,7 +33,6 @@ import (
 )
 
 const (
-	KeycloakDeploymentName   = "keycloak"
 	selectSslRequiredCommand = "OUT=$(psql keycloak -tAc \"SELECT 1 FROM REALM WHERE id = 'master'\"); " +
 		"if [ $OUT -eq 1 ]; then psql keycloak -tAc \"SELECT ssl_required FROM REALM WHERE id = 'master'\"; fi"
 	updateSslRequiredCommand = "psql keycloak -c \"update REALM set ssl_required='NONE' where id = 'master'\""
@@ -59,29 +56,25 @@ var (
 	}
 )
 
-func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) deploy.DeploymentProvisioningStatus {
-	clusterDeployment, err := deploy.GetClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
+	clusterDeployment, err := deploy.GetClusterDeployment(deploy.IdentityProviderName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
-	specDeployment, err := getSpecKeycloakDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecKeycloakDeployment(deployContext, clusterDeployment)
 	if err != nil {
-		return deploy.DeploymentProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge)
 }
 
-func getSpecKeycloakDeployment(
+func GetSpecKeycloakDeployment(
 	deployContext *deploy.DeployContext,
 	clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	optionalEnv := true
-	labels := deploy.GetLabels(deployContext.CheCluster, KeycloakDeploymentName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, deploy.IdentityProviderName)
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	keycloakImage := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderImage, deploy.DefaultKeycloakImage(deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Auth.IdentityProviderImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(keycloakImage)))
@@ -553,7 +546,7 @@ func getSpecKeycloakDeployment(
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      KeycloakDeploymentName,
+			Name:      deploy.IdentityProviderName,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
@@ -563,7 +556,7 @@ func getSpecKeycloakDeployment(
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labelSelector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
@@ -577,7 +570,7 @@ func getSpecKeycloakDeployment(
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            KeycloakDeploymentName,
+							Name:            deploy.IdentityProviderName,
 							Image:           keycloakImage,
 							ImagePullPolicy: pullPolicy,
 							Command: []string{
@@ -586,17 +579,27 @@ func getSpecKeycloakDeployment(
 							Args: args,
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          KeycloakDeploymentName,
+									Name:          deploy.IdentityProviderName,
 									ContainerPort: 8080,
 									Protocol:      "TCP",
 								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Memory,
+										deploy.DefaultIdentityProviderMemoryRequest),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Requests.Cpu,
+										deploy.DefaultIdentityProviderCpuRequest),
 								},
 								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse("2Gi"),
+									corev1.ResourceMemory: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Limits.Memory,
+										deploy.DefaultIdentityProviderMemoryLimit),
+									corev1.ResourceCPU: util.GetResourceQuantity(
+										deployContext.CheCluster.Spec.Auth.IdentityProviderContainerResources.Limits.Cpu,
+										deploy.DefaultIdentityProviderCpuLimit),
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
@@ -610,7 +613,7 @@ func getSpecKeycloakDeployment(
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 25,
+								InitialDelaySeconds: 30,
 								FailureThreshold:    10,
 								TimeoutSeconds:      5,
 								PeriodSeconds:       10,
@@ -622,11 +625,16 @@ func getSpecKeycloakDeployment(
 										Port: intstr.FromInt(8080),
 									},
 								},
-								InitialDelaySeconds: 30,
+								InitialDelaySeconds: 300,
 								FailureThreshold:    10,
 								TimeoutSeconds:      5,
 								PeriodSeconds:       10,
 								SuccessThreshold:    1,
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
 							},
 							Env: keycloakEnv,
 							VolumeMounts: []corev1.VolumeMount{
@@ -672,7 +680,7 @@ func isSslRequiredUpdatedForMasterRealm(deployContext *deploy.DeployContext) boo
 		return false
 	}
 
-	clusterDeployment, _ := deploy.GetClusterDeployment(KeycloakDeploymentName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	clusterDeployment, _ := deploy.GetClusterDeployment(deploy.IdentityProviderName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
 	if clusterDeployment == nil {
 		return false
 	}
@@ -686,23 +694,25 @@ func isSslRequiredUpdatedForMasterRealm(deployContext *deploy.DeployContext) boo
 	return dbValue == "NONE"
 }
 
-func getSslRequiredForMasterRealm(checluster *orgv1.CheCluster) (string, error) {
-	podName, err := util.K8sclient.GetDeploymentPod(postgres.PostgresDeploymentName, checluster.Namespace)
-	if err != nil {
-		return "", err
-	}
-
-	stdout, err := util.K8sclient.ExecIntoPod(podName, selectSslRequiredCommand, "", checluster.Namespace)
+func getSslRequiredForMasterRealm(cr *orgv1.CheCluster) (string, error) {
+	stdout, err := util.K8sclient.ExecIntoPod(
+		cr,
+		deploy.PostgresName,
+		func(cr *orgv1.CheCluster) (string, error) {
+			return selectSslRequiredCommand, nil
+		},
+		"")
 	return strings.TrimSpace(stdout), err
 }
 
-func updateSslRequiredForMasterRealm(checluster *orgv1.CheCluster) error {
-	podName, err := util.K8sclient.GetDeploymentPod(postgres.PostgresDeploymentName, checluster.Namespace)
-	if err != nil {
-		return err
-	}
-
-	_, err = util.K8sclient.ExecIntoPod(podName, updateSslRequiredCommand, "Update ssl_required to NONE", checluster.Namespace)
+func updateSslRequiredForMasterRealm(cr *orgv1.CheCluster) error {
+	_, err := util.K8sclient.ExecIntoPod(
+		cr,
+		deploy.PostgresName,
+		func(cr *orgv1.CheCluster) (string, error) {
+			return updateSslRequiredCommand, nil
+		},
+		"Update ssl_required to NONE")
 	return err
 }
 
@@ -721,13 +731,11 @@ func ProvisionKeycloakResources(deployContext *deploy.DeployContext) error {
 		}
 	}
 
-	keycloakProvisionCommand := GetKeycloakProvisionCommand(deployContext.CheCluster)
-	podToExec, err := util.K8sclient.GetDeploymentPod(KeycloakDeploymentName, deployContext.CheCluster.Namespace)
-	if err != nil {
-		logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
-	}
-
-	_, err = util.K8sclient.ExecIntoPod(podToExec, keycloakProvisionCommand, "create realm, client and user", deployContext.CheCluster.Namespace)
+	_, err := util.K8sclient.ExecIntoPod(
+		deployContext.CheCluster,
+		deploy.IdentityProviderName,
+		GetKeycloakProvisionCommand,
+		"create realm, client and user")
 	return err
 }
 

@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 
+	v1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +55,26 @@ func GetK8Client() *k8s {
 	return nil
 }
 
-func (cl *k8s) ExecIntoPod(podName string, command string, reason string, namespace string) (string, error) {
+func (cl *k8s) ExecIntoPod(
+	cr *v1.CheCluster,
+	deploymentName string,
+	getCommand func(*v1.CheCluster) (string, error),
+	reason string) (string, error) {
+
+	command, err := getCommand(cr)
+	if err != nil {
+		return "", err
+	}
+
+	pod, err := cl.GetDeploymentPod(deploymentName, cr.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	return cl.DoExecIntoPod(cr.Namespace, pod, command, reason)
+}
+
+func (cl *k8s) DoExecIntoPod(namespace string, podName string, command string, reason string) (string, error) {
 	if reason != "" {
 		logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
 	}

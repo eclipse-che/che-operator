@@ -40,7 +40,6 @@ import (
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -58,6 +57,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/yaml"
 
 	"testing"
 )
@@ -712,7 +712,7 @@ func TestCheController(t *testing.T) {
 
 	// get devfile-registry configmap
 	devfilecm := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: cheCR.Namespace}, devfilecm); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, devfilecm); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
 	}
 
@@ -814,7 +814,7 @@ func TestCheController(t *testing.T) {
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR); err != nil {
 		t.Errorf("Failed to get the Che custom resource %s: %s", cheCR.Name, err)
 	}
-	if err = identity_provider.SyncIdentityProviderItems(deployContext, "che"); err != nil {
+	if _, err = identity_provider.SyncOpenShiftIdentityProviderItems(deployContext); err != nil {
 		t.Errorf("Failed to create the items for the identity provider: %s", err)
 	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
@@ -833,13 +833,13 @@ func TestCheController(t *testing.T) {
 		t.Error("Failed to update CheCluster custom resource")
 	}
 	postgresDeployment := &appsv1.Deployment{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
 	err = r.client.Delete(context.TODO(), postgresDeployment)
 	_, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "postgres", Namespace: cheCR.Namespace}, postgresDeployment)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
 	if err == nil {
 		t.Fatalf("Deployment postgres shoud not exist")
 	}
@@ -996,7 +996,7 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// Set up che host for route
-	cheRoute, _ := deploy.GetSpecRoute(deployContext, "che", "che-host", "che-host", 8080, "")
+	cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(cheCR), "che-host", "che-host", 8080, "", "che")
 	cl.Update(context.TODO(), cheRoute)
 
 	// reconsile to update Che route
@@ -1006,15 +1006,15 @@ func TestConfiguringInternalNetworkTest(t *testing.T) {
 	}
 
 	// Set up keycloak host for route
-	keycloakRoute, _ := deploy.GetSpecRoute(deployContext, "keycloak", "keycloak", "keycloak", 8080, "")
+	keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 	cl.Update(context.TODO(), keycloakRoute)
 
 	// Set up devfile registry host for route
-	devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, "devfile-registry", "devfile-registry", "devfile-registry", 8080, "")
+	devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
 	cl.Update(context.TODO(), devfileRegistryRoute)
 
 	// Set up plugin registry host for route
-	pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, "plugin-registry", "plugin-registry", "plugin-registry", 8080, "")
+	pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.PluginRegistryName, "plugin-registry", deploy.PluginRegistryName, 8080, "", deploy.PluginRegistryName)
 	cl.Update(context.TODO(), pluginRegistryRoute)
 
 	_, err = r.Reconcile(req)
@@ -1382,7 +1382,7 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 			Name:      "fake-pg-pod",
 			Namespace: "eclipse-che",
 			Labels: map[string]string{
-				"component": "postgres",
+				"component": deploy.PostgresName,
 			},
 		},
 	}

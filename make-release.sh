@@ -26,6 +26,7 @@ init() {
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
+  BUILDX_PLATFORMS="linux/amd64,linux/ppc64le,linux/s390x"
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -156,13 +157,11 @@ releaseOperatorCode() {
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "Update defaults tags to "$RELEASE --signoff
   fi
-
-  echo "[INFO] releaseOperatorCode :: Build operator image"
-  docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
-
-  echo "[INFO] releaseOperatorCode :: Push image to quay.io"
+  echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
-  docker push quay.io/eclipse/che-operator:$RELEASE
+
+  echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
+  docker buildx build --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
 }
 
 updateNightlyOlmFiles() {

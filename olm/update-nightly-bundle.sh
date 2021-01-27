@@ -169,6 +169,9 @@ do
     mv "${NEW_CSV}.old" "${NEW_CSV}"
   fi
 
+  # set `app.kubernetes.io/managed-by` label
+  yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "${NEW_CSV}"
+
   # Format code.
   yq -rY "." "${NEW_CSV}" > "${NEW_CSV}.old"
   mv "${NEW_CSV}.old" "${NEW_CSV}"

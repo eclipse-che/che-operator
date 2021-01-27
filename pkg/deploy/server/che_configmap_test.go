@@ -12,9 +12,10 @@
 package server
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
 	"strings"
 	"testing"
+
+	"github.com/eclipse/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -35,7 +36,7 @@ func TestNewCheConfigMap(t *testing.T) {
 		ClusterAPI: deploy.ClusterAPI{},
 	}
 	cheEnv, _ := GetCheConfigMapData(deployContext)
-	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv)
+	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv, CheConfigMapName)
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
 	_, isOpenshiftv4, _ := util.DetectOpenShift()
 	protocol := strings.Split(testCm.Data["CHE_API"], "://")[0]
@@ -65,7 +66,7 @@ func TestConfigMapOverride(t *testing.T) {
 		ClusterAPI: deploy.ClusterAPI{},
 	}
 	cheEnv, _ := GetCheConfigMapData(deployContext)
-	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv)
+	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv, CheConfigMapName)
 	if testCm.Data["CHE_WORKSPACE_NO_PROXY"] != "myproxy.myhostname.com" {
 		t.Errorf("Test failed. Expected myproxy.myhostname.com but was %s", testCm.Data["CHE_WORKSPACE_NO_PROXY"])
 	}

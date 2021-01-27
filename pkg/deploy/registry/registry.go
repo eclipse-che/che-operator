@@ -1,11 +1,21 @@
+//
+// Copyright (c) 2012-2021 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package registry
 
 import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	v12 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	v1 "k8s.io/api/core/v1"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -17,13 +27,12 @@ func GetSpecRegistryDeployment(
 	registryImage string,
 	env []v1.EnvVar,
 	registryImagePullPolicy v1.PullPolicy,
-	registryMemoryLimit string,
-	registryMemoryRequest string,
+	resources v1.ResourceRequirements,
 	probePath string) (*v12.Deployment, error) {
 
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
-	labels := deploy.GetLabels(deployContext.CheCluster, name)
+	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, name)
 	_25Percent := intstr.FromString("25%")
 	_1 := int32(1)
 	_2 := int32(2)
@@ -41,7 +50,7 @@ func GetSpecRegistryDeployment(
 		Spec: v12.DeploymentSpec{
 			Replicas:             &_1,
 			RevisionHistoryLimit: &_2,
-			Selector:             &v13.LabelSelector{MatchLabels: labels},
+			Selector:             &v13.LabelSelector{MatchLabels: labelSelector},
 			Strategy: v12.DeploymentStrategy{
 				Type: v12.RollingUpdateDeploymentStrategyType,
 				RollingUpdate: &v12.RollingUpdateDeployment{
@@ -77,14 +86,7 @@ func GetSpecRegistryDeployment(
 									},
 								},
 							},
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
-									v1.ResourceMemory: resource.MustParse(registryMemoryRequest),
-								},
-								Limits: v1.ResourceList{
-									v1.ResourceMemory: resource.MustParse(registryMemoryLimit),
-								},
-							},
+							Resources: resources,
 							ReadinessProbe: &v1.Probe{
 								Handler: v1.Handler{
 									HTTPGet: &v1.HTTPGetAction{
@@ -118,6 +120,11 @@ func GetSpecRegistryDeployment(
 								TimeoutSeconds:      3,
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
+							},
+							SecurityContext: &v1.SecurityContext{
+								Capabilities: &v1.Capabilities{
+									Drop: []v1.Capability{"ALL"},
+								},
 							},
 						},
 					},

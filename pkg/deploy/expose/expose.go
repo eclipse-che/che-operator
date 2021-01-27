@@ -18,14 +18,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName string, additionalLabels string) (endpont string, done bool, err error) {
+func Expose(
+	deployContext *deploy.DeployContext,
+	cheHost string,
+	endpointName string,
+	additionalLabels string,
+	component string) (endpont string, done bool, err error) {
 	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
 	var domain string
 	var endpoint string
 	var pathPrefix string
 	var stripPrefix bool
 
-	if endpointName == "keycloak" {
+	if endpointName == deploy.IdentityProviderName {
 		pathPrefix = "auth"
 		stripPrefix = false
 	} else {
@@ -38,7 +43,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 		endpoint = domain
 	} else {
 		domain = cheHost
-		if endpointName == "keycloak" {
+		if endpointName == deploy.IdentityProviderName {
 			// legacy
 			endpoint = domain
 		} else {
@@ -66,7 +71,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 				logrus.Error(err)
 			}
 		} else {
-			ingress, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, additionalLabels)
+			ingress, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, additionalLabels, component)
 			if !util.IsTestMode() {
 				if ingress == nil {
 					logrus.Infof("Waiting on ingress '%s' to be ready", endpointName)
@@ -97,7 +102,7 @@ func Expose(deployContext *deploy.DeployContext, cheHost string, endpointName st
 			}
 		} else {
 			// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, additionalLabels)
+			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, additionalLabels, component)
 			if route == nil {
 				logrus.Infof("Waiting on route '%s' to be ready", endpointName)
 				if err != nil {
