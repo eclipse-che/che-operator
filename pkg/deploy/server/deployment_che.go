@@ -344,7 +344,7 @@ func getSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 				},
 			},
 			// After POD start, don't initiate liveness probe while the POD is still expected to be declared as ready by the readiness probe
-			InitialDelaySeconds: 200,
+			InitialDelaySeconds: 400,
 			FailureThreshold:    3,
 			TimeoutSeconds:      3,
 			PeriodSeconds:       10,
