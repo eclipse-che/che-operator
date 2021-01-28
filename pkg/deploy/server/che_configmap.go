@@ -298,11 +298,11 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 			if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
 				return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
 			}
-			if _, exists := cheTLSSecret.Data["tlsdeployContext.CheCluster.t"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tlsdeployContext.CheCluster.t' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+			if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
+				return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
 			}
 			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
-			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tlsdeployContext.CheCluster.t"])
+			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 		}
 
 		addMap(cheEnv, k8sCheEnv)
