@@ -180,18 +180,29 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	workspaceNamespaceDefault = util.GetValue(workspaceNamespaceDefault, deployContext.CheCluster.Namespace)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
-
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
 
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
-		devfileRegistryInternalURL = deployContext.InternalService.DevfileRegistryHost
-		pluginRegistryInternalURL = deployContext.InternalService.PluginRegistryHost
+	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
 		keycloakInternalURL = deployContext.InternalService.KeycloakHost
-		cheInternalAPI = deployContext.InternalService.CheHost + "/api"
+	} else {
+		keycloakInternalURL = keycloakURL
+	}
+
+	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
+		devfileRegistryInternalURL = deployContext.InternalService.DevfileRegistryHost
 	} else {
 		devfileRegistryInternalURL = devfileRegistryURL
+	}
+
+	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
+		pluginRegistryInternalURL = deployContext.InternalService.PluginRegistryHost
+	} else {
 		pluginRegistryInternalURL = pluginRegistryURL
-		keycloakInternalURL = keycloakURL
+	}
+
+	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+		cheInternalAPI = deployContext.InternalService.CheHost + "/api"
+	} else {
 		cheInternalAPI = cheAPI
 	}
 

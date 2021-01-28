@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"os"
 	mocks "github.com/eclipse/che-operator/mocks"
+
 	"reflect"
 	"time"
 
@@ -26,11 +27,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/util"
 
 	console "github.com/openshift/api/console/v1"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
 	oauth_config "github.com/openshift/api/config/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -54,6 +55,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -943,156 +945,695 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	}
 }
 
-func TestConfiguringInternalNetworkTest(t *testing.T) {
+func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	type testCase struct {
+		name              string
+		cheCR *orgv1.CheCluster
+		expectedIdentityProviderInternalURL string
+	}
 
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
-	cl, discoveryClient, scheme := Init()
-
-	// Create a ReconcileChe object with the scheme and fake client
-	r := &ReconcileChe{client: cl, nonCachedClient: cl, discoveryClient: discoveryClient, scheme: &scheme, tests: true}
-
-	// get CR
-	cheCR := &orgv1.CheCluster{}
-
-	// get CR
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
-		t.Errorf("CR not found")
-	}
-	cheCR.Spec.Server.UseInternalClusterSVCNames = true
-	if err := cl.Update(context.TODO(), cheCR); err != nil {
-		t.Errorf("Failed to update CheCluster custom resource")
-	}
-
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
+	testCases := []testCase{
+		{
+			name: "Should use 'external' public identity provider url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+						ExternalIdentityProvider: true,
+						IdentityProviderURL: "http://external-keycloak",
+					},
+				},
+			},
+			expectedIdentityProviderInternalURL: "http://external-keycloak/auth",
+		},
+		{
+			name: "Should use 'external' public identity provider url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+						ExternalIdentityProvider: true,
+						IdentityProviderURL: "http://external-keycloak",
+					},
+				},
+			},
+			expectedIdentityProviderInternalURL: "http://external-keycloak/auth",
+		},
+		{
+			name: "Should use public identity provider url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+						ExternalIdentityProvider: false,
+					},
+				},
+			},
+			expectedIdentityProviderInternalURL: "http://keycloak/auth",
+		},
+		{
+			name: "Should use internal identity provider url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+						ExternalIdentityProvider: false,
+					},
+				},
+			},
+			expectedIdentityProviderInternalURL: "http://keycloak.eclipse-che.svc:8080/auth",
 		},
 	}
-	// reconcile to delete che route
-	_, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+				tests: true,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			clusterAPI := deploy.ClusterAPI{
+				Client: r.client,
+				Scheme: r.scheme,
+			}
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCR,
+				ClusterAPI: clusterAPI,
+			}
+
+			// Set up che host for route
+			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
+			r.client.Create(context.TODO(), cheRoute)
+			// Set up keycloak host for route
+			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
+			r.client.Create(context.TODO(), keycloakRoute)
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			_, err = r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			_, err = r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cheCm := &corev1.ConfigMap{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: testCase.cheCR.Namespace}, cheCm); err != nil {
+				t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+			}
+
+			keycloakInternalURLActual := cheCm.Data["CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL"]
+			keycloakInternalURLExpected := testCase.expectedIdentityProviderInternalURL
+			if keycloakInternalURLActual != keycloakInternalURLExpected {
+				t.Fatalf("Keycloak internal url must be %s", keycloakInternalURLExpected)
+			}
+		})
+	}
+}
+
+func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	type testCase struct {
+		name              string
+		cheCR *orgv1.CheCluster
+		expectedPluginRegistryInternalURL string
 	}
 
-	// reconcile to create che-route
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	testCases := []testCase{
+		{
+			name: "Should use 'external' public plugin registry url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+						ExternalPluginRegistry: true,
+						PluginRegistryUrl: "http://external-plugin-registry",
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedPluginRegistryInternalURL: "http://external-plugin-registry",
+		},
+		{
+			name: "Should use 'external' public plugin registry url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+						ExternalPluginRegistry: true,
+						PluginRegistryUrl: "http://external-plugin-registry",
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedPluginRegistryInternalURL: "http://external-plugin-registry",
+		},
+		{
+			name: "Should use public plugin registry url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+						ExternalPluginRegistry: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedPluginRegistryInternalURL: "http://plugin-registry/v3",
+		},
+		{
+			name: "Should use internal plugin registry url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+						ExternalPluginRegistry: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedPluginRegistryInternalURL: "http://plugin-registry.eclipse-che.svc:8080/v3",
+		},
 	}
 
-	clusterAPI := deploy.ClusterAPI{
-		Client: r.client,
-		Scheme: r.scheme,
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+				tests: true,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			clusterAPI := deploy.ClusterAPI{
+				Client: r.client,
+				Scheme: r.scheme,
+			}
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCR,
+				ClusterAPI: clusterAPI,
+			}
+
+			// Set up che host for route
+			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
+			r.client.Create(context.TODO(), cheRoute);
+			// Set up keycloak host for route
+			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
+			r.client.Create(context.TODO(), keycloakRoute)
+			// Set up plugin registry host for route
+			pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.PluginRegistryName, "plugin-registry", deploy.PluginRegistryName, 8080, "", deploy.PluginRegistryName)
+			r.client.Create(context.TODO(), pluginRegistryRoute)
+			// Set up devfile registry host for route
+			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
+			r.client.Create(context.TODO(), devfileRegistryRoute)
+			
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			_, err = r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cheCm := &corev1.ConfigMap{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: testCase.cheCR.Namespace}, cheCm); err != nil {
+				t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+			}
+
+			pluginRegistryInternalURLActual := cheCm.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
+			pluginRegistryInternalURLExpected := testCase.expectedPluginRegistryInternalURL
+			if pluginRegistryInternalURLActual != pluginRegistryInternalURLExpected {
+				t.Fatalf("plugin registry internal url must be %s", pluginRegistryInternalURLExpected)
+			}
+		})
 	}
-	deployContext := &deploy.DeployContext{
-		CheCluster: cheCR,
-		ClusterAPI: clusterAPI,
-	}
+}
 
-	// Set up che host for route
-	cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(cheCR), "che-host", "che-host", 8080, "", "che")
-	cl.Update(context.TODO(), cheRoute)
+func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
 
-	// reconsile to update Che route
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Set up keycloak host for route
-	keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
-	cl.Update(context.TODO(), keycloakRoute)
-
-	// Set up devfile registry host for route
-	devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
-	cl.Update(context.TODO(), devfileRegistryRoute)
-
-	// Set up plugin registry host for route
-	pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.PluginRegistryName, "plugin-registry", deploy.PluginRegistryName, 8080, "", deploy.PluginRegistryName)
-	cl.Update(context.TODO(), pluginRegistryRoute)
-
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	cheCm := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cheCm); err != nil {
-		t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
-	}
-
-	cheAPIInternal := cheCm.Data["CHE_API_INTERNAL"]
-	cheAPIInternalExpected := "http://che-host.eclipse-che.svc:8080/api"
-	if cheAPIInternal != cheAPIInternalExpected {
-		t.Fatalf("Che API internal url must be %s", cheAPIInternalExpected)
-	}
-
-	pluginRegistryInternal := cheCm.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
-	pluginRegistryInternalExpected := "http://plugin-registry.eclipse-che.svc:8080/v3"
-	if pluginRegistryInternal != pluginRegistryInternalExpected {
-		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
-	}
-
-	devRegistryInternal := cheCm.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
-	devRegistryInternalExpected := "http://devfile-registry.eclipse-che.svc:8080"
-	if devRegistryInternal != devRegistryInternalExpected {
-		t.Fatalf("Devfile registry internal url must be %s", pluginRegistryInternalExpected)
-	}
-
-	keycloakInternal := cheCm.Data["CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL"]
-	keycloakInternalExpected := "http://keycloak.eclipse-che.svc:8080/auth"
-	if keycloakInternal != keycloakInternalExpected {
-		t.Fatalf("Keycloak registry internal url must be %s", keycloakInternalExpected)
-	}
-
-	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Server.UseInternalClusterSVCNames = false
-	if err := cl.Update(context.TODO(), cheCR); err != nil {
-		t.Error("Failed to update CheCluster custom resource")
-	}
-
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	cheCmWithDisabledInternalClusterSVCNames := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cheCmWithDisabledInternalClusterSVCNames); err != nil {
-		t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+	type testCase struct {
+		name              string
+		cheCR *orgv1.CheCluster
+		expectedDevfileRegistryInternalURL string
 	}
 
-	cheAPIInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_API_INTERNAL"]
-	cheAPIInternalExpected = "http://che-host/api"
-	if cheAPIInternal != cheAPIInternalExpected {
-		t.Fatalf("Che API internal url must be %s", cheAPIInternalExpected)
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	testCases := []testCase{
+		{
+			name: "Should use 'external' devfile registry url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+						ExternalDevfileRegistry: true,
+						DevfileRegistryUrl: "http://external-devfile-registry",
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedDevfileRegistryInternalURL: "http://external-devfile-registry",
+		},
+		{
+			name: "Should use 'external' public devfile registry url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+						ExternalDevfileRegistry: true,
+						DevfileRegistryUrl: "http://external-devfile-registry",
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedDevfileRegistryInternalURL: "http://external-devfile-registry",
+		},
+		{
+			name: "Should use public devfile registry url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+						ExternalDevfileRegistry: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedDevfileRegistryInternalURL: "http://devfile-registry",
+		},
+		{
+			name: "Should use internal devfile registry url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+						ExternalDevfileRegistry: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedDevfileRegistryInternalURL: "http://devfile-registry.eclipse-che.svc:8080",
+		},
 	}
 
-	pluginRegistryInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL"]
-	pluginRegistryInternalExpected = "http://plugin-registry/v3"
-	if pluginRegistryInternal != pluginRegistryInternalExpected {
-		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+				tests: true,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			clusterAPI := deploy.ClusterAPI{
+				Client: r.client,
+				Scheme: r.scheme,
+			}
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCR,
+				ClusterAPI: clusterAPI,
+			}
+
+			// Set up che host for route
+			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
+			r.client.Create(context.TODO(), cheRoute);
+			// Set up keycloak host for route
+			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
+			r.client.Create(context.TODO(), keycloakRoute)
+			// Set up plugin registry host for route
+			pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.PluginRegistryName, "plugin-registry", deploy.PluginRegistryName, 8080, "", deploy.PluginRegistryName)
+			r.client.Create(context.TODO(), pluginRegistryRoute)
+			// Set up devfile registry host for route
+			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
+			r.client.Create(context.TODO(), devfileRegistryRoute)
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			_, err = r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cheCm := &corev1.ConfigMap{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: testCase.cheCR.Namespace}, cheCm); err != nil {
+				t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+			}
+
+			devfileRegistryInternalURLActual := cheCm.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
+			devfileRegistryInternalURLExpected := testCase.expectedDevfileRegistryInternalURL
+			if devfileRegistryInternalURLActual != devfileRegistryInternalURLExpected {
+				t.Fatalf("devfile registry internal url must be %s", devfileRegistryInternalURLExpected)
+			}
+		})
+	}
+}
+
+func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t *testing.T) {
+	os.Setenv("OPENSHIFT_VERSION", "3")
+
+	type testCase struct {
+		name              string
+		cheCR *orgv1.CheCluster
+		expectedCheServerInternalURL string
 	}
 
-	devRegistryInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL"]
-	devRegistryInternalExpected = "http://devfile-registry"
-	if devRegistryInternal != devRegistryInternalExpected {
-		t.Fatalf("Plugin registry internal url must be %s", pluginRegistryInternalExpected)
+	// Set the logger to development mode for verbose logs.
+	logf.SetLogger(logf.ZapLogger(true))
+
+	testCases := []testCase{
+		{
+			name: "Should use public che-server url, when internal network is disabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedCheServerInternalURL: "http://che-host/api",
+		},
+		{
+			name: "Should use internal che-server url, when internal network is enabled",
+			cheCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					ResourceVersion: "1",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						UseInternalClusterSVCNames: true,
+						ExternalDevfileRegistry: false,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(false),
+					},
+				},
+			},
+			expectedCheServerInternalURL: "http://che-host.eclipse-che.svc:8080/api",
+		},
 	}
 
-	keycloakInternal = cheCmWithDisabledInternalClusterSVCNames.Data["CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL"]
-	keycloakInternalExpected = "http://keycloak/auth"
-	if keycloakInternal != keycloakInternalExpected {
-		t.Fatalf("Keycloak internal url must be %s", keycloakInternalExpected)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+				tests: true,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			clusterAPI := deploy.ClusterAPI{
+				Client: r.client,
+				Scheme: r.scheme,
+			}
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCR,
+				ClusterAPI: clusterAPI,
+			}
+
+			// Set up che host for route
+			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
+			r.client.Create(context.TODO(), cheRoute);
+			// Set up keycloak host for route
+			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
+			r.client.Create(context.TODO(), keycloakRoute)
+			// Set up plugin registry host for route
+			pluginRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.PluginRegistryName, "plugin-registry", deploy.PluginRegistryName, 8080, "", deploy.PluginRegistryName)
+			r.client.Create(context.TODO(), pluginRegistryRoute)
+			// Set up devfile registry host for route
+			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
+			r.client.Create(context.TODO(), devfileRegistryRoute)
+			
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			_, err = r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cheCm := &corev1.ConfigMap{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: testCase.cheCR.Namespace}, cheCm); err != nil {
+				t.Errorf("ConfigMap %s not found: %s", cheCm.Name, err)
+			}
+
+			cheServerInternalURLActual := cheCm.Data["CHE_API_INTERNAL"]
+			cheServerInternalURLExpected := testCase.expectedCheServerInternalURL
+			if cheServerInternalURLActual != cheServerInternalURLExpected {
+				t.Fatalf("che-server internal url must be %s", cheServerInternalURLExpected)
+			}
+		})
 	}
 }
 
