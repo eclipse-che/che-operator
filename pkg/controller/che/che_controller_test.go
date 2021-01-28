@@ -209,7 +209,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		oAuthExpected                       *bool
 		createOpenshiftOAuthUser            bool
 		OpenShiftOAuthUserCredentialsSecret string
-		mockFunction                        func(ctrl *gomock.Controller, crNamespace string) *che_mocks.MockOpenShiftOAuthUserHandler
+		mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler
 	}
 
 	testCases := []testCase{
@@ -291,9 +291,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initialOAuthValue:        util.NewBoolPointer(true),
 			oAuthExpected:            util.NewBoolPointer(true),
 			createOpenshiftOAuthUser: true,
-			mockFunction: func(ctrl *gomock.Controller, crNamespace string) *che_mocks.MockOpenShiftOAuthUserHandler {
+			mockFunction: func(ctrl *gomock.Controller, crNamespace string, userNamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler {
 				m := che_mocks.NewMockOpenShiftOAuthUserHandler(ctrl)
-				m.EXPECT().CreateOAuthInitialUser(crNamespace, gomock.Any())
+				m.EXPECT().CreateOAuthInitialUser(userNamePrefix, crNamespace, gomock.Any())
 				return m
 			},
 			OpenShiftOAuthUserCredentialsSecret: "openshift-oauth-user-credentials",
@@ -365,7 +365,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			var userHandlerMock *che_mocks.MockOpenShiftOAuthUserHandler
 			if testCase.mockFunction != nil {
 				ctrl := gomock.NewController(t)
-				userHandlerMock = testCase.mockFunction(ctrl, initCR.Namespace)
+				userHandlerMock = testCase.mockFunction(ctrl, initCR.Namespace, deploy.DefaultCheFlavor(initCR))
 				defer ctrl.Finish()
 			}
 

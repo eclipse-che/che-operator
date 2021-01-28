@@ -34,7 +34,8 @@ import (
 )
 
 const (
-	testNamespace = "test-namespace"
+	testNamespace      = "test-namespace"
+	testUserNamePrefix = "test"
 )
 
 func TestCreateInitialUser(t *testing.T) {
@@ -71,7 +72,7 @@ func TestCreateInitialUser(t *testing.T) {
 		runtimeClient: runtimeClient,
 		runnable:      m,
 	}
-	err := initialUserHandler.CreateOauthInitialUser(testNamespace, oAuth)
+	err := initialUserHandler.CreateOauthInitialUser(testUserNamePrefix, testNamespace, oAuth)
 	if err != nil {
 		t.Errorf("Failed to create user: %s", err.Error())
 	}
@@ -99,6 +100,7 @@ func TestCreateInitialUser(t *testing.T) {
 
 func TestDeleteInitialUser(t *testing.T) {
 	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	userName := getUserName(testUserNamePrefix)
 
 	scheme := scheme.Scheme
 	orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -136,12 +138,12 @@ func TestDeleteInitialUser(t *testing.T) {
 	}
 	userIdentity := &userv1.Identity{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: htpasswdIdentityProviderName + ":" + initialUserName,
+			Name: htpasswdIdentityProviderName + ":" + userName,
 		},
 	}
 	user := &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: initialUserName,
+			Name: userName,
 		},
 	}
 
@@ -151,7 +153,7 @@ func TestDeleteInitialUser(t *testing.T) {
 		runtimeClient: runtimeClient,
 	}
 
-	if err := initialUserHandler.DeleteOauthInitialUser(testNamespace); err != nil {
+	if err := initialUserHandler.DeleteOauthInitialUser(testUserNamePrefix, testNamespace); err != nil {
 		t.Errorf("Unable to delete initial user: %s", err.Error())
 	}
 
@@ -166,12 +168,12 @@ func TestDeleteInitialUser(t *testing.T) {
 	}
 
 	expectedUserIdentity := &userv1.Identity{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: htpasswdIdentityProviderName + ":" + initialUserName}, expectedUserIdentity); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: htpasswdIdentityProviderName + ":" + userName}, expectedUserIdentity); !errors.IsNotFound(err) {
 		t.Errorf("Initial user identity should be deleted")
 	}
 
 	expectedUser := &userv1.User{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: initialUserName}, expectedUser); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: userName}, expectedUser); !errors.IsNotFound(err) {
 		t.Errorf("Initial user should be deleted")
 	}
 

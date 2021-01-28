@@ -33,13 +33,12 @@ const (
 	htpasswdIdentityProviderName        = "htpasswd-eclipse"
 	htpasswdSecretName                  = "htpasswd-eclipse"
 	ocConfigNamespace                   = "openshift-config"
-	initialUserName                     = "che-user"
 	openShiftOAuthUserCredentialsSecret = "openshift-oauth-user-credentials"
 )
 
 type OpenShiftOAuthUserHandler interface {
-	CreateOAuthInitialUser(crNamespace string, openshiftOAuth *oauthv1.OAuth) error
-	DeleteOAuthInitialUser(crNamespace string) error
+	CreateOAuthInitialUser(userNamePrefix string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error
+	DeleteOAuthInitialUser(userNamePrefix string, crNamespace string) error
 }
 
 type OpenShiftOAuthUserOperatorHandler struct {
@@ -61,10 +60,11 @@ func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUse
 // It usefull for good first user expirience.
 // User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
 // initial user for good first meeting with Eclipse Che.
-func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
+func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(userNamePrefix string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
 	password := util.GeneratePasswd(6)
 
-	htpasswdFileContent, err := handler.generateHtPasswdUserInfo(initialUserName, password)
+	userName := getUserName(userNamePrefix)
+	htpasswdFileContent, err := handler.generateHtPasswdUserInfo(userName, password)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(crNames
 		return err
 	}
 
-	initialUserSecretData := map[string][]byte{"user": []byte(initialUserName), "password": []byte(password)}
+	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
 	if err := createSecret(initialUserSecretData, openShiftOAuthUserCredentialsSecret, crNamespace, handler.runtimeClient); err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(crNames
 }
 
 // DeleteOauthInitialUser removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.
-func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(crNamespace string) error {
+func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(userNamePrefix string, crNamespace string) error {
 	oAuth, err := GetOpenshiftOAuth(iuh.runtimeClient)
 	if err != nil {
 		return err
@@ -109,6 +109,7 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(crNamespace
 	}
 
 	if identityProviderExists {
+		userName := getUserName(userNamePrefix)
 		if err := deleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
@@ -117,11 +118,11 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(crNamespace
 			return err
 		}
 
-		if err := deleteInitialUser(iuh.runtimeClient); err != nil {
+		if err := deleteInitialUser(iuh.runtimeClient, userName); err != nil {
 			return err
 		}
 
-		if err := deleteUserIdentity(iuh.runtimeClient); err != nil {
+		if err := deleteUserIdentity(iuh.runtimeClient, userName); err != nil {
 			return err
 		}
 
@@ -221,12 +222,12 @@ func deleteSecret(secretName string, namespace string, runtimeClient client.Clie
 	return nil
 }
 
-func deleteInitialUser(runtimeClient client.Client) error {
-	logrus.Infof("Delete initial user: %s", initialUserName)
+func deleteInitialUser(runtimeClient client.Client, userName string) error {
+	logrus.Infof("Delete initial user: %s", userName)
 
 	user := &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: initialUserName,
+			Name: userName,
 		},
 	}
 
@@ -240,8 +241,8 @@ func deleteInitialUser(runtimeClient client.Client) error {
 	return nil
 }
 
-func deleteUserIdentity(runtimeClient client.Client) error {
-	identityName := htpasswdIdentityProviderName + ":" + initialUserName
+func deleteUserIdentity(runtimeClient client.Client, userName string) error {
+	identityName := htpasswdIdentityProviderName + ":" + userName
 	logrus.Infof("Delete initial user identity: %s", identityName)
 
 	identity := &userv1.Identity{
@@ -278,4 +279,8 @@ func deleteIdentityProvider(oAuth *configv1.OAuth, runtimeClient client.Client) 
 	}
 
 	return nil
+}
+
+func getUserName(userNamePrefix string) string {
+	return userNamePrefix + "-user"
 }
