@@ -964,8 +964,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                                string
+		cheCR                               *orgv1.CheCluster
 		expectedIdentityProviderInternalURL string
 	}
 
@@ -981,8 +981,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -990,9 +990,9 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: true,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
-						IdentityProviderURL: "http://external-keycloak",
+						IdentityProviderURL:      "http://external-keycloak",
 					},
 				},
 			},
@@ -1006,8 +1006,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1015,9 +1015,9 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
-						IdentityProviderURL: "http://external-keycloak",
+						IdentityProviderURL:      "http://external-keycloak",
 					},
 				},
 			},
@@ -1031,8 +1031,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1040,7 +1040,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,
 					},
 				},
@@ -1055,8 +1055,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1064,7 +1064,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: true,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,
 					},
 				},
@@ -1079,7 +1079,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1092,7 +1092,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1148,8 +1148,8 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                              string
+		cheCR                             *orgv1.CheCluster
 		expectedPluginRegistryInternalURL string
 	}
 
@@ -1165,15 +1165,15 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalPluginRegistry: true,
-						PluginRegistryUrl: "http://external-plugin-registry",
+						ExternalPluginRegistry:     true,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1190,15 +1190,15 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalPluginRegistry: true,
-						PluginRegistryUrl: "http://external-plugin-registry",
+						ExternalPluginRegistry:     true,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1215,14 +1215,14 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalPluginRegistry: false,
+						ExternalPluginRegistry:     false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1239,14 +1239,14 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalPluginRegistry: false,
+						ExternalPluginRegistry:     false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1263,7 +1263,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1276,7 +1276,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1296,7 +1296,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 
 			// Set up che host for route
 			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
-			r.client.Create(context.TODO(), cheRoute);
+			r.client.Create(context.TODO(), cheRoute)
 			// Set up keycloak host for route
 			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 			r.client.Create(context.TODO(), keycloakRoute)
@@ -1306,7 +1306,6 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 			// Set up devfile registry host for route
 			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
 			r.client.Create(context.TODO(), devfileRegistryRoute)
-			
 
 			_, err := r.Reconcile(req)
 			if err != nil {
@@ -1335,8 +1334,8 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                               string
+		cheCR                              *orgv1.CheCluster
 		expectedDevfileRegistryInternalURL string
 	}
 
@@ -1352,15 +1351,15 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry: true,
-						DevfileRegistryUrl: "http://external-devfile-registry",
+						ExternalDevfileRegistry:    true,
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1377,15 +1376,15 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry: true,
-						DevfileRegistryUrl: "http://external-devfile-registry",
+						ExternalDevfileRegistry:    true,
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1402,14 +1401,14 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistry:    false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1426,14 +1425,14 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistry:    false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1450,7 +1449,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1463,7 +1462,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1483,7 +1482,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 
 			// Set up che host for route
 			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
-			r.client.Create(context.TODO(), cheRoute);
+			r.client.Create(context.TODO(), cheRoute)
 			// Set up keycloak host for route
 			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 			r.client.Create(context.TODO(), keycloakRoute)
@@ -1521,8 +1520,8 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                         string
+		cheCR                        *orgv1.CheCluster
 		expectedCheServerInternalURL string
 	}
 
@@ -1538,8 +1537,8 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1561,14 +1560,14 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistry:    false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1585,7 +1584,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1598,7 +1597,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1618,7 +1617,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 
 			// Set up che host for route
 			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
-			r.client.Create(context.TODO(), cheRoute);
+			r.client.Create(context.TODO(), cheRoute)
 			// Set up keycloak host for route
 			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 			r.client.Create(context.TODO(), keycloakRoute)
@@ -1628,7 +1627,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 			// Set up devfile registry host for route
 			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
 			r.client.Create(context.TODO(), devfileRegistryRoute)
-			
+
 			_, err := r.Reconcile(req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
