@@ -77,10 +77,10 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		return nil, err
 	}
 	return &ReconcileChe{
-		client:          mgr.GetClient(),
-		nonCachedClient: noncachedClient,
-		scheme:          mgr.GetScheme(),
-		discoveryClient: discoveryClient,
+		client:            mgr.GetClient(),
+		nonCachedClient:   noncachedClient,
+		scheme:            mgr.GetScheme(),
+		discoveryClient:   discoveryClient,
 		permissionChecker: &K8sApiPermissionChecker{},
 	}, nil
 }
@@ -279,10 +279,10 @@ type ReconcileChe struct {
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
 	// in the API Server
-	discoveryClient discovery.DiscoveryInterface
-	scheme          *runtime.Scheme
+	discoveryClient   discovery.DiscoveryInterface
+	scheme            *runtime.Scheme
 	permissionChecker PermissionChecker
-	tests           bool
+	tests             bool
 }
 
 const (
@@ -565,7 +565,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err != nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-		// fall back to the "narrower" workspace namespace strategy 
+		// fall back to the "narrower" workspace namespace strategy
 		if len(deniedRules) > 0 {
 			if _, ok := instance.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]; ok {
 				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
