@@ -12,6 +12,7 @@ metadata:
           },
           "spec": {
             "auth": {
+              "createInitialUser": true,
               "externalIdentityProvider": false,
               "identityProviderAdminUserName": "",
               "identityProviderClientId": "",
@@ -75,13 +76,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-01-28T11:15:46Z"
+    createdAt: "2021-01-28T15:26:17Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.26.0-82.nightly
+  name: eclipse-che-preview-openshift.v7.26.0-84.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -133,6 +134,13 @@ spec:
               Pod is in this condition.
             displayName: Message
             path: message
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: OpenShift OAuth secret that contains user credentials for
+              HTPasswd identity provider.
+            displayName: OpenShift OAuth secret that contains user credentials for
+              HTPasswd identity provider.
+            path: openShiftOAuthUserCredentialsSecret
             x-descriptors:
               - urn:alm:descriptor:text
           - description: A brief CamelCase message indicating details about why the
@@ -242,6 +250,20 @@ spec:
       clusterPermissions:
         - rules:
             - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - get
+                - create
+                - delete
+            - apiGroups:
+                - user.openshift.io
+              resources:
+                - identities
+              verbs:
+                - delete
+            - apiGroups:
                 - oauth.openshift.io
               resources:
                 - oauthclients
@@ -262,6 +284,7 @@ spec:
               verbs:
                 - get
                 - list
+                - patch
                 - watch
             - apiGroups:
                 - user.openshift.io
@@ -269,6 +292,7 @@ spec:
                 - users
               verbs:
                 - list
+                - delete
             - apiGroups:
                 - console.openshift.io
               resources:
@@ -547,4 +571,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.26.0-82.nightly
+  version: 7.26.0-84.nightly

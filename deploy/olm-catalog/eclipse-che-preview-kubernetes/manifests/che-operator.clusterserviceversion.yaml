@@ -12,6 +12,7 @@ metadata:
           },
           "spec": {
             "auth": {
+              "createInitialUser": true,
               "externalIdentityProvider": false,
               "identityProviderAdminUserName": "",
               "identityProviderClientId": "",
@@ -84,13 +85,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-01-28T11:15:38Z"
+    createdAt: "2021-01-28T15:26:09Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.26.0-82.nightly
+  name: eclipse-che-preview-kubernetes.v7.26.0-84.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -142,6 +143,13 @@ spec:
               Pod is in this condition.
             displayName: Message
             path: message
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: OpenShift OAuth secret that contains user credentials for
+              HTPasswd identity provider.
+            displayName: OpenShift OAuth secret that contains user credentials for
+              HTPasswd identity provider.
+            path: openShiftOAuthUserCredentialsSecret
             x-descriptors:
               - urn:alm:descriptor:text
           - description: A brief CamelCase message indicating details about why the
@@ -265,6 +273,14 @@ spec:
     spec:
       clusterPermissions:
         - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - get
+                - create
+                - delete
             - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
@@ -528,4 +544,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.26.0-82.nightly
+  version: 7.26.0-84.nightly
