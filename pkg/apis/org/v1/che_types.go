@@ -350,11 +350,12 @@ type CheClusterSpecDB struct {
 // +k8s:openapi-gen=true
 // Configuration settings related to the Authentication used by the Che installation.
 type CheClusterSpecAuth struct {
-	// Unfortunatly in the a lot of fresh clusters we have only "kubeadmin" user. But Openshift 4 oAuth doesn't work with "kubeadmin".
-	// When "CreateInitialUser" is true - create initial user(with help of new htpasswd identity provider) if there are no other users.
-	// When "CreateInitialUser" is false - delete initial user htpasswd identity provider if it's existed.
-	// Notice: "CreateInitialUser" is Openshift 4 platform specific.
-	CreateInitialUser bool `json:"createInitialUser"`
+	// Since `kubeadmin` is not a part of OpenShift OAuth authentication workflow it is needed a new user for this.
+	// If value is true then a new OpenShift OAuth user will be created for HTPasswd identity provider.
+	// If value is false and the user has been already created then it will be removed.
+	// The users credentials is stored into `openshift-oauth-user-credentials` secret.
+	// Notice: it is Openshift 4 platform specific.
+	CreateOpenShiftOAuthUser bool `json:"createOpenShiftOAuthUser"`
 	// Instructs the operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
 	// By default a dedicated Identity Provider server is deployed as part of the Che installation.
 	// But if `externalIdentityProvider` is `true`, then no dedicated identity provider will be deployed by the operator
