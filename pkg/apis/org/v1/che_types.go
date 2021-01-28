@@ -548,11 +548,11 @@ type CheClusterSpecImagePuller struct {
 
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
-	// Initial user create for cluster, if there are no other.
+	// OpenShift OAuth secret that contains user credentials for HTPasswd identity provider.
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Initial user in the cluster"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="OpenShift OAuth secret that contains user credentials for HTPasswd identity provider."
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
-	IdentityProviderInitialUserSecret string `json:"identityProviderInitialUserSecret"`
+	OpenShiftOAuthUserCredentialsSecret string `json:"openShiftOAuthUserCredentialsSecret"`
 	// Indicates if or not a Postgres instance has been correctly provisioned
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`
