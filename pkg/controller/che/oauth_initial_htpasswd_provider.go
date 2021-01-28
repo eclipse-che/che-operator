@@ -30,26 +30,26 @@ import (
 )
 
 const (
-	htpasswdIdentityProviderName = "htpasswd-eclipse"
-	htpasswdSecretName           = "htpasswd-eclipse"
-	ocConfigNamespace            = "openshift-config"
-	initialUserName              = "che-user"
-	openShiftOAuthUserCrednetialsSecret            = "openshift-oauth-user-credentials"
+	htpasswdIdentityProviderName        = "htpasswd-eclipse"
+	htpasswdSecretName                  = "htpasswd-eclipse"
+	ocConfigNamespace                   = "openshift-config"
+	initialUserName                     = "che-user"
+	openShiftOAuthUserCredentialsSecret = "openshift-oauth-user-credentials"
 )
 
-type InitialUserHandler interface {
-	CreateOauthInitialUser(crNamespace string, openshiftOAuth *oauthv1.OAuth) error
-	DeleteOauthInitialUser(crNamespace string) error
+type OpenShiftOAuthUserHandler interface {
+	CreateOAuthInitialUser(crNamespace string, openshiftOAuth *oauthv1.OAuth) error
+	DeleteOAuthInitialUser(crNamespace string) error
 }
 
-type InitialUserOperatorHandler struct {
-	InitialUserHandler
+type OpenShiftOAuthUserOperatorHandler struct {
+	OpenShiftOAuthUserHandler
 	runtimeClient client.Client
 	runnable      util.Runnable
 }
 
-func NewInitialUserHandler(runtimeClient client.Client) InitialUserHandler {
-	return &InitialUserOperatorHandler{
+func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUserHandler {
+	return &OpenShiftOAuthUserOperatorHandler{
 		runtimeClient: runtimeClient,
 		// real process implementation. In the test we are using mock
 		runnable: util.NewRunnable(),
@@ -61,7 +61,7 @@ func NewInitialUserHandler(runtimeClient client.Client) InitialUserHandler {
 // It usefull for good first user expirience.
 // User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
 // initial user for good first meeting with Eclipse Che.
-func (handler *InitialUserOperatorHandler) CreateOauthInitialUser(crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
+func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
 	password := util.GeneratePasswd(6)
 
 	htpasswdFileContent, err := handler.generateHtPasswdUserInfo(initialUserName, password)
@@ -87,7 +87,7 @@ func (handler *InitialUserOperatorHandler) CreateOauthInitialUser(crNamespace st
 	}
 
 	initialUserSecretData := map[string][]byte{"user": []byte(initialUserName), "password": []byte(password)}
-	if err := createSecret(initialUserSecretData, initialUserSecret, crNamespace, handler.runtimeClient); err != nil {
+	if err := createSecret(initialUserSecretData, openShiftOAuthUserCredentialsSecret, crNamespace, handler.runtimeClient); err != nil {
 		return err
 	}
 
@@ -95,7 +95,7 @@ func (handler *InitialUserOperatorHandler) CreateOauthInitialUser(crNamespace st
 }
 
 // DeleteOauthInitialUser removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.
-func (iuh *InitialUserOperatorHandler) DeleteOauthInitialUser(crNamespace string) error {
+func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(crNamespace string) error {
 	oAuth, err := GetOpenshiftOAuth(iuh.runtimeClient)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (iuh *InitialUserOperatorHandler) DeleteOauthInitialUser(crNamespace string
 			return err
 		}
 
-		if err := deleteSecret(initialUserSecret, crNamespace, iuh.runtimeClient); err != nil {
+		if err := deleteSecret(openShiftOAuthUserCredentialsSecret, crNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
 
@@ -133,7 +133,7 @@ func (iuh *InitialUserOperatorHandler) DeleteOauthInitialUser(crNamespace string
 	return nil
 }
 
-func (iuh *InitialUserOperatorHandler) generateHtPasswdUserInfo(username string, password string) (string, error) {
+func (iuh *OpenShiftOAuthUserOperatorHandler) generateHtPasswdUserInfo(username string, password string) (string, error) {
 	logrus.Info("Generate initial user httpasswd info")
 
 	err := iuh.runnable.Run("htpasswd", "-nbB", username, password)

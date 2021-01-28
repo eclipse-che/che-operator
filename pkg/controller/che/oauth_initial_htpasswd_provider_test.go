@@ -14,7 +14,7 @@ package che
 
 import (
 	"context"
-	mocks "github.com/eclipse/che-operator/mocks"
+	util_mocks "github.com/eclipse/che-operator/mocks/pkg/util"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/golang/mock/gomock"
 	oauth_config "github.com/openshift/api/config/v1"
@@ -61,13 +61,13 @@ func TestCreateInitialUser(t *testing.T) {
 	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth)
 
 	ctrl := gomock.NewController(t)
-	m := mocks.NewMockRunnable(ctrl)
+	m := util_mocks.NewMockRunnable(ctrl)
 	m.EXPECT().Run("htpasswd", "-nbB", gomock.Any(), gomock.Any()).Return(nil)
 	m.EXPECT().GetStdOut().Return("test-string")
 	m.EXPECT().GetStdErr().Return("")
 	defer ctrl.Finish()
 
-	initialUserHandler := &InitialUserOperatorHandler{
+	initialUserHandler := &OpenShiftOAuthUserOperatorHandler{
 		runtimeClient: runtimeClient,
 		runnable:      m,
 	}
@@ -78,7 +78,7 @@ func TestCreateInitialUser(t *testing.T) {
 
 	// Check created objects
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: initialUserSecret, Namespace: testNamespace}, expectedCheSecret); err != nil {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: testNamespace}, expectedCheSecret); err != nil {
 		t.Errorf("Initial user secret should exists")
 	}
 
@@ -120,7 +120,7 @@ func TestDeleteInitialUser(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      initialUserSecret,
+			Name:      openShiftOAuthUserCredentialsSecret,
 			Namespace: testNamespace,
 		},
 	}
@@ -147,7 +147,7 @@ func TestDeleteInitialUser(t *testing.T) {
 
 	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, cheSecret, htpasswdSecret, userIdentity, user)
 
-	initialUserHandler := &InitialUserOperatorHandler{
+	initialUserHandler := &OpenShiftOAuthUserOperatorHandler{
 		runtimeClient: runtimeClient,
 	}
 
@@ -156,7 +156,7 @@ func TestDeleteInitialUser(t *testing.T) {
 	}
 
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: initialUserSecret, Namespace: testNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: testNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
 		t.Errorf("Initial user secret be deleted")
 	}
 

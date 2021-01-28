@@ -363,7 +363,11 @@ $ GO111MODULE=on go get github.com/golang/mock/mockgen@v1.4.4
 Generate new mock for go interface. Example:
 
 ```bash
-$ mockgen -source=pkg/util/process.go -destination=mocks/process_mock.go
+$ mockgen -source=pkg/util/process.go -destination=mocks/pkg/util/process_mock.go -package mock_util
+
+$ mockgen -source=pkg/controller/che/oauth_initial_htpasswd_provider.go \
+          -destination=mocks/pkg/controller/che/oauth_initial_htpasswd_provider_mock.go \
+          -package mock_che
 ```
 
 See more: https://github.com/golang/mock/blob/master/README.md
