@@ -200,9 +200,6 @@ func init() {
 	}
 }
 
-//////////////// TODO check secret in the status
-///!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
-
 func TestCaseAutoDetectOAuth(t *testing.T) {
 	type testCase struct {
 		name              string
@@ -211,6 +208,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		initialOAuthValue *bool
 		oAuthExpected     *bool
 		createInitialUser bool
+		IdentityProviderInitialUserSecret string
 		mockFunction      func(ctrl *gomock.Controller, crNamespace string) *mocks.MockInitialUserHandler
 	}
 
@@ -303,6 +301,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				m.EXPECT().CreateOauthInitialUser(crNamespace, gomock.Any())
 				return m
 			},
+			IdentityProviderInitialUserSecret: "initial-user-secret",
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
@@ -314,7 +313,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			oAuthExpected:     util.NewBoolPointer(true),
 			createInitialUser: true,
 		},
-
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
 			initObjects: []runtime.Object{
@@ -422,6 +420,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 
 			if *cheCR.Spec.Auth.OpenShiftoAuth != *testCase.oAuthExpected {
 				t.Errorf("Openshift oAuth should be %t", *testCase.oAuthExpected)
+			}
+
+			if cheCR.Status.IdentityProviderInitialUserSecret != testCase.IdentityProviderInitialUserSecret {
+				t.Errorf("Expected initial user secret %s in the CR status", testCase.IdentityProviderInitialUserSecret)
 			}
 		})
 	}

@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2012-2019 Red Hat, Inc.
+#  Copyright (c) 2012-2021 Red Hat, Inc.
 #    This program and the accompanying materials are made
 #    available under the terms of the Eclipse Public License 2.0
 #    which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,64 +16,64 @@ rules:
   - apiGroups:
     - ""
     resources:
-      - secrets
+    - secrets
     verbs:
-      - get
-      - create
-      - delete
+    - get
+    - create
+    - delete
   - apiGroups:
     - user.openshift.io
     resources:
     - identities
     verbs:
-      - delete
+    - delete
   - apiGroups:
-      - oauth.openshift.io
+    - oauth.openshift.io
     resources:
-      - oauthclients
+    - oauthclients
     verbs:
-      - create
-      - get
-      - delete
-      - list
-      - patch
-      - update
-      - watch
+    - create
+    - get
+    - delete
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
-      - config.openshift.io
+    - config.openshift.io
     resources:
-      - infrastructures
-      - oauths
-      - proxies
+    - infrastructures
+    - oauths
+    - proxies
     verbs:
-      - get
-      - list
-      - patch
-      - watch
+    - get
+    - list
+    - patch
+    - watch
   - apiGroups:
-      - user.openshift.io
+    - user.openshift.io
     resources:
-      - users
+    - users
     verbs:
-      - list
-      - delete
+    - list
+    - delete
   - apiGroups:
-      - console.openshift.io
+    - console.openshift.io
     resources:
-      - consolelinks
+    - consolelinks
     verbs:
-      - get
-      - list
-      - create
-      - update
-      - patch
-      - delete
+    - get
+    - list
+    - create
+    - update
+    - patch
+    - delete
   - apiGroups:
-      - rbac.authorization.k8s.io
+    - rbac.authorization.k8s.io
     resources:
-      - clusterrolebindings
+    - clusterrolebindings
     verbs:
-      - list
-      - create
-      - watch
-      - update
+    - list
+    - create
+    - watch
+    - update
