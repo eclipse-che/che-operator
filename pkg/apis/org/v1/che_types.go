@@ -114,7 +114,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	WorkspaceNamespaceDefault string `json:"workspaceNamespaceDefault,omitempty"`
 	// Defines that a user is allowed to specify Kubernetes namespace, or OpenShift project, different from the default.
-	// It's NOT RECOMMENDED to be configured true without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
+	// It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
 	// +optional
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
 	// Deprecated. The value of this flag is ignored.
@@ -135,7 +135,8 @@ type CheClusterSpecServer struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Tls support"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	TlsSupport bool `json:"tlsSupport"`
-	// Use internal cluster svc names to communicate between components to speed up the traffic and avoid proxy issues. The default value is `true`.
+	// Use internal cluster svc names to communicate between components to speed up the traffic and avoid proxy issues.
+	// The default value is `false`.
 	// +optional
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
 	// Public URL of the devfile registry, that serves sample, ready-to-use devfiles.
@@ -176,30 +177,30 @@ type CheClusterSpecServer struct {
 	// will be started by the Operator and you will have to manually set the `devfileRegistryUrl` field
 	// +optional
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
-	// Public URL of the Plugin registry, that serves sample ready-to-use devfiles.
+	// Public URL of the plugin registry, that serves sample ready-to-use devfiles.
 	// Set this ONLY if a use of an external devfile registry is needed.
 	// See the `externalPluginRegistry` field. By default, this will be automatically calculated by the Operator.
 	// +optional
 	PluginRegistryUrl string `json:"pluginRegistryUrl,omitempty"`
-	// Overrides the container image used in the Plugin registry deployment.
+	// Overrides the container image used in the plugin registry deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PluginRegistryImage string `json:"pluginRegistryImage,omitempty"`
-	// Overrides the image pull policy used in the Plugin registry deployment.
+	// Overrides the image pull policy used in the plugin registry deployment.
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PluginRegistryPullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy,omitempty"`
-	// Overrides the memory limit used in the Plugin registry deployment. Defaults to 256Mi.
+	// Overrides the memory limit used in the plugin registry deployment. Defaults to 256Mi.
 	// +optional
 	PluginRegistryMemoryLimit string `json:"pluginRegistryMemoryLimit,omitempty"`
-	// Overrides the memory request used in the Plugin registry deployment. Defaults to 16Mi.
+	// Overrides the memory request used in the plugin registry deployment. Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
-	// Overrides the cpu limit used in the Plugin registry deployment.
+	// Overrides the cpu limit used in the plugin registry deployment.
 	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
-	// Overrides the cpu request used in the Plugin registry deployment.
+	// Overrides the cpu request used in the plugin registry deployment.
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	PluginRegistryCpuRequest string `json:"pluginRegistryCpuRequest,omitempty"`
@@ -209,7 +210,7 @@ type CheClusterSpecServer struct {
 	// Plugin registry route custom settings.
 	// +optional
 	PluginRegistryRoute RouteCustomSettings `json:"pluginRegistryRoute,omitempty"`
-	// Instructs the Operator on whether or not to deploy a dedicated Plugin registry server.
+	// Instructs the Operator on whether or not to deploy a dedicated plugin registry server.
 	// By default, a dedicated plugin registry server is started. When `externalPluginRegistry` is `true`, no such dedicated server
 	// will be started by the Operator and you will have to manually set the `pluginRegistryUrl` field.
 	// +optional
@@ -228,10 +229,10 @@ type CheClusterSpecServer struct {
 	// (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyPort` and `nonProxyHosts` fields).
 	// +optional
 	ProxyURL string `json:"proxyURL,omitempty"`
-	// Port of the proxy server. Only use when configuring a proxy is required. (see also the `proxyURL` and `nonProxyHosts` fields).
+	// Port of the proxy server. Only use when configuring a proxy is required. (See also the `proxyURL` and `nonProxyHosts` fields).
 	// +optional
 	ProxyPort string `json:"proxyPort,omitempty"`
-	// List of hosts that should be reached directly, bypassing the proxy.
+	// List of hosts that will be reached directly, bypassing the proxy.
 	// Specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, for example: `localhost|.my.host.com|123.42.12.32`
 	// Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required,
 	// but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources.
@@ -240,7 +241,8 @@ type CheClusterSpecServer struct {
 	// User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL`, `proxyPassword` and `proxySecret` fields).
 	// +optional
 	ProxyUser string `json:"proxyUser,omitempty"`
-	// Password of the proxy server Only use when proxy configuration is required (see also the `proxyURL`, `proxyUser` and `proxySecret` fields).
+	// Password of the proxy server.
+	// Only use when proxy configuration is required (See also the `proxyURL`, `proxyUser` and `proxySecret` fields).
 	// +optional
 	ProxyPassword string `json:"proxyPassword,omitempty"`
 	// The secret that contains `user` and `password` for a proxy server. When the secret is defined, the `proxyUser` and `proxyPassword` are ignored.
@@ -385,8 +387,8 @@ type CheClusterSpecAuth struct {
 	// +optional
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
 	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth.
-	// Enabled by default on OpenShift. This will allow users to directly login with their OpenShift user through the OpenShift login,
-	//  and have their workspaces created under personal OpenShift namespaces.
+	// Empty value on OpenShift by default. This will allow users to directly login with their OpenShift user through the OpenShift login,
+	// and have their workspaces created under personal OpenShift namespaces.
 	// WARNING: the `kubeadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.
 	// +optional
 	OpenShiftoAuth *bool `json:"openShiftoAuth,omitempty"`
@@ -572,7 +574,7 @@ type CheClusterStatus struct {
 	// Public URL to the devfile registry.
 	// +optional
 	DevfileRegistryURL string `json:"devfileRegistryURL"`
-	// Public URL to the Plugin registry.
+	// Public URL to the plugin registry.
 	// +optional
 	PluginRegistryURL string `json:"pluginRegistryURL"`
 	// A human readable message indicating details about why the Pod is in this condition.

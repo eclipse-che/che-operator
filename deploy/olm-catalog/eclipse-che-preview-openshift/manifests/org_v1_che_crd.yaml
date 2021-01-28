@@ -190,9 +190,9 @@ spec:
                   type: string
                 openShiftoAuth:
                   description: 'Enables the integration of the identity provider (Keycloak
-                    / RHSSO) with OpenShift OAuth. Enabled by default on OpenShift.
+                    / RHSSO) with OpenShift OAuth. Empty value on OpenShift by default.
                     This will allow users to directly login with their OpenShift user
-                    through the OpenShift login,  and have their workspaces created
+                    through the OpenShift login, and have their workspaces created
                     under personal OpenShift namespaces. WARNING: the `kubeadmin`
                     user is NOT supported, and logging through it will NOT allow accessing
                     the Che Dashboard.'
@@ -407,8 +407,8 @@ spec:
                 allowUserDefinedWorkspaceNamespaces:
                   description: Defines that a user is allowed to specify Kubernetes
                     namespace, or OpenShift project, different from the default. It's
-                    NOT RECOMMENDED to be configured true without OpenShift OAuth
-                    configured. The OpenShift infrastructure also uses this property.
+                    NOT RECOMMENDED to set to `true` without OpenShift OAuth configured.
+                    The OpenShift infrastructure also uses this property.
                   type: boolean
                 cheClusterRoles:
                   description: A comma-separated list of ClusterRoles that will be
@@ -544,7 +544,7 @@ spec:
                   type: boolean
                 externalPluginRegistry:
                   description: Instructs the Operator on whether or not to deploy
-                    a dedicated Plugin registry server. By default, a dedicated plugin
+                    a dedicated plugin registry server. By default, a dedicated plugin
                     registry server is started. When `externalPluginRegistry` is `true`,
                     no such dedicated server will be started by the Operator and you
                     will have to manually set the `pluginRegistryUrl` field.
@@ -555,7 +555,7 @@ spec:
                     particular configuration for Git.
                   type: boolean
                 nonProxyHosts:
-                  description: 'List of hosts that should be reached directly, bypassing
+                  description: 'List of hosts that will be reached directly, bypassing
                     the proxy. Specify wild card domain use the following form `.<DOMAIN>`
                     and `|` as delimiter, for example: `localhost|.my.host.com|123.42.12.32`
                     Only use when configuring a proxy is required. Operator respects
@@ -567,15 +567,15 @@ spec:
                     (see also the `proxyURL` fields).'
                   type: string
                 pluginRegistryCpuLimit:
-                  description: Overrides the cpu limit used in the Plugin registry
+                  description: Overrides the cpu limit used in the plugin registry
                     deployment. In cores. (500m = .5 cores). Default to 500m.
                   type: string
                 pluginRegistryCpuRequest:
-                  description: Overrides the cpu request used in the Plugin registry
+                  description: Overrides the cpu request used in the plugin registry
                     deployment. In cores. (500m = .5 cores). Default to 100m.
                   type: string
                 pluginRegistryImage:
-                  description: Overrides the container image used in the Plugin registry
+                  description: Overrides the container image used in the plugin registry
                     deployment. This includes the image tag. Omit it or leave it empty
                     to use the default container image provided by the Operator.
                   type: string
@@ -588,15 +588,15 @@ spec:
                       type: string
                   type: object
                 pluginRegistryMemoryLimit:
-                  description: Overrides the memory limit used in the Plugin registry
+                  description: Overrides the memory limit used in the plugin registry
                     deployment. Defaults to 256Mi.
                   type: string
                 pluginRegistryMemoryRequest:
-                  description: Overrides the memory request used in the Plugin registry
+                  description: Overrides the memory request used in the plugin registry
                     deployment. Defaults to 16Mi.
                   type: string
                 pluginRegistryPullPolicy:
-                  description: Overrides the image pull policy used in the Plugin
+                  description: Overrides the image pull policy used in the plugin
                     registry deployment. Default value is `Always` for `nightly` or
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
@@ -609,19 +609,19 @@ spec:
                       type: string
                   type: object
                 pluginRegistryUrl:
-                  description: Public URL of the Plugin registry, that serves sample
+                  description: Public URL of the plugin registry, that serves sample
                     ready-to-use devfiles. Set this ONLY if a use of an external devfile
                     registry is needed. See the `externalPluginRegistry` field. By
                     default, this will be automatically calculated by the Operator.
                   type: string
                 proxyPassword:
-                  description: Password of the proxy server Only use when proxy configuration
-                    is required (see also the `proxyURL`, `proxyUser` and `proxySecret`
+                  description: Password of the proxy server. Only use when proxy configuration
+                    is required (See also the `proxyURL`, `proxyUser` and `proxySecret`
                     fields).
                   type: string
                 proxyPort:
                   description: Port of the proxy server. Only use when configuring
-                    a proxy is required. (see also the `proxyURL` and `nonProxyHosts`
+                    a proxy is required. (See also the `proxyURL` and `nonProxyHosts`
                     fields).
                   type: string
                 proxySecret:
@@ -712,7 +712,7 @@ spec:
                 useInternalClusterSVCNames:
                   description: Use internal cluster svc names to communicate between
                     components to speed up the traffic and avoid proxy issues. The
-                    default value is `true`.
+                    default value is `false`.
                   type: boolean
                 workspaceNamespaceDefault:
                   description: 'Defines Kubernetes default namespace in which user''s
@@ -806,7 +806,7 @@ spec:
                 / RH SSO) has been configured to integrate with the OpenShift OAuth.
               type: boolean
             pluginRegistryURL:
-              description: Public URL to the Plugin registry.
+              description: Public URL to the plugin registry.
               type: string
             reason:
               description: A brief CamelCase message indicating details about why
