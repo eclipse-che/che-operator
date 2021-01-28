@@ -34,7 +34,7 @@ const (
 	htpasswdSecretName           = "htpasswd-eclipse"
 	ocConfigNamespace            = "openshift-config"
 	initialUserName              = "che-user"
-	initialUserSecret            = "initial-user-secret"
+	openShiftOAuthUserCrednetialsSecret            = "openshift-oauth-user-credentials"
 )
 
 type InitialUserHandler interface {
