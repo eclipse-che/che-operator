@@ -9,10 +9,14 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package che
+
+import (
+	"github.com/eclipse/che-operator/pkg/deploy"
+)
 
 func init() {
-	err := InitTestDefaultsFromDeployment("../../deploy/operator.yaml")
+	err := deploy.InitTestDefaultsFromDeployment("../../../deploy/operator.yaml")
 	if err != nil {
 		panic(err)
 	}
