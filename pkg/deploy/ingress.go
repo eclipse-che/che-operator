@@ -43,9 +43,10 @@ func SyncIngressToCluster(
 	host string,
 	serviceName string,
 	servicePort int,
-	additionalLabels string) (*v1beta1.Ingress, error) {
+	additionalLabels string,
+	component string) (*v1beta1.Ingress, error) {
 
-	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels)
+	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels, component)
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +120,14 @@ func GetSpecIngress(
 	host string,
 	serviceName string,
 	servicePort int,
-	additionalLabels string) (*v1beta1.Ingress, error) {
+	additionalLabels string,
+	component string) (*v1beta1.Ingress, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
-	labels := GetLabels(deployContext.CheCluster, name)
+	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, additionalLabels)
 
 	if host == "" {
@@ -146,12 +148,12 @@ func GetSpecIngress(
 	path := "/"
 	if ingressStrategy != "multi-host" {
 		switch name {
-		case "keycloak":
+		case IdentityProviderName:
 			path = "/auth"
-		case DevfileRegistry:
-			path = "/" + DevfileRegistry + "/(.*)"
-		case PluginRegistry:
-			path = "/" + PluginRegistry + "/(.*)"
+		case DevfileRegistryName:
+			path = "/" + DevfileRegistryName + "/(.*)"
+		case PluginRegistryName:
+			path = "/" + PluginRegistryName + "/(.*)"
 		}
 	}
 
@@ -161,7 +163,7 @@ func GetSpecIngress(
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 		"nginx.ingress.kubernetes.io/ssl-redirect":          strconv.FormatBool(tlsSupport),
 	}
-	if ingressStrategy != "multi-host" && (name == DevfileRegistry || name == PluginRegistry) {
+	if ingressStrategy != "multi-host" && (name == DevfileRegistryName || name == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 

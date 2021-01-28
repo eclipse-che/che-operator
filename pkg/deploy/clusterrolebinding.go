@@ -14,6 +14,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
@@ -91,6 +92,9 @@ func getSpecClusterRoleBinding(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
+			Annotations: map[string]string{
+				CheEclipseOrgNamespace: deployContext.CheCluster.Namespace,
+			},
 		},
 		Subjects: []rbac.Subject{
 			{

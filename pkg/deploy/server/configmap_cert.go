@@ -26,7 +26,7 @@ const (
 
 func SyncTrustStoreConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.ConfigMap, error) {
 	name := deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName
-	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, name, map[string]string{})
+	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, name, map[string]string{}, deploy.DefaultCheFlavor(deployContext.CheCluster))
 	if err != nil {
 		return nil, err
 	}

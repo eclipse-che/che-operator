@@ -36,7 +36,7 @@ var DeploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.Deployment{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "RevisionHistoryLimit", "ProgressDeadlineSeconds"),
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
-	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
+	cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy", "SecurityContext"),
 	cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext", "DeprecatedServiceAccount"),
 	cmpopts.IgnoreFields(corev1.ConfigMapVolumeSource{}, "DefaultMode"),
 	cmpopts.IgnoreFields(corev1.SecretVolumeSource{}, "DefaultMode"),
@@ -46,37 +46,26 @@ var DeploymentDiffOpts = cmp.Options{
 	}),
 }
 
-type DeploymentProvisioningStatus struct {
-	ProvisioningStatus
-	Deployment *appsv1.Deployment
-}
-
 func SyncDeploymentToCluster(
 	deployContext *DeployContext,
 	specDeployment *appsv1.Deployment,
 	clusterDeployment *appsv1.Deployment,
 	additionalDeploymentDiffOpts cmp.Options,
-	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment) DeploymentProvisioningStatus {
+	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment) (bool, error) {
 
 	if err := MountSecrets(specDeployment, deployContext); err != nil {
-		return DeploymentProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
+		return false, err
 	}
 
 	clusterDeployment, err := GetClusterDeployment(specDeployment.Name, specDeployment.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
-		return DeploymentProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Err: err},
-		}
+		return false, err
 	}
 
 	if clusterDeployment == nil {
 		logrus.Infof("Creating a new object: %s, name %s", specDeployment.Kind, specDeployment.Name)
 		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specDeployment)
-		return DeploymentProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
+		return false, err
 	}
 
 	// 2-step comparation process
@@ -89,9 +78,7 @@ func SyncDeploymentToCluster(
 			fmt.Printf("Difference:\n%s", diff)
 			clusterDeployment = additionalDeploymentMerge(specDeployment, clusterDeployment)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)
-			return DeploymentProvisioningStatus{
-				ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-			}
+			return false, err
 		}
 	}
 
@@ -101,19 +88,15 @@ func SyncDeploymentToCluster(
 		fmt.Printf("Difference:\n%s", diff)
 		clusterDeployment.Spec = specDeployment.Spec
 		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)
-		return DeploymentProvisioningStatus{
-			ProvisioningStatus: ProvisioningStatus{Requeue: true, Err: err},
-		}
+		return false, err
 	}
 
 	if clusterDeployment.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && clusterDeployment.Status.Replicas > 1 {
 		logrus.Infof("Deployment %s is in the rolling update state.", specDeployment.Name)
 	}
 
-	return DeploymentProvisioningStatus{
-		ProvisioningStatus: ProvisioningStatus{Continue: clusterDeployment.Status.AvailableReplicas == 1 && clusterDeployment.Status.Replicas == 1},
-		Deployment:         clusterDeployment,
-	}
+	provisioned := clusterDeployment.Status.AvailableReplicas == 1 && clusterDeployment.Status.Replicas == 1
+	return provisioned, nil
 }
 
 func GetClusterDeployment(name string, namespace string, client runtimeClient.Client) (*appsv1.Deployment, error) {

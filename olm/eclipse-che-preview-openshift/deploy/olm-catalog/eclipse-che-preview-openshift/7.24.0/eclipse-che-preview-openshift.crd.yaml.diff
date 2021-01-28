@@ -1,0 +1,42 @@
+--- /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.23.2/eclipse-che-preview-openshift.crd.yaml	2021-01-08 12:37:45.965617097 +0000
++++ /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/7.24.0/eclipse-che-preview-openshift.crd.yaml	2021-01-08 12:43:20.373988955 +0000
+@@ -160,12 +160,15 @@
+                   type: string
+                 openShiftoAuth:
+                   description: 'Enables the integration of the identity provider (Keycloak
+-                    / RHSSO) with OpenShift OAuth. Enabled by default on OpenShift.
+-                    This will allow users to directly login with their Openshift user
+-                    through the Openshift login, and have their workspaces created
+-                    under personal OpenShift namespaces. WARNING: the `kubeadmin`
+-                    user is NOT supported, and logging through it will NOT allow accessing
+-                    the Che Dashboard.'
++                    / RHSSO) with OpenShift OAuth. Empty value on the OpenShift platform
++                    by default. If user changes this empty value to true/false, then
++                    che-operator respect this value. Otherwise che-operator tries
++                    to auto detect if Openshift oAuth can be enabled and change empty
++                    value, correspondly to auto-detection result. This property allows
++                    users to directly login with their Openshift user through the
++                    Openshift login, and have their workspaces created under personal
++                    OpenShift namespaces. WARNING: the `kubeadmin` user is NOT supported,
++                    and logging through it will NOT allow accessing the Che Dashboard.'
+                   type: boolean
+                 updateAdminPassword:
+                   description: Forces the default `admin` Che user to update password
+@@ -309,10 +312,13 @@
+                     to the subpaths on the same domain. Defaults to "native".
+                   type: string
+                 tlsSecretName:
+-                  description: Name of a secret that will be used to setup ingress
+-                    TLS termination if TLS is enabled. If the field is empty string,
+-                    then default cluster certificate will be used. See also the `tlsSupport`
+-                    field.
++                  description: Name of a secret that is used to set ingress TLS termination
++                    if TLS is enabled. If the specified secret does not exist, a self-signed
++                    certificate will be created. If the value is empty or omitted,
++                    the default ingress controller certificate will be used. See also
++                    the `tlsSupport` field. Note, when switching to the default ingress
++                    controller certificate, `self-signed-certificate` secret should
++                    be deleted manually.
+                   type: string
+               type: object
+             metrics:

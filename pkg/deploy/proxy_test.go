@@ -222,7 +222,7 @@ func TestReadClusterWideProxyConfiguration(t *testing.T) {
 		NoProxy: "host1,host2",
 	}
 
-	actualProxy, _ := ReadClusterWideProxyConfiguration(clusterProxy, "")
+	actualProxy, _ := ReadClusterWideProxyConfiguration(clusterProxy)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
@@ -248,7 +248,7 @@ func TestReadClusterWideProxyConfigurationNoUser(t *testing.T) {
 		HttpsPort:  "1234",
 	}
 
-	actualProxy, _ := ReadClusterWideProxyConfiguration(clusterProxy, "")
+	actualProxy, _ := ReadClusterWideProxyConfiguration(clusterProxy)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)
@@ -274,10 +274,10 @@ func TestReadClusterWideProxyConfigurationNoPort(t *testing.T) {
 		HttpsPassword: "password",
 		HttpsHost:     "myproxy.com",
 
-		NoProxy: "host1,host2,host3",
+		NoProxy: "host1,host2",
 	}
 
-	actualProxy, _ := ReadClusterWideProxyConfiguration(clusterProxy, "host3")
+	actualProxy, _ := ReadClusterWideProxyConfiguration(clusterProxy)
 
 	if !reflect.DeepEqual(actualProxy, expectedProxy) {
 		t.Errorf("Test failed. Expected '%v', but got '%v'", expectedProxy, actualProxy)

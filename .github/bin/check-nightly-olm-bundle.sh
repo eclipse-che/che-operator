@@ -70,19 +70,27 @@ installOperatorSDK() {
   fi
 }
 
-isActualNightlyOlmBundleCSVFiles() {
-  cd "${ROOT_PROJECT_DIR}"
+checkNightlyOlmBundle() {
+  local CSV_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+  local CSV_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  local CRD_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+  local CRD_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+
   export NO_DATE_UPDATE="true"
   export NO_INCREMENT="true"
-  source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
 
-  CSV_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  CSV_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  cd "${ROOT_PROJECT_DIR}"
+  source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
 
   IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
   for file in "${changedFiles[@]}"
   do
+    echo $file
     if [ "${CSV_FILE_KUBERNETES}" == "${file}" ] || [ "${CSV_FILE_OPENSHIFT}" == "${file}" ]; then
+      echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-bundle.sh' for this purpose."
+      exit 1
+    fi
+    if [ "${CRD_FILE_KUBERNETES}" == "${file}" ] || [ "${CRD_FILE_OPENSHIFT}" == "${file}" ]; then
       echo "[ERROR] Nightly bundle file ${file} should be updated in your pr, please. Use script 'che-operator/olm/update-nightly-bundle.sh' for this purpose."
       exit 1
     fi
@@ -93,6 +101,6 @@ isActualNightlyOlmBundleCSVFiles() {
 installYq
 installOperatorSDK
 check_che_crds
-isActualNightlyOlmBundleCSVFiles
+checkNightlyOlmBundle
 
 echo "[INFO] Done."

@@ -13,6 +13,10 @@ kind: Role
 metadata:
   creationTimestamp: null
   name: che-operator
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/component: che-operator
 rules:
 - apiGroups:
   - extensions

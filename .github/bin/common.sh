@@ -33,13 +33,17 @@ init() {
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
-
+  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OAUTH="false"
 
-  export XDG_DATA_HOME=/tmp/chectl/data
-  export XDG_CACHE_HOME=/tmp/chectl/cache
-  export XDG_CONFIG_HOME=/tmp/chectl/config
+  export XDG_DATA_HOME=/tmp/xdg_data
+  export XDG_CACHE_HOME=/tmp/xdg_cache
+  export XDG_CONFIG_HOME=/tmp/xdg_config
+
+  # turn off telemetry
+  mkdir -p ${XDG_CONFIG_HOME}/chectl
+  echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/chectl/config.json
 
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 
@@ -200,13 +204,13 @@ startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
   chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile=$OPERATOR_REPO/.ci/devfile-test.yaml
+  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
 createWorkspace() {
   sleep 5s
   chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  chectl workspace:create --chenamespace=${NAMESPACE} --devfile=${OPERATOR_REPO}/.ci/devfile-test.yaml
+  chectl workspace:create --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
 startExistedWorkspace() {

@@ -360,6 +360,7 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 	terminationGracePeriodSeconds := int64(10)
 
 	configLabels := labels.FormatLabels(configLabelsMap)
+	labels, labelsSelector := deploy.GetLabelsAndSelector(instance, GatewayServiceName)
 
 	return appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -369,18 +370,18 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: deploy.GetLabels(instance, GatewayServiceName),
+				MatchLabels: labelsSelector,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: deploy.GetLabels(instance, GatewayServiceName),
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,

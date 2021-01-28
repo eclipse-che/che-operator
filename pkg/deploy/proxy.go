@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ReadClusterWideProxyConfiguration(clusterProxy *configv1.Proxy, noProxy string) (*Proxy, error) {
+func ReadClusterWideProxyConfiguration(clusterProxy *configv1.Proxy) (*Proxy, error) {
 	proxy := &Proxy{}
 
 	// Cluster components consume the status values to configure the proxy for their component.
@@ -38,12 +38,6 @@ func ReadClusterWideProxyConfiguration(clusterProxy *configv1.Proxy, noProxy str
 		proxy.HttpsProxy = proxy.HttpProxy
 	}
 	proxy.NoProxy = clusterProxy.Status.NoProxy
-	if proxy.NoProxy == "" {
-		proxy.NoProxy = noProxy
-	} else if noProxy != "" {
-		proxy.NoProxy += "," + noProxy
-	}
-
 	httpProxy, err := url.Parse(proxy.HttpProxy)
 	if err != nil {
 		return nil, err
@@ -119,6 +113,16 @@ func ReadCheClusterProxyConfiguration(checluster *orgv1.CheCluster) (*Proxy, err
 
 		NoProxy: strings.Replace(checluster.Spec.Server.NonProxyHosts, "|", ",", -1),
 	}, nil
+}
+
+func MergeNonProxy(noProxy1 string, noProxy2 string) string {
+	if noProxy1 == "" {
+		return noProxy2
+	} else if noProxy2 == "" {
+		return noProxy1
+	}
+
+	return noProxy1 + "," + noProxy2
 }
 
 // GenerateProxyJavaOpts converts given proxy configuration into Java format.

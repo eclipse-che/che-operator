@@ -26,6 +26,7 @@ init() {
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
+  BUILDX_PLATFORMS="linux/amd64,linux/ppc64le,linux/s390x"
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -151,22 +152,16 @@ releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatoryaml"
   checkImageReferences $operatoryaml
 
-  local operatorlocalyaml=$RELEASE_DIR/deploy/operator-local.yaml
-  echo "[INFO] releaseOperatorCode :: Validate changes for $operatorlocalyaml"
-  checkImageReferences $operatorlocalyaml
-
   echo "[INFO] releaseOperatorCode :: Commit changes"
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "Update defaults tags to "$RELEASE --signoff
   fi
-
-  echo "[INFO] releaseOperatorCode :: Build operator image"
-  docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
-
-  echo "[INFO] releaseOperatorCode :: Push image to quay.io"
+  echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
-  docker push quay.io/eclipse/che-operator:$RELEASE
+
+  echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
+  docker buildx build --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
 }
 
 updateNightlyOlmFiles() {
@@ -226,7 +221,7 @@ pushGitChanges() {
     fi
   fi
   git tag -a $RELEASE -m $RELEASE
-  git push --tags origin 
+  git push --tags origin
 }
 
 createPRToXBranch() {
@@ -241,7 +236,7 @@ createPRToMasterBranch() {
   resetChanges master
   local tmpBranch="copy-csv-to-master"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply -3
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator.yaml' | git apply -3
   . ${RELEASE_DIR}/replace-images-tags.sh nightly master
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder

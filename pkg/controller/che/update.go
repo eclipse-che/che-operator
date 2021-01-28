@@ -13,9 +13,10 @@ package che
 
 import (
 	"context"
-	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	 "github.com/eclipse/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse/che-operator/pkg/util"
 	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/sirupsen/logrus"
@@ -48,15 +49,21 @@ func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField 
 func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isOpenShift4 bool) (deleted bool, err error) {
 	if !util.IsOAuthEnabled(instance) && instance.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: instance.Namespace}, keycloakDeployment); err != nil {
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: instance.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
 		}
-		deleteOpenShiftIdentityProviderProvisionCommand := identity_provider.GetDeleteOpenShiftIdentityProviderProvisionCommand(instance, isOpenShift4)
-		podToExec, err := util.K8sclient.GetDeploymentPod(keycloakDeployment.Name, instance.Namespace)
-		if err != nil {
-			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
+
+		providerName := "openshift-v3"
+		if isOpenShift4 {
+			providerName = "openshift-v4"
 		}
-		_, err = util.K8sclient.ExecIntoPod(podToExec, deleteOpenShiftIdentityProviderProvisionCommand, "delete OpenShift identity provider", instance.Namespace)
+		_, err := util.K8sclient.ExecIntoPod(
+			instance,
+			keycloakDeployment.Name,
+			func(cr *orgv1.CheCluster) (string, error) {
+				return identity_provider.GetIdentityProviderDeleteCommand(instance, providerName)
+			},
+			"delete OpenShift identity provider")
 		if err == nil {
 			oAuthClient := &oauth.OAuthClient{}
 			oAuthClientName := instance.Spec.Auth.OAuthClientName
