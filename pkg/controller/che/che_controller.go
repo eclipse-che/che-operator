@@ -264,7 +264,9 @@ var (
 	_                               reconcile.Reconciler = &ReconcileChe{}
 	oAuthFinalizerName                                   = "oauthclients.finalizers.che.eclipse.org"
 	clusterPermissionsFinalizerName                      = "cluster.permissions.finalizers.che.eclipse.org"
-	CheServiceAccountName                                = "che"
+
+	// CheServiceAccountName - service account name for che-server.
+	CheServiceAccountName = "che"
 )
 
 // ReconcileChe reconciles a CheCluster object
@@ -544,9 +546,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create service accounts:
-	// che is the one which token is used to create workspace objects
-	// che-workspace is SA used by plugins like exec and terminal with limited privileges
+	// Create service account "che" for che-server component.
+	// "che" is the one which token is used to create workspace objects.
+	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
 	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
 	if cheSA == nil {
 		logrus.Info("Waiting on service account 'che' to be created")
