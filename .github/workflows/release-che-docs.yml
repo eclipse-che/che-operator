@@ -42,4 +42,5 @@ jobs:
           # TODO switch to master branch version, not PR version from https://github.com/eclipse/che-docs/pull/1823
           curl -sSLO https://raw.githubusercontent.com/eclipse/che-docs/f634c1d49b0bc88718dcb593f75d11f45de2ba1c/make-release.sh
           chmod +x make-release.sh
-          ./make-release.sh --repo git@github.com:eclipse/che-docs --version ${chedocsVersion} ${{ github.event.inputs.forceflag }}
+          # fetch che-docs code, bump antora playbook file, create .x branch if not exist, and create release tag from that branch
+          ./make-release.sh --repo git@github.com:eclipse/che-docs --version ${chedocsVersion} ${{ github.event.inputs.forceflag }} --trigger-release
