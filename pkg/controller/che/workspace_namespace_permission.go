@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -189,6 +190,31 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 	return reconcile.Result{}, nil
 }
 
+// DeleteWorkspacesInSingleNamespaceWithChePermissions - removes workspaces single namespace with Che role and rolebindings.
+func (r *ReconcileChe) DeleteWorkspacesInSingleNamespaceWithChePermissions(instance *orgv1.CheCluster, cli client.Client) error {
+	logrus.Info("Delete workspaces in the same namespace with Che permissions.")
+
+	if err := deploy.DeleteRole(deploy.ExecRoleName, instance.Namespace, cli); err != nil {
+		return err
+	}
+	if err := deploy.DeleteRoleBinding(ExecRoleBindingName, instance.Namespace, cli); err != nil {
+		return err
+	}
+
+	if err := deploy.DeleteRole(deploy.ViewRoleName, instance.Namespace, cli); err != nil {
+		return err
+	}
+	if err := deploy.DeleteRoleBinding(ExecRoleBindingName, instance.Namespace, cli); err != nil {
+		return err
+	}
+
+	if err := deploy.DeleteRoleBinding(EditRoleBindingName, instance.Namespace, cli); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) error {
 	tests := r.tests
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
@@ -200,7 +226,7 @@ func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 		}
 	} else {
 		if !tests {
-			deniedPolicies, err := r.permissionChecker.GetNotPermittedPolicyRules(getDeleteClusterRoleAndBindingPolicy(), "")
+			deniedPolicies, err := r.permissionChecker.GetNotPermittedPolicyRules(getDeleteClusterPermissionsPolicy(), "")
 			if err != nil {
 				return err
 			}
@@ -215,7 +241,7 @@ func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 	return nil
 }
 
-func getDeleteClusterRoleAndBindingPolicy() []rbac.PolicyRule {
+func getDeleteClusterPermissionsPolicy() []rbac.PolicyRule {
 	return []rbac.PolicyRule{
 		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},

@@ -75,13 +75,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-02-01T15:37:22Z"
+    createdAt: "2021-02-01T22:14:19Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.26.0-84.nightly
+  name: eclipse-che-preview-openshift.v7.26.0-86.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -310,6 +310,7 @@ spec:
               verbs:
                 - get
                 - create
+                - delete
             - apiGroups:
                 - authorization.openshift.io
                 - rbac.authorization.k8s.io
@@ -319,6 +320,7 @@ spec:
                 - get
                 - create
                 - update
+                - delete
             - apiGroups:
                 - org.eclipse.che
               resources:
@@ -717,4 +719,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.26.0-84.nightly
+  version: 7.26.0-86.nightly

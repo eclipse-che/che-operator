@@ -86,6 +86,7 @@ rules:
     verbs:
       - get
       - create
+      - delete
   - apiGroups:
       - authorization.openshift.io
       - rbac.authorization.k8s.io
@@ -95,6 +96,7 @@ rules:
       - get
       - create
       - update
+      - delete
   - apiGroups:
       - org.eclipse.che
     resources:
