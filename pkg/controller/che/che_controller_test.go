@@ -14,16 +14,16 @@ package che
 import (
 	"context"
 	"fmt"
+	mocks "github.com/eclipse/che-operator/mocks"
 	"io/ioutil"
 	"os"
-	mocks "github.com/eclipse/che-operator/mocks"
 
 	"reflect"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
-	"github.com/golang/mock/gomock"
 	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -949,8 +949,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                                string
+		cheCR                               *orgv1.CheCluster
 		expectedIdentityProviderInternalURL string
 	}
 
@@ -966,8 +966,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -975,9 +975,9 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: true,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
-						IdentityProviderURL: "http://external-keycloak",
+						IdentityProviderURL:      "http://external-keycloak",
 					},
 				},
 			},
@@ -991,8 +991,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1000,9 +1000,9 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
-						IdentityProviderURL: "http://external-keycloak",
+						IdentityProviderURL:      "http://external-keycloak",
 					},
 				},
 			},
@@ -1016,8 +1016,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1025,7 +1025,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,
 					},
 				},
@@ -1040,8 +1040,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1049,7 +1049,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 						UseInternalClusterSVCNames: true,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,
 					},
 				},
@@ -1064,7 +1064,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1077,7 +1077,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1133,8 +1133,8 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                              string
+		cheCR                             *orgv1.CheCluster
 		expectedPluginRegistryInternalURL string
 	}
 
@@ -1150,15 +1150,15 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalPluginRegistry: true,
-						PluginRegistryUrl: "http://external-plugin-registry",
+						ExternalPluginRegistry:     true,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1175,15 +1175,15 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalPluginRegistry: true,
-						PluginRegistryUrl: "http://external-plugin-registry",
+						ExternalPluginRegistry:     true,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1200,14 +1200,14 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalPluginRegistry: false,
+						ExternalPluginRegistry:     false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1224,14 +1224,14 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalPluginRegistry: false,
+						ExternalPluginRegistry:     false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1248,7 +1248,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1261,7 +1261,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1281,7 +1281,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 
 			// Set up che host for route
 			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
-			r.client.Create(context.TODO(), cheRoute);
+			r.client.Create(context.TODO(), cheRoute)
 			// Set up keycloak host for route
 			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 			r.client.Create(context.TODO(), keycloakRoute)
@@ -1291,7 +1291,6 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 			// Set up devfile registry host for route
 			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
 			r.client.Create(context.TODO(), devfileRegistryRoute)
-			
 
 			_, err := r.Reconcile(req)
 			if err != nil {
@@ -1320,8 +1319,8 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                               string
+		cheCR                              *orgv1.CheCluster
 		expectedDevfileRegistryInternalURL string
 	}
 
@@ -1337,15 +1336,15 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry: true,
-						DevfileRegistryUrl: "http://external-devfile-registry",
+						ExternalDevfileRegistry:    true,
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1362,15 +1361,15 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry: true,
-						DevfileRegistryUrl: "http://external-devfile-registry",
+						ExternalDevfileRegistry:    true,
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1387,14 +1386,14 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistry:    false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1411,14 +1410,14 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistry:    false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1435,7 +1434,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1448,7 +1447,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1468,7 +1467,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 
 			// Set up che host for route
 			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
-			r.client.Create(context.TODO(), cheRoute);
+			r.client.Create(context.TODO(), cheRoute)
 			// Set up keycloak host for route
 			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 			r.client.Create(context.TODO(), keycloakRoute)
@@ -1506,8 +1505,8 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
-		name              string
-		cheCR *orgv1.CheCluster
+		name                         string
+		cheCR                        *orgv1.CheCluster
 		expectedCheServerInternalURL string
 	}
 
@@ -1523,8 +1522,8 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -1546,14 +1545,14 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
+					Name:            name,
+					Namespace:       namespace,
 					ResourceVersion: "1",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistry:    false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -1570,7 +1569,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.SchemeGroupVersion, &routev1.Route{})
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR, )
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.cheCR)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
@@ -1583,7 +1582,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
-				tests: true,
+				tests:           true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1603,7 +1602,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 
 			// Set up che host for route
 			cheRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DefaultCheFlavor(testCase.cheCR), "che-host", "che-host", 8080, "", "che")
-			r.client.Create(context.TODO(), cheRoute);
+			r.client.Create(context.TODO(), cheRoute)
 			// Set up keycloak host for route
 			keycloakRoute, _ := deploy.GetSpecRoute(deployContext, deploy.IdentityProviderName, "keycloak", deploy.IdentityProviderName, 8080, "", deploy.IdentityProviderName)
 			r.client.Create(context.TODO(), keycloakRoute)
@@ -1613,7 +1612,7 @@ func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t 
 			// Set up devfile registry host for route
 			devfileRegistryRoute, _ := deploy.GetSpecRoute(deployContext, deploy.DevfileRegistryName, "devfile-registry", deploy.DevfileRegistryName, 8080, "", deploy.DevfileRegistryName)
 			r.client.Create(context.TODO(), devfileRegistryRoute)
-			
+
 			_, err := r.Reconcile(req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
@@ -1755,12 +1754,12 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			}
 
 			r := &ReconcileChe{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				scheme:          scheme,
+				client:            cli,
+				nonCachedClient:   nonCachedClient,
+				discoveryClient:   fakeDiscovery,
+				scheme:            scheme,
 				permissionChecker: m,
-				tests:           true,
+				tests:             true,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -1780,46 +1779,46 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 
 			if !testCase.clusterRole {
 				viewRole := &rbac.Role{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "view", Namespace: namespace}, viewRole); err != nil {
-					t.Errorf("role 'view' not found")
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.ViewRoleName, Namespace: namespace}, viewRole); err != nil {
+					t.Errorf("role '%s' not found", deploy.ViewRoleName)
 				}
 				viewRoleBinding := &rbac.RoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-view", Namespace: namespace}, viewRoleBinding); err != nil {
-					t.Errorf("rolebinding 'che-workspace-view' not found")
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ViewRoleBindingName, Namespace: namespace}, viewRoleBinding); err != nil {
+					t.Errorf("rolebinding '%s' not found", ViewRoleBindingName)
 				}
 
 				execRole := &rbac.Role{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "exec", Namespace: namespace}, execRole); err != nil {
-					t.Errorf("role 'exec' not found")
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.ExecRoleName, Namespace: namespace}, execRole); err != nil {
+					t.Errorf("role '%s' not found", deploy.ExecRoleName)
 				}
 				execRoleBinding := &rbac.RoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-exec", Namespace: namespace}, execRoleBinding); err != nil {
-					t.Errorf("rolebinding 'che-workspace-exec' not found")
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ExecRoleBindingName, Namespace: namespace}, execRoleBinding); err != nil {
+					t.Errorf("rolebinding '%s' not found", ExecRoleBindingName)
 				}
 
 				editRoleBinding := &rbac.RoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: namespace}, editRoleBinding); err != nil {
-					t.Errorf("rolebinding 'che' not found")
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: EditRoleBindingName, Namespace: namespace}, editRoleBinding); err != nil {
+					t.Errorf("rolebinding '%s' not found", EditRoleBindingName)
 				}
 			} else {
-				manageNamespaces := fmt.Sprintf("%s-clusterrole-manage-namespaces", namespace)
+				manageNamespacesClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, namespace)
 				cheManageNamespaceClusterRole := &rbac.ClusterRole{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespaces}, cheManageNamespaceClusterRole); err != nil {
-					t.Errorf("role '%s' not found", manageNamespaces)
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
+					t.Errorf("role '%s' not found", manageNamespacesClusterRoleName)
 				}
 				cheManageNamespaceClusterRoleBinding := &rbac.ClusterRoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespaces}, cheManageNamespaceClusterRoleBinding); err != nil {
-					t.Errorf("rolebinding '%s' not found", manageNamespaces)
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
+					t.Errorf("rolebinding '%s' not found", manageNamespacesClusterRoleName)
 				}
 
-				createNamespaces := fmt.Sprintf("%s-clusterrole-create-namespaces", namespace)
-				cheCreateNamespaceClusterRole := &rbac.ClusterRole{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: createNamespaces}, cheCreateNamespaceClusterRole); err != nil {
-					t.Errorf("role 'exec' not found")
+				cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, namespace)
+				cheWorkspacesClusterRole := &rbac.ClusterRole{}
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
+					t.Errorf("role '%s' not found", cheWorkspacesClusterRole)
 				}
-				cheCreateNamespaceClusterRoleBinding := &rbac.ClusterRoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: createNamespaces}, cheCreateNamespaceClusterRoleBinding); err != nil {
-					t.Errorf("rolebinding 'che-workspace-exec' not found")
+				cheWorkspacesClusterRoleBinding := &rbac.ClusterRoleBinding{}
+				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
+					t.Errorf("rolebinding '%s' not found", cheWorkspacesClusterRole)
 				}
 			}
 		})
@@ -1866,12 +1865,12 @@ func TestShouldFallBackWorspaceNamespaceDefaultBecauseNotEnoughtPermissions(t *t
 	defer ctrl.Finish()
 
 	r := &ReconcileChe{
-		client:          cli,
-		nonCachedClient: nonCachedClient,
-		discoveryClient: fakeDiscovery,
-		scheme:          scheme,
+		client:            cli,
+		nonCachedClient:   nonCachedClient,
+		discoveryClient:   fakeDiscovery,
+		scheme:            scheme,
 		permissionChecker: m,
-		tests:           true,
+		tests:             true,
 	}
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
@@ -1981,6 +1980,9 @@ func InitCheWithSimpleCR() *orgv1.CheCluster {
 			// todo add some spec to check controller ifs like external db, ssl etc
 			Server: orgv1.CheClusterSpecServer{
 				CheWorkspaceClusterRole: "cluster-admin",
+			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(false),
 			},
 		},
 	}

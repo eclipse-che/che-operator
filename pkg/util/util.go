@@ -347,7 +347,7 @@ func NewBoolPointer(value bool) *bool {
 	return &variable
 }
 
-// IsOAuthEnabled return true when oAuth is enable for CheCluster resource, otherwise false.
+// IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
 func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	if c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth {
 		return true
@@ -355,12 +355,25 @@ func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	return false
 }
 
-func IsWorkspacesInTheSameNamespaceWithChe(c *orgv1.CheCluster) bool {
-	workspaceNamespaceDef := GetValue(c.Spec.Server.WorkspaceNamespaceDefault, c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"])
-	if workspaceNamespaceDef == "" || workspaceNamespaceDef == c.Namespace {
+// IsWorkspaceInSameNamespaceWithChe return true when Che workspaces will be executed in the same namespace with Che, otherwise returns false.
+func IsWorkspaceInSameNamespaceWithChe(c *orgv1.CheCluster) bool {
+	workspaceNamespaceDefault := GetValue(c.Spec.Server.WorkspaceNamespaceDefault, c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"])
+	if workspaceNamespaceDefault == "" || workspaceNamespaceDefault == c.Namespace {
 		return true
 	}
 	return false
+}
+
+// GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
+func GetWorkspaceNamespaceDefault(c *orgv1.CheCluster, isOpenshift bool, cheFlavor string) string {
+	workspaceNamespaceDefault := c.Namespace
+	if isOpenshift && IsOAuthEnabled(c) {
+		workspaceNamespaceDefault = "<username>-" + cheFlavor
+	}
+	customValue := GetValue(c.Spec.Server.WorkspaceNamespaceDefault, c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"])
+	workspaceNamespaceDefault = GetValue(customValue, workspaceNamespaceDefault)
+
+	return workspaceNamespaceDefault
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {

@@ -263,7 +263,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 var (
 	_                               reconcile.Reconciler = &ReconcileChe{}
 	oAuthFinalizerName                                   = "oauthclients.finalizers.che.eclipse.org"
-	clusterPermissionsFinalizerName                      = "cluster.permissions.finalizers.che.eclipse.org"
+	clusterPermissionsFinalizerName                      = "clusterpermissions.finalizers.che.eclipse.org"
 
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
@@ -560,7 +560,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+	// Openshift oAuth client handles permissions for workspaces itself.
+	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		policies := append(getCheCreateNamespacesPolicy(), getCheManageNamespacesPolicy()...)
 
 		deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
@@ -572,12 +573,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			if _, ok := instance.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]; ok {
 				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 			}
+			logrus.Warn("Not enough permissions to start workspace in another namespaces. Fall back to 'single' workspace namespace default.")
 			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
 			if err := r.UpdateCheCRSpec(instance, "workspace namespace default", instance.Namespace); err != nil {
 				if err != nil {
 					logrus.Error(err)
 				}
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
 		} else {
 			reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
@@ -591,7 +593,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+	//  Openshift oAuth client handles permissions for workspaces itself.
+	if !util.IsOAuthEnabled(instance) && util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		reconcile, err := r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
 		if err != nil {
 			logrus.Error(err)

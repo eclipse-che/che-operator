@@ -27,8 +27,10 @@ import (
 )
 
 const (
-	ViewRole = "view"
-	ExecRole = "exec"
+	// ViewRoleName role to get k8s object needed for Workspace components(metrics plugin, Che terminals, tasks etc.)
+	ViewRoleName = "view"
+	// ExecRoleName - role name to create Che terminals and tasks in the workspace.
+	ExecRoleName = "exec"
 )
 
 var roleDiffOpts = cmp.Options{
@@ -67,7 +69,7 @@ func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, ExecRole, execPolicyRule)
+	return SyncRoleToCluster(deployContext, ExecRoleName, execPolicyRule)
 }
 
 func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
@@ -95,7 +97,7 @@ func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, ViewRole, viewPolicyRule)
+	return SyncRoleToCluster(deployContext, ViewRoleName, viewPolicyRule)
 }
 
 func SyncRoleToCluster(

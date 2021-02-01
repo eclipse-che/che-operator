@@ -93,7 +93,7 @@ initStableTemplates() {
 # Utility to wait for a workspace to be started after workspace:create.
 waitWorkspaceStart() {
   export workspaceNamespace
-  if [ -n "${DEFAULT_WORKSPACE_NAMESPACE}" ]; then
+  if [[ -n "${DEFAULT_WORKSPACE_NAMESPACE}" ]]; then
     workspaceNamespace=${DEFAULT_WORKSPACE_NAMESPACE}
   else
     workspaceNamespace=${NAMESPACE}

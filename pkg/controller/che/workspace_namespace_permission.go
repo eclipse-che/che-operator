@@ -25,25 +25,25 @@ import (
 )
 
 const (
-	// EditRole - default "edit" cluster role. This role is pre-created on the cluster.
+	// EditClusterRoleName - default "edit" cluster role. This role is pre-created on the cluster.
 	// See more: https://kubernetes.io/blog/2017/10/using-rbac-generally-available-18/#granting-access-to-users
-	EditRole = "edit"
-	// EditRoleBinding - "edit" rolebinding for che-server.
-	EditRoleBinding = "che"
+	EditClusterRoleName = "edit"
+	// EditRoleBindingName - "edit" rolebinding for che-server.
+	EditRoleBindingName = "che"
 	// CheWorkspacesServiceAccount - service account created for Che workspaces.
 	CheWorkspacesServiceAccount = "che-workspace"
-	// ViewRoleBinding - "view" role for "che-workspace" service account.
-	ViewRoleBinding = "che-workspace-view"
-	// ExecRoleBinding - "exec" role for "che-workspace" service account.
-	ExecRoleBinding = "che-workspace-exec"
-	// CheCreateNamespacesTemplate - create namespaces "cluster role" and "clusterrolebinding" template name
-	CheCreateNamespacesTemplate = "%s-clusterrole-create-namespaces"
-	// CheManageNamespacesTempalate - manage namespaces "cluster role" and "clusterrolebinding" template name
-	CheManageNamespacesTempalate = "%s-clusterrole-manage-namespaces"
+	// ViewRoleBindingName - "view" role for "che-workspace" service account.
+	ViewRoleBindingName = "che-workspace-view"
+	// ExecRoleBindingName - "exec" role for "che-workspace" service account.
+	ExecRoleBindingName = "che-workspace-exec"
+	// CheWorkspacesNamespaceClusterRoleNameTemplate - manage namespaces "cluster role" and "clusterrolebinding" template name
+	CheWorkspacesNamespaceClusterRoleNameTemplate = "%s-clusterrole-manage-namespaces"
+	// CheWorkspacesClusterRoleNameTemplate - manage workspaces "cluster role" and "clusterrolebinding" template name
+	CheWorkspacesClusterRoleNameTemplate = "%s-clusterrole-workspaces"
 )
 
-// delegateWorkspacePermissionsInTheSameNamespaceWithChe - creates "che-workspace" service account and
-// delegates "che-oparator" SA permissions to the service account "che" and service account for Che workspaces - "che-workspace".
+// delegateWorkspacePermissionsInTheSameNamespaceWithChe - creates "che-workspace" service account(for Che workspaces) and
+// delegates "che-oparator" SA permissions to the service accounts: "che" and "che-workspace".
 // Also this method binds "edit" default k8s clusterrole using rolebinding to "che" SA.
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
 	logrus.Info("Configure permissions for Che workspaces. Workspaces will be executed in the same namespace with Che")
@@ -66,7 +66,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 	// This role used by exec terminals, tasks, metric che-theia plugin and so on.
 	viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
 	if viewRole == nil {
-		logrus.Infof("Waiting on role '%s' to be created", deploy.ViewRole)
+		logrus.Infof("Waiting on role '%s' to be created", deploy.ViewRoleName)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -75,9 +75,9 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 		}
 	}
 
-	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, ViewRoleBinding, CheWorkspacesServiceAccount, deploy.ViewRole, "Role")
+	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, ViewRoleBindingName, CheWorkspacesServiceAccount, deploy.ViewRoleName, "Role")
 	if cheWSViewRoleBinding == nil {
-		logrus.Infof("Waiting on role binding '%s' to be created", ViewRoleBinding)
+		logrus.Infof("Waiting on role binding '%s' to be created", ViewRoleBindingName)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -90,7 +90,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 	// This role used by exec terminals, tasks and so on.
 	execRole, err := deploy.SyncExecRoleToCluster(deployContext)
 	if execRole == nil {
-		logrus.Infof("Waiting on role '%s' to be created", deploy.ExecRole)
+		logrus.Infof("Waiting on role '%s' to be created", deploy.ExecRoleName)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -99,9 +99,9 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 		}
 	}
 
-	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, ExecRoleBinding, CheWorkspacesServiceAccount, deploy.ExecRole, "Role")
+	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, ExecRoleBindingName, CheWorkspacesServiceAccount, deploy.ExecRoleName, "Role")
 	if cheWSExecRoleBinding == nil {
-		logrus.Infof("Waiting on role binding '%s' to be created", ExecRoleBinding)
+		logrus.Infof("Waiting on role binding '%s' to be created", ExecRoleBindingName)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -115,9 +115,9 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 	// Warning: operator binds clusterrole using rolebinding(not clusterrolebinding).
 	// That's why "che" service account has got permissions only in the one namespace!
 	// So permissions are binding in "non-cluster" scope.
-	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, EditRoleBinding, CheServiceAccountName, EditRole, "ClusterRole")
+	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, EditRoleBindingName, CheServiceAccountName, EditClusterRoleName, "ClusterRole")
 	if cheRoleBinding == nil {
-		logrus.Infof("Waiting on role binding '%s' to be created", EditRoleBinding)
+		logrus.Infof("Waiting on role binding '%s' to be created", EditRoleBindingName)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -131,9 +131,9 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 // Create cluster roles and cluster role bindings for "che" service account.
 // che-server uses "che" service account for creation new workspaces and workspace components.
 // Operator will create two cluster roles:
-// - "<workspace-namespace/project-name>-clusterrole-create-namespaces" - cluster role to create namespace(for Kubernetes platform)
+// - "<workspace-namespace/project-name>-clusterrole-manage-namespaces" - cluster role to mange namespace(for Kubernetes platform)
 //    or project(for Openshift platform) for new workspace.
-// - "<workspace-namespace/project-name>-clusterrole-manage-namespaces" - cluster role to create and manage k8s objects required for
+// - "<workspace-namespace/project-name>-clusterrole-workspaces" - cluster role to create and manage k8s objects required for
 //    workspace components.
 // Notice: After permission delegation che-server will create service account "che-workspace" ITSELF with
 //         "exec" and "view" roles for each new workspace.
@@ -141,8 +141,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 	logrus.Info("Configure permissions for Che workspaces. Workspaces will be executed in the differ namespace than Che namespace")
 	tests := r.tests
 
-	cheCreateNamespacesName := fmt.Sprintf(CheCreateNamespacesTemplate, instance.Namespace)
-	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-create-namespaces" to create namespace/projects for Che workspaces.
+	cheCreateNamespacesName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
+	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
 	roleCNsynchronized, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, getCheCreateNamespacesPolicy())
 	if !roleCNsynchronized {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", cheCreateNamespacesName)
@@ -164,8 +164,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 		}
 	}
 
-	cheManageNamespacesName := fmt.Sprintf(CheManageNamespacesTempalate, instance.Namespace)
-	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to create k8s components for Che workspaces.
+	cheManageNamespacesName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
+	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-workspaces" to create k8s components for Che workspaces.
 	roleMNSynchronized, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, getCheManageNamespacesPolicy())
 	if !roleMNSynchronized {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", cheManageNamespacesName)
@@ -191,7 +191,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 
 func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) error {
 	tests := r.tests
-	if !util.IsOAuthEnabled(instance) && !util.IsWorkspacesInTheSameNamespaceWithChe(instance) {
+	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		if !tests {
 			if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
 				logrus.Errorf("unable to add workspace permissions finalizers to the CR, cause %s", err.Error())

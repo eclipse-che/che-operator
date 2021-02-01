@@ -41,19 +41,19 @@ func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheClus
 	if util.ContainsString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName) {
 		logrus.Infof("Removing Cluster permissions finalizer on %s CR", instance.Name)
 
-		cheCreateNamespacesName := fmt.Sprintf(CheCreateNamespacesTemplate, instance.Namespace)
-		cheManageNamespacesName := fmt.Sprintf(CheManageNamespacesTempalate, instance.Namespace)
+		cheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
+		cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
 
-		if err := r.removeClusterRoleBinding(cheCreateNamespacesName, instance.Name); err != nil {
+		if err := r.removeClusterRoleBinding(cheWorkspacesNamespaceClusterRoleName, instance.Name); err != nil {
 			return err
 		}
-		if err := r.removeClusterRole(cheCreateNamespacesName, instance.Name); err != nil {
+		if err := r.removeClusterRole(cheWorkspacesNamespaceClusterRoleName, instance.Name); err != nil {
 			return err
 		}
-		if err := r.removeClusterRoleBinding(cheManageNamespacesName, instance.Name); err != nil {
+		if err := r.removeClusterRoleBinding(cheWorkspacesClusterRoleName, instance.Name); err != nil {
 			return err
 		}
-		if err := r.removeClusterRole(cheManageNamespacesName, instance.Name); err != nil {
+		if err := r.removeClusterRole(cheWorkspacesClusterRoleName, instance.Name); err != nil {
 			return err
 		}
 

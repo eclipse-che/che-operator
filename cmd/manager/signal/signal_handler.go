@@ -80,15 +80,15 @@ func GetTerminationGracePeriodSeconds(k8sClient client.Reader, namespace string)
 	deployment := &appsv1.Deployment{}
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheFlavor + "-operator"}
 	if err := k8sClient.Get(context.TODO(), namespacedName, deployment); err != nil {
-		logrus.Warnf("Unable to retrieve operator deployment 'terminationGracePeriodSeconds' period: %s", err.Error())
+		logrus.Warnf("Unable to find '%s' deployment in namespace '%s', err: %s", cheFlavor+"-operator", namespace, err.Error())
 	} else {
 		terminationPeriod := deployment.Spec.Template.Spec.TerminationGracePeriodSeconds
 		if terminationPeriod != nil {
-			logrus.Infof("Use 'terminationGracePeriodSeconds' %d from deployment sec", *terminationPeriod)
+			logrus.Infof("Use 'terminationGracePeriodSeconds' %d sec. from operator deployment.", *terminationPeriod)
 			return *terminationPeriod
 		}
 	}
 
-	logrus.Infof("Use default 'terminationGracePeriodSeconds' %d sec", defaultTerminationGracePeriodSeconds)
+	logrus.Infof("Use default 'terminationGracePeriodSeconds' %d sec.", defaultTerminationGracePeriodSeconds)
 	return defaultTerminationGracePeriodSeconds
 }
