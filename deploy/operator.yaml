@@ -123,5 +123,4 @@ spec:
               cpu: 500m
       restartPolicy: Always
       serviceAccountName: che-operator
-      # Should be good enough long for finalizers
       terminationGracePeriodSeconds: 20
