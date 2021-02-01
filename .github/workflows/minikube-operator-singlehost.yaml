@@ -44,8 +44,6 @@ jobs:
       run: sudo pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-operator-singlehost-native.sh
-      env:
-        DEFAULT_WORKSPACE_NAMESPACE: "che-workspace-admin"
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

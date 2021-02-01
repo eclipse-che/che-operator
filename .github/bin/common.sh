@@ -92,19 +92,13 @@ initStableTemplates() {
 
 # Utility to wait for a workspace to be started after workspace:create.
 waitWorkspaceStart() {
-  export workspaceNamespace
-  if [[ -n "${DEFAULT_WORKSPACE_NAMESPACE}" ]]; then
-    workspaceNamespace=${DEFAULT_WORKSPACE_NAMESPACE}
-  else
-    workspaceNamespace=${NAMESPACE}
-  fi
   set +e
   export x=0
   while [ $x -le 180 ]
   do
     chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
     chectl workspace:list --chenamespace=${NAMESPACE}
-    workspaceList=$(chectl workspace:list --chenamespace=${workspaceNamespace})
+    workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
 
     if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
