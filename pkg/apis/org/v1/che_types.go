@@ -27,7 +27,7 @@ import (
 
 // +k8s:openapi-gen=true
 // Desired configuration of the Che installation.
-// Based on these settings, the operator automatically creates and maintains
+// Based on these settings, the Operator automatically creates and maintains
 // several config maps that will contain the appropriate environment variables
 // the various components of the Che installation.
 // These generated config maps should NOT be updated manually.
@@ -82,7 +82,7 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
-	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for CodeReady Workspaces installation.
+	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for CodeReady workspaces installation.
 	// If not necessary, do not override the default value.
 	// +optional
 	CheFlavor string `json:"cheFlavor,omitempty"`
@@ -101,14 +101,14 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheDebug string `json:"cheDebug,omitempty"`
 	// A comma-separated list of ClusterRoles that will be assigned to Che ServiceAccount.
-	// Be aware that the che-operator has to already have all permissions in these ClusterRoles to grant them.
+	// Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.
 	// +optional
 	CheClusterRoles string `json:"cheClusterRoles,omitempty"`
 	// Custom cluster role bound to the user for the Che workspaces.
-	// The default roles are used if this is omitted or left blank.
+	// The default roles are used when it is omitted or left blank.
 	// +optional
 	CheWorkspaceClusterRole string `json:"cheWorkspaceClusterRole,omitempty"`
-	// Defines Kubernetes default namespace in which user's workspaces are created if user does not override it.
+	// Defines Kubernetes default namespace in which user's workspaces are created when user does not override it.
 	// It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>).
 	// In that case, new namespace will be created for each user (or workspace). Is used by OpenShift infrastructure as well to specify Project.
 	// +optional
@@ -118,7 +118,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
 	// Deprecated. The value of this flag is ignored.
-	// The Che Operator will automatically detect if the router certificate is self-signed and propagate it to other components, such as the Che server.
+	// The Che Operator will automatically detect when the router certificate is self-signed and propagate it to other components, such as the Che server.
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// Name of the configMap with public certificates to add to Java trust store of the Che server.
@@ -126,7 +126,7 @@ type CheClusterSpecServer struct {
 	// The Che server must be aware of its CA cert to be able to request it. This is disabled by default.
 	// +optional
 	ServerTrustStoreConfigMapName string `json:"serverTrustStoreConfigMapName,omitempty"`
-	// When enabled, the certificate from `che-git-self-signed-cert` configMap will be propagated to the Che components and provide particular configuration for Git.
+	// When enabled, the certificate from `che-git-self-signed-cert` configMap will be propagated to the Che components and provide particular configuration for git.
 	// +optional
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
@@ -178,7 +178,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
 	// Public URL of the plugin registry, that serves sample ready-to-use devfiles.
-	// Set this ONLY if a use of an external devfile registry is needed.
+	// Set this ONLY when a use of an external devfile registry is needed.
 	// See the `externalPluginRegistry` field. By default, this will be automatically calculated by the Operator.
 	// +optional
 	PluginRegistryUrl string `json:"pluginRegistryUrl,omitempty"`
@@ -276,7 +276,7 @@ type CheClusterSpecServer struct {
 	// The image used for the gateway sidecar that provides configuration to the gateway. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
-	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
+	// The labels that need to be present (and are put) on the config maps representing the gateway configuration.
 	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
 	// The Che server ingress custom settings.
@@ -296,7 +296,7 @@ type CheClusterSpecDB struct {
 	// +optional
 	ExternalDb bool `json:"externalDb"`
 	// PostgreSQL Database host name that the Che server uses to connect to.
-	// Defaults to postgres. Override this value ONLY when using an external database. See field `externalDb`.
+	// Defaults to `postgres`. Override this value ONLY when using an external database. See field `externalDb`.
 	// In the default case it will be automatically set by the Operator.
 	// +optional
 	ChePostgresHostName string `json:"chePostgresHostName,omitempty"`
@@ -313,7 +313,7 @@ type CheClusterSpecDB struct {
 	// PostgreSQL database name that the Che server uses to connect to the DB. Defaults to `dbche`.
 	// +optional
 	ChePostgresDb string `json:"chePostgresDb,omitempty"`
-	// The secret that contains Postgres `user` and `password` that the Che server uses to connect to the DB.
+	// The secret that contains PostgreSQL `user` and `password` that the Che server uses to connect to the DB.
 	// When the secret is defined, the `chePostgresUser` and `chePostgresPassword` are ignored.
 	// When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB.
@@ -321,10 +321,10 @@ type CheClusterSpecDB struct {
 	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
 	// +optional
 	ChePostgresSecret string `json:"chePostgresSecret,omitempty"`
-	// Overrides the container image used in the Postgres database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
-	// Overrides the image pull policy used in the Postgres database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
 	// PostgreSQL container custom settings
@@ -350,7 +350,7 @@ type CheClusterSpecAuth struct {
 	// +optional
 	IdentityProviderAdminUserName string `json:"identityProviderAdminUserName,omitempty"`
 	// Overrides the password of Keycloak administrator user.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// This is useful to override it ONLY when you use an external Identity Provider (see the `externalIdentityProvider` field).
 	// When omitted or left blank, it is set to an auto-generated password.
 	// +optional
 	IdentityProviderPassword string `json:"identityProviderPassword,omitempty"`
@@ -363,17 +363,17 @@ type CheClusterSpecAuth struct {
 	// +optional
 	IdentityProviderSecret string `json:"identityProviderSecret,omitempty"`
 	// Name of a Identity provider (Keycloak / RH SSO) realm that is used for Che.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// This is useful to override it ONLY when you use an external Identity Provider (see the `externalIdentityProvider` field).
 	// When omitted or left blank, it is set to the value of the `flavour` field.
 	// +optional
 	IdentityProviderRealm string `json:"identityProviderRealm,omitempty"`
 	// Name of a Identity provider (Keycloak / RH SSO) `client-id` that is used for Che.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// This is useful to override it ONLY when you use an external Identity Provider (see the `externalIdentityProvider` field).
 	// When omitted or left blank, it is set to the value of the `flavour` field suffixed with `-public`.
 	// +optional
 	IdentityProviderClientId string `json:"identityProviderClientId,omitempty"`
 	// Password for The Identity Provider (Keycloak / RH SSO) to connect to the database.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// This is useful to override it ONLY when you use an external Identity Provider (see the `externalIdentityProvider` field).
 	// When omitted or left blank, it is set to an auto-generated password.
 	// +optional
 	IdentityProviderPostgresPassword string `json:"identityProviderPostgresPassword,omitempty"`
@@ -392,10 +392,10 @@ type CheClusterSpecAuth struct {
 	// WARNING: the `kubeadmin` user is NOT supported, and logging through it will NOT allow accessing the Che Dashboard.
 	// +optional
 	OpenShiftoAuth *bool `json:"openShiftoAuth,omitempty"`
-	// Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank. See also the `OpenShiftoAuth` field.
+	// Name of the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OpenShiftoAuth` field.
 	// +optional
 	OAuthClientName string `json:"oAuthClientName,omitempty"`
-	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank. See also the `OAuthClientName` field.
+	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
 	// Overrides the container image used in the Identity Provider (Keycloak / RH SSO) deployment.
@@ -461,15 +461,15 @@ type CheClusterSpecStorage struct {
 	// Size of the persistent volume claim for workspaces. Defaults to `1Gi`.
 	// +optional
 	PvcClaimSize string `json:"pvcClaimSize,omitempty"`
-	// Instructs the Che server to launch a special Pod to pre-create a sub-path in the Persistent Volumes.
-	// Defaults to `false`, however it will need to enable it according to the configuration of your K8S cluster.
+	// Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes.
+	// Defaults to `false`, however it will need to enable it according to the configuration of your Kubernetes cluster.
 	// +optional
 	PreCreateSubPaths bool `json:"preCreateSubPaths"`
 	// Overrides the container image used to create sub-paths in the Persistent Volumes.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator. See also the `preCreateSubPaths` field.
 	// +optional
 	PvcJobsImage string `json:"pvcJobsImage,omitempty"`
-	// Storage class for the Persistent Volume Claim dedicated to the Postgres database. When omitted or left blank, a default storage class is used.
+	// Storage class for the Persistent Volume Claim dedicated to the PostgreSQL database. When omitted or left blank, a default storage class is used.
 	// +optional
 	PostgresPVCStorageClassName string `json:"postgresPVCStorageClassName,omitempty"`
 	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
@@ -480,7 +480,7 @@ type CheClusterSpecStorage struct {
 // +k8s:openapi-gen=true
 // Configuration settings specific to Che installations made on upstream Kubernetes.
 type CheClusterSpecK8SOnly struct {
-	// Global ingress domain for a K8S cluster. This MUST be explicitly specified: there are no defaults.
+	// Global ingress domain for a Kubernetes cluster. This MUST be explicitly specified: there are no defaults.
 	IngressDomain string `json:"ingressDomain,omitempty"`
 	// Strategy for ingress creation. Options are: `multi-host` (host is explicitly provided in ingress),
 	// `single-host` (host is provided, path-based rules) and `default-host` (no host is provided, path-based rules).
@@ -522,11 +522,11 @@ type CheClusterSpecMetrics struct {
 type CheClusterSpecImagePuller struct {
 	// Install and configure the Community Supported Kubernetes Image Puller Operator. If true and no spec is provided,
 	// it will create a default KubernetesImagePuller object to be managed by the Operator.
-	// If false, the KubernetesImagePuller object will be deleted, and the operator will be uninstalled,
+	// If false, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
 	// regardless of whether or not a spec is provided.
 	//
-	// Please note that while this operator and its behavior is community-supported, its payload may be commercially-supported
-	// if you use it for pulling commercially-supported images.
+	// Please note that while this Operator and its behavior is community-supported, its payload may be commercially-supported
+	// when you use it for pulling commercially-supported images.
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
 	// +optional
@@ -535,7 +535,7 @@ type CheClusterSpecImagePuller struct {
 
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
-	// Indicates that a Postgres instance has been correctly provisioned or not.
+	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`
 	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been provisioned with realm, client and user.
@@ -608,7 +608,7 @@ type CheCluster struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Desired configuration of the Che installation.
-	// Based on these settings, the operator automatically creates and maintains
+	// Based on these settings, the Operator automatically creates and maintains
 	// several config maps that will contain the appropriate environment variables
 	// the various components of the Che installation.
 	// These generated config maps should NOT be updated manually.
