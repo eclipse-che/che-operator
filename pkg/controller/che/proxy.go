@@ -43,7 +43,11 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 		// If proxy configuration exists in CR then cluster wide proxy configuration is ignored
 		// Non proxy hosts are merged
 		if cheClusterProxyConf.HttpProxy != "" {
-			cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, clusterWideProxyConf.NoProxy)
+			if clusterWideProxyConf.HttpProxy != "" {
+				cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, clusterWideProxyConf.NoProxy)
+			} else {
+				cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
+			}
 			return cheClusterProxyConf, nil
 		} else if clusterWideProxyConf.HttpProxy != "" {
 			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
