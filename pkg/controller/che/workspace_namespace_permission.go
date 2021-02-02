@@ -213,7 +213,7 @@ func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(instanc
 	return nil
 }
 
-func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) error {
+func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) error {
 	tests := r.tests
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		if !tests {

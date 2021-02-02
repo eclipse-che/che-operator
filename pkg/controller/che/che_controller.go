@@ -338,7 +338,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-	if r.reconsileWorkspacePermissionsFinalizer(instance, deployContext); err != nil {
+	if r.reconcileWorkspacePermissionsFinalizer(instance, deployContext); err != nil {
 		return reconcile.Result{}, err
 	}
 
