@@ -90,7 +90,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				HttpsPassword:    "",
 				HttpsHost:        "proxy",
 				HttpsPort:        "3128",
-				NoProxy:          "host1",
+				NoProxy:          "host1,.svc",
 				TrustedCAMapName: "",
 			},
 		},
