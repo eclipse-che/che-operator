@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-func (r *ReconcileChe) ReconsileClusterPermissionsFinalizer(instance *orgv1.CheCluster) (err error) {
+func (r *ReconcileChe) ReconcileClusterPermissionsFinalizer(instance *orgv1.CheCluster) (err error) {
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !util.ContainsString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName) {
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName)
@@ -39,7 +39,7 @@ func (r *ReconcileChe) ReconsileClusterPermissionsFinalizer(instance *orgv1.CheC
 
 func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheCluster) (err error) {
 	if util.ContainsString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName) {
-		logrus.Infof("Removing Cluster permissions finalizer on %s CR", instance.Name)
+		logrus.Info("Removing workspace cluster permissions finalizer")
 
 		cheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
 		cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
@@ -67,7 +67,7 @@ func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheClus
 }
 
 func (r *ReconcileChe) removeClusterRole(clusterRoleName string, cheClusterName string) error {
-	logrus.Infof("Custom resource %s is being deleted. Deleting Cluster role %s.", cheClusterName, clusterRoleName)
+	logrus.Infof("Custom resource is being deleted. Deleting Cluster role %s.", clusterRoleName)
 
 	clusterRole, err := deploy.GetClusterRole(clusterRoleName, r.nonCachedClient)
 	if err == nil && clusterRole != nil {

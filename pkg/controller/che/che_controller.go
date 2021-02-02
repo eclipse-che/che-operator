@@ -562,7 +562,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Openshift oAuth client handles permissions for workspaces itself.
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		policies := append(getCheCreateNamespacesPolicy(), getCheManageNamespacesPolicy()...)
+		policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
 
 		deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
 		if err != nil {
@@ -570,9 +570,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		// fall back to the "narrower" workspace namespace strategy
 		if len(deniedRules) > 0 {
-			if _, ok := instance.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]; ok {
-				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
-			}
+			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 			logrus.Warn("Not enough permissions to start workspace in another namespaces. Fall back to 'single' workspace namespace default.")
 			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
 			if err := r.UpdateCheCRSpec(instance, "workspace namespace default", instance.Namespace); err != nil {
@@ -582,7 +580,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
 		} else {
-			if err := r.DeleteWorkspacesInSingleNamespaceWithChePermissions(instance, deployContext.ClusterAPI.Client); err != nil {
+			if err := r.DeleteWorkspacesInSameNamespaceWithChePermissions(instance, deployContext.ClusterAPI.Client); err != nil {
 				logrus.Error(err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}

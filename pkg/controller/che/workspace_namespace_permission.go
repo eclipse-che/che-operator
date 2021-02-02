@@ -44,10 +44,9 @@ const (
 )
 
 // delegateWorkspacePermissionsInTheSameNamespaceWithChe - creates "che-workspace" service account(for Che workspaces) and
-// delegates "che-oparator" SA permissions to the service accounts: "che" and "che-workspace".
+// delegates "che-operator" SA permissions to the service accounts: "che" and "che-workspace".
 // Also this method binds "edit" default k8s clusterrole using rolebinding to "che" SA.
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
-	logrus.Info("Configure permissions for Che workspaces. Workspaces will be executed in the same namespace with Che")
 	tests := r.tests
 
 	// Create "che-workspace" service account.
@@ -59,7 +58,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 			logrus.Error(err)
 		}
 		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -72,7 +71,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 			logrus.Error(err)
 		}
 		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -83,7 +82,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 			logrus.Error(err)
 		}
 		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -96,7 +95,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 			logrus.Error(err)
 		}
 		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -107,7 +106,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 			logrus.Error(err)
 		}
 		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -123,7 +122,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 			logrus.Error(err)
 		}
 		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+			return reconcile.Result{}, err
 		}
 	}
 	return reconcile.Result{}, nil
@@ -139,13 +138,12 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 // Notice: After permission delegation che-server will create service account "che-workspace" ITSELF with
 //         "exec" and "view" roles for each new workspace.
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) (reconcile.Result, error) {
-	logrus.Info("Configure permissions for Che workspaces. Workspaces will be executed in the differ namespace than Che namespace")
 	tests := r.tests
 
 	cheCreateNamespacesName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
 	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
-	roleCNsynchronized, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, getCheCreateNamespacesPolicy())
-	if !roleCNsynchronized {
+	provisioned, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, getCheWorkspacesNamespacePolicy())
+	if !provisioned {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", cheCreateNamespacesName)
 		if err != nil {
 			logrus.Error(err)
@@ -167,8 +165,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 
 	cheManageNamespacesName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
 	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-workspaces" to create k8s components for Che workspaces.
-	roleMNSynchronized, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, getCheManageNamespacesPolicy())
-	if !roleMNSynchronized {
+	provisioned, err = deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, getCheWorkspacesPolicy())
+	if !provisioned {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", cheManageNamespacesName)
 		if err != nil {
 			logrus.Error(err)
@@ -190,8 +188,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 	return reconcile.Result{}, nil
 }
 
-// DeleteWorkspacesInSingleNamespaceWithChePermissions - removes workspaces single namespace with Che role and rolebindings.
-func (r *ReconcileChe) DeleteWorkspacesInSingleNamespaceWithChePermissions(instance *orgv1.CheCluster, cli client.Client) error {
+// DeleteWorkspacesInSameNamespaceWithChePermissions - removes workspaces in same namespace with Che role and rolebindings.
+func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(instance *orgv1.CheCluster, cli client.Client) error {
 	logrus.Info("Delete workspaces in the same namespace with Che permissions.")
 
 	if err := deploy.DeleteRole(deploy.ExecRoleName, instance.Namespace, cli); err != nil {
@@ -219,7 +217,7 @@ func (r *ReconcileChe) reconsileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 	tests := r.tests
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		if !tests {
-			if err := r.ReconsileClusterPermissionsFinalizer(instance); err != nil {
+			if err := r.ReconcileClusterPermissionsFinalizer(instance); err != nil {
 				logrus.Errorf("unable to add workspace permissions finalizers to the CR, cause %s", err.Error())
 				return err
 			}
@@ -256,7 +254,7 @@ func getDeleteClusterPermissionsPolicy() []rbac.PolicyRule {
 	}
 }
 
-func getCheCreateNamespacesPolicy() []rbac.PolicyRule {
+func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
 	return []rbac.PolicyRule{
 		{
 			APIGroups: []string{"project.openshift.io"},
@@ -276,7 +274,7 @@ func getCheCreateNamespacesPolicy() []rbac.PolicyRule {
 	}
 }
 
-func getCheManageNamespacesPolicy() []rbac.PolicyRule {
+func getCheWorkspacesPolicy() []rbac.PolicyRule {
 	return []rbac.PolicyRule{
 		{
 			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},

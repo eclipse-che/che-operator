@@ -1129,7 +1129,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 	}
 }
 
-func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t *testing.T) {
+func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
@@ -1315,7 +1315,7 @@ func TestShouldUsePublicUrlForExternalPluginRegistryWhenInternalNetworkEnabled(t
 	}
 }
 
-func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(t *testing.T) {
+func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
@@ -1501,7 +1501,7 @@ func TestShouldUsePublicUrlForExternalDevfileRegistryWhenInternalNetworkEnabled(
 	}
 }
 
-func TestShouldUseCorrectUrlForInternalCheServerURLWhenInternalNetworkEnabled(t *testing.T) {
+func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 	os.Setenv("OPENSHIFT_VERSION", "3")
 
 	type testCase struct {
@@ -1713,9 +1713,9 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			checluster:  crWsInAnotherNs2,
 		},
 		{
-			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT points to Che namespace, but WorkspaceNamespaceDefault = 'some-test-namespace'.",
+			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT points to Che namespace with higher priority WorkspaceNamespaceDefault = 'some-test-namespace'.",
 			initObjects: []runtime.Object{},
-			clusterRole: true,
+			clusterRole: false,
 			checluster:  crWsInAnotherNs3,
 		},
 	}

@@ -357,20 +357,16 @@ func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 
 // IsWorkspaceInSameNamespaceWithChe return true when Che workspaces will be executed in the same namespace with Che, otherwise returns false.
 func IsWorkspaceInSameNamespaceWithChe(c *orgv1.CheCluster) bool {
-	workspaceNamespaceDefault := GetValue(c.Spec.Server.WorkspaceNamespaceDefault, c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"])
-	if workspaceNamespaceDefault == "" || workspaceNamespaceDefault == c.Namespace {
-		return true
-	}
-	return false
+	return GetWorkspaceNamespaceDefault(c) == c.Namespace
 }
 
 // GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
-func GetWorkspaceNamespaceDefault(c *orgv1.CheCluster, isOpenshift bool, cheFlavor string) string {
+func GetWorkspaceNamespaceDefault(c *orgv1.CheCluster) string {
 	workspaceNamespaceDefault := c.Namespace
-	if isOpenshift && IsOAuthEnabled(c) {
-		workspaceNamespaceDefault = "<username>-" + cheFlavor
+	if IsOpenShift && IsOAuthEnabled(c) {
+		workspaceNamespaceDefault = "<username>-" + c.Spec.Server.CheFlavor
 	}
-	customValue := GetValue(c.Spec.Server.WorkspaceNamespaceDefault, c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"])
+	customValue := GetValue(c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"], c.Spec.Server.WorkspaceNamespaceDefault)
 	workspaceNamespaceDefault = GetValue(customValue, workspaceNamespaceDefault)
 
 	return workspaceNamespaceDefault

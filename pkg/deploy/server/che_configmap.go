@@ -175,7 +175,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
 	workspaceExposure := deploy.GetSingleHostExposureType(deployContext.CheCluster)
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
-	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(deployContext.CheCluster, isOpenShift, cheFlavor)
+	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(deployContext.CheCluster)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
