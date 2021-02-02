@@ -367,9 +367,7 @@ func GetWorkspaceNamespaceDefault(c *orgv1.CheCluster) string {
 		workspaceNamespaceDefault = "<username>-" + c.Spec.Server.CheFlavor
 	}
 	customValue := GetValue(c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"], c.Spec.Server.WorkspaceNamespaceDefault)
-	workspaceNamespaceDefault = GetValue(customValue, workspaceNamespaceDefault)
-
-	return workspaceNamespaceDefault
+	return GetValue(customValue, workspaceNamespaceDefault)
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
