@@ -580,11 +580,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
 		} else {
-			if err := r.DeleteWorkspacesInSameNamespaceWithChePermissions(instance, deployContext.ClusterAPI.Client); err != nil {
-				logrus.Error(err)
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-
 			reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
 			if err != nil {
 				logrus.Error(err)
