@@ -190,7 +190,6 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 
 // DeleteWorkspacesInSameNamespaceWithChePermissions - removes workspaces in same namespace with Che role and rolebindings.
 func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(instance *orgv1.CheCluster, cli client.Client) error {
-	logrus.Info("Delete workspaces in the same namespace with Che permissions.")
 
 	if err := deploy.DeleteRole(deploy.ExecRoleName, instance.Namespace, cli); err != nil {
 		return err
