@@ -362,12 +362,18 @@ func IsWorkspaceInSameNamespaceWithChe(c *orgv1.CheCluster) bool {
 
 // GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
 func GetWorkspaceNamespaceDefault(c *orgv1.CheCluster) string {
+	if c.Spec.Server.CustomCheProperties != nil {
+		k8sNamespaceDefault := cr.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
+		if k8sNamespaceDefault != "" {
+			return k8sNamespaceDefault
+		}
+	}
+	
 	workspaceNamespaceDefault := c.Namespace
 	if IsOpenShift && IsOAuthEnabled(c) {
 		workspaceNamespaceDefault = "<username>-" + c.Spec.Server.CheFlavor
 	}
-	customValue := GetValue(c.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"], c.Spec.Server.WorkspaceNamespaceDefault)
-	return GetValue(customValue, workspaceNamespaceDefault)
+	return GetValue(c.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
