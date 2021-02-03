@@ -573,7 +573,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		       logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Fall back to '%s' namespace for workspaces.", instance.Namespace)
 			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")		       
 			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
-			if err := r.UpdateCheCRSpec(instance, "workspace namespace default", instance.Namespace); err != nil {
+			if err := r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace); err != nil {
 				if err != nil {
 					logrus.Error(err)
 				}
