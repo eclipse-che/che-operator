@@ -39,7 +39,7 @@ func (r *ReconcileChe) ReconcileClusterPermissionsFinalizer(instance *orgv1.CheC
 
 func (r *ReconcileChe) RemoveWorkspaceClusterPermissions(instance *orgv1.CheCluster) (err error) {
 	if util.ContainsString(instance.ObjectMeta.Finalizers, clusterPermissionsFinalizerName) {
-		logrus.Info("Removing workspace cluster permissions finalizer")
+		logrus.Infof("Removing '%'", clusterPermissionsFinalizerName)
 
 		cheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
 		cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
