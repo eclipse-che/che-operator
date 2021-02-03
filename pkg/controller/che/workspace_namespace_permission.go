@@ -40,7 +40,7 @@ const (
 	// CheWorkspacesNamespaceClusterRoleNameTemplate - manage namespaces "cluster role" and "clusterrolebinding" template name
 	CheWorkspacesNamespaceClusterRoleNameTemplate = "%s-cheworkspaces-namespaces-clusterrole"
 	// CheWorkspacesClusterRoleNameTemplate - manage workspaces "cluster role" and "clusterrolebinding" template name
-	CheWorkspacesClusterRoleNameTemplate = "%s-clusterrole-workspaces"
+	CheWorkspacesClusterRoleNameTemplate = "%s-cheworkspaces-clusterrole"
 )
 
 // delegateWorkspacePermissionsInTheSameNamespaceWithChe - creates "che-workspace" service account(for Che workspaces) and
