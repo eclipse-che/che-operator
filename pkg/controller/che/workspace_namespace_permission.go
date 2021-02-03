@@ -140,7 +140,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) (reconcile.Result, error) {
 	tests := r.tests
 
-	cheCreateNamespacesName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
+	сheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
+        сheWorkspacesNamespaceClusterRoleBindingName := сheWorkspacesNamespaceClusterRoleName
 	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
 	provisioned, err := deploy.SyncClusterRoleToCheCluster(deployContext, cheCreateNamespacesName, getCheWorkspacesNamespacePolicy())
 	if !provisioned {
