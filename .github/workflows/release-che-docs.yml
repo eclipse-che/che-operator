@@ -38,9 +38,23 @@ jobs:
           else
             chedocsVersion="${{ github.event.inputs.version }}"
           fi
-          cd /tmp
-          # TODO switch to master branch version, not PR version from https://github.com/eclipse/che-docs/pull/1823
-          curl -sSLO https://raw.githubusercontent.com/eclipse/che-docs/f634c1d49b0bc88718dcb593f75d11f45de2ba1c/make-release.sh
-          chmod +x make-release.sh
-          # fetch che-docs code, bump antora playbook file, create .x branch if not exist, and create release tag from that branch
-          ./make-release.sh --repo git@github.com:eclipse/che-docs --version ${chedocsVersion} ${{ github.event.inputs.forceflag }} --trigger-release
+
+          # generic method to call a GH action and pass in a single var=val parameter 
+          invokeAction() {
+              this_repo=$1
+              this_action_name=$2
+              this_workflow_id=$3
+              this_var=$4
+              this_val=$5
+
+              # can compute using GH API
+              # workflow_id=$(curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" | jq --arg search_field "${this_action_name}" '.workflows[] | select(.name == $search_field).id'); # echo "workflow_id = $workflow_id"
+              # or just pass it in
+              workflow_id=$this_workflow_id
+
+              curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"master\",\"inputs\": {\"${this_var}\":\"${this_val}\"} }" || die_with "[ERROR] Problem invoking action https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
+              echo "[INFO] Invoked '${this_action_name}' action ($workflow_id) - see https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
+          }
+
+          # invoke action from che-docs repo
+          invokeAction eclipse/che-docs "Release Che Docs" "5193493" version "${chedocsVersion}"
