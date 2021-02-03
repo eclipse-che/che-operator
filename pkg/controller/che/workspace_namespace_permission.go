@@ -38,7 +38,7 @@ const (
 	// ExecRoleBindingName - "exec" role for "che-workspace" service account.
 	ExecRoleBindingName = "che-workspace-exec"
 	// CheWorkspacesNamespaceClusterRoleNameTemplate - manage namespaces "cluster role" and "clusterrolebinding" template name
-	CheWorkspacesNamespaceClusterRoleNameTemplate = "%s-clusterrole-manage-namespaces"
+	CheWorkspacesNamespaceClusterRoleNameTemplate = "%s-cheworkspaces-namespaces-clusterrole"
 	// CheWorkspacesClusterRoleNameTemplate - manage workspaces "cluster role" and "clusterrolebinding" template name
 	CheWorkspacesClusterRoleNameTemplate = "%s-clusterrole-workspaces"
 )
