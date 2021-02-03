@@ -173,6 +173,8 @@ func getSpecRole(deployContext *DeployContext, name string, policyRule []rbac.Po
 }
 
 func DeleteRole(name string, namespace string, client runtimeClient.Client) error {
+	logrus.Infof("Deleting role %s.", name)
+
 	role := &rbac.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -180,10 +182,7 @@ func DeleteRole(name string, namespace string, client runtimeClient.Client) erro
 		},
 	}
 	err := client.Delete(context.TODO(), role)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	return nil

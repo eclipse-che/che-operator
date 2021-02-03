@@ -94,3 +94,19 @@ func getSpecClusterRole(deployContext *DeployContext, name string, policyRule []
 
 	return clusterRole, nil
 }
+
+func DeleteClusterRole(clusterRoleName string, client runtimeClient.Client) error {
+	logrus.Infof("Deleting Cluster role %s.", clusterRoleName)
+
+	clusterRole := &rbac.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusterRoleName,
+		},
+	}
+	err := client.Delete(context.TODO(), clusterRole)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	return nil
+}

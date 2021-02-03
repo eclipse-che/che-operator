@@ -112,3 +112,19 @@ func getSpecClusterRoleBinding(
 
 	return clusterRoleBinding, nil
 }
+
+func DeleteClusterRoleBinding(clusterRoleBindingName string, client runtimeClient.Client) error {
+	logrus.Infof("Deleting Cluster rolebinding %s.", clusterRoleBindingName)
+
+	clusterRoleBinding := &rbac.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusterRoleBindingName,
+		},
+	}
+	err := client.Delete(context.TODO(), clusterRoleBinding)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	return nil
+}

@@ -261,9 +261,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 var (
-	_                               reconcile.Reconciler = &ReconcileChe{}
-	oAuthFinalizerName                                   = "oauthclients.finalizers.che.eclipse.org"
-	clusterPermissionsFinalizerName                      = "clusterpermissions.finalizers.che.eclipse.org"
+	_ reconcile.Reconciler = &ReconcileChe{}
+
+	oAuthFinalizerName                           = "oauthclients.finalizers.che.eclipse.org"
+	cheWorkspacesClusterPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
 
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
@@ -562,16 +563,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Openshift oAuth client handles permissions for workspaces itself.
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
+		_, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
+		if err != nil && !errors.IsNotFound(err) {
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
 
+		policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
 		deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
 		if err != nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// fall back to the "narrower" workspace namespace strategy
 		if len(deniedRules) > 0 {
-		       logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Fall back to '%s' namespace for workspaces.", instance.Namespace)
-			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")		       
+			logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Fall back to '%s' namespace for workspaces.", instance.Namespace)
+			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
 			if err := r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace); err != nil {
 				if err != nil {
