@@ -106,8 +106,6 @@ func getSpecRoleBinding(
 }
 
 func DeleteRoleBinding(name string, namespace string, client runtimeClient.Client) error {
-	logrus.Infof("Deleting rolebinding %s.", name)
-
 	roleBinding := &rbac.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,

@@ -29,10 +29,10 @@ catchFinish() {
 
 init() {
   export RAM_MEMORY=8192
-  export NAMESPACE="eclipse-che"
+  export NAMESPACE="che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
-  export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
+  export OPERATOR_IMAGE="quay.io/aandriienko/che-operator:nightly"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OAUTH="false"

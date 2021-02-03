@@ -114,9 +114,7 @@ func getSpecClusterRoleBinding(
 }
 
 func DeleteClusterRoleBinding(clusterRoleBindingName string, client runtimeClient.Client) error {
-	logrus.Infof("Deleting Cluster rolebinding %s.", clusterRoleBindingName)
-
-	clusterRoleBinding := &rbac.RoleBinding{
+	clusterRoleBinding := &rbac.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterRoleBindingName,
 		},
