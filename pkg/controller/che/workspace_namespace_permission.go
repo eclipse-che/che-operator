@@ -201,7 +201,7 @@ func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(instanc
 	if err := deploy.DeleteRole(deploy.ViewRoleName, instance.Namespace, cli); err != nil {
 		return err
 	}
-	if err := deploy.DeleteRoleBinding(ExecRoleBindingName, instance.Namespace, cli); err != nil {
+	if err := deploy.DeleteRoleBinding(ViewRoleBindingName, instance.Namespace, cli); err != nil {
 		return err
 	}
 
