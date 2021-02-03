@@ -163,7 +163,8 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 		}
 	}
 
-	cheManageNamespacesName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
+	сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
+        сheWorkspacesClusterRoleBindingName := сheWorkspacesClusterRoleName
 	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-workspaces" to create k8s components for Che workspaces.
 	provisioned, err = deploy.SyncClusterRoleToCheCluster(deployContext, cheManageNamespacesName, getCheWorkspacesPolicy())
 	if !provisioned {
