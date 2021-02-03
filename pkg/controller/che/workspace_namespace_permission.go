@@ -152,7 +152,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(i
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
-	cheCreateNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheCreateNamespacesName, CheServiceAccountName, cheCreateNamespacesName)
+	сheWorkspacesNamespaceClusterRoleBinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheCreateNamespacesName, CheServiceAccountName, cheCreateNamespacesName)
 	if cheCreateNamespacesRolebinding == nil {
 		logrus.Infof("Waiting on clusterrolebinding '%s' to be created", cheCreateNamespacesName)
 		if err != nil {
