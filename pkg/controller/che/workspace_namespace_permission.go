@@ -228,7 +228,7 @@ func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 				return err
 			}
 		}
-	} else {
+	} else if !util.IsOAuthEnabled(instance) && util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		if !tests {
 			// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
 			if err := r.RemoveCheWorkspacesClusterPermissions(instance); err != nil {
