@@ -25,18 +25,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
-      - name: Install operator courier, yq, and base32 wrapper
+      - name: Install operator courier, yq
         run: |
           python -m pip install --upgrade pip
           pip install operator-courier==2.1.7
           pip install yq
-          # get base32 util from che-release project
-          wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
-          # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts) 
-          sudo cp -f $(pwd)/base32 /usr/local/bin/ 
-          sudo chmod +x /usr/local/bin/base32
-          #remove base32 from current directory to avoid it being commited during release
-          rm $(pwd)/base32 
       - name: Release community operator PRs
         run: |
           hub version
@@ -46,13 +39,8 @@ jobs:
           set -e
           OP_SDK_DIR=/opt/operator-sdk
           mkdir -p $OP_SDK_DIR
-          if [[ ${CHE_VERSION%.*} == 7.21 ]];then
-            wget https://github.com/operator-framework/operator-sdk/releases/download/v0.10.0/operator-sdk-v0.10.0-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk 
-          else
-            OPERATOR_SDK=$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
-            wget https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK}/operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk 
-          fi
-          chmod +x $OP_SDK_DIR/operator-sdk
+          OPERATOR_SDK=$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
+          curl -sSLo $OP_SDK_DIR/operator-sdk  https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK}/operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu && chmod +x $OP_SDK_DIR/operator-sdk
           export PATH="$PATH:$OP_SDK_DIR"
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
