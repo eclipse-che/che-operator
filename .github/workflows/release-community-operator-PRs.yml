@@ -42,7 +42,7 @@ jobs:
           hub version
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
-          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+          export GITHUB_TOKEN=${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
           set -e
           OP_SDK_DIR=/opt/operator-sdk
           mkdir -p $OP_SDK_DIR
@@ -61,4 +61,4 @@ jobs:
           export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
           export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
-          ./make-release.sh nightly --update-nightly-olm-files --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
+          ./make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
