@@ -1699,7 +1699,6 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			clusterRole: false,
 			checluster:  crWsInTheSameNs4,
 		},
-
 		{
 			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. WorkspaceNamespaceDefault = 'some-test-namespace'",
 			initObjects: []runtime.Object{},

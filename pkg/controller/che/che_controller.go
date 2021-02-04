@@ -561,16 +561,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// Openshift oAuth client handles permissions for workspaces itself.
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		_, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !errors.IsNotFound(err) && !tests {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
 		policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
 		deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
-		if err != nil {
+		if err != nil && !tests {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		// fall back to the "narrower" workspace namespace strategy
@@ -578,13 +577,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Fall back to '%s' namespace for workspaces.", instance.Namespace)
 			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
-			if err := r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace); err != nil {
-				if err != nil {
-					logrus.Error(err)
-				}
+			r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);
+			if err != nil && !tests {
+				logrus.Error(err)
 				return reconcile.Result{RequeueAfter: time.Second * 1}, err
 			}
-		} else {
+		} else if !util.IsOAuthEnabled(instance) {
 			reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
 			if err != nil {
 				logrus.Error(err)
@@ -596,8 +594,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	//  Openshift oAuth client handles permissions for workspaces itself.
-	if !util.IsOAuthEnabled(instance) && util.IsWorkspaceInSameNamespaceWithChe(instance) {
+	if util.IsOAuthEnabled(instance) || util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		reconcile, err := r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
 		if err != nil {
 			logrus.Error(err)

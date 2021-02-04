@@ -216,16 +216,8 @@ func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(instanc
 
 func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(instance *orgv1.CheCluster, deployContext *deploy.DeployContext) error {
 	tests := r.tests
-	if util.IsOAuthEnabled(instance) {
-		if err := r.DeleteWorkspacesInSameNamespaceWithChePermissions(instance, deployContext.ClusterAPI.Client); err != nil {
-			logrus.Errorf("unable to delete workspaces in same namespace permission set, cause %s", err.Error())
-			return err
-		}
-		if err := r.RemoveCheWorkspacesClusterPermissions(instance); err != nil {
-			logrus.Errorf("workspace permissions finalizers was not removed from CR, cause %s", err.Error())
-			return err
-		}
-	} else {
+
+	if !util.IsOAuthEnabled(instance) {
 		if util.IsWorkspaceInSameNamespaceWithChe(instance) {
 			if !tests {
 				// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
@@ -247,7 +239,13 @@ func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 					logrus.Errorf("unable to add workspace permissions finalizers to the CR, cause %s", err.Error())
 					return err
 				}
-			}
+			}		
+		}
+	} else {
+		// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
+		if err := r.RemoveCheWorkspacesClusterPermissions(instance); err != nil {
+			logrus.Errorf("workspace permissions finalizers was not removed from CR, cause %s", err.Error())
+			return err
 		}
 	}
 
