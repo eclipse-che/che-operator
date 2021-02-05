@@ -564,12 +564,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		clusterRole, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
 		if err != nil {
+			logrus.Error(err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		if clusterRole == nil {
 			policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
 			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
 			if err != nil {
+				logrus.Error(err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 			// fall back to the "narrower" workspace namespace strategy
