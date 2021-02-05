@@ -574,7 +574,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		// fall back to the "narrower" workspace namespace strategy
 		if len(deniedRules) > 0 {
-			logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Fall back to '%s' namespace for workspaces.", instance.Namespace)
+			logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
+			logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
 			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
 			r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);

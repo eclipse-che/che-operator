@@ -253,7 +253,15 @@ func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 }
 
 func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
-	return []rbac.PolicyRule{
+	k8sPolicies :=  []rbac.PolicyRule{
+		{
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+			Verbs:     []string{"get", "create", "update"},
+		},
+	}
+
+	openshiftPolicies := []rbac.PolicyRule{	
 		{
 			APIGroups: []string{"project.openshift.io"},
 			Resources: []string{"projectrequests"},
@@ -264,26 +272,16 @@ func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
 			Resources: []string{"projects"},
 			Verbs:     []string{"get"},
 		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"namespaces"},
-			Verbs:     []string{"get", "create", "update"},
-		},
 	}
+
+	if util.IsOpenShift {
+		return append(k8sPolicies, openshiftPolicies...)
+	}
+	return k8sPolicies
 }
 
 func getCheWorkspacesPolicy() []rbac.PolicyRule {
-	return []rbac.PolicyRule{
-		{
-			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-			Resources: []string{"roles"},
-			Verbs:     []string{"get", "create"},
-		},
-		{
-			APIGroups: []string{"authorization.openshift.io", "rbac.authorization.k8s.io"},
-			Resources: []string{"rolebindings"},
-			Verbs:     []string{"get", "update", "create"},
-		},
+	k8sPolicies := []rbac.PolicyRule{
 		{
 			APIGroups: []string{""},
 			Resources: []string{"serviceaccounts"},
@@ -297,11 +295,6 @@ func getCheWorkspacesPolicy() []rbac.PolicyRule {
 		{
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumeclaims", "configmaps"},
-			Verbs:     []string{"list"},
-		},
-		{
-			APIGroups: []string{"apps"},
-			Resources: []string{"secrets"},
 			Verbs:     []string{"list"},
 		},
 		{
@@ -320,11 +313,6 @@ func getCheWorkspacesPolicy() []rbac.PolicyRule {
 			Verbs:     []string{"get", "create", "list", "watch", "delete"},
 		},
 		{
-			APIGroups: []string{"apps"},
-			Resources: []string{"deployments"},
-			Verbs:     []string{"get", "create", "list", "watch", "patch", "delete"},
-		},
-		{
 			APIGroups: []string{""},
 			Resources: []string{"services"},
 			Verbs:     []string{"create", "list", "delete"},
@@ -335,14 +323,19 @@ func getCheWorkspacesPolicy() []rbac.PolicyRule {
 			Verbs:     []string{"get", "create", "delete"},
 		},
 		{
-			APIGroups: []string{"route.openshift.io"},
-			Resources: []string{"routes"},
-			Verbs:     []string{"list", "create", "delete"},
-		},
-		{
 			APIGroups: []string{""},
 			Resources: []string{"events"},
 			Verbs:     []string{"watch"},
+		},
+		{
+			APIGroups: []string{"apps"},
+			Resources: []string{"secrets"},
+			Verbs:     []string{"list"},
+		},
+		{
+			APIGroups: []string{"apps"},
+			Resources: []string{"deployments"},
+			Verbs:     []string{"get", "create", "list", "watch", "patch", "delete"},
 		},
 		{
 			APIGroups: []string{"apps"},
@@ -354,5 +347,37 @@ func getCheWorkspacesPolicy() []rbac.PolicyRule {
 			Resources: []string{"ingresses"},
 			Verbs:     []string{"list", "create", "watch", "get", "delete"},
 		},
+		{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"roles"},
+			Verbs:     []string{"get", "create"},
+		},
+		{
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "update", "create"},
+		},
 	}
+	openshiftPolicies := []rbac.PolicyRule{
+		{
+			APIGroups: []string{"route.openshift.io"},
+			Resources: []string{"routes"},
+			Verbs:     []string{"list", "create", "delete"},
+		},
+		{
+			APIGroups: []string{"authorization.openshift.io"},
+			Resources: []string{"roles"},
+			Verbs:     []string{"get", "create"},
+		},
+		{
+			APIGroups: []string{"authorization.openshift.io"},
+			Resources: []string{"rolebindings"},
+			Verbs:     []string{"get", "update", "create"},
+		},
+	}
+
+	if util.IsOpenShift {
+		return append(k8sPolicies, openshiftPolicies...)
+	}
+	return k8sPolicies
 }

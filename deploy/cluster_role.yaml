@@ -80,7 +80,6 @@ rules:
       - delete
   - apiGroups:
       - authorization.openshift.io
-      - rbac.authorization.k8s.io
     resources:
       - roles
     verbs:
@@ -89,6 +88,22 @@ rules:
       - delete
   - apiGroups:
       - authorization.openshift.io
+    resources:
+      - rolebindings
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+    verbs:
+      - get
+      - create
+      - delete
+  - apiGroups:
       - rbac.authorization.k8s.io
     resources:
       - rolebindings
