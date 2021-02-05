@@ -562,35 +562,36 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		_, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
-		if err != nil && !errors.IsNotFound(err) && !tests {
+		clusterRole, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
+		if err != nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-
-		policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
-		deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
-		if err != nil && !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-		// fall back to the "narrower" workspace namespace strategy
-		if len(deniedRules) > 0 {
-			logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
-			logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
-			delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
-			instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
-			r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);
-			if err != nil && !tests {
-				logrus.Error(err)
-				return reconcile.Result{RequeueAfter: time.Second * 1}, err
-			}
-		} else if !util.IsOAuthEnabled(instance) {
-			reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
+		if clusterRole == nil {
+			policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
+			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
 			if err != nil {
-				logrus.Error(err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
-			if reconcileResult.Requeue && !tests {
-				return reconcileResult, err
+			// fall back to the "narrower" workspace namespace strategy
+			if len(deniedRules) > 0 {
+				logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
+				logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
+				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
+				instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
+				r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);
+				if err != nil {
+					logrus.Error(err)
+					return reconcile.Result{RequeueAfter: time.Second * 1}, err
+				}
+			} else {
+				reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
+				if err != nil {
+					logrus.Error(err)
+					return reconcile.Result{RequeueAfter: time.Second}, err
+				}
+				if reconcileResult.Requeue {
+					return reconcileResult, err
+				}
 			}
 		}
 	}
