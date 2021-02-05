@@ -100,10 +100,14 @@ waitWorkspaceStart() {
     chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
-
+    WORKSPACE_ID=$(echo "$workspaceList" | grep RUNNING | awk '{ print $1} ')
+    WORKSPACE_NAMESPACE=$(echo "$workspaceList" | grep RUNNING | awk '{ print $3} ')
+    export WORKSPACE_ID
     if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
     then
       echo "[INFO] Workspace started successfully"
+      unset WORKSPACE_ID
+      unset WORKSPACE_NAMESPACE
       break
     fi
     sleep 10
@@ -131,6 +135,10 @@ installYq() {
 collectCheLogWithChectl() {
   mkdir -p ${ARTIFACTS_DIR}
   chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
+  if [ -n "${WORKSPACE_ID}" ]; then
+    echo "[INFO] Collect workspace ${WORKSPACE_ID} logs."
+    chectl workspace:logs -w "${WORKSPACE_ID}" --directory="${ARTIFACTS_DIR}" -n "${WORKSPACE_NAMESPACE}" || true
+  fi
 }
 
 # Build latest operator image
