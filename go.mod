@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20200901231735-f852a5a3ea5c
+	github.com/golang/mock v1.3.1
 	github.com/google/go-cmp v0.4.0
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/operator-framework/api v0.3.20

@@ -104,3 +104,18 @@ func getSpecRoleBinding(
 
 	return roleBinding, nil
 }
+
+func DeleteRoleBinding(name string, namespace string, client runtimeClient.Client) error {
+	roleBinding := &rbac.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	err := client.Delete(context.TODO(), roleBinding)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	return nil
+}

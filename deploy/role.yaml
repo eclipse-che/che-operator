@@ -88,7 +88,9 @@ rules:
 - apiGroups:
   - org.eclipse.che
   resources:
-  - '*'
+  - checlusters
+  - checlusters/status
+  - checlusters/finalizers
   verbs:
   - '*'
 - apiGroups:

@@ -67,7 +67,7 @@ metadata:
               "singleHostGatewayImage": "",
               "tlsSupport": true,
               "useInternalClusterSVCNames": true,
-              "workspaceNamespaceDefault": ""
+              "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
               "postgresPVCStorageClassName": "",
@@ -84,13 +84,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-01-28T11:15:38Z"
+    createdAt: "2021-02-05T00:59:18Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.26.0-82.nightly
+  name: eclipse-che-preview-kubernetes.v7.26.0-88.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -274,6 +274,151 @@ spec:
                 - create
                 - watch
                 - update
+                - get
+                - delete
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterroles
+              verbs:
+                - list
+                - create
+                - watch
+                - update
+                - get
+                - delete
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - roles
+              verbs:
+                - get
+                - create
+                - delete
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+              verbs:
+                - get
+                - create
+                - update
+                - delete
+            - apiGroups:
+                - org.eclipse.che
+              resources:
+                - checlusters
+                - checlusters/finalizers
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - get
+                - create
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - serviceaccounts
+              verbs:
+                - get
+                - create
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods/exec
+              verbs:
+                - create
+            - apiGroups:
+                - apps
+              resources:
+                - secrets
+              verbs:
+                - list
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - create
+                - watch
+                - delete
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - get
+                - list
+                - create
+                - patch
+                - watch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - create
+                - delete
+                - list
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+              verbs:
+                - list
+                - get
+                - patch
+                - delete
+            - apiGroups:
+                - extensions
+              resources:
+                - ingresses
+              verbs:
+                - list
+                - create
+                - watch
+                - get
+                - delete
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
@@ -282,6 +427,8 @@ spec:
                 - namespaces
               verbs:
                 - update
+                - list
+                - create
                 - get
           serviceAccountName: che-namespace-editor
       deployments:
@@ -398,7 +545,7 @@ spec:
                           - ALL
                 restartPolicy: Always
                 serviceAccountName: che-operator
-                terminationGracePeriodSeconds: 5
+                terminationGracePeriodSeconds: 20
       permissions:
         - rules:
             - apiGroups:
@@ -464,7 +611,9 @@ spec:
             - apiGroups:
                 - org.eclipse.che
               resources:
-                - '*'
+                - checlusters
+                - checlusters/status
+                - checlusters/finalizers
               verbs:
                 - '*'
             - apiGroups:
@@ -528,4 +677,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.26.0-82.nightly
+  version: 7.26.0-88.nightly

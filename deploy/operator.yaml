@@ -123,4 +123,4 @@ spec:
               cpu: 500m
       restartPolicy: Always
       serviceAccountName: che-operator
-      terminationGracePeriodSeconds: 5
+      terminationGracePeriodSeconds: 20

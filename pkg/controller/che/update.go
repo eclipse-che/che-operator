@@ -13,7 +13,7 @@ package che
 
 import (
 	"context"
-	 "github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"

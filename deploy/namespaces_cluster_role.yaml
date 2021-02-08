@@ -23,4 +23,6 @@ rules:
       - namespaces
     verbs:
       - update
+      - list
+      - create
       - get
