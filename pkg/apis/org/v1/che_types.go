@@ -341,7 +341,7 @@ type CheClusterSpecAuth struct {
 	// - If value is an empty, then do nothing.
 	// The user's credentials are stored in the openshift-oauth-user-credentials secret by Operator.
 	// Note that this solution is Openshift 4 platform-specific.
-	CreateOpenShiftOAuthUser bool `json:"createOpenShiftOAuthUser"`
+	InitialOpenShiftOAuthUser *bool `json:"initialOpenShiftOAuthUser,omitempty"`
 	// Instructs the Operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
 	// By default, a dedicated Identity Provider server is deployed as part of the Che installation. When `externalIdentityProvider` is `true`,
 	// no dedicated identity provider will be deployed by the Operator and you will need to provide details about the external identity provider you are about to use.
