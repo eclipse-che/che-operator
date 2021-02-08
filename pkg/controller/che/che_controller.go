@@ -390,7 +390,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 		instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
-		if err := r.UpdateCheCRStatus(instance, "IdentityProviderInitialUserSecret", openShiftOAuthUserCredentialsSecret); err != nil {
+		if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
