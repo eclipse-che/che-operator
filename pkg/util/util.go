@@ -355,6 +355,14 @@ func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	return false
 }
 
+// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
+func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
+	if c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser {
+		return true
+	}
+	return false
+}
+
 // IsWorkspaceInSameNamespaceWithChe return true when Che workspaces will be executed in the same namespace with Che, otherwise returns false.
 func IsWorkspaceInSameNamespaceWithChe(cr *orgv1.CheCluster) bool {
 	return GetWorkspaceNamespaceDefault(cr) == cr.Namespace

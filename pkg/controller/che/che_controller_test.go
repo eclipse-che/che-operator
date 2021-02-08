@@ -210,7 +210,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		openshiftVersion                    string
 		initialOAuthValue                   *bool
 		oAuthExpected                       *bool
-		createOpenshiftOAuthUser            bool
+		initialOpenShiftOAuthUserEnabled    *bool
 		OpenShiftOAuthUserCredentialsSecret string
 		mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler
 	}
@@ -293,7 +293,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			openshiftVersion:         "4",
 			initialOAuthValue:        util.NewBoolPointer(true),
 			oAuthExpected:            util.NewBoolPointer(true),
-			createOpenshiftOAuthUser: true,
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string, userNamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler {
 				m := che_mocks.NewMockOpenShiftOAuthUserHandler(ctrl)
 				m.EXPECT().CreateOAuthInitialUser(userNamePrefix, crNamespace, gomock.Any())
@@ -309,7 +309,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			openshiftVersion:         "4",
 			initialOAuthValue:        util.NewBoolPointer(true),
 			oAuthExpected:            util.NewBoolPointer(true),
-			createOpenshiftOAuthUser: true,
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
@@ -334,7 +334,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects:              []runtime.Object{},
 			openshiftVersion:         "4",
 			initialOAuthValue:        nil,
-			createOpenshiftOAuthUser: true,
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 			oAuthExpected:            util.NewBoolPointer(false),
 		},
 	}
@@ -351,7 +351,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
 			testCase.initObjects = append(testCase.initObjects, initCR)
-			initCR.Spec.Auth.CreateOpenShiftOAuthUser = testCase.createOpenshiftOAuthUser
+			initCR.Spec.Auth.InitialOpenShiftOAuthUser = testCase.initialOpenShiftOAuthUserEnabled
 
 			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)

@@ -51,15 +51,6 @@ spec:
               description: Configuration settings related to the Authentication used
                 by the Che installation.
               properties:
-                createOpenShiftOAuthUser:
-                  description: 'Since `kubeadmin` is not a part of OpenShift OAuth
-                    authentication workflow it is needed a new user for this. If value
-                    is true then a new OpenShift OAuth user will be created for HTPasswd
-                    identity provider. If value is false and the user has been already
-                    created then it will be removed. The users credentials is stored
-                    into `openshift-oauth-user-credentials` secret. Notice: it is
-                    Openshift 4 platform specific.'
-                  type: boolean
                 externalIdentityProvider:
                   description: 'Instructs the Operator on whether or not to deploy
                     a dedicated Identity Provider (Keycloak or RH SSO instance). By
@@ -187,6 +178,16 @@ spec:
                     By default, this will be automatically calculated and set by the
                     Operator.
                   type: string
+                initialOpenShiftOAuthUser:
+                  description: For operating with the OpenShift OAuth authentication,
+                    create a new user account since the kubeadmin can not be used.
+                    - If the value is true, then a new OpenShift OAuth user will be
+                    created for the HTPasswd identity provider. - If the value is
+                    false and the user has already been created, then it will be removed.
+                    - If value is an empty, then do nothing. The user's credentials
+                    are stored in the openshift-oauth-user-credentials secret by Operator.
+                    Note that this solution is Openshift 4 platform-specific.
+                  type: boolean
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
                     setup identity federation on the OpenShift side. Auto-generated
