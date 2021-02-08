@@ -111,6 +111,19 @@
                 "reveal": "always"
             },
             "group": "build"
-        }
+        },
+        {
+            "label": "Delete Che (useful command after debug)",
+            "command": "echo y | chectl server:delete -n che",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
     ]
 }
