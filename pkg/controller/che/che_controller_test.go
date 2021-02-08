@@ -290,9 +290,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
 			},
-			openshiftVersion:         "4",
-			initialOAuthValue:        util.NewBoolPointer(true),
-			oAuthExpected:            util.NewBoolPointer(true),
+			openshiftVersion:                 "4",
+			initialOAuthValue:                util.NewBoolPointer(true),
+			oAuthExpected:                    util.NewBoolPointer(true),
 			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string, userNamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler {
 				m := che_mocks.NewMockOpenShiftOAuthUserHandler(ctrl)
@@ -306,9 +306,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
 			},
-			openshiftVersion:         "4",
-			initialOAuthValue:        util.NewBoolPointer(true),
-			oAuthExpected:            util.NewBoolPointer(true),
+			openshiftVersion:                 "4",
+			initialOAuthValue:                util.NewBoolPointer(true),
+			oAuthExpected:                    util.NewBoolPointer(true),
 			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 		},
 		{
@@ -330,12 +330,12 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
 		{
-			name:                     "che-operator should auto disable oAuth on error retieve identity providers",
-			initObjects:              []runtime.Object{},
-			openshiftVersion:         "4",
-			initialOAuthValue:        nil,
+			name:                             "che-operator should auto disable oAuth on error retieve identity providers",
+			initObjects:                      []runtime.Object{},
+			openshiftVersion:                 "4",
+			initialOAuthValue:                nil,
 			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
-			oAuthExpected:            util.NewBoolPointer(false),
+			oAuthExpected:                    util.NewBoolPointer(false),
 		},
 	}
 	for _, testCase := range testCases {

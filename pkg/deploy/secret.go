@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/google/go-cmp/cmp"
@@ -130,5 +131,45 @@ func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name 
 		}
 	}
 
+	return nil
+}
+
+// DeleteSecret - delete secret by name and namespace
+func DeleteSecret(secretName string, namespace string, runtimeClient client.Client) error {
+	logrus.Infof("Delete secret: %s in the namespace: %s", secretName, namespace)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+	}
+
+	if err := runtimeClient.Delete(context.TODO(), secret); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+// CreateSecret - create secret by name and namespace
+func CreateSecret(content map[string][]byte, secretName string, namespace string, runtimeClient client.Client) error {
+	secret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+		Data: content,
+	}
+	if err := runtimeClient.Create(context.TODO(), secret); err != nil {
+		return err
+	}
 	return nil
 }

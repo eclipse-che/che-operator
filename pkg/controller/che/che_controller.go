@@ -283,10 +283,10 @@ type ReconcileChe struct {
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
 	// in the API Server
-	discoveryClient discovery.DiscoveryInterface
-	scheme          *runtime.Scheme
-	tests           bool
-	userHandler     OpenShiftOAuthUserHandler
+	discoveryClient   discovery.DiscoveryInterface
+	scheme            *runtime.Scheme
+	tests             bool
+	userHandler       OpenShiftOAuthUserHandler
 	permissionChecker PermissionChecker
 }
 
@@ -384,7 +384,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if isOpenShift4 && !util.IsInitialOpenShiftOAuthUserEnabled(instance) && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
+	if isOpenShift4 && instance.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*instance.Spec.Auth.InitialOpenShiftOAuthUser && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
 		if err := r.userHandler.DeleteOAuthInitialUser(instance.Namespace, deploy.DefaultCheFlavor(instance)); err != nil {
 			logrus.Errorf("Unable to delete initial user from cluster. Cause: %s", err.Error())
 			return reconcile.Result{}, err
@@ -598,7 +598,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
 				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 				instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
-				r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);
+				err := r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace)
 				if err != nil {
 					logrus.Error(err)
 					return reconcile.Result{RequeueAfter: time.Second * 1}, err
@@ -1134,11 +1134,17 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
 				oauth = true
 			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				if err := r.userHandler.CreateOAuthInitialUser(deploy.DefaultCheFlavor(cr), deployContext.CheCluster.Namespace, openshitOAuth); err != nil {
+				if err := r.userHandler.CreateOAuthInitialUser(deploy.DefaultCheFlavor(cr), cr.Namespace, openshitOAuth); err != nil {
 					message = warningNoIdentityProvidersMessage + " Operator tried to create initial identity provider, but failed. Cause: " + err.Error()
 					logrus.Warn(message)
 					logrus.Info(" You can create identity provider manually:" + howToAddIdentityProviderLinkOS4)
 					reason = failedNoIdentityProviders
+					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
+					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
+					if err := r.UpdateCheCRStatus(cr, "initialOpenShiftOAuthUser", ""); err != nil {
+						return reconcile.Result{}, err
+					}
+					oauth = false
 				} else {
 					oauth = true
 					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {

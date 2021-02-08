@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2020 Red Hat, Inc.
+// Copyright (c) 2012-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,6 +17,7 @@ import (
 
 	errorMsg "errors"
 
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/config/v1"
@@ -36,17 +37,20 @@ const (
 	openShiftOAuthUserCredentialsSecret = "openshift-oauth-user-credentials"
 )
 
+// OpenShiftOAuthUserHandler - handler to create or delete new Openshift oAuth user.
 type OpenShiftOAuthUserHandler interface {
-	CreateOAuthInitialUser(userNamePrefix string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error
-	DeleteOAuthInitialUser(userNamePrefix string, crNamespace string) error
+	CreateOAuthInitialUser(userName string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error
+	DeleteOAuthInitialUser(userName string, crNamespace string) error
 }
 
+// OpenShiftOAuthUserOperatorHandler - implementation OpenShiftOAuthUserHandler.
 type OpenShiftOAuthUserOperatorHandler struct {
 	OpenShiftOAuthUserHandler
 	runtimeClient client.Client
 	runnable      util.Runnable
 }
 
+// NewOpenShiftOAuthUserHandler - create new OpenShiftOAuthUserHandler instance
 func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUserHandler {
 	return &OpenShiftOAuthUserOperatorHandler{
 		runtimeClient: runtimeClient,
@@ -55,26 +59,24 @@ func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUse
 	}
 }
 
-// CreateOauthInitialUser - creates new htpasswd provider with inital user with name 'che-user'
-// if Openshift cluster has got no identity providers, otherwise do nothing.
+// CreateOAuthInitialUser - creates new htpasswd provider with inital user with Che flavor name
+// if Openshift cluster hasn't got identity providers, otherwise do nothing.
 // It usefull for good first user expirience.
 // User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
 // initial user for good first meeting with Eclipse Che.
-func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(userNamePrefix string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
+func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(userName string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
 	password := util.GeneratePasswd(6)
-
-	userName := getUserName(userNamePrefix)
-	htpasswdFileContent, err := handler.generateHtPasswdUserInfo(userName, password)
+	htpasswdFileContent, err := iuh.generateHtPasswdUserInfo(userName, password)
 	if err != nil {
 		return err
 	}
 
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{Name: htpasswdSecretName, Namespace: ocConfigNamespace}
-	if err := handler.runtimeClient.Get(context.TODO(), nsName, secret); err != nil {
+	if err := iuh.runtimeClient.Get(context.TODO(), nsName, secret); err != nil {
 		if errors.IsNotFound(err) {
 			htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
-			if err = createSecret(htpasswdFileSecretData, htpasswdSecretName, ocConfigNamespace, handler.runtimeClient); err != nil {
+			if err = deploy.CreateSecret(htpasswdFileSecretData, htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
 				return err
 			}
 		} else {
@@ -82,20 +84,21 @@ func (handler *OpenShiftOAuthUserOperatorHandler) CreateOauthInitialUser(userNam
 		}
 	}
 
-	if err := appendIdentityProvider(openshiftOAuth, handler.runtimeClient); err != nil {
+	if err := appendIdentityProvider(openshiftOAuth, iuh.runtimeClient); err != nil {
 		return err
 	}
 
 	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
-	if err := createSecret(initialUserSecretData, openShiftOAuthUserCredentialsSecret, crNamespace, handler.runtimeClient); err != nil {
+	logrus.Info("Create initial user secret for che-operator")
+	if err := deploy.CreateSecret(initialUserSecretData, openShiftOAuthUserCredentialsSecret, crNamespace, iuh.runtimeClient); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// DeleteOauthInitialUser removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.
-func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(userNamePrefix string, crNamespace string) error {
+// DeleteOAuthInitialUser - removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.
+func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(userName string, crNamespace string) error {
 	oAuth, err := GetOpenshiftOAuth(iuh.runtimeClient)
 	if err != nil {
 		return err
@@ -109,12 +112,11 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(userNamePre
 	}
 
 	if identityProviderExists {
-		userName := getUserName(userNamePrefix)
-		if err := deleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
+		if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
 
-		if err := deleteSecret(openShiftOAuthUserCredentialsSecret, crNamespace, iuh.runtimeClient); err != nil {
+		if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, crNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
 
@@ -134,10 +136,10 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOauthInitialUser(userNamePre
 	return nil
 }
 
-func (iuh *OpenShiftOAuthUserOperatorHandler) generateHtPasswdUserInfo(username string, password string) (string, error) {
+func (iuh *OpenShiftOAuthUserOperatorHandler) generateHtPasswdUserInfo(userName string, password string) (string, error) {
 	logrus.Info("Generate initial user httpasswd info")
 
-	err := iuh.runnable.Run("htpasswd", "-nbB", username, password)
+	err := iuh.runnable.Run("htpasswd", "-nbB", userName, password)
 	if err != nil {
 		return "", err
 	}
@@ -155,25 +157,6 @@ func GetOpenshiftOAuth(runtimeClient client.Client) (*oauthv1.OAuth, error) {
 		return nil, err
 	}
 	return oAuth, nil
-}
-
-func createSecret(content map[string][]byte, secretName string, namespace string, runtimeClient client.Client) error {
-	logrus.Info("Create initial user secret for che-operator")
-	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-		Data: content,
-	}
-	if err := runtimeClient.Create(context.TODO(), secret); err != nil {
-		return err
-	}
-	return nil
 }
 
 func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) error {
@@ -200,26 +183,6 @@ func newHtpasswdProvider() *oauthv1.IdentityProvider {
 			},
 		},
 	}
-}
-
-func deleteSecret(secretName string, namespace string, runtimeClient client.Client) error {
-	logrus.Infof("Delete secret: %s in the namespace: %s", secretName, namespace)
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-	}
-
-	if err := runtimeClient.Delete(context.TODO(), secret); err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-
-	return nil
 }
 
 func deleteInitialUser(runtimeClient client.Client, userName string) error {
@@ -279,8 +242,4 @@ func deleteIdentityProvider(oAuth *configv1.OAuth, runtimeClient client.Client) 
 	}
 
 	return nil
-}
-
-func getUserName(userNamePrefix string) string {
-	return userNamePrefix + "-user"
 }
