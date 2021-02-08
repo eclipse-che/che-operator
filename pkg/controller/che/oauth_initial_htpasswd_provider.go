@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	htpasswdIdentityProviderName        = "htpasswd-eclipse"
+	htpasswdIdentityProviderName        = "htpasswd-eclipse-che"
 	htpasswdSecretName                  = "htpasswd-eclipse-che"
 	ocConfigNamespace                   = "openshift-config"
 	openShiftOAuthUserCredentialsSecret = "openshift-oauth-user-credentials"
