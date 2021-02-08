@@ -77,11 +77,12 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		return nil, err
 	}
 	return &ReconcileChe{
-		client:          mgr.GetClient(),
-		nonCachedClient: noncachedClient,
-		scheme:          mgr.GetScheme(),
-		discoveryClient: discoveryClient,
-		userHandler:     NewOpenShiftOAuthUserHandler(noncachedClient),
+		client:            mgr.GetClient(),
+		nonCachedClient:   noncachedClient,
+		scheme:            mgr.GetScheme(),
+		discoveryClient:   discoveryClient,
+		userHandler:       NewOpenShiftOAuthUserHandler(noncachedClient),
+		permissionChecker: &K8sApiPermissionChecker{},
 	}, nil
 }
 
@@ -260,8 +261,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileChe{}
-var oAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
+var (
+	_ reconcile.Reconciler = &ReconcileChe{}
+
+	oAuthFinalizerName                           = "oauthclients.finalizers.che.eclipse.org"
+	cheWorkspacesClusterPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
+
+	// CheServiceAccountName - service account name for che-server.
+	CheServiceAccountName = "che"
+)
 
 // ReconcileChe reconciles a CheCluster object
 type ReconcileChe struct {
@@ -279,6 +287,7 @@ type ReconcileChe struct {
 	scheme          *runtime.Scheme
 	tests           bool
 	userHandler     OpenShiftOAuthUserHandler
+	permissionChecker PermissionChecker
 }
 
 const (
@@ -335,6 +344,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := r.ReconcileFinalizer(instance); err != nil {
 			return reconcile.Result{}, err
 		}
+	}
+	if r.reconcileWorkspacePermissionsFinalizer(instance, deployContext); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Reconcile the imagePuller section of the CheCluster
@@ -553,10 +565,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create service accounts:
-	// che is the one which token is used to create workspace objects
-	// che-workspace is SA used by plugins like exec and terminal with limited privileges
-	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che")
+	// Create service account "che" for che-server component.
+	// "che" is the one which token is used to create workspace objects.
+	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
+	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
 	if cheSA == nil {
 		logrus.Info("Waiting on service account 'che' to be created")
 		if err != nil {
@@ -567,49 +579,50 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, "che-workspace")
-	if cheWorkspaceSA == nil {
-		logrus.Info("Waiting on service account 'che-workspace' to be created")
+	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
+		clusterRole, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
 		if err != nil {
 			logrus.Error(err)
-		}
-		if !tests {
 			return reconcile.Result{RequeueAfter: time.Second}, err
+		}
+		if clusterRole == nil {
+			policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
+			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
+			if err != nil {
+				logrus.Error(err)
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+			// fall back to the "narrower" workspace namespace strategy
+			if len(deniedRules) > 0 {
+				logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
+				logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
+				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
+				instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
+				r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);
+				if err != nil {
+					logrus.Error(err)
+					return reconcile.Result{RequeueAfter: time.Second * 1}, err
+				}
+			} else {
+				reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(instance, deployContext)
+				if err != nil {
+					logrus.Error(err)
+					return reconcile.Result{RequeueAfter: time.Second}, err
+				}
+				if reconcileResult.Requeue {
+					return reconcileResult, err
+				}
+			}
 		}
 	}
 
-	// create exec role for CheCluster server and workspaces
-	execRole, err := deploy.SyncExecRoleToCluster(deployContext)
-	if execRole == nil {
-		logrus.Info("Waiting on role 'exec' to be created")
+	if util.IsOAuthEnabled(instance) || util.IsWorkspaceInSameNamespaceWithChe(instance) {
+		reconcile, err := r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
-	// create view role for CheCluster server and workspaces
-	viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
-	if viewRole == nil {
-		logrus.Info("Waiting on role 'view' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
-	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che", "che", "edit", "ClusterRole")
-	if cheRoleBinding == nil {
-		logrus.Info("Waiting on role binding 'che' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+		if reconcile.Requeue && !tests {
+			return reconcile, err
 		}
 	}
 
@@ -628,28 +641,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					return reconcile.Result{RequeueAfter: time.Second}, err
 				}
 			}
-		}
-	}
-
-	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-exec", "che-workspace", "exec", "Role")
-	if cheWSExecRoleBinding == nil {
-		logrus.Info("Waiting on role binding 'che-workspace-exec' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
-	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-view", "che-workspace", "view", "Role")
-	if cheWSViewRoleBinding == nil {
-		logrus.Info("Waiting on role binding 'che-workspace-view' to be created")
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -968,7 +959,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
 	if deleted {
 		for {
-			if err := r.DeleteFinalizer(instance); err != nil &&
+			if err := r.DeleteOAuthFinalizer(instance); err != nil &&
 				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue

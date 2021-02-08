@@ -15,10 +15,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+
 	"os"
 	"runtime"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
+	"github.com/eclipse/che-operator/cmd/manager/signal"
 	"github.com/eclipse/che-operator/pkg/util"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -37,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 var (
@@ -170,7 +171,9 @@ func main() {
 	logrus.Info("Starting the Cmd")
 
 	// Start the Cmd
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), namespace)
+	logrus.Info("Create manager")
+	if err := mgr.Start(signal.SetupSignalHandler(period)); err != nil {
 		logrus.Error(err, "Manager exited non-zero")
 		os.Exit(1)
 	}

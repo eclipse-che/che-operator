@@ -59,7 +59,7 @@ metadata:
               "singleHostGatewayImage": "",
               "tlsSupport": true,
               "useInternalClusterSVCNames": true,
-              "workspaceNamespaceDefault": ""
+              "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
               "postgresPVCStorageClassName": "",
@@ -76,7 +76,7 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-01-29T09:31:46Z"
+    createdAt: "2021-02-05T00:59:26Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
@@ -313,6 +313,189 @@ spec:
                 - create
                 - watch
                 - update
+                - get
+                - delete
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterroles
+              verbs:
+                - list
+                - create
+                - watch
+                - update
+                - get
+                - delete
+            - apiGroups:
+                - authorization.openshift.io
+              resources:
+                - roles
+              verbs:
+                - get
+                - create
+                - delete
+            - apiGroups:
+                - authorization.openshift.io
+              resources:
+                - rolebindings
+              verbs:
+                - get
+                - create
+                - update
+                - delete
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - roles
+              verbs:
+                - get
+                - create
+                - delete
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+              verbs:
+                - get
+                - create
+                - update
+                - delete
+            - apiGroups:
+                - org.eclipse.che
+              resources:
+                - checlusters
+                - checlusters/finalizers
+              verbs:
+                - '*'
+            - apiGroups:
+                - project.openshift.io
+              resources:
+                - projectrequests
+              verbs:
+                - create
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - get
+                - create
+                - update
+            - apiGroups:
+                - project.openshift.io
+              resources:
+                - projects
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - serviceaccounts
+              verbs:
+                - get
+                - create
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods/exec
+              verbs:
+                - create
+            - apiGroups:
+                - apps
+              resources:
+                - secrets
+              verbs:
+                - list
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - create
+                - watch
+                - delete
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - get
+                - list
+                - create
+                - patch
+                - watch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - create
+                - delete
+                - list
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+              verbs:
+                - list
+                - get
+                - patch
+                - delete
+            - apiGroups:
+                - extensions
+              resources:
+                - ingresses
+              verbs:
+                - list
+                - create
+                - watch
+                - get
+                - delete
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
@@ -321,6 +504,8 @@ spec:
                 - namespaces
               verbs:
                 - update
+                - list
+                - create
                 - get
           serviceAccountName: che-namespace-editor
       deployments:
@@ -435,7 +620,7 @@ spec:
                           - ALL
                 restartPolicy: Always
                 serviceAccountName: che-operator
-                terminationGracePeriodSeconds: 5
+                terminationGracePeriodSeconds: 20
       permissions:
         - rules:
             - apiGroups:
@@ -508,7 +693,9 @@ spec:
             - apiGroups:
                 - org.eclipse.che
               resources:
-                - '*'
+                - checlusters
+                - checlusters/status
+                - checlusters/finalizers
               verbs:
                 - '*'
             - apiGroups:

@@ -40,7 +40,7 @@ func SyncClusterRoleBindingToCluster(
 		return nil, err
 	}
 
-	clusterRB, err := getClusterRoleBiding(specCRB.Name, deployContext.ClusterAPI.Client)
+	clusterRB, err := GetClusterRoleBiding(specCRB.Name, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func SyncClusterRoleBindingToCluster(
 	return clusterRB, nil
 }
 
-func getClusterRoleBiding(name string, client runtimeClient.Client) (*rbac.ClusterRoleBinding, error) {
+func GetClusterRoleBiding(name string, client runtimeClient.Client) (*rbac.ClusterRoleBinding, error) {
 	clusterRoleBinding := &rbac.ClusterRoleBinding{}
 	crbName := types.NamespacedName{Name: name}
 	err := client.Get(context.TODO(), crbName, clusterRoleBinding)
@@ -111,4 +111,18 @@ func getSpecClusterRoleBinding(
 	}
 
 	return clusterRoleBinding, nil
+}
+
+func DeleteClusterRoleBinding(clusterRoleBindingName string, client runtimeClient.Client) error {
+	clusterRoleBinding := &rbac.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusterRoleBindingName,
+		},
+	}
+	err := client.Delete(context.TODO(), clusterRoleBinding)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	return nil
 }

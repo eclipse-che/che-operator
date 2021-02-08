@@ -26,6 +26,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	// ViewRoleName role to get k8s object needed for Workspace components(metrics plugin, Che terminals, tasks etc.)
+	ViewRoleName = "view"
+	// ExecRoleName - role name to create Che terminals and tasks in the workspace.
+	ExecRoleName = "exec"
+)
+
 var roleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
 	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
@@ -62,7 +69,7 @@ func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, "exec", execPolicyRule)
+	return SyncRoleToCluster(deployContext, ExecRoleName, execPolicyRule)
 }
 
 func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
@@ -90,7 +97,7 @@ func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 			},
 		},
 	}
-	return SyncRoleToCluster(deployContext, "view", viewPolicyRule)
+	return SyncRoleToCluster(deployContext, ViewRoleName, viewPolicyRule)
 }
 
 func SyncRoleToCluster(
@@ -103,7 +110,7 @@ func SyncRoleToCluster(
 		return nil, err
 	}
 
-	clusterRole, err := getClusterRole(specRole.Name, specRole.Namespace, deployContext.ClusterAPI.Client)
+	clusterRole, err := getCheClusterRole(specRole.Name, specRole.Namespace, deployContext.ClusterAPI.Client)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +133,7 @@ func SyncRoleToCluster(
 	return clusterRole, nil
 }
 
-func getClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
+func getCheClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
 	role := &rbac.Role{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
@@ -163,4 +170,18 @@ func getSpecRole(deployContext *DeployContext, name string, policyRule []rbac.Po
 	}
 
 	return role, nil
+}
+
+func DeleteRole(name string, namespace string, client runtimeClient.Client) error {
+	role := &rbac.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	err := client.Delete(context.TODO(), role)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }

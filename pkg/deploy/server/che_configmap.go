@@ -115,17 +115,12 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	defaultTargetNamespaceDefault := deployContext.CheCluster.Namespace // By default Che SA has right in the namespace where Che in installed ...
 	if isOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
-		// ... But if the workspace is created under the openshift identity of the end-user,
-		// Then we'll have rights to create any new namespace
-		defaultTargetNamespaceDefault = "<username>-" + cheFlavor
 		openShiftIdentityProviderId = "openshift-v3"
 		if isOpenshift4 {
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
-	defaultTargetNamespace := util.GetValue(deployContext.CheCluster.Spec.Server.WorkspaceNamespaceDefault, defaultTargetNamespaceDefault)
 	namespaceAllowUserDefined := strconv.FormatBool(deployContext.CheCluster.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	protocol := "http"
@@ -180,6 +175,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
 	workspaceExposure := deploy.GetSingleHostExposureType(deployContext.CheCluster)
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
+	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(deployContext.CheCluster)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI string
@@ -219,7 +215,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		CheDebugServer:                         cheDebug,
 		CheInfrastructureActive:                infra,
 		CheInfraKubernetesServiceAccountName:   "che-workspace",
-		DefaultTargetNamespace:                 defaultTargetNamespace,
+		DefaultTargetNamespace:                 workspaceNamespaceDefault,
 		NamespaceAllowUserDefined:              namespaceAllowUserDefined,
 		PvcStrategy:                            pvcStrategy,
 		PvcClaimSize:                           pvcClaimSize,
@@ -284,10 +280,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 
 		// Add TLS key and server certificate to properties when user workspaces should be created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
-		k8sDefaultNamespace := deployContext.CheCluster.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
-		if (defaultTargetNamespace != "" && defaultTargetNamespace != deployContext.CheCluster.Namespace) ||
-			(k8sDefaultNamespace != "" && k8sDefaultNamespace != deployContext.CheCluster.Namespace) {
-
+		if !util.IsWorkspaceInSameNamespaceWithChe(deployContext.CheCluster) {
 			cheTLSSecret, err := deploy.GetClusterSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
 			if err != nil {
 				return nil, err
