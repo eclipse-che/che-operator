@@ -387,6 +387,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if isOpenShift4 && instance.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*instance.Spec.Auth.InitialOpenShiftOAuthUser && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
 		if err := r.userHandler.DeleteOAuthInitialUser(instance.Namespace, deploy.DefaultCheFlavor(instance)); err != nil {
 			logrus.Errorf("Unable to delete initial user from cluster. Cause: %s", err.Error())
+			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
+			if err := r.UpdateCheCRSpec(instance, "InitialOpenShiftOAuthUser", "nil"); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 		instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
 		if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {

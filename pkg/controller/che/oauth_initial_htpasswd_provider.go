@@ -159,16 +159,32 @@ func GetOpenshiftOAuth(runtimeClient client.Client) (*oauthv1.OAuth, error) {
 	return oAuth, nil
 }
 
+func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {
+	if len(oAuth.Spec.IdentityProviders) == 0 {
+		return false
+	}
+	for _, identityProvider := range oAuth.Spec.IdentityProviders {
+		if identityProvider.Name == providerName {
+			return true
+		}
+	}
+	return false
+}
+
 func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) error {
 	logrus.Info("Add initial user httpasswd provider to the oAuth")
 
-	oauthPatch := client.MergeFrom(oAuth.DeepCopy())
 	htpasswdProvider := newHtpasswdProvider()
-	oAuth.Spec.IdentityProviders = append(oAuth.Spec.IdentityProviders, *htpasswdProvider)
+	if !identityProviderExists(htpasswdProvider.Name, oAuth) {
+		oauthPatch := client.MergeFrom(oAuth.DeepCopy())
 
-	if err := runtimeClient.Patch(context.TODO(), oAuth, oauthPatch); err != nil {
-		return err
+		oAuth.Spec.IdentityProviders = append(oAuth.Spec.IdentityProviders, *htpasswdProvider)
+	
+		if err := runtimeClient.Patch(context.TODO(), oAuth, oauthPatch); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
