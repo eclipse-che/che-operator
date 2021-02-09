@@ -60,6 +60,7 @@ kubectl apply -f "${CR}" -n $CHE_NAMESPACE
 cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
 cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
 cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
+cp templates/oauth-provision.sh /tmp/oauth-provision.sh
 
 ENV_FILE=/tmp/che-operator-debug.env
 rm -rf "${ENV_FILE}"

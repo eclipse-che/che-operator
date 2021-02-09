@@ -31,13 +31,14 @@ var secretDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
 }
 
-// SyncSecretToCluster applies secret into cluster
-func SyncSecretToCluster(
+// SyncSecret applies secret into cluster or external namespace
+func SyncSecret(
 	deployContext *DeployContext,
 	name string,
+	namespace string,
 	data map[string][]byte) (*corev1.Secret, error) {
 
-	specSecret, err := GetSpecSecret(deployContext, name, data)
+	specSecret, err := GetSpecSecret(deployContext, name, namespace, data)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func GetClusterSecret(name string, namespace string, clusterAPI ClusterAPI) (*co
 }
 
 // GetSpecSecret return default secret config for given data
-func GetSpecSecret(deployContext *DeployContext, name string, data map[string][]byte) (*corev1.Secret, error) {
+func GetSpecSecret(deployContext *DeployContext, name string, namespace string, data map[string][]byte) (*corev1.Secret, error) {
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -99,15 +100,17 @@ func GetSpecSecret(deployContext *DeployContext, name string, data map[string][]
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: namespace,
 			Labels:    labels,
 		},
 		Data: data,
 	}
 
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, secret, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
+	if deployContext.CheCluster.Namespace == namespace {
+		err := controllerutil.SetControllerReference(deployContext.CheCluster, secret, deployContext.ClusterAPI.Scheme)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return secret, nil
@@ -125,7 +128,7 @@ func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name 
 			return err
 		}
 
-		secret, err = SyncSecretToCluster(deployContext, name, map[string][]byte{"ca.crt": crtBytes})
+		secret, err = SyncSecret(deployContext, name, deployContext.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
 		if err != nil {
 			return err
 		}
@@ -152,24 +155,5 @@ func DeleteSecret(secretName string, namespace string, runtimeClient client.Clie
 		return err
 	}
 
-	return nil
-}
-
-// CreateSecret - create secret by name and namespace
-func CreateSecret(content map[string][]byte, secretName string, namespace string, runtimeClient client.Client) error {
-	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-		Data: content,
-	}
-	if err := runtimeClient.Create(context.TODO(), secret); err != nil {
-		return err
-	}
 	return nil
 }

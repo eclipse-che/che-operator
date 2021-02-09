@@ -23,7 +23,6 @@ import (
 	oauthv1 "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,8 +38,8 @@ const (
 
 // OpenShiftOAuthUserHandler - handler to create or delete new Openshift oAuth user.
 type OpenShiftOAuthUserHandler interface {
-	CreateOAuthInitialUser(userName string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error
-	DeleteOAuthInitialUser(userName string, crNamespace string) error
+	CreateOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) error
+	DeleteOAuthInitialUser(deployContext *deploy.DeployContext) error
 }
 
 // OpenShiftOAuthUserOperatorHandler - implementation OpenShiftOAuthUserHandler.
@@ -64,24 +63,18 @@ func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUse
 // It usefull for good first user expirience.
 // User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
 // initial user for good first meeting with Eclipse Che.
-func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(userName string, crNamespace string, openshiftOAuth *oauthv1.OAuth) error {
+func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) error {
 	password := util.GeneratePasswd(6)
+	cr := deployContext.CheCluster
+	userName := deploy.DefaultCheFlavor(cr)
 	htpasswdFileContent, err := iuh.generateHtPasswdUserInfo(userName, password)
 	if err != nil {
 		return err
 	}
 
-	secret := &corev1.Secret{}
-	nsName := types.NamespacedName{Name: htpasswdSecretName, Namespace: ocConfigNamespace}
-	if err := iuh.runtimeClient.Get(context.TODO(), nsName, secret); err != nil {
-		if errors.IsNotFound(err) {
-			htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
-			if err = deploy.CreateSecret(htpasswdFileSecretData, htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
+	if _, err := deploy.SyncSecret(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData); err != nil {
+		return err
 	}
 
 	if err := appendIdentityProvider(openshiftOAuth, iuh.runtimeClient); err != nil {
@@ -90,7 +83,7 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(userName st
 
 	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
 	logrus.Info("Create initial user secret for che-operator")
-	if err := deploy.CreateSecret(initialUserSecretData, openShiftOAuthUserCredentialsSecret, crNamespace, iuh.runtimeClient); err != nil {
+	if _, err := deploy.SyncSecret(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData); err != nil {
 		return err
 	}
 
@@ -98,25 +91,20 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(userName st
 }
 
 // DeleteOAuthInitialUser - removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.
-func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(userName string, crNamespace string) error {
+func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployContext *deploy.DeployContext) error {
 	oAuth, err := GetOpenshiftOAuth(iuh.runtimeClient)
 	if err != nil {
 		return err
 	}
-	var identityProviderExists bool
-	for _, ip := range oAuth.Spec.IdentityProviders {
-		if ip.Name == htpasswdIdentityProviderName {
-			identityProviderExists = true
-			break
-		}
-	}
 
-	if identityProviderExists {
+	if identityProviderExists(htpasswdIdentityProviderName, oAuth) {
+		cr := deployContext.CheCluster
+		userName := deploy.DefaultCheFlavor(cr)
 		if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
 			return err
 		}
 
-		if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, crNamespace, iuh.runtimeClient); err != nil {
+		if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, cr.Namespace, iuh.runtimeClient); err != nil {
 			return err
 		}
 

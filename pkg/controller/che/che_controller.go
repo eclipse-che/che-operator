@@ -385,7 +385,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if isOpenShift4 && instance.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*instance.Spec.Auth.InitialOpenShiftOAuthUser && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		if err := r.userHandler.DeleteOAuthInitialUser(instance.Namespace, deploy.DefaultCheFlavor(instance)); err != nil {
+		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
 			logrus.Errorf("Unable to delete initial user from cluster. Cause: %s", err.Error())
 			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
 			if err := r.UpdateCheCRSpec(instance, "InitialOpenShiftOAuthUser", "nil"); err != nil {
@@ -1137,7 +1137,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
 				oauth = true
 			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				if err := r.userHandler.CreateOAuthInitialUser(deploy.DefaultCheFlavor(cr), cr.Namespace, openshitOAuth); err != nil {
+				if err := r.userHandler.CreateOAuthInitialUser(openshitOAuth, deployContext); err != nil {
 					message = warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error()
 					logrus.Error(message)
 					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)

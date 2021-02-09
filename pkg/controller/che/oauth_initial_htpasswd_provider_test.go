@@ -14,8 +14,12 @@ package che
 
 import (
 	"context"
+	"os"
+	"testing"
+
 	util_mocks "github.com/eclipse/che-operator/mocks/pkg/util"
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/golang/mock/gomock"
 	oauth_config "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -26,16 +30,28 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"testing"
 )
 
 const (
 	testNamespace = "test-namespace"
 	testUserName  = "test"
+)
+
+var (
+	testCR = &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: testNamespace,
+		},
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				CheFlavor: testUserName,
+			},
+		},
+	}
 )
 
 func TestCreateInitialUser(t *testing.T) {
@@ -72,7 +88,11 @@ func TestCreateInitialUser(t *testing.T) {
 		runtimeClient: runtimeClient,
 		runnable:      m,
 	}
-	err := initialUserHandler.CreateOAuthInitialUser(testUserName, testNamespace, oAuth)
+	dc := &deploy.DeployContext{
+		CheCluster: testCR,
+		ClusterAPI:      deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
+	}
+	err := initialUserHandler.CreateOAuthInitialUser(oAuth, dc)
 	if err != nil {
 		t.Errorf("Failed to create user: %s", err.Error())
 	}
@@ -152,7 +172,11 @@ func TestDeleteInitialUser(t *testing.T) {
 		runtimeClient: runtimeClient,
 	}
 
-	if err := initialUserHandler.DeleteOAuthInitialUser(testUserName, testNamespace); err != nil {
+	dc := &deploy.DeployContext{
+		CheCluster:      testCR,
+		ClusterAPI:      deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
+	}
+	if err := initialUserHandler.DeleteOAuthInitialUser(dc); err != nil {
 		t.Errorf("Unable to delete initial user: %s", err.Error())
 	}
 

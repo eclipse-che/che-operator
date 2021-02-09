@@ -5,6 +5,7 @@
 package mock_che
 
 import (
+	deploy "github.com/eclipse/che-operator/pkg/deploy"
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift/api/config/v1"
 	reflect "reflect"
@@ -34,29 +35,29 @@ func (m *MockOpenShiftOAuthUserHandler) EXPECT() *MockOpenShiftOAuthUserHandlerM
 }
 
 // CreateOAuthInitialUser mocks base method
-func (m *MockOpenShiftOAuthUserHandler) CreateOAuthInitialUser(userNamePrefix, crNamespace string, openshiftOAuth *v1.OAuth) error {
+func (m *MockOpenShiftOAuthUserHandler) CreateOAuthInitialUser(openshiftOAuth *v1.OAuth, deployContext *deploy.DeployContext) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateOAuthInitialUser", userNamePrefix, crNamespace, openshiftOAuth)
+	ret := m.ctrl.Call(m, "CreateOAuthInitialUser", openshiftOAuth, deployContext)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateOAuthInitialUser indicates an expected call of CreateOAuthInitialUser
-func (mr *MockOpenShiftOAuthUserHandlerMockRecorder) CreateOAuthInitialUser(userNamePrefix, crNamespace, openshiftOAuth interface{}) *gomock.Call {
+func (mr *MockOpenShiftOAuthUserHandlerMockRecorder) CreateOAuthInitialUser(openshiftOAuth, deployContext interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOAuthInitialUser", reflect.TypeOf((*MockOpenShiftOAuthUserHandler)(nil).CreateOAuthInitialUser), userNamePrefix, crNamespace, openshiftOAuth)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOAuthInitialUser", reflect.TypeOf((*MockOpenShiftOAuthUserHandler)(nil).CreateOAuthInitialUser), openshiftOAuth, deployContext)
 }
 
 // DeleteOAuthInitialUser mocks base method
-func (m *MockOpenShiftOAuthUserHandler) DeleteOAuthInitialUser(userNamePrefix, crNamespace string) error {
+func (m *MockOpenShiftOAuthUserHandler) DeleteOAuthInitialUser(deployContext *deploy.DeployContext) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteOAuthInitialUser", userNamePrefix, crNamespace)
+	ret := m.ctrl.Call(m, "DeleteOAuthInitialUser", deployContext)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteOAuthInitialUser indicates an expected call of DeleteOAuthInitialUser
-func (mr *MockOpenShiftOAuthUserHandlerMockRecorder) DeleteOAuthInitialUser(userNamePrefix, crNamespace interface{}) *gomock.Call {
+func (mr *MockOpenShiftOAuthUserHandlerMockRecorder) DeleteOAuthInitialUser(deployContext interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOAuthInitialUser", reflect.TypeOf((*MockOpenShiftOAuthUserHandler)(nil).DeleteOAuthInitialUser), userNamePrefix, crNamespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOAuthInitialUser", reflect.TypeOf((*MockOpenShiftOAuthUserHandler)(nil).DeleteOAuthInitialUser), deployContext)
 }
