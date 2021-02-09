@@ -1137,7 +1137,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 				if err := r.userHandler.CreateOAuthInitialUser(deploy.DefaultCheFlavor(cr), cr.Namespace, openshitOAuth); err != nil {
 					message = warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error()
 					logrus.Error(message)
-					logrus.Info(" You can create identity provider manually:" + howToAddIdentityProviderLinkOS4)
+					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
 					reason = failedNoIdentityProviders
 					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
 					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
