@@ -145,7 +145,7 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) generateHtPasswdUserInfo(userName 
 	}
 
 	if len(iuh.runnable.GetStdErr()) > 0 {
-		return "", errorMsg.New("Failed to generate htpasswd info for initial identity provider: " + iuh.runnable.GetStdErr())
+		return "", errorMsg.New("Failed to generate data for HTPasswd identity provider: " + iuh.runnable.GetStdErr())
 	}
 	return iuh.runnable.GetStdOut(), nil
 }
