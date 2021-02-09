@@ -114,7 +114,7 @@
         },
         {
             "label": "Delete Che (useful command after debug)",
-            "command": "echo y | chectl server:delete -n che",
+            "command": "chectl server:delete -y",
             "type": "shell",
             "args": [],
             "problemMatcher": [
