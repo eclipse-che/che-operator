@@ -397,7 +397,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			"openShiftoAuth": "nil",
 			"initialOpenShiftOAuthUser": "nil",
 		}
-	
+
 		if err := r.UpdateCheCRSpecByFields(instance, updateFields); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -822,14 +822,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
-		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerIngress.Labels
 		ingress, err := deploy.SyncIngressToCluster(
 			deployContext,
 			cheFlavor,
 			instance.Spec.Server.CheHost,
 			exposedServiceName,
 			8080,
-			additionalLabels,
+			deployContext.CheCluster.Spec.Server.CheServerIngress,
 			cheFlavor)
 		if !tests {
 			if ingress == nil {
@@ -849,8 +848,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			customHost = ""
 		}
 
-		additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-		route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, customHost, exposedServiceName, 8080, additionalLabels, cheFlavor)
+		route, err := deploy.SyncRouteToCluster(
+			deployContext,
+			cheFlavor,
+			customHost,
+			exposedServiceName,
+			8080,
+			deployContext.CheCluster.Spec.Server.CheServerRoute,
+			cheFlavor)
 		if route == nil {
 			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
 			if err != nil {
@@ -1087,8 +1092,14 @@ func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 
 func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	additionalLabels := deployContext.CheCluster.Spec.Server.CheServerRoute.Labels
-	route, err := deploy.SyncRouteToCluster(deployContext, cheFlavor, "", getServerExposingServiceName(deployContext.CheCluster), 8080, additionalLabels, cheFlavor)
+	route, err := deploy.SyncRouteToCluster(
+		deployContext,
+		cheFlavor,
+		"",
+		getServerExposingServiceName(deployContext.CheCluster),
+		8080,
+		deployContext.CheCluster.Spec.Server.CheServerRoute,
+		cheFlavor)
 	if route == nil {
 		logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
 		if err != nil {

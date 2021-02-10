@@ -154,6 +154,13 @@ spec:
                 identityProviderRoute:
                   description: Route custom settings.
                   properties:
+                    domain:
+                      description: 'Operator uses the domain to generate a hostname
+                        for a route. Operator uses domain in a conjunction with labels
+                        to create a route, witch is served by a non-default Ingress
+                        controller. The generated host name will follow this pattern:
+                        `<route-name>-<route-namespace>.<domain>`.'
+                      type: string
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -476,6 +483,13 @@ spec:
                 cheServerRoute:
                   description: The Che server route custom settings.
                   properties:
+                    domain:
+                      description: 'Operator uses the domain to generate a hostname
+                        for a route. Operator uses domain in a conjunction with labels
+                        to create a route, witch is served by a non-default Ingress
+                        controller. The generated host name will follow this pattern:
+                        `<route-name>-<route-namespace>.<domain>`.'
+                      type: string
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -533,6 +547,13 @@ spec:
                 devfileRegistryRoute:
                   description: The devfile registry route custom settings.
                   properties:
+                    domain:
+                      description: 'Operator uses the domain to generate a hostname
+                        for a route. Operator uses domain in a conjunction with labels
+                        to create a route, witch is served by a non-default Ingress
+                        controller. The generated host name will follow this pattern:
+                        `<route-name>-<route-namespace>.<domain>`.'
+                      type: string
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -613,6 +634,13 @@ spec:
                 pluginRegistryRoute:
                   description: Plugin registry route custom settings.
                   properties:
+                    domain:
+                      description: 'Operator uses the domain to generate a hostname
+                        for a route. Operator uses domain in a conjunction with labels
+                        to create a route, witch is served by a non-default Ingress
+                        controller. The generated host name will follow this pattern:
+                        `<route-name>-<route-namespace>.<domain>`.'
+                      type: string
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.

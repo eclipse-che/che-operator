@@ -88,15 +88,12 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 	protocol := (map[bool]string{
 		true:  "https",
 		false: "http"})[cr.Spec.Server.TlsSupport]
-	additionalLabels := (map[bool]string{
-		true:  cr.Spec.Auth.IdentityProviderRoute.Labels,
-		false: cr.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenShift]
-
 	endpoint, done, err := expose.Expose(
 		deployContext,
 		cr.Spec.Server.CheHost,
 		deploy.IdentityProviderName,
-		additionalLabels,
+		cr.Spec.Auth.IdentityProviderRoute,
+		cr.Spec.Auth.IdentityProviderIngress,
 		deploy.IdentityProviderName)
 	if !done {
 		return false, err

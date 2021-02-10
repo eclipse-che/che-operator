@@ -34,8 +34,13 @@ type DevFileRegistryConfigMap struct {
 func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost string) (bool, error) {
 	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		additionalLabels := (map[bool]string{true: deployContext.CheCluster.Spec.Server.DevfileRegistryRoute.Labels, false: deployContext.CheCluster.Spec.Server.DevfileRegistryIngress.Labels})[util.IsOpenShift]
-		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.DevfileRegistryName, additionalLabels, deploy.DevfileRegistryName)
+		endpoint, done, err := expose.Expose(
+			deployContext,
+			cheHost,
+			deploy.DevfileRegistryName,
+			deployContext.CheCluster.Spec.Server.PluginRegistryRoute,
+			deployContext.CheCluster.Spec.Server.PluginRegistryIngress,
+			deploy.DevfileRegistryName)
 		if !done {
 			return false, err
 		}

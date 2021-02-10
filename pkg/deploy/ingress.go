@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"strconv"
 
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -43,10 +44,10 @@ func SyncIngressToCluster(
 	host string,
 	serviceName string,
 	servicePort int,
-	additionalLabels string,
+	ingressCustomSettings orgv1.IngressCustomSettings,
 	component string) (*v1beta1.Ingress, error) {
 
-	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, additionalLabels, component)
+	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, ingressCustomSettings, component)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func GetSpecIngress(
 	host string,
 	serviceName string,
 	servicePort int,
-	additionalLabels string,
+	ingressCustomSettings orgv1.IngressCustomSettings,
 	component string) (*v1beta1.Ingress, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
@@ -128,7 +129,7 @@ func GetSpecIngress(
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, component)
-	MergeLabels(labels, additionalLabels)
+	MergeLabels(labels, ingressCustomSettings.Labels)
 
 	if host == "" {
 		if ingressStrategy == "multi-host" {
