@@ -11,11 +11,11 @@
 //
 package v1
 
-// Important: You should regenerate some generated code after modifying this file. At the root of the project:
-// - Run "operator-sdk generate k8s": this will perform required changes in the "pkg/apis/org/v1/zz_generatedxxx" files
-// - Run "operator-sdk generate openapi": this will generate the "deploy/crds/org_v1_checluster_crd.yaml" file
-// - In the updated "deploy/crds/org_v1_checluster_crd.yaml": Delete all the `required:` openAPI rules in the CRD OpenApi schema.
-// - Rename the new "deploy/crds/org_v1_checluster_crd.yaml" to "deploy/crds/org_v1_che_crd.yaml" to override it.
+// Important: You must regenerate some generated code after modifying this file. At the root of the project:
+// - Run `operator-sdk generate k8s`: this will perform required changes in the `pkg/apis/org/v1/zz_generatedxxx` files
+// - Run `operator-sdk generate openapi`: this will generate the `deploy/crds/org_v1_checluster_crd.yaml` file
+// - In the updated `deploy/crds/org_v1_checluster_crd.yaml`: Delete all the `required:` openAPI rules in the CRD OpenApi schema.
+// - Rename the new `deploy/crds/org_v1_checluster_crd.yaml` to `deploy/crds/org_v1_che_crd.yaml` to override it.
 // IMPORTANT These 2 last steps are important to ensure backward compatibility with already existing `CheCluster` CRs that were created when no schema was provided.
 
 import (
@@ -27,10 +27,10 @@ import (
 
 // +k8s:openapi-gen=true
 // Desired configuration of the Che installation.
-// Based on these settings, the operator automatically creates and maintains
-// several config maps that will contain the appropriate environment variables
+// Based on these settings, the Operator automatically creates and maintains
+// several ConfigMaps that will contain the appropriate environment variables
 // the various components of the Che installation.
-// These generated config maps should NOT be updated manually.
+// These generated ConfigMaps must NOT be updated manually.
 type CheClusterSpec struct {
 	// General configuration settings related to the Che server
 	// and the plugin and devfile registries
@@ -101,7 +101,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheDebug string `json:"cheDebug,omitempty"`
 	// A comma-separated list of ClusterRoles that will be assigned to Che ServiceAccount.
-	// Be aware that the che-operator has to already have all permissions in these ClusterRoles to grant them.
+	// Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.
 	// +optional
 	CheClusterRoles string `json:"cheClusterRoles,omitempty"`
 	// Custom cluster role bound to the user for the Che workspaces.
@@ -109,11 +109,11 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheWorkspaceClusterRole string `json:"cheWorkspaceClusterRole,omitempty"`
 	// Defines Kubernetes default namespace in which user's workspaces are created if user does not override it.
-	// It's possible to use <username>, <userid> and <workspaceid> placeholders (e.g.: che-workspace-<username>).
-	// In that case, new namespace will be created for each user (or workspace). Is used by OpenShift infrastructure as well to specify Project.
+	// It's possible to use `<username>`,`<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>.
+	// In that case, a new namespace will be created for each user or workspace. Is used by OpenShift infrastructure as well to specify Project.
 	// +optional
 	WorkspaceNamespaceDefault string `json:"workspaceNamespaceDefault,omitempty"`
-	// Defines that a user is allowed to specify Kubernetes namespace, or OpenShift project, different from the default.
+	// Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default.
 	// It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
 	// +optional
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
@@ -122,7 +122,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// Name of the configMap with public certificates to add to Java trust store of the Che server.
-	// This is often required when adding the OpenShift OAuth provider which has https endpoint signed with self-signed cert.
+	// This is often required when adding the OpenShift OAuth provider, which has HTTPS endpoint signed with self-signed cert.
 	// The Che server must be aware of its CA cert to be able to request it. This is disabled by default.
 	// +optional
 	ServerTrustStoreConfigMapName string `json:"serverTrustStoreConfigMapName,omitempty"`
@@ -132,10 +132,10 @@ type CheClusterSpecServer struct {
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
 	// +optional
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Tls support"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="TLS support"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	TlsSupport bool `json:"tlsSupport"`
-	// Use internal cluster svc names to communicate between components to speed up the traffic and avoid proxy issues.
+	// Use internal cluster SVC names to communicate between components to speed up the traffic and avoid proxy issues.
 	// The default value is `false`.
 	// +optional
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
@@ -158,11 +158,11 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the devfile registry deployment. Defaults to 16Mi.
 	// +optional
 	DevfileRegistryMemoryRequest string `json:"devfileRegistryMemoryRequest,omitempty"`
-	// Overrides the cpu limit used in the devfile registry deployment.
+	// Overrides the CPU limit used in the devfile registry deployment.
 	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	DevfileRegistryCpuLimit string `json:"devfileRegistryCpuLimit,omitempty"`
-	// Overrides the cpu request used in the devfile registry deployment.
+	// Overrides the CPU request used in the devfile registry deployment.
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	DevfileRegistryCpuRequest string `json:"devfileRegistryCpuRequest,omitempty"`
@@ -172,12 +172,12 @@ type CheClusterSpecServer struct {
 	// The devfile registry route custom settings.
 	// +optional
 	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
-	// Instructs the Operator on whether or not to deploy a dedicated devfile registry server.
+	// Instructs the Operator on whether to deploy a dedicated devfile registry server.
 	// By default, a dedicated devfile registry server is started. When `externalDevfileRegistry` is `true`, no such dedicated server
 	// will be started by the Operator and you will have to manually set the `devfileRegistryUrl` field
 	// +optional
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
-	// Public URL of the plugin registry, that serves sample ready-to-use devfiles.
+	// Public URL of the plugin registry that serves sample ready-to-use devfiles.
 	// Set this ONLY if a use of an external devfile registry is needed.
 	// See the `externalPluginRegistry` field. By default, this will be automatically calculated by the Operator.
 	// +optional
@@ -196,11 +196,11 @@ type CheClusterSpecServer struct {
 	// Overrides the memory request used in the plugin registry deployment. Defaults to 16Mi.
 	// +optional
 	PluginRegistryMemoryRequest string `json:"pluginRegistryMemoryRequest,omitempty"`
-	// Overrides the cpu limit used in the plugin registry deployment.
+	// Overrides the CPU limit used in the plugin registry deployment.
 	// In cores. (500m = .5 cores). Default to 500m.
 	// +optional
 	PluginRegistryCpuLimit string `json:"pluginRegistryCpuLimit,omitempty"`
-	// Overrides the cpu request used in the plugin registry deployment.
+	// Overrides the CPU request used in the plugin registry deployment.
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	PluginRegistryCpuRequest string `json:"pluginRegistryCpuRequest,omitempty"`
@@ -210,7 +210,7 @@ type CheClusterSpecServer struct {
 	// Plugin registry route custom settings.
 	// +optional
 	PluginRegistryRoute RouteCustomSettings `json:"pluginRegistryRoute,omitempty"`
-	// Instructs the Operator on whether or not to deploy a dedicated plugin registry server.
+	// Instructs the Operator on whether to deploy a dedicated plugin registry server.
 	// By default, a dedicated plugin registry server is started. When `externalPluginRegistry` is `true`, no such dedicated server
 	// will be started by the Operator and you will have to manually set the `pluginRegistryUrl` field.
 	// +optional
@@ -226,23 +226,26 @@ type CheClusterSpecServer struct {
 	// Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration
 	// and no additional configuration is required, but defining `proxyUrl` in a custom resource leads to overrides the cluster proxy configuration
 	// with fields `proxyUrl`, `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource.
-	// (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyPort` and `nonProxyHosts` fields).
+	// See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html).
+	// See also the `proxyPort` and `nonProxyHosts` fields.
 	// +optional
 	ProxyURL string `json:"proxyURL,omitempty"`
-	// Port of the proxy server. Only use when configuring a proxy is required. (See also the `proxyURL` and `nonProxyHosts` fields).
+	// Port of the proxy server. Only use when configuring a proxy is required. See also the `proxyURL` and `nonProxyHosts` fields.
 	// +optional
 	ProxyPort string `json:"proxyPort,omitempty"`
 	// List of hosts that will be reached directly, bypassing the proxy.
 	// Specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, for example: `localhost|.my.host.com|123.42.12.32`
 	// Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required,
 	// but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources.
-	// (see the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html) (see also the `proxyURL` fields).
+	// See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html).
+	// See also the `proxyURL` fields.
 	NonProxyHosts string `json:"nonProxyHosts,omitempty"`
-	// User name of the proxy server. Only use when configuring a proxy is required (see also the `proxyURL`, `proxyPassword` and `proxySecret` fields).
+	// User name of the proxy server. Only use when configuring a proxy is required.
+	// See also the `proxyURL`, `proxyPassword` and `proxySecret` fields.
 	// +optional
 	ProxyUser string `json:"proxyUser,omitempty"`
 	// Password of the proxy server.
-	// Only use when proxy configuration is required (See also the `proxyURL`, `proxyUser` and `proxySecret` fields).
+	// Only use when proxy configuration is required. See the `proxyURL`, `proxyUser` and `proxySecret` fields.
 	// +optional
 	ProxyPassword string `json:"proxyPassword,omitempty"`
 	// The secret that contains `user` and `password` for a proxy server. When the secret is defined, the `proxyUser` and `proxyPassword` are ignored.
@@ -254,20 +257,20 @@ type CheClusterSpecServer struct {
 	// Overrides the memory limit used in the Che server deployment. Defaults to 1Gi.
 	// +optional
 	ServerMemoryLimit string `json:"serverMemoryLimit,omitempty"`
-	// Overrides the cpu limit used in the Che server deployment
+	// Overrides the CPU limit used in the Che server deployment
 	// In cores. (500m = .5 cores). Default to 1.
 	// +optional
 	ServerCpuLimit string `json:"serverCpuLimit,omitempty"`
-	// Overrides the cpu request used in the Che server deployment
+	// Overrides the CPU request used in the Che server deployment
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	ServerCpuRequest string `json:"serverCpuRequest,omitempty"`
 	// Sets the server and workspaces exposure type.
-	// Possible values are `multi-host`, `single-host`, `default-host`. Defaults to `multi-host` which creates a separate ingress (or route on OpenShift) for every required endpoint.
+	// Possible values are `multi-host`, `single-host`, `default-host`. Defaults to `multi-host`, which creates a separate ingress, or OpenShift routes, for every required endpoint.
 	// `single-host` makes Che exposed on a single host name with workspaces exposed on subpaths.
 	// Read the docs to learn about the limitations of this approach.
 	// Also consult the `singleHostExposureType` property to further configure how the Operator and the Che server make that happen on Kubernetes.
-	// `default-host` exposes the Che server on the host of the cluster. Please read the docs to learn about the limitations of this approach.
+	// `default-host` exposes the Che server on the host of the cluster. Read the docs to learn about the limitations of this approach.
 	// +optional
 	ServerExposureStrategy string `json:"serverExposureStrategy,omitempty"`
 	// The image used for the gateway in the single host mode. Omit it or leave it empty to use the default container image provided by the Operator.
@@ -276,7 +279,7 @@ type CheClusterSpecServer struct {
 	// The image used for the gateway sidecar that provides configuration to the gateway. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	SingleHostGatewayConfigSidecarImage string `json:"singleHostGatewayConfigSidecarImage,omitempty"`
-	// The labels that need to be present (and are put) on the configmaps representing the gateway configuration.
+	// The labels that need to be present in the configMaps representing the gateway configuration.
 	// +optional
 	SingleHostGatewayConfigMapLabels labels.Set `json:"singleHostGatewayConfigMapLabels,omitempty"`
 	// The Che server ingress custom settings.
@@ -290,7 +293,7 @@ type CheClusterSpecServer struct {
 // +k8s:openapi-gen=true
 // Configuration settings related to the database used by the Che installation.
 type CheClusterSpecDB struct {
-	// Instructs the Operator on whether or not to deploy a dedicated database.
+	// Instructs the Operator on whether to deploy a dedicated database.
 	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation. When `externalDb` is `true`, no dedicated database will be deployed by the
 	// Operator and you will need to provide connection details to the external DB you are about to use. See also all the fields starting with: `chePostgres`.
 	// +optional
@@ -313,7 +316,7 @@ type CheClusterSpecDB struct {
 	// PostgreSQL database name that the Che server uses to connect to the DB. Defaults to `dbche`.
 	// +optional
 	ChePostgresDb string `json:"chePostgresDb,omitempty"`
-	// The secret that contains Postgres `user` and `password` that the Che server uses to connect to the DB.
+	// The secret that contains PosgreSQL`user` and `password` that the Che server uses to connect to the DB.
 	// When the secret is defined, the `chePostgresUser` and `chePostgresPassword` are ignored.
 	// When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB.
@@ -321,10 +324,10 @@ type CheClusterSpecDB struct {
 	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
 	// +optional
 	ChePostgresSecret string `json:"chePostgresSecret,omitempty"`
-	// Overrides the container image used in the Postgres database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// Overrides the container image used in the PosgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
-	// Overrides the image pull policy used in the Postgres database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Overrides the image pull policy used in the PosgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
 	// PostgreSQL container custom settings
@@ -343,12 +346,13 @@ type CheClusterSpecAuth struct {
 	// Note that this solution is Openshift 4 platform-specific.
 	InitialOpenShiftOAuthUser *bool `json:"initialOpenShiftOAuthUser,omitempty"`
 	// Instructs the Operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
+	// Instructs the Operator on whether to deploy a dedicated Identity Provider (Keycloak or RH-SSO instance).
 	// By default, a dedicated Identity Provider server is deployed as part of the Che installation. When `externalIdentityProvider` is `true`,
 	// no dedicated identity provider will be deployed by the Operator and you will need to provide details about the external identity provider you are about to use.
 	// See also all the other fields starting with: `identityProvider`.
 	// +optional
 	ExternalIdentityProvider bool `json:"externalIdentityProvider"`
-	// Public URL of the Identity Provider server (Keycloak / RH SSO server).
+	// Public URL of the Identity Provider server (Keycloak / RH-SSO server).
 	// Set this ONLY when a use of an external Identity Provider is needed.
 	// See the `externalIdentityProvider` field. By default, this will be automatically calculated and set by the Operator.
 	// +optional
@@ -357,7 +361,7 @@ type CheClusterSpecAuth struct {
 	// +optional
 	IdentityProviderAdminUserName string `json:"identityProviderAdminUserName,omitempty"`
 	// Overrides the password of Keycloak administrator user.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// This is useful to override it ONLY if you use an external Identity Provider. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to an auto-generated password.
 	// +optional
 	IdentityProviderPassword string `json:"identityProviderPassword,omitempty"`
@@ -369,22 +373,22 @@ type CheClusterSpecAuth struct {
 	// `che-identity-secret` will be created with default value `admin` for `user` and with an auto-generated value for `password`.
 	// +optional
 	IdentityProviderSecret string `json:"identityProviderSecret,omitempty"`
-	// Name of a Identity provider (Keycloak / RH SSO) realm that is used for Che.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// Name of a Identity provider, Keycloak or RH-SSO, realm that is used for Che.
+	// This is useful to override it ONLY if you use an external Identity Provider. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to the value of the `flavour` field.
 	// +optional
 	IdentityProviderRealm string `json:"identityProviderRealm,omitempty"`
-	// Name of a Identity provider (Keycloak / RH SSO) `client-id` that is used for Che.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// Name of a Identity provider, Keycloak or RH-SSO, `client-id` that is used for Che.
+	// This is useful to override it ONLY if you use an external Identity Provider. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to the value of the `flavour` field suffixed with `-public`.
 	// +optional
 	IdentityProviderClientId string `json:"identityProviderClientId,omitempty"`
-	// Password for The Identity Provider (Keycloak / RH SSO) to connect to the database.
-	// This is useful to override it ONLY if you use an external Identity Provider (see the `externalIdentityProvider` field).
+	// Password for a Identity Provider, Keycloak or RH-SSO, to connect to the database.
+	// This is useful to override it ONLY if you use an external Identity Provider. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to an auto-generated password.
 	// +optional
 	IdentityProviderPostgresPassword string `json:"identityProviderPostgresPassword,omitempty"`
-	// The secret that contains `password` for The Identity Provider (Keycloak / RH SSO) to connect to the database.
+	// The secret that contains `password` for the Identity Provider, Keycloak or RH-SSO, to connect to the database.
 	// When the secret is defined, the `identityProviderPostgresPassword` is ignored. When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database.
 	// 2. `identityProviderPostgresPassword` is not defined, then a new secret with the name `che-identity-postgres-secret` will be created with an auto-generated value for `password`.
@@ -405,11 +409,11 @@ type CheClusterSpecAuth struct {
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated if left blank. See also the `OAuthClientName` field.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
-	// Overrides the container image used in the Identity Provider (Keycloak / RH SSO) deployment.
+	// Overrides the container image used in the Identity Provider, Keycloak or RH-SSO, deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	IdentityProviderImage string `json:"identityProviderImage,omitempty"`
-	// Overrides the image pull policy used in the Identity Provider (Keycloak / RH SSO) deployment.
+	// Overrides the image pull policy used in the Identity Provider, Keycloak or RH-SSO, deployment.
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
@@ -426,14 +430,14 @@ type CheClusterSpecAuth struct {
 
 // Ingress custom settings, can be extended in the future
 type IngressCustomSettings struct {
-	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
+	// Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
 	// +optional
 	Labels string `json:"labels,omitempty"`
 }
 
 // Route custom settings, can be extended in the future
 type RouteCustomSettings struct {
-	// Comma separated list of labels that can be used to organize and categorize (scope and select) objects.
+	// Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
 	// +optional
 	Labels string `json:"labels,omitempty"`
 }
@@ -468,7 +472,7 @@ type CheClusterSpecStorage struct {
 	// Size of the persistent volume claim for workspaces. Defaults to `1Gi`.
 	// +optional
 	PvcClaimSize string `json:"pvcClaimSize,omitempty"`
-	// Instructs the Che server to launch a special Pod to pre-create a sub-path in the Persistent Volumes.
+	// Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes.
 	// Defaults to `false`, however it will need to enable it according to the configuration of your K8S cluster.
 	// +optional
 	PreCreateSubPaths bool `json:"preCreateSubPaths"`
@@ -476,7 +480,7 @@ type CheClusterSpecStorage struct {
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator. See also the `preCreateSubPaths` field.
 	// +optional
 	PvcJobsImage string `json:"pvcJobsImage,omitempty"`
-	// Storage class for the Persistent Volume Claim dedicated to the Postgres database. When omitted or left blank, a default storage class is used.
+	// Storage class for the Persistent Volume Claim dedicated to the PosgreSQL database. When omitted or left blank, a default storage class is used.
 	// +optional
 	PostgresPVCStorageClassName string `json:"postgresPVCStorageClassName,omitempty"`
 	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
@@ -496,7 +500,7 @@ type CheClusterSpecK8SOnly struct {
 	// +optional
 	IngressStrategy string `json:"ingressStrategy,omitempty"`
 	// Ingress class that will define the which controller will manage ingresses. Defaults to `nginx`.
-	// NB: This drives the `is kubernetes.io/ingress.class` annotation on Che-related ingresses.
+	// NB: This drives the `kubernetes.io/ingress.class` annotation on Che-related ingresses.
 	// +optional
 	IngressClass string `json:"ingressClass,omitempty"`
 	// Name of a secret that will be used to setup ingress TLS termination when TLS is enabled.
@@ -510,7 +514,7 @@ type CheClusterSpecK8SOnly struct {
 	// +optional
 	SecurityContextRunAsUser string `json:"securityContextRunAsUser,omitempty"`
 	// When the serverExposureStrategy is set to `single-host`, the way the server, registries and workspaces are exposed is further configured by this property.
-	// The possible values are `native` (which means that the server and workspaces are exposed using ingresses on K8s)
+	// The possible values are `native`, which means that the server and workspaces are exposed using ingresses on K8s
 	// or `gateway` where the server and workspaces are exposed using a custom gateway based on Traefik.
 	// All the endpoints whether backed by the ingress or gateway `route` always point to the subpaths on the same domain. Defaults to `native`.
 	// +optional
@@ -529,10 +533,10 @@ type CheClusterSpecMetrics struct {
 type CheClusterSpecImagePuller struct {
 	// Install and configure the Community Supported Kubernetes Image Puller Operator. If true and no spec is provided,
 	// it will create a default KubernetesImagePuller object to be managed by the Operator.
-	// If false, the KubernetesImagePuller object will be deleted, and the operator will be uninstalled,
-	// regardless of whether or not a spec is provided.
+	// If false, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
+	// regardless of whether a spec is provided.
 	//
-	// Please note that while this operator and its behavior is community-supported, its payload may be commercially-supported
+	// Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
 	// if you use it for pulling commercially-supported images.
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
@@ -548,15 +552,16 @@ type CheClusterStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
 	OpenShiftOAuthUserCredentialsSecret string `json:"openShiftOAuthUserCredentialsSecret"`
 	// Indicates that a Postgres instance has been correctly provisioned or not.
+	// Indicates that a PosgreSQL instance has been correctly provisioned or not.
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`
-	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been provisioned with realm, client and user.
+	// Indicates whether an Identity Provider instance, Keycloak or RH-SSO, has been provisioned with realm, client and user.
 	// +optional
 	KeycloakProvisoned bool `json:"keycloakProvisioned"`
-	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the OpenShift OAuth.
+	// Indicates whether an Identity Provider instance, Keycloak or RH-SSO, has been configured to integrate with the OpenShift OAuth.
 	// +optional
 	OpenShiftoAuthProvisioned bool `json:"openShiftoAuthProvisioned"`
-	// Indicates whether an Identity Provider instance (Keycloak / RH SSO) has been configured to integrate with the GitHub OAuth.
+	// Indicates whether an Identity Provider instance, Keycloak or RH-SSO, has been configured to integrate with the GitHub OAuth.
 	// +optional
 	GitHubOAuthProvisioned bool `json:"gitHubOAuthProvisioned"`
 	// Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`.
@@ -577,7 +582,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Eclipse Che URL"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
 	CheURL string `json:"cheURL"`
-	// Public URL to the Identity Provider server (Keycloak / RH SSO).
+	// Public URL to the Identity Provider server, Keycloak or RH-SSO,.
 	// +optional
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Keycloak Admin Console URL"
@@ -620,10 +625,10 @@ type CheCluster struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Desired configuration of the Che installation.
-	// Based on these settings, the operator automatically creates and maintains
-	// several config maps that will contain the appropriate environment variables
+	// Based on these settings, the  Operator automatically creates and maintains
+	// several ConfigMaps that will contain the appropriate environment variables
 	// the various components of the Che installation.
-	// These generated config maps should NOT be updated manually.
+	// These generated ConfigMaps must NOT be updated manually.
 	Spec CheClusterSpec `json:"spec,omitempty"`
 
 	// CheClusterStatus defines the observed state of Che installation
