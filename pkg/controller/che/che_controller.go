@@ -399,7 +399,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if isOpenShift && (instance.Spec.Auth.OpenShiftoAuth == nil ||
-		(util.IsOAuthEnabled(instance) && util.IsInitialOpenShiftOAuthUserEnabled(instance))) {
+		util.IsOAuthEnabled(instance)) {
 		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, isOpenShift4); err != nil {
 			return reconcileResult, err
 		}
