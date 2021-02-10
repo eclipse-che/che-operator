@@ -294,12 +294,22 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initialOAuthValue:                util.NewBoolPointer(true),
 			oAuthExpected:                    util.NewBoolPointer(true),
 			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should create initial user and enable oAuth, when oAuth = true, initialOpenShiftOAuthUserEnabled = true and there no indentity providers on the Openshift 4",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:                 "4",
+			initialOAuthValue:                nil,
+			oAuthExpected:                    util.NewBoolPointer(true),
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string, userNamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler {
 				m := che_mocks.NewMockOpenShiftOAuthUserHandler(ctrl)
 				m.EXPECT().CreateOAuthInitialUser(gomock.Any(), gomock.Any())
 				return m
 			},
-			OpenShiftOAuthUserCredentialsSecret: "openshift-oauth-user-credentials",
+			OpenShiftOAuthUserCredentialsSecret: openShiftOAuthUserCredentialsSecret,
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",

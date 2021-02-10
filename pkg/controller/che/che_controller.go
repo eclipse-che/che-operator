@@ -387,7 +387,10 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if isOpenShift4 && instance.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*instance.Spec.Auth.InitialOpenShiftOAuthUser && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
 		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
 			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
-			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
+			instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
+			if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
+				return reconcile.Result{}, err
+			}
 			if err := r.UpdateCheCRSpec(instance, "InitialOpenShiftOAuthUser", "nil"); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -398,8 +401,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if isOpenShift && (instance.Spec.Auth.OpenShiftoAuth == nil ||
-		util.IsOAuthEnabled(instance)) {
+	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
 		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, isOpenShift4); err != nil {
 			return reconcileResult, err
 		}
@@ -1177,7 +1179,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 	}
 
 	newOAuthValue := util.NewBoolPointer(oauth)
-	if newOAuthValue != cr.Spec.Auth.OpenShiftoAuth {
+	if !util.CompareBoolPointers(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
 		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
 		if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(oauth)); err != nil {
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err

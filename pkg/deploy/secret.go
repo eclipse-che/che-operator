@@ -43,7 +43,7 @@ func SyncSecret(
 		return nil, err
 	}
 
-	clusterSecret, err := GetClusterSecret(specSecret.Name, specSecret.Namespace, deployContext.ClusterAPI)
+	clusterSecret, err := GetSecret(specSecret.Name, specSecret.Namespace, deployContext.ClusterAPI)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +73,8 @@ func SyncSecret(
 	return clusterSecret, nil
 }
 
-// GetClusterSecret retrieves given secret from cluster
-func GetClusterSecret(name string, namespace string, clusterAPI ClusterAPI) (*corev1.Secret, error) {
+// GetSecret retrieves given secret from cluster
+func GetSecret(name string, namespace string, clusterAPI ClusterAPI) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,

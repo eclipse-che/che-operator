@@ -384,6 +384,21 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
+// CompareBoolPointers compares two *bool variables. Returns "true" when both
+// variables are nil, true or false. Otherwise returns "false".
+func CompareBoolPointers(a *bool, b *bool) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil && b != nil {
+		return false 
+	}
+	if b == nil && a != nil{
+		return false
+	}
+	return *a == *b
+}
+
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
 	if value != "" {
 		return resource.MustParse(value)
