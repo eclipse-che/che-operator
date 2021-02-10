@@ -82,7 +82,6 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(openshiftOA
 	}
 
 	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
-	logrus.Info("Create initial user secret for che-operator")
 	if _, err := deploy.SyncSecret(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData); err != nil {
 		return err
 	}
