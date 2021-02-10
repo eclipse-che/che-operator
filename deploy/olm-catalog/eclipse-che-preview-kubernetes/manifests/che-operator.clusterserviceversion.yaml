@@ -84,13 +84,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-02-05T00:59:18Z"
+    createdAt: "2021-02-10T12:10:33Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.26.0-88.nightly
+  name: eclipse-che-preview-kubernetes.v7.26.0-90.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -105,7 +105,7 @@ spec:
           - description: Deprecated. Instructs the Operator to deploy Che in TLS mode.
               This is enabled by default. Disabling TLS sometimes cause malfunction
               of some Che components.
-            displayName: Tls support
+            displayName: TLS support
             path: server.tlsSupport
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
@@ -132,8 +132,7 @@ spec:
             path: helpLink
             x-descriptors:
               - urn:alm:descriptor:org.w3:link
-          - description: Public URL to the Identity Provider server (Keycloak / RH
-              SSO).
+          - description: Public URL to the Identity Provider server, Keycloak or RH-SSO,.
             displayName: Keycloak Admin Console URL
             path: keycloakURL
             x-descriptors:
@@ -677,4 +676,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.26.0-88.nightly
+  version: 7.26.0-90.nightly
