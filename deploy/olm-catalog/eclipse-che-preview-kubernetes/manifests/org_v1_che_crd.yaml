@@ -155,10 +155,9 @@ spec:
                   properties:
                     domain:
                       description: 'Operator uses the domain to generate a hostname
-                        for a route. Operator uses domain in a conjunction with labels
-                        to create a route, witch is served by a non-default Ingress
-                        controller. The generated host name will follow this pattern:
-                        `<route-name>-<route-namespace>.<domain>`.'
+                        for a route. In a conjunction with labels it creates a route,
+                        which is served by a non-default Ingress controller. The generated
+                        host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.'
                       type: string
                     labels:
                       description: Comma separated list of labels that can be used
@@ -484,10 +483,9 @@ spec:
                   properties:
                     domain:
                       description: 'Operator uses the domain to generate a hostname
-                        for a route. Operator uses domain in a conjunction with labels
-                        to create a route, witch is served by a non-default Ingress
-                        controller. The generated host name will follow this pattern:
-                        `<route-name>-<route-namespace>.<domain>`.'
+                        for a route. In a conjunction with labels it creates a route,
+                        which is served by a non-default Ingress controller. The generated
+                        host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.'
                       type: string
                     labels:
                       description: Comma separated list of labels that can be used
@@ -548,10 +546,9 @@ spec:
                   properties:
                     domain:
                       description: 'Operator uses the domain to generate a hostname
-                        for a route. Operator uses domain in a conjunction with labels
-                        to create a route, witch is served by a non-default Ingress
-                        controller. The generated host name will follow this pattern:
-                        `<route-name>-<route-namespace>.<domain>`.'
+                        for a route. In a conjunction with labels it creates a route,
+                        which is served by a non-default Ingress controller. The generated
+                        host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.'
                       type: string
                     labels:
                       description: Comma separated list of labels that can be used
@@ -635,10 +632,9 @@ spec:
                   properties:
                     domain:
                       description: 'Operator uses the domain to generate a hostname
-                        for a route. Operator uses domain in a conjunction with labels
-                        to create a route, witch is served by a non-default Ingress
-                        controller. The generated host name will follow this pattern:
-                        `<route-name>-<route-namespace>.<domain>`.'
+                        for a route. In a conjunction with labels it creates a route,
+                        which is served by a non-default Ingress controller. The generated
+                        host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.'
                       type: string
                     labels:
                       description: Comma separated list of labels that can be used

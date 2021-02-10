@@ -438,7 +438,7 @@ type RouteCustomSettings struct {
 	// +optional
 	Labels string `json:"labels,omitempty"`
 	// Operator uses the domain to generate a hostname for a route.
-	// Operator uses domain in a conjunction with labels to create a route, witch is served by a non-default Ingress controller.
+	// In a conjunction with labels it creates a route, which is served by a non-default Ingress controller.
 	// The generated host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.
 	// +optional
 	Domain string `json:"domain,omitempty"`
