@@ -92,8 +92,8 @@ EOF
 
   POSTGRES_POD=$(oc get pods -o json -n eclipse-che | jq -r '.items[] | select(.metadata.name | test("postgres-")).metadata.name')
 
-  kubectl cp path.sql "${POSTGRES_POD}":/tmp/ -n eclipse-che
-  kubectl exec -it "${POSTGRES_POD}" -n eclipse-che  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
+  oc cp path.sql "${POSTGRES_POD}":/tmp/ -n eclipse-che
+  oc exec -it "${POSTGRES_POD}" -n eclipse-che  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
 
   rm path.sql
 }
