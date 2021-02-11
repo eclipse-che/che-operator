@@ -279,14 +279,14 @@ spec:
                     are about to use. See also all the fields starting with: `chePostgres`.'
                   type: boolean
                 postgresImage:
-                  description: Overrides the container image used in the PosgreSQLdatabase
-                    deployment. This includes the image tag. Omit it or leave it empty
-                    to use the default container image provided by the Operator.
+                  description: Overrides the container image used in the PosgreSQL
+                    database deployment. This includes the image tag. Omit it or leave
+                    it empty to use the default container image provided by the Operator.
                   type: string
                 postgresImagePullPolicy:
-                  description: Overrides the image pull policy used in the PosgreSQLdatabase
-                    deployment. Default value is `Always` for `nightly` or `latest`
-                    images, and `IfNotPresent` in other cases.
+                  description: Overrides the image pull policy used in the PosgreSQL
+                    database deployment. Default value is `Always` for `nightly` or
+                    `latest` images, and `IfNotPresent` in other cases.
                   type: string
               type: object
             imagePuller:
@@ -726,7 +726,7 @@ spec:
               properties:
                 postgresPVCStorageClassName:
                   description: Storage class for the Persistent Volume Claim dedicated
-                    to the PosgreSQLdatabase. When omitted or left blank, a default
+                    to the PosgreSQL database. When omitted or left blank, a default
                     storage class is used.
                   type: string
                 preCreateSubPaths:

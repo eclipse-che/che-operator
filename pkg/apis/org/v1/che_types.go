@@ -321,10 +321,10 @@ type CheClusterSpecDB struct {
 	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
 	// +optional
 	ChePostgresSecret string `json:"chePostgresSecret,omitempty"`
-	// Overrides the container image used in the PosgreSQLdatabase deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// Overrides the container image used in the PosgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
-	// Overrides the image pull policy used in the PosgreSQLdatabase deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Overrides the image pull policy used in the PosgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
 	// PostgreSQL container custom settings
@@ -469,7 +469,7 @@ type CheClusterSpecStorage struct {
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator. See also the `preCreateSubPaths` field.
 	// +optional
 	PvcJobsImage string `json:"pvcJobsImage,omitempty"`
-	// Storage class for the Persistent Volume Claim dedicated to the PosgreSQLdatabase. When omitted or left blank, a default storage class is used.
+	// Storage class for the Persistent Volume Claim dedicated to the PosgreSQL database. When omitted or left blank, a default storage class is used.
 	// +optional
 	PostgresPVCStorageClassName string `json:"postgresPVCStorageClassName,omitempty"`
 	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
