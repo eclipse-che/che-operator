@@ -551,7 +551,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="OpenShift OAuth secret that contains user credentials for HTPasswd identity provider."
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
 	OpenShiftOAuthUserCredentialsSecret string `json:"openShiftOAuthUserCredentialsSecret"`
-	// Indicates that a Postgres instance has been correctly provisioned or not.
+	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
 	// Indicates that a PosgreSQL instance has been correctly provisioned or not.
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`
