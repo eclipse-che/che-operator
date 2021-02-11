@@ -15,8 +15,6 @@ set -o pipefail
 # error on unset variables
 set -u
 
-export CHE_EXPOSURE_STRATEGY="single-host"
-
 # Link ocp account with Keycloak IDP
 function oauthProvisioned() {
   OCP_USER_UID=$(oc get user user -o=jsonpath='{.metadata.uid}')
