@@ -99,9 +99,9 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 	if identityProviderExists(htpasswdIdentityProviderName, oAuth) {
 		cr := deployContext.CheCluster
 		userName := deploy.DefaultCheFlavor(cr)
-		if err := deleteInitialUser(iuh.runtimeClient, userName); err != nil {
+		if err := deleteUser(iuh.runtimeClient, userName); err != nil {
 			return err
-		
+		}
 		
 		if err := deleteUserIdentity(iuh.runtimeClient, userName); err != nil {
 			return err
@@ -118,9 +118,6 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 		if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, cr.Namespace, iuh.runtimeClient); err != nil {
 			return err
 		}
-}
-
-
 	}
 
 	return nil
@@ -191,7 +188,7 @@ func newHtpasswdProvider() *oauthv1.IdentityProvider {
 	}
 }
 
-func deleteInitialUser(runtimeClient client.Client, userName string) error {
+func deleteUser(runtimeClient client.Client, userName string) error {
 	logrus.Infof("Delete initial user: %s", userName)
 
 	user := &userv1.User{

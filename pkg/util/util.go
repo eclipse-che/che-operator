@@ -399,6 +399,11 @@ func CompareBoolPointers(a *bool, b *bool) bool {
 	return *a == *b
 }
 
+// IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
+func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
+	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""
+}
+
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
 	if value != "" {
 		return resource.MustParse(value)
