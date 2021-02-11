@@ -339,9 +339,9 @@ type CheClusterSpecDB struct {
 // Configuration settings related to the Authentication used by the Che installation.
 type CheClusterSpecAuth struct {
 	// For operating with the OpenShift OAuth authentication, create a new user account since the kubeadmin can not be used.
-	// - If the value is true, then a new OpenShift OAuth user will be created for the HTPasswd identity provider.
-	// - If the value is false and the user has already been created, then it will be removed.
-	// - If value is an empty, then do nothing.
+	// If the value is true, then a new OpenShift OAuth user will be created for the HTPasswd identity provider.
+	// If the value is false and the user has already been created, then it will be removed.
+	// If value is an empty, then do nothing.
 	// The user's credentials are stored in the `openshift-oauth-user-credentials` secret by Operator.
 	// Note that this solution is Openshift 4 platform-specific.
 	InitialOpenShiftOAuthUser *bool `json:"initialOpenShiftOAuthUser,omitempty"`
