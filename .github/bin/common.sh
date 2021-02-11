@@ -33,7 +33,7 @@ init() {
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
-  export OAUTH="false"
+  export OAUTH="true"
 
   export XDG_DATA_HOME=/tmp/xdg_data
   export XDG_CACHE_HOME=/tmp/xdg_cache
@@ -309,7 +309,7 @@ applyOlmCR() {
 }
 
 # Create admin user inside of openshift cluster and login
-function provisionOpenshiftUsers() {
+function provisionOpenShiftOAuthUser() {
   oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config            
   oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
   oc adm policy add-cluster-role-to-user cluster-admin user

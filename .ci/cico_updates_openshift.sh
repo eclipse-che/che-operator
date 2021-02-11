@@ -27,7 +27,7 @@ overrideDefaults() {
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
-  oauthProvisioned
+  provisionOAuth
   provisionPostgres
   startNewWorkspace
   waitWorkspaceStart
@@ -35,6 +35,6 @@ runTests() {
 
 init
 overrideDefaults
-provisionOpenshiftUsers
+provisionOpenShiftOAuthUser
 initStableTemplates "openshift" "stable"
 runTests
