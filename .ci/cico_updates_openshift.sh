@@ -15,17 +15,26 @@ set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
+overrideDefaults() {
+  export OAUTH="true"
+}
+
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
+  oauthProvisioned
+  provisionPostgres
   startNewWorkspace
   waitWorkspaceStart
 }
 
 init
+overrideDefaults
+provisionOpenshiftUsers
 initStableTemplates "openshift" "stable"
 runTests

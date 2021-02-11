@@ -22,6 +22,7 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -30,18 +31,22 @@ overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE:-"quay.io/eclipse/che-operator:nightly"}
   export CHE_EXPOSURE_STRATEGY="single-host"
+  export OAUTH="true"
 }
 
 runTests() {
     # Deploy Eclipse Che applying CR
     applyOlmCR
     waitEclipseCheDeployed "nightly"
+    oauthProvisioned
+    provisionPostgres
     startNewWorkspace
     waitWorkspaceStart
 }
 
 init
 overrideDefaults
+provisionOpenshiftUsers
 patchEclipseCheOperatorSubscription
 printOlmCheObjects
 runTests
