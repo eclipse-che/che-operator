@@ -291,7 +291,6 @@ type ReconcileChe struct {
 }
 
 const (
-	// todo: improve messages...
 	failedValidationReason            = "InstallOrUpdateFailed"
 	failedNoOpenshiftUser             = "NoOpenshiftUsers"
 	failedNoIdentityProviders         = "NoIdentityProviders"
