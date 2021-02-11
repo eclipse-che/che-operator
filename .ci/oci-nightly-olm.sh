@@ -37,7 +37,6 @@ runTests() {
     applyOlmCR
     waitEclipseCheDeployed "nightly"
     provisionOAuth
-    provisionPostgres
     startNewWorkspace
     waitWorkspaceStart
 }
