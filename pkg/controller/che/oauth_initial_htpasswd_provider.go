@@ -42,7 +42,7 @@ type OpenShiftOAuthUserHandler interface {
 	DeleteOAuthInitialUser(deployContext *deploy.DeployContext) error
 }
 
-// OpenShiftOAuthUserOperatorHandler - implementation OpenShiftOAuthUserHandler.
+// OpenShiftOAuthUserOperatorHandler - OpenShiftOAuthUserHandler implementation.
 type OpenShiftOAuthUserOperatorHandler struct {
 	OpenShiftOAuthUserHandler
 	runtimeClient client.Client
@@ -53,7 +53,7 @@ type OpenShiftOAuthUserOperatorHandler struct {
 func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUserHandler {
 	return &OpenShiftOAuthUserOperatorHandler{
 		runtimeClient: runtimeClient,
-		// real process implementation. In the test we are using mock
+		// real process implementation. In the test we are using mock.
 		runnable: util.NewRunnable(),
 	}
 }

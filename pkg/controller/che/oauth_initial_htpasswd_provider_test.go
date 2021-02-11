@@ -182,7 +182,7 @@ func TestDeleteInitialUser(t *testing.T) {
 
 	expectedCheSecret := &corev1.Secret{}
 	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: testNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
-		t.Errorf("Initial user secret be deleted")
+		t.Errorf("Initial user secret should be deleted")
 	}
 
 	expectedHtpasswsSecret := &corev1.Secret{}
