@@ -283,6 +283,7 @@ func TestMountSecret(t *testing.T) {
 				},
 				ClusterAPI: ClusterAPI{
 					Client: cli,
+					NonCachedClient: cli,
 					Scheme: scheme.Scheme,
 				},
 			}

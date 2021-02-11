@@ -92,9 +92,12 @@ func TestCreateInitialUser(t *testing.T) {
 		CheCluster: testCR,
 		ClusterAPI:      deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
 	}
-	err := initialUserHandler.CreateOAuthInitialUser(oAuth, dc)
+	provisined, err := initialUserHandler.SyncOAuthInitialUser(oAuth, dc)
 	if err != nil {
 		t.Errorf("Failed to create user: %s", err.Error())
+	}
+	if !provisined {
+		t.Error("Unexpected error")
 	}
 
 	// Check created objects

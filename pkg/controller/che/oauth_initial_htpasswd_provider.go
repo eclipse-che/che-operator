@@ -36,9 +36,14 @@ const (
 	openShiftOAuthUserCredentialsSecret = "openshift-oauth-user-credentials"
 )
 
+var (
+	password = util.GeneratePasswd(6)
+	htpasswdFileContent string
+)
+
 // OpenShiftOAuthUserHandler - handler to create or delete new Openshift oAuth user.
 type OpenShiftOAuthUserHandler interface {
-	CreateOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) error
+	SyncOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) (bool, error)
 	DeleteOAuthInitialUser(deployContext *deploy.DeployContext) error
 }
 
@@ -58,35 +63,46 @@ func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUse
 	}
 }
 
-// CreateOAuthInitialUser - creates new htpasswd provider with inital user with Che flavor name
+// SyncOAuthInitialUser - creates new htpasswd provider with inital user with Che flavor name
 // if Openshift cluster hasn't got identity providers, otherwise do nothing.
 // It usefull for good first user expirience.
 // User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
 // initial user for good first meeting with Eclipse Che.
-func (iuh *OpenShiftOAuthUserOperatorHandler) CreateOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) error {
-	password := util.GeneratePasswd(6)
+func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 	userName := deploy.DefaultCheFlavor(cr)
-	htpasswdFileContent, err := iuh.generateHtPasswdUserInfo(userName, password)
+	var err error
+	if htpasswdFileContent == "" {
+		htpasswdFileContent, err = iuh.generateHtPasswdUserInfo(userName, password)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
+	credentionalSecret, err := deploy.SyncSecret(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+
+	storedPassword := string(credentionalSecret.Data["password"])
+	if password != storedPassword {
+		password = storedPassword
+		// todo remove this log info
+		logrus.Info("Detected stored password", storedPassword)
 	}
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
 	if _, err := deploy.SyncSecret(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData); err != nil {
-		return err
+		return false, err
 	}
 
 	if err := appendIdentityProvider(openshiftOAuth, iuh.runtimeClient); err != nil {
-		return err
+		return false, err
 	}
 
-	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
-	if _, err := deploy.SyncSecret(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData); err != nil {
-		return err
-	}
-
-	return nil
+	return true, nil
 }
 
 // DeleteOAuthInitialUser - removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.

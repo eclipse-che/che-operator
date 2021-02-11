@@ -306,7 +306,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 			mockFunction: func(ctrl *gomock.Controller, crNamespace string, userNamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler {
 				m := che_mocks.NewMockOpenShiftOAuthUserHandler(ctrl)
-				m.EXPECT().CreateOAuthInitialUser(gomock.Any(), gomock.Any())
+				m.EXPECT().SyncOAuthInitialUser(gomock.Any(), gomock.Any()).Return(true, nil)
 				return m
 			},
 			OpenShiftOAuthUserCredentialsSecret: openShiftOAuthUserCredentialsSecret,

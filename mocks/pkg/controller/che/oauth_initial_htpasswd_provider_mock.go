@@ -34,18 +34,19 @@ func (m *MockOpenShiftOAuthUserHandler) EXPECT() *MockOpenShiftOAuthUserHandlerM
 	return m.recorder
 }
 
-// CreateOAuthInitialUser mocks base method
-func (m *MockOpenShiftOAuthUserHandler) CreateOAuthInitialUser(openshiftOAuth *v1.OAuth, deployContext *deploy.DeployContext) error {
+// SyncOAuthInitialUser mocks base method
+func (m *MockOpenShiftOAuthUserHandler) SyncOAuthInitialUser(openshiftOAuth *v1.OAuth, deployContext *deploy.DeployContext) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateOAuthInitialUser", openshiftOAuth, deployContext)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "SyncOAuthInitialUser", openshiftOAuth, deployContext)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// CreateOAuthInitialUser indicates an expected call of CreateOAuthInitialUser
-func (mr *MockOpenShiftOAuthUserHandlerMockRecorder) CreateOAuthInitialUser(openshiftOAuth, deployContext interface{}) *gomock.Call {
+// SyncOAuthInitialUser indicates an expected call of SyncOAuthInitialUser
+func (mr *MockOpenShiftOAuthUserHandlerMockRecorder) SyncOAuthInitialUser(openshiftOAuth, deployContext interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOAuthInitialUser", reflect.TypeOf((*MockOpenShiftOAuthUserHandler)(nil).CreateOAuthInitialUser), openshiftOAuth, deployContext)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncOAuthInitialUser", reflect.TypeOf((*MockOpenShiftOAuthUserHandler)(nil).SyncOAuthInitialUser), openshiftOAuth, deployContext)
 }
 
 // DeleteOAuthInitialUser mocks base method

@@ -80,7 +80,7 @@ func GetSecret(name string, namespace string, clusterAPI ClusterAPI) (*corev1.Se
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := clusterAPI.Client.Get(context.TODO(), namespacedName, secret)
+	err := clusterAPI.NonCachedClient.Get(context.TODO(), namespacedName, secret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
