@@ -286,16 +286,17 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 				return nil, err
 			}
 			if cheTLSSecret == nil {
-				return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				// default k8s secret is used
+			} else {
+				if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
+					return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				}
+				if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
+					return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				}
+				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
+				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 			}
-			if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-			}
-			if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-			}
-			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
-			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 		}
 
 		addMap(cheEnv, k8sCheEnv)
