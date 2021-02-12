@@ -35,6 +35,8 @@ func NewRunnable() Runnable {
 
 func (p *Process) Run(name string, args ...string) error {
 	p.cmd = exec.Command(name, args...)
+	p.stderr.Reset()
+	p.stdout.Reset()
 	p.cmd.Stdout = &p.stdout
 	p.cmd.Stderr = &p.stderr
 	return p.cmd.Run()
