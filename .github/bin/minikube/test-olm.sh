@@ -25,6 +25,6 @@ runTest() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
 insecurePrivateDockerRegistry
 runTest

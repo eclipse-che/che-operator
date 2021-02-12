@@ -36,7 +36,7 @@ runTest() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
 installYq
 initStableTemplates "openshift" "stable"
 prepareTemplates

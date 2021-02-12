@@ -25,7 +25,7 @@ catchFinish() {
   exit $result
 }
 
-init() {
+initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
@@ -33,21 +33,25 @@ init() {
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
-  export OAUTH="true"
 
   export XDG_DATA_HOME=/tmp/xdg_data
   export XDG_CACHE_HOME=/tmp/xdg_cache
   export XDG_CONFIG_HOME=/tmp/xdg_config
 
+  export OAUTH="false"
+
   # turn off telemetry
   mkdir -p ${XDG_CONFIG_HOME}/chectl
   echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/chectl/config.json
 
-  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
+}
+
+initOpenShiftDefaults() {
+  export OAUTH="true"
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 }
 
 initLatestTemplates() {
@@ -90,11 +94,12 @@ initStableTemplates() {
 
 # Utility to wait for a workspace to be started after workspace:create.
 waitWorkspaceStart() {
+  login
+
   set +e
   export x=0
   while [ $x -le 180 ]
   do
-    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
     chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
     workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
@@ -201,19 +206,19 @@ updateEclipseChe() {
 startNewWorkspace() {
   # Create and start a workspace
   sleep 5s
-  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  login
   chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
 createWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  login
   chectl workspace:create --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
 startExistedWorkspace() {
   sleep 5s
-  chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  login
   chectl workspace:list --chenamespace=${NAMESPACE}
   workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
 
@@ -310,7 +315,7 @@ applyOlmCR() {
 
 # Create admin user inside of openshift cluster and login
 function provisionOpenShiftOAuthUser() {
-  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config            
+  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config
   oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
   oc adm policy add-cluster-role-to-user cluster-admin user
 
@@ -323,4 +328,13 @@ function provisionOpenShiftOAuthUser() {
       fi
       sleep 10
   done
+}
+
+login() {
+  if [[ ${OAUTH} == "false" ]]; then
+    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+  else
+    # log in using OpenShift token
+    chectl auth:login --chenamespace=${NAMESPACE}
+  fi
 }
