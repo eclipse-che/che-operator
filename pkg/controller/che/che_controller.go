@@ -1169,9 +1169,6 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 						}
 					}
 				}
-				if !provisioned {
-					return reconcile.Result{}, err
-				}
 			}
 		}
 	} else { // Openshift 3
