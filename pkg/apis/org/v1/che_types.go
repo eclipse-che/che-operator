@@ -82,7 +82,7 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
-	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for CodeReady Workspaces installation.
+	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady Workspaces] installation.
 	// Override the default value only on necessary occasions.
 	// +optional
 	CheFlavor string `json:"cheFlavor,omitempty"`
@@ -462,7 +462,7 @@ type CheClusterSpecStorage struct {
 	// +optional
 	PvcClaimSize string `json:"pvcClaimSize,omitempty"`
 	// Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes.
-	// Defaults to `false`, however it will need to enable it according to the configuration of your K8S cluster.
+	// Defaults to `false`, however it will need to enable it according to the configuration of your Kubernetes cluster.
 	// +optional
 	PreCreateSubPaths bool `json:"preCreateSubPaths"`
 	// Overrides the container image used to create sub-paths in the Persistent Volumes.
@@ -480,7 +480,7 @@ type CheClusterSpecStorage struct {
 // +k8s:openapi-gen=true
 // Configuration settings specific to Che installations made on upstream Kubernetes.
 type CheClusterSpecK8SOnly struct {
-	// Global ingress domain for a K8S cluster. This MUST be explicitly specified: there are no defaults.
+	// Global ingress domain for a Kubernetes cluster. This MUST be explicitly specified: there are no defaults.
 	IngressDomain string `json:"ingressDomain,omitempty"`
 	// Strategy for ingress creation. Options are: `multi-host` (host is explicitly provided in ingress),
 	// `single-host` (host is provided, path-based rules) and `default-host` (no host is provided, path-based rules).

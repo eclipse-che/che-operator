@@ -338,8 +338,8 @@ spec:
                     `kubernetes.io/ingress.class` annotation on Che-related ingresses.'
                   type: string
                 ingressDomain:
-                  description: 'Global ingress domain for a K8S cluster. This MUST
-                    be explicitly specified: there are no defaults.'
+                  description: 'Global ingress domain for a Kubernetes cluster. This
+                    MUST be explicitly specified: there are no defaults.'
                   type: string
                 ingressStrategy:
                   description: 'Strategy for ingress creation. Options are: `multi-host`
@@ -420,8 +420,8 @@ spec:
                   type: string
                 cheFlavor:
                   description: Specifies a variation of the installation. The options
-                    are `che` for upstream Che installations, or `codeready` for CodeReady
-                    Workspaces installation. Override the default value only on necessary
+                    are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady
+                    Workspaces] installation. Override the default value only on necessary
                     occasions.
                   type: string
                 cheHost:
@@ -732,7 +732,7 @@ spec:
                   description: Instructs the Che server to start a special Pod to
                     pre-create a sub-path in the Persistent Volumes. Defaults to `false`,
                     however it will need to enable it according to the configuration
-                    of your K8S cluster.
+                    of your Kubernetes cluster.
                   type: boolean
                 pvcClaimSize:
                   description: Size of the persistent volume claim for workspaces.
