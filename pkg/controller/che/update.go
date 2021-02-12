@@ -13,6 +13,8 @@ package che
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/eclipse/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
@@ -35,6 +37,25 @@ func (r *ReconcileChe) UpdateCheCRStatus(instance *orgv1.CheCluster, updatedFiel
 	return nil
 }
 
+// UpdateCheCRSpecByFields - updates Che CR spec fields by field map
+func (r *ReconcileChe) UpdateCheCRSpecByFields(instance *orgv1.CheCluster, fields map[string]string) (err error) {
+	updateInfo := fmt.Sprintf("Updating multiple CR %s fields:\n", instance.Name)
+	for updatedField, value := range fields {
+		updateInfo += fmt.Sprintf("field %s: %s \n", updatedField, value)
+	}
+	logrus.Infof(updateInfo)
+
+	err = r.client.Update(context.TODO(), instance)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
+		return err
+	}
+	logrus.Infof("Custom resource %s updated", instance.Name)
+
+	return nil
+}
+
+// UpdateCheCRSpec - updates Che CR spec by field
 func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField string, value string) (err error) {
 	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
 	err = r.client.Update(context.TODO(), instance)

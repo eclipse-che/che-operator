@@ -392,22 +392,31 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		instance.Spec.Auth.OpenShiftoAuth = nil
-		if err := r.UpdateCheCRSpec(instance, "OpenShiftoAuth", "nil"); err != nil {
-			return reconcile.Result{}, err
-		}
-
 		instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
-		err := r.UpdateCheCRSpec(instance, "InitialOpenShiftOAuthUser", "nil")
-		if err != nil {
-			return reconcile.Result{}, err
+		updateFields := map[string]string{
+			"OpenShiftoAuth": "nil",
+			"InitialOpenShiftOAuthUser": "nil",
 		}
-
-		instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
-		if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
+	
+		if err := r.UpdateCheCRSpecByFields(instance, updateFields); err != nil {
 			return reconcile.Result{}, err
 		}
 
 		return reconcile.Result{}, nil
+	}
+
+	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
+		secret, err := deploy.GetSecret(openShiftOAuthUserCredentialsSecret, instance.Namespace, deployContext.ClusterAPI)
+		if secret == nil {
+			if err == nil {
+				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
+				if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+					return reconcile.Result{}, err
+				}
+			} else {
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
 	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
