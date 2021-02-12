@@ -40,9 +40,9 @@ func (r *ReconcileChe) UpdateCheCRStatus(instance *orgv1.CheCluster, updatedFiel
 
 // UpdateCheCRSpecByFields - updates Che CR "spec" fields by field map
 func (r *ReconcileChe) UpdateCheCRSpecByFields(instance *orgv1.CheCluster, fields map[string]string) (err error) {
-	updateInfo := append([]string{}, fmt.Sprintf("Updating multiple CR %s fields:\n", instance.Name))
+	updateInfo := append([]string{}, fmt.Sprintf("Updating multiple CR %s fields: \n", instance.Name))
 	for updatedField, value := range fields {
-		updateInfo = append(updateInfo, fmt.Sprintf("field %s: %s", updatedField, value))
+		updateInfo = append(updateInfo, fmt.Sprintf("%s: %s", updatedField, value))
 	}
 	logrus.Infof(strings.Join(updateInfo, ", "))
 
