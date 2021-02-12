@@ -71,10 +71,9 @@ func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUse
 func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 	userName := deploy.DefaultCheFlavor(cr)
-	var err error
 	if htpasswdFileContent == "" {
-		htpasswdFileContent, err = iuh.generateHtPasswdUserInfo(userName, password)
-		if err != nil {
+		var err error
+		if htpasswdFileContent, err = iuh.generateHtPasswdUserInfo(userName, password); err != nil {
 			return false, err
 		}
 	}
