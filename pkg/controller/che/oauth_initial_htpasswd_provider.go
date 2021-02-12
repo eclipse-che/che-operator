@@ -114,6 +114,11 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 
 	cr := deployContext.CheCluster
 	userName := deploy.DefaultCheFlavor(cr)
+
+	if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
+		return err
+	}
+
 	if err := deleteUser(iuh.runtimeClient, userName); err != nil {
 		return err
 	}
@@ -123,10 +128,6 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 	}
 
 	if err := deleteIdentityProvider(oAuth, iuh.runtimeClient); err != nil {
-		return err
-	}
-
-	if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
 		return err
 	}
 
