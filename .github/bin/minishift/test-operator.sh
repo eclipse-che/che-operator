@@ -32,7 +32,7 @@ runTest() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
 installYq
 initLatestTemplates
 prepareTemplates

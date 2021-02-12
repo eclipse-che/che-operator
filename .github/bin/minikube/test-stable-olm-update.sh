@@ -27,6 +27,6 @@ runTest() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
 initStableTemplates "kubernetes" "stable"
 runTest

@@ -28,7 +28,8 @@ runTests() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
+initOpenShiftDefaults
 provisionOpenShiftOAuthUser
 initStableTemplates "openshift" "stable"
 runTests
