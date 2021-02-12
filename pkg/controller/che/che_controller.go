@@ -1161,6 +1161,9 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 					}
 					oauth = false
 				} else {
+					if !provisioned {
+						return reconcile.Result{}, err
+					}
 					oauth = true
 					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
 						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
