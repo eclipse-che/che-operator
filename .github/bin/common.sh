@@ -29,6 +29,7 @@ catchFinish() {
 
 init() {
   export RAM_MEMORY=8192
+
   export NAMESPACE="eclipse-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
