@@ -14,6 +14,7 @@ package che
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
 
@@ -30,24 +31,24 @@ func (r *ReconcileChe) UpdateCheCRStatus(instance *orgv1.CheCluster, updatedFiel
 	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
 	err = r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		logrus.Errorf("Failed to update %s CR. Fetching the latest CR version: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR. Fetching the latest CR version: %s", instance.Name, err.Error())
 		return err
 	}
 	logrus.Infof("Custom resource %s updated", instance.Name)
 	return nil
 }
 
-// UpdateCheCRSpecByFields - updates Che CR spec fields by field map
+// UpdateCheCRSpecByFields - updates Che CR "spec" fields by field map
 func (r *ReconcileChe) UpdateCheCRSpecByFields(instance *orgv1.CheCluster, fields map[string]string) (err error) {
-	updateInfo := fmt.Sprintf("Updating multiple CR %s fields:\n", instance.Name)
+	updateInfo := append([]string{}, fmt.Sprintf("Updating multiple CR %s fields:\n", instance.Name))
 	for updatedField, value := range fields {
-		updateInfo += fmt.Sprintf("field %s: %s \n", updatedField, value)
+		updateInfo = append(updateInfo, fmt.Sprintf("field %s: %s", updatedField, value))
 	}
-	logrus.Infof(updateInfo)
+	logrus.Infof(strings.Join(updateInfo, ", "))
 
 	err = r.client.Update(context.TODO(), instance)
 	if err != nil {
-		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err.Error())
 		return err
 	}
 	logrus.Infof("Custom resource %s updated", instance.Name)
@@ -55,12 +56,12 @@ func (r *ReconcileChe) UpdateCheCRSpecByFields(instance *orgv1.CheCluster, field
 	return nil
 }
 
-// UpdateCheCRSpec - updates Che CR spec by field
+// UpdateCheCRSpec - updates Che CR "spec" by field
 func (r *ReconcileChe) UpdateCheCRSpec(instance *orgv1.CheCluster, updatedField string, value string) (err error) {
 	logrus.Infof("Updating %s CR with %s: %s", instance.Name, updatedField, value)
 	err = r.client.Update(context.TODO(), instance)
 	if err != nil {
-		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
+		logrus.Errorf("Failed to update %s CR: %s", instance.Name, err.Error())
 		return err
 	}
 	logrus.Infof("Custom resource %s updated", instance.Name)
@@ -71,7 +72,7 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isO
 	if !util.IsOAuthEnabled(instance) && instance.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: instance.Namespace}, keycloakDeployment); err != nil {
-			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err)
+			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err.Error())
 		}
 
 		providerName := "openshift-v3"
@@ -89,10 +90,10 @@ func (r *ReconcileChe) ReconcileIdentityProvider(instance *orgv1.CheCluster, isO
 			oAuthClient := &oauth.OAuthClient{}
 			oAuthClientName := instance.Spec.Auth.OAuthClientName
 			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
-				logrus.Errorf("OAuthClient %s not found: %s", oAuthClient.Name, err)
+				logrus.Errorf("OAuthClient %s not found: %s", oAuthClient.Name, err.Error())
 			}
 			if err := r.client.Delete(context.TODO(), oAuthClient); err != nil {
-				logrus.Errorf("Failed to delete %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err)
+				logrus.Errorf("Failed to delete %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err.Error())
 			}
 			return true, nil
 		}

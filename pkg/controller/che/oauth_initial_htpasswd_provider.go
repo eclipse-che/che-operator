@@ -87,6 +87,9 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	storedPassword := string(credentionalSecret.Data["password"])
 	if password != storedPassword {
 		password = storedPassword
+		if htpasswdFileContent, err = iuh.generateHtPasswdUserInfo(userName, password); err != nil {
+			return false, err
+		}
 	}
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
