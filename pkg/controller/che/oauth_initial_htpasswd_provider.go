@@ -110,7 +110,6 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 		return err
 	}
 
-	if identityProviderExists(htpasswdIdentityProviderName, oAuth) {
 		cr := deployContext.CheCluster
 		userName := deploy.DefaultCheFlavor(cr)
 		if err := deleteUser(iuh.runtimeClient, userName); err != nil {
