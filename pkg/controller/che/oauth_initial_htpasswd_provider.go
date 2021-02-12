@@ -94,8 +94,9 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	}
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
-	if _, err := deploy.SyncSecret(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData); err != nil {
-		return false, err
+	secret, err := deploy.SyncSecret(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData)
+	if sercet == nil {
+	  return false, err
 	}
 
 	if err := appendIdentityProvider(openshiftOAuth, iuh.runtimeClient); err != nil {
