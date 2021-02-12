@@ -67,10 +67,10 @@ spec:
                   type: string
                 identityProviderClientId:
                   description: Name of a Identity provider, Keycloak or RH-SSO, `client-id`
-                    that is used for Che. This is useful to override it ONLY if you
-                    use an external Identity Provider. See the `externalIdentityProvider`
-                    field. When omitted or left blank, it is set to the value of the
-                    `flavour` field suffixed with `-public`.
+                    that is used for Che. Override this when an external Identity
+                    Provider is in use. See the `externalIdentityProvider` field.
+                    When omitted or left blank, it is set to the value of the `flavour`
+                    field suffixed with `-public`.
                   type: string
                 identityProviderContainerResources:
                   description: Identity provider container custom settings.
@@ -122,16 +122,15 @@ spec:
                   type: object
                 identityProviderPassword:
                   description: Overrides the password of Keycloak administrator user.
-                    This is useful to override it ONLY if you use an external Identity
-                    Provider. See the `externalIdentityProvider` field. When omitted
-                    or left blank, it is set to an auto-generated password.
+                    Override this when an external Identity Provider is in use. See
+                    the `externalIdentityProvider` field. When omitted or left blank,
+                    it is set to an auto-generated password.
                   type: string
                 identityProviderPostgresPassword:
                   description: Password for a Identity Provider, Keycloak or RH-SSO,
-                    to connect to the database. This is useful to override it ONLY
-                    if you use an external Identity Provider. See the `externalIdentityProvider`
-                    field. When omitted or left blank, it is set to an auto-generated
-                    password.
+                    to connect to the database. Override this when an external Identity
+                    Provider is in use. See the `externalIdentityProvider` field.
+                    When omitted or left blank, it is set to an auto-generated password.
                   type: string
                 identityProviderPostgresSecret:
                   description: 'The secret that contains `password` for the Identity
@@ -146,10 +145,10 @@ spec:
                   type: string
                 identityProviderRealm:
                   description: Name of a Identity provider, Keycloak or RH-SSO, realm
-                    that is used for Che. This is useful to override it ONLY if you
-                    use an external Identity Provider. See the `externalIdentityProvider`
-                    field. When omitted or left blank, it is set to the value of the
-                    `flavour` field.
+                    that is used for Che. Override this when an external Identity
+                    Provider is in use. See the `externalIdentityProvider` field.
+                    When omitted or left blank, it is set to the value of the `flavour`
+                    field.
                   type: string
                 identityProviderRoute:
                   description: Route custom settings.
@@ -181,12 +180,13 @@ spec:
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
                     setup identity federation on the OpenShift side. Auto-generated
-                    if left blank. See also the `OpenShiftoAuth` field.
+                    when left blank. See also the `OpenShiftoAuth` field.
                   type: string
                 oAuthSecret:
                   description: Name of the secret set in the OpenShift `OAuthClient`
                     resource used to setup identity federation on the OpenShift side.
-                    Auto-generated if left blank. See also the `OAuthClientName` field.
+                    Auto-generated when left blank. See also the `OAuthClientName`
+                    field.
                   type: string
                 openShiftoAuth:
                   description: 'Enables the integration of the identity provider (Keycloak
@@ -240,7 +240,7 @@ spec:
                   type: string
                 chePostgresHostName:
                   description: PostgreSQL Database host name that the Che server uses
-                    to connect to. Defaults to postgres. Override this value ONLY
+                    to connect to. Defaults is `postgres`. Override this value ONLY
                     when using an external database. See field `externalDb`. In the
                     default case it will be automatically set by the Operator.
                   type: string
@@ -294,13 +294,13 @@ spec:
               properties:
                 enable:
                   description: "Install and configure the Community Supported Kubernetes\
-                    \ Image Puller Operator. If true and no spec is provided, it will\
-                    \ create a default KubernetesImagePuller object to be managed\
-                    \ by the Operator. If false, the KubernetesImagePuller object\
-                    \ will be deleted, and the Operator will be uninstalled, regardless\
-                    \ of whether a spec is provided. \n Note that while this the Operator\
-                    \ and its behavior is community-supported, its payload may be\
-                    \ commercially-supported if you use it for pulling commercially-supported\
+                    \ Image Puller Operator. When set to `true` and no spec is provided,\
+                    \ it will create a default KubernetesImagePuller object to be\
+                    \ managed by the Operator. When set to `false`, the KubernetesImagePuller\
+                    \ object will be deleted, and the Operator will be uninstalled,\
+                    \ regardless of whether a spec is provided. \n Note that while\
+                    \ this the Operator and its behavior is community-supported, its\
+                    \ payload may be commercially-supported for pulling commercially-supported\
                     \ images."
                   type: boolean
                 spec:
@@ -339,8 +339,8 @@ spec:
                     `kubernetes.io/ingress.class` annotation on Che-related ingresses.'
                   type: string
                 ingressDomain:
-                  description: 'Global ingress domain for a K8S cluster. This MUST
-                    be explicitly specified: there are no defaults.'
+                  description: 'Global ingress domain for a Kubernetes cluster. This
+                    MUST be explicitly specified: there are no defaults.'
                   type: string
                 ingressStrategy:
                   description: 'Strategy for ingress creation. Options are: `multi-host`
@@ -365,9 +365,9 @@ spec:
                     configured by this property. The possible values are `native`,
                     which means that the server and workspaces are exposed using ingresses
                     on K8s or `gateway` where the server and workspaces are exposed
-                    using a custom gateway based on Traefik. All the endpoints whether
-                    backed by the ingress or gateway `route` always point to the subpaths
-                    on the same domain. Defaults to `native`.
+                    using a custom gateway based on link:https://doc.traefik.io/traefik/[Traefik].
+                    All the endpoints whether backed by the ingress or gateway `route`
+                    always point to the subpaths on the same domain. Defaults to `native`.
                   type: string
                 tlsSecretName:
                   description: Name of a secret that will be used to setup ingress
@@ -421,9 +421,9 @@ spec:
                   type: string
                 cheFlavor:
                   description: Specifies a variation of the installation. The options
-                    are `che` for upstream Che installations, or `codeready` for CodeReady
-                    Workspaces installation. If not necessary, do not override the
-                    default value.
+                    are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady
+                    Workspaces] installation. Override the default value only on necessary
+                    occasions.
                   type: string
                 cheHost:
                   description: Public host name of the installed Che server. When
@@ -472,17 +472,17 @@ spec:
                   type: object
                 cheWorkspaceClusterRole:
                   description: Custom cluster role bound to the user for the Che workspaces.
-                    The default roles are used if this is omitted or left blank.
+                    The default roles are used when omitted or left blank.
                   type: string
                 customCheProperties:
                   additionalProperties:
                     type: string
                   description: Map of additional environment variables that will be
-                    applied in the generated `che` configMap to be used by the Che
+                    applied in the generated `che` ConfigMap to be used by the Che
                     server, in addition to the values already generated from other
                     fields of the `CheCluster` custom resource (CR). When `customCheProperties`
                     contains a property that would be normally generated in `che`
-                    configMap from other CR fields, the value defined in the `customCheProperties`
+                    ConfigMap from other CR fields, the value defined in the `customCheProperties`
                     is used instead.
                   type: object
                 devfileRegistryCpuLimit:
@@ -550,7 +550,7 @@ spec:
                   type: boolean
                 gitSelfSignedCert:
                   description: When enabled, the certificate from `che-git-self-signed-cert`
-                    configMap will be propagated to the Che components and provide
+                    ConfigMap will be propagated to the Che components and provide
                     particular configuration for Git.
                   type: boolean
                 nonProxyHosts:
@@ -609,9 +609,9 @@ spec:
                   type: object
                 pluginRegistryUrl:
                   description: Public URL of the plugin registry that serves sample
-                    ready-to-use devfiles. Set this ONLY if a use of an external devfile
-                    registry is needed. See the `externalPluginRegistry` field. By
-                    default, this will be automatically calculated by the Operator.
+                    ready-to-use devfiles. Set this ONLY when a use of an external
+                    devfile registry is needed. See the `externalPluginRegistry` field.
+                    By default, this will be automatically calculated by the Operator.
                   type: string
                 proxyPassword:
                   description: Password of the proxy server. Only use when proxy configuration
@@ -647,7 +647,7 @@ spec:
                   type: string
                 selfSignedCert:
                   description: Deprecated. The value of this flag is ignored. The
-                    Che Operator will automatically detect if the router certificate
+                    Che Operator will automatically detect whether the router certificate
                     is self-signed and propagate it to other components, such as the
                     Che server.
                   type: boolean
@@ -680,7 +680,7 @@ spec:
                     deployment. Defaults to 512Mi.
                   type: string
                 serverTrustStoreConfigMapName:
-                  description: Name of the configMap with public certificates to add
+                  description: Name of the ConfigMap with public certificates to add
                     to Java trust store of the Che server. This is often required
                     when adding the OpenShift OAuth provider, which has HTTPS endpoint
                     signed with self-signed cert. The Che server must be aware of
@@ -689,7 +689,7 @@ spec:
                 singleHostGatewayConfigMapLabels:
                   additionalProperties:
                     type: string
-                  description: The labels that need to be present in the configMaps
+                  description: The labels that need to be present in the ConfigMaps
                     representing the gateway configuration.
                   type: object
                 singleHostGatewayConfigSidecarImage:
@@ -714,11 +714,10 @@ spec:
                   type: boolean
                 workspaceNamespaceDefault:
                   description: Defines Kubernetes default namespace in which user's
-                    workspaces are created if user does not override it. It's possible
-                    to use `<username>`,`<userid>` and `<workspaceid>` placeholders,
-                    such as che-workspace-<username>. In that case, a new namespace
-                    will be created for each user or workspace. Is used by OpenShift
-                    infrastructure as well to specify Project.
+                    workspaces are created for a case when a user does not override
+                    it. It's possible to use `<username>`, `<userid>` and `<workspaceid>`
+                    placeholders, such as che-workspace-<username>. In that case,
+                    a new namespace will be created for each user or workspace.
                   type: string
               type: object
             storage:
@@ -734,7 +733,7 @@ spec:
                   description: Instructs the Che server to start a special Pod to
                     pre-create a sub-path in the Persistent Volumes. Defaults to `false`,
                     however it will need to enable it according to the configuration
-                    of your K8S cluster.
+                    of your Kubernetes cluster.
                   type: boolean
                 pvcClaimSize:
                   description: Size of the persistent volume claim for workspaces.
