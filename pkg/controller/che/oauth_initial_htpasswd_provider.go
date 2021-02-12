@@ -81,7 +81,7 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 
 	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
 	credentionalSecret, err := deploy.SyncSecret(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData)
-	if err != nil {
+	if credentionalSecret == nil {
 		return false, err
 	}
 
