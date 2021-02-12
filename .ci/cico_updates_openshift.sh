@@ -20,10 +20,6 @@ source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-overrideDefaults() {
-  export OAUTH="true"
-}
-
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
@@ -33,7 +29,6 @@ runTests() {
 }
 
 init
-overrideDefaults
 provisionOpenShiftOAuthUser
 initStableTemplates "openshift" "stable"
 runTests
