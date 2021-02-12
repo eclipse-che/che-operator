@@ -89,8 +89,6 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	storedPassword := string(credentionalSecret.Data["password"])
 	if password != storedPassword {
 		password = storedPassword
-		// todo remove this log info
-		logrus.Info("Detected stored password", storedPassword)
 	}
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
