@@ -41,7 +41,8 @@ runTests() {
     waitWorkspaceStart
 }
 
-init
+initDefaults
+initOpenShiftDefaults
 overrideDefaults
 provisionOpenShiftOAuthUser
 patchEclipseCheOperatorSubscription

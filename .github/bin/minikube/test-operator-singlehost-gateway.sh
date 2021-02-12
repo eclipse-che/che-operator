@@ -35,7 +35,7 @@ runTest() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
 initLatestTemplates
 prepareTemplates
 buildCheOperatorImage

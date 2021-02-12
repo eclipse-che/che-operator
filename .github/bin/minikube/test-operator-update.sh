@@ -37,7 +37,7 @@ runTest() {
   waitWorkspaceStart
 }
 
-init
+initDefaults
 initLatestTemplates
 initStableTemplates "kubernetes" "stable"
 prepareTemplates
