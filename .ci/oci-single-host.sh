@@ -22,6 +22,7 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -36,12 +37,14 @@ runTests() {
     # Deploy Eclipse Che applying CR
     applyOlmCR
     waitEclipseCheDeployed "nightly"
+    provisionOAuth
     startNewWorkspace
     waitWorkspaceStart
 }
 
 init
 overrideDefaults
+provisionOpenShiftOAuthUser
 patchEclipseCheOperatorSubscription
 printOlmCheObjects
 runTests

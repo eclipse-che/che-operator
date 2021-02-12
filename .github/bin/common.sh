@@ -1,14 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
-# Copyright (c) 2020 Red Hat, Inc.
+# Copyright (c) 2012-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Contributors:
-#   Red Hat, Inc. - initial API and implementation
 
 set -e
 set -x
@@ -35,7 +33,7 @@ init() {
   export OPERATOR_IMAGE="quay.io/eclipse/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
-  export OAUTH="false"
+  export OAUTH="true"
 
   export XDG_DATA_HOME=/tmp/xdg_data
   export XDG_CACHE_HOME=/tmp/xdg_cache
@@ -308,4 +306,21 @@ applyOlmCR() {
 
   echo -e "$CR"
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
+}
+
+# Create admin user inside of openshift cluster and login
+function provisionOpenShiftOAuthUser() {
+  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config            
+  oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
+  oc adm policy add-cluster-role-to-user cluster-admin user
+
+  echo -e "[INFO] Waiting for htpasswd auth to be working up to 5 minutes"
+  CURRENT_TIME=$(date +%s)
+  ENDTIME=$(($CURRENT_TIME + 300))
+  while [ $(date +%s) -lt $ENDTIME ]; do
+      if oc login -u user -p user --insecure-skip-tls-verify=false; then
+          break
+      fi
+      sleep 10
+  done
 }
