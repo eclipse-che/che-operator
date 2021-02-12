@@ -391,9 +391,9 @@ func CompareBoolPointers(a *bool, b *bool) bool {
 		return true
 	}
 	if a == nil && b != nil {
-		return false 
+		return false
 	}
-	if b == nil && a != nil{
+	if b == nil && a != nil {
 		return false
 	}
 	return *a == *b

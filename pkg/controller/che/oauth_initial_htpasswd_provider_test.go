@@ -90,7 +90,7 @@ func TestCreateInitialUser(t *testing.T) {
 	}
 	dc := &deploy.DeployContext{
 		CheCluster: testCR,
-		ClusterAPI:      deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
+		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
 	}
 	provisined, err := initialUserHandler.SyncOAuthInitialUser(oAuth, dc)
 	if err != nil {
@@ -176,8 +176,8 @@ func TestDeleteInitialUser(t *testing.T) {
 	}
 
 	dc := &deploy.DeployContext{
-		CheCluster:      testCR,
-		ClusterAPI:      deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
+		CheCluster: testCR,
+		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
 	}
 	if err := initialUserHandler.DeleteOAuthInitialUser(dc); err != nil {
 		t.Errorf("Unable to delete initial user: %s", err.Error())

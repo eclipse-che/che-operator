@@ -1148,7 +1148,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
 				oauth = true
 			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext);
+				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
 				if err != nil {
 					message = warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error()
 					logrus.Error(message)

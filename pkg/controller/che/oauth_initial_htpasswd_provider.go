@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	password = util.GeneratePasswd(6)
+	password            = util.GeneratePasswd(6)
 	htpasswdFileContent string
 )
 
@@ -84,7 +84,6 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 		return false, err
 	}
 
-
 	storedPassword := string(credentionalSecret.Data["password"])
 	if password != storedPassword {
 		password = storedPassword
@@ -92,8 +91,8 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
 	secret, err := deploy.SyncSecret(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData)
-	if sercet == nil {
-	  return false, err
+	if secret == nil {
+		return false, err
 	}
 
 	if err := appendIdentityProvider(openshiftOAuth, iuh.runtimeClient); err != nil {
@@ -110,27 +109,27 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 		return err
 	}
 
-		cr := deployContext.CheCluster
-		userName := deploy.DefaultCheFlavor(cr)
-		if err := deleteUser(iuh.runtimeClient, userName); err != nil {
-			return err
-		}
-		
-		if err := deleteUserIdentity(iuh.runtimeClient, userName); err != nil {
-			return err
-		}
+	cr := deployContext.CheCluster
+	userName := deploy.DefaultCheFlavor(cr)
+	if err := deleteUser(iuh.runtimeClient, userName); err != nil {
+		return err
+	}
 
-		if err := deleteIdentityProvider(oAuth, iuh.runtimeClient); err != nil {
-			return err
-		}
-		
-		if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
-			return err
-		}
+	if err := deleteUserIdentity(iuh.runtimeClient, userName); err != nil {
+		return err
+	}
 
-		if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, cr.Namespace, iuh.runtimeClient); err != nil {
-			return err
-		}
+	if err := deleteIdentityProvider(oAuth, iuh.runtimeClient); err != nil {
+		return err
+	}
+
+	if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
+		return err
+	}
+
+	if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, cr.Namespace, iuh.runtimeClient); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -178,7 +177,7 @@ func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) e
 		oauthPatch := client.MergeFrom(oAuth.DeepCopy())
 
 		oAuth.Spec.IdentityProviders = append(oAuth.Spec.IdentityProviders, *htpasswdProvider)
-	
+
 		if err := runtimeClient.Patch(context.TODO(), oAuth, oauthPatch); err != nil {
 			return err
 		}
