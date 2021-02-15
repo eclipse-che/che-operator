@@ -160,7 +160,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 			specDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(specDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, volumeMount)
 
 		case "env":
-			secret, err := GetSecret(secretObj.Name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
+			secret, err := GetSecret(deployContext, secretObj.Name, deployContext.CheCluster.Namespace)
 			if err != nil {
 				return err
 			} else if secret == nil {

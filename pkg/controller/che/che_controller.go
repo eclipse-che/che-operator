@@ -394,7 +394,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		instance.Spec.Auth.OpenShiftoAuth = nil
 		instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
 		updateFields := map[string]string{
-			"openShiftoAuth": "nil",
+			"openShiftoAuth":            "nil",
 			"initialOpenShiftOAuthUser": "nil",
 		}
 
@@ -406,7 +406,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret, err := deploy.GetSecret(openShiftOAuthUserCredentialsSecret, instance.Namespace, deployContext.ClusterAPI)
+		secret, err := deploy.GetSecret(deployContext, instance.Status.OpenShiftOAuthUserCredentialsSecret, instance.Namespace)
 		if secret == nil {
 			if err == nil {
 				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""

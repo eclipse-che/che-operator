@@ -38,8 +38,8 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 			deployContext,
 			cheHost,
 			deploy.DevfileRegistryName,
-			deployContext.CheCluster.Spec.Server.PluginRegistryRoute,
-			deployContext.CheCluster.Spec.Server.PluginRegistryIngress,
+			deployContext.CheCluster.Spec.Server.DevfileRegistryRoute,
+			deployContext.CheCluster.Spec.Server.DevfileRegistryIngress,
 			deploy.DevfileRegistryName)
 		if !done {
 			return false, err

@@ -43,15 +43,15 @@ func TestNewCheConfigMap(t *testing.T) {
 		Proxy:      &deploy.Proxy{},
 		ClusterAPI: deploy.ClusterAPI{},
 	}
+	expectedIdentityProvider := "openshift-v4"
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+
 	cheEnv, _ := GetCheConfigMapData(deployContext)
 	testCm, _ := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, cheEnv, CheConfigMapName)
+
 	identityProvider := testCm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"]
-	_, isOpenshiftv4, _ := util.DetectOpenShift()
 	protocol := strings.Split(testCm.Data["CHE_API"], "://")[0]
-	expectedIdentityProvider := "openshift-v3"
-	if isOpenshiftv4 {
-		expectedIdentityProvider = "openshift-v4"
-	}
 	if identityProvider != expectedIdentityProvider {
 		t.Errorf("Test failed. Expecting identity provider to be '%s' while got '%s'", expectedIdentityProvider, identityProvider)
 	}
@@ -153,12 +153,14 @@ func TestConfigMap(t *testing.T) {
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
+					Client:          cli,
+					NonCachedClient: nonCachedClient,
+					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}
