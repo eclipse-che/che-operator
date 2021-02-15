@@ -33,5 +33,5 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         file: Dockerfile
-        platforms: linux/amd64,linux/ppc64le,linux/s390x
+        platforms: linux/amd64,linux/ppc64le
         tags: quay.io/eclipse/che-operator:nightly
