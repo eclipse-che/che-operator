@@ -67,3 +67,16 @@ func compareQuantity(resource string, actualQuantity *resource.Quantity, expecte
 		t.Errorf("%s: expected %s, actual %s", resource, expectedQuantity.String(), actualQuantity.String())
 	}
 }
+
+func ValidateContainData(actualData map[string]string, expectedData map[string]string, t *testing.T) {
+	for k, v := range expectedData {
+		actualValue, exists := actualData[k]
+		if exists {
+			if actualValue != v {
+				t.Errorf("Key '%s', actual: '%s', expected: '%s'", k, actualValue, v)
+			}
+		} else if v != "" {
+			t.Errorf("Key '%s' does not exists, expected value: '%s'", k, v)
+		}
+	}
+}
