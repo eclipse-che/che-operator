@@ -13,12 +13,15 @@ package identity_provider
 
 import (
 	"os"
+	"reflect"
 
 	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -114,6 +117,105 @@ func TestDeployment(t *testing.T) {
 				t)
 
 			util.ValidateSecurityContext(deployment, t)
+		})
+	}
+}
+
+func TestMountGitHubOAuthEnvVar(t *testing.T) {
+	type testCase struct {
+		name              string
+		initObjects       []runtime.Object
+		cheCluster        *orgv1.CheCluster
+		expectedIdEnv     corev1.EnvVar
+		expectedSecretEnv corev1.EnvVar
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test",
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "github-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server": "github",
+						},
+					},
+					Data: map[string][]byte{
+						"id":     []byte("some__id"),
+						"secret": []byte("some_secret"),
+					},
+				},
+			},
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedIdEnv: corev1.EnvVar{
+				Name: "GITHUB_CLIENT_ID",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "id",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "github-oauth-config",
+						},
+					},
+				},
+			},
+			expectedSecretEnv: corev1.EnvVar{
+				Name: "GITHUB_SECRET",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "secret",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "github-oauth-config",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			testCase.initObjects = append(testCase.initObjects)
+			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCluster,
+				ClusterAPI: deploy.ClusterAPI{
+					Client: cli,
+					Scheme: scheme.Scheme,
+				},
+				Proxy: &deploy.Proxy{},
+			}
+
+			deployment, err := GetSpecKeycloakDeployment(deployContext, nil)
+			if err != nil {
+				t.Fatalf("Error creating deployment: %v", err)
+			}
+
+			idEnv := util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "GITHUB_CLIENT_ID")
+			if !reflect.DeepEqual(testCase.expectedIdEnv, idEnv) {
+				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedIdEnv, idEnv))
+			}
+
+			secretEnv := util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "GITHUB_SECRET")
+			if !reflect.DeepEqual(testCase.expectedSecretEnv, secretEnv) {
+				t.Errorf("Expected CR and CR returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedSecretEnv, secretEnv))
+			}
 		})
 	}
 }

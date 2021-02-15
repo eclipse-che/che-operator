@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -79,4 +80,34 @@ func ValidateContainData(actualData map[string]string, expectedData map[string]s
 			t.Errorf("Key '%s' does not exists, expected value: '%s'", k, v)
 		}
 	}
+}
+
+func FindEnv(envs []corev1.EnvVar, name string) corev1.EnvVar {
+	for _, env := range envs {
+		if env.Name == name {
+			return env
+		}
+	}
+
+	return corev1.EnvVar{}
+}
+
+func FindVolume(volumes []corev1.Volume, name string) corev1.Volume {
+	for _, volume := range volumes {
+		if volume.Name == name {
+			return volume
+		}
+	}
+
+	return corev1.Volume{}
+}
+
+func FindVolumeMount(volumes []corev1.VolumeMount, name string) corev1.VolumeMount {
+	for _, volumeMount := range volumes {
+		if volumeMount.Name == name {
+			return volumeMount
+		}
+	}
+
+	return corev1.VolumeMount{}
 }

@@ -273,6 +273,11 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		},
 	}
 
+	err = MountBitBucketOAuthConfig(deployContext, deployment)
+	if err != nil {
+		return nil, err
+	}
+
 	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
 	if cheMultiUser == "true" {
 		chePostgresSecret := deployContext.CheCluster.Spec.Database.ChePostgresSecret
@@ -405,4 +410,52 @@ func GetFullCheServerImageLink(checluster *orgv1.CheCluster) string {
 	separator := map[bool]string{true: "@", false: ":"}[strings.Contains(defaultCheServerImage, "@")]
 	imageParts := strings.Split(defaultCheServerImage, separator)
 	return imageParts[0] + ":" + checluster.Spec.Server.CheImageTag
+}
+
+func MountBitBucketOAuthConfig(deployContext *deploy.DeployContext, deployment *appsv1.Deployment) error {
+	// mount BitBucket configuration
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "bitbucket",
+	})
+
+	if err != nil {
+		return err
+	} else if len(secrets) == 1 {
+		// mount secrets
+		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
+			corev1.Volume{
+				Name: secrets[0].Name,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secrets[0].Name,
+					},
+				},
+			})
+		deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      secrets[0].Name,
+				MountPath: deploy.BitBucketOAuthConfigMountPath,
+			})
+
+		// mount env
+		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+			Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
+			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigConsumerKey,
+		}, corev1.EnvVar{
+			Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
+			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigPrivateKey,
+		}, corev1.EnvVar{
+			Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
+			Value: endpoint,
+		}, corev1.EnvVar{
+			Name:  "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS",
+			Value: endpoint,
+		})
+	}
+
+	return nil
 }

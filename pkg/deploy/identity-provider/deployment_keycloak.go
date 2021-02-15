@@ -477,6 +477,41 @@ func GetSpecKeycloakDeployment(
 		}
 	}
 
+	// Mount GITHUB_CLIENT_ID and GITHUB_SECRET to keycloak container
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "github",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(secrets) == 1 {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name: "GITHUB_CLIENT_ID",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "id",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secrets[0].Name,
+					},
+				},
+			},
+		}, corev1.EnvVar{
+			Name: "GITHUB_SECRET",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "secret",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secrets[0].Name,
+					},
+				},
+			},
+		})
+	}
+
 	for _, envvar := range proxyEnvVars {
 		keycloakEnv = append(keycloakEnv, envvar)
 	}
