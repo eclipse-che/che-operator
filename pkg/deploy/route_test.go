@@ -19,6 +19,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -32,7 +33,6 @@ import (
 
 func TestRouteSpec(t *testing.T) {
 	weight := int32(100)
-	_true := true
 
 	type testCase struct {
 		name                string
@@ -73,8 +73,8 @@ func TestRouteSpec(t *testing.T) {
 						{
 							APIVersion:         "org.eclipse.che/v1",
 							Kind:               "CheCluster",
-							Controller:         &_true,
-							BlockOwnerDeletion: &_true,
+							Controller:         util.NewBoolPointer(true),
+							BlockOwnerDeletion: util.NewBoolPointer(true),
 						},
 					},
 				},
@@ -124,8 +124,8 @@ func TestRouteSpec(t *testing.T) {
 						{
 							APIVersion:         "org.eclipse.che/v1",
 							Kind:               "CheCluster",
-							Controller:         &_true,
-							BlockOwnerDeletion: &_true,
+							Controller:         util.NewBoolPointer(true),
+							BlockOwnerDeletion: util.NewBoolPointer(true),
 						},
 					},
 				},

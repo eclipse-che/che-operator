@@ -406,7 +406,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret, err := deploy.GetSecret(deployContext, instance.Status.OpenShiftOAuthUserCredentialsSecret, instance.Namespace)
+		secret, err := deploy.GetSecret(deployContext, openShiftOAuthUserCredentialsSecret, instance.Namespace)
 		if secret == nil {
 			if err == nil {
 				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""

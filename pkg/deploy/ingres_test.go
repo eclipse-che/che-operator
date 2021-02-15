@@ -18,6 +18,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,8 +32,6 @@ import (
 )
 
 func TestIngressSpec(t *testing.T) {
-	_true := true
-
 	type testCase struct {
 		name                  string
 		ingressName           string
@@ -72,8 +71,8 @@ func TestIngressSpec(t *testing.T) {
 						{
 							APIVersion:         "org.eclipse.che/v1",
 							Kind:               "CheCluster",
-							Controller:         &_true,
-							BlockOwnerDeletion: &_true,
+							Controller:         util.NewBoolPointer(true),
+							BlockOwnerDeletion: util.NewBoolPointer(true),
 						},
 					},
 					Annotations: map[string]string{
