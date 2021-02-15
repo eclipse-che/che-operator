@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2012-2019 Red Hat, Inc.
+#  Copyright (c) 2012-2021 Red Hat, Inc.
 #    This program and the accompanying materials are made
 #    available under the terms of the Eclipse Public License 2.0
 #    which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -32,8 +32,16 @@ rules:
   - apiGroups:
       - config.openshift.io
     resources:
-      - infrastructures
       - oauths
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - infrastructures
       - proxies
     verbs:
       - get
@@ -45,6 +53,13 @@ rules:
       - users
     verbs:
       - list
+      - delete
+  - apiGroups:
+      - user.openshift.io
+    resources:
+      - identities
+    verbs:
+      - delete
   - apiGroups:
       - console.openshift.io
     resources:
@@ -166,6 +181,7 @@ rules:
       - secrets
     verbs:
       - list
+      - get
       - create
       - delete
   - apiGroups:

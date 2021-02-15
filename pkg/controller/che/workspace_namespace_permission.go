@@ -248,7 +248,7 @@ func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(instance *orgv1.Ch
 }
 
 func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
-	k8sPolicies :=  []rbac.PolicyRule{
+	k8sPolicies := []rbac.PolicyRule{
 		{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
@@ -256,7 +256,7 @@ func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
 		},
 	}
 
-	openshiftPolicies := []rbac.PolicyRule{	
+	openshiftPolicies := []rbac.PolicyRule{
 		{
 			APIGroups: []string{"project.openshift.io"},
 			Resources: []string{"projectrequests"},

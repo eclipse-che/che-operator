@@ -19,6 +19,7 @@ metadata:
               "identityProviderPassword": "",
               "identityProviderRealm": "",
               "identityProviderURL": "",
+              "initialOpenShiftOAuthUser": true,
               "oAuthClientName": "",
               "oAuthSecret": ""
             },
@@ -75,13 +76,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-02-12T09:38:18Z"
+    createdAt: "2021-02-12T13:15:01Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.27.0-98.nightly
+  name: eclipse-che-preview-openshift.v7.27.0-100.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -132,6 +133,13 @@ spec:
               Pod is in this condition.
             displayName: Message
             path: message
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: OpenShift OAuth secret that contains user credentials for
+              HTPasswd identity provider.
+            displayName: OpenShift OAuth secret that contains user credentials for
+              HTPasswd identity provider.
+            path: openShiftOAuthUserCredentialsSecret
             x-descriptors:
               - urn:alm:descriptor:text
           - description: A brief CamelCase message indicating details about why the
@@ -255,8 +263,16 @@ spec:
             - apiGroups:
                 - config.openshift.io
               resources:
-                - infrastructures
                 - oauths
+              verbs:
+                - get
+                - list
+                - watch
+                - patch
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - infrastructures
                 - proxies
               verbs:
                 - get
@@ -268,6 +284,13 @@ spec:
                 - users
               verbs:
                 - list
+                - delete
+            - apiGroups:
+                - user.openshift.io
+              resources:
+                - identities
+              verbs:
+                - delete
             - apiGroups:
                 - console.openshift.io
               resources:
@@ -389,6 +412,7 @@ spec:
                 - secrets
               verbs:
                 - list
+                - get
                 - create
                 - delete
             - apiGroups:
@@ -733,4 +757,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.27.0-98.nightly
+  version: 7.27.0-100.nightly

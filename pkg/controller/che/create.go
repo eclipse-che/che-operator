@@ -19,6 +19,7 @@ import (
 
 func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext, request reconcile.Request) (err error) {
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	cheNamespace := deployContext.CheCluster.Namespace
 	if len(deployContext.CheCluster.Spec.Server.CheFlavor) < 1 {
 		deployContext.CheCluster.Spec.Server.CheFlavor = cheFlavor
 		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "installation flavor", cheFlavor); err != nil {
@@ -31,7 +32,10 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		if len(deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
 			if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 || len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
 				chePostgresSecret := deploy.DefaultChePostgresSecret()
-				deploy.SyncSecretToCluster(deployContext, chePostgresSecret, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))})
+				_, err := deploy.SyncSecret(deployContext, chePostgresSecret, cheNamespace, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))})
+				if err != nil {
+					return err
+				}
 				deployContext.CheCluster.Spec.Database.ChePostgresSecret = chePostgresSecret
 				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres Secret", chePostgresSecret); err != nil {
 					return err
@@ -60,7 +64,10 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 
 			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
 				identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
-				deploy.SyncSecretToCluster(deployContext, identityPostgresSecret, map[string][]byte{"password": []byte(keycloakPostgresPassword)})
+				_, err := deploy.SyncSecret(deployContext, identityPostgresSecret, cheNamespace, map[string][]byte{"password": []byte(keycloakPostgresPassword)})
+				if err != nil {
+					return err
+				}
 				deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
 				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
 					return err
@@ -80,7 +87,10 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 
 			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
 				identityProviderSecret := deploy.DefaultCheIdentitySecret()
-				deploy.SyncSecretToCluster(deployContext, identityProviderSecret, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
+				_, err = deploy.SyncSecret(deployContext, identityProviderSecret, cheNamespace, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
+				if err != nil {
+					return err
+				}
 				deployContext.CheCluster.Spec.Auth.IdentityProviderSecret = identityProviderSecret
 				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Identity Provider Secret", identityProviderSecret); err != nil {
 					return err

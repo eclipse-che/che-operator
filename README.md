@@ -379,3 +379,23 @@ $ export NO_DATE_UPDATE="true" \
 ### Che operator PR checks
 
 Documentation about all Che operator test cases can be found [here](https://github.com/eclipse/che-operator/tree/master/.ci/README.md)
+
+### Generate go mocks.
+
+Install mockgen tool:
+
+```bash
+$ GO111MODULE=on go get github.com/golang/mock/mockgen@v1.4.4
+```
+
+Generate new mock for go interface. Example:
+
+```bash
+$ mockgen -source=pkg/util/process.go -destination=mocks/pkg/util/process_mock.go -package mock_util
+
+$ mockgen -source=pkg/controller/che/oauth_initial_htpasswd_provider.go \
+          -destination=mocks/pkg/controller/che/oauth_initial_htpasswd_provider_mock.go \
+          -package mock_che
+```
+
+See more: https://github.com/golang/mock/blob/master/README.md

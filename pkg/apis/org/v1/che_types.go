@@ -335,6 +335,14 @@ type CheClusterSpecDB struct {
 // +k8s:openapi-gen=true
 // Configuration settings related to the Authentication used by the Che installation.
 type CheClusterSpecAuth struct {
+	// For operating with the OpenShift OAuth authentication, create a new user account since the kubeadmin can not be used.
+	// If the value is true, then a new OpenShift OAuth user will be created for the HTPasswd identity provider.
+	// If the value is false and the user has already been created, then it will be removed.
+	// If value is an empty, then do nothing.
+	// The user's credentials are stored in the `openshift-oauth-user-credentials` secret by Operator.
+	// Note that this solution is Openshift 4 platform-specific.
+	InitialOpenShiftOAuthUser *bool `json:"initialOpenShiftOAuthUser,omitempty"`
+	// Instructs the Operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
 	// Instructs the Operator on whether to deploy a dedicated Identity Provider (Keycloak or RH-SSO instance).
 	// By default, a dedicated Identity Provider server is deployed as part of the Che installation. When `externalIdentityProvider` is `true`,
 	// no dedicated identity provider will be deployed by the Operator and you will need to provide details about the external identity provider you are about to use.
@@ -535,6 +543,12 @@ type CheClusterSpecImagePuller struct {
 
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
+	// OpenShift OAuth secret that contains user credentials for HTPasswd identity provider.
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="OpenShift OAuth secret that contains user credentials for HTPasswd identity provider."
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
+	OpenShiftOAuthUserCredentialsSecret string `json:"openShiftOAuthUserCredentialsSecret"`
+	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
 	// Indicates that a PosgreSQL instance has been correctly provisioned or not.
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`

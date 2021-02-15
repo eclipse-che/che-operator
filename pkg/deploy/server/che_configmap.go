@@ -281,7 +281,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		// Add TLS key and server certificate to properties when user workspaces should be created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
 		if !util.IsWorkspaceInSameNamespaceWithChe(deployContext.CheCluster) {
-			cheTLSSecret, err := deploy.GetClusterSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
+			cheTLSSecret, err := deploy.GetSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
 			if err != nil {
 				return nil, err
 			}

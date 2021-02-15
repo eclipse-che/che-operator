@@ -22,8 +22,9 @@ import (
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
-	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"github.com/golang/mock/gomock"
+
+	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -45,6 +46,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 
+	che_mocks "github.com/eclipse/che-operator/mocks/pkg/controller/che"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -155,12 +157,12 @@ var (
 	}
 	nonEmptyUserList = &userv1.UserList{
 		Items: []userv1.User{
-			userv1.User{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "user1",
 				},
 			},
-			userv1.User{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "user2",
 				},
@@ -203,11 +205,14 @@ func init() {
 
 func TestCaseAutoDetectOAuth(t *testing.T) {
 	type testCase struct {
-		name              string
-		initObjects       []runtime.Object
-		openshiftVersion  string
-		initialOAuthValue *bool
-		oAuthExpected     *bool
+		name                                string
+		initObjects                         []runtime.Object
+		openshiftVersion                    string
+		initialOAuthValue                   *bool
+		oAuthExpected                       *bool
+		initialOpenShiftOAuthUserEnabled    *bool
+		OpenShiftOAuthUserCredentialsSecret string
+		mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler
 	}
 
 	testCases := []testCase{
@@ -281,33 +286,41 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
 		{
-			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
-			initObjects: []runtime.Object{
-				oAuthWithNoIdentityProviders,
-			},
-			openshiftVersion:  "4",
-			initialOAuthValue: nil,
-			oAuthExpected:     util.NewBoolPointer(false),
-		},
-		{
 			name: "che-operator should respect oAuth = true even if there no indentity providers on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithNoIdentityProviders,
 			},
-			openshiftVersion:  "4",
-			initialOAuthValue: util.NewBoolPointer(true),
-			oAuthExpected:     util.NewBoolPointer(true),
+			openshiftVersion:                 "4",
+			initialOAuthValue:                util.NewBoolPointer(true),
+			oAuthExpected:                    util.NewBoolPointer(true),
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
+		},
+		{
+			name: "che-operator should create initial user and enable oAuth, when oAuth = true, initialOpenShiftOAuthUserEnabled = true and there no indentity providers on the Openshift 4",
+			initObjects: []runtime.Object{
+				oAuthWithNoIdentityProviders,
+			},
+			openshiftVersion:                 "4",
+			initialOAuthValue:                nil,
+			oAuthExpected:                    util.NewBoolPointer(true),
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
+			mockFunction: func(ctrl *gomock.Controller, crNamespace string, userNamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler {
+				m := che_mocks.NewMockOpenShiftOAuthUserHandler(ctrl)
+				m.EXPECT().SyncOAuthInitialUser(gomock.Any(), gomock.Any()).Return(true, nil)
+				return m
+			},
+			OpenShiftOAuthUserCredentialsSecret: openShiftOAuthUserCredentialsSecret,
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
 			},
-			openshiftVersion:  "4",
-			initialOAuthValue: util.NewBoolPointer(true),
-			oAuthExpected:     util.NewBoolPointer(true),
+			openshiftVersion:                 "4",
+			initialOAuthValue:                util.NewBoolPointer(true),
+			oAuthExpected:                    util.NewBoolPointer(true),
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
 		},
-
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
 			initObjects: []runtime.Object{
@@ -327,11 +340,12 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			oAuthExpected:     util.NewBoolPointer(false),
 		},
 		{
-			name:              "che-operator should auto disable oAuth on error retieve identity providers",
-			initObjects:       []runtime.Object{},
-			openshiftVersion:  "4",
-			initialOAuthValue: nil,
-			oAuthExpected:     util.NewBoolPointer(false),
+			name:                             "che-operator should auto disable oAuth on error retieve identity providers",
+			initObjects:                      []runtime.Object{},
+			openshiftVersion:                 "4",
+			initialOAuthValue:                nil,
+			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
+			oAuthExpected:                    util.NewBoolPointer(false),
 		},
 	}
 	for _, testCase := range testCases {
@@ -344,10 +358,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
 			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
-
-			initCR := InitCheWithSimpleCR()
+			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
 			testCase.initObjects = append(testCase.initObjects, initCR)
+			initCR.Spec.Auth.InitialOpenShiftOAuthUser = testCase.initialOpenShiftOAuthUserEnabled
 
 			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
@@ -359,12 +373,21 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				t.Fatal("Error creating fake discovery client")
 			}
 
+			// prepare mocks
+			var userHandlerMock *che_mocks.MockOpenShiftOAuthUserHandler
+			if testCase.mockFunction != nil {
+				ctrl := gomock.NewController(t)
+				userHandlerMock = testCase.mockFunction(ctrl, initCR.Namespace, deploy.DefaultCheFlavor(initCR))
+				defer ctrl.Finish()
+			}
+
 			r := &ReconcileChe{
 				client:          cli,
 				nonCachedClient: nonCachedClient,
 				discoveryClient: fakeDiscovery,
 				scheme:          scheme,
 				tests:           true,
+				userHandler:     userHandlerMock,
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -391,6 +414,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 
 			if *cheCR.Spec.Auth.OpenShiftoAuth != *testCase.oAuthExpected {
 				t.Errorf("Openshift oAuth should be %t", *testCase.oAuthExpected)
+			}
+
+			if cheCR.Status.OpenShiftOAuthUserCredentialsSecret != testCase.OpenShiftOAuthUserCredentialsSecret {
+				t.Errorf("Expected initial openshift oAuth user secret %s in the CR status", testCase.OpenShiftOAuthUserCredentialsSecret)
 			}
 		})
 	}
@@ -581,6 +608,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				t.Error("Error creating fake discovery client")
 				os.Exit(1)
 			}
+
 			r := &ReconcileChe{
 				client:          cli,
 				nonCachedClient: nonCachedClient,
@@ -2071,6 +2099,9 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 					ConfigMapName:  "k8s-image-puller",
 				},
 			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(false),
+			},
 		},
 	}
 }
@@ -2091,6 +2122,9 @@ func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 					DeploymentName: "kubernetes-image-puller-trigger-update",
 					ConfigMapName:  "k8s-image-puller-trigger-update",
 				},
+			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(false),
 			},
 		},
 	}

@@ -355,6 +355,14 @@ func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	return false
 }
 
+// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
+func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
+	if c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser {
+		return true
+	}
+	return false
+}
+
 // IsWorkspaceInSameNamespaceWithChe return true when Che workspaces will be executed in the same namespace with Che, otherwise returns false.
 func IsWorkspaceInSameNamespaceWithChe(cr *orgv1.CheCluster) bool {
 	return GetWorkspaceNamespaceDefault(cr) == cr.Namespace
@@ -374,6 +382,26 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
 	}
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
+}
+
+// CompareBoolPointers compares two *bool variables. Returns "true" when both
+// variables are nil, true or false. Otherwise returns "false".
+func CompareBoolPointers(a *bool, b *bool) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil && b != nil {
+		return false
+	}
+	if b == nil && a != nil {
+		return false
+	}
+	return *a == *b
+}
+
+// IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
+func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
+	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {

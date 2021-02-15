@@ -81,6 +81,7 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		nonCachedClient:   noncachedClient,
 		scheme:            mgr.GetScheme(),
 		discoveryClient:   discoveryClient,
+		userHandler:       NewOpenShiftOAuthUserHandler(noncachedClient),
 		permissionChecker: &K8sApiPermissionChecker{},
 	}, nil
 }
@@ -284,17 +285,21 @@ type ReconcileChe struct {
 	// in the API Server
 	discoveryClient   discovery.DiscoveryInterface
 	scheme            *runtime.Scheme
-	permissionChecker PermissionChecker
 	tests             bool
+	userHandler       OpenShiftOAuthUserHandler
+	permissionChecker PermissionChecker
 }
 
 const (
 	failedValidationReason            = "InstallOrUpdateFailed"
-	failedNoOpenshiftUserReason       = "InstallOrUpdateFailed"
-	warningNoIdentityProvidersMessage = "No Openshift identity providers. Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
-	warningNoRealUsersMessage         = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
-	failedUnableToGetOAuth            = "Unable to get openshift oauth."
-	failedUnableToGetOpenshiftUsers   = "Unable to get users on the OpenShift cluster."
+	failedNoOpenshiftUser             = "NoOpenshiftUsers"
+	failedNoIdentityProviders         = "NoIdentityProviders"
+	failedUnableToGetOAuth            = "UnableToGetOpenshiftOAuth"
+	warningNoIdentityProvidersMessage = "No Openshift identity providers."
+
+	AddIdentityProviderMessage      = "Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
+	warningNoRealUsersMessage       = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
+	failedUnableToGetOpenshiftUsers = "Unable to get users on the OpenShift cluster."
 
 	howToAddIdentityProviderLinkOS4 = "https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
 	howToConfigureOAuthLinkOS3      = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
@@ -378,8 +383,44 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	if isOpenShift4 && util.IsDeleteOAuthInitialUser(instance) {
+		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
+			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
+			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
+			err := r.UpdateCheCRSpec(instance, "initialOpenShiftOAuthUser", "nil")
+			return reconcile.Result{}, err
+		}
+
+		instance.Spec.Auth.OpenShiftoAuth = nil
+		instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
+		updateFields := map[string]string{
+			"openShiftoAuth": "nil",
+			"initialOpenShiftOAuthUser": "nil",
+		}
+	
+		if err := r.UpdateCheCRSpecByFields(instance, updateFields); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		return reconcile.Result{}, nil
+	}
+
+	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
+		secret, err := deploy.GetSecret(openShiftOAuthUserCredentialsSecret, instance.Namespace, deployContext.ClusterAPI)
+		if secret == nil {
+			if err == nil {
+				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
+				if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+					return reconcile.Result{}, err
+				}
+			} else {
+				return reconcile.Result{}, err
+			}
+		}
+	}
+
 	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
-		if reconcileResult, err := r.autoEnableOAuth(instance, request, isOpenShift4); err != nil {
+		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, isOpenShift4); err != nil {
 			return reconcileResult, err
 		}
 	}
@@ -580,7 +621,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
 				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
 				instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
-				r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace);
+				err := r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace)
 				if err != nil {
 					logrus.Error(err)
 					return reconcile.Result{RequeueAfter: time.Second * 1}, err
@@ -1102,42 +1143,69 @@ func isTrustedBundleConfigMap(mgr manager.Manager, obj handler.MapObject) (bool,
 	}
 }
 
-func (r *ReconcileChe) autoEnableOAuth(cr *orgv1.CheCluster, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
+func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
 	var message, reason string
 	oauth := false
+	cr := deployContext.CheCluster
 	if isOpenShift4 {
-		oauthv1 := &oauthv1.OAuth{}
-		if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, oauthv1); err != nil {
-			getOAuthV1ErrMsg := failedUnableToGetOAuth + " Cause: " + err.Error()
-			logrus.Errorf(getOAuthV1ErrMsg)
-			message = getOAuthV1ErrMsg
-			reason = failedNoOpenshiftUserReason
+		openshitOAuth, err := GetOpenshiftOAuth(deployContext.ClusterAPI.NonCachedClient)
+		if err != nil {
+			message = "Unable to get Openshift oAuth. Cause: " + err.Error()
+			logrus.Error(message)
+			reason = failedUnableToGetOAuth
 		} else {
-			oauth = len(oauthv1.Spec.IdentityProviders) >= 1
-			if !oauth {
-				logrus.Warn(warningNoIdentityProvidersMessage, " ", howToAddIdentityProviderLinkOS4)
+			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
+				oauth = true
+			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
+				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
+				if err != nil {
+					message = warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error()
+					logrus.Error(message)
+					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
+					reason = failedNoIdentityProviders
+					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
+					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
+					if err := r.UpdateCheCRStatus(cr, "initialOpenShiftOAuthUser", ""); err != nil {
+						return reconcile.Result{}, err
+					}
+					oauth = false
+				} else {
+					if !provisioned {
+						return reconcile.Result{}, err
+					}
+					oauth = true
+					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
+						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
+						if err := r.UpdateCheCRStatus(cr, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
+							return reconcile.Result{}, err
+						}
+					}
+				}
 			}
 		}
-		// openshift 3
-	} else {
+	} else { // Openshift 3
 		users := &userv1.UserList{}
 		listOptions := &client.ListOptions{}
 		if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
-			getUsersErrMsg := failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
-			logrus.Errorf(getUsersErrMsg)
-			message = getUsersErrMsg
-			reason = failedNoOpenshiftUserReason
+			message = failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
+			logrus.Error(message)
+			reason = failedNoOpenshiftUser
 		} else {
 			oauth = len(users.Items) >= 1
 			if !oauth {
-				logrus.Warn(warningNoRealUsersMessage, " ", howToConfigureOAuthLinkOS3)
+				message = warningNoRealUsersMessage + " " + howToConfigureOAuthLinkOS3
+				logrus.Warn(message)
+				reason = failedNoOpenshiftUser
 			}
 		}
 	}
 
-	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(oauth)
-	if err := r.UpdateCheCRSpec(cr, "OpenShiftoAuth", strconv.FormatBool(oauth)); err != nil {
-		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+	newOAuthValue := util.NewBoolPointer(oauth)
+	if !util.CompareBoolPointers(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
+		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
+		if err := r.UpdateCheCRSpec(cr, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
 	}
 
 	if message != "" && reason != "" {
