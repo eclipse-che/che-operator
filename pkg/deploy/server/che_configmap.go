@@ -280,21 +280,23 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		// Add TLS key and server certificate to properties when user workspaces should be created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
 		if !util.IsWorkspaceInSameNamespaceWithChe(deployContext.CheCluster) {
-			cheTLSSecret, err := deploy.GetSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
-			if err != nil {
-				return nil, err
-			}
-			if cheTLSSecret == nil {
-				// default k8s secret is used
-			} else {
-				if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
-					return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+			if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
+				cheTLSSecret, err := deploy.GetSecret(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace)
+				if err != nil {
+					return nil, err
 				}
-				if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
-					return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				if cheTLSSecret == nil {
+					return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				} else {
+					if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
+						return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+					}
+					if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
+						return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+					}
+					k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
+					k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 				}
-				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
-				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 			}
 		}
 

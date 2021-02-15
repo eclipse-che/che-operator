@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"reflect"
 
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -27,6 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+const (
+	// host name template: `<route-name>-<route-namespace>.<domain>`
+	HostNameTemplate = "%s-%s.%s"
 )
 
 var routeDiffOpts = cmp.Options{
@@ -50,10 +56,10 @@ func SyncRouteToCluster(
 	host string,
 	serviceName string,
 	servicePort int32,
-	additionalLabels string,
+	routeCustomSettings orgv1.RouteCustomSettings,
 	component string) (*routev1.Route, error) {
 
-	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, additionalLabels, component)
+	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, routeCustomSettings, component)
 	if err != nil {
 		return nil, err
 	}
@@ -132,12 +138,12 @@ func GetSpecRoute(
 	host string,
 	serviceName string,
 	servicePort int32,
-	additionalLabels string,
+	routeCustomSettings orgv1.RouteCustomSettings,
 	component string) (*routev1.Route, error) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	labels := GetLabels(deployContext.CheCluster, component)
-	MergeLabels(labels, additionalLabels)
+	MergeLabels(labels, routeCustomSettings.Labels)
 
 	weight := int32(100)
 
@@ -158,7 +164,6 @@ func GetSpecRoute(
 	}
 
 	route.Spec = routev1.RouteSpec{
-		Host: host,
 		To: routev1.RouteTargetReference{
 			Kind:   "Service",
 			Name:   serviceName,
@@ -167,6 +172,12 @@ func GetSpecRoute(
 		Port: &routev1.RoutePort{
 			TargetPort: targetPort,
 		},
+	}
+
+	if host != "" {
+		route.Spec.Host = host
+	} else if routeCustomSettings.Domain != "" {
+		route.Spec.Host = fmt.Sprintf(HostNameTemplate, route.ObjectMeta.Name, route.ObjectMeta.Namespace, routeCustomSettings.Domain)
 	}
 
 	if tlsSupport {

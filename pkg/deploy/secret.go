@@ -43,7 +43,7 @@ func SyncSecret(
 		return nil, err
 	}
 
-	clusterSecret, err := GetSecret(specSecret.Name, specSecret.Namespace, deployContext.ClusterAPI)
+	clusterSecret, err := GetSecret(deployContext, specSecret.Name, specSecret.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -74,13 +74,20 @@ func SyncSecret(
 }
 
 // GetSecret retrieves given secret from cluster
-func GetSecret(name string, namespace string, clusterAPI ClusterAPI) (*corev1.Secret, error) {
+func GetSecret(deployContext *DeployContext, name string, namespace string) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := clusterAPI.NonCachedClient.Get(context.TODO(), namespacedName, secret)
+
+	var err error
+	if namespace == deployContext.CheCluster.ObjectMeta.Namespace {
+		err = deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret)
+	} else {
+		err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), namespacedName, secret)
+	}
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil

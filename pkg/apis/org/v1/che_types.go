@@ -437,6 +437,11 @@ type RouteCustomSettings struct {
 	// Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
 	// +optional
 	Labels string `json:"labels,omitempty"`
+	// Operator uses the domain to generate a hostname for a route.
+	// In a conjunction with labels it creates a route, which is served by a non-default Ingress controller.
+	// The generated host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.
+	// +optional
+	Domain string `json:"domain,omitempty"`
 }
 
 // ResourceRequirements describes the compute resource requirements.
