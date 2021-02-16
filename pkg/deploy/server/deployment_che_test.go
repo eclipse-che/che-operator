@@ -161,11 +161,11 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 			},
 			expectedConsumerKeyPathEnv: corev1.EnvVar{
 				Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
-				Value: "/bitbucket-oauth-config/consumer.key",
+				Value: "/che-conf/oauth/bitbucket/consumer.key",
 			},
 			expectedPrivateKeyPathEnv: corev1.EnvVar{
 				Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
-				Value: "/bitbucket-oauth-config/private.key",
+				Value: "/che-conf/oauth/bitbucket/private.key",
 			},
 			expectedEndpointEnv: corev1.EnvVar{
 				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
