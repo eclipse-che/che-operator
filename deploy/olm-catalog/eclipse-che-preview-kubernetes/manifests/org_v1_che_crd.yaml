@@ -272,7 +272,7 @@ spec:
                     it will be automatically set by the Operator.
                   type: string
                 chePostgresSecret:
-                  description: 'The secret that contains PosgreSQL`user` and `password`
+                  description: 'The secret that contains PostgreSQL`user` and `password`
                     that the Che server uses to connect to the DB. When the secret
                     is defined, the `chePostgresUser` and `chePostgresPassword` are
                     ignored. When the value is omitted or left blank, the one of following
@@ -295,12 +295,12 @@ spec:
                     are about to use. See also all the fields starting with: `chePostgres`.'
                   type: boolean
                 postgresImage:
-                  description: Overrides the container image used in the PosgreSQL
+                  description: Overrides the container image used in the PostgreSQL
                     database deployment. This includes the image tag. Omit it or leave
                     it empty to use the default container image provided by the Operator.
                   type: string
                 postgresImagePullPolicy:
-                  description: Overrides the image pull policy used in the PosgreSQL
+                  description: Overrides the image pull policy used in the PostgreSQL
                     database deployment. Default value is `Always` for `nightly` or
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
@@ -760,7 +760,7 @@ spec:
               properties:
                 postgresPVCStorageClassName:
                   description: Storage class for the Persistent Volume Claim dedicated
-                    to the PosgreSQL database. When omitted or left blank, a default
+                    to the PostgreSQL database. When omitted or left blank, a default
                     storage class is used.
                   type: string
                 preCreateSubPaths:
@@ -807,8 +807,8 @@ spec:
               type: string
             dbProvisioned:
               description: Indicates that a PostgreSQL instance has been correctly
-                provisioned or not. Indicates that a PosgreSQL instance has been correctly
-                provisioned or not.
+                provisioned or not. Indicates that a PostgreSQL instance has been
+                correctly provisioned or not.
               type: boolean
             devfileRegistryURL:
               description: Public URL to the devfile registry.

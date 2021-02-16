@@ -93,7 +93,7 @@ $ olm/update-nightly-bundle.sh
 3. Build catalog source and bundle images:
 
 ```bash
-$ olm/buildAndPushInitialBundle.sh <openshift|kubernentes>
+$ olm/buildAndPushInitialBundle.sh <openshift|kubernetes>
 ```
 
 4. Create a custom catalog source yaml (update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
@@ -105,7 +105,7 @@ metadata:
   name:         eclipse-che-preview-custom
   namespace:    che-namespace
 spec:
-  image:        <IMAGE_REGISTRY_HOST>/<IMAGE_REGISTRY_USER_NAME>/eclipse-che-<openshift|kubernentes>-opm-catalog:preview
+  image:        <IMAGE_REGISTRY_HOST>/<IMAGE_REGISTRY_USER_NAME>/eclipse-che-<openshift|kubernetes>-opm-catalog:preview
   sourceType:  grpc
   updateStrategy:
     registryPoll:
@@ -115,7 +115,7 @@ spec:
 5. Deploy Che operator:
 
 ```bash
-$ chectl server:deploy --installer=olm --platform=<PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=nightly --package-manifest-name=eclipse-che-preview-<openshift|kubernentes>
+$ chectl server:deploy --installer=olm --platform=<PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=nightly --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
 ```
 
 ### Deploy Che operator using bash script

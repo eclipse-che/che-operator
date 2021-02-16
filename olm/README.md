@@ -69,7 +69,7 @@ with your latest development changes and use it in the test scripts. To build th
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushInitialBundle.sh <openshift|kubernentes> [FROM-INDEX-IMAGE]
+  ./buildAndPushInitialBundle.sh <openshift|kubernetes> [FROM-INDEX-IMAGE]
 ```
 
 This script will build and push for you two images: CatalogSource(index) and bundle one:

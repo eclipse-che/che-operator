@@ -313,7 +313,7 @@ type CheClusterSpecDB struct {
 	// PostgreSQL database name that the Che server uses to connect to the DB. Defaults to `dbche`.
 	// +optional
 	ChePostgresDb string `json:"chePostgresDb,omitempty"`
-	// The secret that contains PosgreSQL`user` and `password` that the Che server uses to connect to the DB.
+	// The secret that contains PostgreSQL`user` and `password` that the Che server uses to connect to the DB.
 	// When the secret is defined, the `chePostgresUser` and `chePostgresPassword` are ignored.
 	// When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB.
@@ -321,10 +321,10 @@ type CheClusterSpecDB struct {
 	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
 	// +optional
 	ChePostgresSecret string `json:"chePostgresSecret,omitempty"`
-	// Overrides the container image used in the PosgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
-	// Overrides the image pull policy used in the PosgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
 	// PostgreSQL container custom settings
@@ -482,7 +482,7 @@ type CheClusterSpecStorage struct {
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator. See also the `preCreateSubPaths` field.
 	// +optional
 	PvcJobsImage string `json:"pvcJobsImage,omitempty"`
-	// Storage class for the Persistent Volume Claim dedicated to the PosgreSQL database. When omitted or left blank, a default storage class is used.
+	// Storage class for the Persistent Volume Claim dedicated to the PostgreSQL database. When omitted or left blank, a default storage class is used.
 	// +optional
 	PostgresPVCStorageClassName string `json:"postgresPVCStorageClassName,omitempty"`
 	// Storage class for the Persistent Volume Claims dedicated to the Che workspaces. When omitted or left blank, a default storage class is used.
@@ -554,7 +554,7 @@ type CheClusterStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
 	OpenShiftOAuthUserCredentialsSecret string `json:"openShiftOAuthUserCredentialsSecret"`
 	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
-	// Indicates that a PosgreSQL instance has been correctly provisioned or not.
+	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`
 	// Indicates whether an Identity Provider instance, Keycloak or RH-SSO, has been provisioned with realm, client and user.
