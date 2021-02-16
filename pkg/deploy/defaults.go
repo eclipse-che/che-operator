@@ -145,7 +145,7 @@ const (
 	DefaultPostgresCpuLimit      = "500m"
 	DefaultPostgresCpuRequest    = "100m"
 
-	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket/"
+	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket"
 	BitBucketOAuthConfigPrivateKey  = "private.key"
 	BitBucketOAuthConfigConsumerKey = "consumer.key"
 )

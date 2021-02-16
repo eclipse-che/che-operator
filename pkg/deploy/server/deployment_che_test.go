@@ -185,7 +185,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 			},
 			expectedVolumeMount: corev1.VolumeMount{
 				Name:      "github-oauth-config",
-				MountPath: "/bitbucket-oauth-config",
+				MountPath: "/che-conf/oauth/bitbucket",
 			},
 		},
 	}
