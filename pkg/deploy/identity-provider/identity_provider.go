@@ -13,6 +13,7 @@ package identity_provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -22,7 +23,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -123,7 +124,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 			for {
 				cr.Status.KeycloakProvisoned = true
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
-					errors.IsConflict(err) {
+					apierrors.IsConflict(err) {
 
 					reload(deployContext)
 					continue
@@ -192,7 +193,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 			for {
 				cr.Status.OpenShiftoAuthProvisioned = true
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
-					errors.IsConflict(err) {
+					apierrors.IsConflict(err) {
 
 					reload(deployContext)
 					continue
@@ -225,8 +226,11 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	}, map[string]string{
 		deploy.CheEclipseOrgOAuthScmServer: "github",
 	})
+
 	if err != nil {
 		return false, err
+	} else if len(secrets)+len(legacySecrets) > 1 {
+		return false, errors.New("More than 1 GitHub OAuth configuration secrets found")
 	}
 
 	isGitHubOAuthCredentialsExists := len(secrets) == 1 || len(legacySecrets) == 1

@@ -89,12 +89,15 @@ func GetSpecKeycloakDeployment(
 	}
 
 	if clusterDeployment != nil {
-		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
-		for _, e := range env {
-			// To be compatible with prev deployments when "TRUSTPASS" env was used
-			if "TRUSTPASS" == e.Name || "SSO_TRUSTSTORE_PASSWORD" == e.Name {
-				trustpass = e.Value
-				break
+		// To be compatible with prev deployments when "TRUSTPASS" env was used
+		clusterContainer := &clusterDeployment.Spec.Template.Spec.Containers[0]
+		env := util.FindEnv(clusterContainer.Env, "TRUSTPASS")
+		if env != nil {
+			trustpass = env.Value
+		} else {
+			env := util.FindEnv(clusterContainer.Env, "SSO_TRUSTSTORE_PASSWORD")
+			if env != nil {
+				trustpass = env.Value
 			}
 		}
 	}
@@ -484,11 +487,10 @@ func GetSpecKeycloakDeployment(
 	}, map[string]string{
 		deploy.CheEclipseOrgOAuthScmServer: "github",
 	})
+
 	if err != nil {
 		return nil, err
-	}
-
-	if len(secrets) == 1 {
+	} else if len(secrets) == 1 {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 			Name: "GITHUB_CLIENT_ID",
 			ValueFrom: &corev1.EnvVarSource{

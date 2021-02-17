@@ -207,13 +207,14 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 				t.Fatalf("Error creating deployment: %v", err)
 			}
 
-			idEnv := util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "GITHUB_CLIENT_ID")
-			if !reflect.DeepEqual(testCase.expectedIdEnv, idEnv) {
+			container := &deployment.Spec.Template.Spec.Containers[0]
+			idEnv := util.FindEnv(container.Env, "GITHUB_CLIENT_ID")
+			if !reflect.DeepEqual(testCase.expectedIdEnv, *idEnv) {
 				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedIdEnv, idEnv))
 			}
 
-			secretEnv := util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "GITHUB_SECRET")
-			if !reflect.DeepEqual(testCase.expectedSecretEnv, secretEnv) {
+			secretEnv := util.FindEnv(container.Env, "GITHUB_SECRET")
+			if !reflect.DeepEqual(testCase.expectedSecretEnv, *secretEnv) {
 				t.Errorf("Expected CR and CR returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedSecretEnv, secretEnv))
 			}
 		})

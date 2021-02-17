@@ -28,11 +28,11 @@ import (
 
 func TestGetSecrets(t *testing.T) {
 	type testCase struct {
-		name          string
-		labels        map[string]string
-		annotations   map[string]string
-		initObjects   []runtime.Object
-		exectedAmount int
+		name           string
+		labels         map[string]string
+		annotations    map[string]string
+		initObjects    []runtime.Object
+		expectedAmount int
 	}
 
 	runtimeSecrets := []runtime.Object{
@@ -84,7 +84,7 @@ func TestGetSecrets(t *testing.T) {
 			annotations: map[string]string{
 				"a1": "v1",
 			},
-			exectedAmount: 2,
+			expectedAmount: 2,
 		},
 		{
 			name:        "Get secrets",
@@ -96,7 +96,7 @@ func TestGetSecrets(t *testing.T) {
 				"a1": "v1",
 				"a2": "v2",
 			},
-			exectedAmount: 1,
+			expectedAmount: 1,
 		},
 		{
 			name:        "Get secrets",
@@ -108,7 +108,7 @@ func TestGetSecrets(t *testing.T) {
 			annotations: map[string]string{
 				"a1": "v1",
 			},
-			exectedAmount: 1,
+			expectedAmount: 1,
 		},
 		{
 			name:        "Get secrets, unknown label",
@@ -116,8 +116,8 @@ func TestGetSecrets(t *testing.T) {
 			labels: map[string]string{
 				"l4": "v4",
 			},
-			annotations:   map[string]string{},
-			exectedAmount: 0,
+			annotations:    map[string]string{},
+			expectedAmount: 0,
 		},
 		{
 			name:        "Get secrets, unknown annotation",
@@ -128,7 +128,7 @@ func TestGetSecrets(t *testing.T) {
 			annotations: map[string]string{
 				"a4": "v4",
 			},
-			exectedAmount: 0,
+			expectedAmount: 0,
 		},
 	}
 
@@ -157,8 +157,8 @@ func TestGetSecrets(t *testing.T) {
 				t.Fatalf("Error getting secrets: %v", err)
 			}
 
-			if len(secrets) != testCase.exectedAmount {
-				t.Fatalf("Expected %d but found: %d", testCase.exectedAmount, len(secrets))
+			if len(secrets) != testCase.expectedAmount {
+				t.Fatalf("Expected %d but found: %d", testCase.expectedAmount, len(secrets))
 			}
 		})
 	}

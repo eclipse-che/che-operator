@@ -52,12 +52,10 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	if clusterDeployment != nil {
-		env := clusterDeployment.Spec.Template.Spec.Containers[0].Env
-		for _, e := range env {
-			if "POSTGRESQL_ADMIN_PASSWORD" == e.Name {
-				postgresAdminPassword = e.Value
-				break
-			}
+		clusterContainer := &clusterDeployment.Spec.Template.Spec.Containers[0]
+		env := util.FindEnv(clusterContainer.Env, "POSTGRESQL_ADMIN_PASSWORD")
+		if env != nil {
+			postgresAdminPassword = env.Value
 		}
 	}
 
@@ -179,9 +177,11 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 		},
 	}
 
+	container := &deployment.Spec.Template.Spec.Containers[0]
+
 	chePostgresSecret := deployContext.CheCluster.Spec.Database.ChePostgresSecret
 	if len(chePostgresSecret) > 0 {
-		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
+		container.Env = append(container.Env,
 			corev1.EnvVar{
 				Name: "POSTGRESQL_USER",
 				ValueFrom: &corev1.EnvVarSource{
@@ -204,7 +204,7 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 				},
 			})
 	} else {
-		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
+		container.Env = append(container.Env,
 			corev1.EnvVar{
 				Name:  "POSTGRESQL_USER",
 				Value: deployContext.CheCluster.Spec.Database.ChePostgresUser,

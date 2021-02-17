@@ -27,30 +27,31 @@ type TestExpectedResources struct {
 }
 
 func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpectedResources, t *testing.T) {
+	container := &actualDeployment.Spec.Template.Spec.Containers[0]
 	compareQuantity(
 		"Memory limits",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory(),
+		container.Resources.Limits.Memory(),
 		expected.MemoryLimit,
 		t,
 	)
 
 	compareQuantity(
 		"Memory requests",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory(),
+		container.Resources.Requests.Memory(),
 		expected.MemoryRequest,
 		t,
 	)
 
 	compareQuantity(
 		"CPU limits",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu(),
+		container.Resources.Limits.Cpu(),
 		expected.CpuLimit,
 		t,
 	)
 
 	compareQuantity(
 		"CPU requests",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu(),
+		container.Resources.Requests.Cpu(),
 		expected.CpuRequest,
 		t,
 	)
@@ -80,16 +81,6 @@ func ValidateContainData(actualData map[string]string, expectedData map[string]s
 			t.Errorf("Key '%s' does not exists, expected value: '%s'", k, v)
 		}
 	}
-}
-
-func FindEnv(envs []corev1.EnvVar, name string) corev1.EnvVar {
-	for _, env := range envs {
-		if env.Name == name {
-			return env
-		}
-	}
-
-	return corev1.EnvVar{}
 }
 
 func FindVolume(volumes []corev1.Volume, name string) corev1.Volume {

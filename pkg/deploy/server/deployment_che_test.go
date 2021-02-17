@@ -206,18 +206,19 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 				t.Fatalf("Error creating deployment: %v", err)
 			}
 
-			env := util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH")
-			if !reflect.DeepEqual(testCase.expectedConsumerKeyPathEnv, env) {
+			container := &deployment.Spec.Template.Spec.Containers[0]
+			env := util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH")
+			if !reflect.DeepEqual(testCase.expectedConsumerKeyPathEnv, *env) {
 				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedConsumerKeyPathEnv, env))
 			}
 
-			env = util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH")
-			if !reflect.DeepEqual(testCase.expectedPrivateKeyPathEnv, env) {
+			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH")
+			if !reflect.DeepEqual(testCase.expectedPrivateKeyPathEnv, *env) {
 				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedPrivateKeyPathEnv, env))
 			}
 
-			env = util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
-			if !reflect.DeepEqual(testCase.expectedEndpointEnv, env) {
+			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
+			if !reflect.DeepEqual(testCase.expectedEndpointEnv, *env) {
 				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedEndpointEnv, env))
 			}
 
@@ -226,7 +227,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 				t.Errorf("Expected Volume and Volume returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedVolume, volume))
 			}
 
-			volumeMount := util.FindVolumeMount(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, "github-oauth-config")
+			volumeMount := util.FindVolumeMount(container.VolumeMounts, "github-oauth-config")
 			if !reflect.DeepEqual(testCase.expectedVolumeMount, volumeMount) {
 				t.Errorf("Expected VolumeMount and VolumeMount returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedVolumeMount, volumeMount))
 			}
