@@ -122,7 +122,6 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 		expectedConsumerKeyPathEnv corev1.EnvVar
 		expectedPrivateKeyPathEnv  corev1.EnvVar
 		expectedEndpointEnv        corev1.EnvVar
-		expectedServerEndpointsEnv corev1.EnvVar
 		expectedVolume             corev1.Volume
 		expectedVolumeMount        corev1.VolumeMount
 	}
@@ -169,10 +168,6 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 			},
 			expectedEndpointEnv: corev1.EnvVar{
 				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
-				Value: "bitbucket_endpoint",
-			},
-			expectedServerEndpointsEnv: corev1.EnvVar{
-				Name:  "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS",
 				Value: "bitbucket_endpoint",
 			},
 			expectedVolume: corev1.Volume{
@@ -224,11 +219,6 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 			env = util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
 			if !reflect.DeepEqual(testCase.expectedEndpointEnv, env) {
 				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedEndpointEnv, env))
-			}
-
-			env = util.FindEnv(deployment.Spec.Template.Spec.Containers[0].Env, "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS")
-			if !reflect.DeepEqual(testCase.expectedServerEndpointsEnv, env) {
-				t.Errorf("Expected Env and Env returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedServerEndpointsEnv, env))
 			}
 
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")

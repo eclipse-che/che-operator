@@ -451,9 +451,6 @@ func MountBitBucketOAuthConfig(deployContext *deploy.DeployContext, deployment *
 		}, corev1.EnvVar{
 			Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
 			Value: endpoint,
-		}, corev1.EnvVar{
-			Name:  "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS",
-			Value: endpoint,
 		})
 	}
 
