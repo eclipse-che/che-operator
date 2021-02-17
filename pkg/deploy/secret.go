@@ -24,6 +24,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -95,6 +97,46 @@ func GetSecret(deployContext *DeployContext, name string, namespace string) (*co
 		return nil, err
 	}
 	return secret, nil
+}
+
+// Get all secrets by labels and annotations
+func GetSecrets(deployContext *DeployContext, labels map[string]string, annotations map[string]string) ([]corev1.Secret, error) {
+	secrets := []corev1.Secret{}
+
+	labelSelector := k8slabels.NewSelector()
+	for k, v := range labels {
+		req, err := k8slabels.NewRequirement(k, selection.Equals, []string{v})
+		if err != nil {
+			return secrets, err
+		}
+		labelSelector = labelSelector.Add(*req)
+	}
+
+	listOptions := &client.ListOptions{
+		Namespace:     deployContext.CheCluster.Namespace,
+		LabelSelector: labelSelector,
+	}
+	secretList := &corev1.SecretList{}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), secretList, listOptions); err != nil {
+		return secrets, err
+	}
+
+	for _, secret := range secretList.Items {
+		annotationsOk := true
+		for k, v := range annotations {
+			_, annotationExists := secret.Annotations[k]
+			if !annotationExists || secret.Annotations[k] != v {
+				annotationsOk = false
+				break
+			}
+		}
+
+		if annotationsOk {
+			secrets = append(secrets, secret)
+		}
+	}
+
+	return secrets, nil
 }
 
 // GetSpecSecret return default secret config for given data

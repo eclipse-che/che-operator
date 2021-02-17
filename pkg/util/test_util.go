@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -26,30 +27,31 @@ type TestExpectedResources struct {
 }
 
 func CompareResources(actualDeployment *appsv1.Deployment, expected TestExpectedResources, t *testing.T) {
+	container := &actualDeployment.Spec.Template.Spec.Containers[0]
 	compareQuantity(
 		"Memory limits",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory(),
+		container.Resources.Limits.Memory(),
 		expected.MemoryLimit,
 		t,
 	)
 
 	compareQuantity(
 		"Memory requests",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory(),
+		container.Resources.Requests.Memory(),
 		expected.MemoryRequest,
 		t,
 	)
 
 	compareQuantity(
 		"CPU limits",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu(),
+		container.Resources.Limits.Cpu(),
 		expected.CpuLimit,
 		t,
 	)
 
 	compareQuantity(
 		"CPU requests",
-		actualDeployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu(),
+		container.Resources.Requests.Cpu(),
 		expected.CpuRequest,
 		t,
 	)
@@ -79,4 +81,24 @@ func ValidateContainData(actualData map[string]string, expectedData map[string]s
 			t.Errorf("Key '%s' does not exists, expected value: '%s'", k, v)
 		}
 	}
+}
+
+func FindVolume(volumes []corev1.Volume, name string) corev1.Volume {
+	for _, volume := range volumes {
+		if volume.Name == name {
+			return volume
+		}
+	}
+
+	return corev1.Volume{}
+}
+
+func FindVolumeMount(volumes []corev1.VolumeMount, name string) corev1.VolumeMount {
+	for _, volumeMount := range volumes {
+		if volumeMount.Name == name {
+			return volumeMount
+		}
+	}
+
+	return corev1.VolumeMount{}
 }
