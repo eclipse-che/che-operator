@@ -2,6 +2,9 @@
 
 ## 1. Release files
 
+See `release.yml` workflow, which can be used to perform this step using GitHub Actions CI.
+Alternatively, use these manual steps to prepare release pull requrests:
+
 Export environment variables:
 1. `QUAY_ECLIPSE_CHE_USERNAME` and `QUAY_ECLIPSE_CHE_PASSWORD` to access https://quay.io/organization/eclipse
 
@@ -23,6 +26,9 @@ Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --pus
 
 ## 2. Testing release on openshift
 
+This part now runs automatically as part of the PR check for release PRs. See PROW CI checks in release PRs.
+Alternatively, use these manual steps to verify operator update on Openshift.
+
 Start a cluster using `cluster-bot` application.
 
 To be able to test update it is needed to created some user before. Login as `kubeadmin`. Click `Update the cluster OAuth configuration` at the middle of the dashboard, then `Identity providers` -> `Add` -> `HTPassword` and upload a htpassword file (can be created with HTPassword utility). Logout and login using HTPassword, then logout and login as `kubeadmin`. Go to `kube:admin` -> `Copy Login Command` -> `Display Token` and launch showing command in the terminal. Now it is possible to test update:
@@ -41,6 +47,9 @@ echo http://$(oc get route -n eclipse-che-preview-test | grep ^che | awk -F ' ' 
 Login using HTPassword then allow selected permissions. Validate that the release version is installed and workspace can be created:
 
 ## 3. Testing release on minikube
+
+This part now runs automatically as part of the PR check for release PRs. See `minikube-stable-operator-update.yml` action.
+Alternatively, use these manual steps to verify operator update on Minikube.
 
 Run script to test updates:
 
@@ -84,6 +93,9 @@ xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $
 ```
 
 ## 6. Prepare community operator PR
+
+See `release-community-operator-PRs.yml` workflow, which will be triggered automatically, once release PRs are merged.
+Alternatively, it can be run manually:
 
 ```bash
 cd olm
