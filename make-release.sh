@@ -26,7 +26,7 @@ init() {
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
-  BUILDX_PLATFORMS="linux/amd64,linux/ppc64le,linux/s390x"
+  BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
