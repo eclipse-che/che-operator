@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2012-2020 Red Hat, Inc.
+# Copyright (c) 2012-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,7 +16,6 @@ printHelp() {
   echo ''
   echo 'Please consider to pass this values to the script to run script:'
 	echo '    PLATFORM                 - cluster platform: "kubernetes" or "openshift".'
-    echo '    FROM_INDEX_IMAGE         - (Optional) Using this argument you can include Olm bundles from another index image to you index(CatalogSource) image'
   echo ''
   echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/buildAndPushInitialBundle.sh openshift'
 }
@@ -31,8 +30,6 @@ else
   echo "[INFO]: Successfully validated platform. Starting olm tests in platform: ${platform}."
 fi
 
-FROM_INDEX_IMAGE="${2}"
-
 if [ -z "${IMAGE_REGISTRY_HOST}" ] || [ -z "${IMAGE_REGISTRY_USER_NAME}" ]; then
     echo "[ERROR] Specify env variables with information about image registry 'IMAGE_REGISTRY_HOST' and 'IMAGE_REGISTRY_USER_NAME'."
 fi
@@ -44,20 +41,20 @@ source ${BASE_DIR}/olm.sh
 initOLMScript "${platform}"
 installOPM
 
-channel="nightly"
+channel="stable"
 OPM_BUNDLE_DIR=$(getBundlePath "${channel}")
 OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
 CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
-nightlyVersion=$(yq -r ".spec.version" "${CSV}")
-echo "Nightly version: ${nightlyVersion}"
+stableVersion=$(yq -r ".spec.version" "${CSV}")
+echo "Stable version: ${stableVersion}"
 
-CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-bundles:${nightlyVersion}"
+CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-bundles:${stableVersion}"
 echo "[INFO] Build bundle image: ${CATALOG_BUNDLE_IMAGE}"
 buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${channel}" 
 
 CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:preview"
 echo "[INFO] Build CatalogSource image: ${CATALOG_IMAGENAME}"
-buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${FROM_INDEX_IMAGE}"
+buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${CATALOG_IMAGENAME}"
 
 echo "[INFO] Done. Images '${CATALOG_IMAGENAME}' and '${CATALOG_BUNDLE_IMAGE}' were build and pushed"

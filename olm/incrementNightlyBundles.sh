@@ -15,14 +15,14 @@ set -e
 if [ -z "${BASE_DIR}" ]; then
   BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 fi
-ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 
 source ${BASE_DIR}/check-yq.sh
+source ${BASE_DIR}/olm.sh
 
 incrementNightlyVersion() {
   platform="${1}"
-  OPM_BUNDLE_DIR="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}"
-  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
+  NIGHTLY_BUNDLE_PATH=$(getBundlePath "nightly")
+  OPM_BUNDLE_MANIFESTS_DIR="${NIGHTLY_BUNDLE_PATH}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
   currentNightlyVersion=$(yq -r ".spec.version" "${CSV}")
@@ -31,9 +31,8 @@ incrementNightlyVersion() {
   getNightlyVersionIncrementPart "${currentNightlyVersion}"
 
   PACKAGE_NAME="eclipse-che-preview-${platform}"
-  PACKAGE_FOLDER_PATH="${ROOT_PROJECT_DIR}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/${PACKAGE_NAME}"
-  PACKAGE_FILE_PATH="${PACKAGE_FOLDER_PATH}/${PACKAGE_NAME}.package.yaml"
-  CLUSTER_SERVICE_VERSION=$(yq -r ".channels[] | select(.name == \"stable\") | .currentCSV" "${PACKAGE_FILE_PATH}")
+
+  CLUSTER_SERVICE_VERSION=$(getCurrentStableVersion)
   STABLE_PACKAGE_VERSION=$(echo "${CLUSTER_SERVICE_VERSION}" | sed -e "s/${PACKAGE_NAME}.v//")
 
   parseStableVersion

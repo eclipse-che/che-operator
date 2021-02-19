@@ -13,6 +13,7 @@ name: Push catalog and bundle images.
 on:
   schedule:
     - cron:  '0 21 * * *'
+  pull_request:
       branches:
         - master
 jobs:

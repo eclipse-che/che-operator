@@ -1,0 +1,164 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: che-operator
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/component: che-operator
+rules:
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+    verbs:
+      - list
+      - create
+      - watch
+      - update
+      - get
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    verbs:
+      - list
+      - create
+      - watch
+      - update
+      - get
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+    verbs:
+      - get
+      - create
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - org.eclipse.che
+    resources:
+      - checlusters
+      - checlusters/finalizers
+    verbs:
+      - '*'
+  - apiGroups:
+      - ''
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
+      - ''
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - create
+      - watch
+  - apiGroups:
+      - ''
+    resources:
+      - pods/exec
+    verbs:
+      - create
+  - apiGroups:
+      - apps
+    resources:
+      - secrets
+    verbs:
+      - list
+  - apiGroups:
+      - ''
+    resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - create
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - create
+      - watch
+      - delete
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - create
+      - patch
+      - watch
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - services
+    verbs:
+      - list
+      - create
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - delete
+      - list
+  - apiGroups:
+      - ''
+    resources:
+      - events
+    verbs:
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets
+    verbs:
+      - list
+      - get
+      - patch
+      - delete
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - list
+      - create
+      - watch
+      - get
+      - delete

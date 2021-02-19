@@ -14,10 +14,9 @@ set -e
 
 REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
-CURRENT_DIR=$(pwd)
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
+BASE_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))/olm
 source ${BASE_DIR}/check-yq.sh
+GO_VERSION_FILE=$(readlink -f "${BASE_DIR}/../version/version.go")
 
 if [[ "$1" =~ $REGEX ]]
 then
@@ -30,21 +29,29 @@ fi
 
 for platform in 'kubernetes' 'openshift'
 do
-  packageName="eclipse-che-preview-${platform}"
-  echo "[INFO] Creating release '${RELEASE}' of the OperatorHub package '${packageName}' for platform '${platform}'"
+  # todo
+  PACKAGE_VERSION="stable"
+  export PACKAGE_VERSION
+  source ${BASE_DIR}/olm.sh "${platform}"
+  initOLMScript "${platform}"
 
-  packageBaseFolderPath="${BASE_DIR}/${packageName}"
-  cd "${packageBaseFolderPath}"
+  echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
 
-  LAST_NIGHTLY_CSV="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml"
-  LAST_NIGHTLY_CRD="${ROOT_PROJECT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml"
+  NIGHTLY_BUNDLE_PATH=$(getBundlePath "nightly")
+  LAST_NIGHTLY_CSV="${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+  LAST_NIGHTLY_CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 
-  packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
-  packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  STABLE_BUNDLE_PATH=$(getBundlePath "stable")
+  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+
   lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")
-  lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${packageFilePath}" | sed -e "s/${packageName}.v//")
+  if [ -f "${LAST_STABLE_CSV}" ];then
+    lastPackagePreReleaseVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
+  else
+    lastPackagePreReleaseVersion=$(grep -o '[0-9]*\.[0-9]*\.[0-9]*' < "${GO_VERSION_FILE}")
+  fi
+
   echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
-  echo "[INFO] Last package pre-release version: ${lastPackagePreReleaseVersion}"
 
   if [ "${lastPackagePreReleaseVersion}" == "${RELEASE}" ]
   then
@@ -53,42 +60,61 @@ do
     exit 1
   fi
 
-  echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion} that will replace previous release '${lastPackagePreReleaseVersion}'"
+  echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion}'"
 
-  PRE_RELEASE_CSV="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
-  PRE_RELEASE_CRD="${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml"
-  RELEASE_CSV="${packageFolderPath}/${RELEASE}/${packageName}.v${RELEASE}.clusterserviceversion.yaml"
-  RELEASE_CRD="${packageFolderPath}/${RELEASE}/${packageName}.crd.yaml"
+  RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+  RELEASE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 
-  mkdir -p "${packageFolderPath}/${RELEASE}"
+  mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated" "${STABLE_BUNDLE_PATH}/metadata"
+  if [[ -f "${RELEASE_CSV}" ]] && [[ -f "${RELEASE_CRD}" ]]; then
+    cp -rf "${RELEASE_CSV}" "${RELEASE_CRD}" "${STABLE_BUNDLE_PATH}/generated/"
+    PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/che-operator.clusterserviceversion.yaml"
+    PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/org_v1_che_crd.yaml"
+  fi
+
   sed \
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:nightly"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nightly"|"pluginRegistryImage": ""|' \
-  -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
-  -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${lastPackagePreReleaseVersion}" \
   -e "s/: nightly/: ${RELEASE}/" \
   -e "s/:nightly/:${RELEASE}/" \
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
-  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" ${LAST_NIGHTLY_CSV} > ${RELEASE_CSV}
+  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NIGHTLY_CSV}" > "${RELEASE_CSV}"
 
-  cp ${LAST_NIGHTLY_CRD} ${RELEASE_CRD}
+  cp "${LAST_NIGHTLY_CRD}" "${RELEASE_CRD}"
+  cp -rf "${NIGHTLY_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
+  cp -rf "${NIGHTLY_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 
-  sed -e "s/${lastPackagePreReleaseVersion}/${RELEASE}/" "${packageFilePath}" > "${packageFilePath}.new"
-  mv "${packageFilePath}.new" "${packageFilePath}"
+  ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
+  sed \
+  -e 's/operators.operatorframework.io.bundle.channels.v1: *nightly/operators.operatorframework.io.bundle.channels.v1: stable/' \
+  -e 's/operators.operatorframework.io.bundle.channel.default.v1: *nightly/operators.operatorframework.io.bundle.channel.default.v1: stable/' \
+  -i "${ANNOTATION_METADATA_YAML}"
 
-  PLATFORM_DIR=$(pwd)
+  BUNDLE_DOCKERFILE="${STABLE_BUNDLE_PATH}/bundle.Dockerfile"
+  sed \
+  -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=nightly/LABEL operators.operatorframework.io.bundle.channels.v1=stable/' \
+  -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=nightly/LABEL operators.operatorframework.io.bundle.channel.default.v1=stable/' \
+  -i "${BUNDLE_DOCKERFILE}"
 
-  cd $CURRENT_DIR
-  source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
-                -r "eclipse-che-preview-${platform}.*\.v${RELEASE}.*yaml" \
-                -t ${RELEASE}
+  sed -e "s|Version = \".*\"|Version = \"${RELEASE}\"|" -i "${GO_VERSION_FILE}"
 
-  cd $PLATFORM_DIR
+  # PLATFORM_DIR=$(pwd)
 
-  diff -u ${PRE_RELEASE_CSV} ${RELEASE_CSV} > ${RELEASE_CSV}".diff" || true
-  diff -u ${PRE_RELEASE_CRD} ${RELEASE_CRD} > ${RELEASE_CRD}".diff" || true
+  # cd $CURRENT_DIR
+  # source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+  #               -r "eclipse-che-preview-${platform}.*\.v${RELEASE}.*yaml" \
+  #               -t ${RELEASE}
+
+  # cd $PLATFORM_DIR
+
+  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then 
+    diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
+    diff -u "${PRE_RELEASE_CRD}" "${RELEASE_CRD}" > "${RELEASE_CRD}.diff" || true
+  fi
 done
+
+echo "[INFO] Release bundles successfully created."

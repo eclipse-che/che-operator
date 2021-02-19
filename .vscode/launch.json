@@ -136,7 +136,10 @@
       "type": "bashdb",
       "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
-      "program": "${file}"
+      "program": "${file}",
+      "args": [
+        "7.27.0"
+      ]
     },
     {
       "name": "Launch Current Test *.go File",
