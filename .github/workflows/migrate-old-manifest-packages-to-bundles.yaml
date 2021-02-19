@@ -13,7 +13,7 @@ name: Migrate manifest format packages to the OLM bundles
 
 on:
   schedule:
-    - cron:  '10 10 * * *'
+    - cron:  '00 13 * * *'
 jobs:
 
   build:
@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: Docker login
+    - name: TIME TEST
       run: echo "===A===" && date +"%H:%M"
 
     - name: Docker login

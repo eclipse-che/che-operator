@@ -13,7 +13,7 @@ name: Test 6
 
 on:
   schedule:
-    - cron:  '15 12 * * *'
+    - cron:  '00 13 * * *'
 jobs:
 
   build:
