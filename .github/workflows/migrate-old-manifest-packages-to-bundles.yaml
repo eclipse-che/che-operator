@@ -13,7 +13,7 @@ name: Migrate manifest format packages to the OLM bundles
 
 on:
   schedule:
-    - cron:  '30 10 19 2 *'
+    - cron:  '50 12 19 2 *'
 jobs:
 
   build:
