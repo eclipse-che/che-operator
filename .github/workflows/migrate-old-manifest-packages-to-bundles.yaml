@@ -24,17 +24,17 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: Docker login
-      run: echo "===A==="
+      run: echo "===A===" && date +"%H:%M"
 
-    # - name: Docker login
-    #   uses: azure/docker-login@v1
-    #   with:
-    #     login-server: quay.io
-    #     username: ${{ secrets.QUAY_USERNAME }}
-    #     password: ${{ secrets.QUAY_PASSWORD }}
+    - name: Docker login
+      uses: azure/docker-login@v1
+      with:
+        login-server: quay.io
+        username: ${{ secrets.QUAY_USERNAME }}
+        password: ${{ secrets.QUAY_PASSWORD }}
 
-    # - name: Migrate manifest format packages to the OLM bundles
-    #   run: "${GITHUB_WORKSPACE}/olm/buildOLMBundlesFromReleaseManifestFiles.sh"
-    #   env:
-    #     IMAGE_REGISTRY_HOST: quay.io
-    #     IMAGE_REGISTRY_USER_NAME: aandriienko
+    - name: Migrate manifest format packages to the OLM bundles
+      run: "${GITHUB_WORKSPACE}/olm/buildOLMBundlesFromReleaseManifestFiles.sh"
+      env:
+        IMAGE_REGISTRY_HOST: quay.io
+        IMAGE_REGISTRY_USER_NAME: aandriienko
