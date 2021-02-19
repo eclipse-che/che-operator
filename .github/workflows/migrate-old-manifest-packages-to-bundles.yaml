@@ -30,9 +30,6 @@ jobs:
     - name: Install jq
       run: sudo pip install yq
 
-    - name: jq version
-      run: jq -V
-
     - name: Docker login
       uses: azure/docker-login@v1
       with:
