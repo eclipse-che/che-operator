@@ -13,7 +13,7 @@ name: Migrate manifest format packages to the OLM bundles
 
 on:
   schedule:
-    - cron:  '30 9 * * *'
+    - cron:  '10 10 * * *'
 jobs:
 
   build:
@@ -24,14 +24,17 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: Docker login
-      uses: azure/docker-login@v1
-      with:
-        login-server: quay.io
-        username: ${{ secrets.QUAY_USERNAME }}
-        password: ${{ secrets.QUAY_PASSWORD }}
+      run: echo "===A==="
 
-    - name: Migrate manifest format packages to the OLM bundles
-      run: "${GITHUB_WORKSPACE}/olm/buildOLMBundlesFromReleaseManifestFiles.sh"
-      env:
-        IMAGE_REGISTRY_HOST: quay.io
-        IMAGE_REGISTRY_USER_NAME: aandriienko
+    # - name: Docker login
+    #   uses: azure/docker-login@v1
+    #   with:
+    #     login-server: quay.io
+    #     username: ${{ secrets.QUAY_USERNAME }}
+    #     password: ${{ secrets.QUAY_PASSWORD }}
+
+    # - name: Migrate manifest format packages to the OLM bundles
+    #   run: "${GITHUB_WORKSPACE}/olm/buildOLMBundlesFromReleaseManifestFiles.sh"
+    #   env:
+    #     IMAGE_REGISTRY_HOST: quay.io
+    #     IMAGE_REGISTRY_USER_NAME: aandriienko
