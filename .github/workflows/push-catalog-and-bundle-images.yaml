@@ -12,7 +12,7 @@
 name: Push catalog and bundle images.
 on:
   schedule:
-    - cron:  '0 21 * * *'
+    - cron:  '15 10 * * *'
   pull_request:
       branches:
         - master
@@ -25,12 +25,13 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: Docker login
-      uses: azure/docker-login@v1
-      with:
-        login-server: quay.io
-        username: ${{ secrets.QUAY_USERNAME }}
-        password: ${{ secrets.QUAY_PASSWORD }}
+    # - name: Docker login
+    #   uses: azure/docker-login@v1
+    #   with:
+    #     login-server: quay.io
+    #     username: ${{ secrets.QUAY_USERNAME }}
+    #     password: ${{ secrets.QUAY_PASSWORD }}
 
     - name: Build catalog source and opm bundle images and push
-      run: "${GITHUB_WORKSPACE}/.github/bin/push-catalog-and-bundle-images.sh"
+      run: echo "====B==="
+      # run: "${GITHUB_WORKSPACE}/.github/bin/push-catalog-and-bundle-images.sh"
