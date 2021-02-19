@@ -27,7 +27,7 @@ jobs:
         export MINISHIFT_GITHUB_API_TOKEN=${{ secrets.GITHUB_TOKEN }}
         minishift start --memory=5500 --vm-driver=virtualbox
     - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=stable
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Install jq
       run: sudo pip install yq
     - name: Replace Minishift default certificates

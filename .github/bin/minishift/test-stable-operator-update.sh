@@ -20,16 +20,23 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-prepareTemplates() {
-  disableOpenShiftOAuth ${PREVIOUS_OPERATOR_TEMPLATE}
-  disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
+preparePatchYaml() {
+  cat >${OPERATOR_REPO}/tmp/patch.yaml<<EOF
+spec:
+  auth:
+    updateAdminPassword: false
+    openShiftoAuth: false
+EOF
 }
 
 runTest() {
-  deployEclipseChe "operator" "minishift" "quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}" ${PREVIOUS_OPERATOR_TEMPLATE}
+  chectl server:deploy --platform minishift --installer operator \
+    --version ${PREVIOUS_PACKAGE_VERSION} \
+    --che-operator-cr-patch-yaml ${OPERATOR_REPO}/tmp/patch.yaml
+
   createWorkspace
 
-  updateEclipseChe "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
+  chectl server:update --version ${LAST_PACKAGE_VERSION} -y
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   startExistedWorkspace
@@ -39,5 +46,5 @@ runTest() {
 initDefaults
 installYq
 initStableTemplates "openshift" "stable"
-prepareTemplates
+preparePatchYaml
 runTest
