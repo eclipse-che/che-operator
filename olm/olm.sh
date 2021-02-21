@@ -30,27 +30,22 @@ function initOLMScript() {
   namespace="${2}"
   export namespace
 
-  packageName=eclipse-che-preview-${platform}
+  packageName=$(getPackageName)
   export packageName
 
-  # todo remove marketplaceNamespace at all. We don't needed any more, cause we installs all staff to the Che installation namespaces
-  if [ "${platform}" == "openshift" ]; then
-    marketplaceNamespace="openshift-marketplace";
-  else
-    # marketplaceNamespace="marketplace"
-    marketplaceNamespace="olm"
-  fi
-  export marketplaceNamespace
-
   echo -e "\u001b[32m packageName=${packageName} \u001b[0m"
-  echo -e "\u001b[32m marketplaceNamespace=${marketplaceNamespace} \u001b[0m"
   if [ -n "${namespace}" ]; then
     echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
   fi
 }
 
 function getPackageName() {
-  echo "${packageName}"
+  if [ -z "${platform}" ]; then
+    echo "Please specify platform"
+    exit 1
+  fi
+
+  echo "eclipse-che-preview-${platform}"
 }
 
 function getBundlePath() {
@@ -60,12 +55,16 @@ function getBundlePath() {
     exit 1
   fi
 
-  if [ -z "${packageName}" ]; then
-    echo "Please specify packageName"
+  if [ -n "${2}" ]; then
+    platform="${2}"
+  fi
+
+  if [ -z "${platform}" ]; then
+    echo "Please specify platform"
     exit 1
   fi
 
-  echo "${ROOT_DIR}/deploy/olm-catalog/${channel}/${packageName}"
+  echo "${ROOT_DIR}/deploy/olm-catalog/${channel}/$(getPackageName "${platform}")"
 }
 
 getCurrentStableVersion() {
@@ -160,6 +159,8 @@ buildBundleImage() {
   if [ -z "${platform}" ]; then
     echo "Please specify second argument: platform"
     exit 1
+  else
+    packageName=$(getPackageName)
   fi
 
   if [ -z "${OPM_BUNDLE_DIR}" ]; then

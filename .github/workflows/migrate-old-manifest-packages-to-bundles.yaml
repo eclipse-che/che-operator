@@ -24,10 +24,10 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: TIME TEST
-      run: echo "===A===" && date +"%H:%M"
+    - name: TIME
+      run: date +"%H:%M"
 
-    - name: Install jq
+    - name: Install yq
       run: sudo pip install yq
 
     - name: Docker login

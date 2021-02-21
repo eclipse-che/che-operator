@@ -30,7 +30,7 @@ do
     bundle_dir=$(mktemp -d -t che-releases-XXX)
     echo "${bundle_dir}"
 
-    readarray -t dirs < <(find . -maxdepth 1 -type d -printf '%P\n')
+    readarray -t dirs < <(find . -maxdepth 1 -type d -printf '%P\n' | sort)
     for versionDir in ${dirs[*]} ; do
         if [[ "${versionDir}" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "Converting manifest format folder ${versionDir} to the bundle format..."
