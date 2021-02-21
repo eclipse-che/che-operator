@@ -58,7 +58,7 @@ do
             stableVersion=$(yq -r ".spec.version" "${CSV}")
             echo "Preparing stable bundle version: ${stableVersion}"
 
-            "${OPERATOR_REPO}/olm/push-catalog-and-bundle-images.sh" "stable" "${platform}"
+            "${OPERATOR_REPO}/olm/push-catalog-and-bundle-images.sh" -c "stable" -p "${platform}"
 
             # CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-bundles:${stableVersion}"
             # echo "[INFO] Build bundle image: ${CATALOG_BUNDLE_IMAGE}"
