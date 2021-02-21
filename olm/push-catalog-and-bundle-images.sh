@@ -49,7 +49,9 @@ ${OPM_BINARY} version
 for platform in "${platforms[@]}"
 do
   echo "[INFO] Platform: ${platform}"
-  OPM_BUNDLE_DIR=$(getBundlePath "${channel}" "${platform}")
+  if [ -z "${OPM_BUNDLE_DIR}" ]; then
+    OPM_BUNDLE_DIR=$(getBundlePath "${channel}" "${platform}")
+  fi
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 

@@ -51,22 +51,7 @@ do
         if [[ "${versionDir}" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
             OPM_BUNDLE_DIR="${bundle_dir}/${versionDir}"
             export OPM_BUNDLE_DIR
-            OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-            export OPM_BUNDLE_MANIFESTS_DIR
-            CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
-
-            stableVersion=$(yq -r ".spec.version" "${CSV}")
-            echo "Preparing stable bundle version: ${stableVersion}"
-
             "${OPERATOR_REPO}/olm/push-catalog-and-bundle-images.sh" -c "stable" -p "${platform}"
-
-            # CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-bundles:${stableVersion}"
-            # echo "[INFO] Build bundle image: ${CATALOG_BUNDLE_IMAGE}"
-            # buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "stable" 
-
-            # CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:preview"
-            # echo "[INFO] Build CatalogSource image: ${CATALOG_IMAGENAME}"
-            # buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${CATALOG_IMAGENAME}"
         fi
     done
 

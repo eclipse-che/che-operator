@@ -52,15 +52,15 @@ init() {
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${RELEASE_DIR}/REQUIREMENTS")
   [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
-  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* -maxdepth 0 -empty | wc -l)
-  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
-  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* -maxdepth 0 -empty | wc -l)
-  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
+  # emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* -maxdepth 0 -empty | wc -l)
+  # [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
+  # emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* -maxdepth 0 -empty | wc -l)
+  # [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
 }
 
 usage () {
 	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
-  echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
+  # echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
   echo -e "\t\tif already a greater version released. For instance, we are releasing 7.9.3 version but"
   echo -e "\t\t7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel."
   echo -e "\t--push-git-changes: to create release branch and push changes into."
@@ -186,8 +186,8 @@ releaseOlmFiles() {
   . release-olm-files.sh $RELEASE
   cd $RELEASE_DIR
 
-  local openshift=$RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
-  local kubernetes=$RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
+  local openshift=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-openshift
+  local kubernetes=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes
 
   echo "[INFO] releaseOlmFiles :: Validate changes"
   grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
@@ -205,9 +205,9 @@ releaseOlmFiles() {
 }
 
 pushOlmFilesToQuayIo() {
-  echo "[INFO] Push OLM files to quay.io"
+  echo "[INFO] Push OLM bundles to quay.io"
   cd $RELEASE_DIR/olm
-  . push-olm-files-to-quay.sh
+  . push-catalog-and-bundle-images.sh -c "stable" -p "kubernetes" -p "openshift"
   cd $RELEASE_DIR
 }
 
