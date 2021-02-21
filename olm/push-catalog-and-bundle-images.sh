@@ -19,9 +19,11 @@ usage () {
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
 
+platforms=()
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-c') channel="$2"; shift 1;;
+    '-p') platforms+=("$2"); shift 1;;
 	'--help'|'-h') usage; exit;;
   esac
   shift 1
@@ -44,8 +46,9 @@ source "${BASE_DIR}/olm.sh"
 installOPM
 ${OPM_BINARY} version
 
-for platform in 'kubernetes' 'openshift'
+for platform in "${platforms[@]}"
 do
+  echo "[INFO] Platform: ${platform}"
   OPM_BUNDLE_DIR=$(getBundlePath "${channel}" "${platform}")
   OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
