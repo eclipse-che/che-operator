@@ -13,11 +13,9 @@ package identity_provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
@@ -25,10 +23,8 @@ import (
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -88,15 +84,12 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 	protocol := (map[bool]string{
 		true:  "https",
 		false: "http"})[cr.Spec.Server.TlsSupport]
-	additionalLabels := (map[bool]string{
-		true:  cr.Spec.Auth.IdentityProviderRoute.Labels,
-		false: cr.Spec.Auth.IdentityProviderIngress.Labels})[util.IsOpenShift]
-
 	endpoint, done, err := expose.Expose(
 		deployContext,
 		cr.Spec.Server.CheHost,
 		deploy.IdentityProviderName,
-		additionalLabels,
+		cr.Spec.Auth.IdentityProviderRoute,
+		cr.Spec.Auth.IdentityProviderIngress,
 		deploy.IdentityProviderName)
 	if !done {
 		return false, err
@@ -131,7 +124,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 			for {
 				cr.Status.KeycloakProvisoned = true
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
-					errors.IsConflict(err) {
+					apierrors.IsConflict(err) {
 
 					reload(deployContext)
 					continue
@@ -200,7 +193,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 			for {
 				cr.Status.OpenShiftoAuthProvisioned = true
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
-					errors.IsConflict(err) {
+					apierrors.IsConflict(err) {
 
 					reload(deployContext)
 					continue
@@ -212,33 +205,36 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-// SyncGitHubOAuth provisions GitHub OAuth if secret with
-// annotation `che.eclipse.org/github-oauth-credentials=true` is mounted into a container
+// SyncGitHubOAuth provisions GitHub OAuth if secret with annotation
+// `che.eclipse.org/github-oauth-credentials=true` or `che.eclipse.org/oauth-scm-configuration=github`
+// is mounted into a container
 func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
-	cr := deployContext.CheCluster
-
-	// find mounted GitHug OAuth credentials
-	secrets := &corev1.SecretList{}
-
-	kubernetesPartOfLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.Equals, []string{deploy.CheEclipseOrg})
-	kubernetesComponentLabelSelectorRequirement, _ := labels.NewRequirement(deploy.KubernetesComponentLabelKey, selection.Equals, []string{deploy.IdentityProviderName + "-secret"})
-
-	listOptions := &client.ListOptions{
-		LabelSelector: labels.NewSelector().
-			Add(*kubernetesPartOfLabelSelectorRequirement).
-			Add(*kubernetesComponentLabelSelectorRequirement),
-	}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), secrets, listOptions); err != nil {
+	// get legacy secret
+	legacySecrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.IdentityProviderName + "-secret",
+	}, map[string]string{
+		deploy.CheEclipseOrgGithubOAuthCredentials: "true",
+	})
+	if err != nil {
 		return false, err
 	}
 
-	isGitHubOAuthCredentialsExists := false
-	for _, secret := range secrets.Items {
-		if secret.Annotations[deploy.CheEclipseOrgGithubOAuthCredentials] == "true" {
-			isGitHubOAuthCredentialsExists = true
-			break
-		}
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "github",
+	})
+
+	if err != nil {
+		return false, err
+	} else if len(secrets)+len(legacySecrets) > 1 {
+		return false, errors.New("More than 1 GitHub OAuth configuration secrets found")
 	}
+
+	isGitHubOAuthCredentialsExists := len(secrets) == 1 || len(legacySecrets) == 1
+	cr := deployContext.CheCluster
 
 	if isGitHubOAuthCredentialsExists {
 		if !cr.Status.GitHubOAuthProvisioned {

@@ -34,8 +34,13 @@ type PluginRegistryConfigMap struct {
 func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost string) (bool, error) {
 	pluginRegistryURL := deployContext.CheCluster.Spec.Server.PluginRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
-		additionalLabels := (map[bool]string{true: deployContext.CheCluster.Spec.Server.PluginRegistryRoute.Labels, false: deployContext.CheCluster.Spec.Server.PluginRegistryIngress.Labels})[util.IsOpenShift]
-		endpoint, done, err := expose.Expose(deployContext, cheHost, deploy.PluginRegistryName, additionalLabels, deploy.PluginRegistryName)
+		endpoint, done, err := expose.Expose(
+			deployContext,
+			cheHost,
+			deploy.PluginRegistryName,
+			deployContext.CheCluster.Spec.Server.PluginRegistryRoute,
+			deployContext.CheCluster.Spec.Server.PluginRegistryIngress,
+			deploy.PluginRegistryName)
 		if !done {
 			return false, err
 		}

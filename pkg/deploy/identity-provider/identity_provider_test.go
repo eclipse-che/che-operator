@@ -41,7 +41,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Should provision GitHub OAuth",
+			name: "Should provision GitHub OAuth with legacy secret",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -75,6 +75,42 @@ func TestSyncGitHubOAuth(t *testing.T) {
 					},
 					Data: map[string][]byte{
 						"key": []byte("key-data"),
+					},
+				},
+			},
+		},
+		{
+			name: "Should provision GitHub OAuth",
+			initCR: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedCR: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:       "eclipse-che",
+					ResourceVersion: "1",
+				},
+				Status: orgv1.CheClusterStatus{
+					GitHubOAuthProvisioned: true,
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "github-oauth-config",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of":   "che.eclipse.org",
+							"app.kubernetes.io/component": "oauth-scm-configuration",
+						},
+						Annotations: map[string]string{
+							"che.eclipse.org/oauth-scm-server": "github",
+						},
 					},
 				},
 			},

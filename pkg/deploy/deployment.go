@@ -137,6 +137,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 		return strings.Compare(secrets.Items[i].Name, secrets.Items[j].Name) < 0
 	})
 
+	container := &specDeployment.Spec.Template.Spec.Containers[0]
 	for _, secretObj := range secrets.Items {
 		switch secretObj.Annotations[CheEclipseOrgMountAs] {
 		case "file":
@@ -157,10 +158,10 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 			}
 
 			specDeployment.Spec.Template.Spec.Volumes = append(specDeployment.Spec.Template.Spec.Volumes, volume)
-			specDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(specDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, volumeMount)
+			container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 
 		case "env":
-			secret, err := GetSecret(secretObj.Name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
+			secret, err := GetSecret(deployContext, secretObj.Name, deployContext.CheCluster.Namespace)
 			if err != nil {
 				return err
 			} else if secret == nil {
@@ -203,7 +204,7 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 						},
 					},
 				}
-				specDeployment.Spec.Template.Spec.Containers[0].Env = append(specDeployment.Spec.Template.Spec.Containers[0].Env, env)
+				container.Env = append(container.Env, env)
 			}
 		}
 	}

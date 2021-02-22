@@ -12,6 +12,7 @@
 package expose
 
 import (
+	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -22,7 +23,8 @@ func Expose(
 	deployContext *deploy.DeployContext,
 	cheHost string,
 	endpointName string,
-	additionalLabels string,
+	routeCustomSettings orgv1.RouteCustomSettings,
+	ingressCustomSettings orgv1.IngressCustomSettings,
 	component string) (endpont string, done bool, err error) {
 	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
 	var domain string
@@ -71,7 +73,7 @@ func Expose(
 				logrus.Error(err)
 			}
 		} else {
-			ingress, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, additionalLabels, component)
+			ingress, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, ingressCustomSettings, component)
 			if !util.IsTestMode() {
 				if ingress == nil {
 					logrus.Infof("Waiting on ingress '%s' to be ready", endpointName)
@@ -102,7 +104,7 @@ func Expose(
 			}
 		} else {
 			// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, additionalLabels, component)
+			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, routeCustomSettings, component)
 			if route == nil {
 				logrus.Infof("Waiting on route '%s' to be ready", endpointName)
 				if err != nil {

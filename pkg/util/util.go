@@ -395,3 +395,14 @@ func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
 	}
 	return resource.MustParse(defaultValue)
 }
+
+// Finds Env by a given name
+func FindEnv(envs []corev1.EnvVar, name string) *corev1.EnvVar {
+	for _, env := range envs {
+		if env.Name == name {
+			return &env
+		}
+	}
+
+	return nil
+}

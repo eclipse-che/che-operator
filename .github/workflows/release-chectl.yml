@@ -1,5 +1,5 @@
-# This Workflow creates PRs for the release of the latest che-docs
-name: Release che docs
+# This Workflow creates PRs for the release of the latest chectl
+name: Release chectl
 on:
   # manual trigger if required
   workflow_dispatch:
@@ -25,18 +25,18 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Release che docs PRs
+      - name: Release chectl PRs
         run: |
           hub version
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
-          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+          export GITHUB_TOKEN=${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
           set -e
-          # if not run manually, need to compute che docs version from latest released CSV
+          # if not run manually, need to compute chectl version from latest released CSV
           if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
-            chedocsVersion=$(yq -r '.channels[].currentCSV' olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/eclipse-che-preview-openshift.package.yaml | sed -e "s#eclipse-che-preview-openshift.v##")
+            chectlVersion=$(yq -r '.channels[].currentCSV' olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/eclipse-che-preview-openshift.package.yaml | sed -e "s#eclipse-che-preview-openshift.v##")
           else
-            chedocsVersion="${{ github.event.inputs.version }}"
+            chectlVersion="${{ github.event.inputs.version }}"
           fi
 
           # generic method to call a GH action and pass in a single var=val parameter 
@@ -56,5 +56,5 @@ jobs:
               echo "[INFO] Invoked '${this_action_name}' action ($workflow_id) - see https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
           }
 
-          # invoke action from che-docs repo
-          invokeAction eclipse/che-docs "Release Che Docs" "5193493" version "${chedocsVersion}"
+          # invoke action from chectl repo
+          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4267607" version "${chectlVersion}"

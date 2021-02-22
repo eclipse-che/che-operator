@@ -104,20 +104,19 @@ func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.Con
 func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string]string, err error) {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
-	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	infra := "kubernetes"
-	if isOpenShift {
+	if util.IsOpenShift {
 		infra = "openshift"
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	if isOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
 		openShiftIdentityProviderId = "openshift-v3"
-		if isOpenshift4 {
+		if util.IsOpenShift4 {
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
@@ -268,7 +267,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	err = json.Unmarshal(out, &cheEnv)
 
 	// k8s specific envs
-	if !isOpenShift {
+	if !util.IsOpenShift {
 		k8sCheEnv := map[string]string{
 			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
 			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
@@ -281,27 +280,50 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		// Add TLS key and server certificate to properties when user workspaces should be created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
 		if !util.IsWorkspaceInSameNamespaceWithChe(deployContext.CheCluster) {
-			cheTLSSecret, err := deploy.GetSecret(deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace, deployContext.ClusterAPI)
-			if err != nil {
-				return nil, err
+			if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
+				cheTLSSecret, err := deploy.GetSecret(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace)
+				if err != nil {
+					return nil, err
+				}
+				if cheTLSSecret == nil {
+					return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				} else {
+					if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
+						return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+					}
+					if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
+						return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+					}
+					k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
+					k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
+				}
 			}
-			if cheTLSSecret == nil {
-				return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-			}
-			if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-			}
-			if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
-				return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-			}
-			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
-			k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 		}
 
 		addMap(cheEnv, k8sCheEnv)
 	}
 
 	addMap(cheEnv, deployContext.CheCluster.Spec.Server.CustomCheProperties)
+
+	// Update BitBucket endpoints
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "bitbucket",
+	})
+	if err != nil {
+		return nil, err
+	} else if len(secrets) == 1 {
+		serverEndpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+		endpoints, exists := cheEnv["CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS"]
+		if exists {
+			cheEnv["CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS"] = endpoints + "," + serverEndpoint
+		} else {
+			cheEnv["CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS"] = serverEndpoint
+		}
+	}
+
 	return cheEnv, nil
 }
 

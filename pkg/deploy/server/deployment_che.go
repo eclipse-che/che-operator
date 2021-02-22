@@ -12,6 +12,7 @@
 package server
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -273,11 +274,17 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		},
 	}
 
+	err = MountBitBucketOAuthConfig(deployContext, deployment)
+	if err != nil {
+		return nil, err
+	}
+
+	container := &deployment.Spec.Template.Spec.Containers[0]
 	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
 	if cheMultiUser == "true" {
 		chePostgresSecret := deployContext.CheCluster.Spec.Database.ChePostgresSecret
 		if len(chePostgresSecret) > 0 {
-			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
+			container.Env = append(container.Env,
 				corev1.EnvVar{
 					Name: "CHE_JDBC_USERNAME",
 					ValueFrom: &corev1.EnvVarSource{
@@ -311,7 +318,7 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 					},
 				},
 			}}
-		deployment.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		container.VolumeMounts = []corev1.VolumeMount{
 			{
 				MountPath: deploy.DefaultCheVolumeMountPath,
 				Name:      deploy.DefaultCheVolumeClaimName,
@@ -321,7 +328,7 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 	// configure probes if debug isn't set
 	cheDebug := util.GetValue(deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	if cheDebug != "true" {
-		deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+		container.ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/api/system/state",
@@ -340,7 +347,7 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 			PeriodSeconds:       10,
 			SuccessThreshold:    1,
 		}
-		deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+		container.LivenessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/api/system/state",
@@ -405,4 +412,52 @@ func GetFullCheServerImageLink(checluster *orgv1.CheCluster) string {
 	separator := map[bool]string{true: "@", false: ":"}[strings.Contains(defaultCheServerImage, "@")]
 	imageParts := strings.Split(defaultCheServerImage, separator)
 	return imageParts[0] + ":" + checluster.Spec.Server.CheImageTag
+}
+
+func MountBitBucketOAuthConfig(deployContext *deploy.DeployContext, deployment *appsv1.Deployment) error {
+	// mount BitBucket configuration
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "bitbucket",
+	})
+
+	if err != nil {
+		return err
+	} else if len(secrets) > 1 {
+		return errors.New("More than 1 BitBucket OAuth configuration secrets found")
+	} else if len(secrets) == 1 {
+		// mount secrets
+		container := &deployment.Spec.Template.Spec.Containers[0]
+		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
+			corev1.Volume{
+				Name: secrets[0].Name,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secrets[0].Name,
+					},
+				},
+			})
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      secrets[0].Name,
+				MountPath: deploy.BitBucketOAuthConfigMountPath,
+			})
+
+		// mount env
+		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
+			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigConsumerKey,
+		}, corev1.EnvVar{
+			Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
+			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigPrivateKey,
+		}, corev1.EnvVar{
+			Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
+			Value: endpoint,
+		})
+	}
+
+	return nil
 }

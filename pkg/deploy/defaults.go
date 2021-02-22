@@ -101,7 +101,8 @@ const (
 	KubernetesInstanceLabelKey  = "app.kubernetes.io/instance"
 	KubernetesNameLabelKey      = "app.kubernetes.io/name"
 
-	CheEclipseOrg = "che.eclipse.org"
+	CheEclipseOrg         = "che.eclipse.org"
+	OAuthScmConfiguration = "oauth-scm-configuration"
 
 	// che.eclipse.org annotations
 	CheEclipseOrgMountPath              = "che.eclipse.org/mount-path"
@@ -109,6 +110,8 @@ const (
 	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
 	CheEclipseOrgNamespace              = "che.eclipse.org/namespace"
 	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
+	CheEclipseOrgOAuthScmServer         = "che.eclipse.org/oauth-scm-server"
+	CheEclipseOrgScmServerEndpoint      = "che.eclipse.org/scm-server-endpoint"
 
 	// components
 	IdentityProviderName = "keycloak"
@@ -141,6 +144,10 @@ const (
 	DefaultPostgresMemoryRequest = "512Mi"
 	DefaultPostgresCpuLimit      = "500m"
 	DefaultPostgresCpuRequest    = "100m"
+
+	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket"
+	BitBucketOAuthConfigPrivateKey  = "private.key"
+	BitBucketOAuthConfigConsumerKey = "consumer.key"
 )
 
 func InitDefaults(defaultsPath string) {
