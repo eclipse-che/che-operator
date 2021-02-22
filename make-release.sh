@@ -186,16 +186,15 @@ releaseOlmFiles() {
   . release-olm-files.sh $RELEASE
   cd $RELEASE_DIR
 
-  local openshift=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-openshift
-  local kubernetes=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes
+  local openshift=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests
+  local kubernetes=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests
 
   echo "[INFO] releaseOlmFiles :: Validate changes"
-  grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
-  grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
-  grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
-  grep -q "version: "$RELEASE $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml
-  test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
-  test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
+  grep -q "version: "$RELEASE $openshift/$RELEASE/che-operator.clusterserviceversion.yaml
+  grep -q "version: "$RELEASE $kubernetes/$RELEASE/che-operator.clusterserviceversion.yaml
+  
+  test -f $kubernetes/org_v1_che_crd.yaml.crd.yaml
+  test -f $openshift/org_v1_che_crd.yaml.crd.yaml
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
