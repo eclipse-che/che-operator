@@ -139,8 +139,7 @@
       "program": "${file}",
       "args": [
         "7.27.0",
-        "--release",
-        "--release-olm-files"
+        "--push-olm-bundles",
       ]
     },
     {

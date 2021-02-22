@@ -36,7 +36,7 @@ fi
 if [ -n "${GITHUB_WORKSPACE}" ]; then
   ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 else
-  SCRIPT=$(readlink -f "$0")
+  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
   ROOT_PROJECT_DIR=$(dirname $(dirname "$SCRIPT"))
 fi
 

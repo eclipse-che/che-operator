@@ -83,7 +83,7 @@ jobs:
           # https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes?tab=releases and
           # https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift?tab=releases
           git checkout ${CHE_VERSION}-release
-          ./make-release.sh ${CHE_VERSION} --push-olm-files
+          ./make-release.sh ${CHE_VERSION} --push-olm-bundles
 
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}

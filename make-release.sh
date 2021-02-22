@@ -18,7 +18,7 @@ init() {
   RELEASE_BRANCH="${RELEASE}-release"
   GIT_REMOTE_UPSTREAM="https://github.com/AndrienkoAleksandr/che-operator.git"
   RUN_RELEASE=false
-  PUSH_OLM_FILES=false
+  PUSH_OLM_BUNDLES=false
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
@@ -33,7 +33,7 @@ init() {
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--release') RUN_RELEASE=true; shift 0;;
-      '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
+      '--push-olm-bundles') PUSH_OLM_BUNDLES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
@@ -203,11 +203,9 @@ releaseOlmFiles() {
   fi
 }
 
-pushOlmFilesToQuayIo() {
+pushOlmBundlesToQuayIo() {
   echo "[INFO] Push OLM bundles to quay.io"
-  cd $RELEASE_DIR/olm
-  . push-catalog-and-bundle-images.sh -c "stable" -p "kubernetes" -p "openshift"
-  cd $RELEASE_DIR
+  . ${RELEASE_DIR}/olm/push-catalog-and-bundle-images.sh -c "stable" -p "kubernetes" -p "openshift"
 }
 
 pushGitChanges() {
@@ -270,8 +268,8 @@ if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
 fi
 
-if [[ $PUSH_OLM_FILES == "true" ]]; then
-  pushOlmFilesToQuayIo
+if [[ $PUSH_OLM_BUNDLES == "true" ]]; then
+  pushOlmBundlesToQuayIo
 fi
 
 if [[ $PUSH_GIT_CHANGES == "true" ]]; then
