@@ -1,5 +1,5 @@
 package version
 
 var (
-	Version = "nightly"
+	Version = "7.27.0"
 )

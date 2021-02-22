@@ -76,16 +76,16 @@ resetChanges() {
 
 checkoutToReleaseBranch() {
   echo "[INFO] Check out to $BRANCH branch."
-  local branchExist=$(git ls-remote -q --heads | grep $BRANCH | wc -l)
-  if [[ $branchExist == 1 ]]; then
-    echo "[INFO] $BRANCH exists."
-    resetChanges $BRANCH
-  else
-    echo "[INFO] $BRANCH does not exist. Will be created a new one from master."
-    resetChanges master
-    git push origin master:$BRANCH
-  fi
-  git checkout -B $RELEASE_BRANCH
+  # local branchExist=$(git ls-remote -q --heads | grep $BRANCH | wc -l)
+  # if [[ $branchExist == 1 ]]; then
+  #   echo "[INFO] $BRANCH exists."
+  #   resetChanges $BRANCH
+  # else
+  #   echo "[INFO] $BRANCH does not exist. Will be created a new one from master."
+  #   resetChanges master
+  #   git push origin master:$BRANCH
+  # fi
+  # git checkout -B $RELEASE_BRANCH
 }
 
 getPropertyValue() {
