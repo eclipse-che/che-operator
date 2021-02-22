@@ -32,7 +32,7 @@ do
   # todo
   PACKAGE_VERSION="stable"
   export PACKAGE_VERSION
-  source ${BASE_DIR}/olm.sh "${platform}"
+  source ${BASE_DIR}/olm.sh
 
   echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
 
