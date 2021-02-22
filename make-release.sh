@@ -125,7 +125,7 @@ checkImageReferences() {
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 
-  wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+  wget https://raw.githubusercontent.com/eclipse/che/master/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
   if ! grep -q "value: $plugin_broker_meta_image" $filename; then
