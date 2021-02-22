@@ -37,7 +37,7 @@ if [ -n "${GITHUB_WORKSPACE}" ]; then
   ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 else
   SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-  ROOT_PROJECT_DIR=$(dirname $(dirname "$SCRIPT"))
+  ROOT_PROJECT_DIR=$(dirname "$(dirname "$SCRIPT")")
 fi
 
 export BASE_DIR="${ROOT_PROJECT_DIR}/olm"

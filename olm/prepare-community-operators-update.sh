@@ -13,12 +13,14 @@
 set -e
 
 CURRENT_DIR=$(pwd)
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-source "${BASE_DIR}/check-yq.sh"
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
+source "${BASE_DIR}/olm/check-yq.sh"
 
 base_branch="master"
 GITHUB_USER="che-bot"
-fork_org="che-incubator"
+# todo set up che-incubator
+fork_org="AndrienkoAleksandr"
 
 FORCE="" # normally, don't allow pushing to an existing branch
 while [[ "$#" -gt 0 ]]; do
@@ -49,17 +51,25 @@ Options:
 "
 }
 
+. ${BASE_DIR}/olm/olm.sh
+installOPM
+
 for platform in 'kubernetes' 'openshift'
 do
+  # todo: set up 'eclipse'
+  INDEX_IMAGE="quay.io/aandriienko/eclipse-che-${platform}-opm-catalog:preview"
   packageName="eclipse-che-preview-${platform}"
   echo
   echo "## Prepare the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
 
-  packageBaseFolderPath="${BASE_DIR}/${packageName}"
+  manifestPackagesDir=$(mktemp -d -t che-${platform}-manifest-packages-XXX)
+  echo "[INFO] Folder with manifest packages: ${manifestPackagesDir}"
+  # Todo: check that github action really has installed docker...
+  opm index export --index="${INDEX_IMAGE}" --package="${packageName}" -c="docker" --download-folder "${manifestPackagesDir}"
+  packageBaseFolderPath="${manifestPackagesDir}/${packageName}"
   cd "${packageBaseFolderPath}"
 
-  packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
-  sourcePackageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  sourcePackageFilePath="${packageBaseFolderPath}/package.yaml"
   communityOperatorsLocalGitFolder="${packageBaseFolderPath}/generated/community-operators"
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
 
@@ -110,12 +120,12 @@ do
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "/^  version: ${lastPackagePreReleaseVersion}/i\ \ replaces: eclipse-che.v${lastPublishedPackageVersion}" \
   -e "s/${packageName}/eclipse-che/" \
-  "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
+  "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/che-operator.clusterserviceversion.yaml" \
   > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
   echo
   echo "   - Update the CRD file"
-  cp "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
+  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org_v1_che_crd.yaml" \
   "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
   echo
   echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
@@ -131,30 +141,31 @@ updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
   git add --all
-  git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
-  echo
-  echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
-  git push ${FORCE} origin "${branch}"
+# todo uncomment code here
+#   git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
+#   echo
+#   echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
+#   git push ${FORCE} origin "${branch}"
 
-  echo
-  template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
-  HUB=$(command -v hub 2>/dev/null)
-  if [[ $HUB ]] && [[ -x $HUB ]]; then 
-    echo "   - Use $HUB to generate PR from template: ${template_file}"
-    PRbody=$(curl -sSLo - ${template_file} | \
-    sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
+#   echo
+#   template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
+#   HUB=$(command -v hub 2>/dev/null)
+#   if [[ $HUB ]] && [[ -x $HUB ]]; then 
+#     echo "   - Use $HUB to generate PR from template: ${template_file}"
+#     PRbody=$(curl -sSLo - ${template_file} | \
+#     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
 
-    lastCommitComment="$(git log -1 --pretty=%B)"
-  $HUB pull-request -f -m "${lastCommitComment}
+#     lastCommitComment="$(git log -1 --pretty=%B)"
+#   $HUB pull-request -f -m "${lastCommitComment}
 
-${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
-  else 
-    echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
-${template_file}
+# ${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
+#   else 
+#     echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
+# ${template_file}
 
-${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
-"
-  fi
+# ${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
+# "
+#   fi
 
 done
 cd "${CURRENT_DIR}"
