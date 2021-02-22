@@ -21,7 +21,12 @@ source ${BASE_DIR}/olm.sh
 
 incrementNightlyVersion() {
   platform="${1}"
-  NIGHTLY_BUNDLE_PATH=$(getBundlePath "nightly")
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] please specify first argument 'platform'"
+    exit 1
+  fi
+
+  NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   OPM_BUNDLE_MANIFESTS_DIR="${NIGHTLY_BUNDLE_PATH}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
@@ -32,7 +37,7 @@ incrementNightlyVersion() {
 
   PACKAGE_NAME="eclipse-che-preview-${platform}"
 
-  CLUSTER_SERVICE_VERSION=$(getCurrentStableVersion)
+  CLUSTER_SERVICE_VERSION=$(getCurrentStableVersion "${platform}")
   STABLE_PACKAGE_VERSION=$(echo "${CLUSTER_SERVICE_VERSION}" | sed -e "s/${PACKAGE_NAME}.v//")
 
   parseStableVersion

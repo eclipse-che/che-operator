@@ -33,15 +33,14 @@ do
   PACKAGE_VERSION="stable"
   export PACKAGE_VERSION
   source ${BASE_DIR}/olm.sh "${platform}"
-  initOLMScript "${platform}"
 
   echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
 
-  NIGHTLY_BUNDLE_PATH=$(getBundlePath "nightly")
+  NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   LAST_NIGHTLY_CSV="${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   LAST_NIGHTLY_CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 
-  STABLE_BUNDLE_PATH=$(getBundlePath "stable")
+  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
   LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
   lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")

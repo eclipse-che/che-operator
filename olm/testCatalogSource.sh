@@ -95,8 +95,7 @@ init() {
   # fi
   ## todo .... platform can be crc
   source "${OLM_DIR}/olm.sh"
-  initOLMScript "${PLATFORM}" "${NAMESPACE}"
-  OPM_BUNDLE_DIR=$(getBundlePath "${CHANNEL}")
+  OPM_BUNDLE_DIR=$(getBundlePath "${PLATFORM}" "${CHANNEL}")
 
   CSV_FILE="${OPM_BUNDLE_DIR}/manifests/che-operator.clusterserviceversion.yaml"
   CSV_NAME=$(yq -r ".metadata.name" "${CSV_FILE}")
@@ -136,10 +135,10 @@ buildOLMImages() {
     CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/testing_catalog:0.0.1"
 
     echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
-    buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${CHANNEL}"
+    buildBundleImage "${PLATFORM}" "${CATALOG_BUNDLE_IMAGE}" "${CHANNEL}" "docker"
 
     echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}"
+    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker"
 
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
   elif [[ "${PLATFORM}" == "openshift" ]]
@@ -233,10 +232,10 @@ EOF
 
   # Wait for the index pod to be up to avoid inconsistencies with the catalog source.
   kubectl wait --for=condition=ready "pods" -l app=catalog-source-app --timeout=120s -n "${NAMESPACE}" || true
-  indexip="$(oc -n "$NAMESPACE" get pods -l app=catalog-source-app -o jsonpath='{.items[0].status.podIP}')"
+  indexIP="$(oc -n "${NAMESPACE}" get pods -l app=catalog-source-app -o jsonpath='{.items[0].status.podIP}')"
 
   # Install the catalogsource.
-  createRpcCatalogSource "${NAMESPACE}" "${indexip}"
+  createRpcCatalogSource "${PLATFORM}" "${NAMESPACE}" "${indexIP}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
     printHelp
@@ -245,18 +244,18 @@ EOF
 }
 
 run() {
-  createNamespace
+  createNamespace "${NAMESPACE}"
   if [ ! ${PLATFORM} == "openshift" ] && [ "${CHANNEL}" == "nightly" ]; then
-    forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
+    forcePullingOlmImages "${NAMESPACE}" "${CATALOG_BUNDLE_IMAGE}"
   fi
 
   installOperatorMarketPlace
-  installCatalogSource "${CATALOG_SOURCE_IMAGE}"
-  subscribeToInstallation "${CHANNEL}" "${CSV_NAME}"
+  installCatalogSource "${PLATFORM}" "${NAMESPACE}" "${CATALOG_SOURCE_IMAGE}"
+  subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${CSV_NAME}"
 
-  installPackage "${CSV_NAME}"
-  applyCRCheCluster "${CSV_FILE}"
-  waitCheServerDeploy
+  installPackage "${PLATFORM}" "${NAMESPACE}"
+  applyCRCheCluster "${PLATFORM}" "${NAMESPACE}" "${CSV_FILE}"
+  waitCheServerDeploy "${NAMESPACE}"
 }
 
 function add_user {

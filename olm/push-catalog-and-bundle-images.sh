@@ -49,14 +49,16 @@ ${OPM_BINARY} version
 for platform in "${platforms[@]}"
 do
   echo "[INFO] Platform: ${platform}"
-  if [ -z "${OPM_BUNDLE_DIR}" ]; then
-    OPM_BUNDLE_DIR=$(getBundlePath "${channel}" "${platform}")
+  if [ -n "${OPM_BUNDLE_DIR}" ]; then
+    bundleDir="${OPM_BUNDLE_DIR}"
+  else
+    bundleDir=$(getBundlePath "${platform}" "${channel}")
   fi
-  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
+  OPM_BUNDLE_MANIFESTS_DIR="${bundleDir}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
   BUNDLE_TAG=$(yq -r ".spec.version" "${CSV}")
-  echo "[INFO] Bundle version and tag: ${TAG}"
+  echo "[INFO] Bundle version and tag: ${BUNDLE_TAG}"
 
   CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-bundles:${BUNDLE_TAG}"
   CATALOG_TAG="preview"
@@ -64,7 +66,7 @@ do
 
   CHECK_BUNDLE_TAG=$(skopeo inspect docker://${CATALOG_BUNDLE_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${BUNDLE_TAG}\")")
   if [ -z "$CHECK_BUNDLE_TAG" ]; then
-    buildBundleImage "${CATALOG_BUNDLE_IMAGE}" "${channel}"
+    buildBundleImage "${platform}" "${CATALOG_BUNDLE_IMAGE}" "${channel}" "docker"
     CHECK_CATALOG_TAG=$(skopeo inspect docker://${CATALOG_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${CATALOG_TAG}\")")
     if [ -z "${CHECK_CATALOG_TAG}" ]; then
       buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker"

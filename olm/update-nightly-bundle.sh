@@ -70,7 +70,6 @@ source ${BASE_DIR}/olm.sh
 
 for platform in 'kubernetes' 'openshift'
 do
-  initOLMScript "${platform}"
   if [ -z "${NO_INCREMENT}" ]; then
     source "${BASE_DIR}/incrementNightlyBundles.sh"
     incrementNightlyVersion "${platform}"
@@ -80,7 +79,7 @@ do
 
   pushd "${ROOT_PROJECT_DIR}" || true
 
-  NIGHTLY_BUNDLE_PATH=$(getBundlePath "nightly")
+  NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   bundleCSVName="che-operator.clusterserviceversion.yaml"
   NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/${bundleCSVName}
   newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")

@@ -24,8 +24,7 @@ do
     manifestsFormatRootFolder="${OPERATOR_REPO}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}"
     pushd "${manifestsFormatRootFolder}" || exit 1
 
-    initOLMScript "${platform}"
-    stableBundleDir=$(getBundlePath "stable")
+    stableBundleDir=$(getBundlePath "${platform}" "stable")
     echo "${stableBundleDir}"
     bundle_dir=$(mktemp -d -t che-releases-XXX)
     echo "${bundle_dir}"
@@ -38,7 +37,7 @@ do
             bundleDir="${bundle_dir}/${versionDir}"
             mkdir -p "${bundleDir}/manifests"
             cp -rf "${stableBundleDir}/bundle.Dockerfile" "${stableBundleDir}/metadata" "${bundleDir}"
-            packageName=$(getPackageName)
+            packageName=$(getPackageName "${platform}")
 
             cp -rf "${manifestFormatDir}/${packageName}.v${versionDir}.clusterserviceversion.yaml" "${bundleDir}/manifests/che-operator.clusterserviceversion.yaml"
             cp -rf "${manifestFormatDir}/${packageName}.crd.yaml" "${bundleDir}/manifests/org_v1_che_crd.yaml" 
