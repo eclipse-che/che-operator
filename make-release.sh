@@ -60,7 +60,7 @@ init() {
 
 usage () {
 	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
-  # echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
+  echo -e "\t--push-olm-bundles: to push OLM bundle images to quay.io and update catalog image. This flag should be omitted "
   echo -e "\t\tif already a greater version released. For instance, we are releasing 7.9.3 version but"
   echo -e "\t\t7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel."
   echo -e "\t--push-git-changes: to create release branch and push changes into."
