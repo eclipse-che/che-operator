@@ -1,13 +1,13 @@
---- /home/user/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/generated/che-operator.clusterserviceversion.yaml	2021-02-22 10:30:20.204216319 +0200
-+++ /home/user/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml	2021-02-22 10:30:20.211216320 +0200
+--- /home/user/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/generated/che-operator.clusterserviceversion.yaml	2021-02-22 10:54:20.696357634 +0200
++++ /home/user/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml	2021-02-22 10:54:20.704357635 +0200
 @@ -84,14 +84,14 @@
      capabilities: Seamless Upgrades
      categories: Developer Tools
      certified: "false"
 -    containerImage: quay.io/eclipse/che-operator:7.26.0
--    createdAt: "2021-02-16T16:30:31Z"
+-    createdAt: "2021-02-22T08:30:20Z"
 +    containerImage: quay.io/eclipse/che-operator:7.27.0
-+    createdAt: "2021-02-22T08:30:20Z"
++    createdAt: "2021-02-22T08:54:20Z"
      description: A Kube-native development solution that delivers portable and collaborative
        developer workspaces.
      operatorframework.io/suggested-namespace: eclipse-che

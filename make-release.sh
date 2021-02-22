@@ -193,8 +193,8 @@ releaseOlmFiles() {
   grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
   grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
   
-  test -f $kubernetes/org_v1_che_crd.yaml.crd.yaml
-  test -f $openshift/org_v1_che_crd.yaml.crd.yaml
+  test -f $kubernetes/org_v1_che_crd.yaml
+  test -f $openshift/org_v1_che_crd.yaml
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
