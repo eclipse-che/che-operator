@@ -123,12 +123,8 @@ buildOLMImages() {
       popd || true
 
       # Use operator image in the latest CSV
-      if [ "${CHANNEL}" == "nightly" ]; then
-        sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
-        sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CSV_FILE}"
-      else
-        sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
-      fi
+      sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
+      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CSV_FILE}"
     fi
 
     CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che_operator_bundle:0.0.1"
@@ -143,9 +139,6 @@ buildOLMImages() {
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
   elif [[ "${PLATFORM}" == "openshift" ]]
   then
-    if [ "${INSTALLATION_TYPE}" == "Marketplace" ];then
-      return
-    fi
     echo "[INFO]: Starting to build catalog image and push to ImageStream."
 
     echo "============"
@@ -181,11 +174,11 @@ buildOLMImages() {
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
 
-    cp -rf "${PACKAGE_FOLDER_PATH}/bundle.Dockerfile" "${PACKAGE_FOLDER_PATH}/Dockerfile"
-    if oc -n "${NAMESPACE}" start-build serverless-bundle --from-dir "${PACKAGE_FOLDER_PATH}"; then
-      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
+    cp -rf "${OPM_BUNDLE_DIR}/bundle.Dockerfile" "${OPM_BUNDLE_DIR}/Dockerfile"
+    if oc -n "${NAMESPACE}" start-build serverless-bundle --from-dir "${OPM_BUNDLE_DIR}"; then
+      rm -rf "${OPM_BUNDLE_DIR}/Dockerfile"
     else
-      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
+      rm -rf "${OPM_BUNDLE_DIR}/Dockerfile"
       echo "[ERROR ]Failed to build bundle image."
       exit 1
     fi
@@ -245,12 +238,14 @@ EOF
 
 run() {
   createNamespace "${NAMESPACE}"
-  if [ ! ${PLATFORM} == "openshift" ] && [ "${CHANNEL}" == "nightly" ]; then
+  if [ ! "${PLATFORM}" == "openshift" ]; then
     forcePullingOlmImages "${NAMESPACE}" "${CATALOG_BUNDLE_IMAGE}"
   fi
 
   installOperatorMarketPlace
-  installCatalogSource "${PLATFORM}" "${NAMESPACE}" "${CATALOG_SOURCE_IMAGE}"
+  if [ ! "${PLATFORM}" == "openshift" ]; then
+    installCatalogSource "${PLATFORM}" "${NAMESPACE}" "${CATALOG_SOURCE_IMAGE}"
+  fi
   subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${CSV_NAME}"
 
   installPackage "${PLATFORM}" "${NAMESPACE}"

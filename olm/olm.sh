@@ -458,7 +458,7 @@ applyCRCheCluster() {
     CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = false")
   fi
 
-  echo "$CR" | kubectl apply -n "${namespace}" -f -
+  echo "$CR" | kubectl apply -n "${namespace}" --validate=false -f -
 }
 
 waitCheServerDeploy() {
