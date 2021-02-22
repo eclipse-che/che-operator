@@ -190,8 +190,8 @@ releaseOlmFiles() {
   local kubernetes=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests
 
   echo "[INFO] releaseOlmFiles :: Validate changes"
-  grep -q "version: "$RELEASE $openshift/$RELEASE/che-operator.clusterserviceversion.yaml
-  grep -q "version: "$RELEASE $kubernetes/$RELEASE/che-operator.clusterserviceversion.yaml
+  grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
+  grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
   
   test -f $kubernetes/org_v1_che_crd.yaml.crd.yaml
   test -f $openshift/org_v1_che_crd.yaml.crd.yaml
