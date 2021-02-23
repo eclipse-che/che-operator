@@ -12,7 +12,7 @@
 name: Push catalog and bundle images.
 on:
   schedule:
-    - cron:  '25 18 * * *'
+    - cron:  '0 21 * * *'
   pull_request:
       branches:
         - master
@@ -39,5 +39,5 @@ jobs:
       run: "${GITHUB_WORKSPACE}/olm/push-catalog-and-bundle-images.sh -c 'nightly' -p 'kubernetes' -p 'openshift'"
       env:
         # Todo: set up eclipse org
-        IMAGE_REGISTRY_HOST: aandrienko
+        IMAGE_REGISTRY_HOST: aandriienko
         IMAGE_REGISTRY_USER_NAME: quay.io
