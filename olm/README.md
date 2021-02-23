@@ -21,8 +21,8 @@ $ docker-run.sh olm/update-nightly-bundle.sh
 
 OLM (operator lifecycle manager) provides ways of installing operators. One of the convenient way how to achieve it is by using OLM bundles. See more about the format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md. There two "nightly" platform-specific OLM bundles for Сhe operator:
 
-- `deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
-- `deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
+- `deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests`
+- `deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests`
 
 Each bundle consists of a cluster service version file (CSV) and a custom resource definition file (CRD). CRD file describes `checlusters` Kubernetes api resource object(object fields name, format, description and so on). Kubernetes api needs this information to correctly store a custom resource object "checluster". Custom resource object users could modify to change Eclipse Che configuration. Che operator watches `checlusters` object and re-deploy Che with desired configuration. The CSV file contains all "deploy" and "permission" specific information, which OLM needs to install Eclipse Che operator.
 

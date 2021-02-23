@@ -29,6 +29,7 @@ command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting.
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
+  # todo
 	echo "Example: $0 -w $(pwd) -c $(pwd)/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.9.0/eclipse-che-preview-kubernetes.v7.9.0.clusterserviceversion.yaml -t 7.9.0"
 }
 

@@ -16,6 +16,7 @@ on:
     branches: 
       - master
     paths:
+    # todo...
       - 'olm/eclipse-che-preview-*/deploy/olm-catalog/eclipse-che-preview-*/eclipse-che-preview-*.package.yaml'
 
 jobs:
@@ -34,6 +35,7 @@ jobs:
           set -e
           # if not run manually, need to compute chectl version from latest released CSV
           if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
+          # todo...
             chectlVersion=$(yq -r '.channels[].currentCSV' olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/eclipse-che-preview-openshift.package.yaml | sed -e "s#eclipse-che-preview-openshift.v##")
           else
             chectlVersion="${{ github.event.inputs.version }}"

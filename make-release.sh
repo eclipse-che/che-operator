@@ -16,6 +16,7 @@ init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   RELEASE_BRANCH="${RELEASE}-release"
+  # todo use 'eclipse' here
   GIT_REMOTE_UPSTREAM="https://github.com/AndrienkoAleksandr/che-operator.git"
   RUN_RELEASE=false
   PUSH_OLM_BUNDLES=false
@@ -51,12 +52,7 @@ init() {
   command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Abort."; exit 1; }
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${RELEASE_DIR}/REQUIREMENTS")
-  [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
-  # emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* -maxdepth 0 -empty | wc -l)
-  # [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
-  # emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* -maxdepth 0 -empty | wc -l)
-  # [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
-}
+  [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }}
 
 usage () {
 	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
@@ -125,6 +121,7 @@ checkImageReferences() {
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 
+  # use ${RELEASE} instead of master
   wget https://raw.githubusercontent.com/eclipse/che/master/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
@@ -161,6 +158,7 @@ releaseOperatorCode() {
   # docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
   # echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
+  # Todo: Use eclipse
   # docker buildx build --platform "$BUILDX_PLATFORMS" --push -t "quay.io/aandriienko/che-operator:${RELEASE}" .
 }
 

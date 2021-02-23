@@ -12,6 +12,7 @@ on:
     branches: 
       - master
     paths:
+    # todo...
       - 'olm/eclipse-che-preview-*/deploy/olm-catalog/eclipse-che-preview-*/eclipse-che-preview-*.package.yaml'
 
 jobs:
