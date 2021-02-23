@@ -65,14 +65,18 @@ initStableTemplates() {
   # Get Stable and new release versions from olm files openshift.
   export packageName=eclipse-che-preview-${platform}
   export platformPath=${OPERATOR_REPO}/olm/${packageName}
-  export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
-  export packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  . ${OPERATOR_REPO}/olm/olm.sh
 
-  export lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
-  export LAST_PACKAGE_VERSION=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
-
-  export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${LAST_PACKAGE_VERSION}/${packageName}.v${LAST_PACKAGE_VERSION}.clusterserviceversion.yaml")
-  export PREVIOUS_PACKAGE_VERSION=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+  # todo add eclipse-repo
+  INDEX_IMAGE="quay.io/aandriienko/eclipse-che-${platform}-opm-catalog:preview"
+  installCatalogSource "${platform}" "default" "${INDEX_IMAGE}"
+  getBundleListFromCatalogSource "${platform}" "default"
+  getLatestCSVInfo "${channel}"
+  getPreviousCSVInfo "${channel}"
+  LAST_PACKAGE_VERSION=$(echo "${LATEST_CSV_NAME}" | sed -e "s/${packageName}.v//")
+  export LAST_PACKAGE_VERSION
+  PREVIOUS_PACKAGE_VERSION=$(echo "${PREVIOUS_CSV_NAME}" | sed -e "s/${packageName}.v//")
+  export PREVIOUS_PACKAGE_VERSION
 
   export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
   export previousOperatorPath=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}
