@@ -59,23 +59,18 @@ initLatestTemplates() {
 }
 
 initStableTemplates() {
-  local platform=$1
-  local channel=$2
-
   # Get Stable and new release versions from olm files openshift.
-  export packageName=eclipse-che-preview-${platform}
-  export platformPath=${OPERATOR_REPO}/olm/${packageName}
-  . ${OPERATOR_REPO}/olm/olm.sh
+  versions=$(curl \
+  -H "Authorization: bearer ${GITHUB_TOKEN}" \
+  -X POST -H "Content-Type: application/json" --data \
+  '{"query": "{ repository(owner: \"eclipse\", name: \"che-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
+  https://api.github.com/graphql)
 
-  # todo add eclipse-repo
-  INDEX_IMAGE="quay.io/aandriienko/eclipse-che-${platform}-opm-catalog:preview"
-  installCatalogSource "${platform}" "default" "${INDEX_IMAGE}"
-  getBundleListFromCatalogSource "${platform}" "default"
-  getLatestCSVInfo "${channel}"
-  getPreviousCSVInfo "${channel}"
-  LAST_PACKAGE_VERSION=$(echo "${LATEST_CSV_NAME}" | sed -e "s/${packageName}.v//")
+  echo "${versions[*]}"
+
+  LAST_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
   export LAST_PACKAGE_VERSION
-  PREVIOUS_PACKAGE_VERSION=$(echo "${PREVIOUS_CSV_NAME}" | sed -e "s/${packageName}.v//")
+  PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
   export PREVIOUS_PACKAGE_VERSION
 
   export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
