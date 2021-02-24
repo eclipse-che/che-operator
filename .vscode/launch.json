@@ -21,7 +21,6 @@
         "kubernetes",
         "stable",
         "che",
-        "Marketplace"
       ]
     },
     {
@@ -34,7 +33,6 @@
         "kubernetes",
         "nightly",
         "che",
-        "catalog",
         "my_catalog"
       ]
     },
@@ -47,8 +45,7 @@
       "args": [
         "openshift",
         "nightly",
-        "che",
-        "catalog"
+        "che"
       ]
     },
     {
@@ -60,8 +57,7 @@
       "args": [
         "openshift",
         "stable",
-        "che",
-        "Marketplace"
+        "che"
       ]
     },
     {
@@ -137,17 +133,6 @@
       "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
       "program": "${file}",
-      "args": [
-        // "--user",
-        // "AndrienkoAleksandr",
-
-        // "-c",
-        // "nightly",
-        // "-p",
-        // "openshift",
-        // "-p",
-        // "kubernetes"
-      ]
     },
     {
       "name": "Launch Current Test *.go File",

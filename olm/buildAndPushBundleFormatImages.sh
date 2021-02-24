@@ -14,7 +14,7 @@ set -ex
 
 usage () {
 	echo "Usage:   $0 -p [platform] -c [channel]"
-	echo "Example: ./olm/buildAndPushBundle.sh -c nightly"
+	echo "Example: ./olm/buildAndPushBundle.sh -c nightly -i ${FROM_INDEX_IMAGE}"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -24,6 +24,7 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-c') channel="$2"; shift 1;;
     '-p') platforms+=("$2"); shift 1;;
+    '-i') fromIndexImage="$2"; shift 1;;
 	'--help'|'-h') usage; exit;;
   esac
   shift 1
@@ -67,6 +68,12 @@ do
   CHECK_BUNDLE_TAG=$(skopeo inspect docker://${CATALOG_BUNDLE_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${BUNDLE_TAG}\")")
   if [ -z "$CHECK_BUNDLE_TAG" ]; then
     buildBundleImage "${platform}" "${CATALOG_BUNDLE_IMAGE}" "${channel}" "docker"
+
+    if [ -n "${fromIndexImage}" ]; then
+      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${fromIndexImage}"
+      continue
+    fi
+
     CHECK_CATALOG_TAG=$(skopeo inspect docker://${CATALOG_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${CATALOG_TAG}\")")
     if [ -z "${CHECK_CATALOG_TAG}" ]; then
       buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker"

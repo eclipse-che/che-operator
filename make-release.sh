@@ -203,7 +203,7 @@ releaseOlmFiles() {
 
 pushOlmBundlesToQuayIo() {
   echo "[INFO] Push OLM bundles to quay.io"
-  . ${RELEASE_DIR}/olm/push-catalog-and-bundle-images.sh -c "stable" -p "kubernetes" -p "openshift"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleFormatImages.sh -c "stable" -p "kubernetes" -p "openshift"
 }
 
 pushGitChanges() {

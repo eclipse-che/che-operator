@@ -34,10 +34,9 @@ printHelp() {
 	echo '    PLATFORM                 - Platform used to run olm files tests'
 	echo '    CHANNEL                  - Channel used to tests olm files'
 	echo '    NAMESPACE                - Namespace where Eclipse Che will be deployed'
-	echo '    INSTALLATION_TYPE        - Olm tests now includes two types of installation: Catalog source and marketplace'
 	echo '    CATALOG_SOURCE_IMAGE     - Image name used to create a catalog source in cluster'
   echo ''
-  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift nightly che catalog my_image_name'
+  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift nightly che my_image_name'
 }
 
 # Check if a platform was defined...
@@ -70,30 +69,13 @@ else
   echo "[INFO]: Successfully asigned namespace ${NAMESPACE} to tests olm files."
 fi
 
-# Check if a INSTALLATION_TYPE was defined... The possible installation are marketplace or catalog source
-INSTALLATION_TYPE=$4
-if [ "${INSTALLATION_TYPE}" == "" ]; then
-  echo "[ERROR]: Please specify a valid installation type. The valid values are: 'catalog' or 'marketplace'"
-  printHelp
-  exit 1
-else
-  echo "[INFO]: Successfully detected installation type: ${INSTALLATION_TYPE}"
-fi
-
 # Assign catalog source image
-CATALOG_SOURCE_IMAGE=$5
+CATALOG_SOURCE_IMAGE=$4
 
 IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
 echo "[INFO] Image 'IMAGE_REGISTRY_USER_NAME': ${IMAGE_REGISTRY_USER_NAME}"
 
 init() {
-  # if [[ "${PLATFORM}" == "openshift" ]]
-  # then
-  #   export PLATFORM=openshift
-  # else
-  #   PACKAGE_NAME=eclipse-che-preview-${PLATFORM}
-  # fi
-  ## todo .... platform can be crc
   source "${OLM_DIR}/olm.sh"
   OPM_BUNDLE_DIR=$(getBundlePath "${PLATFORM}" "${CHANNEL}")
 
