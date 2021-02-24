@@ -138,8 +138,8 @@
       "name": "Bash-Debug (simplest configuration)",
       "program": "${file}",
       "args": [
-        "--user",
-        "AndrienkoAleksandr",
+        // "--user",
+        // "AndrienkoAleksandr",
 
         // "-c",
         // "nightly",
