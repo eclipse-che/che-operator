@@ -39,5 +39,5 @@ jobs:
       run: "${GITHUB_WORKSPACE}/olm/push-catalog-and-bundle-images.sh -c 'nightly' -p 'kubernetes' -p 'openshift'"
       env:
         # Todo: set up eclipse org
-        IMAGE_REGISTRY_HOST: aandriienko
-        IMAGE_REGISTRY_USER_NAME: quay.io
+        IMAGE_REGISTRY_USER_NAME: aandriienko
+        IMAGE_REGISTRY_USER_HOST: quay.io
