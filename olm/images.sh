@@ -11,7 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 setImagesFromDeploymentEnv() {
-    REQUIRED_IMAGES=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.value) | select(.name | test("RELATED_IMAGE_.*"; "g")) | .value' "${CSVS[@]}" | sort | uniq)
+    REQUIRED_IMAGES=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.value) | select(.name | test("RELATED_IMAGE_.*"; "g")) | .value' "${CSV}" | sort | uniq)
 }
 
 setOperatorImage() {

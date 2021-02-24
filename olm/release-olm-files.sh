@@ -14,7 +14,8 @@ set -e
 
 REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
-BASE_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))/olm
+OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
+BASE_DIR="${OPERATOR_DIR}/olm"
 source ${BASE_DIR}/check-yq.sh
 GO_VERSION_FILE=$(readlink -f "${BASE_DIR}/../version/version.go")
 
@@ -29,9 +30,6 @@ fi
 
 for platform in 'kubernetes' 'openshift'
 do
-  # todo
-  PACKAGE_VERSION="stable"
-  export PACKAGE_VERSION
   source ${BASE_DIR}/olm.sh
 
   echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
@@ -101,14 +99,13 @@ do
 
   sed -e "s|Version = \".*\"|Version = \"${RELEASE}\"|" -i "${GO_VERSION_FILE}"
 
-  # PLATFORM_DIR=$(pwd)
+  pushd "${CURRENT_DIR}" || true
 
-  # cd $CURRENT_DIR
-  # source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
-  #               -r "eclipse-che-preview-${platform}.*\.v${RELEASE}.*yaml" \
-  #               -t ${RELEASE}
+  source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+                -t "${RELEASE}" \
+                -s "${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
-  # cd $PLATFORM_DIR
+  popd || true
 
   if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then 
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
