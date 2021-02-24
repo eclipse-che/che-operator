@@ -141,31 +141,30 @@ updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
   git add --all
-# todo uncomment code here
-#   git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
-#   echo
-#   echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
-#   git push ${FORCE} origin "${branch}"
+  git commit -s -m "Update eclipse-che operator for ${platform} to release ${lastPackagePreReleaseVersion}"
+  echo
+  echo "   - Push branch ${branch} to ${GIT_REMOTE_FORK_CLEAN}"
+  git push ${FORCE} origin "${branch}"
 
-#   echo
-#   template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
-#   HUB=$(command -v hub 2>/dev/null)
-#   if [[ $HUB ]] && [[ -x $HUB ]]; then 
-#     echo "   - Use $HUB to generate PR from template: ${template_file}"
-#     PRbody=$(curl -sSLo - ${template_file} | \
-#     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
+  echo
+  template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
+  HUB=$(command -v hub 2>/dev/null)
+  if [[ $HUB ]] && [[ -x $HUB ]]; then 
+    echo "   - Use $HUB to generate PR from template: ${template_file}"
+    PRbody=$(curl -sSLo - ${template_file} | \
+    sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
 
-#     lastCommitComment="$(git log -1 --pretty=%B)"
-#   $HUB pull-request -f -m "${lastCommitComment}
+    lastCommitComment="$(git log -1 --pretty=%B)"
+  $HUB pull-request -f -m "${lastCommitComment}
 
-# ${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
-#   else 
-#     echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
-# ${template_file}
+${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
+  else 
+    echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
+${template_file}
 
-# ${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
-# "
-#   fi
+${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
+"
+  fi
 
 done
 cd "${CURRENT_DIR}"

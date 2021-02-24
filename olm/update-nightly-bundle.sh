@@ -132,10 +132,10 @@ do
 
   echo "Done for ${platform}"
 
-  # if [[ -n "$TAG" ]]; then
-  #   echo "[INFO] Set tags in nightly OLM files"
-  #   sed -ri "s/(.*:\s?)${RELEASE}([^-])?$/\1${TAG}\2/" "${NEW_CSV}"
-  # fi
+  if [[ -n "$TAG" ]]; then
+    echo "[INFO] Set tags in nightly OLM files"
+    sed -ri "s/(.*:\s?)${RELEASE}([^-])?$/\1${TAG}\2/" "${NEW_CSV}"
+  fi
 
   if [[ $platform == "openshift" ]]; then
     # Removes che-tls-secret-creator
