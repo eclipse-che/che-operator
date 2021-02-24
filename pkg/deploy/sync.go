@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -42,6 +43,32 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 	}
 
 	return update(deployContext, actual, blueprint, diffOpts)
+}
+
+func Create(deployContext *DeployContext, obj interface{}) (bool, error) {
+	objectMeta := obj.(metav1.Object)
+	runtimeObject := objectMeta.(runtime.Object)
+
+	actualObject := runtimeObject.DeepCopyObject()
+	err := deployContext.ClusterAPI.NonCachedClient.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: objectMeta.GetNamespace(),
+			Name:      objectMeta.GetName(),
+		},
+		actualObject)
+
+	if err != nil {
+		// object doesn't exist
+		if errors.IsNotFound(err) {
+			logrus.Infof("Creating a new object: %s, name %s", runtimeObject.GetObjectKind().GroupVersionKind().Kind, objectMeta.GetName())
+			err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), runtimeObject)
+			return false, err
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (runtime.Object, error) {

@@ -305,6 +305,15 @@ spec:
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
               type: object
+            devWorkspace:
+              description: Dev Workspace operator configuration
+              properties:
+                enable:
+                  description: Deploys the DevWorkspace operator in the cluster. Do
+                    nothing if a matching version of the operator is already installed.
+                    Fail if a non matching version of the operator is already installed.
+                  type: boolean
+              type: object
             imagePuller:
               description: Kubernetes Image Puller configuration
               properties:
