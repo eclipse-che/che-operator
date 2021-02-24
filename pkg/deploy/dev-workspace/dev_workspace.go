@@ -88,12 +88,12 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	debWorkspaceWebhookExists, err := isDebWorkspaceWebhookExists(deployContext)
+	devWorkspaceWebhookExists, err := isDevWorkspaceWebhookExists(deployContext)
 	if err != nil {
 		return false, err
 	}
 
-	if !debWorkspaceWebhookExists {
+	if !devWorkspaceWebhookExists {
 		for _, syncItem := range syncItems {
 			done, err := syncItem(deployContext)
 			if !util.IsTestMode() {
@@ -126,7 +126,7 @@ func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
 	return errors.New("A non matching version of the Dev Workspace operator is already installed")
 }
 
-func isDebWorkspaceWebhookExists(deployContext *deploy.DeployContext) (bool, error) {
+func isDevWorkspaceWebhookExists(deployContext *deploy.DeployContext) (bool, error) {
 	webhook := &admissionregistrationv1.MutatingWebhookConfiguration{}
 	if err := deployContext.ClusterAPI.NonCachedClient.Get(
 		context.TODO(),
