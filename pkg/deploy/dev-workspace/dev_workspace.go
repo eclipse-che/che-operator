@@ -63,6 +63,7 @@ var (
 		syncProxyClusterRole,
 		syncEditWorkspacesClusterRole,
 		syncViewWorkspacesClusterRole,
+		syncRole,
 		syncRoleBinding,
 		syncClusterRoleBinding,
 		syncProxyClusterRoleBinding,
@@ -224,7 +225,7 @@ func syncDeployment(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {
-	obj, exists := cachedObj[yamlFile]
+	_, exists := cachedObj[yamlFile]
 	if !exists {
 		if err := util.ReadObject(yamlFile, obj); err != nil {
 			return false, err
@@ -232,5 +233,5 @@ func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interf
 		cachedObj[yamlFile] = obj
 	}
 
-	return deploy.Create(deployContext, obj)
+	return deploy.Create(deployContext, cachedObj[yamlFile])
 }

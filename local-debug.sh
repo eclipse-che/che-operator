@@ -53,10 +53,13 @@ prepareTemplates() {
   # Download Dev Workspace operator templates
   echo "[INFO] Downloading Dev Workspace operator templates ..."
   rm /tmp/devworkspace-operator.zip
-  rm -rf /tmp/devfile-devworkspace-operator-* /tmp/devworkspace-operator/
-  curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/master > /tmp/devworkspace-operator.zip
-  unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp
+  rm -rf /tmp/devfile-devworkspace-operator-*
+  rm -rf /tmp/devworkspace-operator/
   mkdir -p /tmp/devworkspace-operator/templates
+
+  curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/master > /tmp/devworkspace-operator.zip
+  
+  unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp
   cp -r /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
   echo "[INFO] Downloading Dev Workspace operator templates completed."
 }

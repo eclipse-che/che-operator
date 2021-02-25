@@ -18,6 +18,25 @@ metadata:
     app.kubernetes.io/component: che-operator
 rules:
   - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    verbs:
+      - get
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - oauth.openshift.io
     resources:
       - oauthclients
@@ -25,6 +44,7 @@ rules:
       - create
       - get
       - delete
+      - deletecollection
       - list
       - patch
       - update
@@ -115,9 +135,11 @@ rules:
     resources:
       - roles
     verbs:
-      - get
       - create
-      - delete
+      - get
+      - list
+      - update
+      - watch
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -127,6 +149,8 @@ rules:
       - create
       - update
       - delete
+      - watch
+      - list
   - apiGroups:
       - org.eclipse.che
     resources:
@@ -158,14 +182,6 @@ rules:
   - apiGroups:
       - ''
     resources:
-      - serviceaccounts
-    verbs:
-      - get
-      - create
-      - watch
-  - apiGroups:
-      - ''
-    resources:
       - pods/exec
     verbs:
       - create
@@ -176,91 +192,125 @@ rules:
     verbs:
       - list
   - apiGroups:
-      - ''
+      - apps
+    resourceNames:
+      - devworkspace-controller
     resources:
-      - secrets
+      - deployments/finalizers
     verbs:
-      - list
-      - get
-      - create
-      - delete
-  - apiGroups:
-      - ''
-    resources:
-      - persistentvolumeclaims
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - ''
-    resources:
-      - pods
-    verbs:
-      - get
-      - list
-      - create
-      - watch
-      - delete
+      - update
   - apiGroups:
       - apps
     resources:
       - deployments
     verbs:
-      - get
-      - list
-      - create
-      - patch
-      - watch
-      - delete
+      - '*'
   - apiGroups:
       - ''
     resources:
       - services
     verbs:
-      - list
-      - create
-      - delete
+      - '*'
   - apiGroups:
-      - ''
+      - ""
     resources:
       - configmaps
+      - persistentvolumeclaims
+      - pods
+      - secrets
+      - serviceaccounts
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps/status
     verbs:
       - get
-      - create
-      - delete
-      - list
+      - update
+      - patch
   - apiGroups:
       - route.openshift.io
     resources:
       - routes
     verbs:
-      - list
+      - '*'
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes/custom-host
+    verbs:
       - create
-      - delete
   - apiGroups:
       - ''
     resources:
       - events
     verbs:
       - watch
+      - create
+      - patch
   - apiGroups:
       - apps
     resources:
       - replicasets
     verbs:
-      - list
-      - get
-      - patch
-      - delete
+      - '*'
   - apiGroups:
       - extensions
     resources:
       - ingresses
+      - replicasets
+      - deployments
     verbs:
-      - list
+      - '*'
+  - apiGroups:
+      - workspace.devfile.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
       - create
-      - watch
-      - get
       - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - create
+      - get
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - get
+
