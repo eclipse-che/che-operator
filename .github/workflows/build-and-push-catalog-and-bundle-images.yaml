@@ -9,12 +9,10 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-name: Push catalog and bundle images.
+name: Build and push catalog and bundle images.
 on:
   schedule:
     - cron:  '0 21 * * *'
-  # todo remove 'pull_request' trigger condition.
-  pull_request:
       branches:
         - master
 jobs:
