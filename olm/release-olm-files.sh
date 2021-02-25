@@ -19,6 +19,39 @@ BASE_DIR="${OPERATOR_DIR}/olm"
 source ${BASE_DIR}/check-yq.sh
 GO_VERSION_FILE=$(readlink -f "${BASE_DIR}/../version/version.go")
 
+command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }
+
+export LAST_RELEASE_VERSION
+
+setLatestReleasedVersion() {
+  versions=$(curl \
+  -H "Authorization: bearer ${GITHUB_TOKEN}" \
+  -X POST -H "Content-Type: application/json" --data \
+  '{"query": "{ repository(owner: \"eclipse\", name: \"che-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
+  https://api.github.com/graphql)
+
+  LAST_RELEASE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
+}
+
+downloadLatestReleasedBundleCRCRD() {
+  mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/${platform}" "${STABLE_BUNDLE_PATH}/metadata"
+  PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
+  PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
+
+  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.26.2")
+  if [ "${compareResult}" == "1" ]; then
+    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
+        -q -O "${PRE_RELEASE_CSV}"
+    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
+        -q -O "${PRE_RELEASE_CRD}"
+  else
+    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.v${LAST_RELEASE_VERSION}.clusterserviceversion.yaml" \
+         -q -O "${PRE_RELEASE_CSV}"
+    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.crd.yaml" \
+          -q -O "${PRE_RELEASE_CRD}"
+  fi
+}
+
 if [[ "$1" =~ $REGEX ]]
 then
   RELEASE="$1"
@@ -37,20 +70,17 @@ do
   NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   LAST_NIGHTLY_CSV="${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   LAST_NIGHTLY_CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-
-  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
-  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-
   lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")
-  if [ -f "${LAST_STABLE_CSV}" ];then
-    lastPackagePreReleaseVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
-  else
-    lastPackagePreReleaseVersion=$(grep -o '[0-9]*\.[0-9]*\.[0-9]*' < "${GO_VERSION_FILE}")
-  fi
-
   echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
 
-  if [ "${lastPackagePreReleaseVersion}" == "${RELEASE}" ]
+  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
+  RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+  RELEASE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+
+  setLatestReleasedVersion
+  downloadLatestReleasedBundleCRCRD
+
+  if [ "${LAST_RELEASE_VERSION}" == "${RELEASE}" ]
   then
     echo "[ERROR] Release ${RELEASE} already exists in the package !"
     echo "[ERROR] You should first remove it"
@@ -58,16 +88,6 @@ do
   fi
 
   echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion}'"
-
-  RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-  RELEASE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-
-  mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated" "${STABLE_BUNDLE_PATH}/metadata"
-  if [[ -f "${RELEASE_CSV}" ]] && [[ -f "${RELEASE_CRD}" ]]; then
-    cp -rf "${RELEASE_CSV}" "${RELEASE_CRD}" "${STABLE_BUNDLE_PATH}/generated/"
-    PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/che-operator.clusterserviceversion.yaml"
-    PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/org_v1_che_crd.yaml"
-  fi
 
   sed \
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
