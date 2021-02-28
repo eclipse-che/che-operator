@@ -39,6 +39,10 @@ jobs:
           #remove base32 from current directory to avoid it being commited during release
           rm $(pwd)/base32 
       - name: Release operator
+        env:
+          IMAGE_REGISTRY_HOST: quay.io
+          # Todo: set up eclipse org
+          IMAGE_REGISTRY_USER_NAME: aandriienko
         run: |
           CHE_VERSION=${{ github.event.inputs.version }}
           echo "CHE_VERSION=${CHE_VERSION}"

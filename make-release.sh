@@ -53,7 +53,8 @@ init() {
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
   command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${RELEASE_DIR}/REQUIREMENTS")
-  [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }}
+  [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
+}
 
 usage () {
 	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
@@ -246,7 +247,9 @@ createPRToMasterBranch() {
 }
 
 prepareCommunityOperatorsUpdate() {
+  export BASE_DIR=${RELEASE_DIR}/olm
   . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
+  unset BASE_DIR
 }
 run() {
   checkoutToReleaseBranch
