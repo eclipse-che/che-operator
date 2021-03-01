@@ -46,9 +46,9 @@ minikube version
 
 # minikube start
 
-sudo bash -c "export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400"
+minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400
 
-minikube update-context
+sudo minikube update-context
 
 #Give god access to the k8s API
 kubectl apply -f - <<EOF
