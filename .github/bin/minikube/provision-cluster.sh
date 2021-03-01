@@ -45,15 +45,13 @@ minikube config set vm-driver none
 minikube version
 
 # minikube start
-sudo minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400 || { 
-  systemctl status kubelet
-}
-sudo chown -R $USER $HOME/.kube $HOME/.minikube
+export CHANGE_MINIKUBE_NONE_USER=true
+sudo minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400
 
-sudo minikube update-context
+minikube update-context
 
 #Give god access to the k8s API
-sudo kubectl apply -f - <<EOF
+kubectl apply -f - <<EOF
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
