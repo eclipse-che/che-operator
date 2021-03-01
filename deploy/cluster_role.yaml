@@ -18,25 +18,6 @@ metadata:
     app.kubernetes.io/component: che-operator
 rules:
   - apiGroups:
-      - operators.coreos.com
-    resources:
-      - subscriptions
-    verbs:
-      - get
-  - apiGroups:
-      - admissionregistration.k8s.io
-    resources:
-      - mutatingwebhookconfigurations
-      - validatingwebhookconfigurations
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
       - oauth.openshift.io
     resources:
       - oauthclients
@@ -135,8 +116,9 @@ rules:
     resources:
       - roles
     verbs:
-      - create
       - get
+      - create
+      - delete
       - list
       - update
       - watch
@@ -149,8 +131,8 @@ rules:
       - create
       - update
       - delete
-      - watch
       - list
+      - watch
   - apiGroups:
       - org.eclipse.che
     resources:
@@ -180,6 +162,25 @@ rules:
     verbs:
       - get
   - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - persistentvolumeclaims
+      - pods
+      - secrets
+      - serviceaccounts
+      - services
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps/status
+    verbs:
+      - get
+      - update
+      - patch
+  - apiGroups:
       - ''
     resources:
       - pods/exec
@@ -193,42 +194,12 @@ rules:
       - list
   - apiGroups:
       - apps
-    resourceNames:
-      - devworkspace-controller
-    resources:
-      - deployments/finalizers
-    verbs:
-      - update
-  - apiGroups:
-      - apps
+      - extensions
     resources:
       - deployments
+      - replicasets
     verbs:
       - '*'
-  - apiGroups:
-      - ''
-    resources:
-      - services
-    verbs:
-      - '*'
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-      - persistentvolumeclaims
-      - pods
-      - secrets
-      - serviceaccounts
-    verbs:
-      - '*'
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps/status
-    verbs:
-      - get
-      - update
-      - patch
   - apiGroups:
       - route.openshift.io
     resources:
@@ -250,17 +221,36 @@ rules:
       - create
       - patch
   - apiGroups:
-      - apps
+      - monitoring.coreos.com
     resources:
-      - replicasets
+      - servicemonitors
     verbs:
-      - '*'
+      - create
+      - get
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resourceNames:
+      - devworkspace-controller
+    resources:
+      - deployments/finalizers
+    verbs:
+      - update
   - apiGroups:
       - extensions
     resources:
       - ingresses
-      - replicasets
-      - deployments
     verbs:
       - '*'
   - apiGroups:
@@ -276,9 +266,10 @@ rules:
     verbs:
       - '*'
   - apiGroups:
-      - batch
+      - admissionregistration.k8s.io
     resources:
-      - jobs
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
     verbs:
       - create
       - delete
@@ -288,11 +279,10 @@ rules:
       - update
       - watch
   - apiGroups:
-      - monitoring.coreos.com
+      - operators.coreos.com
     resources:
-      - servicemonitors
+      - subscriptions
     verbs:
-      - create
       - get
   - apiGroups:
       - authentication.k8s.io
@@ -306,11 +296,3 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
-  - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - create
-      - get
-
