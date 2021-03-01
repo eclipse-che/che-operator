@@ -46,7 +46,7 @@ minikube version
 
 # minikube start
 
-sudo minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400
+sudo minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400
 
 sudo minikube update-context
 minikube stop
