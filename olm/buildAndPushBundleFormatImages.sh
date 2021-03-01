@@ -13,8 +13,8 @@
 set -ex
 
 usage () {
-	echo "Usage:   $0 -p [platform] -c [channel]"
-	echo "Example: ./olm/buildAndPushBundle.sh -c nightly -i ${FROM_INDEX_IMAGE}"
+	echo "Usage:   $0 -p [platform] -c [channel] -f [force-build-and-push] -i [from-index-image]"
+	echo "Example: ./olm/buildAndPushBundle.sh -c nightly -f true -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -24,14 +24,25 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-c') channel="$2"; shift 1;;
     '-p') platforms+=("$2"); shift 1;;
+    '-f') forceBuildAndPush="$2"; shift 1;;
     '-i') fromIndexImage="$2"; shift 1;;
 	'--help'|'-h') usage; exit;;
   esac
   shift 1
 done
 
+if [ -z "${forceBuildAndPush}" ]; then
+  forceBuildAndPush="false"
+fi
+
+if [ ! "${forceBuildAndPush}" == "true" ] && [ ! "${forceBuildAndPush}" == "false"  ]; then
+  echo "[ERROR] -f argument should be 'true' or 'false'"
+  exit 1
+fi
+
 if [ -z "${IMAGE_REGISTRY_HOST}" ] || [ -z "${IMAGE_REGISTRY_USER_NAME}" ]; then
     echo "[ERROR] Specify env variables with information about image registry 'IMAGE_REGISTRY_HOST' and 'IMAGE_REGISTRY_USER_NAME'."
+    exit 1
 fi
 
 if [ -n "${GITHUB_WORKSPACE}" ]; then
@@ -66,19 +77,19 @@ do
   CATALOG_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:${CATALOG_TAG}"
 
   CHECK_BUNDLE_TAG=$(skopeo inspect docker://${CATALOG_BUNDLE_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${BUNDLE_TAG}\")")
-  if [ -z "$CHECK_BUNDLE_TAG" ]; then
+  if [[ -z "$CHECK_BUNDLE_TAG" ]] || [[ "${forceBuildAndPush}" == "true" ]]; then
     buildBundleImage "${platform}" "${CATALOG_BUNDLE_IMAGE}" "${channel}" "docker"
 
     if [ -n "${fromIndexImage}" ]; then
-      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${fromIndexImage}"
+      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}"  "${fromIndexImage}"
       continue
     fi
 
     CHECK_CATALOG_TAG=$(skopeo inspect docker://${CATALOG_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${CATALOG_TAG}\")")
     if [ -z "${CHECK_CATALOG_TAG}" ]; then
-      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker"
+      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}"
     else
-      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${CATALOG_IMAGE}"
+      buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}" "${CATALOG_IMAGE}"
     fi
   else
       echo "[INFO] Bundle ${CATALOG_BUNDLE_IMAGE} is already pushed to the image registry"

@@ -202,8 +202,14 @@ buildCatalogImage() {
     exit 1
   fi
 
+  forceBuildAndPush="${4}"
+  if [ -z "${forceBuildAndPush}" ]; then
+    echo "[ERROR] Please specify fourth argument: 'force build and push: true or false'"
+    exit 1
+  fi
+
   # optional argument
-  FROM_INDEX=${4:-""}
+  FROM_INDEX=${5:-""}
   BUILD_INDEX_IMAGE_ARG=""
   if [ ! "${FROM_INDEX}" == "" ]; then
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
@@ -216,16 +222,36 @@ buildCatalogImage() {
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
 
-  eval "${OPM_BINARY}" index add \
-       --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-       --tag "${CATALOG_IMAGENAME}" \
-       --pull-tool "${imageTool}" \
-       --build-tool "${imageTool}" \
+  INDEX_ADD_CMD="${OPM_BINARY} index add \
+       --bundles ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL} \
+       --tag ${CATALOG_IMAGENAME} \
+       --pull-tool ${imageTool} \
+       --build-tool ${imageTool} \
        --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
-       --mode semver \
-       "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
+       --mode semver ${BUILD_INDEX_IMAGE_ARG} ${SKIP_TLS_ARG}"
 
-  eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"; echo 
+  exitCode=0
+  # Execute command and store an error output to the variable for following handling.
+  {
+    error=$(eval "${INDEX_ADD_CMD}" 2>&1 1>&$out) || \
+    {
+      exitCode="$?";
+      echo "[INFO] ${exitCode}";
+      true;
+    }
+  } {out}>&1
+  if [[ "${error}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
+    echo "[INFO] Ignore error 'Bundle already added'"
+    # Catalog bundle image contains bundle reference, continue without unnecessary push operation
+    return
+  else
+    echo "[INFO] ${exitCode}"
+    if [ "${exitCode}" != 0 ]; then
+      exit "${exitCode}"
+    fi
+  fi
+
+  eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
 }
 
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".

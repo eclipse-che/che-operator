@@ -116,7 +116,7 @@ buildOLMImages() {
     buildBundleImage "${PLATFORM}" "${CATALOG_BUNDLE_IMAGE}" "${CHANNEL}" "docker"
 
     echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker"
+    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "false" "docker"
 
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
   elif [[ "${PLATFORM}" == "openshift" ]]
