@@ -45,8 +45,8 @@ minikube config set vm-driver none
 minikube version
 
 # minikube start
-sudo bash -c "export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400"
-sudo minikube stop
+# sudo bash -c "export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400"
+# sudo minikube stop
 sudo minikube update-context
 minikube start
 
