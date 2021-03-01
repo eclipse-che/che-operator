@@ -46,7 +46,7 @@ minikube version
 
 # minikube start
 sudo bash -c "export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400"
-minikube stop
+sudo minikube stop
 minikube update-context
 minikube start
 
