@@ -102,12 +102,13 @@ func TestNewCheConfigMap(t *testing.T) {
 
 func TestConfigMap(t *testing.T) {
 	type testCase struct {
-		name         string
-		isOpenShift  bool
-		isOpenShift4 bool
-		initObjects  []runtime.Object
-		cheCluster   *orgv1.CheCluster
-		expectedData map[string]string
+		name            string
+		isOpenShift     bool
+		isOpenShift4    bool
+		initObjects     []runtime.Object
+		cheCluster      *orgv1.CheCluster
+		internalService deploy.InternalService
+		expectedData    map[string]string
 	}
 
 	testCases := []testCase{
@@ -165,6 +166,42 @@ func TestConfigMap(t *testing.T) {
 				"CHE_INFRA_KUBERNETES_TLS__KEY":  "KEY",
 			},
 		},
+		{
+			name: "Test k8s data, with internal cluster svc names",
+			cheCluster: &orgv1.CheCluster{
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						CheHost:                    "che-host",
+						UseInternalClusterSVCNames: true,
+					},
+				},
+			},
+			internalService: deploy.InternalService{
+				CheHost: "http://che-host-internal.svc:8080",
+			},
+			expectedData: map[string]string{
+				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host-internal.svc:8080/api/websocket",
+				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host-internal.svc:8080/api/websocket-minor",
+			},
+		},
+		{
+			name: "Test k8s data, without internal cluster svc names",
+			cheCluster: &orgv1.CheCluster{
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						CheHost:                    "che-host",
+						UseInternalClusterSVCNames: false,
+					},
+				},
+			},
+			internalService: deploy.InternalService{
+				CheHost: "http://che-host-internal.svc:8080",
+			},
+			expectedData: map[string]string{
+				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host/api/websocket",
+				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host/api/websocket-minor",
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -176,7 +213,8 @@ func TestConfigMap(t *testing.T) {
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
 			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
+				InternalService: testCase.internalService,
+				CheCluster:      testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
 					Client:          cli,
 					NonCachedClient: nonCachedClient,
