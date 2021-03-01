@@ -45,7 +45,9 @@ minikube config set vm-driver none
 minikube version
 
 # minikube start
-sudo minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf
+sudo minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400 || { 
+  systemctl status kubelet
+}
 sudo chown -R $USER $HOME/.kube $HOME/.minikube
 
 minikube update-context
