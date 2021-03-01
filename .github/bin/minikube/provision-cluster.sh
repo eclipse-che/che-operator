@@ -49,6 +49,8 @@ minikube version
 sudo minikube start --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400
 
 sudo minikube update-context
+minikube stop
+minikube start
 
 #Give god access to the k8s API
 kubectl apply -f - <<EOF
