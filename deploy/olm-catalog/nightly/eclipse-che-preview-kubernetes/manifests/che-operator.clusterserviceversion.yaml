@@ -85,13 +85,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-02-17T11:12:17Z"
+    createdAt: "2021-03-01T17:24:07Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.27.0-104.nightly
+  name: eclipse-che-preview-kubernetes.v7.27.0-106.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -685,4 +685,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.27.0-104.nightly
+  version: 7.27.0-106.nightly
