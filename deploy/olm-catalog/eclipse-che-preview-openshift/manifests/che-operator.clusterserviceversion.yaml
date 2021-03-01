@@ -246,6 +246,7 @@ spec:
                 - create
                 - get
                 - delete
+                - deletecollection
                 - list
                 - patch
                 - update
@@ -339,6 +340,9 @@ spec:
                 - get
                 - create
                 - delete
+                - list
+                - update
+                - watch
             - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
@@ -348,6 +352,8 @@ spec:
                 - create
                 - update
                 - delete
+                - list
+                - watch
             - apiGroups:
                 - org.eclipse.che
               resources:
@@ -379,11 +385,22 @@ spec:
             - apiGroups:
                 - ""
               resources:
+                - configmaps
+                - persistentvolumeclaims
+                - pods
+                - secrets
                 - serviceaccounts
+                - services
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
               verbs:
                 - get
-                - create
-                - watch
+                - update
+                - patch
             - apiGroups:
                 - ""
               resources:
@@ -397,94 +414,109 @@ spec:
               verbs:
                 - list
             - apiGroups:
-                - ""
-              resources:
-                - secrets
-              verbs:
-                - list
-                - get
-                - create
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - persistentvolumeclaims
-              verbs:
-                - create
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - ""
-              resources:
-                - pods
-              verbs:
-                - get
-                - list
-                - create
-                - watch
-                - delete
-            - apiGroups:
                 - apps
+                - extensions
               resources:
                 - deployments
+                - replicasets
               verbs:
-                - get
-                - list
-                - create
-                - patch
-                - watch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - services
-              verbs:
-                - list
-                - create
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - create
-                - delete
-                - list
+                - '*'
             - apiGroups:
                 - route.openshift.io
               resources:
                 - routes
               verbs:
-                - list
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
                 - create
-                - delete
             - apiGroups:
                 - ""
               resources:
                 - events
               verbs:
                 - watch
+                - create
+                - patch
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - create
+                - get
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
             - apiGroups:
                 - apps
+              resourceNames:
+                - devworkspace-controller
               resources:
-                - replicasets
+                - deployments/finalizers
               verbs:
-                - list
-                - get
-                - patch
-                - delete
+                - update
             - apiGroups:
                 - extensions
               resources:
                 - ingresses
               verbs:
-                - list
+                - '*'
+            - apiGroups:
+                - workspace.devfile.io
+              resources:
+                - '*'
+              verbs:
+                - '*'
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - '*'
+              verbs:
+                - '*'
+            - apiGroups:
+                - admissionregistration.k8s.io
+              resources:
+                - mutatingwebhookconfigurations
+                - validatingwebhookconfigurations
+              verbs:
                 - create
-                - watch
-                - get
                 - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - subscriptions
+              verbs:
+                - get
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
@@ -496,6 +528,7 @@ spec:
                 - list
                 - create
                 - get
+                - watch
           serviceAccountName: che-namespace-editor
       deployments:
         - name: che-operator
