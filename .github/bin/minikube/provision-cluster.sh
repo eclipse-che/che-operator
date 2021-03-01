@@ -53,7 +53,7 @@ sudo chown -R $USER $HOME/.kube $HOME/.minikube
 sudo minikube update-context
 
 #Give god access to the k8s API
-kubectl apply -f - <<EOF
+sudo kubectl apply -f - <<EOF
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
