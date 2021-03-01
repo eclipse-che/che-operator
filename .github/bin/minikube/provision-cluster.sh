@@ -50,7 +50,7 @@ sudo minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --ext
 }
 sudo chown -R $USER $HOME/.kube $HOME/.minikube
 
-minikube update-context
+sudo minikube update-context
 
 #Give god access to the k8s API
 kubectl apply -f - <<EOF
