@@ -13,7 +13,7 @@ set -ex
 
 # Minikube environments config
 export MINIKUBE_VERSION=v1.17.1
-export KUBERNETES_VERSION=v1.16.2
+export KUBERNETES_VERSION=v1.20.2
 export MINIKUBE_HOME=$HOME
 export CHANGE_MINIKUBE_NONE_USER=true
 export KUBECONFIG=$HOME/.kube/config
@@ -48,7 +48,7 @@ minikube version
 # sudo bash -c "export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400"
 # sudo minikube stop
 
-minikube start --driver=none
+export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none
 sudo minikube update-context default
 
 #Give god access to the k8s API
