@@ -18,19 +18,21 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	DevWorkspaceNamespace      = "devworkspace-controller"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
+	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 
 	DevWorkspaceTemplates                     = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
@@ -55,7 +57,7 @@ const (
 
 var (
 	// cachedObjects
-	cachedObj = make(map[string]interface{})
+	cachedObj = make(map[string]metav1.Object)
 	syncItems = []func(*deploy.DeployContext) (bool, error){
 		syncNamespace,
 		syncServiceAccount,
@@ -85,16 +87,20 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	if err := checkWebTerminalSubscription(deployContext); err != nil {
-		return false, err
-	}
-
-	devWorkspaceWebhookExists, err := isDevWorkspaceWebhookExists(deployContext)
+	devWorkspaceDeploymentExists, err := deploy.IsExists(
+		deployContext,
+		client.ObjectKey{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+		&appsv1.Deployment{},
+	)
 	if err != nil {
 		return false, err
 	}
 
-	if !devWorkspaceWebhookExists {
+	if !devWorkspaceDeploymentExists {
+		if err := checkWebTerminalSubscription(deployContext); err != nil {
+			return false, err
+		}
+
 		for _, syncItem := range syncItems {
 			done, err := syncItem(deployContext)
 			if !util.IsTestMode() {
@@ -127,101 +133,68 @@ func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
 	return errors.New("A non matching version of the Dev Workspace operator is already installed")
 }
 
-func isDevWorkspaceWebhookExists(deployContext *deploy.DeployContext) (bool, error) {
-	webhook := &admissionregistrationv1.MutatingWebhookConfiguration{}
-	if err := deployContext.ClusterAPI.NonCachedClient.Get(
-		context.TODO(),
-		types.NamespacedName{
-			Name: DevWorkspaceWebhookName,
-		},
-		webhook); err != nil {
-
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
 func syncNamespace(deployContext *deploy.DeployContext) (bool, error) {
 	return deploy.CreateNamespace(deployContext, DevWorkspaceNamespace)
 }
 
 func syncServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
-	sa := &corev1.ServiceAccount{}
-	return syncObject(deployContext, DevWorkspaceServiceAccountFile, sa)
+	return syncObject(deployContext, DevWorkspaceServiceAccountFile, &corev1.ServiceAccount{})
 }
 
 func syncRole(deployContext *deploy.DeployContext) (bool, error) {
-	role := &rbacv1.Role{}
-	return syncObject(deployContext, DevWorkspaceRoleFile, role)
+	return syncObject(deployContext, DevWorkspaceRoleFile, &rbacv1.Role{})
 }
 
 func syncRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	rb := &rbacv1.RoleBinding{}
-	return syncObject(deployContext, DevWorkspaceRoleBindingFile, rb)
+	return syncObject(deployContext, DevWorkspaceRoleBindingFile, &rbacv1.RoleBinding{})
 }
 
 func syncClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	rb := &rbacv1.ClusterRoleBinding{}
-	return syncObject(deployContext, DevWorkspaceClusterRoleBindingFile, rb)
+	return syncObject(deployContext, DevWorkspaceClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
 }
 
 func syncProxyClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	rb := &rbacv1.ClusterRoleBinding{}
-	return syncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, rb)
+	return syncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
 }
 
 func syncClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	role := &rbacv1.ClusterRole{}
-	return syncObject(deployContext, DevWorkspaceClusterRoleFile, role)
+	return syncObject(deployContext, DevWorkspaceClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncProxyClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	role := &rbacv1.ClusterRole{}
-	return syncObject(deployContext, DevWorkspaceProxyClusterRoleFile, role)
+	return syncObject(deployContext, DevWorkspaceProxyClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncViewWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	role := &rbacv1.ClusterRole{}
-	return syncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, role)
+	return syncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncEditWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	role := &rbacv1.ClusterRole{}
-	return syncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, role)
+	return syncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncWorkspaceRoutingCRD(deployContext *deploy.DeployContext) (bool, error) {
-	crd := &apiextensionsv1.CustomResourceDefinition{}
-	return syncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, crd)
+	return syncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
-	crd := &apiextensionsv1.CustomResourceDefinition{}
-	return syncObject(deployContext, DevWorkspaceTemplatesCRDFile, crd)
+	return syncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncComponentsCRD(deployContext *deploy.DeployContext) (bool, error) {
-	crd := &apiextensionsv1.CustomResourceDefinition{}
-	return syncObject(deployContext, DevWorkspaceComponentsCRDFile, crd)
+	return syncObject(deployContext, DevWorkspaceComponentsCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncCRD(deployContext *deploy.DeployContext) (bool, error) {
-	crd := &apiextensionsv1.CustomResourceDefinition{}
-	return syncObject(deployContext, DevWorkspaceCRDFile, crd)
+	return syncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	cm := &corev1.ConfigMap{}
-	return syncObject(deployContext, DevWorkspaceConfigMapFile, cm)
+	return syncObject(deployContext, DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
 }
 
 func syncDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	deployment := &appsv1.Deployment{}
-	return syncObject(deployContext, DevWorkspaceDeploymentFile, deployment)
+	return syncObject(deployContext, DevWorkspaceDeploymentFile, &appsv1.Deployment{})
 }
 
 func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {
@@ -230,8 +203,9 @@ func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interf
 		if err := util.ReadObject(yamlFile, obj); err != nil {
 			return false, err
 		}
-		cachedObj[yamlFile] = obj
+		cachedObj[yamlFile] = obj.(metav1.Object)
 	}
 
-	return deploy.Create(deployContext, cachedObj[yamlFile])
+	objectMeta := cachedObj[yamlFile]
+	return deploy.CreateIfNotExists(deployContext, objectMeta)
 }
