@@ -66,17 +66,17 @@ rules:
 EOF
 
 echo "[INFO] Enable ingress addon."
-sudo minikube addons enable ingress
+minikube addons enable ingress
 
 echo "[INFO] Enable registry addon."
-sudo minikube addons enable registry
+minikube addons enable registry
 
 echo "[INFO] Minikube Addon list"
-sudo minikube addons  list
+minikube addons  list
 
 echo "[INFO] Trying to get pod name of the registry proxy..."
 REGISTRY_PROXY_POD=$(sudo kubectl get pods -n kube-system -o yaml | grep  "name: registry-proxy-" | sed -e 's;.*name: \(\);\1;') || true
 echo "[INFO] Proxy pod name is ${REGISTRY_PROXY_POD}"
-sudo kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "kube-system" || true
+kubectl wait --for=condition=ready "pods/${REGISTRY_PROXY_POD}" --timeout=120s -n "kube-system" || true
 
 echo "[INFO] Minikube started!"
