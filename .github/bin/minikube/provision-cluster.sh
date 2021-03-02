@@ -34,21 +34,22 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VER
   sudo mv minikube /usr/local/bin/
 
 # Create kube folder
-# mkdir "${HOME}"/.kube || true
-# touch "${HOME}"/.kube/config
+mkdir "${HOME}"/.kube || true
+touch "${HOME}"/.kube/config
 
 # minikube config
 minikube config set WantUpdateNotification false
 minikube config set WantReportErrorPrompt false
 minikube config set WantNoneDriverWarning false
-minikube config set vm-driver none
+minikube config set driver none
 minikube version
 
 # minikube start
 # sudo bash -c "export CHANGE_MINIKUBE_NONE_USER=true; minikube start --driver=none --kubernetes-version=$KUBERNETES_VERSION --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf --memory=6400"
 # sudo minikube stop
+
+minikube start --driver=none
 sudo minikube update-context default
-minikube start
 
 #Give god access to the k8s API
 kubectl apply -f - <<EOF
