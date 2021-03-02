@@ -23,6 +23,7 @@ jobs:
         minikube start --memory=6000mb
         minikube addons enable ingress
         minikube addons enable olm
+        /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Install jq
