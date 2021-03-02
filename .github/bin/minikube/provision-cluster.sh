@@ -12,7 +12,7 @@
 set -ex
 
 # Minikube environments config
-export MINIKUBE_VERSION=v1.17.1
+export MINIKUBE_VERSION=v1.11.0
 export KUBERNETES_VERSION=v1.20.2
 export MINIKUBE_HOME=$HOME
 export CHANGE_MINIKUBE_NONE_USER=true
