@@ -104,20 +104,16 @@ func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.Con
 func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string]string, err error) {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
-	isOpenShift, isOpenshift4, err := util.DetectOpenShift()
-	if err != nil {
-		logrus.Errorf("Failed to get current infra: %s", err)
-	}
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	infra := "kubernetes"
-	if isOpenShift {
+	if util.IsOpenShift {
 		infra = "openshift"
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	if isOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
 		openShiftIdentityProviderId = "openshift-v3"
-		if isOpenshift4 {
+		if util.IsOpenShift4 {
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
@@ -268,7 +264,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	err = json.Unmarshal(out, &cheEnv)
 
 	// k8s specific envs
-	if !isOpenShift {
+	if !util.IsOpenShift {
 		k8sCheEnv := map[string]string{
 			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_FS__GROUP":     securityContextFsGroup,
 			"CHE_INFRA_KUBERNETES_POD_SECURITY__CONTEXT_RUN__AS__USER": securityContextRunAsUser,
