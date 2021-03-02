@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Install jq
+      run: sudo pip install yq
     - name: Provision Minikube cluster
       run: |
         minikube start --memory=6000mb
@@ -26,8 +28,6 @@ jobs:
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install jq
-      run: sudo pip install yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-olm.sh
     # Run this step even the previous step fail
