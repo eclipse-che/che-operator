@@ -41,7 +41,7 @@ touch "${HOME}"/.kube/config
 minikube config set WantUpdateNotification false
 minikube config set WantReportErrorPrompt false
 minikube config set WantNoneDriverWarning false
-minikube config set driver none
+minikube config set driver docker
 minikube version
 
 # minikube start
