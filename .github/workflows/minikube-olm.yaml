@@ -15,7 +15,7 @@ on: pull_request
 jobs:
   minikube-e2e:
     name: Testing latest changes (olm installer)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - name: Install jq
@@ -23,8 +23,12 @@ jobs:
     - name: Provision Minikube cluster
       run: |
         minikube start --memory=6000mb
+    - name: Enable minikube addons
+      run: |
         minikube addons enable ingress
         minikube addons enable olm
+
+        # Enable registry and portfward to push images to registry
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
