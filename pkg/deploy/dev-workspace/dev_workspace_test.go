@@ -16,6 +16,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -72,11 +73,18 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 		Spec: &operatorsv1alpha1.SubscriptionSpec{},
 	}
 
+	webhook := admissionregistrationv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: DevWorkspaceWebhookName,
+		},
+	}
+
 	scheme := scheme.Scheme
 	orgv1.SchemeBuilder.AddToScheme(scheme)
 	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+	scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
 
-	cli := fake.NewFakeClientWithScheme(scheme, subscription)
+	cli := fake.NewFakeClientWithScheme(scheme, subscription, &webhook)
 
 	deployContext := &deploy.DeployContext{
 		CheCluster: &orgv1.CheCluster{

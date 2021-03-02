@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse/che-operator/pkg/deploy"
 	"github.com/eclipse/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -87,20 +88,16 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	devWorkspaceDeploymentExists, err := deploy.IsExists(
+	devWorkspaceWebhookExists, err := deploy.IsExists(
 		deployContext,
-		client.ObjectKey{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
-		&appsv1.Deployment{},
+		client.ObjectKey{Name: DevWorkspaceWebhookName},
+		&admissionregistrationv1.MutatingWebhookConfiguration{},
 	)
 	if err != nil {
 		return false, err
 	}
 
-	if !devWorkspaceDeploymentExists {
-		if err := checkWebTerminalSubscription(deployContext); err != nil {
-			return false, err
-		}
-
+	if !devWorkspaceWebhookExists {
 		for _, syncItem := range syncItems {
 			done, err := syncItem(deployContext)
 			if !util.IsTestMode() {
@@ -108,6 +105,10 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 					return false, err
 				}
 			}
+		}
+	} else {
+		if err := checkWebTerminalSubscription(deployContext); err != nil {
+			return false, err
 		}
 	}
 
