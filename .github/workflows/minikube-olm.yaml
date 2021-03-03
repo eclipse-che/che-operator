@@ -15,15 +15,23 @@ on: pull_request
 jobs:
   minikube-e2e:
     name: Testing latest changes (olm installer)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - name: Provision Minikube cluster
-      run:  /bin/bash .github/bin/minikube/provision-cluster.sh
-    - name: Install chectl
-      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Install jq
       run: sudo pip install yq
+    - name: Provision Minikube cluster
+      run: |
+        minikube start --memory=6000mb
+    - name: Enable minikube addons
+      run: |
+        minikube addons enable ingress
+        minikube addons enable olm
+
+        # Enable registry and portfward to push images to registry
+        /bin/bash olm/minikube-registry-addon.sh &
+    - name: Install chectl
+      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-olm.sh
     # Run this step even the previous step fail
