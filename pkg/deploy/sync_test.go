@@ -308,6 +308,6 @@ func TestSync(t *testing.T) {
 	}
 
 	if newActual.Labels["a"] != "b" {
-		t.Fatalf("Object was not updated properly")
+		t.Fatalf("Object was not synced properly")
 	}
 }

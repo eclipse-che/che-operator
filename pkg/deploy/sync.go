@@ -139,8 +139,9 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func shouldSetOwnerReference(kind string) bool {
-	return "OAuthClient" != kind && "ClusterRole" != kind && "ClusterRoleBinding" != kind
+func shouldSetOwnerReferenceForObject(deployContext *DeployContext, obj metav1.Object) bool {
+	// empty workspace (cluster scope object) or object in another namespace
+	return obj.GetNamespace() == deployContext.CheCluster.Namespace
 }
 
 func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj metav1.Object) (runtime.Object, error) {
@@ -149,7 +150,7 @@ func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj meta
 		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
 	}
 
-	if !shouldSetOwnerReference(robj.GetObjectKind().GroupVersionKind().Kind) {
+	if !shouldSetOwnerReferenceForObject(deployContext, obj) {
 		return robj, nil
 	}
 
@@ -162,6 +163,7 @@ func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj meta
 }
 
 func getClientForObject(objectMeta metav1.Object, deployContext *DeployContext) client.Client {
+	// empty namespace (cluster scope object) or object in another namespace
 	if deployContext.CheCluster.Namespace == objectMeta.GetNamespace() {
 		return deployContext.ClusterAPI.Client
 	}
