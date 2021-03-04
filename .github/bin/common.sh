@@ -28,6 +28,7 @@ catchFinish() {
 initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
+  export USER_NAMEPSACE="che-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
@@ -348,7 +349,6 @@ waitDevWorkspaceControllerStarted() {
   while [ $n -le 24 ]
   do
     webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
-    echo "[INFO] Webhooks: ${webhooks}"
     if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
       echo "[INFO] Dev Workspace controller has been deployed"
       return
@@ -366,15 +366,14 @@ waitDevWorkspaceControllerStarted() {
 }
 
 createWorksaceDevWorkspaceController () {
-  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n default
+  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
 }
 
 waitWorkspaceStartedDevWorkspaceController() {
   n=0
   while [ $n -le 120 ]
   do
-    pods=$(oc get pods -n default)
-    echo "[INFO] Pod status: ${pods}"
+    pods=$(oc get pods -n ${NAMESPACE})
     if [[ $pods =~ .*Running.* ]]; then
       echo "[INFO] Wokrspace started succesfully"
       return
