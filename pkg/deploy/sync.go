@@ -139,11 +139,6 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func shouldSetOwnerReferenceForObject(deployContext *DeployContext, obj metav1.Object) bool {
-	// empty workspace (cluster scope object) or object in another namespace
-	return obj.GetNamespace() == deployContext.CheCluster.Namespace
-}
-
 func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj metav1.Object) (runtime.Object, error) {
 	robj, ok := obj.(runtime.Object)
 	if !ok {
@@ -160,6 +155,11 @@ func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj meta
 	}
 
 	return robj, nil
+}
+
+func shouldSetOwnerReferenceForObject(deployContext *DeployContext, obj metav1.Object) bool {
+	// empty workspace (cluster scope object) or object in another namespace
+	return obj.GetNamespace() == deployContext.CheCluster.Namespace
 }
 
 func getClientForObject(objectMeta metav1.Object, deployContext *DeployContext) client.Client {

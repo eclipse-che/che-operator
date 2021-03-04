@@ -340,7 +340,7 @@ login() {
 }
 
 deployDevWorkspaceController() {
-  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": "true"}}}'
+  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": true}}}'
 }
 
 waitDevWorkspaceControllerStarted() {
@@ -366,7 +366,25 @@ waitDevWorkspaceControllerStarted() {
 }
 
 createWorksaceDevWorkspaceController () {
-  oc create namespace che-che
-  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n che-che
+  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n default
+}
+
+waitWorkspaceStartedDevWorkspaceController() {
+  n=0
+  while [ $n -le 120 ]
+  do
+    pods=$(oc get pods -n default)
+    echo "[INFO] Pod status: ${pods}"
+    if [[ $pods =~ .*Running.* ]]; then
+      echo "[INFO] Wokrspace started succesfully"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "Failed to start a workspace"
+  exit 1
 }
 
