@@ -20,7 +20,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+
+    - name: Install yq
+      run: sudo pip install yq
+
     - name: Che operator code check.
       run: >-
+        go version &&
         export GOROOT=/opt/hostedtoolcache/go/1.15.8/x64/ &&
         ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle.sh
