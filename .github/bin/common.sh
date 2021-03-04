@@ -371,7 +371,7 @@ createWorksaceDevWorkspaceController () {
 
 waitWorkspaceStartedDevWorkspaceController() {
   n=0
-  while [ $n -le 120 ]
+  while [ $n -le 24 ]
   do
     pods=$(oc get pods -n ${NAMESPACE})
     if [[ $pods =~ .*Running.* ]]; then
