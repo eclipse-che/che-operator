@@ -26,4 +26,3 @@ rules:
       - list
       - create
       - get
-      - watch
