@@ -163,3 +163,8 @@ spec:
   metrics:
     # Enables `metrics` the Che server endpoint. 
     enable: true
+  devWorkspace:
+    # Deploys the DevWorkspace Operator in the cluster.
+    # Does nothing when a matching version of the Operator is already installed.
+    # Fails when a non-matching version of the Operator is already installed.
+    enable: false
