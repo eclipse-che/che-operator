@@ -35,6 +35,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -45,7 +46,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -444,8 +444,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err != nil {
 			logrus.Error(err)
 		}
-		// We should use `RequeueAfter` since objects are created in a different namespace
-		return reconcile.Result{Requeue: true}, err
+		// We should `Requeue` since we don't watch Dev Workspace controller objects
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	// Read proxy configuration

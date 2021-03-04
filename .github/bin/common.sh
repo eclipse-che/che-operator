@@ -338,3 +338,47 @@ login() {
     chectl auth:login --chenamespace=${NAMESPACE}
   fi
 }
+
+deployDevWorkspaceController() {
+  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspaces": {"enable": "true"}}}'
+}
+
+waitDevWorkspaceControllerStarted() {
+  n=0
+  while [ $n -le 24 ] # 2 minutes
+  do
+    webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
+    if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
+      echo "[INFO] Dev Workspace controller has been deployed"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "Failed to deploy Dev Workspace controller"
+  exit 1
+}
+
+createWorksaceDevWorkspaceController () {
+  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n default
+}
+
+waitWorkspaceStartedDevWorkspaceController() {
+  n=0
+  while [ $n -le 24 ] # 2 minutes
+  do
+    pods=$(oc get pods -n default)
+    if [[ $pods =~ .*Running.* ]]; then
+      echo "[INFO] Wokrspace started succesfully"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "Failed to start a workspace"
+  exit 1
+}

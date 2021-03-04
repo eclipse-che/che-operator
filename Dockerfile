@@ -17,6 +17,8 @@ FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.15-4  as builder
 ENV PATH=/opt/rh/go-toolset-1.13/root/usr/bin:${PATH} \
     GOPATH=/go/
 
+ENV DEV_WORKSPACE_CONTROLLER_VERSION="master"
+
 USER root
 ADD . /che-operator
 WORKDIR /che-operator
@@ -28,7 +30,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
     GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
 
 # download devworkspace-operator templates
-RUN curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/master > /tmp/devworkspace-operator.zip && \
+RUN curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip && \
     unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp
 
 

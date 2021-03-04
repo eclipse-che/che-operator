@@ -550,9 +550,9 @@ type CheClusterSpecImagePuller struct {
 // Settings for installation and configuration of the Dev Workspace operator
 // See https://github.com/devfile/devworkspace-operator
 type CheClusterSpecDevWorkspace struct {
-	// Deploys the DevWorkspace operator in the cluster.
-	// Do nothing if a matching version of the operator is already installed.
-	// Fail if a non matching version of the operator is already installed.
+	// Deploys the DevWorkspace Operator in the cluster.
+	// Does nothing when a matching version of the Operator is already installed.
+	// Fails when a non-matching version of the Operator is already installed.
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=false
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Enable Dev Workspace operator"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"

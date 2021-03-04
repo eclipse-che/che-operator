@@ -18,6 +18,7 @@ command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
 ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
+DEV_WORKSPACE_CONTROLLER_VERSION="master"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -57,8 +58,8 @@ prepareTemplates() {
   rm -rf /tmp/devworkspace-operator/
   mkdir -p /tmp/devworkspace-operator/templates
 
-  curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/master > /tmp/devworkspace-operator.zip
-  
+  curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
+
   unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp
   cp -r /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
   echo "[INFO] Downloading Dev Workspace operator templates completed."
@@ -70,7 +71,7 @@ createNamespace() {
   set -e
 }
 
-applyCR() {
+applyCRandCRD() {
   kubectl apply -f ${ECLIPSE_CHE_CRD}
   kubectl apply -f ${ECLIPSE_CHE_CR} -n $ECLIPSE_CHE_NAMESPACE
 }
@@ -96,5 +97,5 @@ runDebug() {
 
 prepareTemplates
 createNamespace
-applyCR
+applyCRandCRD
 runDebug
