@@ -44,7 +44,6 @@ runTests() {
     deployDevWorkspaceController
     waitDevWorkspaceControllerStarted
     createWorksaceDevWorkspaceController
-    waitWorkspaceStartedDevWorkspaceController
 }
 
 initDefaults

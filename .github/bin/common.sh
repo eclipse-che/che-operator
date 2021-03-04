@@ -341,11 +341,13 @@ login() {
 
 deployDevWorkspaceController() {
   oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspaces": {"enable": "true"}}}'
+  oc get checluster eclipse-che -n ${NAMESPACE} -o yaml
+  oc get crd checlusters.org.eclipse.che -o yaml
 }
 
 waitDevWorkspaceControllerStarted() {
   n=0
-  while [ $n -le 120 ]
+  while [ $n -le 5 ]
   do
     webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
     echo "[INFO] Webhooks: ${webhooks}"
@@ -354,8 +356,11 @@ waitDevWorkspaceControllerStarted() {
       return
     fi
 
-    sleep 5
+    sleep 60
     n=$(( n+1 ))
+
+    OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
+    oc logs ${OPERATOR_POD} -n ${NAMESPACE}
   done
 
   echo "Failed to deploy Dev Workspace controller"
@@ -363,24 +368,7 @@ waitDevWorkspaceControllerStarted() {
 }
 
 createWorksaceDevWorkspaceController () {
-  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n default
+  oc create namespace che-che
+  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n che-che
 }
 
-waitWorkspaceStartedDevWorkspaceController() {
-  n=0
-  while [ $n -le 120 ]
-  do
-    pods=$(oc get pods -n default)
-    echo "[INFO] Pod status: ${pods}"
-    if [[ $pods =~ .*Running.* ]]; then
-      echo "[INFO] Wokrspace started succesfully"
-      return
-    fi
-
-    sleep 5
-    n=$(( n+1 ))
-  done
-
-  echo "Failed to start a workspace"
-  exit 1
-}

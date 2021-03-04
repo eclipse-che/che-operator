@@ -85,6 +85,7 @@ type CheConfigMap struct {
 	ServerStrategy                         string `json:"CHE_INFRA_KUBERNETES_SERVER__STRATEGY"`
 	WorkspaceExposure                      string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_WORKSPACE_EXPOSURE"`
 	SingleHostGatewayConfigMapLabels       string `json:"CHE_INFRA_KUBERNETES_SINGLEHOST_GATEWAY_CONFIGMAP__LABELS"`
+	CheDevWorkspacesEnabled                string `json:"CHE_DEVWORKSPACES_ENABLED"`
 }
 
 func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.ConfigMap, error) {
@@ -261,6 +262,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		ServerStrategy:                         ingressStrategy,
 		WorkspaceExposure:                      workspaceExposure,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
+		CheDevWorkspacesEnabled:                strconv.FormatBool(deployContext.CheCluster.Spec.DevWorkspace.Enable),
 	}
 
 	if cheMultiUser == "true" {

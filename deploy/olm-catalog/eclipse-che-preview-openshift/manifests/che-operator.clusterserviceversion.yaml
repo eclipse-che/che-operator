@@ -30,6 +30,9 @@ metadata:
               "chePostgresUser": "",
               "externalDb": false
             },
+            "devWorkspace": {
+              "enable": false
+            },
             "metrics": {
               "enable": true
             },
