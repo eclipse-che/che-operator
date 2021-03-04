@@ -15,7 +15,6 @@ metadata:
               "externalIdentityProvider": false,
               "identityProviderAdminUserName": "",
               "identityProviderClientId": "",
-              "identityProviderImage": "",
               "identityProviderPassword": "",
               "identityProviderRealm": "",
               "identityProviderURL": "",
@@ -29,8 +28,7 @@ metadata:
               "chePostgresPassword": "",
               "chePostgresPort": "",
               "chePostgresUser": "",
-              "externalDb": false,
-              "postgresImage": ""
+              "externalDb": false
             },
             "k8s": {
               "ingressClass": "",
@@ -48,24 +46,15 @@ metadata:
               "allowUserDefinedWorkspaceNamespaces": false,
               "cheClusterRoles": "",
               "cheFlavor": "",
-              "cheImage": "",
-              "cheImageTag": "",
               "cheWorkspaceClusterRole": "",
-              "devfileRegistryImage": "",
               "gitSelfSignedCert": false,
               "nonProxyHosts": "",
-              "pluginRegistryImage": "",
               "proxyPassword": "",
               "proxyPort": "",
               "proxyURL": "",
               "proxyUser": "",
               "serverExposureStrategy": "",
-              "serverMemoryLimit": "",
-              "serverMemoryRequest": "",
               "serverTrustStoreConfigMapName": "",
-              "singleHostGatewayConfigMapLabels": {},
-              "singleHostGatewayConfigSidecarImage": "",
-              "singleHostGatewayImage": "",
               "tlsSupport": true,
               "useInternalClusterSVCNames": true,
               "workspaceNamespaceDefault": "<username>-che"
@@ -74,7 +63,6 @@ metadata:
               "postgresPVCStorageClassName": "",
               "preCreateSubPaths": true,
               "pvcClaimSize": "1Gi",
-              "pvcJobsImage": "",
               "pvcStrategy": "common",
               "workspacePVCStorageClassName": ""
             }
@@ -102,14 +90,6 @@ spec:
         displayName: Eclipse Che Cluster
         kind: CheCluster
         name: checlusters.org.eclipse.che
-        specDescriptors:
-          - description: Deprecated. Instructs the Operator to deploy Che in TLS mode.
-              This is enabled by default. Disabling TLS sometimes cause malfunction
-              of some Che components.
-            displayName: TLS support
-            path: server.tlsSupport
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
         statusDescriptors:
           - description: Status of a Che installation. Can be `Available`, `Unavailable`,
               or `Available, Rolling Update in Progress`.
@@ -125,6 +105,11 @@ spec:
           - description: Current installed Che version.
             displayName: 'displayName: Eclipse Che version'
             path: cheVersion
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Public URL to the devfile registry.
+            displayName: Devfile registry URL
+            path: devfileRegistryURL
             x-descriptors:
               - urn:alm:descriptor:org.w3:link
           - description: A URL that points to some URL where to find help related
@@ -151,6 +136,11 @@ spec:
             path: openShiftOAuthUserCredentialsSecret
             x-descriptors:
               - urn:alm:descriptor:text
+          - description: Public URL to the plugin registry.
+            displayName: Plugin registry URL
+            path: pluginRegistryURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
           - description: A brief CamelCase message indicating details about why the
               Pod is in this state.
             displayName: Reason
@@ -223,7 +213,7 @@ spec:
     Status:
       Che Cluster Running:           Available
       Che URL:                       http://che-my-eclipse-che.gcp.my-ide.cloud
-      Che Version:                   7.0.0
+      Che Version:                   7.26.0
       ...
     ```
 
@@ -231,9 +221,9 @@ spec:
     ## Defaults
     By default, the operator deploys Eclipse Che with:
     * Bundled PostgreSQL and Keycloak
-    * Per-Workspace PVC strategy
+    * Common PVC strategy
     * Auto-generated passwords
-    * TLS mode (secure routes)
+    * TLS mode (secure ingresses)
     ## Installation Options
     Eclipse Che operator installation options include:
     * Connection to external database and Keycloak
