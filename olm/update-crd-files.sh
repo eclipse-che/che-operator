@@ -37,6 +37,7 @@ check() {
 
 updateFiles() {
   pushd "${BASE_DIR}"/.. || true
+  pwd
   "${OPERATOR_SDK_BINARY}" generate k8s
   "${OPERATOR_SDK_BINARY}" generate crds
   popd
