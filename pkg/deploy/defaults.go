@@ -18,8 +18,6 @@ import (
 	"os"
 	"strings"
 
-	"sigs.k8s.io/yaml"
-
 	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -424,12 +422,7 @@ func InitDefaultsFromEnv() {
 
 func InitTestDefaultsFromDeployment(deploymentFile string) error {
 	operator := &appsv1.Deployment{}
-	data, err := ioutil.ReadFile(deploymentFile)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.Unmarshal(data, operator)
+	err := util.ReadObject(deploymentFile, operator)
 	if err != nil {
 		return err
 	}

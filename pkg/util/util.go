@@ -36,6 +36,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -417,6 +418,20 @@ func FindEnv(envs []corev1.EnvVar, name string) *corev1.EnvVar {
 		if env.Name == name {
 			return &env
 		}
+	}
+
+	return nil
+}
+
+func ReadObject(yamlFile string, obj interface{}) error {
+	data, err := ioutil.ReadFile(yamlFile)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(data, obj)
+	if err != nil {
+		return err
 	}
 
 	return nil
