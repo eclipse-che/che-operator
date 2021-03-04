@@ -340,14 +340,12 @@ login() {
 }
 
 deployDevWorkspaceController() {
-  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspaces": {"enable": "true"}}}'
-  oc get checluster eclipse-che -n ${NAMESPACE} -o yaml
-  oc get crd checlusters.org.eclipse.che -o yaml
+  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": "true"}}}'
 }
 
 waitDevWorkspaceControllerStarted() {
   n=0
-  while [ $n -le 5 ]
+  while [ $n -le 24 ]
   do
     webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
     echo "[INFO] Webhooks: ${webhooks}"
@@ -356,14 +354,14 @@ waitDevWorkspaceControllerStarted() {
       return
     fi
 
-    sleep 60
+    sleep 5
     n=$(( n+1 ))
-
-    OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
-    oc logs ${OPERATOR_POD} -n ${NAMESPACE}
   done
 
-  echo "Failed to deploy Dev Workspace controller"
+  echo "[ERROR] Failed to deploy Dev Workspace controller"
+  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
+  oc logs ${OPERATOR_POD} -n ${NAMESPACE}
+
   exit 1
 }
 
