@@ -345,9 +345,10 @@ deployDevWorkspaceController() {
 
 waitDevWorkspaceControllerStarted() {
   n=0
-  while [ $n -le 24 ] # 2 minutes
+  while [ $n -le 120 ]
   do
     webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
+    echo "[INFO] Webhooks: ${webhooks}"
     if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
       echo "[INFO] Dev Workspace controller has been deployed"
       return
@@ -367,9 +368,10 @@ createWorksaceDevWorkspaceController () {
 
 waitWorkspaceStartedDevWorkspaceController() {
   n=0
-  while [ $n -le 24 ] # 2 minutes
+  while [ $n -le 120 ]
   do
     pods=$(oc get pods -n default)
+    echo "[INFO] Pod status: ${pods}"
     if [[ $pods =~ .*Running.* ]]; then
       echo "[INFO] Wokrspace started succesfully"
       return

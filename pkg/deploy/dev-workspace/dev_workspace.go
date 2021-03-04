@@ -60,7 +60,7 @@ var (
 	// cachedObjects
 	cachedObj = make(map[string]metav1.Object)
 	syncItems = []func(*deploy.DeployContext) (bool, error){
-		syncNamespace,
+		createNamespace,
 		syncServiceAccount,
 		syncClusterRole,
 		syncProxyClusterRole,
@@ -134,8 +134,19 @@ func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
 	return errors.New("A non matching version of the Dev Workspace operator is already installed")
 }
 
-func syncNamespace(deployContext *deploy.DeployContext) (bool, error) {
-	return deploy.CreateNamespace(deployContext, DevWorkspaceNamespace)
+func createNamespace(deployContext *deploy.DeployContext) (bool, error) {
+	namespace := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: DevWorkspaceNamespace,
+		},
+		Spec: corev1.NamespaceSpec{},
+	}
+
+	return deploy.CreateIfNotExists(deployContext, namespace)
 }
 
 func syncServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
