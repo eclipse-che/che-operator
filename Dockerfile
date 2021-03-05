@@ -13,6 +13,8 @@
 # NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
 # NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
+ARG DEV_WORKSPACE_CONTROLLER_VERSION="master"
+
 FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.15-4  as builder
 ENV PATH=/opt/rh/go-toolset-1.13/root/usr/bin:${PATH} \
     GOPATH=/go/
@@ -21,10 +23,16 @@ USER root
 ADD . /che-operator
 WORKDIR /che-operator
 
+# build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
     export MOCK_API=true && \
     go test -mod=vendor -v ./... && \
     GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
+
+# download devworkspace-operator templates
+RUN curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip && \
+    unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp
+
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.3-291
@@ -34,6 +42,8 @@ COPY --from=builder /che-operator/templates/keycloak-provision.sh /tmp/keycloak-
 COPY --from=builder /che-operator/templates/oauth-provision.sh /tmp/oauth-provision.sh
 COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
+COPY --from=builder /tmp/devfile-devworkspace-operator-*/deploy /tmp/devworkspace-operator/templates
+
 # apply CVE fixes, if required
 RUN microdnf update -y librepo libnghttp2 && microdnf install httpd-tools && microdnf clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
 CMD ["che-operator"]

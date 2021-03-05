@@ -15,7 +15,6 @@ metadata:
               "externalIdentityProvider": false,
               "identityProviderAdminUserName": "",
               "identityProviderClientId": "",
-              "identityProviderImage": "",
               "identityProviderPassword": "",
               "identityProviderRealm": "",
               "identityProviderURL": "",
@@ -29,8 +28,10 @@ metadata:
               "chePostgresPassword": "",
               "chePostgresPort": "",
               "chePostgresUser": "",
-              "externalDb": false,
-              "postgresImage": ""
+              "externalDb": false
+            },
+            "devWorkspace": {
+              "enable": false
             },
             "metrics": {
               "enable": true
@@ -39,24 +40,15 @@ metadata:
               "allowUserDefinedWorkspaceNamespaces": false,
               "cheClusterRoles": "",
               "cheFlavor": "",
-              "cheImage": "",
-              "cheImageTag": "",
               "cheWorkspaceClusterRole": "",
-              "devfileRegistryImage": "",
               "gitSelfSignedCert": false,
               "nonProxyHosts": "",
-              "pluginRegistryImage": "",
               "proxyPassword": "",
               "proxyPort": "",
               "proxyURL": "",
               "proxyUser": "",
               "serverExposureStrategy": "",
-              "serverMemoryLimit": "",
-              "serverMemoryRequest": "",
               "serverTrustStoreConfigMapName": "",
-              "singleHostGatewayConfigMapLabels": {},
-              "singleHostGatewayConfigSidecarImage": "",
-              "singleHostGatewayImage": "",
               "tlsSupport": true,
               "useInternalClusterSVCNames": true,
               "workspaceNamespaceDefault": "<username>-che"
@@ -65,7 +57,6 @@ metadata:
               "postgresPVCStorageClassName": "",
               "preCreateSubPaths": true,
               "pvcClaimSize": "1Gi",
-              "pvcJobsImage": "",
               "pvcStrategy": "common",
               "workspacePVCStorageClassName": ""
             }
@@ -76,13 +67,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-02-17T11:12:27Z"
+    createdAt: "2021-03-04T16:28:11Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.27.0-104.nightly
+  name: eclipse-che-preview-openshift.v7.28.0-120.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -93,14 +84,6 @@ spec:
         displayName: Eclipse Che Cluster
         kind: CheCluster
         name: checlusters.org.eclipse.che
-        specDescriptors:
-          - description: Deprecated. Instructs the Operator to deploy Che in TLS mode.
-              This is enabled by default. Disabling TLS sometimes cause malfunction
-              of some Che components.
-            displayName: TLS support
-            path: server.tlsSupport
-            x-descriptors:
-              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
         statusDescriptors:
           - description: Status of a Che installation. Can be `Available`, `Unavailable`,
               or `Available, Rolling Update in Progress`.
@@ -116,6 +99,11 @@ spec:
           - description: Current installed Che version.
             displayName: 'displayName: Eclipse Che version'
             path: cheVersion
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Public URL to the devfile registry.
+            displayName: Devfile registry URL
+            path: devfileRegistryURL
             x-descriptors:
               - urn:alm:descriptor:org.w3:link
           - description: A URL that points to some URL where to find help related
@@ -142,6 +130,11 @@ spec:
             path: openShiftOAuthUserCredentialsSecret
             x-descriptors:
               - urn:alm:descriptor:text
+          - description: Public URL to the plugin registry.
+            displayName: Plugin registry URL
+            path: pluginRegistryURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
           - description: A brief CamelCase message indicating details about why the
               Pod is in this state.
             displayName: Reason
@@ -158,7 +151,7 @@ spec:
 
     Press the **Install** button, choose the upgrade strategy, and wait for the **Installed** Operator status.
 
-    When the operator is installed, create a new CR of Kind CheCluster (click the **Create New** button).
+    When the operator is installed, create a new CR of Kind CheCluster (click the **Create New** or **Create Instance** button).
     The CR spec contains all defaults (see below).
 
     You can start using Eclipse Che when the CR status is set to **Available**, and you see a URL to Eclipse Che.
@@ -169,7 +162,7 @@ spec:
 
     * Bundled PostgreSQL and Keycloak
 
-    * Per-Workspace PVC strategy
+    * Common PVC strategy
 
     * Auto-generated passwords
 
@@ -256,6 +249,7 @@ spec:
                 - create
                 - get
                 - delete
+                - deletecollection
                 - list
                 - patch
                 - update
@@ -349,6 +343,9 @@ spec:
                 - get
                 - create
                 - delete
+                - list
+                - update
+                - watch
             - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
@@ -358,6 +355,8 @@ spec:
                 - create
                 - update
                 - delete
+                - list
+                - watch
             - apiGroups:
                 - org.eclipse.che
               resources:
@@ -389,11 +388,22 @@ spec:
             - apiGroups:
                 - ""
               resources:
+                - configmaps
+                - persistentvolumeclaims
+                - pods
+                - secrets
                 - serviceaccounts
+                - services
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
               verbs:
                 - get
-                - create
-                - watch
+                - update
+                - patch
             - apiGroups:
                 - ""
               resources:
@@ -407,94 +417,123 @@ spec:
               verbs:
                 - list
             - apiGroups:
-                - ""
-              resources:
-                - secrets
-              verbs:
-                - list
-                - get
-                - create
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - persistentvolumeclaims
-              verbs:
-                - create
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - ""
-              resources:
-                - pods
-              verbs:
-                - get
-                - list
-                - create
-                - watch
-                - delete
-            - apiGroups:
                 - apps
+                - extensions
               resources:
                 - deployments
+                - replicasets
               verbs:
-                - get
-                - list
-                - create
-                - patch
-                - watch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - services
-              verbs:
-                - list
-                - create
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - create
-                - delete
-                - list
+                - '*'
             - apiGroups:
                 - route.openshift.io
               resources:
                 - routes
               verbs:
-                - list
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
                 - create
-                - delete
             - apiGroups:
                 - ""
               resources:
                 - events
               verbs:
                 - watch
+                - create
+                - patch
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - create
+                - get
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
             - apiGroups:
                 - apps
+              resourceNames:
+                - devworkspace-controller
               resources:
-                - replicasets
+                - deployments/finalizers
               verbs:
-                - list
-                - get
-                - patch
-                - delete
+                - update
             - apiGroups:
                 - extensions
               resources:
                 - ingresses
               verbs:
-                - list
+                - '*'
+            - apiGroups:
+                - workspace.devfile.io
+              resources:
+                - '*'
+              verbs:
+                - '*'
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - '*'
+              verbs:
+                - '*'
+            - apiGroups:
+                - admissionregistration.k8s.io
+              resources:
+                - mutatingwebhookconfigurations
+                - validatingwebhookconfigurations
+              verbs:
                 - create
-                - watch
-                - get
                 - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - subscriptions
+              verbs:
+                - get
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - get
+                - create
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - list
+                - watch
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
@@ -757,4 +796,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.27.0-104.nightly
+  version: 7.28.0-120.nightly

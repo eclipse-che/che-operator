@@ -54,6 +54,9 @@ type CheClusterSpec struct {
 	// Kubernetes Image Puller configuration
 	// +optional
 	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
+	// Dev Workspace operator configuration
+	// +optional
+	DevWorkspace CheClusterSpecDevWorkspace `json:"devWorkspace"`
 }
 
 // +k8s:openapi-gen=true
@@ -131,12 +134,9 @@ type CheClusterSpecServer struct {
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
 	// +optional
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="TLS support"
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	TlsSupport bool `json:"tlsSupport"`
 	// Use internal cluster SVC names to communicate between components to speed up the traffic and avoid proxy issues.
-	// The default value is `false`.
+	// The default value is `true`.
 	// +optional
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
 	// Public URL of the devfile registry, that serves sample, ready-to-use devfiles.
@@ -226,7 +226,7 @@ type CheClusterSpecServer struct {
 	// Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration
 	// and no additional configuration is required, but defining `proxyUrl` in a custom resource leads to overrides the cluster proxy configuration
 	// with fields `proxyUrl`, `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource.
-	// See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html). See also the `proxyPort` and `nonProxyHosts` fields.
+	// See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyPort` and `nonProxyHosts` fields.
 	// +optional
 	ProxyURL string `json:"proxyURL,omitempty"`
 	// Port of the proxy server. Only use when configuring a proxy is required. See also the `proxyURL` and `nonProxyHosts` fields.
@@ -236,7 +236,7 @@ type CheClusterSpecServer struct {
 	// Specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, for example: `localhost|.my.host.com|123.42.12.32`
 	// Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required,
 	// but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources.
-	// See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html). See also the `proxyURL` fields.
+	// See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.
 	NonProxyHosts string `json:"nonProxyHosts,omitempty"`
 	// User name of the proxy server. Only use when configuring a proxy is required. See also the `proxyURL`, `proxyPassword` and `proxySecret` fields.
 	// +optional
@@ -546,6 +546,19 @@ type CheClusterSpecImagePuller struct {
 	Spec chev1alpha1.KubernetesImagePullerSpec `json:"spec"`
 }
 
+// +k8s:openapi-gen=true
+// Settings for installation and configuration of the Dev Workspace operator
+// See https://github.com/devfile/devworkspace-operator
+type CheClusterSpecDevWorkspace struct {
+	// Deploys the DevWorkspace Operator in the cluster.
+	// Does nothing when a matching version of the Operator is already installed.
+	// Fails when a non-matching version of the Operator is already installed.
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=false
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Enable Dev Workspace operator"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	Enable bool `json:"enable"`
+}
+
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
 	// OpenShift OAuth secret that contains user credentials for HTPasswd identity provider.
@@ -592,9 +605,15 @@ type CheClusterStatus struct {
 	KeycloakURL string `json:"keycloakURL"`
 	// Public URL to the devfile registry.
 	// +optional
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Devfile registry URL"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
 	DevfileRegistryURL string `json:"devfileRegistryURL"`
 	// Public URL to the plugin registry.
 	// +optional
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Plugin registry URL"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
 	PluginRegistryURL string `json:"pluginRegistryURL"`
 	// A human readable message indicating details about why the Pod is in this condition.
 	// +optional

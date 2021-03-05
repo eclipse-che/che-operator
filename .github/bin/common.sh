@@ -28,6 +28,7 @@ catchFinish() {
 initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
+  export USER_NAMEPSACE="che-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
@@ -336,4 +337,67 @@ login() {
     # log in using OpenShift token
     chectl auth:login --chenamespace=${NAMESPACE}
   fi
+}
+
+# Deploy Eclipse Che behind proxy in openshift ci
+deployCheBehindProxy() {
+  # Get the ocp domain for che custom resources
+  export DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
+
+  # Related issue:https://github.com/eclipse/che/issues/17681
+    cat >/tmp/che-cr-patch.yaml <<EOL
+spec:
+  server:
+    nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
+EOL
+
+  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
+  oc get checluster eclipse-che -n eclipse-che -o yaml
+}
+
+deployDevWorkspaceController() {
+  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": true}}}'
+}
+
+waitDevWorkspaceControllerStarted() {
+  n=0
+  while [ $n -le 24 ]
+  do
+    webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
+    if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
+      echo "[INFO] Dev Workspace controller has been deployed"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "[ERROR] Failed to deploy Dev Workspace controller"
+  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
+  oc logs ${OPERATOR_POD} -n ${NAMESPACE}
+
+  exit 1
+}
+
+createWorksaceDevWorkspaceController () {
+  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
+}
+
+waitWorkspaceStartedDevWorkspaceController() {
+  n=0
+  while [ $n -le 24 ]
+  do
+    pods=$(oc get pods -n ${NAMESPACE})
+    if [[ $pods =~ .*Running.* ]]; then
+      echo "[INFO] Wokrspace started succesfully"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "Failed to start a workspace"
+  exit 1
 }

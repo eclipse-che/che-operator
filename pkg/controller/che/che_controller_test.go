@@ -833,8 +833,9 @@ func TestCheController(t *testing.T) {
 	}
 
 	clusterAPI := deploy.ClusterAPI{
-		Client: r.client,
-		Scheme: r.scheme,
+		Client:          r.client,
+		NonCachedClient: r.client,
+		Scheme:          r.scheme,
 	}
 
 	deployContext := &deploy.DeployContext{
