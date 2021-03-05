@@ -48,12 +48,12 @@ quay.io/eclipse/eclipse-che-openshift-opm-bundles:7.19.0-5.nightly
 ### Build custom nightly/stable OLM images
 
 For test purpose you can build your own "nightly" or "stable" CatalogSource and bundle images
-with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushBundleFormatImages.sh`:
+with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushBundle.sh`:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushBundleFormatImages.sh -p <openshift|kubernetes> -c <nightly|stable> -i <FROM-INDEX-IMAGE>
+  ./buildAndPushBundle.sh -p <openshift|kubernetes> -c <nightly|stable> -i <FROM-INDEX-IMAGE>
 ```
 
 This script will build and push for you two images: CatalogSource(index) and bundle one:
@@ -61,12 +61,12 @@ This script will build and push for you two images: CatalogSource(index) and bun
 * `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-<openshift|kubernetes>-opm-bundles:<CHE_VERSION>-<INCREMENTAL_VERSION>.nightly`
 * `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-<openshift|kubernetes>-opm-catalog:preview`
 
-CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and include them to your custom CatalogSource image. For this purpose you can specify the parameter `-i`. For example:
+CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and include them to your custom CatalogSource image. For this purpose you can specify the parameter `-i`:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushInitialBundle.sh -p openshift -n nightly -i "quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+  ./buildAndPushBundle.sh -p <openshift|kubernetes> -n <nightly|stable> -i <FROM-INDEX-IMAGE>
 ```
 
 ### Testing custom CatalogSource and bundle images on the Openshift

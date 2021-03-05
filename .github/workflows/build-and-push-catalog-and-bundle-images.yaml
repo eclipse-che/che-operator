@@ -17,7 +17,7 @@ on:
         - master
 jobs:
 
-  build:
+  build-and-push-images:
     name: Build
     runs-on: ubuntu-20.04
 
@@ -34,8 +34,10 @@ jobs:
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
 
-    - name: Build catalog source and opm bundle images and push
-      run: "${GITHUB_WORKSPACE}/olm/buildAndPushBundleFormatImages.sh -c 'nightly' -p 'kubernetes' -p 'openshift'"
+    - name: Build catalog source and opm bundle images and push to registry
+      run: >
+        ${GITHUB_WORKSPACE}/olm/buildAndPushBundle.sh -c 'nightly' -p 'openshift' &&
+        ${GITHUB_WORKSPACE}/olm/buildAndPushBundle.sh -c 'nightly' -p 'kubernetes'  
       env:
         IMAGE_REGISTRY_HOST: quay.io
         # Todo: set up eclipse org

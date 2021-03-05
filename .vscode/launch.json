@@ -111,21 +111,27 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushInitialBundle.sh) kubernetes",
+      "name": "Bash-Debug (buildAndPushBundle.sh) Kubernetes platfrom",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "program": "./buildAndPushBundle.sh",
       "args": [
-        "kubernetes"
+        "-p",
+        "kubernetes",
+        "-c",
+        "nightly"
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushInitialBundle.sh) openshift",
+      "name": "Bash-Debug (buildAndPushBundle.sh) Openshift platform",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "program": "./buildAndPushBundle.sh",
       "args": [
-        "openshift"
+        "-p",
+        "openshift",
+        "-c",
+        "nightly"
       ]
     },
     {

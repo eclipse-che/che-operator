@@ -50,7 +50,7 @@ do
         if [[ "${versionDir}" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
             OPM_BUNDLE_DIR="${bundle_dir}/${versionDir}"
             export OPM_BUNDLE_DIR
-            "${OPERATOR_REPO}/olm/buildAndPushBundleFormatImages.sh" -c "stable" -p "${platform}"
+            "${OPERATOR_REPO}/olm/buildAndPushBundle.sh" -c "stable" -p "${platform}"
         fi
     done
 
