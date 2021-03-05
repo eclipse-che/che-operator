@@ -50,15 +50,10 @@ getCurrentStableVersion() {
     exit 1
   fi
 
-  GO_VERSION_FILE=$(readlink -f "${BASE_DIR}/../version/version.go")
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
   LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
-  if [ -f "${LAST_STABLE_CSV}" ];then
-    lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
-  else
-    lastStableVersion=$(grep -o '[0-9]*\.[0-9]*\.[0-9]*' < "${GO_VERSION_FILE}")
-  fi
+  lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
   echo "${lastStableVersion}"
 }
 

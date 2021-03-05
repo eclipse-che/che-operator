@@ -17,7 +17,6 @@ REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-
 OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
 BASE_DIR="${OPERATOR_DIR}/olm"
 source ${BASE_DIR}/check-yq.sh
-GO_VERSION_FILE=$(readlink -f "${BASE_DIR}/../version/version.go")
 
 command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }
 
@@ -109,8 +108,6 @@ do
   -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=nightly/LABEL operators.operatorframework.io.bundle.channels.v1=stable/' \
   -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=nightly/LABEL operators.operatorframework.io.bundle.channel.default.v1=stable/' \
   -i "${BUNDLE_DOCKERFILE}"
-
-  sed -e "s|Version = \".*\"|Version = \"${RELEASE}\"|" -i "${GO_VERSION_FILE}"
 
   pushd "${CURRENT_DIR}" || true
 
