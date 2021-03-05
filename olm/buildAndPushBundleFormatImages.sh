@@ -14,7 +14,7 @@ set -ex
 
 usage () {
 	echo "Usage:   $0 -p [platform] -c [channel] -f [force-build-and-push] -i [from-index-image]"
-	echo "Example: ./olm/buildAndPushBundle.sh -c nightly -f true -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+	echo "Example: $0 -p openshift -c nightly -f true -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
