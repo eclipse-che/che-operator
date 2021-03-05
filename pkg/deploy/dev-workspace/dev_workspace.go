@@ -36,6 +36,8 @@ const (
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 
 	DevWorkspaceTemplates                     = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
+	DevWorkspaceCheTemplates                  = "/tmp/devworkspace-che-operator/templates/deployment/openshift/objects/"
+
 	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
 	DevWorkspaceRoleFile                      = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
 	DevWorkspaceClusterRoleFile               = DevWorkspaceTemplates + "/devworkspace-controller-role.ClusterRole.yaml"
@@ -51,6 +53,19 @@ const (
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
+
+	DevWorkspaceCheServiceAccountFile            = DevWorkspaceCheTemplates + "/devworkspace-che-serviceaccount.ServiceAccount.yaml"
+	DevWorkspaceCheRoleFile                      = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-role.Role.yaml"
+	DevWorkspaceCheClusterRoleFile               = DevWorkspaceCheTemplates + "/devworkspace-che-role.ClusterRole.yaml"
+	DevWorkspaceCheProxyClusterRoleFile          = DevWorkspaceCheTemplates + "/devworkspace-che-proxy-role.ClusterRole.yaml"
+	DevWorkspaceCheMetricsReaderClusterRoleFile  = DevWorkspaceCheTemplates + "/devworkspace-che-metrics-reader.ClusterRole.yaml"
+	DevWorkspaceCheRoleBindingFile               = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-rolebinding.RoleBinding.yaml"
+	DevWorkspaceCheClusterRoleBindingFile        = DevWorkspaceCheTemplates + "/devworkspace-che-rolebinding.ClusterRoleBinding.yaml"
+	DevWorkspaceCheProxyClusterRoleBindingFile   = DevWorkspaceCheTemplates + "/devworkspace-che-proxy-rolebinding.ClusterRoleBinding.yaml"
+	DevWorkspaceCheManagersCRDFile               = DevWorkspaceCheTemplates + "/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
+	DevWorkspaceCheConfigMapFile                 = DevWorkspaceCheTemplates + "/devworkspace-che-configmap.ConfigMap.yaml"
+	DevWorkspaceCheDeploymentFile                = DevWorkspaceCheTemplates + "/devworkspace-che-manager.Deployment.yaml"
+	DevWorkspaceCheMetricsServiceFile            = DevWorkspaceCheTemplates + "/devworkspace-che-controller-manager-metrics-service.Service.yaml"
 
 	WebTerminalOperatorSubscriptionName = "web-terminal"
 	WebTerminalOperatorNamespace        = "openshift-operators"
