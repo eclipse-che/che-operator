@@ -41,22 +41,9 @@ function check_che_crds() {
     fi
 }
 
-installYq() {
-  YQ=$(command -v yq) || true
-  if [[ ! -x "${YQ}" ]]; then
-    pip3 install wheel
-    pip3 install yq
-    # Make python3 installed modules "visible"
-    export PATH=$HOME/.local/bin:$PATH
-    ls "${HOME}/.local/bin"
-  fi
-  echo "[INFO] $(yq --version)"
-  echo "[INFO] $(jq --version)"
-}
-
 installOperatorSDK() {
-  YQ=$(command -v operator-sdk) || true
-  if [[ ! -x "${YQ}" ]]; then
+  OPERATOR_SDK_BINARY=$(command -v operator-sdk) || true
+  if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
     OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
     pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
     echo "[INFO] Downloading 'operator-sdk' cli tool..."
@@ -98,7 +85,6 @@ checkNightlyOlmBundle() {
   echo "[INFO] Nightly Olm bundle is in actual state."
 }
 
-installYq
 installOperatorSDK
 check_che_crds
 checkNightlyOlmBundle

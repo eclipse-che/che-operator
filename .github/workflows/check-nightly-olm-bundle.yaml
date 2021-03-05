@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2012-2020 Red Hat, Inc.
+#  Copyright (c) 2012-2021 Red Hat, Inc.
 #    This program and the accompanying materials are made
 #    available under the terms of the Eclipse Public License 2.0
 #    which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,17 +16,16 @@ on:
     branches:
       - master
 jobs:
-  build:
+  check-bundle-files:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
-      with:
-        path: go/src/github.com/eclipse/${{ github.repository }}
-        fetch-depth: 0
+
+    - name: Install yq
+      run: sudo pip install yq
+
     - name: Che operator code check.
       run: >-
-        export GOPATH="${GITHUB_WORKSPACE}/go" &&
-        echo "GOPATH: ${GOPATH}" &&
-        export GITHUB_WORKSPACE="${GOPATH}/src/github.com/eclipse/${{ github.repository }}" &&
-        cd ${GITHUB_WORKSPACE} &&
-        .github/bin/check-nightly-olm-bundle.sh
+        go version &&
+        export GOROOT=/opt/hostedtoolcache/go/1.15.8/x64/ &&
+        ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle.sh
