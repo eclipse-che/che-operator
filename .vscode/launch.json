@@ -111,9 +111,9 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushBundle.sh) Kubernetes platfrom",
+      "name": "Bash-Debug (buildAndPushBundleImages.sh) Kubernetes platfrom",
       "cwd": "${workspaceFolder}/olm",
-      "program": "./buildAndPushBundle.sh",
+      "program": "./buildAndPushBundleImages.sh",
       "args": [
         "-p",
         "kubernetes",
@@ -124,9 +124,9 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushBundle.sh) Openshift platform",
+      "name": "Bash-Debug (buildAndPushBundleImages.sh) Openshift platform",
       "cwd": "${workspaceFolder}/olm",
-      "program": "./buildAndPushBundle.sh",
+      "program": "./buildAndPushBundleImages.sh",
       "args": [
         "-p",
         "openshift",

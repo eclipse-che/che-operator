@@ -93,7 +93,7 @@ $ olm/update-nightly-bundle.sh
 3. Build catalog source and bundle images:
 
 ```bash
-$ olm/buildAndPushBundle.sh -p <openshift|kubernetes> -c "nightly"
+$ olm/buildAndPushBundleImages.sh -p <openshift|kubernetes> -c "nightly"
 ```
 
 4. Create a custom catalog source yaml (update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):

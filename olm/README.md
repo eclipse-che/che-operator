@@ -48,12 +48,12 @@ quay.io/eclipse/eclipse-che-openshift-opm-bundles:7.19.0-5.nightly
 ### Build custom nightly/stable OLM images
 
 For test purpose you can build your own "nightly" or "stable" CatalogSource and bundle images
-with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushBundle.sh`:
+with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushBundleImages.sh`:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushBundle.sh -p <openshift|kubernetes> -c <nightly|stable> -i <FROM-INDEX-IMAGE>
+  ./buildAndPushBundleImages.sh -p <openshift|kubernetes> -c <nightly|stable> -i <FROM-INDEX-IMAGE>
 ```
 
 This script will build and push for you two images: CatalogSource(index) and bundle one:
@@ -66,7 +66,7 @@ CatalogSource images are additive. It's mean that you can re-use bundles from an
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushBundle.sh -p <openshift|kubernetes> -n <nightly|stable> -i <FROM-INDEX-IMAGE>
+  ./buildAndPushBundleImages.sh -p <openshift|kubernetes> -n <nightly|stable> -i <FROM-INDEX-IMAGE>
 ```
 
 ### Testing custom CatalogSource and bundle images on the Openshift
