@@ -306,6 +306,15 @@ spec:
                     `latest` images, and `IfNotPresent` in other cases.
                   type: string
               type: object
+            devWorkspace:
+              description: Dev Workspace operator configuration
+              properties:
+                enable:
+                  description: Deploys the DevWorkspace Operator in the cluster. Does
+                    nothing when a matching version of the Operator is already installed.
+                    Fails when a non-matching version of the Operator is already installed.
+                  type: boolean
+              type: object
             imagePuller:
               description: Kubernetes Image Puller configuration
               properties:
@@ -591,7 +600,7 @@ spec:
                     is required, but defining `nonProxyHosts` in a custom resource
                     leads to merging non proxy hosts lists from the cluster proxy
                     configuration and ones defined in the custom resources. See the
-                    doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html).
+                    doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
                     See also the `proxyURL` fields.'
                   type: string
                 pluginRegistryCpuLimit:
@@ -672,7 +681,7 @@ spec:
                     is required, but defining `proxyUrl` in a custom resource leads
                     to overrides the cluster proxy configuration with fields `proxyUrl`,
                     `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource.
-                    See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html).
+                    See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
                     See also the `proxyPort` and `nonProxyHosts` fields.
                   type: string
                 proxyUser:
@@ -745,7 +754,7 @@ spec:
                 useInternalClusterSVCNames:
                   description: Use internal cluster SVC names to communicate between
                     components to speed up the traffic and avoid proxy issues. The
-                    default value is `false`.
+                    default value is `true`.
                   type: boolean
                 workspaceNamespaceDefault:
                   description: Defines Kubernetes default namespace in which user's
