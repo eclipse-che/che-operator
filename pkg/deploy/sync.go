@@ -16,70 +16,88 @@ import (
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if the object was created or updated, false if there was no change detected.
 func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	key := client.ObjectKey{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
+
+	actual, err := Get(deployContext, key, blueprint)
+	if err != nil {
+		return false, err
+	}
+
+	if actual == nil {
+		return Create(deployContext, key, blueprint)
+	}
+	return Update(deployContext, *actual, blueprint, diffOpts)
+}
+
+func CreateIfNotExists(deployContext *DeployContext, objectMeta metav1.Object) (bool, error) {
+	key := client.ObjectKey{Name: objectMeta.GetName(), Namespace: objectMeta.GetNamespace()}
+	exists, err := IsExists(deployContext, key, objectMeta)
+	if err != nil {
+		return false, err
+	}
+
+	if !exists {
+		return Create(deployContext, key, objectMeta)
+	}
+
+	return true, nil
+}
+
+// Indicates if objects exists
+func IsExists(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object) (bool, error) {
+	actualObject, err := Get(deployContext, key, objectMeta)
+	return actualObject != nil, err
+}
+
+// Gets object by key
+func Get(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object) (*runtime.Object, error) {
+	runtimeObject, ok := objectMeta.(runtime.Object)
+	if !ok {
+		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
+	client := getClientForObject(objectMeta, deployContext)
+	actual := runtimeObject.DeepCopyObject()
+
+	err := client.Get(context.TODO(), key, actual)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &actual, nil
+}
+
+func Create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (bool, error) {
 	blueprintObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
 	}
 
-	key := client.ObjectKey{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
-
-	actual := blueprintObject.DeepCopyObject()
-
-	if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
-		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
-			return false, getErr
-		}
-		actual = nil
-	}
-
-	if actual == nil {
-		_, err := create(deployContext, key, blueprint)
-		if err != nil {
-			return false, err
-		}
-
-		return true, nil
-	}
-
-	return update(deployContext, actual, blueprint, diffOpts)
-}
-
-func create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (runtime.Object, error) {
-	blueprintObject, ok := blueprint.(runtime.Object)
 	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
-	if !ok {
-		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
-	}
-
-	actual := blueprintObject.DeepCopyObject()
-
-	clusterAPI := deployContext.ClusterAPI
 	logrus.Infof("Creating a new object: %s, name %s", kind, blueprint.GetName())
+
 	obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	err = clusterAPI.Client.Create(context.TODO(), obj)
+	client := getClientForObject(blueprint, deployContext)
+	err = client.Create(context.TODO(), obj)
 	if err != nil {
-		if !errors.IsAlreadyExists(err) {
-			return nil, err
+		if errors.IsAlreadyExists(err) {
+			return false, nil
 		}
-
-		// ok, we got an already-exists error. So let's try to load the object into "actual".
-		// if we fail this retry for whatever reason, just give up rather than retrying this in a loop...
-		// the reconciliation loop will lead us here again in the next round.
-		if getErr := deployContext.ClusterAPI.Client.Get(context.TODO(), key, actual); getErr != nil {
-			return nil, getErr
-		}
+		return false, err
 	}
 
-	return actual, nil
+	return true, nil
 }
 
-func update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
-	clusterAPI := deployContext.ClusterAPI
-
+func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	client := getClientForObject(blueprint, deployContext)
 	actualMeta := actual.(metav1.Object)
 
 	diff := cmp.Diff(actual, blueprint, diffOpts)
@@ -89,7 +107,7 @@ func update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 		fmt.Printf("Difference:\n%s", diff)
 
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			err := clusterAPI.Client.Delete(context.TODO(), actual)
+			err := client.Delete(context.TODO(), actual)
 			if err != nil {
 				return false, err
 			}
@@ -99,7 +117,7 @@ func update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 				return false, err
 			}
 
-			err = clusterAPI.Client.Create(context.TODO(), obj)
+			err = client.Create(context.TODO(), obj)
 			return false, err
 		} else {
 			obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
@@ -110,7 +128,7 @@ func update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 			// to be able to update, we need to set the resource version of the object that we know of
 			obj.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
 
-			err = clusterAPI.Client.Update(context.TODO(), obj)
+			err = client.Update(context.TODO(), obj)
 			return false, err
 		}
 	}
@@ -121,17 +139,13 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func shouldSetOwnerReference(kind string) bool {
-	return "OAuthClient" != kind
-}
-
 func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj metav1.Object) (runtime.Object, error) {
 	robj, ok := obj.(runtime.Object)
 	if !ok {
 		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
 	}
 
-	if !shouldSetOwnerReference(robj.GetObjectKind().GroupVersionKind().Kind) {
+	if !shouldSetOwnerReferenceForObject(deployContext, obj) {
 		return robj, nil
 	}
 
@@ -141,4 +155,17 @@ func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj meta
 	}
 
 	return robj, nil
+}
+
+func shouldSetOwnerReferenceForObject(deployContext *DeployContext, obj metav1.Object) bool {
+	// empty workspace (cluster scope object) or object in another namespace
+	return obj.GetNamespace() == deployContext.CheCluster.Namespace
+}
+
+func getClientForObject(objectMeta metav1.Object, deployContext *DeployContext) client.Client {
+	// empty namespace (cluster scope object) or object in another namespace
+	if deployContext.CheCluster.Namespace == objectMeta.GetNamespace() {
+		return deployContext.ClusterAPI.Client
+	}
+	return deployContext.ClusterAPI.NonCachedClient
 }

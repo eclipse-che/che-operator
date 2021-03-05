@@ -54,6 +54,9 @@ type CheClusterSpec struct {
 	// Kubernetes Image Puller configuration
 	// +optional
 	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
+	// Dev Workspace operator configuration
+	// +optional
+	DevWorkspace CheClusterSpecDevWorkspace `json:"devWorkspace"`
 }
 
 // +k8s:openapi-gen=true
@@ -541,6 +544,19 @@ type CheClusterSpecImagePuller struct {
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
 	// +optional
 	Spec chev1alpha1.KubernetesImagePullerSpec `json:"spec"`
+}
+
+// +k8s:openapi-gen=true
+// Settings for installation and configuration of the Dev Workspace operator
+// See https://github.com/devfile/devworkspace-operator
+type CheClusterSpecDevWorkspace struct {
+	// Deploys the DevWorkspace Operator in the cluster.
+	// Does nothing when a matching version of the Operator is already installed.
+	// Fails when a non-matching version of the Operator is already installed.
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=false
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Enable Dev Workspace operator"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	Enable bool `json:"enable"`
 }
 
 // CheClusterStatus defines the observed state of Che installation
