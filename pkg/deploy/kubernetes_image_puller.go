@@ -275,7 +275,7 @@ func CheckNeededImagePullerApis(ctx *DeployContext) (bool, bool, bool, error) {
 
 	for _, l := range resourcesList {
 		for _, r := range l.APIResources {
-			if r.Kind == "KubernetesImagePuller" {
+			if l.GroupVersion == chev1alpha1.SchemeGroupVersion.String() && r.Kind == "KubernetesImagePuller" {
 				foundKubernetesImagePullerAPI = true
 			}
 		}
