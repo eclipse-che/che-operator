@@ -16,7 +16,7 @@ on:
     branches: 
       - master
     paths:
-      - 'olm/eclipse-che-preview-*/deploy/olm-catalog/eclipse-che-preview-*/eclipse-che-preview-*.package.yaml'
+      - 'deploy/olm-catalog/stable/eclipse-che-preview-*/manifests/che-operator.clusterserviceversion.yaml'
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
           set -e
           # if not run manually, need to compute che docs version from latest released CSV
           if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
-            chedocsVersion=$(yq -r '.channels[].currentCSV' olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/eclipse-che-preview-openshift.package.yaml | sed -e "s#eclipse-che-preview-openshift.v##")
+            chedocsVersion=$(yq -r '.spec.version' deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml")
           else
             chedocsVersion="${{ github.event.inputs.version }}"
           fi

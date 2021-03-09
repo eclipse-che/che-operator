@@ -58,10 +58,10 @@ installOperatorSDK() {
 }
 
 checkNightlyOlmBundle() {
-  local CSV_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  local CSV_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-  local CRD_FILE_KUBERNETES="deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
-  local CRD_FILE_OPENSHIFT="deploy/olm-catalog/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+  local CSV_FILE_KUBERNETES="deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+  local CSV_FILE_OPENSHIFT="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  local CRD_FILE_KUBERNETES="deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+  local CRD_FILE_OPENSHIFT="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
 
   export NO_DATE_UPDATE="true"
   export NO_INCREMENT="true"

@@ -16,7 +16,7 @@ SCRIPTS_DIR=$(cd "$(dirname "$0")" || exit 1; pwd)
 BASE_DIR="$1"
 QUIET=""
 
-PODMAN=$(command -v podman)
+PODMAN=$(command -v podman || true)
 if [[ ! -x $PODMAN ]]; then
   echo "[WARNING] podman is not installed."
   PODMAN=$(command -v docker)
@@ -29,7 +29,7 @@ command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting.
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
-	echo "Example: $0 -w $(pwd) -c $(pwd)/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.9.0/eclipse-che-preview-kubernetes.v7.9.0.clusterserviceversion.yaml -t 7.9.0"
+	echo "Example: $0 -w $(pwd) -c $(pwd)/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml -t 7.26.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -37,7 +37,7 @@ if [[ $# -lt 1 ]]; then usage; exit; fi
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
-    '-c') CSV="$2"; CSVS+=("${CSV}");shift 1;;
+    '-c') CSV="$2";shift 1;;
     '-t') IMAGE_TAG="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
     '--help'|'-h') usage; exit;;
@@ -49,7 +49,7 @@ if [[ ! $CSV ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
 
 mkdir -p "${BASE_DIR}/generated"
 
-echo "[INFO] Get images from CSV ${CSV}"
+echo "[INFO] Get images from CSV: ${CSV}"
 
 # shellcheck source=images.sh
 . "${SCRIPTS_DIR}"/images.sh

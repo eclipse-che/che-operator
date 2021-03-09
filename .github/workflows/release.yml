@@ -30,6 +30,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install operator-courier==2.1.7
           pip install yq
+          pip install semver
           # get base32 util from che-release project
           wget https://raw.githubusercontent.com/eclipse/che-release/master/utils/base32
           # copy base32 python-based helper script into dir that's accessed from PATH (so it's accessible to this and other called scripts) 
@@ -38,6 +39,9 @@ jobs:
           #remove base32 from current directory to avoid it being commited during release
           rm $(pwd)/base32 
       - name: Release operator
+        env:
+          IMAGE_REGISTRY_HOST: quay.io
+          IMAGE_REGISTRY_USER_NAME: eclipse
         run: |
           CHE_VERSION=${{ github.event.inputs.version }}
           echo "CHE_VERSION=${CHE_VERSION}"
@@ -83,7 +87,7 @@ jobs:
           # https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes?tab=releases and
           # https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift?tab=releases
           git checkout ${CHE_VERSION}-release
-          ./make-release.sh ${CHE_VERSION} --push-olm-files
+          ./make-release.sh ${CHE_VERSION} --push-olm-bundles
 
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}

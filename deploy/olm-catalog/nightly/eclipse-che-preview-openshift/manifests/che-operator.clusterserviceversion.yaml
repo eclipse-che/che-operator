@@ -33,15 +33,6 @@ metadata:
             "devWorkspace": {
               "enable": false
             },
-            "k8s": {
-              "ingressClass": "",
-              "ingressDomain": "",
-              "ingressStrategy": "",
-              "securityContextFsGroup": "",
-              "securityContextRunAsUser": "",
-              "singleHostExposureType": "",
-              "tlsSecretName": "che-tls"
-            },
             "metrics": {
               "enable": true
             },
@@ -73,16 +64,16 @@ metadata:
         }
       ]
     capabilities: Seamless Upgrades
-    categories: Developer Tools
+    categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-03-04T16:28:02Z"
+    createdAt: "2021-03-05T16:30:13Z"
     description: A Kube-native development solution that delivers portable and collaborative
-      developer workspaces.
+      developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.28.0-120.nightly
+  name: eclipse-che-preview-openshift.v7.27.0-112.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -153,109 +144,94 @@ spec:
               - urn:alm:descriptor:text
         version: v1
   description: |
-    A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development.
-    This operator installs PostgreSQL, Keycloak, Registries and the Eclipse Che server, as well as configures all these services.
-    ## Prerequisites
-    - Operator Lifecycle Manager (OLM) needs to be installed.
-    - Kubernetes Platform. For OpenShift, the installation is directly made from OperatorHub UI in the admin console.
-
-    OLM installation can be checked by running the command:
-    ```
-    $ kubectl get pods --all-namespaces | grep olm
-    olm             catalog-operator-7b8cd7f8bf-2v7zj                       1/1     Running   0          10m
-    olm             olm-operator-5c5c798cd5-s6ll5                           1/1     Running   0          10m
-    olm             olm-operators-fm5wc                                     1/1     Running   0          10m
-    olm             operatorhubio-catalog-d78km                             1/1     Running   0          10m
-    olm             packageserver-5c5f64947b-trghp                          1/1     Running   0          9m56s
-    olm             packageserver-5c5f64947b-zqvxg                          1/1     Running   0          9m56s
-    ```
+    A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.
+    This operator installs PostgreSQL, Keycloak, and the Eclipse Che server, as well as configures all three services.
 
     ## How to Install
-    Install `Eclipse Che Operator` by following instructions in top right button `Install`.
 
-    A new pod che-operator is created in `my-eclipse-che` namespace
+    Press the **Install** button, choose the upgrade strategy, and wait for the **Installed** Operator status.
 
-    ```
-    $ kubectl get pods --all-namespaces | grep my-eclipse-che
-    my-eclipse-che   che-operator-554c564476-fl98z                           1/1     Running   0          13s
-    ```
+    When the operator is installed, create a new CR of Kind CheCluster (click the **Create New** button).
+    The CR spec contains all defaults (see below).
 
-    The operator is now providing new Custom Resources Definitions: `checluster.org.eclipse.che`
+    You can start using Eclipse Che when the CR status is set to **Available**, and you see a URL to Eclipse Che.
 
-    Create a new Eclipse Che instance by creating a new CheCluster resource:
-
-    On the bottom of this page, there is a section `Custom Resource Definitions` with `Eclipse Che Cluster` name.
-
-    Click on `View YAML Example` *Link* and copy the content to a new file named `my-eclipse-che.yaml`
-    **Important!** Make sure you provide **K8s.ingressDomain** which is a global ingress domain of your k8s cluster, for example, `gcp.my-ide.cloud`
-    Create the new CheCluster by creating the resource in the `my-eclipse-che` namespace :
-    ```
-    $ kubectl create -f my-eclipse-che.yaml -n my-eclipse-che
-    ```
-    ***important:*** The operator is only tracking resources in its own namespace. If CheCluster is not created in this namespace it's ignored.
-    The operator will now create pods for Eclipse Che. The deployment status can be tracked by looking at the Operator logs by using the command:
-    ```
-    $ kubectl logs -n my-eclipse-che che-operator-554c564476-fl98z
-    ```
-    ***important:*** pod name is different on each installation
-
-    When all Eclipse Che containers are running, the Eclipse Che URL is printed
-
-
-    Eclipse Che URL can be tracked by searching for available trace:
-    ```
-    $ kubectl logs -f -n my-eclipse-che che-operator-7b6b4bcb9c-m4m2m | grep "Eclipse Che is now available"
-    time="2019-08-01T13:31:05Z" level=info msg="Eclipse Che is now available at: http://che-my-eclipse-che.gcp.my-ide.cloud"
-    ```
-    When Eclipse Che is ready, the Eclipse Che URL is displayed in CheCluster resource in `status` section
-    ```
-    $ kubectl describe checluster/eclipse-che -n my-eclipse-che
-    ```
-
-    ```
-    Status:
-      Che Cluster Running:           Available
-      Che URL:                       http://che-my-eclipse-che.gcp.my-ide.cloud
-      Che Version:                   7.26.0
-      ...
-    ```
-
-    By opening this URL in a web browser, Eclipse Che is ready to use.
     ## Defaults
+
     By default, the operator deploys Eclipse Che with:
+
     * Bundled PostgreSQL and Keycloak
-    * Common PVC strategy
+
+    * Per-Workspace PVC strategy
+
     * Auto-generated passwords
-    * TLS mode (secure ingresses)
+
+    * TLS mode (secure routes)
+
+    * Regular login extended with OpenShift OAuth authentication
+
     ## Installation Options
+
     Eclipse Che operator installation options include:
+
     * Connection to external database and Keycloak
+
     * Configuration of default passwords and object names
+
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
+
     * Authentication options
+
     ### External Database and Keycloak
+
     To instruct the operator to skip deploying PostgreSQL and Keycloak and connect to an existing DB and Keycloak instead:
+
     * set respective fields to `true` in a custom resource spec
+
     * provide the operator with connection and authentication details:
-      ```
-      externalDb: true
-      chePostgresHostname: 'yourPostgresHost'
-      chePostgresPort: '5432'
-      chePostgresUser: 'myuser'
-      chePostgresPassword: 'mypass'
-      chePostgresDb: 'mydb'
-      externalIdentityProvider: true
-      identityProviderURL: 'https://my-keycloak.com'
-      identityProviderRealm: 'myrealm'
-      identityProviderClientId: 'myClient'
-      ```
-    #### Self-signed Certificates and TLS Secrets
 
-    Eclipse Che uses self-signed certificates by default, as TLS mode is on by default.
 
-    To provide the name of the tls secret that will be used for Eclipse Che and workspaces ingresses:
+
+      `externalDb: true`
+
+
+      `chePostgresHostname: 'yourPostgresHost'`
+
+
+      `chePostgresPort: '5432'`
+
+
+      `chePostgresUser: 'myuser'`
+
+
+      `chePostgresPassword: 'mypass'`
+
+
+      `chePostgresDb: 'mydb'`
+
+
+      `externalIdentityProvider: true`
+
+
+      `identityProviderURL: 'https://my-keycloak.com'`
+
+
+      `identityProviderRealm: 'myrealm'`
+
+
+      `identityProviderClientId: 'myClient'`
+
+
+    #### Self-signed Certificates
+
+    Eclipse Che uses self-signed certificates by default.
+
+    You can also manually create a secret:
+
+
+
     ```
-    tlsSecretName: 'my-ingress-tls-secret'
+    oc create secret generic self-signed-certificate  --from-file=/path/to/certificate/ca.crt -n=$codeReadyNamespace
     ```
   displayName: Eclipse Che
   icon:
@@ -265,6 +241,61 @@ spec:
     spec:
       clusterPermissions:
         - rules:
+            - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - get
+                - delete
+                - deletecollection
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - oauths
+              verbs:
+                - get
+                - list
+                - watch
+                - patch
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - infrastructures
+                - proxies
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - user.openshift.io
+              resources:
+                - users
+              verbs:
+                - list
+                - delete
+            - apiGroups:
+                - user.openshift.io
+              resources:
+                - identities
+              verbs:
+                - delete
+            - apiGroups:
+                - console.openshift.io
+              resources:
+                - consolelinks
+              verbs:
+                - get
+                - list
+                - create
+                - update
+                - patch
+                - delete
             - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
@@ -286,6 +317,23 @@ spec:
                 - watch
                 - update
                 - get
+                - delete
+            - apiGroups:
+                - authorization.openshift.io
+              resources:
+                - roles
+              verbs:
+                - get
+                - create
+                - delete
+            - apiGroups:
+                - authorization.openshift.io
+              resources:
+                - rolebindings
+              verbs:
+                - get
+                - create
+                - update
                 - delete
             - apiGroups:
                 - rbac.authorization.k8s.io
@@ -317,6 +365,13 @@ spec:
               verbs:
                 - '*'
             - apiGroups:
+                - project.openshift.io
+              resources:
+                - projectrequests
+              verbs:
+                - create
+                - update
+            - apiGroups:
                 - ""
               resources:
                 - namespaces
@@ -324,6 +379,12 @@ spec:
                 - get
                 - create
                 - update
+            - apiGroups:
+                - project.openshift.io
+              resources:
+                - projects
+              verbs:
+                - get
             - apiGroups:
                 - ""
               resources:
@@ -363,6 +424,18 @@ spec:
                 - replicasets
               verbs:
                 - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
+                - create
             - apiGroups:
                 - ""
               resources:
@@ -513,8 +586,6 @@ spec:
                         value: quay.io/eclipse/che-plugin-registry:nightly
                       - name: RELATED_IMAGE_devfile_registry
                         value: quay.io/eclipse/che-devfile-registry:nightly
-                      - name: RELATED_IMAGE_che_tls_secrets_creation_job
-                        value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
                       - name: RELATED_IMAGE_pvc_jobs
                         value: registry.access.redhat.com/ubi8-minimal:8.3-291
                       - name: RELATED_IMAGE_postgres
@@ -600,6 +671,13 @@ spec:
                 - batch
               resources:
                 - jobs
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+                - routes/custom-host
               verbs:
                 - '*'
             - apiGroups:
@@ -700,7 +778,6 @@ spec:
     - supported: false
       type: AllNamespaces
   keywords:
-    - eclipse che
     - workspaces
     - devtools
     - developer
@@ -719,4 +796,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.28.0-120.nightly
+  version: 7.27.0-112.nightly

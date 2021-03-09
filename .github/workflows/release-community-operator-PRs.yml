@@ -12,7 +12,7 @@ on:
     branches: 
       - master
     paths:
-      - 'olm/eclipse-che-preview-*/deploy/olm-catalog/eclipse-che-preview-*/eclipse-che-preview-*.package.yaml'
+      - 'deploy/olm-catalog/stable/eclipse-che-preview-*/manifests/che-operator.clusterserviceversion.yaml'
 
 jobs:
   build:

@@ -35,53 +35,37 @@ if [ "${namespace}" == "" ]; then
   namespace="eclipse-che-preview-test"
 fi
 
-IMAGE_REGISTRY_HOST=${IMAGE_REGISTRY_HOST:-quay.io}
-IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
-
 init() {
-  if [ "${channel}" == "stable" ]; then
-    packageName=eclipse-che-preview-${platform}
-    platformPath=${OPERATOR_REPO}/olm/${packageName}
-    packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
-    packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  IMAGE_REGISTRY_HOST=${IMAGE_REGISTRY_HOST:-quay.io}
+  IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
+  export CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:preview"
 
-    LATEST_CSV_NAME=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
-    lastPackageVersion=$(echo "${LATEST_CSV_NAME}" | sed -e "s/${packageName}.v//")
-    PREVIOUS_CSV_NAME=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${lastPackageVersion}/${packageName}.v${lastPackageVersion}.clusterserviceversion.yaml")
-    PACKAGE_VERSION=$(echo "${PREVIOUS_CSV_NAME}" | sed -e "s/${packageName}.v//")
-    INSTALLATION_TYPE="Marketplace"
-  else
-    packageFolderPath="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-${platform}"
-    PACKAGE_VERSION="nightly"
-    export CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:preview"
-    INSTALLATION_TYPE="catalog"
-  fi
+  source "${OPERATOR_REPO}/olm/olm.sh"
+
+  OPM_BUNDLE_DIR=$(getBundlePath "${platform}" "${channel}")
+  CSV_FILE_PATH="${OPM_BUNDLE_DIR}/manifests/che-operator.clusterserviceversion.yaml"
 }
 
 run() {
-  # $3 -> namespace
-  source "${OPERATOR_REPO}/olm/olm.sh" "${platform}" "${PACKAGE_VERSION}" "${namespace}" "${INSTALLATION_TYPE}"
-
-  createNamespace
+  createNamespace "${namespace}"
 
   installOperatorMarketPlace
+  installCatalogSource "${platform}" "${namespace}" "${CATALOG_IMAGENAME}"
 
-  if [ "${channel}" == "nightly" ]; then
-    getBundleListFromCatalogSource
-    getPreviousCSVInfo
-    getLatestCSVInfo
+  getBundleListFromCatalogSource "${platform}" "${namespace}"
+  getPreviousCSVInfo "${channel}"
+  getLatestCSVInfo "${channel}"
 
-    forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
-    forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
-  fi
+  forcePullingOlmImages "${namespace}" "${PREVIOUS_CSV_BUNDLE_IMAGE}"
+  forcePullingOlmImages "${namespace}" "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  subscribeToInstallation "${PREVIOUS_CSV_NAME}"
-  installPackage
+  subscribeToInstallation "${platform}" "${namespace}" "${channel}" "${PREVIOUS_CSV_NAME}"
+  installPackage "${platform}" "${namespace}"
   echo -e "\u001b[32m Installation of the previous che-operator version: ${PREVIOUS_CSV_NAME} successfully completed \u001b[0m"
-  applyCRCheCluster
-  waitCheServerDeploy
+  applyCRCheCluster "${platform}" "${namespace}" "${CSV_FILE_PATH}"
+  waitCheServerDeploy "${namespace}"
 
-  installPackage
+  installPackage "${platform}" "${namespace}"
   echo -e "\u001b[32m Installation of the latest che-operator version: ${LATEST_CSV_NAME} successfully completed \u001b[0m"
 }
 

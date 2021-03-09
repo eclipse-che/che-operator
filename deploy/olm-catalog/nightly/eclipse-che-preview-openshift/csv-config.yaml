@@ -1,0 +1,3 @@
+operator-path: deploy/operator.yaml
+role-paths: [ "deploy/olm-catalog/nightly/eclipse-che-preview-openshift/generated/roles/role.yaml", "deploy/olm-catalog/nightly/eclipse-che-preview-openshift/generated/roles/cluster_role.yaml", "deploy/olm-catalog/nightly/eclipse-che-preview-openshift/generated/roles/namespaces_cluster_role.yaml"]
+crd-cr-paths: ["deploy/crds/org_v1_che_crd.yaml"]

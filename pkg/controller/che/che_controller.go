@@ -14,6 +14,7 @@ package che
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -1235,7 +1236,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 	}
 
 	newOAuthValue := util.NewBoolPointer(oauth)
-	if !util.CompareBoolPointers(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
+	if !reflect.DeepEqual(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
 		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
 		if err := r.UpdateCheCRSpec(cr, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err

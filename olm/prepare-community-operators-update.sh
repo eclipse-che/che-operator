@@ -13,8 +13,9 @@
 set -e
 
 CURRENT_DIR=$(pwd)
-BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-source "${BASE_DIR}/check-yq.sh"
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
+source "${BASE_DIR}/olm/check-yq.sh"
 
 base_branch="master"
 GITHUB_USER="che-bot"
@@ -49,17 +50,24 @@ Options:
 "
 }
 
+. ${BASE_DIR}/olm/olm.sh
+installOPM
+
 for platform in 'kubernetes' 'openshift'
 do
+  INDEX_IMAGE="quay.io/eclipse/eclipse-che-${platform}-opm-catalog:preview"
   packageName="eclipse-che-preview-${platform}"
   echo
   echo "## Prepare the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
 
-  packageBaseFolderPath="${BASE_DIR}/${packageName}"
+  manifestPackagesDir=$(mktemp -d -t che-${platform}-manifest-packages-XXX)
+  echo "[INFO] Folder with manifest packages: ${manifestPackagesDir}"
+  # Todo: check that github action really has installed docker...
+  opm index export --index="${INDEX_IMAGE}" --package="${packageName}" -c="docker" --download-folder "${manifestPackagesDir}"
+  packageBaseFolderPath="${manifestPackagesDir}/${packageName}"
   cd "${packageBaseFolderPath}"
 
-  packageFolderPath="${packageBaseFolderPath}/deploy/olm-catalog/${packageName}"
-  sourcePackageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  sourcePackageFilePath="${packageBaseFolderPath}/package.yaml"
   communityOperatorsLocalGitFolder="${packageBaseFolderPath}/generated/community-operators"
   lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
 
@@ -110,12 +118,12 @@ do
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "/^  version: ${lastPackagePreReleaseVersion}/i\ \ replaces: eclipse-che.v${lastPublishedPackageVersion}" \
   -e "s/${packageName}/eclipse-che/" \
-  "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml" \
+  "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/che-operator.clusterserviceversion.yaml" \
   > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
   echo
   echo "   - Update the CRD file"
-  cp "${packageFolderPath}/${lastPackagePreReleaseVersion}/${packageName}.crd.yaml" \
+  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org_v1_che_crd.yaml" \
   "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
   echo
   echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"

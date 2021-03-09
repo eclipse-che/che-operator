@@ -1,3 +1,0 @@
-role-paths: [ "deploy/olm-catalog/eclipse-che-preview-kubernetes/generated/roles/role.yaml", "deploy/olm-catalog/eclipse-che-preview-kubernetes/generated/roles/cluster_role.yaml", "deploy/olm-catalog/eclipse-che-preview-kubernetes/generated/roles/namespaces_cluster_role.yaml" ]
-operator-path: deploy/operator.yaml
-crd-cr-paths: ["deploy/crds/org_v1_che_crd.yaml"]

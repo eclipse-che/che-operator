@@ -13,73 +13,69 @@
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
-BASE_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))/olm
+BASE_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 ROOT_DIR=$(dirname "${BASE_DIR}")
 
 source ${ROOT_DIR}/olm/check-yq.sh
 
-SOURCE_INSTALL=$4
+function getPackageName() {
+  platform="${1}"
+  if [ -z "${1}" ]; then
+      echo "[ERROR] Please specify first argument: 'platform'"
+      exit 1
+  fi
 
-if [ -z ${SOURCE_INSTALL} ]; then SOURCE_INSTALL="Marketplace"; fi
+  echo "eclipse-che-preview-${platform}"
+}
 
-platform=$1
-if [ "${platform}" == "" ]; then
-  echo "Please specify platform ('openshift' or 'kubernetes') as the first argument."
-  echo ""
-  echo "testUpdate.sh <platform> [<channel>] [<namespace>]"
-  exit 1
-fi
-
-PACKAGE_VERSION=$2
-if [ "${PACKAGE_VERSION}" == "" ]; then
-  echo "Please specify PACKAGE_VERSION version"
-  exit 1
-fi
-
-namespace=$3
-if [ "${namespace}" == "" ]; then
-  namespace="eclipse-che-preview-test"
-fi
-
-channel="stable"
-if [[ "${PACKAGE_VERSION}" =~ "nightly" ]]
-then
-  channel="nightly"
-  OPM_BUNDLE_DIR="${ROOT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}"
-  OPM_BUNDLE_MANIFESTS_DIR="${OPM_BUNDLE_DIR}/manifests"
-fi
-
-packageName=eclipse-che-preview-${platform}
-if [ "${channel}" == 'nightly' ]; then
-  CSV_FILE="${ROOT_DIR}/deploy/olm-catalog/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml"
-else
-  if [ ${SOURCE_INSTALL} == "catalog" ]; then
-    echo "[ERROR] Stable preview channel doesn't support installation using 'catalog'. Use 'Marketplace' instead of it."
+function getBundlePath() {
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  channel="${2}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] Please specify second argument: 'channel'"
     exit 1
   fi
 
-  platformPath="${BASE_DIR}/${packageName}"
-  packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
-  CSV_FILE="${packageFolderPath}/${PACKAGE_VERSION}/${packageName}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
-fi
+  echo "${ROOT_DIR}/deploy/olm-catalog/${channel}/$(getPackageName "${platform}")"
+}
 
-CSV=$(yq -r ".metadata.name" "${CSV_FILE}")
+getCurrentStableVersion() {
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
 
-echo -e "\u001b[32m PACKAGE_VERSION=${PACKAGE_VERSION} \u001b[0m"
-echo -e "\u001b[32m CSV=${CSV} \u001b[0m"
-echo -e "\u001b[32m Channel=${channel} \u001b[0m"
-echo -e "\u001b[32m Namespace=${namespace} \u001b[0m"
+  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
+  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
-# We don't need to delete ${namespace} anymore since tls secret is precreated there.
-# if kubectl get namespace "${namespace}" >/dev/null 2>&1
-# then
-#   echo "You should delete namespace '${namespace}' before running the update test first."
-#   exit 1
-# fi
+  lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
+  echo "${lastStableVersion}"
+}
 
-catalog_source() {
-    marketplaceNamespace=${namespace};
-    kubectl apply -f - <<EOF
+createCatalogSource() {
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  CATALOG_IMAGENAME="${3}"
+  if [ -z "${CATALOG_IMAGENAME}" ]; then
+    echo "[ERROR] Please specify third argument: 'catalog image'"
+    exit 1
+  fi
+  packageName=$(getPackageName "${platform}")
+
+  kubectl apply -f - <<EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -96,88 +92,119 @@ EOF
 
 # Create catalog source to communicate with OLM using google rpc protocol.
 createRpcCatalogSource() {
-NAMESPACE=${1}
-indexIp=${2}
-cat <<EOF | oc apply -n "${NAMESPACE}" -f - || return $?
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  indexIP="${3}"
+  if [ -z "${indexIP}" ]; then
+    echo "[ERROR] Please specify third argument: 'index IP'"
+    exit 1
+  fi
+
+  packageName=$(getPackageName "${platform}")
+
+cat <<EOF | oc apply -n "${namespace}" -f - || return $?
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: ${packageName}
 spec:
-  address: "${indexIp}:50051"
+  address: "${indexIP}:50051"
   displayName: "Serverless Operator"
   publisher: Red Hat
   sourceType: grpc
 EOF
 }
 
-applyCheOperatorInstallationSource() {
-  if [ ${SOURCE_INSTALL} == "catalog" ]; then
-    echo "[INFO] Use catalog source(index) image"
-    catalog_source
-  else
-    if [ "${APPLICATION_REGISTRY}" == "" ]; then
-      echo "[INFO] Use default Eclipse Che application registry"
-      cat "${platformPath}/operator-source.yaml"
-      kubectl apply -f "${platformPath}/operator-source.yaml"
-    else
-      echo "[INFO] Use custom Che application registry"
-      cat "${platformPath}/operator-source.yaml" | \
-      sed  -e "s/registryNamespace:.*$/registryNamespace: \"${APPLICATION_REGISTRY}\"/" | \
-      kubectl apply -f -
-    fi
-  fi
-}
-
 buildBundleImage() {
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${2}"
   if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
-    echo "Please specify first argument: opm bundle image"
+    echo "[ERROR] Please specify second argument: 'opm bundle'"
+    exit 1
+  fi
+  channel="${3}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] Please specify third argument: 'channel'"
+    exit 1
+  fi
+  imageTool="${4}"
+  if [ -z "${imageTool}" ]; then
+    echo "[ERROR] Please specify fourth argument: 'image tool'"
     exit 1
   fi
 
-  imageTool=${2:-docker}
+  packageName=$(getPackageName "${platform}")
 
-  pushd "${OPM_BUNDLE_DIR}" || exit
+  if [ -z "${OPM_BUNDLE_DIR}" ]; then
+    bundleDir=$(getBundlePath "${platform}" "${channel}")
+  else
+    bundleDir="${OPM_BUNDLE_DIR}"
+  fi
 
-  echo "[INFO] build bundle image for dir: ${OPM_BUNDLE_MANIFESTS_DIR}"
+  OPM_BUNDLE_MANIFESTS_DIR="${bundleDir}/manifests"
+  pushd "${bundleDir}" || exit
+  echo "[INFO] build bundle image for dir: ${bundleDir}"
 
   ${OPM_BINARY} alpha bundle build \
     -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
     --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-    --package "eclipse-che-preview-${platform}" \
-    --channels "nightly" \
-    --default "nightly" \
+    --package "${packageName}" \
+    --channels "${channel}" \
+    --default "${channel}" \
     --image-builder "${imageTool}"
-
-  # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
   SKIP_TLS_VERIFY=""
   if [ "${imageTool}" == "podman" ]; then
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
+
   eval "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
+
+  # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
   popd || exit
 }
 
 # Build catalog source image with index based on bundle image.
 buildCatalogImage() {
-  CATALOG_IMAGENAME=${1}
+  CATALOG_IMAGENAME="${1}"
   if [ -z "${CATALOG_IMAGENAME}" ]; then
-    echo "Please specify first argument: catalog image"
+    echo "[ERROR] Please specify first argument: 'catalog image'"
     exit 1
   fi
 
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${2}
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${2}"
   if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
-    echo "Please specify second argument: opm bundle image"
+    echo "[ERROR] Please specify second argument: 'opm bundle image'"
     exit 1
   fi
 
-  imageTool=${3:-docker}
+  imageTool="${3}"
+  if [ -z "${imageTool}" ]; then
+    echo "[ERROR] Please specify third argument: 'image tool'"
+    exit 1
+  fi
 
-  FROM_INDEX=${4:-""}
+  forceBuildAndPush="${4}"
+  if [ -z "${forceBuildAndPush}" ]; then
+    echo "[ERROR] Please specify fourth argument: 'force build and push: true or false'"
+    exit 1
+  fi
+
+  # optional argument
+  FROM_INDEX=${5:-""}
   BUILD_INDEX_IMAGE_ARG=""
   if [ ! "${FROM_INDEX}" == "" ]; then
     BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
@@ -190,14 +217,34 @@ buildCatalogImage() {
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
 
-  eval "${OPM_BINARY}" index add \
-       --bundles "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-       --tag "${CATALOG_IMAGENAME}" \
-       --pull-tool "${imageTool}" \
-       --build-tool "${imageTool}" \
+  INDEX_ADD_CMD="${OPM_BINARY} index add \
+       --bundles ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL} \
+       --tag ${CATALOG_IMAGENAME} \
+       --pull-tool ${imageTool} \
+       --build-tool ${imageTool} \
        --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
-       --mode semver \
-       "${BUILD_INDEX_IMAGE_ARG}" "${SKIP_TLS_ARG}"
+       --mode semver ${BUILD_INDEX_IMAGE_ARG} ${SKIP_TLS_ARG}"
+
+  exitCode=0
+  # Execute command and store an error output to the variable for following handling.
+  {
+    error=$(eval "${INDEX_ADD_CMD}" 2>&1 1>&$out) || \
+    {
+      exitCode="$?";
+      echo "[INFO] ${exitCode}";
+      true;
+    }
+  } {out}>&1
+  if [[ "${error}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
+    echo "[INFO] Ignore error 'Bundle already added'"
+    # Catalog bundle image contains bundle reference, continue without unnecessary push operation
+    return
+  else
+    echo "[INFO] ${exitCode}"
+    if [ "${exitCode}" != 0 ]; then
+      exit "${exitCode}"
+    fi
+  fi
 
   eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
 }
@@ -206,9 +253,14 @@ buildCatalogImage() {
 # It makes troubles for test scripts, because image bundle could be outdated with
 # such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
 forcePullingOlmImages() {
-  CATALOG_BUNDLE_IMAGE_NAME_LOCAL=${1}
+  namespace="${1}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify first argument: 'namespace'"
+    exit 1
+  fi
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${2}"
   if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
-    echo "Please specify first argument: opm bundle image"
+    echo "[ERROR] Please specify second argument: opm bundle image"
     exit 1
   fi
 
@@ -236,6 +288,12 @@ installOPM() {
 }
 
 createNamespace() {
+  namespace="${1}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify first argument: 'namespace'"
+    exit 1
+  fi
+
   kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
@@ -245,61 +303,78 @@ EOF
 }
 
 installOperatorMarketPlace() {
-  echo "Installing test pre-requisistes"
-
-  marketplaceNamespace="marketplace"
-  if [ "${platform}" == "openshift" ];
-  then
-    marketplaceNamespace="openshift-marketplace";
-    applyCheOperatorInstallationSource
-  else
-      IFS=$'\n' read -d '' -r -a olmApiGroups < <( kubectl api-resources --api-group=operators.coreos.com -o name ) || true
-    if [ -z "${olmApiGroups[*]}" ]; then
-      OLM_VERSION=0.15.1
-      MARKETPLACE_VERSION=4.5
-      OPERATOR_MARKETPLACE_VERSION="release-${MARKETPLACE_VERSION}"
+  echo "[INFO] Installing test pre-requisistes"
+  IFS=$'\n' read -d '' -r -a olmApiGroups < <( kubectl api-resources --api-group=operators.coreos.com -o name ) || true
+  if [ -z "${olmApiGroups[*]}" ]; then
+      OLM_VERSION=v0.17.0
       curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/install.sh | bash -s ${OLM_VERSION}
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/01_namespace.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/03_operatorsource.crd.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/04_service_account.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/05_role.yaml
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/06_role_binding.yaml
-      sleep 1
-      kubectl apply -f https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/07_upstream_operatorsource.cr.yaml
-      curl -sL https://raw.githubusercontent.com/operator-framework/operator-marketplace/${OPERATOR_MARKETPLACE_VERSION}/deploy/upstream/08_operator.yaml | \
-      sed -e "s;quay.io/openshift/origin-operator-marketplace:latest;quay.io/openshift/origin-operator-marketplace:${MARKETPLACE_VERSION};" | \
-      kubectl apply -f -
-    fi
+  fi
+}
 
-    applyCheOperatorInstallationSource
+installCatalogSource() {
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  CATALOG_IMAGENAME=${3}
+  if [ -z "${CATALOG_IMAGENAME}" ]; then
+    echo "[ERROR] Please specify third argument: 'catalog image'"
+    exit 1
+  fi
+  packageName=$(getPackageName "${platform}")
 
-    i=0
-    while [ $i -le 240 ]
-    do
-      if kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}"  >/dev/null 2>&1
-      then
-        break
-      fi
-      sleep 1
-      ((i++))
-    done
+  createCatalogSource "${platform}" "${namespace}" "${CATALOG_IMAGENAME}"
 
-    if [ $i -gt 240 ]
+  i=0
+  while [ $i -le 240 ]
+  do
+    if kubectl get catalogsource/"${packageName}" -n "${namespace}"  >/dev/null 2>&1
     then
-      echo "Catalog source not created after 4 minutes"
-      exit 1
+      break
     fi
-    if [ "${SOURCE_INSTALL}" == "Marketplace" ]; then
-      kubectl get catalogsource/"${packageName}" -n "${marketplaceNamespace}" -o json | jq '.metadata.namespace = "olm" | del(.metadata.creationTimestamp) | del(.metadata.uid) | del(.metadata.resourceVersion) | del(.metadata.generation) | del(.metadata.selfLink) | del(.status)' | kubectl apply -f -
-      marketplaceNamespace="olm"
-    fi
+    sleep 1
+    ((i++))
+  done
+
+  if [ $i -gt 240 ]
+  then
+    echo "[ERROR] Catalog source not created after 4 minutes"
+    exit 1
   fi
 }
 
 subscribeToInstallation() {
-  CSV_NAME="${1-${CSV}}"
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  channel="${3}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] Please specify third argument: 'channel'"
+    exit 1
+  fi
 
-  echo "Subscribing to version: ${CSV_NAME}"
+  # fourth argument is an optional
+  CSV_NAME="${4-${CSV_NAME}}"
+  if [ -n "${CSV_NAME}" ]; then
+    echo "[INFO] Subscribing to the version: '${CSV_NAME}'"
+  else
+    echo "[INFO] Subscribing to latest version for channel: '${channel}'"
+  fi
+
+  packageName=$(getPackageName "${platform}")
 
   kubectl apply -f - <<EOF
 apiVersion: operators.coreos.com/v1
@@ -321,7 +396,7 @@ spec:
   installPlanApproval: Manual
   name: ${packageName}
   source: ${packageName}
-  sourceNamespace: ${marketplaceNamespace}
+  sourceNamespace: ${namespace}
   startingCSV: ${CSV_NAME}
 EOF
 
@@ -330,7 +405,7 @@ EOF
   kubectl wait subscription/"${packageName}" -n "${namespace}" --for=condition=InstallPlanPending --timeout=240s
   if [ $? -ne 0 ]
   then
-    echo Subscription failed to install the operator
+    echo "[ERROR] Subscription failed to install the operator"
     exit 1
   fi
 
@@ -338,6 +413,18 @@ EOF
 }
 
 installPackage() {
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  packageName=$(getPackageName "${platform}")
+
   echo "[INFO] Install operator package ${packageName} into namespace ${namespace}"
   installPlan=$(kubectl get subscription/"${packageName}" -n "${namespace}" -o jsonpath='{.status.installplan.name}')
 
@@ -352,7 +439,23 @@ installPackage() {
 }
 
 applyCRCheCluster() {
-  echo "Creating Custom Resource"
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  CSV_FILE="${3}"
+  if [ -z "${CSV_FILE}" ]; then
+    echo "[ERROR] Please specify third argument: 'CSV_FILE'"
+    exit 1
+  fi
+
+  echo "[INFO] Creating Custom Resource"
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
   if [ "${platform}" == "kubernetes" ]
@@ -363,11 +466,17 @@ applyCRCheCluster() {
     CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = false")
   fi
 
-  echo "$CR" | kubectl apply -n "${namespace}" -f -
+  echo "$CR" | kubectl apply -n "${namespace}" --validate=false -f -
 }
 
 waitCheServerDeploy() {
-  echo "Waiting for Che server to be deployed"
+  namespace="${1}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify first argument: 'namespace'"
+    exit 1
+  fi
+  
+  echo "[INFO] Waiting for Che server to be deployed"
   set +e -x
 
   i=0
@@ -385,20 +494,32 @@ waitCheServerDeploy() {
 
   if [ $i -gt 480 ]
   then
-    echo "Che server did't start after 8 minutes"
+    echo "[ERROR] Che server did't start after 8 minutes"
     exit 1
   fi
 }
 
 getBundleListFromCatalogSource() {
-  CATALOG_POD=$(kubectl get pods -n ${namespace} -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"eclipse-che-preview-${platform}\")) | .metadata.name")
+  platform="${1}"
+  if [ -z "${platform}" ]; then
+    echo "[ERROR] Please specify first argument: 'platform'"
+    exit 1
+  fi
+  namespace="${2}"
+  if [ -z "${namespace}" ]; then
+    echo "[ERROR] Please specify second argument: 'namespace'"
+    exit 1
+  fi
+  packageName=$(getPackageName "${platform}")
+
+  CATALOG_POD=$(kubectl get pods -n "${namespace}" -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"${packageName}\")) | .metadata.name")
   kubectl wait --for=condition=ready "pods/${CATALOG_POD}" --timeout=60s -n "${namespace}"
 
-  CATALOG_SERVICE=$(kubectl get service "eclipse-che-preview-${platform}" -n "${namespace}" -o yaml)
+  CATALOG_SERVICE=$(kubectl get service "${packageName}" -n "${namespace}" -o yaml)
   CATALOG_IP=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.clusterIP")
   CATALOG_PORT=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.ports[0].targetPort")
 
-  LIST_BUNDLES=$(kubectl run --generator=run-pod/v1 grpcurl-query -n che \
+  LIST_BUNDLES=$(kubectl run --generator=run-pod/v1 grpcurl-query -n "${namespace}" \
   --rm=true \
   --restart=Never \
   --attach=true \
@@ -412,10 +533,16 @@ getBundleListFromCatalogSource() {
 }
 
 getPreviousCSVInfo() {
+  channel="${1}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] Please specify first argument: 'channel'"
+    exit 1
+  fi
+
   previousBundle=$(echo "${LIST_BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
   PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
   if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
-    echo "Error: bundle hasn't go previous bundle."
+    echo "[ERROR] Catalog source image hasn't go previous bundle."
     exit 1
   fi
   export PREVIOUS_CSV_NAME
@@ -424,6 +551,12 @@ getPreviousCSVInfo() {
 }
 
 getLatestCSVInfo() {
+  channel="${1}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] Please specify first argument: 'channel'"
+    exit 1
+  fi
+
   latestBundle=$(echo "${LIST_BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
   LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
   export LATEST_CSV_NAME

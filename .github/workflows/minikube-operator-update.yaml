@@ -37,6 +37,8 @@ jobs:
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=stable
     - name: Tests
       run: /bin/bash .github/bin/minikube/test-operator-update.sh
+      env:
+        "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}

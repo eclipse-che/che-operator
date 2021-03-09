@@ -21,7 +21,6 @@
         "kubernetes",
         "stable",
         "che",
-        "Marketplace"
       ]
     },
     {
@@ -34,7 +33,6 @@
         "kubernetes",
         "nightly",
         "che",
-        "catalog",
         "my_catalog"
       ]
     },
@@ -47,8 +45,7 @@
       "args": [
         "openshift",
         "nightly",
-        "che",
-        "catalog"
+        "che"
       ]
     },
     {
@@ -60,8 +57,7 @@
       "args": [
         "openshift",
         "stable",
-        "che",
-        "Marketplace"
+        "che"
       ]
     },
     {
@@ -115,28 +111,34 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushInitialBundle.sh) kubernetes",
+      "name": "Bash-Debug (buildAndPushBundleImages.sh) Kubernetes platfrom",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "program": "./buildAndPushBundleImages.sh",
       "args": [
-        "kubernetes"
+        "-p",
+        "kubernetes",
+        "-c",
+        "nightly"
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushInitialBundle.sh) openshift",
+      "name": "Bash-Debug (buildAndPushBundleImages.sh) Openshift platform",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/buildAndPushInitialBundle.sh",
+      "program": "./buildAndPushBundleImages.sh",
       "args": [
-        "openshift"
+        "-p",
+        "openshift",
+        "-c",
+        "nightly"
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
-      "program": "${file}"
+      "program": "${file}",
     },
     {
       "name": "Launch Current Test *.go File",

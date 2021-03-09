@@ -18,7 +18,7 @@ init() {
   RELEASE_BRANCH="${RELEASE}-release"
   GIT_REMOTE_UPSTREAM="https://github.com/eclipse/che-operator.git"
   RUN_RELEASE=false
-  PUSH_OLM_FILES=false
+  PUSH_OLM_BUNDLES=false
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
@@ -34,7 +34,7 @@ init() {
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--release') RUN_RELEASE=true; shift 0;;
-      '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
+      '--push-olm-bundles') PUSH_OLM_BUNDLES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
@@ -52,17 +52,14 @@ init() {
   command -v operator-courier >/dev/null 2>&1 || { echo "[ERROR] operator-courier is not installed. Abort."; exit 1; }
   command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Abort."; exit 1; }
   command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
+  command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${RELEASE_DIR}/REQUIREMENTS")
   [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
-  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* -maxdepth 0 -empty | wc -l)
-  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
-  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* -maxdepth 0 -empty | wc -l)
-  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
 }
 
 usage () {
 	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
-  echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
+  echo -e "\t--push-olm-bundles: to push OLM bundle images to quay.io and update catalog image. This flag should be omitted "
   echo -e "\t\tif already a greater version released. For instance, we are releasing 7.9.3 version but"
   echo -e "\t\t7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel."
   echo -e "\t--push-git-changes: to create release branch and push changes into."
@@ -127,6 +124,7 @@ checkImageReferences() {
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 
+  # use ${RELEASE} instead of master
   wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
@@ -188,16 +186,15 @@ releaseOlmFiles() {
   . release-olm-files.sh $RELEASE
   cd $RELEASE_DIR
 
-  local openshift=$RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
-  local kubernetes=$RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
+  local openshift=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests
+  local kubernetes=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests
 
   echo "[INFO] releaseOlmFiles :: Validate changes"
-  grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
-  grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
-  grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
-  grep -q "version: "$RELEASE $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml
-  test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
-  test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
+  grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
+  grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
+  
+  test -f $kubernetes/org_v1_che_crd.yaml
+  test -f $openshift/org_v1_che_crd.yaml
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
@@ -206,11 +203,12 @@ releaseOlmFiles() {
   fi
 }
 
-pushOlmFilesToQuayIo() {
-  echo "[INFO] Push OLM files to quay.io"
-  cd $RELEASE_DIR/olm
-  . push-olm-files-to-quay.sh
-  cd $RELEASE_DIR
+pushOlmBundlesToQuayIo() {
+  echo "[INFO] releaseOperatorCode :: Login to quay.io..."
+  docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
+  echo "[INFO] Push OLM bundles to quay.io"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "kubernetes" -f "true"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "openshift" -f "true"
 }
 
 pushGitChanges() {
@@ -252,7 +250,7 @@ createPRToMasterBranch() {
 
 prepareCommunityOperatorsUpdate() {
   export BASE_DIR=${RELEASE_DIR}/olm
-  "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
+  . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
   unset BASE_DIR
 }
 run() {
@@ -273,8 +271,8 @@ if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
 fi
 
-if [[ $PUSH_OLM_FILES == "true" ]]; then
-  pushOlmFilesToQuayIo
+if [[ $PUSH_OLM_BUNDLES == "true" ]]; then
+  pushOlmBundlesToQuayIo
 fi
 
 if [[ $PUSH_GIT_CHANGES == "true" ]]; then

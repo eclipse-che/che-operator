@@ -385,21 +385,6 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
-// CompareBoolPointers compares two *bool variables. Returns "true" when both
-// variables are nil, true or false. Otherwise returns "false".
-func CompareBoolPointers(a *bool, b *bool) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil && b != nil {
-		return false
-	}
-	if b == nil && a != nil {
-		return false
-	}
-	return *a == *b
-}
-
 // IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
 func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
 	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""

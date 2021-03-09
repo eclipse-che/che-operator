@@ -21,26 +21,10 @@ $ docker-run.sh olm/update-nightly-bundle.sh
 
 OLM (operator lifecycle manager) provides ways of installing operators. One of the convenient way how to achieve it is by using OLM bundles. See more about the format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md. There two "nightly" platform-specific OLM bundles for Сhe operator:
 
-- `deploy/olm-catalog/eclipse-che-preview-kubernetes/manifests`
-- `deploy/olm-catalog/eclipse-che-preview-openshift/manifests`
+- `deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests`
+- `deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests`
 
 Each bundle consists of a cluster service version file (CSV) and a custom resource definition file (CRD). CRD file describes `checlusters` Kubernetes api resource object(object fields name, format, description and so on). Kubernetes api needs this information to correctly store a custom resource object "checluster". Custom resource object users could modify to change Eclipse Che configuration. Che operator watches `checlusters` object and re-deploy Che with desired configuration. The CSV file contains all "deploy" and "permission" specific information, which OLM needs to install Eclipse Che operator.
-
-## Test Eclipse Che using Application registry (Deprecated)
-
-Notice: it is doesn't work on Openshift >= 4.6
-
-To test stable versions of Che operator you have to use Eclipse Che application registry. To test the latest stable Che launch test script in the `olm` folder:
-
-```bash
-$ ./testCatalogSource.sh ${platform} "stable" ${namespace} "Marketplace"
-```
-
-To test migration from one stable version to another one:
-
-```bash
-$ ./testUpdate.sh ${platform} "stable" ${namespace}
-```
 
 ## Testing custom CatalogSource and nightly bundle images
 
@@ -61,15 +45,15 @@ quay.io/eclipse/eclipse-che-kubernetes-opm-bundles:7.18.0-1.nightly
 quay.io/eclipse/eclipse-che-openshift-opm-bundles:7.19.0-5.nightly
 ```
 
-### Build custom nightly OLM images
+### Build custom nightly/stable OLM images
 
-For test purpose you can build your own "nightly" CatalogSource and bundle images
-with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushInitialBundle.sh`:
+For test purpose you can build your own "nightly" or "stable" CatalogSource and bundle images
+with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushBundleImages.sh`:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushInitialBundle.sh <openshift|kubernetes> [FROM-INDEX-IMAGE]
+  ./buildAndPushBundleImages.sh -p <openshift|kubernetes> -c <nightly|stable> -i <FROM-INDEX-IMAGE>
 ```
 
 This script will build and push for you two images: CatalogSource(index) and bundle one:
@@ -77,12 +61,12 @@ This script will build and push for you two images: CatalogSource(index) and bun
 * `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-<openshift|kubernetes>-opm-bundles:<CHE_VERSION>-<INCREMENTAL_VERSION>.nightly`
 * `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-<openshift|kubernetes>-opm-catalog:preview`
 
-CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and include them to your custom CatalogSource image. For this purpose you can specify the argument `FROM-INDEX-IMAGE`. For example:
+CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and include them to your custom CatalogSource image. For this purpose you can specify the parameter `-i`:
 
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushInitialBundle.sh openshift "quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+  ./buildAndPushBundleImages.sh -p <openshift|kubernetes> -n <nightly|stable> -i <FROM-INDEX-IMAGE>
 ```
 
 ### Testing custom CatalogSource and bundle images on the Openshift
@@ -90,7 +74,7 @@ $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
 To test the latest custom "nightly" bundle:
 
 ```bash
-$ ./testCatalogSource.sh "openshift" "nightly" <ECLIPSE_CHE_NAMESPACE> "catalog"
+$ ./testCatalogSource.sh "openshift" "nightly" <ECLIPSE_CHE_NAMESPACE>
 ```
 
 If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
@@ -110,7 +94,7 @@ To test the latest custom "nightly" bundle:
 ```bash
 $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
- ./testCatalogSource.sh "kubernetes" "nightly" <ECLIPSE_CHE_NAMESPACE> "catalog"
+ ./testCatalogSource.sh "kubernetes" "nightly" <ECLIPSE_CHE_NAMESPACE>
 ```
 
 If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
@@ -139,7 +123,7 @@ With this private registry you can test Che operator from development bundle:
 ```bash
 $ export IMAGE_REGISTRY_HOST="127.0.0.1:5000" && \
   export IMAGE_REGISTRY_USER_NAME="" && \
-  ./testCatalogSource.sh "kubernetes" "nightly" <ECLIPSE_CHE_NAMESPACE> "catalog"
+  ./testCatalogSource.sh "kubernetes" "nightly" <ECLIPSE_CHE_NAMESPACE>
 ```
 
 > Tips: If minikube was installed locally (driver 'none', local installation minikube), then registry is available on the host 0.0.0.0 without port forwarding but it requires `sudo`.

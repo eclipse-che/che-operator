@@ -52,7 +52,7 @@ initDefaults() {
 
 initOpenShiftDefaults() {
   export OAUTH="true"
-  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 }
 
 initLatestTemplates() {
@@ -60,20 +60,19 @@ initLatestTemplates() {
 }
 
 initStableTemplates() {
-  local platform=$1
-  local channel=$2
-
   # Get Stable and new release versions from olm files openshift.
-  export packageName=eclipse-che-preview-${platform}
-  export platformPath=${OPERATOR_REPO}/olm/${packageName}
-  export packageFolderPath="${platformPath}/deploy/olm-catalog/${packageName}"
-  export packageFilePath="${packageFolderPath}/${packageName}.package.yaml"
+  versions=$(curl \
+  -H "Authorization: bearer ${GITHUB_TOKEN}" \
+  -X POST -H "Content-Type: application/json" --data \
+  '{"query": "{ repository(owner: \"eclipse\", name: \"che-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
+  https://api.github.com/graphql)
 
-  export lastCSV=$(yq -r ".channels[] | select(.name == \"${channel}\") | .currentCSV" "${packageFilePath}")
-  export LAST_PACKAGE_VERSION=$(echo "${lastCSV}" | sed -e "s/${packageName}.v//")
+  echo "${versions[*]}"
 
-  export previousCSV=$(sed -n 's|^ *replaces: *\([^ ]*\) *|\1|p' "${packageFolderPath}/${LAST_PACKAGE_VERSION}/${packageName}.v${LAST_PACKAGE_VERSION}.clusterserviceversion.yaml")
-  export PREVIOUS_PACKAGE_VERSION=$(echo "${previousCSV}" | sed -e "s/${packageName}.v//")
+  LAST_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
+  export LAST_PACKAGE_VERSION
+  PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
+  export PREVIOUS_PACKAGE_VERSION
 
   export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
   export previousOperatorPath=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}

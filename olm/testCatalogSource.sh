@@ -34,10 +34,9 @@ printHelp() {
 	echo '    PLATFORM                 - Platform used to run olm files tests'
 	echo '    CHANNEL                  - Channel used to tests olm files'
 	echo '    NAMESPACE                - Namespace where Eclipse Che will be deployed'
-	echo '    INSTALLATION_TYPE        - Olm tests now includes two types of installation: Catalog source and marketplace'
 	echo '    CATALOG_SOURCE_IMAGE     - Image name used to create a catalog source in cluster'
   echo ''
-  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift nightly che catalog my_image_name'
+  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift nightly che my_image_name'
 }
 
 # Check if a platform was defined...
@@ -70,48 +69,20 @@ else
   echo "[INFO]: Successfully asigned namespace ${NAMESPACE} to tests olm files."
 fi
 
-# Check if a INSTALLATION_TYPE was defined... The possible installation are marketplace or catalog source
-INSTALLATION_TYPE=$4
-if [ "${INSTALLATION_TYPE}" == "" ]; then
-  echo "[ERROR]: Please specify a valid installation type. The valid values are: 'catalog' or 'marketplace'"
-  printHelp
-  exit 1
-else
-  echo "[INFO]: Successfully detected installation type: ${INSTALLATION_TYPE}"
-fi
-
 # Assign catalog source image
-CATALOG_SOURCE_IMAGE=$5
+CATALOG_SOURCE_IMAGE=$4
 
 IMAGE_REGISTRY_USER_NAME=${IMAGE_REGISTRY_USER_NAME:-eclipse}
 echo "[INFO] Image 'IMAGE_REGISTRY_USER_NAME': ${IMAGE_REGISTRY_USER_NAME}"
 
 init() {
-  if [[ "${PLATFORM}" == "openshift" ]]
-  then
-    export PLATFORM=openshift
-    PACKAGE_NAME=eclipse-che-preview-openshift
-    PACKAGE_FOLDER_PATH="${OLM_DIR}/eclipse-che-preview-openshift/deploy/olm-catalog/${PACKAGE_NAME}"
-  else
-    PACKAGE_NAME=eclipse-che-preview-${PLATFORM}
-    PACKAGE_FOLDER_PATH="${OLM_DIR}/eclipse-che-preview-${PLATFORM}/deploy/olm-catalog/${PACKAGE_NAME}"
-  fi
+  source "${OLM_DIR}/olm.sh"
+  OPM_BUNDLE_DIR=$(getBundlePath "${PLATFORM}" "${CHANNEL}")
 
-  if [ "${CHANNEL}" == "nightly" ]; then
-    PACKAGE_FOLDER_PATH="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-${PLATFORM}"
-    CLUSTER_SERVICE_VERSION_FILE="${OPERATOR_REPO}/deploy/olm-catalog/eclipse-che-preview-${PLATFORM}/manifests/che-operator.clusterserviceversion.yaml"
-    PACKAGE_VERSION=$(yq -r ".spec.version" "${CLUSTER_SERVICE_VERSION_FILE}")
-  else
-    PACKAGE_FILE_PATH="${PACKAGE_FOLDER_PATH}/${PACKAGE_NAME}.package.yaml"
-    CLUSTER_SERVICE_VERSION=$(yq -r ".channels[] | select(.name == \"${CHANNEL}\") | .currentCSV" "${PACKAGE_FILE_PATH}")
-    PACKAGE_VERSION=$(echo "${CLUSTER_SERVICE_VERSION}" | sed -e "s/${PACKAGE_NAME}.v//")
-  fi
+  CSV_FILE="${OPM_BUNDLE_DIR}/manifests/che-operator.clusterserviceversion.yaml"
+  CSV_NAME=$(yq -r ".metadata.name" "${CSV_FILE}")
 
-  source "${OLM_DIR}/olm.sh" "${PLATFORM}" "${PACKAGE_VERSION}" "${NAMESPACE}" "${INSTALLATION_TYPE}"
-
-  if [ "${CHANNEL}" == "nightly" ]; then
-    installOPM
-  fi
+  installOPM
 }
 
 buildOLMImages() {
@@ -134,30 +105,22 @@ buildOLMImages() {
       popd || true
 
       # Use operator image in the latest CSV
-      if [ "${CHANNEL}" == "nightly" ]; then
-        sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CLUSTER_SERVICE_VERSION_FILE}"
-        sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CLUSTER_SERVICE_VERSION_FILE}"
-      else
-        sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${PACKAGE_FOLDER_PATH}/${PACKAGE_VERSION}/${PACKAGE_NAME}.v${PACKAGE_VERSION}.clusterserviceversion.yaml"
-      fi
+      sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
+      sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CSV_FILE}"
     fi
 
     CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che_operator_bundle:0.0.1"
     CATALOG_SOURCE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/testing_catalog:0.0.1"
 
-    if [ "${CHANNEL}" == "nightly" ]; then
-      echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
-      buildBundleImage "${CATALOG_BUNDLE_IMAGE}"
-      echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-      buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}"
-    fi
+    echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
+    buildBundleImage "${PLATFORM}" "${CATALOG_BUNDLE_IMAGE}" "${CHANNEL}" "docker"
+
+    echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
+    buildCatalogImage "${CATALOG_SOURCE_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "false"
 
     echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
   elif [[ "${PLATFORM}" == "openshift" ]]
   then
-    if [ "${INSTALLATION_TYPE}" == "Marketplace" ];then
-      return
-    fi
     echo "[INFO]: Starting to build catalog image and push to ImageStream."
 
     echo "============"
@@ -193,11 +156,11 @@ buildOLMImages() {
 
     oc -n "${NAMESPACE}" new-build --binary --strategy=docker --name serverless-bundle
 
-    cp -rf "${PACKAGE_FOLDER_PATH}/bundle.Dockerfile" "${PACKAGE_FOLDER_PATH}/Dockerfile"
-    if oc -n "${NAMESPACE}" start-build serverless-bundle --from-dir "${PACKAGE_FOLDER_PATH}"; then
-      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
+    cp -rf "${OPM_BUNDLE_DIR}/bundle.Dockerfile" "${OPM_BUNDLE_DIR}/Dockerfile"
+    if oc -n "${NAMESPACE}" start-build serverless-bundle --from-dir "${OPM_BUNDLE_DIR}"; then
+      rm -rf "${OPM_BUNDLE_DIR}/Dockerfile"
     else
-      rm -rf "${PACKAGE_FOLDER_PATH}/Dockerfile"
+      rm -rf "${OPM_BUNDLE_DIR}/Dockerfile"
       echo "[ERROR ]Failed to build bundle image."
       exit 1
     fi
@@ -244,10 +207,10 @@ EOF
 
   # Wait for the index pod to be up to avoid inconsistencies with the catalog source.
   kubectl wait --for=condition=ready "pods" -l app=catalog-source-app --timeout=120s -n "${NAMESPACE}" || true
-  indexip="$(oc -n "$NAMESPACE" get pods -l app=catalog-source-app -o jsonpath='{.items[0].status.podIP}')"
+  indexIP="$(oc -n "${NAMESPACE}" get pods -l app=catalog-source-app -o jsonpath='{.items[0].status.podIP}')"
 
   # Install the catalogsource.
-  createRpcCatalogSource "${NAMESPACE}" "${indexip}"
+  createRpcCatalogSource "${PLATFORM}" "${NAMESPACE}" "${indexIP}"
   else
     echo "[ERROR]: Error to start olm tests. Invalid Platform"
     printHelp
@@ -256,31 +219,34 @@ EOF
 }
 
 run() {
-  createNamespace
-  if [ ! ${PLATFORM} == "openshift" ] && [ "${CHANNEL}" == "nightly" ]; then
-    forcePullingOlmImages "${CATALOG_BUNDLE_IMAGE}"
+  createNamespace "${NAMESPACE}"
+  if [ ! "${PLATFORM}" == "openshift" ]; then
+    forcePullingOlmImages "${NAMESPACE}" "${CATALOG_BUNDLE_IMAGE}"
   fi
 
   installOperatorMarketPlace
-  subscribeToInstallation
+  if [ ! "${PLATFORM}" == "openshift" ]; then
+    installCatalogSource "${PLATFORM}" "${NAMESPACE}" "${CATALOG_SOURCE_IMAGE}"
+  fi
+  subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${CSV_NAME}"
 
-  installPackage
-  applyCRCheCluster
-  waitCheServerDeploy
+  installPackage "${PLATFORM}" "${NAMESPACE}"
+  applyCRCheCluster "${PLATFORM}" "${NAMESPACE}" "${CSV_FILE}"
+  waitCheServerDeploy "${NAMESPACE}"
 }
 
 function add_user {
   name=$1
   pass=$2
 
-  echo "Creating user $name:$pass"
+  echo "[INFO] Creating user $name:$pass"
 
   PASSWD_TEMP_DIR="$(mktemp -q -d -t "passwd_XXXXXX" 2>/dev/null || mktemp -q -d)"
   HT_PASSWD_FILE="${PASSWD_TEMP_DIR}/users.htpasswd"
   touch "${HT_PASSWD_FILE}"
 
   htpasswd -b "${HT_PASSWD_FILE}" "$name" "$pass"
-  echo "HTPASSWD content is:======================="
+  echo "====== HTPASSWD content is:========"
   cat "${HT_PASSWD_FILE}"
   echo "==================================="
 

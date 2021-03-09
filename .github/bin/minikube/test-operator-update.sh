@@ -15,6 +15,10 @@ set -x
 
 # Get absolute path for root repo directory from github actions context: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
+if [ -z "${OPERATOR_REPO}" ]; then
+  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+  OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$SCRIPT")")")")
+fi
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 # Stop execution on any error

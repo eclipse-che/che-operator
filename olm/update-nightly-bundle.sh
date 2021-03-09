@@ -46,6 +46,7 @@ eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
 ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
 source ${BASE_DIR}/check-yq.sh
+source ${BASE_DIR}/olm.sh
 
 ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
 ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
@@ -74,24 +75,22 @@ do
     incrementNightlyVersion "${platform}"
   fi
 
-  echo "[INFO] Updating OperatorHub bundle for platform '${platform}' for platform '${platform}'"
+  echo "[INFO] Updating OperatorHub bundle for platform '${platform}'"
 
   pushd "${ROOT_PROJECT_DIR}" || true
 
-  olmCatalog=${ROOT_PROJECT_DIR}/deploy/olm-catalog
-  bundleFolder=${olmCatalog}/eclipse-che-preview-${platform}
-
+  NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   bundleCSVName="che-operator.clusterserviceversion.yaml"
-  NEW_CSV=${bundleFolder}/manifests/${bundleCSVName}
+  NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/${bundleCSVName}
   newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
-  echo "[INFO] Will create new nightly bundle version: ${newNightlyBundleVersion}"
+  echo "[INFO] Creation new nightly bundle version: ${newNightlyBundleVersion}"
 
-  csv_config=${olmCatalog}/eclipse-che-preview-${platform}/csv-config.yaml
-  generateFolder=${olmCatalog}/eclipse-che-preview-${platform}/generated
+  csv_config=${NIGHTLY_BUNDLE_PATH}/csv-config.yaml
+  generateFolder=${NIGHTLY_BUNDLE_PATH}/generated
   rm -rf "${generateFolder}"
   mkdir -p "${generateFolder}"
 
-  "${bundleFolder}"/build-roles.sh
+  "${NIGHTLY_BUNDLE_PATH}/build-roles.sh"
 
   operatorYaml=$(yq -r ".\"operator-path\"" "${csv_config}")
   cp -rf "${operatorYaml}" "${generateFolder}/"
@@ -102,7 +101,7 @@ do
   "${OPERATOR_SDK_BINARY}" generate csv \
   --csv-version "${newNightlyBundleVersion}" \
   --deploy-dir "${generateFolder}" \
-  --output-dir "${bundleFolder}" 2>&1 | sed -e 's/^/      /'
+  --output-dir "${NIGHTLY_BUNDLE_PATH}" 2>&1 | sed -e 's/^/      /'
 
   containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
   echo "[INFO] Updating new package version fields:"
@@ -122,7 +121,7 @@ do
   fi
 
   templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
-  platformCRD="${bundleFolder}/manifests/org_v1_che_crd.yaml"
+  platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 
   cp -rf $templateCRD $platformCRD
   if [[ $platform == "openshift" ]]; then
