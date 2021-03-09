@@ -33,6 +33,7 @@ import (
 
 const (
 	DevWorkspaceNamespace      = "devworkspace-controller"
+	DevWorkspaceCheNamespace   = "devworkspace-che"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
@@ -77,7 +78,7 @@ var (
 	// cachedObjects
 	cachedObj = make(map[string]metav1.Object)
 	syncItems = []func(*deploy.DeployContext) (bool, error){
-		createNamespace,
+		createDwNamespace,
 		syncDwServiceAccount,
 		syncDwClusterRole,
 		syncDwProxyClusterRole,
@@ -96,6 +97,7 @@ var (
 	}
 
 	syncDwCheItems = []func(*deploy.DeployContext) (bool, error){
+		createDwCheNamespace,
 		syncDwCheServiceAccount,
 		syncDwCheClusterRole,
 		syncDwCheProxyClusterRole,
@@ -176,7 +178,7 @@ func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
 	return errors.New("A non matching version of the Dev Workspace operator is already installed")
 }
 
-func createNamespace(deployContext *deploy.DeployContext) (bool, error) {
+func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 	namespace := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
@@ -251,6 +253,21 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	return syncObject(deployContext, DevWorkspaceDeploymentFile, &appsv1.Deployment{})
 }
 
+func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
+	namespace := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: DevWorkspaceCheNamespace,
+		},
+		Spec: corev1.NamespaceSpec{},
+	}
+
+	return deploy.CreateIfNotExists(deployContext, namespace)
+}
+
 func syncDwCheServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
 	return syncObject(deployContext, DevWorkspaceCheServiceAccountFile, &corev1.ServiceAccount{})
 }
@@ -319,7 +336,7 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 			Kind:    "CheManager",
 		})
 		obj.SetName("devworkspace-che")
-		obj.SetNamespace(DevWorkspaceNamespace)
+		obj.SetNamespace(DevWorkspaceCheNamespace)
 
 		err = deployContext.ClusterAPI.Client.Create(context.TODO(), obj)
 		if err != nil {

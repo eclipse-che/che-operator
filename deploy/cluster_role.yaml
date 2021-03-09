@@ -11,7 +11,7 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: che-operator
+  name: eclipse-che-che-operator
   labels:
     app.kubernetes.io/name: che
     app.kubernetes.io/instance: che
@@ -310,3 +310,74 @@ rules:
     verbs:
       - list
       - watch
+# devworkspace-che requirements
+  - apiGroups:
+      - che.eclipse.org
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - che.eclipse.org
+    resources:
+      - chemanagers
+    verbs:
+      - '*'
+  - apiGroups:
+      - che.eclipse.org
+    resources:
+      - chemanagers/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - che.eclipse.org
+    resources:
+      - chemanagers/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - workspaceroutings
+    verbs:
+      - '*'
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - workspaceroutings/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - workspaceroutings/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmap
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments/finalizers
+    resourceNames:
+      - devworkspace-che-operator
+    verbs:
+      - update
+  - nonResourceURLs: 
+      - "/metrics"
+    verbs: 
+      - "get"

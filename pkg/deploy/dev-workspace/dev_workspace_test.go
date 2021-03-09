@@ -71,7 +71,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	t.Run("defaultCheManagerDeployed", func(t *testing.T) {
 		obj := &unstructured.Unstructured{}
 		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-		err := cli.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceNamespace}, obj)
+		err := cli.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
 		if err != nil {
 			t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
 		}
