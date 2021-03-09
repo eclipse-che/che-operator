@@ -257,22 +257,24 @@ func SubscriptionsAreEqual(expected *operatorsv1alpha1.Subscription, actual *ope
 // foundKubernetesImagePullerAPI - true if the server discovers the che.eclipse.org API
 // error - any error returned by the call to discoveryClient.ServerGroups()
 func CheckNeededImagePullerApis(ctx *DeployContext) (bool, bool, bool, error) {
-	groupList, err := ctx.ClusterAPI.DiscoveryClient.ServerGroups()
+	groupList, resourcesList, err := ctx.ClusterAPI.DiscoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		return false, false, false, err
 	}
-	groups := groupList.Groups
 	foundPackagesAPI := false
 	foundOperatorsAPI := false
 	foundKubernetesImagePullerAPI := false
-	for _, group := range groups {
+	for _, group := range groupList {
 		if group.Name == packagesv1.SchemeGroupVersion.Group {
 			foundPackagesAPI = true
 		}
 		if group.Name == operatorsv1alpha1.SchemeGroupVersion.Group {
 			foundOperatorsAPI = true
 		}
-		if group.Name == chev1alpha1.SchemeGroupVersion.Group {
+	}
+
+	for _, r := range resourcesList {
+		if r.Kind == "KubernetesImagePuller" {
 			foundKubernetesImagePullerAPI = true
 		}
 	}
