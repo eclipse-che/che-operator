@@ -19,8 +19,7 @@ source "${BASE_DIR}/olm/check-yq.sh"
 
 base_branch="master"
 GITHUB_USER="che-bot"
-# todo set up che-incubator
-fork_org="AndrienkoAleksandr"
+fork_org="che-incubator"
 
 FORCE="" # normally, don't allow pushing to an existing branch
 while [[ "$#" -gt 0 ]]; do
