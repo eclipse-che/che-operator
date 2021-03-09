@@ -13,6 +13,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -34,7 +35,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 )
@@ -138,6 +141,21 @@ func getApiList() ([]v1.APIGroup, error) {
 		return nil, err
 	}
 	return apiList.Groups, nil
+}
+
+func HasAPIResource(name string) bool {
+	resourceList, err := GetServerResources()
+	if err != nil {
+		return false
+	}
+	for _, res := range resourceList {
+		for _, r := range res.APIResources {
+			if r.Name == name {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func GetServerResources() ([]*v1.APIResourceList, error) {
@@ -420,4 +438,11 @@ func ReadObject(yamlFile string, obj interface{}) error {
 	}
 
 	return nil
+}
+
+func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
+	return client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
+		cheCluster)
 }

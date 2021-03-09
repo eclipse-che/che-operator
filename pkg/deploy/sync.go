@@ -96,6 +96,25 @@ func Create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1
 	return true, nil
 }
 
+func Delete(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object) (bool, error) {
+	runtimeObject, err := Get(deployContext, key, objectMeta)
+	if err != nil {
+		return false, err
+	}
+
+	// object doesn't exist, nothing to delete
+	if runtimeObject == nil {
+		return true, nil
+	}
+
+	client := getClientForObject(objectMeta, deployContext)
+	err = client.Delete(context.TODO(), *runtimeObject)
+	if err == nil || errors.IsNotFound(err) {
+		return true, nil
+	}
+	return false, err
+}
+
 func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
 	client := getClientForObject(blueprint, deployContext)
 	actualMeta := actual.(metav1.Object)

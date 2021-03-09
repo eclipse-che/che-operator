@@ -194,13 +194,7 @@ func HasImagePullerFinalizer(instance *orgv1.CheCluster) bool {
 func ReconcileImagePullerFinalizer(ctx *DeployContext) (err error) {
 	instance := ctx.CheCluster
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.ContainsString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName) {
-			ctx.CheCluster.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, imagePullerFinalizerName)
-			logrus.Infof("Adding finalizer %v", imagePullerFinalizerName)
-			if err := ctx.ClusterAPI.Client.Update(context.Background(), instance); err != nil {
-				return err
-			}
-		}
+		return AppendFinalizer(ctx, imagePullerFinalizerName)
 	} else {
 		if util.ContainsString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName) {
 			clusterServiceVersionName := DefaultKubernetesImagePullerOperatorCSV()
@@ -215,13 +209,8 @@ func ReconcileImagePullerFinalizer(ctx *DeployContext) (err error) {
 				logrus.Errorf("Failed to delete %s ClusterServiceVersion: %s", clusterServiceVersionName, err)
 				return err
 			}
-			instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName)
-			logrus.Infof("Updating %s CR", instance.Name)
 
-			if err := ctx.ClusterAPI.Client.Update(context.Background(), instance); err != nil {
-				logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
-				return err
-			}
+			return DeleteFinalizer(ctx, imagePullerFinalizerName)
 		}
 		return nil
 	}

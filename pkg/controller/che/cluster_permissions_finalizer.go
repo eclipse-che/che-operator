@@ -13,7 +13,6 @@
 package che
 
 import (
-	"context"
 	"fmt"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -22,26 +21,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (r *ReconcileChe) ReconcileCheWorkspacesClusterPermissionsFinalizer(instance *orgv1.CheCluster) (err error) {
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.ContainsString(instance.ObjectMeta.Finalizers, cheWorkspacesClusterPermissionsFinalizerName) {
-			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, cheWorkspacesClusterPermissionsFinalizerName)
-			if err := r.client.Update(context.Background(), instance); err != nil {
-				return err
-			}
-		}
+func (r *ReconcileChe) ReconcileCheWorkspacesClusterPermissionsFinalizer(deployContext *deploy.DeployContext) (err error) {
+	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return deploy.AppendFinalizer(deployContext, cheWorkspacesClusterPermissionsFinalizerName)
 	} else {
-		r.RemoveCheWorkspacesClusterPermissions(instance)
+		r.RemoveCheWorkspacesClusterPermissions(deployContext)
 	}
 	return nil
 }
 
-func (r *ReconcileChe) RemoveCheWorkspacesClusterPermissions(instance *orgv1.CheCluster) (err error) {
-	if util.ContainsString(instance.ObjectMeta.Finalizers, cheWorkspacesClusterPermissionsFinalizerName) {
+func (r *ReconcileChe) RemoveCheWorkspacesClusterPermissions(deployContext *deploy.DeployContext) (err error) {
+	if util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, cheWorkspacesClusterPermissionsFinalizerName) {
 		logrus.Infof("Removing '%s'", cheWorkspacesClusterPermissionsFinalizerName)
 
-		cheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, instance.Namespace)
-		cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
+		cheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
+		cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 
 		if err := deploy.DeleteClusterRole(cheWorkspacesNamespaceClusterRoleName, r.nonCachedClient); err != nil {
 			return err
@@ -56,10 +50,7 @@ func (r *ReconcileChe) RemoveCheWorkspacesClusterPermissions(instance *orgv1.Che
 			return err
 		}
 
-		instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, cheWorkspacesClusterPermissionsFinalizerName)
-		if err := r.client.Update(context.Background(), instance); err != nil {
-			return err
-		}
+		return deploy.DeleteFinalizer(deployContext, cheWorkspacesClusterPermissionsFinalizerName)
 	}
 
 	return nil
