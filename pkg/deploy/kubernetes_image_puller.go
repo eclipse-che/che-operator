@@ -273,9 +273,11 @@ func CheckNeededImagePullerApis(ctx *DeployContext) (bool, bool, bool, error) {
 		}
 	}
 
-	for _, r := range resourcesList {
-		if r.Kind == "KubernetesImagePuller" {
-			foundKubernetesImagePullerAPI = true
+	for _, l := range resourcesList {
+		for _, r := range l.APIResources {
+			if r.Kind == "KubernetesImagePuller" {
+				foundKubernetesImagePullerAPI = true
+			}
 		}
 	}
 	return foundPackagesAPI, foundOperatorsAPI, foundKubernetesImagePullerAPI, nil
