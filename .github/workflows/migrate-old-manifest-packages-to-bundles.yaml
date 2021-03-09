@@ -41,5 +41,4 @@ jobs:
       run: "${GITHUB_WORKSPACE}/olm/buildOLMBundlesFromReleaseManifestFiles.sh"
       env:
         IMAGE_REGISTRY_HOST: quay.io
-        # Todo: set up eclipse org
-        IMAGE_REGISTRY_USER_NAME: aandriienko
+        IMAGE_REGISTRY_USER_NAME: eclipse

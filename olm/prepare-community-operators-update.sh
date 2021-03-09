@@ -56,8 +56,7 @@ installOPM
 
 for platform in 'kubernetes' 'openshift'
 do
-  # todo: set up 'eclipse'
-  INDEX_IMAGE="quay.io/aandriienko/eclipse-che-${platform}-opm-catalog:preview"
+  INDEX_IMAGE="quay.io/eclipse/eclipse-che-${platform}-opm-catalog:preview"
   packageName="eclipse-che-preview-${platform}"
   echo
   echo "## Prepare the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
