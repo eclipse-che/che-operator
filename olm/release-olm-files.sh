@@ -37,7 +37,7 @@ downloadLatestReleasedBundleCRCRD() {
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
 
-  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.26.2")
+  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.0")
   if [ "${compareResult}" == "1" ]; then
     wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
         -q -O "${PRE_RELEASE_CSV}"
@@ -78,6 +78,7 @@ do
 
   setLatestReleasedVersion
   downloadLatestReleasedBundleCRCRD
+  packageName=$(getPackageName "${platform}")
 
   echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion}'"
 
@@ -87,7 +88,9 @@ do
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:nightly"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nightly"|"pluginRegistryImage": ""|' \
+  -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
+  -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${LAST_RELEASE_VERSION}" \
   -e "s/: nightly/: ${RELEASE}/" \
   -e "s/:nightly/:${RELEASE}/" \
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
