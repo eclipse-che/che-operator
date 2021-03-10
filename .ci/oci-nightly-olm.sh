@@ -45,7 +45,11 @@ runTests() {
     waitDevWorkspaceControllerStarted
 
     sleep 10s
-    createWorksaceDevWorkspaceController
+    createWorkspaceDevWorkspaceController
+    waitWorkspaceStartedDevWorkspaceController
+
+    sleep 10s
+    createWorkspaceDevWorkspaceCheOperator
     waitWorkspaceStartedDevWorkspaceController
 }
 
