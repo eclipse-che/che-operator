@@ -358,7 +358,7 @@ rules:
       - patch
       - update
   - apiGroups:
-      - ""
+      - ''
     resources:
       - configmap
     verbs:
@@ -370,7 +370,7 @@ rules:
       - update
       - watch
   - apiGroups:
-      - "apps"
+      - apps
     resources:
       - deployments/finalizers
     resourceNames:
@@ -378,6 +378,6 @@ rules:
     verbs:
       - update
   - nonResourceURLs: 
-      - "/metrics"
+      - /metrics
     verbs: 
-      - "get"
+      - get
