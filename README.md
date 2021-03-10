@@ -115,7 +115,7 @@ spec:
 5. Deploy Che operator:
 
 ```bash
-$ chectl server:deploy --installer=olm --platform=<PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=nightly --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
+$ chectl server:deploy --installer=olm --platform=<CHECTL_SUPPORTED_PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=nightly --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
 ```
 
 ### Deploy Che operator using bash script

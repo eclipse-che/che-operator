@@ -127,3 +127,31 @@ $ export IMAGE_REGISTRY_HOST="127.0.0.1:5000" && \
 ```
 
 > Tips: If minikube was installed locally (driver 'none', local installation minikube), then registry is available on the host 0.0.0.0 without port forwarding but it requires `sudo`.
+
+# Install stable "preview" Eclipse Che using chectl
+
+Before publishing Eclipse Che in the community operator catalogs, we are testing new release using "stable" OLM channel
+from "preview" catalog source image.
+Stable "preview" Eclipse Che can be installed via chectl.
+
+1. Create a custom catalog source yaml and define platform(openshift or kubernetes):
+
+```yaml
+apiVersion:  operators.coreos.com/v1alpha1
+kind:         CatalogSource
+metadata:
+  name:         eclipse-che-preview-custom
+  namespace:    che-namespace
+spec:
+  image:        quay.io/eclipse/eclipse-che-<openshift|kubernetes>-opm-catalog:preview
+  sourceType:  grpc
+  updateStrategy:
+    registryPoll:
+      interval: 5m
+```
+
+2. Deploy Che operator:
+
+```bash
+$ chectl server:deploy --installer=olm --platform=<CHECTL_SUPPORTED_PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=stable --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
+```
