@@ -63,7 +63,7 @@ do
   manifestPackagesDir=$(mktemp -d -t che-${platform}-manifest-packages-XXX)
   echo "[INFO] Folder with manifest packages: ${manifestPackagesDir}"
   # Todo: check that github action really has installed docker...
-  opm index export --index="${INDEX_IMAGE}" --package="${packageName}" -c="docker" --download-folder "${manifestPackagesDir}"
+  ${OPM_BINARY} index export --index="${INDEX_IMAGE}" --package="${packageName}" -c="docker" --download-folder "${manifestPackagesDir}"
   packageBaseFolderPath="${manifestPackagesDir}/${packageName}"
   cd "${packageBaseFolderPath}"
 
