@@ -13,7 +13,7 @@
 # NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
 # NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-ARG DEV_WORKSPACE_CONTROLLER_VERSION="master"
+ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
 FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.15-4  as builder

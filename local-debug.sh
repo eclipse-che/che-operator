@@ -18,7 +18,7 @@ command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
 ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
-DEV_WORKSPACE_CONTROLLER_VERSION="master"
+DEV_WORKSPACE_CONTROLLER_VERSION="main"
 DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
 # Stop execution on any error
