@@ -18,7 +18,8 @@ command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
 ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
-DEV_WORKSPACE_CONTROLLER_VERSION="master"
+DEV_WORKSPACE_CONTROLLER_VERSION="main"
+DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -60,9 +61,22 @@ prepareTemplates() {
 
   curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
 
-  unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp
+  unzip /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
   cp -r /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
   echo "[INFO] Downloading Dev Workspace operator templates completed."
+
+  # Download Dev Workspace Che operator templates
+  echo "[INFO] Downloading Dev Workspace Che operator templates ..."
+  rm /tmp/devworkspace-che-operator.zip
+  rm -rf /tmp/che-incubator-devworkspace-che-operator-*
+  rm -rf /tmp/devworkspace-che-operator/
+  mkdir -p /tmp/devworkspace-che-operator/templates
+
+  curl -sL https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip
+
+  unzip /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
+  cp -r /tmp/che-incubator-devworkspace-che-operator*/deploy/* /tmp/devworkspace-che-operator/templates
+  echo "[INFO] Downloading Dev Workspace Che operator templates completed."
 }
 
 createNamespace() {

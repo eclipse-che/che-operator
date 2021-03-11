@@ -365,7 +365,7 @@ waitDevWorkspaceControllerStarted() {
   exit 1
 }
 
-createWorksaceDevWorkspaceController () {
+createWorkspaceDevWorkspaceController () {
   oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
 }
 
@@ -375,7 +375,7 @@ waitWorkspaceStartedDevWorkspaceController() {
   do
     pods=$(oc get pods -n ${NAMESPACE})
     if [[ $pods =~ .*Running.* ]]; then
-      echo "[INFO] Wokrspace started succesfully"
+      echo "[INFO] Workspace started succesfully"
       return
     fi
 
