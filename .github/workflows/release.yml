@@ -93,3 +93,12 @@ jobs:
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
           ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${{ github.event.inputs.force_update }}
+      - name: Create MM message
+        run: |
+          echo "{\"text\":\":building_construction: Che Operator ${{ github.event.inputs.version }} has been released: https://quay.io/eclipse/che-operator:${{ github.event.inputs.version }}\"}" > mattermost.json
+      - name: Send MM message
+        uses: mattermost/action-mattermost-notify@master
+        env:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: eclipse-che-releases
+          MATTERMOST_USERNAME: che-bot
