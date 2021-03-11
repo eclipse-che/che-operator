@@ -387,3 +387,6 @@ waitWorkspaceStartedDevWorkspaceController() {
   exit 1
 }
 
+createWorkspaceDevWorkspaceCheOperator() {
+  oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
+}
