@@ -21,7 +21,7 @@ import (
 
 func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 	if !util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
-		logrus.Infof("Adding %s finalizer", finalizer)
+		logrus.Infof("Adding finalizer: %s", finalizer)
 		deployContext.CheCluster.ObjectMeta.Finalizers = append(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 		for {
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
@@ -40,7 +40,7 @@ func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 }
 
 func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
-	logrus.Infof("Removing %s finalizer", finalizer)
+	logrus.Infof("Deleting finalizer: %s", finalizer)
 	deployContext.CheCluster.ObjectMeta.Finalizers = util.DoRemoveString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 	for {
 		err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)

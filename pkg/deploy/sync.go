@@ -77,7 +77,7 @@ func Create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1
 	}
 
 	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
-	logrus.Infof("Creating a new object: %s, name %s", kind, blueprint.GetName())
+	logrus.Infof("Creating a new object: %s, name: %s", kind, blueprint.GetName())
 
 	obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
 	if err != nil {
@@ -106,6 +106,9 @@ func Delete(deployContext *DeployContext, key client.ObjectKey, objectMeta metav
 	if runtimeObject == nil {
 		return true, nil
 	}
+
+	kind := (*runtimeObject).GetObjectKind().GroupVersionKind().Kind
+	logrus.Infof("Deleting object: %s, name: %s", kind, key.Name)
 
 	client := getClientForObject(objectMeta, deployContext)
 	err = client.Delete(context.TODO(), *runtimeObject)

@@ -24,11 +24,11 @@ import (
 )
 
 const (
-	consoleLinkFinalizerName = "consolelink.finalizers.che.eclipse.org"
+	ConsoleLinkFinalizerName = "consolelink.finalizers.che.eclipse.org"
 )
 
 func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
-	if !util.IsOpenShift4 || !util.HasAPIResource("consolelinks") {
+	if !util.IsOpenShift4 || !hasConsolelinkObject(deployContext) {
 		// console link is supported only on OpenShift >= 4.2
 		logrus.Debug("Console link won't be created. Consolelinks is not supported by OpenShift cluster.")
 		return true, nil
@@ -45,30 +45,31 @@ func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
 	}
 
 	err := deleteConsoleLink(deployContext)
-	return err != nil, err
+	return err == nil, err
 }
 
 func createConsoleLink(deployContext *DeployContext) (bool, error) {
-	consoleLink, err := getConsoleLink(deployContext)
+	consoleLinkSpec := getConsoleLinkSpec(deployContext)
+	_, err := CreateIfNotExists(deployContext, consoleLinkSpec)
 	if err != nil {
 		return false, err
 	}
 
-	if consoleLink == nil {
-		consoleLink := getConsoleLinkSpec(deployContext)
-		return Create(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, consoleLink)
+	consoleLink, err := GetConsoleLink(deployContext)
+	if consoleLink == nil || err != nil {
+		return false, err
 	}
 
 	// consolelink is for this specific instance of Eclipse Che
 	if strings.Index(consoleLink.Spec.Href, deployContext.CheCluster.Spec.Server.CheHost) != -1 {
-		err = AppendFinalizer(deployContext, consoleLinkFinalizerName)
-		return err != nil, err
+		err = AppendFinalizer(deployContext, ConsoleLinkFinalizerName)
+		return err == nil, err
 	}
 
 	return true, nil
 }
 
-func getConsoleLink(deployContext *DeployContext) (*consolev1.ConsoleLink, error) {
+func GetConsoleLink(deployContext *DeployContext) (*consolev1.ConsoleLink, error) {
 	runtimeObj, err := Get(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{})
 	if err != nil || runtimeObj == nil {
 		return nil, err
@@ -81,6 +82,9 @@ func getConsoleLink(deployContext *DeployContext) (*consolev1.ConsoleLink, error
 func getConsoleLinkSpec(deployContext *DeployContext) *consolev1.ConsoleLink {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	consoleLink := &consolev1.ConsoleLink{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ConsoleLink",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DefaultConsoleLinkName(),
 			Annotations: map[string]string{
@@ -109,5 +113,14 @@ func deleteConsoleLink(deployContext *DeployContext) error {
 		logrus.Error(err)
 	}
 
-	return DeleteFinalizer(deployContext, consoleLinkFinalizerName)
+	return DeleteFinalizer(deployContext, ConsoleLinkFinalizerName)
+}
+
+func hasConsolelinkObject(deployContext *DeployContext) bool {
+	_, resourceList, err := deployContext.ClusterAPI.DiscoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false
+	}
+
+	return util.HasAPIResourceNameInList("consolelinks", resourceList)
 }

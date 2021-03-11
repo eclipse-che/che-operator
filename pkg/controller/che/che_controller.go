@@ -136,7 +136,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
 		}
-		if util.HasAPIResource("consolelinks") {
+		if util.HasAPIResourceName("consolelinks") {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
 			}

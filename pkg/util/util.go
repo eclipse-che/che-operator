@@ -34,6 +34,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
@@ -143,27 +144,30 @@ func getApiList() ([]v1.APIGroup, error) {
 	return apiList.Groups, nil
 }
 
-func HasAPIResource(name string) bool {
-	resourceList, err := GetServerResources()
+func HasAPIResourceName(name string) bool {
+	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
 		return false
 	}
-	for _, res := range resourceList {
-		for _, r := range res.APIResources {
+
+	_, resourcesList, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false
+	}
+
+	return HasAPIResourceNameInList(name, resourcesList)
+}
+
+func HasAPIResourceNameInList(name string, resources []*metav1.APIResourceList) bool {
+	for _, l := range resources {
+		for _, r := range l.APIResources {
 			if r.Name == name {
 				return true
 			}
 		}
 	}
-	return false
-}
 
-func GetServerResources() ([]*v1.APIResourceList, error) {
-	discoveryClient, err := getDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-	return discoveryClient.ServerResources()
+	return false
 }
 
 func GetValue(key string, defaultValue string) (value string) {
