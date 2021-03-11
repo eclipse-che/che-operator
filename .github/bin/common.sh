@@ -380,7 +380,7 @@ waitDevWorkspaceControllerStarted() {
   exit 1
 }
 
-createWorksaceDevWorkspaceController () {
+createWorkspaceDevWorkspaceController () {
   oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
 }
 
@@ -390,7 +390,7 @@ waitWorkspaceStartedDevWorkspaceController() {
   do
     pods=$(oc get pods -n ${NAMESPACE})
     if [[ $pods =~ .*Running.* ]]; then
-      echo "[INFO] Wokrspace started succesfully"
+      echo "[INFO] Workspace started succesfully"
       return
     fi
 
@@ -400,4 +400,8 @@ waitWorkspaceStartedDevWorkspaceController() {
 
   echo "Failed to start a workspace"
   exit 1
+}
+
+createWorkspaceDevWorkspaceCheOperator() {
+  oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
 }

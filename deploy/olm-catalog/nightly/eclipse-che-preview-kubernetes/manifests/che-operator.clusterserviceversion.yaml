@@ -76,13 +76,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-03-05T16:30:06Z"
+    createdAt: "2021-03-10T11:28:00Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.27.0-122.nightly
+  name: eclipse-che-preview-kubernetes.v7.28.0-124.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -461,6 +461,76 @@ spec:
               verbs:
                 - list
                 - watch
+            - apiGroups:
+                - che.eclipse.org
+              resources:
+                - '*'
+              verbs:
+                - '*'
+            - apiGroups:
+                - che.eclipse.org
+              resources:
+                - chemanagers
+              verbs:
+                - '*'
+            - apiGroups:
+                - che.eclipse.org
+              resources:
+                - chemanagers/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - che.eclipse.org
+              resources:
+                - chemanagers/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - workspaceroutings
+              verbs:
+                - '*'
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - workspaceroutings/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - workspaceroutings/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - configmap
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resourceNames:
+                - devworkspace-che-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - nonResourceURLs:
+                - /metrics
+              verbs:
+                - get
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
@@ -719,4 +789,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.27.0-122.nightly
+  version: 7.28.0-124.nightly
