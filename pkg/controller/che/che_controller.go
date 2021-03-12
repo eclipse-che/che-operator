@@ -20,6 +20,7 @@ import (
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/deploy"
+	devworkspace "github.com/eclipse/che-operator/pkg/deploy/dev-workspace"
 	devfile_registry "github.com/eclipse/che-operator/pkg/deploy/devfile-registry"
 	"github.com/eclipse/che-operator/pkg/deploy/gateway"
 	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
@@ -34,10 +35,12 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	rbac "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -138,6 +141,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
 			}
 		}
+	}
+
+	// register Extension in the scheme
+	if err := apiextensionsv1.AddToScheme(mgr.GetScheme()); err != nil {
+		logrus.Errorf("Failed to add Extension to scheme: %s", err)
+	}
+
+	// register Admission in the scheme
+	if err := admissionregistrationv1.AddToScheme(mgr.GetScheme()); err != nil {
+		logrus.Errorf("Failed to add Admission to scheme: %s", err)
 	}
 
 	// register RBAC in the scheme
@@ -423,6 +436,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, isOpenShift4); err != nil {
 			return reconcileResult, err
 		}
+	}
+
+	// Reconcile Dev Workspace Operator
+	done, err := devworkspace.ReconcileDevWorkspace(deployContext)
+	if !done {
+		if err != nil {
+			logrus.Error(err)
+		}
+		// We should `Requeue` since we don't watch Dev Workspace controller objects
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	// Read proxy configuration

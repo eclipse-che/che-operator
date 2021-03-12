@@ -12,22 +12,14 @@
 
 set -e
 
-command -v delv >/dev/null 2>&1 || { echo "operator-sdk is not installed. Aborting."; exit 1; }
-command -v operator-sdk >/dev/null 2>&1 || { echo -e $RED"operator-sdk is not installed. Aborting."$NC; exit 1; }
+command -v delv >/dev/null 2>&1 || { echo "delv is not installed. Aborting."; exit 1; }
+command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed. Aborting."; exit 1; }
 
-usage () {
-	echo "Usage:   $0 [-w WORKDIR] [-s SOURCE_PATH] -r [CSV_FILE_PATH_REGEXP] -t [IMAGE_TAG] "
-	echo "Example: $0 -w $(pwd) -r \"eclipse-che-preview-.*/eclipse-che-preview-.*\.v7.15.0.*yaml\" -t 7.15.0"
-}
-
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-    '-n') CHE_NAMESPACE="$2"; shift 1;;
-    '-cr') CR="$2"; shift 1;;
-	'--help'|'-h') usage; exit;;
-  esac
-  shift 1
-done
+ECLIPSE_CHE_NAMESPACE="eclipse-che"
+ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
+ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
+DEV_WORKSPACE_CONTROLLER_VERSION="main"
+DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -41,40 +33,83 @@ catchFinish() {
   fi
 }
 
-if [ -z "${CHE_NAMESPACE}" ];then
-    CHE_NAMESPACE=che
-fi
-echo "[INFO] Namespace: ${CHE_NAMESPACE}"
+usage () {
+	echo "Usage:   $0 [-n ECLIPSE_CHE_NAMESPACE] [-cr ECLIPSE_CHE_CR] "
+}
 
-set +e
-kubectl create namespace $CHE_NAMESPACE
-set -e
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    '-n')  ECLIPSE_CHE_NAMESPACE="$2"; shift 1;;
+    '-cr') ECLIPSE_CHE_CR="$2"; shift 1;;
+	'--help'|'-h') usage; exit;;
+  esac
+  shift 1
+done
 
-if [ -z "${CR}" ]; then
-    CR="./deploy/crds/org_v1_che_cr.yaml"
-fi
-echo "[INFO] CR file path: ${CR}"
+prepareTemplates() {
+  cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
+  cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
+  cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
+  cp templates/oauth-provision.sh /tmp/oauth-provision.sh
 
-kubectl apply -f deploy/crds/org_v1_che_crd.yaml
-kubectl apply -f "${CR}" -n $CHE_NAMESPACE
-cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
-cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
-cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
-cp templates/oauth-provision.sh /tmp/oauth-provision.sh
+  # Download Dev Workspace operator templates
+  echo "[INFO] Downloading Dev Workspace operator templates ..."
+  rm /tmp/devworkspace-operator.zip
+  rm -rf /tmp/devfile-devworkspace-operator-*
+  rm -rf /tmp/devworkspace-operator/
+  mkdir -p /tmp/devworkspace-operator/templates
 
-ENV_FILE=/tmp/che-operator-debug.env
-rm -rf "${ENV_FILE}"
-touch "${ENV_FILE}"
-CLUSTER_API_URL=$(oc whoami --show-server=true) || true
-if [ -n "${CLUSTER_API_URL}" ]; then
-    echo "CLUSTER_API_URL='${CLUSTER_API_URL}'" >> "${ENV_FILE}"
-    echo "[INFO] Set up cluster api url: ${CLUSTER_API_URL}"
-fi
-echo "WATCH_NAMESPACE='${CHE_NAMESPACE}'" >> ${ENV_FILE}
+  curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
 
-echo "[WARN] Make sure that your CR contains valid ingress domain!"
+  unzip /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
+  cp -r /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
+  echo "[INFO] Downloading Dev Workspace operator templates completed."
 
-operator-sdk run --local --watch-namespace ${CHE_NAMESPACE} --enable-delve &
-OPERATOR_SDK_PID=$!
+  # Download Dev Workspace Che operator templates
+  echo "[INFO] Downloading Dev Workspace Che operator templates ..."
+  rm /tmp/devworkspace-che-operator.zip
+  rm -rf /tmp/che-incubator-devworkspace-che-operator-*
+  rm -rf /tmp/devworkspace-che-operator/
+  mkdir -p /tmp/devworkspace-che-operator/templates
 
-wait ${OPERATOR_SDK_PID}
+  curl -sL https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip
+
+  unzip /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
+  cp -r /tmp/che-incubator-devworkspace-che-operator*/deploy/* /tmp/devworkspace-che-operator/templates
+  echo "[INFO] Downloading Dev Workspace Che operator templates completed."
+}
+
+createNamespace() {
+  set +e
+  kubectl create namespace $ECLIPSE_CHE_NAMESPACE
+  set -e
+}
+
+applyCRandCRD() {
+  kubectl apply -f ${ECLIPSE_CHE_CRD}
+  kubectl apply -f ${ECLIPSE_CHE_CR} -n $ECLIPSE_CHE_NAMESPACE
+}
+
+runDebug() {
+  ENV_FILE=/tmp/che-operator-debug.env
+  rm -rf "${ENV_FILE}"
+  touch "${ENV_FILE}"
+  CLUSTER_API_URL=$(oc whoami --show-server=true) || true
+  if [ -n "${CLUSTER_API_URL}" ]; then
+      echo "CLUSTER_API_URL='${CLUSTER_API_URL}'" >> "${ENV_FILE}"
+      echo "[INFO] Set up cluster api url: ${CLUSTER_API_URL}"
+  fi
+  echo "WATCH_NAMESPACE='${ECLIPSE_CHE_NAMESPACE}'" >> ${ENV_FILE}
+
+  echo "[WARN] Make sure that your CR contains valid ingress domain!"
+
+  operator-sdk run --local --watch-namespace ${ECLIPSE_CHE_NAMESPACE} --enable-delve &
+  OPERATOR_SDK_PID=$!
+
+  wait ${OPERATOR_SDK_PID}
+}
+
+prepareTemplates
+createNamespace
+applyCRandCRD
+runDebug

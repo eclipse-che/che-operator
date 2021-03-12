@@ -28,6 +28,7 @@ catchFinish() {
 initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
+  export USER_NAMEPSACE="che-che"
   export ARTIFACTS_DIR="/tmp/artifacts-che"
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
@@ -337,4 +338,55 @@ login() {
     # log in using OpenShift token
     chectl auth:login --chenamespace=${NAMESPACE}
   fi
+}
+
+deployDevWorkspaceController() {
+  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": true}}}'
+}
+
+waitDevWorkspaceControllerStarted() {
+  n=0
+  while [ $n -le 24 ]
+  do
+    webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
+    if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
+      echo "[INFO] Dev Workspace controller has been deployed"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "[ERROR] Failed to deploy Dev Workspace controller"
+  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
+  oc logs ${OPERATOR_POD} -n ${NAMESPACE}
+
+  exit 1
+}
+
+createWorkspaceDevWorkspaceController () {
+  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
+}
+
+waitWorkspaceStartedDevWorkspaceController() {
+  n=0
+  while [ $n -le 24 ]
+  do
+    pods=$(oc get pods -n ${NAMESPACE})
+    if [[ $pods =~ .*Running.* ]]; then
+      echo "[INFO] Workspace started succesfully"
+      return
+    fi
+
+    sleep 5
+    n=$(( n+1 ))
+  done
+
+  echo "Failed to start a workspace"
+  exit 1
+}
+
+createWorkspaceDevWorkspaceCheOperator() {
+  oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
 }
