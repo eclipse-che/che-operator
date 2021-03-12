@@ -46,6 +46,12 @@ func TestRouteSpec(t *testing.T) {
 		expectedRoute       *routev1.Route
 	}
 
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+		},
+	}
+
 	testCases := []testCase{
 		{
 			name:           "Test domain",
@@ -65,9 +71,9 @@ func TestRouteSpec(t *testing.T) {
 					Labels: map[string]string{
 						"type":                         "default",
 						"app.kubernetes.io/component":  "test-component",
-						"app.kubernetes.io/instance":   "che",
-						"app.kubernetes.io/managed-by": "che-operator",
-						"app.kubernetes.io/name":       "che",
+						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
+						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -116,9 +122,9 @@ func TestRouteSpec(t *testing.T) {
 					Labels: map[string]string{
 						"type":                         "default",
 						"app.kubernetes.io/component":  "test-component",
-						"app.kubernetes.io/instance":   "che",
-						"app.kubernetes.io/managed-by": "che-operator",
-						"app.kubernetes.io/name":       "che",
+						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
+						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -159,11 +165,7 @@ func TestRouteSpec(t *testing.T) {
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
 			deployContext := &DeployContext{
-				CheCluster: &orgv1.CheCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "eclipse-che",
-					},
-				},
+				CheCluster: cheCluster,
 				ClusterAPI: ClusterAPI{
 					Client: cli,
 					Scheme: scheme.Scheme,
