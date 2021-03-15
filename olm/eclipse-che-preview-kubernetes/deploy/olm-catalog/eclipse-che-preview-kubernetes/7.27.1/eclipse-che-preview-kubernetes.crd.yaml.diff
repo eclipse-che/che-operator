@@ -1,0 +1,18 @@
+--- /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.27.0/eclipse-che-preview-kubernetes.crd.yaml	2021-03-12 17:36:40.472284755 +0000
++++ /home/runner/work/che-operator/che-operator/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/7.27.1/eclipse-che-preview-kubernetes.crd.yaml	2021-03-12 18:00:21.501065086 +0000
+@@ -305,6 +305,15 @@
+                     `latest` images, and `IfNotPresent` in other cases.
+                   type: string
+               type: object
++            devWorkspace:
++              description: Dev Workspace operator configuration
++              properties:
++                enable:
++                  description: Deploys the DevWorkspace Operator in the cluster. Does
++                    nothing when a matching version of the Operator is already installed.
++                    Fails when a non-matching version of the Operator is already installed.
++                  type: boolean
++              type: object
+             imagePuller:
+               description: Kubernetes Image Puller configuration
+               properties:
