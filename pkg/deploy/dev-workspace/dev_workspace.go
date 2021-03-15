@@ -190,7 +190,7 @@ func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 		Spec: corev1.NamespaceSpec{},
 	}
 
-	return deploy.Create(deployContext, namespace)
+	return deploy.CreateIfNotExists(deployContext, namespace)
 }
 
 func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
@@ -265,7 +265,7 @@ func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
 		Spec: corev1.NamespaceSpec{},
 	}
 
-	return deploy.Create(deployContext, namespace)
+	return deploy.CreateIfNotExists(deployContext, namespace)
 }
 
 func syncDwCheServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
@@ -364,5 +364,5 @@ func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interf
 	}
 
 	objectMeta := cachedObj[yamlFile]
-	return deploy.Create(deployContext, objectMeta)
+	return deploy.CreateIfNotExists(deployContext, objectMeta)
 }

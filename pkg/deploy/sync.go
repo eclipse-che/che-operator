@@ -50,8 +50,8 @@ func Get(deployContext *DeployContext, key client.ObjectKey, actual metav1.Objec
 }
 
 // Creates object.
-// Return true if a new object is created otherwise returns false.
-func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+// Return true if a new object is created or has been already created otherwise returns false.
+func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
 	client := getClientForObject(blueprint, deployContext)
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
@@ -64,13 +64,33 @@ func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error)
 	if err != nil {
 		return false, err
 	} else if exists {
-		return false, nil
+		return true, nil
 	}
 
 	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
 	logrus.Infof("Creating a new object: %s, name: %s", kind, blueprint.GetName())
 
 	err = setOwnerReferenceIfNeeded(deployContext, blueprint)
+	if err != nil {
+		return false, err
+	}
+
+	return doCreate(client, runtimeObject)
+}
+
+// Creates object.
+// Return true if a new object is created otherwise returns false.
+func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+	client := getClientForObject(blueprint, deployContext)
+	runtimeObject, ok := blueprint.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
+	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
+	logrus.Infof("Creating a new object: %s, name: %s", kind, blueprint.GetName())
+
+	err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
 		return false, err
 	}
