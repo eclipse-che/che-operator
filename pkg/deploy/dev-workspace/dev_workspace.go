@@ -123,7 +123,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	devWorkspaceWebhookExists, err := deploy.IsExists(
+	devWorkspaceWebhookExists, err := deploy.Get(
 		deployContext,
 		client.ObjectKey{Name: DevWorkspaceWebhookName},
 		&admissionregistrationv1.MutatingWebhookConfiguration{},
@@ -190,7 +190,7 @@ func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 		Spec: corev1.NamespaceSpec{},
 	}
 
-	return deploy.CreateIfNotExists(deployContext, namespace)
+	return deploy.Create(deployContext, namespace)
 }
 
 func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
@@ -265,7 +265,7 @@ func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
 		Spec: corev1.NamespaceSpec{},
 	}
 
-	return deploy.CreateIfNotExists(deployContext, namespace)
+	return deploy.Create(deployContext, namespace)
 }
 
 func syncDwCheServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
@@ -364,5 +364,5 @@ func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interf
 	}
 
 	objectMeta := cachedObj[yamlFile]
-	return deploy.CreateIfNotExists(deployContext, objectMeta)
+	return deploy.Create(deployContext, objectMeta)
 }

@@ -72,12 +72,10 @@ func TestReconcileConsoleLink(t *testing.T) {
 	}
 
 	// check consolelink object existence
-	consoleLink, err := GetConsoleLink(deployContext)
-	if err != nil {
+	consoleLink := &console.ConsoleLink{}
+	exists, err := Get(deployContext, types.NamespacedName{Name: DefaultConsoleLinkName()}, consoleLink)
+	if !exists || err != nil {
 		t.Fatalf("Failed to get consolelink: %v", err)
-	}
-	if consoleLink == nil {
-		t.Fatalf("Consolelink not found")
 	}
 
 	// check finalizer
@@ -98,11 +96,8 @@ func TestReconcileConsoleLink(t *testing.T) {
 	}
 
 	// check consolelink object existence
-	consoleLink, err = GetConsoleLink(deployContext)
-	if err != nil {
-		t.Fatalf("Failed to get consolelink: %v", err)
-	}
-	if consoleLink != nil {
+	exists, err = Get(deployContext, types.NamespacedName{Name: DefaultConsoleLinkName()}, consoleLink)
+	if exists || err != nil {
 		t.Fatalf("Failed to remove consolelink")
 	}
 

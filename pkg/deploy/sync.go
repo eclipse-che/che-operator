@@ -9,117 +9,101 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
-// Returns true if the object was created or updated, false if there was no change detected.
+// Returns true if object is up to date otherwiser returns false
 func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
-	key := client.ObjectKey{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
+	key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
 
-	actual, err := Get(deployContext, key, blueprint)
-	if err != nil {
-		return false, err
+	runtimeObject, ok := blueprint.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	if actual == nil {
-		return Create(deployContext, key, blueprint)
-	}
-	return Update(deployContext, *actual, blueprint, diffOpts)
-}
-
-func CreateIfNotExists(deployContext *DeployContext, objectMeta metav1.Object) (bool, error) {
-	key := client.ObjectKey{Name: objectMeta.GetName(), Namespace: objectMeta.GetNamespace()}
-	exists, err := IsExists(deployContext, key, objectMeta)
+	actual := runtimeObject.DeepCopyObject()
+	client := getClientForObject(blueprint, deployContext)
+	exists, err := doGet(client, key, runtimeObject)
 	if err != nil {
 		return false, err
 	}
 
 	if !exists {
-		return Create(deployContext, key, objectMeta)
+		return Create(deployContext, blueprint)
 	}
-
-	return true, nil
+	return Update(deployContext, actual, blueprint, diffOpts)
 }
 
-// Indicates if objects exists
-func IsExists(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object) (bool, error) {
-	actualObject, err := Get(deployContext, key, objectMeta)
-	return actualObject != nil, err
-}
-
-// Gets object by key
-func Get(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object) (*runtime.Object, error) {
-	runtimeObject, ok := objectMeta.(runtime.Object)
+// Gets object by key.
+// Returns true if object exists otherwise returns false.
+func Get(deployContext *DeployContext, key client.ObjectKey, actual metav1.Object) (bool, error) {
+	runtimeObject, ok := actual.(runtime.Object)
 	if !ok {
-		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	client := getClientForObject(objectMeta, deployContext)
+	client := getClientForObject(actual, deployContext)
+	return doGet(client, key, runtimeObject)
+}
+
+// Creates object.
+// Return true if a new object is created otherwise returns false.
+func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+	client := getClientForObject(blueprint, deployContext)
+	runtimeObject, ok := blueprint.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
 	actual := runtimeObject.DeepCopyObject()
-
-	err := client.Get(context.TODO(), key, actual)
+	key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
+	exists, err := doGet(client, key, actual)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
+		return false, err
+	} else if exists {
+		return false, nil
 	}
 
-	return &actual, nil
-}
-
-func Create(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (bool, error) {
-	blueprintObject, ok := blueprint.(runtime.Object)
-	if !ok {
-		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
-	}
-
-	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
+	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
 	logrus.Infof("Creating a new object: %s, name: %s", kind, blueprint.GetName())
 
-	obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+	err = setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
 		return false, err
 	}
 
-	client := getClientForObject(blueprint, deployContext)
-	err = client.Create(context.TODO(), obj)
-	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
+	return doCreate(client, runtimeObject)
 }
 
-func Delete(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object) (bool, error) {
-	runtimeObject, err := Get(deployContext, key, objectMeta)
-	if err != nil {
-		return false, err
+// Deletes object.
+// Returns true if object deleted or not found otherwise returns false.
+func Delete(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (bool, error) {
+	client := getClientForObject(blueprint, deployContext)
+	runtimeObject, ok := blueprint.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	// object doesn't exist, nothing to delete
-	if runtimeObject == nil {
+	actual := runtimeObject.DeepCopyObject()
+	exists, err := doGet(client, key, actual)
+	if err != nil {
+		return false, err
+	} else if !exists {
 		return true, nil
 	}
 
-	kind := (*runtimeObject).GetObjectKind().GroupVersionKind().Kind
+	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
 	logrus.Infof("Deleting object: %s, name: %s", kind, key.Name)
 
-	client := getClientForObject(objectMeta, deployContext)
-	err = client.Delete(context.TODO(), *runtimeObject)
-	if err == nil || errors.IsNotFound(err) {
-		return true, nil
-	}
-	return false, err
+	return doDelete(client, actual)
 }
 
+// Updates object.
+// Returns true if object is up to date otherwiser return false
 func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
-	client := getClientForObject(blueprint, deployContext)
 	actualMeta := actual.(metav1.Object)
 
 	diff := cmp.Diff(actual, blueprint, diffOpts)
@@ -128,60 +112,93 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 		logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
 		fmt.Printf("Difference:\n%s", diff)
 
+		client := getClientForObject(blueprint, deployContext)
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			err := client.Delete(context.TODO(), actual)
+			done, err := doDelete(client, actual)
+			if !done {
+				return false, err
+			}
+
+			err = setOwnerReferenceIfNeeded(deployContext, blueprint)
 			if err != nil {
 				return false, err
 			}
 
-			obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
-			if err != nil {
-				return false, err
-			}
-
-			err = client.Create(context.TODO(), obj)
-			return false, err
+			return doCreate(client, blueprint.(runtime.Object))
 		} else {
-			obj, err := setOwnerReferenceAndConvertToRuntime(deployContext, blueprint)
+			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 			if err != nil {
 				return false, err
+			}
+
+			obj, ok := blueprint.(runtime.Object)
+			if !ok {
+				return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
 			}
 
 			// to be able to update, we need to set the resource version of the object that we know of
 			obj.(metav1.Object).SetResourceVersion(actualMeta.GetResourceVersion())
-
-			err = client.Update(context.TODO(), obj)
-			return false, err
+			return doUpdate(client, obj)
 		}
 	}
 	return true, nil
+}
+
+func doCreate(client client.Client, object runtime.Object) (bool, error) {
+	err := client.Create(context.TODO(), object)
+	if err == nil {
+		return true, nil
+	} else if errors.IsAlreadyExists(err) {
+		return false, nil
+	} else {
+		return false, err
+	}
+}
+
+func doDelete(client client.Client, object runtime.Object) (bool, error) {
+	err := client.Delete(context.TODO(), object)
+	if err == nil || errors.IsNotFound(err) {
+		return true, nil
+	} else {
+		return false, err
+	}
+}
+
+func doUpdate(client client.Client, object runtime.Object) (bool, error) {
+	err := client.Update(context.TODO(), object)
+	if err == nil {
+		return true, nil
+	} else {
+		return false, err
+	}
+}
+
+func doGet(client client.Client, key client.ObjectKey, object runtime.Object) (bool, error) {
+	err := client.Get(context.TODO(), key, object)
+	if err == nil {
+		return true, nil
+	} else if errors.IsNotFound(err) {
+		return false, nil
+	} else {
+		return false, err
+	}
 }
 
 func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func setOwnerReferenceAndConvertToRuntime(deployContext *DeployContext, obj metav1.Object) (runtime.Object, error) {
-	robj, ok := obj.(runtime.Object)
-	if !ok {
-		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
+func setOwnerReferenceIfNeeded(deployContext *DeployContext, blueprint metav1.Object) error {
+	if shouldSetOwnerReferenceForObject(deployContext, blueprint) {
+		return controllerutil.SetControllerReference(deployContext.CheCluster, blueprint, deployContext.ClusterAPI.Scheme)
 	}
 
-	if !shouldSetOwnerReferenceForObject(deployContext, obj) {
-		return robj, nil
-	}
-
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, obj, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	return robj, nil
+	return nil
 }
 
-func shouldSetOwnerReferenceForObject(deployContext *DeployContext, obj metav1.Object) bool {
+func shouldSetOwnerReferenceForObject(deployContext *DeployContext, blueprint metav1.Object) bool {
 	// empty workspace (cluster scope object) or object in another namespace
-	return obj.GetNamespace() == deployContext.CheCluster.Namespace
+	return blueprint.GetNamespace() == deployContext.CheCluster.Namespace
 }
 
 func getClientForObject(objectMeta metav1.Object, deployContext *DeployContext) client.Client {

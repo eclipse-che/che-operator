@@ -14,7 +14,6 @@ package deploy
 import (
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"github.com/eclipse/che-operator/pkg/util"
 	consolev1 "github.com/openshift/api/console/v1"
@@ -50,33 +49,24 @@ func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
 
 func createConsoleLink(deployContext *DeployContext) (bool, error) {
 	consoleLinkSpec := getConsoleLinkSpec(deployContext)
-	_, err := CreateIfNotExists(deployContext, consoleLinkSpec)
+	_, err := Create(deployContext, consoleLinkSpec)
 	if err != nil {
 		return false, err
 	}
 
-	consoleLink, err := GetConsoleLink(deployContext)
-	if consoleLink == nil || err != nil {
+	consoleLink := &consolev1.ConsoleLink{}
+	exists, err := Get(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, consoleLink)
+	if !exists || err != nil {
 		return false, err
 	}
 
 	// consolelink is for this specific instance of Eclipse Che
-	if strings.Index(consoleLink.Spec.Href, deployContext.CheCluster.Spec.Server.CheHost) != -1 {
+	if strings.Index(consoleLink.Spec.Link.Href, deployContext.CheCluster.Spec.Server.CheHost) != -1 {
 		err = AppendFinalizer(deployContext, ConsoleLinkFinalizerName)
 		return err == nil, err
 	}
 
 	return true, nil
-}
-
-func GetConsoleLink(deployContext *DeployContext) (*consolev1.ConsoleLink, error) {
-	runtimeObj, err := Get(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{})
-	if err != nil || runtimeObj == nil {
-		return nil, err
-	}
-
-	consoleLink := (*consolev1.ConsoleLink)(unsafe.Pointer(runtimeObj))
-	return consoleLink, nil
 }
 
 func getConsoleLinkSpec(deployContext *DeployContext) *consolev1.ConsoleLink {

@@ -60,38 +60,17 @@ func TestGet(t *testing.T) {
 		t.Fatalf("Failed to create object: %v", err)
 	}
 
-	actual, err := Get(deployContext, testKey, testObjMeta)
-	if err != nil {
+	actual := &corev1.Secret{}
+	exists, err := Get(deployContext, testKey, actual)
+	if !exists || err != nil {
 		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if actual == nil {
-		t.Fatalf("Object not found")
-	}
-}
-
-func TestIsExists(t *testing.T) {
-	cli, deployContext := initDeployContext()
-
-	err := cli.Create(context.TODO(), testObj)
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	exists, err := IsExists(deployContext, testKey, testObjMeta)
-	if err != nil {
-		t.Fatalf("Failed to get object: %v", err)
-	}
-
-	if !exists {
-		t.Fatalf("Object not found")
 	}
 }
 
 func TestCreate(t *testing.T) {
 	cli, deployContext := initDeployContext()
 
-	done, err := Create(deployContext, testKey, testObjMeta)
+	done, err := Create(deployContext, testObj)
 	if err != nil {
 		t.Fatalf("Failed to create object: %v", err)
 	}
