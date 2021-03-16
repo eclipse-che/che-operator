@@ -43,7 +43,7 @@ func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
 		return createConsoleLink(deployContext)
 	}
 
-	err := DeleteObjectAndFinalizer(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName)
+	err := DeleteObjectWithFinalizer(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName)
 	return err == nil, err
 }
 

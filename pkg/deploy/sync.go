@@ -52,7 +52,7 @@ func SyncWithFinalizer(
 		return err == nil, err
 	} else {
 		key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
-		err := DeleteObjectAndFinalizer(deployContext, key, blueprint, finalizer)
+		err := DeleteObjectWithFinalizer(deployContext, key, blueprint, finalizer)
 		return err == nil, err
 	}
 }

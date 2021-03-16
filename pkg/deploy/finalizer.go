@@ -57,7 +57,7 @@ func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
 	}
 }
 
-func DeleteObjectAndFinalizer(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object, finalizer string) error {
+func DeleteObjectWithFinalizer(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object, finalizer string) error {
 	_, err := Delete(deployContext, key, blueprint)
 	if err != nil {
 		// failed to delete, shouldn't us prevent from removing finalizer
