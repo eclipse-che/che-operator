@@ -43,7 +43,7 @@ initDefaults() {
 
   # turn off telemetry
   mkdir -p ${XDG_CONFIG_HOME}/chectl
-  echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/chectl/config.json
+  echo "{\"segment.telemetry\":\"off\"}" > ${HOME}/.config/chectl/config.json
 
   # prepare templates directory
   rm -rf ${TEMPLATES}
