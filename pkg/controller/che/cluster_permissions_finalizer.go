@@ -19,6 +19,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
+	rbac "k8s.io/api/rbac/v1"
+
 )
 
 func (r *ReconcileChe) ReconcileCheWorkspacesClusterPermissionsFinalizer(deployContext *deploy.DeployContext) (err error) {
@@ -37,16 +40,20 @@ func (r *ReconcileChe) RemoveCheWorkspacesClusterPermissions(deployContext *depl
 		cheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 		cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 
-		if err := deploy.DeleteClusterRole(cheWorkspacesNamespaceClusterRoleName, r.nonCachedClient); err != nil {
+		done, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesNamespaceClusterRoleName}, &rbac.ClusterRole{})
+		if !done || err != nil {
 			return err
 		}
-		if err := deploy.DeleteClusterRoleBinding(cheWorkspacesNamespaceClusterRoleName, r.nonCachedClient); err != nil {
+		done, err = deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesNamespaceClusterRoleName}, &rbac.ClusterRoleBinding{})
+		if !done || err != nil {
 			return err
 		}
-		if err := deploy.DeleteClusterRole(cheWorkspacesClusterRoleName, r.nonCachedClient); err != nil {
+		done, err = deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesClusterRoleName}, &rbac.ClusterRole{})
+		if !done || err != nil {
 			return err
 		}
-		if err := deploy.DeleteClusterRoleBinding(cheWorkspacesClusterRoleName, r.nonCachedClient); err != nil {
+		done, err = deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesClusterRoleName}, &rbac.ClusterRoleBinding{})
+		if !done || err != nil {
 			return err
 		}
 

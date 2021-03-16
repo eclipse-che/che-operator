@@ -143,7 +143,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(d
 	сheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	сheWorkspacesNamespaceClusterRoleBindingName := сheWorkspacesNamespaceClusterRoleName
 	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
-	provisioned, err := deploy.SyncClusterRoleToCheCluster(deployContext, сheWorkspacesNamespaceClusterRoleName, getCheWorkspacesNamespacePolicy())
+	provisioned, err := deploy.SyncClusterRoleToCluster(deployContext, сheWorkspacesNamespaceClusterRoleName, getCheWorkspacesNamespacePolicy())
 	if !provisioned {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", сheWorkspacesNamespaceClusterRoleName)
 		if err != nil {
@@ -153,13 +153,13 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(d
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
-	сheWorkspacesNamespaceClusterRoleBinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesNamespaceClusterRoleBindingName, CheServiceAccountName, сheWorkspacesNamespaceClusterRoleName)
-	if сheWorkspacesNamespaceClusterRoleBinding == nil {
-		logrus.Infof("Waiting on clusterrolebinding '%s' to be created", сheWorkspacesNamespaceClusterRoleBindingName)
-		if err != nil {
-			logrus.Error(err)
-		}
+	done, err := deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesNamespaceClusterRoleBindingName, CheServiceAccountName, сheWorkspacesNamespaceClusterRoleName)
+	if !done {
 		if !tests {
+			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", сheWorkspacesNamespaceClusterRoleBindingName)
+			if err != nil {
+				logrus.Error(err)
+			}
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
@@ -167,7 +167,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(d
 	сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	сheWorkspacesClusterRoleBindingName := сheWorkspacesClusterRoleName
 	// Create clusterrole "<workspace-namespace/project-name>-cheworkspaces-namespaces-clusterrole" to create k8s components for Che workspaces.
-	provisioned, err = deploy.SyncClusterRoleToCheCluster(deployContext, сheWorkspacesClusterRoleName, getCheWorkspacesPolicy())
+	provisioned, err = deploy.SyncClusterRoleToCluster(deployContext, сheWorkspacesClusterRoleName, getCheWorkspacesPolicy())
 	if !provisioned {
 		logrus.Infof("Waiting on clusterrole '%s' to be created", сheWorkspacesClusterRoleName)
 		if err != nil {
@@ -177,13 +177,13 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(d
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
-	cheManageNamespacesRolebinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesClusterRoleBindingName, CheServiceAccountName, сheWorkspacesClusterRoleName)
-	if cheManageNamespacesRolebinding == nil {
-		logrus.Infof("Waiting on clusterrolebinding '%s' to be created", сheWorkspacesClusterRoleBindingName)
-		if err != nil {
-			logrus.Error(err)
-		}
+	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesClusterRoleBindingName, CheServiceAccountName, сheWorkspacesClusterRoleName)
+	if !done {
 		if !tests {
+			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", сheWorkspacesClusterRoleBindingName)
+			if err != nil {
+				logrus.Error(err)
+			}
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}

@@ -26,7 +26,7 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 
 	actual := runtimeObject.DeepCopyObject()
 	client := getClientForObject(blueprint, deployContext)
-	exists, err := doGet(client, key, runtimeObject)
+	exists, err := doGet(client, key, actual)
 	if err != nil {
 		return false, err
 	}
@@ -35,6 +35,26 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 		return Create(deployContext, blueprint)
 	}
 	return Update(deployContext, actual, blueprint, diffOpts)
+}
+
+func SyncWithFinalizer(
+	deployContext *DeployContext,
+	blueprint metav1.Object,
+	diffOpts cmp.Option,
+	finalizer string) (bool, error) {
+
+	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		done, err := Sync(deployContext, blueprint, crbDiffOpts)
+		if !done {
+			return done, err
+		}
+		err = AppendFinalizer(deployContext, finalizer)
+		return err == nil, err
+	} else {
+		key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
+		err := DeleteObjectAndFinalizer(deployContext, key, blueprint, finalizer)
+		return err == nil, err
+	}
 }
 
 // Gets object by key.
@@ -126,7 +146,7 @@ func Delete(deployContext *DeployContext, key client.ObjectKey, blueprint metav1
 func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
 	actualMeta := actual.(metav1.Object)
 
-	diff := cmp.Diff(actual, blueprint, diffOpts)
+	diff := cmp.Diff(blueprint, actual, diffOpts)
 	if len(diff) > 0 {
 		kind := actual.GetObjectKind().GroupVersionKind().Kind
 		logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())

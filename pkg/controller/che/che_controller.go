@@ -626,12 +626,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		clusterRole, err := deploy.GetClusterRole(CheWorkspacesClusterRoleNameTemplate, deployContext.ClusterAPI.Client)
+		exists, err := deploy.Get(deployContext, types.NamespacedName{Name: CheWorkspacesClusterRoleNameTemplate}, &rbac.ClusterRole{})
 		if err != nil {
 			logrus.Error(err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-		if clusterRole == nil {
+		if !exists {
 			policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
 			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
 			if err != nil {
@@ -677,13 +677,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
 			cheClusterRoleBindingName := instance.Namespace + "-che-" + cheClusterRole
-			cheClusterRoleBinding, err := deploy.SyncClusterRoleBindingToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
-			if cheClusterRoleBinding == nil {
-				logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
-				if err != nil {
-					logrus.Error(err)
-				}
-				if !tests {
+			done, err := deploy.SyncClusterRoleBindingAndFinalizerToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
+			if !tests {
+				if !done {
+					logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
+					if err != nil {
+						logrus.Error(err)
+					}
 					return reconcile.Result{RequeueAfter: time.Second}, err
 				}
 			}

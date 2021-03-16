@@ -13,8 +13,10 @@ package deploy
 
 import (
 	"context"
+	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -194,12 +196,47 @@ func TestSync(t *testing.T) {
 		t.Fatalf("Failed to get object: %v", err)
 	}
 
-	if actual == nil {
-		t.Fatalf("Object not found")
-	}
-
 	if actual.Labels["a"] != "b" {
 		t.Fatalf("Object hasn't been updated")
+	}
+}
+
+func TestSyncWithFinalizer(t *testing.T) {
+	cli, deployContext := initDeployContext()
+
+	cli.Create(context.TODO(), deployContext.CheCluster)
+
+	// Sync object
+	done, err := SyncWithFinalizer(deployContext, testObj, cmp.Options{}, "test-finalizer")
+	if !done || err != nil {
+		t.Fatalf("Error syncing object: %v", err)
+	}
+
+	actual := &corev1.Secret{}
+	err = cli.Get(context.TODO(), testKey, actual)
+	if err != nil {
+		t.Fatalf("Failed to get object: %v", err)
+	}
+
+	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test-finalizer") {
+		t.Fatalf("Failed to add finalizer")
+	}
+
+	// Object should be removed
+	deployContext.CheCluster.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	done, err = SyncWithFinalizer(deployContext, testObj, cmp.Options{}, "test-finalizer")
+	if !done || err != nil {
+		t.Fatalf("Error syncing object: %v", err)
+	}
+
+	actual = &corev1.Secret{}
+	err = cli.Get(context.TODO(), testKey, actual)
+	if err == nil || !errors.IsNotFound(err) {
+		t.Fatalf("Failed to delete object: %v", err)
+	}
+
+	if util.ContainsString(deployContext.CheCluster.Finalizers, "test-finalizer") {
+		t.Fatalf("Failed to remove finalizer")
 	}
 }
 
@@ -251,6 +288,7 @@ func initDeployContext() (client.Client, *DeployContext) {
 		CheCluster: &orgv1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
 			},
 		},
 		ClusterAPI: ClusterAPI{

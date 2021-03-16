@@ -12,17 +12,12 @@
 package deploy
 
 import (
-	"context"
-	"fmt"
+	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var crbDiffOpts = cmp.Options{
@@ -33,55 +28,28 @@ func SyncClusterRoleBindingToCluster(
 	deployContext *DeployContext,
 	name string,
 	serviceAccountName string,
-	clusterRoleName string) (*rbac.ClusterRoleBinding, error) {
+	clusterRoleName string) (bool, error) {
 
-	specCRB, err := getSpecClusterRoleBinding(deployContext, name, serviceAccountName, clusterRoleName)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRB, err := GetClusterRoleBiding(specCRB.Name, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterRB == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specCRB.Kind, specCRB.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specCRB)
-		return nil, err
-	}
-
-	diff := cmp.Diff(clusterRB, specCRB, crbDiffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterRB.Kind, clusterRB.Name)
-		fmt.Printf("Difference:\n%s", diff)
-		clusterRB.Subjects = specCRB.Subjects
-		clusterRB.RoleRef = specCRB.RoleRef
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterRB)
-		return clusterRB, err
-	}
-
-	return clusterRB, nil
+	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, clusterRoleName)
+	return Sync(deployContext, crbSpec, crbDiffOpts)
 }
 
-func GetClusterRoleBiding(name string, client runtimeClient.Client) (*rbac.ClusterRoleBinding, error) {
-	clusterRoleBinding := &rbac.ClusterRoleBinding{}
-	crbName := types.NamespacedName{Name: name}
-	err := client.Get(context.TODO(), crbName, clusterRoleBinding)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return clusterRoleBinding, nil
-}
-
-func getSpecClusterRoleBinding(
+func SyncClusterRoleBindingAndFinalizerToCluster(
 	deployContext *DeployContext,
 	name string,
 	serviceAccountName string,
-	roleName string) (*rbac.ClusterRoleBinding, error) {
+	clusterRoleName string) (bool, error) {
+
+	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrolebinding")
+	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, clusterRoleName)
+	return SyncWithFinalizer(deployContext, crbSpec, crbDiffOpts, finalizer)
+}
+
+func getClusterRoleBindingSpec(
+	deployContext *DeployContext,
+	name string,
+	serviceAccountName string,
+	roleName string) *rbac.ClusterRoleBinding {
 
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	clusterRoleBinding := &rbac.ClusterRoleBinding{
@@ -110,19 +78,5 @@ func getSpecClusterRoleBinding(
 		},
 	}
 
-	return clusterRoleBinding, nil
-}
-
-func DeleteClusterRoleBinding(clusterRoleBindingName string, client runtimeClient.Client) error {
-	clusterRoleBinding := &rbac.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleBindingName,
-		},
-	}
-	err := client.Delete(context.TODO(), clusterRoleBinding)
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	return nil
+	return clusterRoleBinding
 }
