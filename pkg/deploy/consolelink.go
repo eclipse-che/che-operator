@@ -27,7 +27,7 @@ const (
 )
 
 func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
-	if !util.IsOpenShift4 || !hasConsolelinkObject(deployContext) {
+	if !util.IsOpenShift4 || !hasConsoleLinkObject(deployContext) {
 		// console link is supported only on OpenShift >= 4.2
 		logrus.Debug("Console link won't be created. Consolelinks is not supported by OpenShift cluster.")
 		return true, nil
@@ -96,7 +96,7 @@ func getConsoleLinkSpec(deployContext *DeployContext) *consolev1.ConsoleLink {
 	return consoleLink
 }
 
-func hasConsolelinkObject(deployContext *DeployContext) bool {
+func hasConsoleLinkObject(deployContext *DeployContext) bool {
 	_, resourceList, err := deployContext.ClusterAPI.DiscoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		return false
