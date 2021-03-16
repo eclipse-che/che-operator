@@ -51,16 +51,10 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 			// Add cluster-wide trusted CA certs, if any
 			cheClusterProxyConf.TrustedCAMapName = clusterWideProxyConf.TrustedCAMapName
 			return cheClusterProxyConf, nil
-		} else if clusterWideProxyConf.HttpProxy != "" {
+		} else {
 			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
 			return clusterWideProxyConf, nil
 		}
-
-		// Proxy isn't configured
-		// However add cluster-wide trusted CA certificates, if any, to Che
-		return &deploy.Proxy{
-			TrustedCAMapName: clusterWideProxyConf.TrustedCAMapName,
-		}, nil
 	}
 
 	// OpenShift 3.x and k8s
