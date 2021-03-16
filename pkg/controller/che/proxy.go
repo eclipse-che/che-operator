@@ -48,10 +48,8 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 			} else {
 				cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
 			}
-			// Add cluster-wide trusted CA certs
-			if clusterWideProxyConf.TrustedCAMapName != "" {
-				cheClusterProxyConf.TrustedCAMapName = clusterWideProxyConf.TrustedCAMapName
-			}
+			// Add cluster-wide trusted CA certs, if any
+			cheClusterProxyConf.TrustedCAMapName = clusterWideProxyConf.TrustedCAMapName
 			return cheClusterProxyConf, nil
 		} else if clusterWideProxyConf.HttpProxy != "" {
 			clusterWideProxyConf.NoProxy = deploy.MergeNonProxy(clusterWideProxyConf.NoProxy, cheClusterProxyConf.NoProxy)
