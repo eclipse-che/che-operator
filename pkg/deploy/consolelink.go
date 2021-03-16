@@ -43,13 +43,12 @@ func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
 		return createConsoleLink(deployContext)
 	}
 
-	err := deleteConsoleLink(deployContext)
-	return err == nil, err
+	return deleteConsoleLink(deployContext)
 }
 
 func createConsoleLink(deployContext *DeployContext) (bool, error) {
 	consoleLinkSpec := getConsoleLinkSpec(deployContext)
-	_, err := Create(deployContext, consoleLinkSpec)
+	_, err := CreateIfNotExists(deployContext, consoleLinkSpec)
 	if err != nil {
 		return false, err
 	}
@@ -96,14 +95,15 @@ func getConsoleLinkSpec(deployContext *DeployContext) *consolev1.ConsoleLink {
 	return consoleLink
 }
 
-func deleteConsoleLink(deployContext *DeployContext) error {
+func deleteConsoleLink(deployContext *DeployContext) (bool, error) {
 	_, err := Delete(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{})
 	if err != nil {
 		// failed to delete, shouldn't us prevent from removing finalizer
 		logrus.Error(err)
 	}
 
-	return DeleteFinalizer(deployContext, ConsoleLinkFinalizerName)
+	err = DeleteFinalizer(deployContext, ConsoleLinkFinalizerName)
+	return err == nil, err
 }
 
 func hasConsolelinkObject(deployContext *DeployContext) bool {

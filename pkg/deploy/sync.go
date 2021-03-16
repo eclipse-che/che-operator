@@ -75,7 +75,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (b
 		return false, err
 	}
 
-	return doCreate(client, runtimeObject)
+	return doCreate(client, runtimeObject, true)
 }
 
 // Creates object.
@@ -95,7 +95,7 @@ func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error)
 		return false, err
 	}
 
-	return doCreate(client, runtimeObject)
+	return doCreate(client, runtimeObject, false)
 }
 
 // Deletes object.
@@ -144,7 +144,7 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 				return false, err
 			}
 
-			return doCreate(client, blueprint.(runtime.Object))
+			return doCreate(client, blueprint.(runtime.Object), false)
 		} else {
 			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 			if err != nil {
@@ -164,12 +164,12 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 	return true, nil
 }
 
-func doCreate(client client.Client, object runtime.Object) (bool, error) {
+func doCreate(client client.Client, object runtime.Object, returnTrueIfAlreadyExists bool) (bool, error) {
 	err := client.Create(context.TODO(), object)
 	if err == nil {
 		return true, nil
 	} else if errors.IsAlreadyExists(err) {
-		return false, nil
+		return returnTrueIfAlreadyExists, nil
 	} else {
 		return false, err
 	}
