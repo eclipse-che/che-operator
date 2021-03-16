@@ -93,7 +93,7 @@ func TestSyncClusterRoleAndFinalizer(t *testing.T) {
 	}
 	cli.Create(context.TODO(), deployContext.CheCluster)
 
-	done, err := SyncClusterRoleAndFinalizerToCluster(deployContext, "test", []rbacv1.PolicyRule{
+	done, err := SyncClusterRoleWithFinalizerToCluster(deployContext, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-1"},
 			Resources: []string{"test-1"},

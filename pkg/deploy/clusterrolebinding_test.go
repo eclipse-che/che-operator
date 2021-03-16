@@ -82,7 +82,7 @@ func TestSyncClusterRoleBindingAndFinalizer(t *testing.T) {
 	}
 	cli.Create(context.TODO(), deployContext.CheCluster)
 
-	done, err := SyncClusterRoleBindingAndFinalizerToCluster(deployContext, "test", "sa", "clusterrole-1")
+	done, err := SyncClusterRoleBindingWithFinalizerToCluster(deployContext, "test", "sa", "clusterrole-1")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}

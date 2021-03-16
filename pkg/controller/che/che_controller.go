@@ -677,7 +677,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
 			cheClusterRoleBindingName := instance.Namespace + "-che-" + cheClusterRole
-			done, err := deploy.SyncClusterRoleBindingAndFinalizerToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
+			done, err := deploy.SyncClusterRoleBindingWithFinalizerToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
 			if !tests {
 				if !done {
 					logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)

@@ -34,7 +34,7 @@ func SyncClusterRoleToCluster(
 	return Sync(deployContext, crSpec, crDiffOpts)
 }
 
-func SyncClusterRoleAndFinalizerToCluster(
+func SyncClusterRoleWithFinalizerToCluster(
 	deployContext *DeployContext,
 	name string,
 	policyRule []rbac.PolicyRule) (bool, error) {

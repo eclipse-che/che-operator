@@ -34,7 +34,7 @@ func SyncClusterRoleBindingToCluster(
 	return Sync(deployContext, crbSpec, crbDiffOpts)
 }
 
-func SyncClusterRoleBindingAndFinalizerToCluster(
+func SyncClusterRoleBindingWithFinalizerToCluster(
 	deployContext *DeployContext,
 	name string,
 	serviceAccountName string,
