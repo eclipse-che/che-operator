@@ -45,6 +45,9 @@ initDefaults() {
   mkdir -p ${XDG_CONFIG_HOME}/chectl
   echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/chectl/config.json
 
+  cat ${XDG_CONFIG_HOME}/chectl/config.json
+  chectl server:status
+
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
