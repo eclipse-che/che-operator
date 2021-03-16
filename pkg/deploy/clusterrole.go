@@ -41,7 +41,7 @@ func SyncClusterRoleAndFinalizerToCluster(
 
 	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrole")
 	crSpec := getClusterRoleSpec(deployContext, name, policyRule)
-	return SyncWithFinalizer(deployContext, crSpec, crbDiffOpts, finalizer)
+	return SyncWithFinalizer(deployContext, crSpec, crDiffOpts, finalizer)
 }
 
 func getClusterRoleSpec(deployContext *DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.ClusterRole {
