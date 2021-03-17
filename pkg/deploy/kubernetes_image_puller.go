@@ -214,7 +214,6 @@ func ReconcileImagePullerFinalizer(ctx *DeployContext) (err error) {
 		}
 		return nil
 	}
-	return nil
 }
 
 func DeleteImagePullerFinalizer(ctx *DeployContext) (err error) {

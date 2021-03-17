@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"context"
+	"time"
 
 	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -63,7 +64,7 @@ func TestSyncClusterRoleBindingToCluster(t *testing.T) {
 	}
 }
 
-func TestSyncClusterRoleBindingAndFinalizer(t *testing.T) {
+func TestSyncClusterRoleBindingAndAddFinalizerToCluster(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	rbacv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
@@ -82,12 +83,28 @@ func TestSyncClusterRoleBindingAndFinalizer(t *testing.T) {
 	}
 	cli.Create(context.TODO(), deployContext.CheCluster)
 
-	done, err := SyncClusterRoleBindingWithFinalizerToCluster(deployContext, "test", "sa", "clusterrole-1")
+	done, err := SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, "test", "sa", "clusterrole-1")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
 	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test.clusterrolebinding.finalizers.che.eclipse.org") {
 		t.Fatalf("Failed to add finalizer")
+	}
+
+	deployContext.CheCluster.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	err = ReconcileClusterRoleBindingFinalizer(deployContext, "test")
+	if err != nil {
+		t.Fatalf("Failed to remove finalizer: %v", err)
+	}
+
+	actual := &rbacv1.ClusterRoleBinding{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	if err == nil {
+		t.Fatalf("Failed to remove crb: %v", err)
+	}
+
+	if util.ContainsString(deployContext.CheCluster.Finalizers, "test.clusterrolebinding.finalizers.che.eclipse.org") {
+		t.Fatalf("Failed to remove finalizer")
 	}
 }

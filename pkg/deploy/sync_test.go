@@ -13,7 +13,6 @@ package deploy
 
 import (
 	"context"
-	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse/che-operator/pkg/util"
@@ -201,13 +200,13 @@ func TestSync(t *testing.T) {
 	}
 }
 
-func TestSyncWithFinalizer(t *testing.T) {
+func TestSyncAndAddFinalizer(t *testing.T) {
 	cli, deployContext := initDeployContext()
 
 	cli.Create(context.TODO(), deployContext.CheCluster)
 
 	// Sync object
-	done, err := SyncWithFinalizer(deployContext, testObj, cmp.Options{}, "test-finalizer")
+	done, err := SyncAndAddFinalizer(deployContext, testObj, cmp.Options{}, "test-finalizer")
 	if !done || err != nil {
 		t.Fatalf("Error syncing object: %v", err)
 	}
@@ -220,23 +219,6 @@ func TestSyncWithFinalizer(t *testing.T) {
 
 	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test-finalizer") {
 		t.Fatalf("Failed to add finalizer")
-	}
-
-	// Object should be removed
-	deployContext.CheCluster.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-	done, err = SyncWithFinalizer(deployContext, testObj, cmp.Options{}, "test-finalizer")
-	if !done || err != nil {
-		t.Fatalf("Error syncing object: %v", err)
-	}
-
-	actual = &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
-	if err == nil || !errors.IsNotFound(err) {
-		t.Fatalf("Failed to delete object: %v", err)
-	}
-
-	if util.ContainsString(deployContext.CheCluster.Finalizers, "test-finalizer") {
-		t.Fatalf("Failed to remove finalizer")
 	}
 }
 

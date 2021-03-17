@@ -17,6 +17,10 @@ import (
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if object is up to date otherwiser returns false
 func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return true, nil
+	}
+
 	key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
 
 	runtimeObject, ok := blueprint.(runtime.Object)
@@ -37,7 +41,7 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 	return Update(deployContext, actual, blueprint, diffOpts)
 }
 
-func SyncWithFinalizer(
+func SyncAndAddFinalizer(
 	deployContext *DeployContext,
 	blueprint metav1.Object,
 	diffOpts cmp.Option,
@@ -50,11 +54,8 @@ func SyncWithFinalizer(
 		}
 		err = AppendFinalizer(deployContext, finalizer)
 		return err == nil, err
-	} else {
-		key := types.NamespacedName{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
-		err := DeleteObjectWithFinalizer(deployContext, key, blueprint, finalizer)
-		return err == nil, err
 	}
+	return true, nil
 }
 
 // Gets object by key.
@@ -72,6 +73,10 @@ func Get(deployContext *DeployContext, key client.ObjectKey, actual metav1.Objec
 // Creates object.
 // Return true if a new object is created or has been already created otherwise returns false.
 func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return true, nil
+	}
+
 	client := getClientForObject(blueprint, deployContext)
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
@@ -101,6 +106,10 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (b
 // Creates object.
 // Return true if a new object is created otherwise returns false.
 func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return true, nil
+	}
+
 	client := getClientForObject(blueprint, deployContext)
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
@@ -144,6 +153,10 @@ func Delete(deployContext *DeployContext, key client.ObjectKey, blueprint metav1
 // Updates object.
 // Returns true if object is up to date otherwiser return false
 func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return true, nil
+	}
+
 	actualMeta := actual.(metav1.Object)
 
 	diff := cmp.Diff(blueprint, actual, diffOpts)

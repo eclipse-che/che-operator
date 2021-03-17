@@ -90,8 +90,8 @@ func TestReconcileConsoleLink(t *testing.T) {
 
 	// Initialize DeletionTimestamp => checluster is being deleted
 	cheCluster.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-	done, err = ReconcileConsoleLink(deployContext)
-	if !done || err != nil {
+	err = ReconcileConsoleLinkFinalizer(deployContext)
+	if err != nil {
 		t.Fatalf("Failed to reconcile consolelink: %v", err)
 	}
 

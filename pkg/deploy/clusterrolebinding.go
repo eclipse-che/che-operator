@@ -18,6 +18,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var crbDiffOpts = cmp.Options{
@@ -34,7 +35,7 @@ func SyncClusterRoleBindingToCluster(
 	return Sync(deployContext, crbSpec, crbDiffOpts)
 }
 
-func SyncClusterRoleBindingWithFinalizerToCluster(
+func SyncClusterRoleBindingAndAddFinalizerToCluster(
 	deployContext *DeployContext,
 	name string,
 	serviceAccountName string,
@@ -42,7 +43,12 @@ func SyncClusterRoleBindingWithFinalizerToCluster(
 
 	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrolebinding")
 	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, clusterRoleName)
-	return SyncWithFinalizer(deployContext, crbSpec, crbDiffOpts, finalizer)
+	return SyncAndAddFinalizer(deployContext, crbSpec, crbDiffOpts, finalizer)
+}
+
+func ReconcileClusterRoleBindingFinalizer(deployContext *DeployContext, name string) error {
+	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrolebinding")
+	return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}, finalizer)
 }
 
 func getClusterRoleBindingSpec(

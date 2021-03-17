@@ -42,9 +42,14 @@ func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
 	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return createConsoleLink(deployContext)
 	}
+	return true, nil
+}
 
-	err := DeleteObjectWithFinalizer(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName)
-	return err == nil, err
+func ReconcileConsoleLinkFinalizer(deployContext *DeployContext) error {
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return DeleteObjectWithFinalizer(deployContext, client.ObjectKey{Name: DefaultConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName)
+	}
+	return nil
 }
 
 func createConsoleLink(deployContext *DeployContext) (bool, error) {

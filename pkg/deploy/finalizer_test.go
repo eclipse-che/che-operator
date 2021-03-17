@@ -56,6 +56,16 @@ func TestAppendFinalizer(t *testing.T) {
 	if !util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
 		t.Fatalf("Failed to append finalizer: %v", err)
 	}
+
+	// shouldn't add finalizer twice
+	err = AppendFinalizer(deployContext, finalizer)
+	if err != nil {
+		t.Fatalf("Failed to append finalizer: %v", err)
+	}
+
+	if len(deployContext.CheCluster.ObjectMeta.Finalizers) != 1 {
+		t.Fatalf("Finalizer shouldn't be added twice")
+	}
 }
 
 func TestDeleteFinalizer(t *testing.T) {

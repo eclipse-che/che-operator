@@ -349,17 +349,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		InternalService: deploy.InternalService{},
 	}
 
-	// delete oAuthClient before CR is deleted
-	// todo check
-	// instance.Status.OpenShiftoAuthProvisioned
-	if util.IsOpenShift && util.IsOAuthEnabled(instance) {
-		if err := r.ReconcileFinalizer(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-	if r.reconcileWorkspacePermissionsFinalizer(deployContext); err != nil {
-		return reconcile.Result{}, err
-	}
+	// Reconcile finalizers before CR is deleted
+	r.reconcileFinalizers(deployContext)
 
 	// Reconcile the imagePuller section of the CheCluster
 	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
@@ -676,8 +667,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cheClusterRoles := strings.Split(instance.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := instance.Namespace + "-che-" + cheClusterRole
-			done, err := deploy.SyncClusterRoleBindingWithFinalizerToCluster(deployContext, cheClusterRoleBindingName, "che", cheClusterRole)
+			cheClusterRoleBindingName := instance.Namespace + CheServiceAccountName + cheClusterRole
+			done, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, cheClusterRoleBindingName, CheServiceAccountName, cheClusterRole)
 			if !tests {
 				if !done {
 					logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
@@ -1211,5 +1202,32 @@ func isEclipseCheSecret(mgr manager.Manager, obj handler.MapObject) (bool, recon
 			Namespace: checlusters.Items[0].Namespace,
 			Name:      checlusters.Items[0].Name,
 		},
+	}
+}
+
+func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) {
+	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
+		if err := r.ReconcileFinalizer(deployContext.CheCluster); err != nil {
+			logrus.Error(err)
+		}
+	}
+
+	if err := r.reconcileWorkspacePermissionsFinalizer(deployContext); err != nil {
+		logrus.Error(err)
+	}
+
+	if err := deploy.ReconcileConsoleLinkFinalizer(deployContext); err != nil {
+		logrus.Error(err)
+	}
+
+	if len(deployContext.CheCluster.Spec.Server.CheClusterRoles) > 0 {
+		cheClusterRoles := strings.Split(deployContext.CheCluster.Spec.Server.CheClusterRoles, ",")
+		for _, cheClusterRole := range cheClusterRoles {
+			cheClusterRole := strings.TrimSpace(cheClusterRole)
+			cheClusterRoleBindingName := deployContext.CheCluster.Namespace + CheServiceAccountName + cheClusterRole
+			if err := deploy.ReconcileClusterRoleBindingFinalizer(deployContext, cheClusterRoleBindingName); err != nil {
+				logrus.Error(err)
+			}
+		}
 	}
 }

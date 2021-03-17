@@ -12,8 +12,6 @@
 package deploy
 
 import (
-	"strings"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
@@ -32,16 +30,6 @@ func SyncClusterRoleToCluster(
 
 	crSpec := getClusterRoleSpec(deployContext, name, policyRule)
 	return Sync(deployContext, crSpec, crDiffOpts)
-}
-
-func SyncClusterRoleWithFinalizerToCluster(
-	deployContext *DeployContext,
-	name string,
-	policyRule []rbac.PolicyRule) (bool, error) {
-
-	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrole")
-	crSpec := getClusterRoleSpec(deployContext, name, policyRule)
-	return SyncWithFinalizer(deployContext, crSpec, crDiffOpts, finalizer)
 }
 
 func getClusterRoleSpec(deployContext *DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.ClusterRole {
