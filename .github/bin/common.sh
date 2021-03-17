@@ -35,15 +35,11 @@ initDefaults() {
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
 
-  export XDG_DATA_HOME=/tmp/xdg_data
-  export XDG_CACHE_HOME=/tmp/xdg_cache
-  export XDG_CONFIG_HOME=/tmp/xdg_config
-
   export OAUTH="false"
 
   # turn off telemetry
-  mkdir -p ${XDG_CONFIG_HOME}/chectl
-  echo "{\"segment.telemetry\":\"off\"}" > ${XDG_CONFIG_HOME}/chectl/config.json
+  mkdir -p ${HOME}/.config/chectl
+  echo "{\"segment.telemetry\":\"off\"}" > ${HOME}/.config/chectl/config.json
 
   # prepare templates directory
   rm -rf ${TEMPLATES}
