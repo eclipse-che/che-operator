@@ -144,7 +144,7 @@ func Delete(deployContext *DeployContext, key client.ObjectKey, blueprint metav1
 		return true, nil
 	}
 
-	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
+	kind := actual.GetObjectKind().GroupVersionKind().Kind
 	logrus.Infof("Deleting object: %s, name: %s", kind, key.Name)
 
 	return doDelete(client, actual)
