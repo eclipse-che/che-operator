@@ -617,7 +617,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		exists, err := deploy.Get(deployContext, types.NamespacedName{Name: CheWorkspacesClusterRoleNameTemplate}, &rbac.ClusterRole{})
+		сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
+		exists, err := deploy.Get(deployContext, types.NamespacedName{Name: сheWorkspacesClusterRoleName}, &rbac.ClusterRole{})
 		if err != nil {
 			logrus.Error(err)
 			return reconcile.Result{RequeueAfter: time.Second}, err
