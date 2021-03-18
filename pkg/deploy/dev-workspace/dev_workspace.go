@@ -50,7 +50,7 @@ const (
 	DevWorkspaceRoleBindingFile               = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
 	DevWorkspaceClusterRoleBindingFile        = DevWorkspaceTemplates + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
 	DevWorkspaceProxyClusterRoleBindingFile   = DevWorkspaceTemplates + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
-	DevWorkspaceWorkspaceRoutingCRDFile       = DevWorkspaceTemplates + "/workspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
+	DevWorkspaceWorkspaceRoutingCRDFile       = DevWorkspaceTemplates + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceTemplatesCRDFile              = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceComponentsCRDFile             = DevWorkspaceTemplates + "/components.controller.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
@@ -319,7 +319,7 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 	// once we figure out https://github.com/eclipse/che/issues/19220
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceNamespace}, obj)
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			obj = nil
