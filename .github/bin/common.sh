@@ -29,7 +29,7 @@ initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
   export USER_NAMEPSACE="che-che"
-  export ARTIFACTS_DIR="/tmp/artifacts-che"
+  export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
