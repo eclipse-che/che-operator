@@ -142,6 +142,11 @@ func TestReadProxyConfiguration(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
+				Spec: configv1.ProxySpec{
+					TrustedCA: configv1.ConfigMapNameReference{
+						Name: "additional-cluster-ca-bundle",
+					},
+				},
 				Status: configv1.ProxyStatus{
 					HTTPProxy:  "http://proxy:3128",
 					HTTPSProxy: "http://proxy:3128",
@@ -169,7 +174,30 @@ func TestReadProxyConfiguration(t *testing.T) {
 				HttpsHost:        "proxy",
 				HttpsPort:        "3128",
 				NoProxy:          "host1",
-				TrustedCAMapName: "",
+				TrustedCAMapName: "additional-cluster-ca-bundle",
+			},
+		},
+		{
+			name:             "Test cluster wide proxy is not configured, but cluster wide CA certs added, OpenShift 4.x",
+			openShiftVersion: "4",
+			clusterProxy: &configv1.Proxy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.ProxySpec{
+					TrustedCA: configv1.ConfigMapNameReference{
+						Name: "additional-cluster-ca-bundle",
+					},
+				},
+			},
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+			},
+			initObjects: []runtime.Object{},
+			expectedProxyConf: &deploy.Proxy{
+				TrustedCAMapName: "additional-cluster-ca-bundle",
 			},
 		},
 		{
