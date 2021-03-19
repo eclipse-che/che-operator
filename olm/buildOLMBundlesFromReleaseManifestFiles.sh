@@ -65,7 +65,7 @@ run() {
             export OPM_BUNDLE_DIR
 
             # Build and push images
-            "${OPERATOR_REPO}/olm/buildAndPushBundleImages.sh" -c "stable" $@
+            "${OPERATOR_REPO}/olm/buildAndPushBundleImages.sh" -c "stable" -p $PLATFORM -i $FROM_INDEX_IMAGE
         fi
     done
 
@@ -73,4 +73,4 @@ run() {
 }
 
 installOPM
-run $@
+run
