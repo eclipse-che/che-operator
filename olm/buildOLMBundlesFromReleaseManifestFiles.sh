@@ -10,49 +10,67 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
+set -e
+set -x
+
+unset PLATFORM
+unset FROM_INDEX_IMAGE
+
 SCRIPT=$(readlink -f "$0")
 OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
-echo "${OPERATOR_REPO}"
-
-set -e
 BASE_DIR="${OPERATOR_REPO}/olm"
 source "${BASE_DIR}/olm.sh"
-installOPM
 
-for platform in 'kubernetes' 'openshift'
-do
-    manifestsFormatRootFolder="${OPERATOR_REPO}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}"
+usage () {
+	echo "Usage:   $0 -p platform [-i from-index-image]"
+	echo "Example: $0 -p openshift -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview"
+}
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    '-p') PLATFORM="$2"; shift 1;;
+    '-i') FROM_INDEX_IMAGE="$2"; shift 1;;
+	'--help'|'-h') usage; exit;;
+  esac
+  shift 1
+done
+
+run() {
+    manifestsFormatRootFolder="${OPERATOR_REPO}/olm/eclipse-che-preview-${PLATFORM}/deploy/olm-catalog/eclipse-che-preview-${PLATFORM}"
     pushd "${manifestsFormatRootFolder}" || exit 1
 
-    stableBundleDir=$(getBundlePath "${platform}" "stable")
-    echo "${stableBundleDir}"
+    stableBundleDir=$(getBundlePath "${PLATFORM}" "stable")
+    echo "[INFO] Stable bundle directory: ${stableBundleDir}"
     bundle_dir=$(mktemp -d -t che-releases-XXX)
-    echo "${bundle_dir}"
+    echo "[INFO] Bundle directory ${bundle_dir}"
 
     readarray -t dirs < <(find . -maxdepth 1 -type d -printf '%P\n' | sort)
     for versionDir in ${dirs[*]} ; do
         if [[ "${versionDir}" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            echo "Converting manifest format folder ${versionDir} to the bundle format..."
+            echo "[INFO] Converting manifest format folder ${versionDir} to the bundle format..."
+
             manifestFormatDir="${manifestsFormatRootFolder}/${versionDir}"
             bundleDir="${bundle_dir}/${versionDir}"
             mkdir -p "${bundleDir}/manifests"
             cp -rf "${stableBundleDir}/bundle.Dockerfile" "${stableBundleDir}/metadata" "${bundleDir}"
-            packageName=$(getPackageName "${platform}")
+            packageName=$(getPackageName "${PLATFORM}")
 
+            # Copying resources to bundle directory
             cp -rf "${manifestFormatDir}/${packageName}.v${versionDir}.clusterserviceversion.yaml" "${bundleDir}/manifests/che-operator.clusterserviceversion.yaml"
             cp -rf "${manifestFormatDir}/${packageName}.crd.yaml" "${bundleDir}/manifests/org_v1_che_crd.yaml"
             cp -rf "${manifestFormatDir}/${packageName}.v${versionDir}.clusterserviceversion.yaml.diff" "${bundleDir}/manifests/che-operator.clusterserviceversion.yaml.diff"
             cp -rf "${manifestFormatDir}/${packageName}.crd.yaml.diff" "${bundleDir}/manifests/org_v1_che_crd.yaml.diff"
-        fi
-    done
 
-    for versionDir in ${dirs[*]} ; do
-        if [[ "${versionDir}" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
             OPM_BUNDLE_DIR="${bundle_dir}/${versionDir}"
             export OPM_BUNDLE_DIR
-            "${OPERATOR_REPO}/olm/buildAndPushBundleImages.sh" -c "stable" -p "${platform}"
+
+            # Build and push images
+            "${OPERATOR_REPO}/olm/buildAndPushBundleImages.sh" -c "stable" $@
         fi
     done
 
     popd || true
-done
+}
+
+installOPM
+run $@

@@ -37,7 +37,7 @@ downloadLatestReleasedBundleCRCRD() {
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
 
-  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.0")
+  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.2")
   if [ "${compareResult}" == "1" ]; then
     wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
         -q -O "${PRE_RELEASE_CSV}"
@@ -120,7 +120,7 @@ do
 
   popd || true
 
-  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then 
+  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
     diff -u "${PRE_RELEASE_CRD}" "${RELEASE_CRD}" > "${RELEASE_CRD}.diff" || true
   fi
