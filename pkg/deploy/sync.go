@@ -17,6 +17,8 @@ import (
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if object is up to date otherwiser returns false
 func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	// eclipse-che custom resource is being deleted, we shouldn't sync
+	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return true, nil
 	}
@@ -47,6 +49,8 @@ func SyncAndAddFinalizer(
 	diffOpts cmp.Option,
 	finalizer string) (bool, error) {
 
+	// eclipse-che custom resource is being deleted, we shouldn't sync
+	// TODO move this check before `Sync` invocation
 	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		done, err := Sync(deployContext, blueprint, crbDiffOpts)
 		if !done {
@@ -73,6 +77,8 @@ func Get(deployContext *DeployContext, key client.ObjectKey, actual metav1.Objec
 // Creates object.
 // Return true if a new object is created or has been already created otherwise returns false.
 func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+	// eclipse-che custom resource is being deleted, we shouldn't sync
+	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return true, nil
 	}
@@ -106,6 +112,8 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (b
 // Creates object.
 // Return true if a new object is created otherwise returns false.
 func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+	// eclipse-che custom resource is being deleted, we shouldn't sync
+	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return true, nil
 	}
@@ -153,11 +161,16 @@ func Delete(deployContext *DeployContext, key client.ObjectKey, blueprint metav1
 // Updates object.
 // Returns true if object is up to date otherwiser return false
 func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+	// eclipse-che custom resource is being deleted, we shouldn't sync
+	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return true, nil
 	}
 
-	actualMeta := actual.(metav1.Object)
+	actualMeta, ok := actual.(metav1.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
+	}
 
 	diff := cmp.Diff(blueprint, actual, diffOpts)
 	if len(diff) > 0 {

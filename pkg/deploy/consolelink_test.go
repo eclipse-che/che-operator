@@ -15,8 +15,8 @@ import (
 	"context"
 	"time"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	console "github.com/openshift/api/console/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,7 +50,7 @@ func TestReconcileConsoleLink(t *testing.T) {
 	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
-				{Name: "consolelinks"},
+				{Name: ConsoleLinksResourceName},
 			},
 		},
 	}

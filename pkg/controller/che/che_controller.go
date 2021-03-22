@@ -136,7 +136,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift Core to scheme: %s", err)
 		}
-		if util.HasAPIResourceName("consolelinks") {
+		if util.HasAPIResourceName(deploy.ConsoleLinksResourceName) {
 			if err := consolev1.AddToScheme(mgr.GetScheme()); err != nil {
 				logrus.Errorf("Failed to add OpenShift ConsoleLink to scheme: %s", err)
 			}
@@ -668,7 +668,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cheClusterRoles := strings.Split(instance.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := instance.Namespace + CheServiceAccountName + cheClusterRole
+			cheClusterRoleBindingName := deploy.GetUniqueClusterRoleBindingName(deployContext, CheServiceAccountName, cheClusterRole)
 			done, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, cheClusterRoleBindingName, CheServiceAccountName, cheClusterRole)
 			if !tests {
 				if !done {

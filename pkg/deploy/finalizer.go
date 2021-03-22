@@ -14,7 +14,7 @@ package deploy
 import (
 	"context"
 
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,21 +44,25 @@ func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 }
 
 func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
-	deployContext.CheCluster.ObjectMeta.Finalizers = util.DoRemoveString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
-	for {
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
-		if err == nil {
-			logrus.Infof("Deleted finalizer: %s", finalizer)
-			return nil
-		} else if !errors.IsConflict(err) {
-			return err
-		}
+	if util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
+		deployContext.CheCluster.ObjectMeta.Finalizers = util.DoRemoveString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
+		for {
+			err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
+			if err == nil {
+				logrus.Infof("Deleted finalizer: %s", finalizer)
+				return nil
+			} else if !errors.IsConflict(err) {
+				return err
+			}
 
-		err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
-		if err != nil {
-			return err
+			err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
 func DeleteObjectWithFinalizer(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object, finalizer string) error {

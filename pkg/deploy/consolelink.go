@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	consolev1 "github.com/openshift/api/console/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +24,7 @@ import (
 
 const (
 	ConsoleLinkFinalizerName = "consolelink.finalizers.che.eclipse.org"
+	ConsoleLinksResourceName = "consolelinks"
 )
 
 func ReconcileConsoleLink(deployContext *DeployContext) (bool, error) {
@@ -107,5 +108,5 @@ func hasConsoleLinkObject(deployContext *DeployContext) bool {
 		return false
 	}
 
-	return util.HasAPIResourceNameInList("consolelinks", resourceList)
+	return util.HasAPIResourceNameInList(ConsoleLinksResourceName, resourceList)
 }

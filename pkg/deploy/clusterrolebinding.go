@@ -51,6 +51,10 @@ func ReconcileClusterRoleBindingFinalizer(deployContext *DeployContext, name str
 	return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}, finalizer)
 }
 
+func GetUniqueClusterRoleBindingName(deployContext *DeployContext, serviceAccount string, clusterRole string) string {
+	return deployContext.CheCluster.Namespace + "-" + serviceAccount + "-" + clusterRole
+}
+
 func getClusterRoleBindingSpec(
 	deployContext *DeployContext,
 	name string,

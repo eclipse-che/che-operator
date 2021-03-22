@@ -15,13 +15,11 @@ package che
 import (
 	"fmt"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/types"
 	rbac "k8s.io/api/rbac/v1"
-
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func (r *ReconcileChe) ReconcileCheWorkspacesClusterPermissionsFinalizer(deployContext *deploy.DeployContext) (err error) {
