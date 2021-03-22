@@ -15,14 +15,14 @@ package deploy
 import (
 	"strings"
 
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"golang.org/x/net/http/httpproxy"
 
 	"net/http"
 	"net/url"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	configv1 "github.com/openshift/api/config/v1"
 
 	"github.com/sirupsen/logrus"

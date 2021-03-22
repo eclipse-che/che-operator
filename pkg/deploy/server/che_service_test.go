@@ -13,10 +13,10 @@ package server
 
 import (
 	"fmt"
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"testing"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 

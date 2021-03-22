@@ -1,7 +1,7 @@
 package apis
 
 import (
-	v1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	v1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 )
 
 func init() {

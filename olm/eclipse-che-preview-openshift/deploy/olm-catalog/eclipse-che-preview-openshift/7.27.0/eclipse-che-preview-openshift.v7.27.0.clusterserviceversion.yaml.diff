@@ -19,7 +19,7 @@
      description: A Kube-native development solution that delivers portable and collaborative
        developer workspaces in OpenShift.
      operatorframework.io/suggested-namespace: eclipse-che
-     repository: https://github.com/eclipse/che-operator
+     repository: https://github.com/eclipse-che/che-operator
      support: Eclipse Foundation
 -  name: eclipse-che-preview-openshift.v7.26.2
 +  name: eclipse-che-preview-openshift.v7.27.0

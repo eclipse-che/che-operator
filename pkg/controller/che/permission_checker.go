@@ -15,7 +15,7 @@ package che
 import (
 	"fmt"
 
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	rbac "k8s.io/api/rbac/v1"
 )

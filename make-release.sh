@@ -16,7 +16,7 @@ init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   RELEASE_BRANCH="${RELEASE}-release"
-  GIT_REMOTE_UPSTREAM="https://github.com/eclipse/che-operator.git"
+  GIT_REMOTE_UPSTREAM="https://github.com/eclipse-che/che-operator.git"
   RUN_RELEASE=false
   PUSH_OLM_BUNDLES=false
   PUSH_GIT_CHANGES=false
@@ -194,7 +194,7 @@ releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Validate changes"
   grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
   grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
-  
+
   test -f $kubernetes/org_v1_che_crd.yaml
   test -f $openshift/org_v1_che_crd.yaml
 

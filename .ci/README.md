@@ -1,6 +1,6 @@
 # Che-Operator CI
 Che Operator currently support two CI flows for Pull Request checks:
-  - [Github Actions](https://github.com/eclipse/che-operator/actions)
+  - [Github Actions](https://github.com/eclipse-che/che-operator/actions)
   - [Openshift CI](https://prow.ci.openshift.org/?job=*che*operator*)
 
 ## Openshift CI
@@ -9,7 +9,7 @@ Openshift is a Kubernetes based CI/CD system. Jobs can be triggered by various t
 
 All documentation about how to onboard components in Openshift CI can be found in the Openshift CI jobs [repository](https://github.com/openshift/release). One of the requirements to make changes in Openshift CI jobs is being an openshift GitHub member.
 
-All Che operator jobs configurations are defined in `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse/che-operator`.
+All Che operator jobs configurations are defined in `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse-che/che-operator`.
 
 ### Jobs
 - `che-operator-update` - It tests Eclipse Che update from the latest Eclipse Che release version to a new version from the PR and workspace startup. Note this PR check runs against `master` branch and all `7.x.y` branches.

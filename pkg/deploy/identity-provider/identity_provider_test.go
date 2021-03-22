@@ -15,11 +15,11 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	"github.com/google/go-cmp/cmp"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

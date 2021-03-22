@@ -5,7 +5,7 @@
 package mock_che
 
 import (
-	deploy "github.com/eclipse/che-operator/pkg/deploy"
+	deploy "github.com/eclipse-che/che-operator/pkg/deploy"
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift/api/config/v1"
 	reflect "reflect"

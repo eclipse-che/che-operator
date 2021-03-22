@@ -14,7 +14,7 @@ package che
 import (
 	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 )
 
 // ValidateCheCR checks Che CR configuration.

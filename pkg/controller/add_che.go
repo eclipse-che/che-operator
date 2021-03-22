@@ -13,7 +13,7 @@
 package controller
 
 import (
-	"github.com/eclipse/che-operator/pkg/controller/che"
+	"github.com/eclipse-che/che-operator/pkg/controller/che"
 )
 
 func init() {

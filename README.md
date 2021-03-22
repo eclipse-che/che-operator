@@ -378,7 +378,7 @@ $ export NO_DATE_UPDATE="true" \
 
 ### Che operator PR checks
 
-Documentation about all Che operator test cases can be found [here](https://github.com/eclipse/che-operator/tree/master/.ci/README.md)
+Documentation about all Che operator test cases can be found [here](https://github.com/eclipse-che/che-operator/tree/master/.ci/README.md)
 
 ### Generate go mocks.
 

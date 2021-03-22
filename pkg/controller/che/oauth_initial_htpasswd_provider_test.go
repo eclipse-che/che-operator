@@ -17,9 +17,9 @@ import (
 	"os"
 	"testing"
 
-	util_mocks "github.com/eclipse/che-operator/mocks/pkg/util"
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/deploy"
+	util_mocks "github.com/eclipse-che/che-operator/mocks/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/golang/mock/gomock"
 	oauth_config "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"

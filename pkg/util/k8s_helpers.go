@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"io"
 
-	v1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	v1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
