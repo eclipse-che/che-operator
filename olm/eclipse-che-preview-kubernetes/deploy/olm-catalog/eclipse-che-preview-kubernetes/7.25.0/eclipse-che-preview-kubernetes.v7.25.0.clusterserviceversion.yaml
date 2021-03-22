@@ -88,7 +88,7 @@ metadata:
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
-    repository: https://github.com/eclipse/che-operator
+    repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
   name: eclipse-che-preview-kubernetes.v7.25.0
   namespace: placeholder
@@ -631,7 +631,7 @@ spec:
     - name: Documentation
       url: https://www.eclipse.org/che/docs
     - name: Operator GitHub Repo
-      url: https://github.com/eclipse/che-operator
+      url: https://github.com/eclipse-che/che-operator
   maintainers:
     - email: dfestal@redhat.com
       name: David Festal

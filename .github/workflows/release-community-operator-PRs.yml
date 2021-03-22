@@ -7,9 +7,9 @@ on:
       forceflag:
         description: 'To update an existing PR, use -f or --force flag here'
         default: ''
-  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse/che-operator/pull/571/files
+  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
   push:
-    branches: 
+    branches:
       - master
     paths:
       - 'deploy/olm-catalog/stable/eclipse-che-preview-*/manifests/che-operator.clusterserviceversion.yaml'

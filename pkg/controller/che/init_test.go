@@ -12,7 +12,7 @@
 package che
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
 
 func init() {

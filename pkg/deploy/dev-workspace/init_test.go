@@ -11,7 +11,7 @@
 //
 package devworkspace
 
-import "github.com/eclipse/che-operator/pkg/deploy"
+import "github.com/eclipse-che/che-operator/pkg/deploy"
 
 func init() {
 	err := deploy.InitTestDefaultsFromDeployment("../../../deploy/operator.yaml")

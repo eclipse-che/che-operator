@@ -12,8 +12,8 @@
 package che
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 

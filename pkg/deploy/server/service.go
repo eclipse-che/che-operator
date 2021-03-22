@@ -12,7 +12,7 @@
 package server
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	v1 "k8s.io/api/core/v1"
 )
 
