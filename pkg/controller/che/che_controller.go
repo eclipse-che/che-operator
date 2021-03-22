@@ -1225,7 +1225,7 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 		cheClusterRoles := strings.Split(deployContext.CheCluster.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := deployContext.CheCluster.Namespace + CheServiceAccountName + cheClusterRole
+			cheClusterRoleBindingName := deploy.GetUniqueClusterRoleBindingName(deployContext, CheServiceAccountName, cheClusterRole)
 			if err := deploy.ReconcileClusterRoleBindingFinalizer(deployContext, cheClusterRoleBindingName); err != nil {
 				logrus.Error(err)
 			}
