@@ -509,6 +509,7 @@ waitCatalogSourcePod() {
         CATALOG_POD=$(kubectl get pods -n "${namespace}" -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"${packageName}\")) | .metadata.name")
         sleep 10
     else
+        kubectl wait --for=condition=ready pod/"${CATALOG_POD}" -n "${namespace}" --timeout=180s
         break
     fi
   done
