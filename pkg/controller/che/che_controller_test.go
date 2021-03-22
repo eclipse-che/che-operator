@@ -1141,21 +1141,21 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			} else {
 				manageNamespacesClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, namespace)
 				cheManageNamespaceClusterRole := &rbac.ClusterRole{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
 					t.Errorf("role '%s' not found", manageNamespacesClusterRoleName)
 				}
 				cheManageNamespaceClusterRoleBinding := &rbac.ClusterRoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
 					t.Errorf("rolebinding '%s' not found", manageNamespacesClusterRoleName)
 				}
 
 				cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, namespace)
 				cheWorkspacesClusterRole := &rbac.ClusterRole{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
 					t.Errorf("role '%s' not found", cheWorkspacesClusterRole)
 				}
 				cheWorkspacesClusterRoleBinding := &rbac.ClusterRoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
 					t.Errorf("rolebinding '%s' not found", cheWorkspacesClusterRole)
 				}
 			}

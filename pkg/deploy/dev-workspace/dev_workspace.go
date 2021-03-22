@@ -123,7 +123,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	devWorkspaceWebhookExists, err := deploy.IsExists(
+	devWorkspaceWebhookExists, err := deploy.Get(
 		deployContext,
 		client.ObjectKey{Name: DevWorkspaceWebhookName},
 		&admissionregistrationv1.MutatingWebhookConfiguration{},
