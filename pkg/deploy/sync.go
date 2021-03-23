@@ -31,7 +31,7 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 	}
 
 	actual := runtimeObject.DeepCopyObject()
-	client := getClientForObject(blueprint, deployContext)
+	client := getClientForObject(blueprint.GetNamespace(), deployContext)
 	exists, err := doGet(client, key, actual)
 	if err != nil {
 		return false, err
@@ -70,8 +70,32 @@ func Get(deployContext *DeployContext, key client.ObjectKey, actual metav1.Objec
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	client := getClientForObject(actual, deployContext)
+	client := getClientForObject(key.Namespace, deployContext)
 	return doGet(client, key, runtimeObject)
+}
+
+// Gets namespaced scope object by name
+// Returns true if object exists otherwise returns false.
+func GetNamespacedObject(deployContext *DeployContext, name string, actual metav1.Object) (bool, error) {
+	runtimeObject, ok := actual.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
+	client := deployContext.ClusterAPI.Client
+	return doGet(client, types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}, runtimeObject)
+}
+
+// Gets cluster scope object by name
+// Returns true if object exists otherwise returns false
+func GetClusterObject(deployContext *DeployContext, name string, actual metav1.Object) (bool, error) {
+	runtimeObject, ok := actual.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
+	client := deployContext.ClusterAPI.NonCachedClient
+	return doGet(client, types.NamespacedName{Name: name}, runtimeObject)
 }
 
 // Creates object.
@@ -83,7 +107,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (b
 		return true, nil
 	}
 
-	client := getClientForObject(blueprint, deployContext)
+	client := getClientForObject(blueprint.GetNamespace(), deployContext)
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
@@ -118,7 +142,7 @@ func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error)
 		return true, nil
 	}
 
-	client := getClientForObject(blueprint, deployContext)
+	client := getClientForObject(blueprint.GetNamespace(), deployContext)
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
@@ -138,24 +162,35 @@ func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error)
 // Deletes object.
 // Returns true if object deleted or not found otherwise returns false.
 func Delete(deployContext *DeployContext, key client.ObjectKey, blueprint metav1.Object) (bool, error) {
-	client := getClientForObject(blueprint, deployContext)
+	client := getClientForObject(key.Namespace, deployContext)
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	actual := runtimeObject.DeepCopyObject()
-	exists, err := doGet(client, key, actual)
-	if err != nil {
-		return false, err
-	} else if !exists {
-		return true, nil
+	return doDeleteByKey(client, key, runtimeObject)
+}
+
+func DeleteNamespacedObject(deployContext *DeployContext, name string, blueprint metav1.Object) (bool, error) {
+	client := deployContext.ClusterAPI.Client
+	runtimeObject, ok := blueprint.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	kind := actual.GetObjectKind().GroupVersionKind().Kind
-	logrus.Infof("Deleting object: %s, name: %s", kind, key.Name)
+	key := types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}
+	return doDeleteByKey(client, key, runtimeObject)
+}
 
-	return doDelete(client, actual)
+func DeleteClusterObject(deployContext *DeployContext, name string, blueprint metav1.Object) (bool, error) {
+	client := deployContext.ClusterAPI.NonCachedClient
+	runtimeObject, ok := blueprint.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
+	key := types.NamespacedName{Name: name}
+	return doDeleteByKey(client, key, runtimeObject)
 }
 
 // Updates object.
@@ -178,7 +213,7 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 		logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
 		fmt.Printf("Difference:\n%s", diff)
 
-		client := getClientForObject(blueprint, deployContext)
+		client := getClientForObject(actualMeta.GetNamespace(), deployContext)
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
 			done, err := doDelete(client, actual)
 			if !done {
@@ -219,6 +254,21 @@ func doCreate(client client.Client, object runtime.Object, returnTrueIfAlreadyEx
 	} else {
 		return false, err
 	}
+}
+
+func doDeleteByKey(client client.Client, key client.ObjectKey, object runtime.Object) (bool, error) {
+	actual := object.DeepCopyObject()
+	exists, err := doGet(client, key, actual)
+	if err != nil {
+		return false, err
+	} else if !exists {
+		return true, nil
+	}
+
+	kind := actual.GetObjectKind().GroupVersionKind().Kind
+	logrus.Infof("Deleting object: %s, name: %s", kind, key.Name)
+
+	return doDelete(client, actual)
 }
 
 func doDelete(client client.Client, object runtime.Object) (bool, error) {
@@ -267,9 +317,9 @@ func shouldSetOwnerReferenceForObject(deployContext *DeployContext, blueprint me
 	return blueprint.GetNamespace() == deployContext.CheCluster.Namespace
 }
 
-func getClientForObject(objectMeta metav1.Object, deployContext *DeployContext) client.Client {
+func getClientForObject(objectNamespace string, deployContext *DeployContext) client.Client {
 	// empty namespace (cluster scope object) or object in another namespace
-	if deployContext.CheCluster.Namespace == objectMeta.GetNamespace() {
+	if deployContext.CheCluster.Namespace == objectNamespace {
 		return deployContext.ClusterAPI.Client
 	}
 	return deployContext.ClusterAPI.NonCachedClient

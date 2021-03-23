@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -47,10 +48,7 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 
 	cheMultiUser := deploy.GetCheMultiUser(cr)
 	if cheMultiUser == "false" {
-		if util.K8sclient.IsDeploymentExists(deploy.IdentityProviderName, cr.Namespace) {
-			util.K8sclient.DeleteDeployment(deploy.IdentityProviderName, cr.Namespace)
-		}
-		return true, nil
+		return deploy.DeleteNamespacedObject(deployContext, deploy.IdentityProviderName, &appsv1.Deployment{})
 	}
 
 	for _, syncItem := range syncItems {

@@ -54,13 +54,8 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 		}
 
 		configMapData := getDevfileRegistryConfigMapData(deployContext.CheCluster, devfileRegistryURL)
-		configMapSpec, err := deploy.GetSpecConfigMap(deployContext, deploy.DevfileRegistryName, configMapData, deploy.DevfileRegistryName)
-		if err != nil {
-			return false, err
-		}
-
-		configMap, err := deploy.SyncConfigMapToCluster(deployContext, configMapSpec)
-		if configMap == nil {
+		done, err = deploy.SyncConfigMapDataToCluster(deployContext, deploy.DevfileRegistryName, configMapData, deploy.DevfileRegistryName)
+		if !done {
 			return false, err
 		}
 

@@ -76,6 +76,5 @@ func (r *ReconcileChe) putOpenShiftCertsIntoConfigMap(deployContext *deploy.Depl
 		}
 	}
 
-	certConfigMap, err := server.SyncTrustStoreConfigMapToCluster(deployContext)
-	return certConfigMap != nil, err
+	return server.SyncTrustStoreConfigMapToCluster(deployContext)
 }

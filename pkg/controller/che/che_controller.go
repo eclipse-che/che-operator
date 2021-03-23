@@ -277,7 +277,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 var (
 	_ reconcile.Reconciler = &ReconcileChe{}
 
-	oAuthFinalizerName                           = "oauthclients.finalizers.che.eclipse.org"
 	cheWorkspacesClusterPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
 
 	// CheServiceAccountName - service account name for che-server.
@@ -528,12 +527,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
-	cm, err := deploy.SyncAdditionalCACertsConfigMapToCluster(deployContext)
+	done, err = deploy.SyncAdditionalCACertsConfigMapToCluster(deployContext)
 	if err != nil {
 		logrus.Errorf("Error updating additional CA config map: %v", err)
 		return reconcile.Result{}, err
 	}
-	if cm == nil && !tests {
+	if !done && !tests {
 		// Config map update is in progress
 		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
 		return reconcile.Result{}, err
@@ -705,24 +704,34 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 
 	if cheMultiUser == "false" {
-		pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", cheFlavor)
+		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", cheFlavor)
 		if !tests {
-			if !pvcStatus.Continue {
+			if !done {
 				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
-				if pvcStatus.Err != nil {
-					logrus.Error(pvcStatus.Err)
+				if err != nil {
+					logrus.Error(err)
 				}
-				return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 1}, pvcStatus.Err
+				return reconcile.Result{}, err
 			}
 		}
 
-		if util.K8sclient.IsPVCExists(deploy.DefaultPostgresVolumeClaimName, instance.Namespace) {
-			util.K8sclient.DeletePVC(deploy.DefaultPostgresVolumeClaimName, instance.Namespace)
+		done, err = deploy.DeleteNamespacedObject(deployContext, deploy.DefaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
+		if !tests {
+			if !done {
+				if err != nil {
+					logrus.Error(err)
+				}
+				return reconcile.Result{}, err
+			}
 		}
 	} else {
+		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DefaultCheVolumeClaimName, &corev1.PersistentVolumeClaim{})
 		if !tests {
-			if util.K8sclient.IsPVCExists(deploy.DefaultCheVolumeClaimName, instance.Namespace) {
-				util.K8sclient.DeletePVC(deploy.DefaultCheVolumeClaimName, instance.Namespace)
+			if !done {
+				if err != nil {
+					logrus.Error(err)
+				}
+				return reconcile.Result{}, err
 			}
 		}
 	}
@@ -731,8 +740,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	externalDB := instance.Spec.Database.ExternalDb
 	if !externalDB {
 		if cheMultiUser == "false" {
-			if util.K8sclient.IsDeploymentExists(deploy.PostgresName, instance.Namespace) {
-				util.K8sclient.DeleteDeployment(deploy.PostgresName, instance.Namespace)
+			done, err := deploy.Delete(deployContext, types.NamespacedName{Name: deploy.PostgresName, Namespace: instance.Namespace}, &appsv1.Deployment{})
+			if !tests {
+				if !done {
+					if err != nil {
+						logrus.Error(err)
+					}
+					return reconcile.Result{}, err
+				}
 			}
 		} else {
 			// Create a new postgres service
@@ -749,15 +764,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 
 			// Create a new Postgres PVC object
-			pvcStatus := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
+			done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
 			if !tests {
-				if !pvcStatus.Continue {
+				if !done {
 					logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
-					if pvcStatus.Err != nil {
-						logrus.Error(pvcStatus.Err)
+					if err != nil {
+						logrus.Error(err)
 					}
 
-					return reconcile.Result{Requeue: pvcStatus.Requeue, RequeueAfter: time.Second * 1}, pvcStatus.Err
+					return reconcile.Result{}, err
 				}
 			}
 
@@ -925,9 +940,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
 	// controller will reconcile this CM with CR spec
-	cheConfigMap, err := server.SyncCheConfigMapToCluster(deployContext)
+	done, err = server.SyncCheConfigMapToCluster(deployContext)
 	if !tests {
-		if cheConfigMap == nil {
+		if !done {
 			logrus.Infof("Waiting on config map '%s' to be created", server.CheConfigMapName)
 			if err != nil {
 				logrus.Error(err)
@@ -951,16 +966,17 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				logrus.Error(err)
 			}
 
-			deployment, err := r.GetEffectiveDeployment(instance, cheFlavor)
-			if err == nil {
-				if deployment.Status.AvailableReplicas < 1 {
+			cheDeployment := &appsv1.Deployment{}
+			exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, cheDeployment)
+			if exists {
+				if cheDeployment.Status.AvailableReplicas < 1 {
 					if instance.Status.CheClusterRunning != UnavailableStatus {
 						if err := r.SetCheUnavailableStatus(instance, request); err != nil {
 							instance, _ = r.GetCR(request)
 							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 						}
 					}
-				} else if deployment.Status.Replicas != 1 {
+				} else if cheDeployment.Status.Replicas != 1 {
 					if instance.Status.CheClusterRunning != RollingUpdateInProgressStatus {
 						if err := r.SetCheRollingUpdateStatus(instance, request); err != nil {
 							instance, _ = r.GetCR(request)
@@ -1005,14 +1021,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
 	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
 	if deleted {
-		for {
-			if err := r.DeleteOAuthFinalizer(instance); err != nil &&
-				errors.IsConflict(err) {
-				instance, _ = r.GetCR(request)
-				continue
-			}
-			break
-		}
+		// ignore error
+		deploy.DeleteFinalizer(deployContext, deploy.OAuthFinalizerName)
 		for {
 			instance.Status.OpenShiftoAuthProvisioned = false
 			if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
@@ -1208,7 +1218,7 @@ func isEclipseCheSecret(mgr manager.Manager, obj handler.MapObject) (bool, recon
 
 func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) {
 	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
-		if err := r.ReconcileFinalizer(deployContext.CheCluster); err != nil {
+		if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
 			logrus.Error(err)
 		}
 	}
@@ -1231,4 +1241,14 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 			}
 		}
 	}
+}
+
+func (r *ReconcileChe) GetCR(request reconcile.Request) (instance *orgv1.CheCluster, err error) {
+	instance = &orgv1.CheCluster{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		logrus.Errorf("Failed to get %s CR: %s", instance.Name, err)
+		return nil, err
+	}
+	return instance, nil
 }
