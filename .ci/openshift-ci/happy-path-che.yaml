@@ -9,7 +9,7 @@ spec:
   containers:
     # container containing the tests
     - name: happy-path-test
-      image: quay.io/sskoryk/e2e
+      image: quay.io/eclipse/che-e2e
       imagePullPolicy: Always
       env:
         - name: TEST_SUITE
