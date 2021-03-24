@@ -911,11 +911,12 @@ func TestCheController(t *testing.T) {
 	if err := r.client.Update(context.TODO(), cheCR); err != nil {
 		t.Fatalf("Failed to update CR: %s", err)
 	}
-	if err := r.ReconcileFinalizer(cheCR); err != nil {
+	if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
 		t.Fatal("Failed to reconcile oAuthClient")
 	}
 	oauthClientName := cheCR.Spec.Auth.OAuthClientName
-	_, err = r.GetOAuthClient(oauthClientName)
+	oauthClient := &oauth.OAuthClient{}
+	err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName}, oauthClient)
 	if err == nil {
 		t.Fatalf("OauthClient %s has not been deleted", oauthClientName)
 	}

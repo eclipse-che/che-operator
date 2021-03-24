@@ -21,7 +21,6 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -91,57 +90,6 @@ func (cl *k8s) DoExecIntoPod(namespace string, podName string, command string, r
 		logrus.Info("Exec successfully completed.")
 	}
 	return stdout, nil
-}
-
-// GetEvents returns a list of events filtered by involvedObject
-func (cl *k8s) GetEvents(deploymentName string, ns string) (list *corev1.EventList) {
-	eventListOptions := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("involvedObject.fieldPath", "spec.containers{"+deploymentName+"}").String()}
-	deploymentEvents, _ := cl.clientset.CoreV1().Events(ns).List(eventListOptions)
-	return deploymentEvents
-}
-
-func (cl *k8s) IsPVCExists(pvcName string, ns string) bool {
-	getOptions := metav1.GetOptions{}
-	_, err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Get(pvcName, getOptions)
-	return err == nil
-}
-
-func (cl *k8s) DeletePVC(pvcName string, ns string) {
-	logrus.Infof("Deleting PVC: %s", pvcName)
-	deleteOptions := &metav1.DeleteOptions{}
-	err := cl.clientset.CoreV1().PersistentVolumeClaims(ns).Delete(pvcName, deleteOptions)
-	if err != nil {
-		logrus.Errorf("PVC deletion error: %v", err)
-	}
-}
-
-func (cl *k8s) IsDeploymentExists(deploymentName string, ns string) bool {
-	getOptions := metav1.GetOptions{}
-	_, err := cl.clientset.AppsV1().Deployments(ns).Get(deploymentName, getOptions)
-	return err == nil
-}
-
-func (cl *k8s) DeleteDeployment(deploymentName string, ns string) {
-	logrus.Infof("Deleting deployment: %s", deploymentName)
-	deleteOptions := &metav1.DeleteOptions{}
-	err := cl.clientset.AppsV1().Deployments(ns).Delete(deploymentName, deleteOptions)
-	if err != nil {
-		logrus.Errorf("Deployment deletion error: %v", err)
-	}
-}
-
-// GetLogs prints stderr or stdout from a selected pod. Log size is capped at 60000 bytes
-func (cl *k8s) GetPodLogs(podName string, ns string) {
-	var limitBytes int64 = 60000
-	req := cl.clientset.CoreV1().Pods(ns).GetLogs(podName, &corev1.PodLogOptions{LimitBytes: &limitBytes})
-	readCloser, err := req.Stream()
-	if err != nil {
-		logrus.Errorf("Pod error log: %v", err)
-	} else {
-		buf := new(bytes.Buffer)
-		_, err = io.Copy(buf, readCloser)
-		logrus.Infof("Pod log: %v", buf.String())
-	}
 }
 
 //GetDeploymentPod queries all pods is a selected namespace by LabelSelector
