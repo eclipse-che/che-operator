@@ -60,4 +60,3 @@ spec:
           "while true; if [[ -f /tmp/done ]]; then exit 0; fi; do sleep 1; done",
         ]
   restartPolicy: Never
-  
