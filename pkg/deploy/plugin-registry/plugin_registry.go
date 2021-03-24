@@ -55,13 +55,8 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 
 		if deployContext.CheCluster.IsAirGapMode() {
 			configMapData := getPluginRegistryConfigMapData(deployContext.CheCluster)
-			configMapSpec, err := deploy.GetSpecConfigMap(deployContext, deploy.PluginRegistryName, configMapData, deploy.PluginRegistryName)
-			if err != nil {
-				return false, err
-			}
-
-			configMap, err := deploy.SyncConfigMapToCluster(deployContext, configMapSpec)
-			if configMap == nil {
+			done, err := deploy.SyncConfigMapDataToCluster(deployContext, deploy.PluginRegistryName, configMapData, deploy.PluginRegistryName)
+			if !done {
 				return false, err
 			}
 		}
