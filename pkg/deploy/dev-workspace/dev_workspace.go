@@ -15,8 +15,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -52,7 +52,6 @@ const (
 	DevWorkspaceProxyClusterRoleBindingFile   = DevWorkspaceTemplates + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
 	DevWorkspaceWorkspaceRoutingCRDFile       = DevWorkspaceTemplates + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceTemplatesCRDFile              = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceComponentsCRDFile             = DevWorkspaceTemplates + "/components.controller.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
@@ -89,7 +88,6 @@ var (
 		syncDwClusterRoleBinding,
 		syncDwProxyClusterRoleBinding,
 		syncDwCRD,
-		syncDwComponentsCRD,
 		syncDwTemplatesCRD,
 		syncDwWorkspaceRoutingCRD,
 		syncDwConfigMap,
@@ -123,7 +121,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	devWorkspaceWebhookExists, err := deploy.IsExists(
+	devWorkspaceWebhookExists, err := deploy.Get(
 		deployContext,
 		client.ObjectKey{Name: DevWorkspaceWebhookName},
 		&admissionregistrationv1.MutatingWebhookConfiguration{},
@@ -235,10 +233,6 @@ func syncDwWorkspaceRoutingCRD(deployContext *deploy.DeployContext) (bool, error
 
 func syncDwTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
 	return syncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{})
-}
-
-func syncDwComponentsCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceComponentsCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {

@@ -17,7 +17,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	mocks "github.com/eclipse/che-operator/mocks"
+	mocks "github.com/eclipse-che/che-operator/mocks"
 
 	"reflect"
 	"time"
@@ -25,15 +25,15 @@ import (
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	"github.com/golang/mock/gomock"
 
-	identity_provider "github.com/eclipse/che-operator/pkg/deploy/identity-provider"
+	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 
 	console "github.com/openshift/api/console/v1"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	oauth_config "github.com/openshift/api/config/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -47,7 +47,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 
-	che_mocks "github.com/eclipse/che-operator/mocks/pkg/controller/che"
+	che_mocks "github.com/eclipse-che/che-operator/mocks/pkg/controller/che"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1141,21 +1141,21 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			} else {
 				manageNamespacesClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, namespace)
 				cheManageNamespaceClusterRole := &rbac.ClusterRole{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
 					t.Errorf("role '%s' not found", manageNamespacesClusterRoleName)
 				}
 				cheManageNamespaceClusterRoleBinding := &rbac.ClusterRoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
 					t.Errorf("rolebinding '%s' not found", manageNamespacesClusterRoleName)
 				}
 
 				cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, namespace)
 				cheWorkspacesClusterRole := &rbac.ClusterRole{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
 					t.Errorf("role '%s' not found", cheWorkspacesClusterRole)
 				}
 				cheWorkspacesClusterRoleBinding := &rbac.ClusterRoleBinding{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
+				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
 					t.Errorf("rolebinding '%s' not found", cheWorkspacesClusterRole)
 				}
 			}

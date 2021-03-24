@@ -17,8 +17,8 @@ import (
 	"reflect"
 	"strconv"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"

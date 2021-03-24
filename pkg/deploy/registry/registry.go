@@ -12,8 +12,8 @@
 package registry
 
 import (
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	v12 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"

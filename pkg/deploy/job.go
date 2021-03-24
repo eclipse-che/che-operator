@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"

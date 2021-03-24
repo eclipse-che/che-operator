@@ -26,6 +26,7 @@ jobs:
 
     - name: Che operator code check.
       run: >-
+        env &&
         go version &&
-        export GOROOT=/opt/hostedtoolcache/go/1.15.8/x64/ &&
+        export GOROOT=/opt/hostedtoolcache/go/1.15.10/x64/ &&
         ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle.sh

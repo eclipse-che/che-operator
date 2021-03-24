@@ -3,10 +3,10 @@ metadata:
 projects:
   - name: che-operator
     source:
-      location: 'https://github.com/eclipse/che-operator.git'
+      location: 'https://github.com/eclipse-che/che-operator.git'
       type: git
       branch: master
-    clonePath: src/github.com/eclipse/che-operator
+    clonePath: src/github.com/eclipse-che/che-operator
 components:
   - id: golang/go/latest
     memoryLimit: 1G

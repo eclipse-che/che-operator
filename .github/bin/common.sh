@@ -77,8 +77,8 @@ initStableTemplates() {
   export PREVIOUS_OPERATOR_TEMPLATE=${previousOperatorPath}/chectl/templates
 
   # clone the exact versions to use their templates
-  git clone --depth 1 --branch ${PREVIOUS_PACKAGE_VERSION} https://github.com/eclipse/che-operator/ ${previousOperatorPath}
-  git clone --depth 1 --branch ${LAST_PACKAGE_VERSION} https://github.com/eclipse/che-operator/ ${lastOperatorPath}
+  git clone --depth 1 --branch ${PREVIOUS_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${previousOperatorPath}
+  git clone --depth 1 --branch ${LAST_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${lastOperatorPath}
 
   # chectl requires 'che-operator' template folder
   mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"

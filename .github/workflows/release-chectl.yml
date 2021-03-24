@@ -11,9 +11,9 @@ on:
       forceflag:
         description: 'To force creation of .x branch, use --force flag here'
         default: ''
-  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse/che-operator/pull/571/files
+  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
   push:
-    branches: 
+    branches:
       - master
     paths:
       - 'deploy/olm-catalog/stable/eclipse-che-preview-*/manifests/che-operator.clusterserviceversion.yaml'
@@ -47,7 +47,7 @@ jobs:
             chectlVersion="${{ github.event.inputs.version }}"
           fi
 
-          # generic method to call a GH action and pass in a single var=val parameter 
+          # generic method to call a GH action and pass in a single var=val parameter
           invokeAction() {
               this_repo=$1
               this_action_name=$2

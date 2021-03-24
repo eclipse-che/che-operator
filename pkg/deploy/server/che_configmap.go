@@ -18,9 +18,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"

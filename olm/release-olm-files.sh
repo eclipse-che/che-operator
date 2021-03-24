@@ -37,16 +37,16 @@ downloadLatestReleasedBundleCRCRD() {
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
 
-  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.0")
+  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.2")
   if [ "${compareResult}" == "1" ]; then
-    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
         -q -O "${PRE_RELEASE_CSV}"
-    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
         -q -O "${PRE_RELEASE_CRD}"
   else
-    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.v${LAST_RELEASE_VERSION}.clusterserviceversion.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.v${LAST_RELEASE_VERSION}.clusterserviceversion.yaml" \
          -q -O "${PRE_RELEASE_CSV}"
-    wget "https://raw.githubusercontent.com/eclipse/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.crd.yaml" \
           -q -O "${PRE_RELEASE_CRD}"
   fi
 }
@@ -120,7 +120,7 @@ do
 
   popd || true
 
-  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then 
+  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
     diff -u "${PRE_RELEASE_CRD}" "${RELEASE_CRD}" > "${RELEASE_CRD}.diff" || true
   fi

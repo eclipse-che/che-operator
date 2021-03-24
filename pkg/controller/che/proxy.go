@@ -14,10 +14,10 @@ package che
 import (
 	"context"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/deploy/server"
-	"github.com/eclipse/che-operator/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/server"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

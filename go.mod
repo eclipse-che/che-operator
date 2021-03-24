@@ -1,4 +1,4 @@
-module github.com/eclipse/che-operator
+module github.com/eclipse-che/che-operator
 
 go 1.13
 

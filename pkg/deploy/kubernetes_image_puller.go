@@ -16,8 +16,8 @@ import (
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -194,13 +194,7 @@ func HasImagePullerFinalizer(instance *orgv1.CheCluster) bool {
 func ReconcileImagePullerFinalizer(ctx *DeployContext) (err error) {
 	instance := ctx.CheCluster
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.ContainsString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName) {
-			ctx.CheCluster.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, imagePullerFinalizerName)
-			logrus.Infof("Adding finalizer %v", imagePullerFinalizerName)
-			if err := ctx.ClusterAPI.Client.Update(context.Background(), instance); err != nil {
-				return err
-			}
-		}
+		return AppendFinalizer(ctx, imagePullerFinalizerName)
 	} else {
 		if util.ContainsString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName) {
 			clusterServiceVersionName := DefaultKubernetesImagePullerOperatorCSV()
@@ -215,17 +209,11 @@ func ReconcileImagePullerFinalizer(ctx *DeployContext) (err error) {
 				logrus.Errorf("Failed to delete %s ClusterServiceVersion: %s", clusterServiceVersionName, err)
 				return err
 			}
-			instance.ObjectMeta.Finalizers = util.DoRemoveString(instance.ObjectMeta.Finalizers, imagePullerFinalizerName)
-			logrus.Infof("Updating %s CR", instance.Name)
 
-			if err := ctx.ClusterAPI.Client.Update(context.Background(), instance); err != nil {
-				logrus.Errorf("Failed to update %s CR: %s", instance.Name, err)
-				return err
-			}
+			return DeleteFinalizer(ctx, imagePullerFinalizerName)
 		}
 		return nil
 	}
-	return nil
 }
 
 func DeleteImagePullerFinalizer(ctx *DeployContext) (err error) {

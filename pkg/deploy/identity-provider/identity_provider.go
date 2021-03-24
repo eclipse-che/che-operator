@@ -12,19 +12,17 @@
 package identity_provider
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/deploy/expose"
-	"github.com/eclipse/che-operator/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -126,7 +124,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
 					apierrors.IsConflict(err) {
 
-					reload(deployContext)
+					util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
 					continue
 				}
 				break
@@ -195,7 +193,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
 					apierrors.IsConflict(err) {
 
-					reload(deployContext)
+					util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
 					continue
 				}
 				break
@@ -279,11 +277,4 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func reload(deployContext *deploy.DeployContext) error {
-	return deployContext.ClusterAPI.Client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: deployContext.CheCluster.Name, Namespace: deployContext.CheCluster.Namespace},
-		deployContext.CheCluster)
 }

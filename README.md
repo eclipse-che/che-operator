@@ -340,7 +340,7 @@ $ olm/update-crd-files.sh
 or
 
 ```bash
-$ ./docker-run.sh olm/update-crd-files.sh
+$ olm/docker-run.sh olm/update-crd-files.sh
 ```
 
 > Notice: this script contains commands to make the CRD compatible with Openshift 3.
@@ -363,7 +363,7 @@ $ olm/update-nightly-bundle.sh
 or
 
 ```bash
-$ ./docker-run.sh olm/update-nightly-bundle.sh
+$ olm/docker-run.sh olm/update-nightly-bundle.sh
 ```
 
 Every changes will be included to the `deploy/olm-catalog` bundles and will override all previous changes. OLM bundle changes should be committed to the pull request.
@@ -378,7 +378,7 @@ $ export NO_DATE_UPDATE="true" \
 
 ### Che operator PR checks
 
-Documentation about all Che operator test cases can be found [here](https://github.com/eclipse/che-operator/tree/master/.ci/README.md)
+Documentation about all Che operator test cases can be found [here](https://github.com/eclipse-che/che-operator/tree/master/.ci/README.md)
 
 ### Generate go mocks.
 

@@ -13,6 +13,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -28,13 +29,16 @@ import (
 	"strings"
 	"time"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 )
@@ -140,12 +144,30 @@ func getApiList() ([]v1.APIGroup, error) {
 	return apiList.Groups, nil
 }
 
-func GetServerResources() ([]*v1.APIResourceList, error) {
+func HasAPIResourceName(name string) bool {
 	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
-		return nil, err
+		return false
 	}
-	return discoveryClient.ServerResources()
+
+	_, resourcesList, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false
+	}
+
+	return HasAPIResourceNameInList(name, resourcesList)
+}
+
+func HasAPIResourceNameInList(name string, resources []*metav1.APIResourceList) bool {
+	for _, l := range resources {
+		for _, r := range l.APIResources {
+			if r.Name == name {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func GetValue(key string, defaultValue string) (value string) {
@@ -420,4 +442,11 @@ func ReadObject(yamlFile string, obj interface{}) error {
 	}
 
 	return nil
+}
+
+func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
+	return client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
+		cheCluster)
 }

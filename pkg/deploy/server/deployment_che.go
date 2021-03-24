@@ -16,10 +16,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/util"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

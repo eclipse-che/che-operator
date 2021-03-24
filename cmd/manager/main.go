@@ -20,8 +20,8 @@ import (
 	"runtime"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
-	"github.com/eclipse/che-operator/cmd/manager/signal"
-	"github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/cmd/manager/signal"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -29,9 +29,9 @@ import (
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 
-	"github.com/eclipse/che-operator/pkg/apis"
-	"github.com/eclipse/che-operator/pkg/controller"
-	"github.com/eclipse/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/apis"
+	"github.com/eclipse-che/che-operator/pkg/controller"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"

@@ -54,7 +54,7 @@ prepareTemplates() {
 
   # Download Dev Workspace operator templates
   echo "[INFO] Downloading Dev Workspace operator templates ..."
-  rm /tmp/devworkspace-operator.zip
+  rm -f /tmp/devworkspace-operator.zip
   rm -rf /tmp/devfile-devworkspace-operator-*
   rm -rf /tmp/devworkspace-operator/
   mkdir -p /tmp/devworkspace-operator/templates
@@ -67,7 +67,7 @@ prepareTemplates() {
 
   # Download Dev Workspace Che operator templates
   echo "[INFO] Downloading Dev Workspace Che operator templates ..."
-  rm /tmp/devworkspace-che-operator.zip
+  rm -f /tmp/devworkspace-che-operator.zip
   rm -rf /tmp/che-incubator-devworkspace-che-operator-*
   rm -rf /tmp/devworkspace-che-operator/
   mkdir -p /tmp/devworkspace-che-operator/templates
