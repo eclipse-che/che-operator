@@ -23,7 +23,7 @@ import (
 var configMapDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels) && reflect.DeepEqual(x.Annotations, y.Annotations)
+		return reflect.DeepEqual(x.Labels, y.Labels)
 	}),
 }
 

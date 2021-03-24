@@ -107,21 +107,4 @@ func TestSyncConfigMapSpecDataToCluster(t *testing.T) {
 	if actual.ObjectMeta.Labels["l"] != "v" {
 		t.Fatalf("Failed to sync config map")
 	}
-
-	// check annotations
-	spec = GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "che")
-	spec.ObjectMeta.Annotations = map[string]string{"k": "p"}
-	done, err = SyncConfigMapSpecToCluster(deployContext, spec)
-	if !done || err != nil {
-		t.Fatalf("Failed to sync config map: %v", err)
-	}
-
-	actual = &corev1.ConfigMap{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
-	if err != nil {
-		t.Fatalf("Failed to get config map: %v", err)
-	}
-	if actual.ObjectMeta.Annotations["k"] != "p" {
-		t.Fatalf("Failed to sync config map")
-	}
 }
