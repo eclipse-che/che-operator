@@ -50,15 +50,19 @@ runTest() {
   sed -i "s@WORKSPACE_ROUTE@${TS_SELENIUM_DEVWORKSPACE_URL}@g" ./.ci/openshift-ci/happy-path-che.yaml
   cat ./.ci/openshift-ci/happy-path-che.yaml
 
-  oc apply -f ./.ci/openshift-ci/happy-path-che.yaml
+  oc apply -f ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
   # wait for the pod to start
-  while true; do
-    sleep 3
+  n=0
+  while [ $n -le 12 ]
+  do
     PHASE=$(oc get pod -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} \
         --template='{{ .status.phase }}')
     if [[ ${PHASE} == "Running" ]]; then
         break
     fi
+
+    sleep 5
+    n=$(( n+1 ))
   done
 
   # wait for the test to finish
