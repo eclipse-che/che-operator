@@ -51,7 +51,7 @@ startHappyPathTest() {
   oc apply -f ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
   # wait for the pod to start
   n=0
-  while [ $n -le 12 ]
+  while [ $n -le 48 ]
   do
     PHASE=$(oc get pod -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} \
         --template='{{ .status.phase }}')
