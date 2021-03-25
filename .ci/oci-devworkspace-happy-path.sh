@@ -40,9 +40,7 @@ EOL
   chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --batch --telemetry=off --installer=operator
 }
 
-runTest() {
-  deployChe
-
+startHappyPathTest() {
   # patch happy-path-che.yaml 
   ECLIPSE_CHE_URL=http://$(oc get route -n "${NAMESPACE}" che -o jsonpath='{.status.ingress[0].host}')
   TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_DEVFILE}"
@@ -58,12 +56,22 @@ runTest() {
     PHASE=$(oc get pod -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} \
         --template='{{ .status.phase }}')
     if [[ ${PHASE} == "Running" ]]; then
-        break
+      echo "[INFO] Happy-path test started succesfully"
+      return
     fi
 
     sleep 5
     n=$(( n+1 ))
   done
+
+  echo "Failed to start happy-path test"
+  exit 1
+}
+
+runTest() {
+  deployChe
+
+  startHappyPathTest
 
   # wait for the test to finish
   oc logs -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} -c happy-path-test -f
