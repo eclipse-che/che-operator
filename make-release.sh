@@ -183,9 +183,9 @@ updateNightlyOlmFiles() {
 
 updateVersionFile() {
   echo "[INFO] updating VERSION file"
-  echo ${VERSION} > VERSION
+  echo ${RELEASE} > VERSION
   git add VERSION
-  git commit -m "Update VERSION to $RELEASE"
+  git commit -m "Update VERSION to $RELEASE" --signoff
 }
 
 releaseOlmFiles() {
