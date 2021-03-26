@@ -26,7 +26,7 @@ func Expose(
 	routeCustomSettings orgv1.RouteCustomSettings,
 	ingressCustomSettings orgv1.IngressCustomSettings,
 	component string) (endpont string, done bool, err error) {
-	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, deploy.DefaultServerExposureStrategy)
+	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 	var domain string
 	var endpoint string
 	var pathPrefix string

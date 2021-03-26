@@ -439,6 +439,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
+	// If DevWorkspace is enabled deploy Che using single-host by default
+	if instance.Spec.DevWorkspace.Enable && instance.Spec.Server.ServerExposureStrategy == "" {
+		instance.Spec.Server.ServerExposureStrategy = "single-host"
+		if err := r.UpdateCheCRSpec(instance, "serverExposureStrategy", "single-host"); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// Read proxy configuration
 	proxy, err := r.getProxyConfiguration(instance)
 	if err != nil {
@@ -1064,7 +1072,7 @@ func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 }
 
 func getServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.ServerExposureStrategy == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
+	if util.GetServerExposureStrategy(cr) == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName

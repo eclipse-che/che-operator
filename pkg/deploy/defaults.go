@@ -77,7 +77,6 @@ const (
 
 	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
 
-	DefaultServerExposureStrategy           = "multi-host"
 	DefaultKubernetesSingleHostExposureType = "native"
 	DefaultOpenShiftSingleHostExposureType  = "gateway"
 

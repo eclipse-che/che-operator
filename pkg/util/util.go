@@ -48,6 +48,11 @@ var (
 	IsOpenShift, IsOpenShift4, _ = DetectOpenShift()
 )
 
+const (
+	DefaultServerExposureStrategyName = "multi-host"
+	DefaultSingleHostExposureStrategyName = "single-host"
+)
+
 func ContainsString(slice []string, s string) bool {
 	for _, item := range slice {
 		if item == s {
@@ -200,14 +205,15 @@ func MergeMaps(first map[string]string, second map[string]string) map[string]str
 	return ret
 }
 
-func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string {
+func GetServerExposureStrategy(c *orgv1.CheCluster) string {
 	strategy := c.Spec.Server.ServerExposureStrategy
-	if IsOpenShift {
-		strategy = GetValue(strategy, defaultValue)
-	} else {
-		if strategy == "" {
-			strategy = GetValue(c.Spec.K8s.IngressStrategy, defaultValue)
-		}
+
+	if c.Spec.DevWorkspace.Enable && strategy == "" {
+		strategy = GetValue(strategy, DefaultSingleHostExposureStrategyName)
+	} else if IsOpenShift {
+		strategy = GetValue(strategy, DefaultServerExposureStrategyName)
+	} else if strategy == "" {
+		strategy = GetValue(c.Spec.K8s.IngressStrategy, DefaultServerExposureStrategyName)
 	}
 
 	return strategy
