@@ -439,14 +439,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
-	// If DevWorkspace is enabled deploy Che using single-host by default
-	if instance.Spec.DevWorkspace.Enable && instance.Spec.Server.ServerExposureStrategy == "" {
-		instance.Spec.Server.ServerExposureStrategy = "single-host"
-		if err := r.UpdateCheCRSpec(instance, "serverExposureStrategy", "single-host"); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
 	// Read proxy configuration
 	proxy, err := r.getProxyConfiguration(instance)
 	if err != nil {

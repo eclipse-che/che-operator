@@ -14,7 +14,6 @@ package devworkspace
 import (
 	"context"
 	"errors"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -119,6 +118,14 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 
 	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return true, nil
+	}
+
+	// If DevWorkspace is enabled deploy Che using single-host by default
+	if deployContext.CheCluster.Spec.DevWorkspace.Enable && deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "" {
+		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = "single-host"
+		if err := deploy.UpdateCheCRSpec(deployContext, "serverExposureStrategy", "single-host"); err != nil {
+			return false, err
+		}
 	}
 
 	devWorkspaceWebhookExists, err := deploy.Get(
