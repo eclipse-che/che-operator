@@ -16,12 +16,10 @@ import (
 	"fmt"
 	"time"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -47,8 +45,6 @@ const (
 // delegates "che-operator" SA permissions to the service accounts: "che" and "che-workspace".
 // Also this method binds "edit" default k8s clusterrole using rolebinding to "che" SA.
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
-	tests := r.tests
-
 	// Create "che-workspace" service account.
 	// Che workspace components use this service account.
 	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheWorkspacesServiceAccount)
@@ -57,57 +53,47 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 
 	// Create view role for "che-workspace" service account.
 	// This role used by exec terminals, tasks, metric che-theia plugin and so on.
-	viewRole, err := deploy.SyncViewRoleToCluster(deployContext)
-	if viewRole == nil {
+	done, err := deploy.SyncViewRoleToCluster(deployContext)
+	if !done {
 		logrus.Infof("Waiting on role '%s' to be created", deploy.ViewRoleName)
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 
-	cheWSViewRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, ViewRoleBindingName, CheWorkspacesServiceAccount, deploy.ViewRoleName, "Role")
-	if cheWSViewRoleBinding == nil {
+	done, err = deploy.SyncRoleBindingToCluster(deployContext, ViewRoleBindingName, CheWorkspacesServiceAccount, deploy.ViewRoleName, "Role")
+	if !done {
 		logrus.Infof("Waiting on role binding '%s' to be created", ViewRoleBindingName)
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 
 	// Create exec role for "che-workspaces" service account.
 	// This role used by exec terminals, tasks and so on.
-	execRole, err := deploy.SyncExecRoleToCluster(deployContext)
-	if execRole == nil {
+	done, err = deploy.SyncExecRoleToCluster(deployContext)
+	if !done {
 		logrus.Infof("Waiting on role '%s' to be created", deploy.ExecRoleName)
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 
-	cheWSExecRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, ExecRoleBindingName, CheWorkspacesServiceAccount, deploy.ExecRoleName, "Role")
-	if cheWSExecRoleBinding == nil {
+	done, err = deploy.SyncRoleBindingToCluster(deployContext, ExecRoleBindingName, CheWorkspacesServiceAccount, deploy.ExecRoleName, "Role")
+	if !done {
 		logrus.Infof("Waiting on role binding '%s' to be created", ExecRoleBindingName)
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 
 	// Bind "edit" cluster role for "che" service account.
@@ -115,15 +101,13 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 	// Warning: operator binds clusterrole using rolebinding(not clusterrolebinding).
 	// That's why "che" service account has got permissions only in the one namespace!
 	// So permissions are binding in "non-cluster" scope.
-	cheRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, EditRoleBindingName, CheServiceAccountName, EditClusterRoleName, "ClusterRole")
-	if cheRoleBinding == nil {
+	done, err = deploy.SyncRoleBindingToCluster(deployContext, EditRoleBindingName, CheServiceAccountName, EditClusterRoleName, "ClusterRole")
+	if !done {
 		logrus.Infof("Waiting on role binding '%s' to be created", EditRoleBindingName)
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
 }
@@ -191,23 +175,29 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(d
 }
 
 // DeleteWorkspacesInSameNamespaceWithChePermissions - removes workspaces in same namespace with Che role and rolebindings.
-func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(instance *orgv1.CheCluster, cli client.Client) error {
-
-	if err := deploy.DeleteRole(deploy.ExecRoleName, instance.Namespace, cli); err != nil {
-		return err
-	}
-	if err := deploy.DeleteRoleBinding(ExecRoleBindingName, instance.Namespace, cli); err != nil {
+func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(deployContext *deploy.DeployContext) error {
+	_, err := deploy.DeleteNamespacedObject(deployContext, deploy.ExecRoleName, &rbac.Role{})
+	if err != nil {
 		return err
 	}
 
-	if err := deploy.DeleteRole(deploy.ViewRoleName, instance.Namespace, cli); err != nil {
-		return err
-	}
-	if err := deploy.DeleteRoleBinding(ViewRoleBindingName, instance.Namespace, cli); err != nil {
+	_, err = deploy.DeleteNamespacedObject(deployContext, ExecRoleBindingName, &rbac.RoleBinding{})
+	if err != nil {
 		return err
 	}
 
-	if err := deploy.DeleteRoleBinding(EditRoleBindingName, instance.Namespace, cli); err != nil {
+	_, err = deploy.DeleteNamespacedObject(deployContext, deploy.ViewRoleName, &rbac.Role{})
+	if err != nil {
+		return err
+	}
+
+	_, err = deploy.DeleteNamespacedObject(deployContext, ViewRoleBindingName, &rbac.RoleBinding{})
+	if err != nil {
+		return err
+	}
+
+	_, err = deploy.DeleteNamespacedObject(deployContext, EditRoleBindingName, &rbac.RoleBinding{})
+	if err != nil {
 		return err
 	}
 
@@ -225,7 +215,7 @@ func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(deployContext *dep
 			}
 		} else {
 			// Delete permission set for configuration "same namespace for Che and workspaces".
-			if err := r.DeleteWorkspacesInSameNamespaceWithChePermissions(deployContext.CheCluster, deployContext.ClusterAPI.Client); err != nil {
+			if err := r.DeleteWorkspacesInSameNamespaceWithChePermissions(deployContext); err != nil {
 				logrus.Errorf("unable to delete workspaces in same namespace permission set, cause %s", err.Error())
 				return err
 			}

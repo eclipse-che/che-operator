@@ -93,10 +93,7 @@ func TestDeployment(t *testing.T) {
 				CheCluster: testCase.cheCluster,
 			}
 
-			deployment, err := GetDevfileRegistrySpecDeployment(deployContext)
-			if err != nil {
-				t.Fatalf("Error creating deployment: %v", err)
-			}
+			deployment := GetDevfileRegistrySpecDeployment(deployContext)
 
 			util.CompareResources(deployment,
 				util.TestExpectedResources{

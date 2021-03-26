@@ -24,21 +24,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func SyncCheDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.DefaultCheFlavor(deployContext.CheCluster), deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return false, err
-	}
-
 	specDeployment, err := GetSpecCheDeployment(deployContext)
 	if err != nil {
 		return false, err
 	}
-
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+	return deploy.SyncDeploymentSpecToCluster(deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
 }
 
 func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
@@ -379,13 +372,6 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
 			RunAsUser: &runAsUser,
 			FSGroup:   &fsGroup,
-		}
-	}
-
-	if !util.IsTestMode() {
-		err = controllerutil.SetControllerReference(deployContext.CheCluster, deployment, deployContext.ClusterAPI.Scheme)
-		if err != nil {
-			return nil, err
 		}
 	}
 

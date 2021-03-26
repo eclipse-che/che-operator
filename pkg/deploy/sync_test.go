@@ -17,6 +17,7 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,13 +45,18 @@ var (
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-secret",
-			Namespace: "eclipse-che",
-			Labels:    map[string]string{"a": "b"},
+			Name:        "test-secret",
+			Namespace:   "eclipse-che",
+			Labels:      map[string]string{"a": "b"},
+			Annotations: map[string]string{"d": "c"},
 		},
+		Data: map[string][]byte{"x": []byte("y")},
 	}
 	testObjMeta = &corev1.Secret{}
 	testKey     = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
+	diffOpts    = cmp.Options{
+		cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
+	}
 )
 
 func TestGet(t *testing.T) {
@@ -158,41 +164,6 @@ func TestUpdate(t *testing.T) {
 
 	if actual == nil {
 		t.Fatalf("Object not found")
-	}
-
-	if actual.Labels["a"] != "b" {
-		t.Fatalf("Object hasn't been updated")
-	}
-}
-
-func TestSync(t *testing.T) {
-	cli, deployContext := initDeployContext()
-
-	err := cli.Create(context.TODO(), testObj)
-	if err != nil {
-		t.Fatalf("Failed to create object: %v", err)
-	}
-
-	// 1. Update object
-	_, err = Sync(deployContext, testObjLabeled, cmp.Options{})
-	if err != nil {
-		t.Fatalf("Error syncing object: %v", err)
-	}
-
-	// 2. Checks if object is up to date
-	done, err := Sync(deployContext, testObjLabeled, cmp.Options{})
-	if err != nil {
-		t.Fatalf("Error syncing object: %v", err)
-	}
-
-	if !done {
-		t.Fatalf("Object hasn't been synced")
-	}
-
-	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), testKey, actual)
-	if err != nil && !errors.IsNotFound(err) {
-		t.Fatalf("Failed to get object: %v", err)
 	}
 
 	if actual.Labels["a"] != "b" {

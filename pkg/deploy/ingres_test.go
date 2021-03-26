@@ -12,16 +12,17 @@
 package deploy
 
 import (
+	"context"
 	"os"
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -73,14 +74,6 @@ func TestIngressSpec(t *testing.T) {
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
 					},
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion:         "org.eclipse.che/v1",
-							Kind:               "CheCluster",
-							Controller:         util.NewBoolPointer(true),
-							BlockOwnerDeletion: util.NewBoolPointer(true),
-						},
-					},
 					Annotations: map[string]string{
 						"kubernetes.io/ingress.class":                       "nginx",
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
@@ -131,7 +124,7 @@ func TestIngressSpec(t *testing.T) {
 				},
 			}
 
-			actualIngress, err := GetSpecIngress(deployContext,
+			actualIngress := GetIngressSpec(deployContext,
 				testCase.ingressName,
 				testCase.ingressHost,
 				testCase.serviceName,
@@ -139,13 +132,51 @@ func TestIngressSpec(t *testing.T) {
 				testCase.ingressCustomSettings,
 				testCase.ingressComponent,
 			)
-			if err != nil {
-				t.Fatalf("Error creating ingress: %v", err)
-			}
 
 			if !reflect.DeepEqual(testCase.expectedIngress, actualIngress) {
 				t.Errorf("Expected ingress and ingress returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedIngress, actualIngress))
 			}
 		})
+	}
+}
+
+func TestSyncIngressToCluster(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	done, err := SyncIngressToCluster(deployContext, "test", "host-1", "service-1", 8080, orgv1.IngressCustomSettings{}, "component")
+	if !done || err != nil {
+		t.Fatalf("Failed to sync ingress: %v", err)
+	}
+
+	done, err = SyncIngressToCluster(deployContext, "test", "host-2", "service-2", 8080, orgv1.IngressCustomSettings{}, "component")
+	if !done || err != nil {
+		t.Fatalf("Failed to sync ingress: %v", err)
+	}
+
+	actual := &v1beta1.Ingress{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to get ingress: %v", err)
+	}
+
+	if actual.Spec.Rules[0].Host != "host-2" {
+		t.Fatalf("Failed to sync ingress")
+	}
+	if actual.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.ServiceName != "service-2" {
+		t.Fatalf("Failed to sync ingress")
 	}
 }

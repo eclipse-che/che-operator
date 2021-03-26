@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
+	extentionsv1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
 func Expose(
@@ -69,19 +70,17 @@ func Expose(
 					return "", false, err
 				}
 			}
-			if err := deploy.DeleteIngressIfExists(endpointName, deployContext); !util.IsTestMode() && err != nil {
+			if _, err = deploy.DeleteNamespacedObject(deployContext, endpointName, &extentionsv1beta1.Ingress{}); err != nil {
 				logrus.Error(err)
 			}
 		} else {
-			ingress, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, ingressCustomSettings, component)
-			if !util.IsTestMode() {
-				if ingress == nil {
-					logrus.Infof("Waiting on ingress '%s' to be ready", endpointName)
-					if err != nil {
-						logrus.Error(err)
-					}
-					return "", false, err
+			done, err := deploy.SyncIngressToCluster(deployContext, endpointName, domain, endpointName, 8080, ingressCustomSettings, component)
+			if !done {
+				logrus.Infof("Waiting on ingress '%s' to be ready", endpointName)
+				if err != nil {
+					logrus.Error(err)
 				}
+				return "", false, err
 			}
 			if err := gateway.DeleteGatewayRouteConfig(gatewayConfig, deployContext); !util.IsTestMode() && err != nil {
 				logrus.Error(err)
@@ -91,13 +90,11 @@ func Expose(
 		if useGateway {
 			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+pathPrefix, 10, "http://"+endpointName+":8080", stripPrefix)
 			done, err := deploy.SyncConfigMapSpecToCluster(deployContext, &cfg)
-			if !util.IsTestMode() {
-				if !done {
-					if err != nil {
-						logrus.Error(err)
-					}
-					return "", false, err
+			if !done {
+				if err != nil {
+					logrus.Error(err)
 				}
+				return "", false, err
 			}
 			if err := deploy.DeleteRouteIfExists(endpointName, deployContext); !util.IsTestMode() && err != nil {
 				logrus.Error(err)

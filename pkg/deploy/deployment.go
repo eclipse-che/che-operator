@@ -20,19 +20,17 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-var DeploymentDiffOpts = cmp.Options{
+var DefaultDeploymentDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(appsv1.Deployment{}, "TypeMeta", "ObjectMeta", "Status"),
 	cmpopts.IgnoreFields(appsv1.DeploymentSpec{}, "Replicas", "RevisionHistoryLimit", "ProgressDeadlineSeconds"),
 	cmpopts.IgnoreFields(appsv1.DeploymentStrategy{}, "RollingUpdate"),
@@ -46,73 +44,32 @@ var DeploymentDiffOpts = cmp.Options{
 	}),
 }
 
-func SyncDeploymentToCluster(
+func SyncDeploymentSpecToCluster(
 	deployContext *DeployContext,
-	specDeployment *appsv1.Deployment,
-	clusterDeployment *appsv1.Deployment,
-	additionalDeploymentDiffOpts cmp.Options,
-	additionalDeploymentMerge func(*appsv1.Deployment, *appsv1.Deployment) *appsv1.Deployment) (bool, error) {
+	deploymentSpec *appsv1.Deployment,
+	deploymentDiffOpts cmp.Options) (bool, error) {
 
-	if err := MountSecrets(specDeployment, deployContext); err != nil {
+	if err := MountSecrets(deploymentSpec, deployContext); err != nil {
 		return false, err
 	}
 
-	clusterDeployment, err := GetClusterDeployment(specDeployment.Name, specDeployment.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
+	done, err := Sync(deployContext, deploymentSpec, deploymentDiffOpts)
+	if !done || err != nil || util.IsTestMode() {
+		return done, err
+	}
+
+	actual := &appsv1.Deployment{}
+	exists, err := GetNamespacedObject(deployContext, deploymentSpec.ObjectMeta.Name, actual)
+	if !exists || err != nil {
 		return false, err
 	}
 
-	if clusterDeployment == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specDeployment.Kind, specDeployment.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specDeployment)
-		return false, err
+	if actual.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && actual.Status.Replicas > 1 {
+		logrus.Infof("Deployment %s is in the rolling update state.", deploymentSpec.Name)
 	}
 
-	// 2-step comparation process
-	// Firstly compare fields (and update the object if necessary) specifc to deployment
-	// And only then compare common deployment fields
-	if additionalDeploymentDiffOpts != nil {
-		diff := cmp.Diff(clusterDeployment, specDeployment, additionalDeploymentDiffOpts)
-		if len(diff) > 0 {
-			logrus.Infof("Updating existing object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
-			fmt.Printf("Difference:\n%s", diff)
-			clusterDeployment = additionalDeploymentMerge(specDeployment, clusterDeployment)
-			err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)
-			return false, err
-		}
-	}
-
-	diff := cmp.Diff(clusterDeployment, specDeployment, DeploymentDiffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", specDeployment.Kind, specDeployment.Name)
-		fmt.Printf("Difference:\n%s", diff)
-		clusterDeployment.Spec = specDeployment.Spec
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterDeployment)
-		return false, err
-	}
-
-	if clusterDeployment.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType && clusterDeployment.Status.Replicas > 1 {
-		logrus.Infof("Deployment %s is in the rolling update state.", specDeployment.Name)
-	}
-
-	provisioned := clusterDeployment.Status.AvailableReplicas == 1 && clusterDeployment.Status.Replicas == 1
+	provisioned := actual.Status.AvailableReplicas == 1 && actual.Status.Replicas == 1
 	return provisioned, nil
-}
-
-func GetClusterDeployment(name string, namespace string, client runtimeClient.Client) (*appsv1.Deployment, error) {
-	deployment := &appsv1.Deployment{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, deployment)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return deployment, nil
 }
 
 // MountSecrets mounts secrets into a container as a file or as environment variable.
