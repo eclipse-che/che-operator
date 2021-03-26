@@ -1,0 +1,14 @@
+apiVersion: org.eclipse.che/v1
+kind: CheClusterBackup
+metadata:
+  name: eclipse-che-backup
+spec:
+  autoconfigureRestBackupServer: false
+  triggerNow: false
+  serverType: 'sftp'
+  servers:
+    rest:
+      host: 'rest-host.net'
+    sftp:
+      host: 'sftp-host.net'
+      port: '1234'

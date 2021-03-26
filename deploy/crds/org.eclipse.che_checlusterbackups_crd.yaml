@@ -1,0 +1,165 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: checlusterbackups.org.eclipse.che
+spec:
+  group: org.eclipse.che
+  names:
+    kind: CheClusterBackup
+    listKind: CheClusterBackupList
+    plural: checlusterbackups
+    singular: checlusterbackup
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: CheClusterBackup is the Schema for the checlusterbackups API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: CheClusterBackupSpec defines the desired state of CheClusterBackup
+          properties:
+            serverType:
+              description: If more than one backup server configured, should specify
+                which one to use, see Servers field.
+              type: string
+            servers:
+              description: List of backup servers. Usually only one is used. In case
+                of several available, ServerType should contain server to use.
+              properties:
+                awss3:
+                  description: Amazon S3
+                  properties:
+                    awsAccessKeyId:
+                      description: Content of AWS_ACCESS_KEY_ID environment variable
+                      type: string
+                    awsAccessKeySecretRef:
+                      description: Reference to secret that contains AWS_SECRET_ACCESS_KEY
+                        and AWS_ACCESS_KEY_ID fields
+                      type: string
+                    awsDefaultRegion:
+                      description: Region used by default. Empty value means automatic
+                        selection by remote server.
+                      type: string
+                    awsSecretAccessKey:
+                      description: Content of AWS_SECRET_ACCESS_KEY environment variable
+                      type: string
+                    bucketName:
+                      description: Bucket name. If doesn' exist, it will be created
+                        automatically.
+                      type: string
+                    hostname:
+                      description: Server hostname, defaults to 's3.amazonaws.com'.
+                        For Amazon alternatives should include protocal, e.g. 'http://host:port'
+                      type: string
+                  type: object
+                minio:
+                  description: Minio server
+                  properties:
+                    awsAccessKeyId:
+                      description: Content of AWS_ACCESS_KEY_ID environment variable
+                      type: string
+                    awsAccessKeySecretRef:
+                      description: Reference to secret that contains AWS_SECRET_ACCESS_KEY
+                        and AWS_ACCESS_KEY_ID fields
+                      type: string
+                    awsDefaultRegion:
+                      description: Region used by default. Empty value means automatic
+                        selection by remote server.
+                      type: string
+                    awsSecretAccessKey:
+                      description: Content of AWS_SECRET_ACCESS_KEY environment variable
+                      type: string
+                    bucketName:
+                      description: Bucket name. If doesn' exist, it will be created
+                        automatically.
+                      type: string
+                    hostname:
+                      description: Server hostname, defaults to 's3.amazonaws.com'.
+                        For Amazon alternatives should include protocal, e.g. 'http://host:port'
+                      type: string
+                  type: object
+                rest:
+                  description: Rest backup server configuration
+                  properties:
+                    hostname:
+                      description: Backup server host
+                      type: string
+                    port:
+                      description: Backup server port
+                      type: string
+                    protocol:
+                      description: Protocol to use when connection to the server.
+                        Defaults to https.
+                      type: string
+                    repo:
+                      description: Restic repository path
+                      type: string
+                    sshKeySecretRef:
+                      description: Private ssh key for passwordless login
+                      type: string
+                    username:
+                      description: User login on the remote server
+                      type: string
+                  required:
+                  - hostname
+                  type: object
+                sftp:
+                  description: Sftp backup server configuration
+                  properties:
+                    hostname:
+                      description: Backup server host
+                      type: string
+                    port:
+                      description: Backup server port
+                      type: string
+                    repo:
+                      description: Restic repository path
+                      type: string
+                    sshKeySecretRef:
+                      description: Private ssh key for passwordless login
+                      type: string
+                    username:
+                      description: User login on the remote server
+                      type: string
+                  required:
+                  - hostname
+                  - port
+                  - repo
+                  - username
+                  type: object
+              type: object
+            triggerNow:
+              description: Set to true to start backup process
+              type: boolean
+          required:
+          - servers
+          type: object
+        status:
+          description: CheClusterBackupStatus defines the observed state of CheClusterBackup
+          properties:
+            lastTriggered:
+              description: Shows when backup was triggered last time
+              type: string
+            message:
+              description: Backup result or error message
+              type: string
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true

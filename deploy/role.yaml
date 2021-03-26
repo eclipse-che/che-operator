@@ -1,22 +1,12 @@
-#
-#  Copyright (c) 2012-2019 Red Hat, Inc.
-#    This program and the accompanying materials are made
-#    available under the terms of the Eclipse Public License 2.0
-#    which is available at https://www.eclipse.org/legal/epl-2.0/
-#
-#  SPDX-License-Identifier: EPL-2.0
-#
-#  Contributors:
-#    Red Hat, Inc. - initial API and implementation
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   creationTimestamp: null
-  name: che-operator
   labels:
-    app.kubernetes.io/name: che
-    app.kubernetes.io/instance: che
     app.kubernetes.io/component: che-operator
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/name: che
+  name: che-operator
 rules:
 - apiGroups:
   - extensions
@@ -91,6 +81,7 @@ rules:
   - checlusters
   - checlusters/status
   - checlusters/finalizers
+  - checlusterbackups
   verbs:
   - '*'
 - apiGroups:
