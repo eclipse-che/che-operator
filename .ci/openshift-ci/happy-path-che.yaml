@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: happy-path-che
-  namespace: eclipse-che
+  namespace: CHE-NAMESPACE
 spec:
   volumes:
     - name: test-run-results
@@ -23,7 +23,7 @@ spec:
         - name: TS_SELENIUM_MULTIUSER
           value: 'true'
         - name: TS_SELENIUM_LOG_LEVEL
-          value: DEBUG
+          value: TRACE
         - name: TS_SELENIUM_OCP_USERNAME
           value: 'user'
         - name: TS_SELENIUM_OCP_PASSWORD

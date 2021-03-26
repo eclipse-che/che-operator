@@ -17,7 +17,7 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 export HAPPY_PATH_POD_NAME=happy-path-che
-export HAPPY_PATH_DEVFILE='https://github.com/l0rd/spring-petclinic/tree/devfile2'
+export HAPPY_PATH_DEVFILE='https://gist.githubusercontent.com/l0rd/71a04dd0d8c8e921b16ba2690f7d5a47/raw/d520086e148c359b18c229328824dfefcf85e5ef/spring-petclinic-devfile-v2.0.0.yaml'
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
@@ -46,6 +46,7 @@ startHappyPathTest() {
   TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_DEVFILE}"
   sed -i "s@CHE_URL@${ECLIPSE_CHE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
   sed -i "s@WORKSPACE_ROUTE@${TS_SELENIUM_DEVWORKSPACE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
+  sed -i "s@CHE-NAMESPACE@${NAMESPACE}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
   cat ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
 
   oc apply -f ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
