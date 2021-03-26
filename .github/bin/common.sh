@@ -60,7 +60,7 @@ initStableTemplates() {
   versions=$(curl \
   -H "Authorization: bearer ${GITHUB_TOKEN}" \
   -X POST -H "Content-Type: application/json" --data \
-  '{"query": "{ repository(owner: \"eclipse\", name: \"che-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
+  '{"query": "{ repository(owner: \"eclipse-che\", name: \"che-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
   https://api.github.com/graphql)
 
   echo "${versions[*]}"
