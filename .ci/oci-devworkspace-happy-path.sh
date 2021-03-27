@@ -33,6 +33,8 @@ spec:
     customCheProperties:
       CHE_FACTORY_DEFAULT__PLUGINS: ""
       CHE_WORKSPACE_DEVFILE_DEFAULT__EDITOR_PLUGINS: ""
+  auth:
+    updateAdminPassword: false
 EOL
 
   cat /tmp/che-cr-patch.yaml

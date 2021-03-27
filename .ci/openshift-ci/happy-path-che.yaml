@@ -9,7 +9,7 @@ spec:
   containers:
     # container containing the tests
     - name: happy-path-test
-      image: quay.io/eclipse/che-e2e
+      image: quay.io/eclipse/che-e2e:nightly
       imagePullPolicy: Always
       env:
         - name: TEST_SUITE
@@ -36,6 +36,8 @@ spec:
           value: 'admin'
         - name: TS_OCP_LOGIN_PAGE_PROVIDER_TITLE
           value: "htpasswd"
+        - name: DELETE_WORKSPACE_ON_FAILED_TEST
+          value: "true"
       volumeMounts:
         - name: test-run-results
           mountPath: /tmp/e2e/report/
