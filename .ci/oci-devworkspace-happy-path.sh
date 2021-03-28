@@ -24,6 +24,12 @@ source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
+overrideDefaults() {
+  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE:-"quay.io/eclipse/che-operator:nightly"}
+  echo ${OPERATOR_IMAGE}
+}
+
 deployChe() {
   cat > /tmp/che-cr-patch.yaml <<EOL
 spec:
@@ -39,7 +45,7 @@ EOL
 
   cat /tmp/che-cr-patch.yaml
 
-  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --batch --telemetry=off --installer=operator
+  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --batch --telemetry=off --installer=operator --che-operator-image=${OPERATOR_IMAGE}
 }
 
 startHappyPathTest() {
@@ -92,5 +98,6 @@ runTest() {
 }
 
 initDefaults
+overrideDefaults
 provisionOpenShiftOAuthUser
 runTest
