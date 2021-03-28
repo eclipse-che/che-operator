@@ -65,7 +65,7 @@ startHappyPathTest() {
     PHASE=$(oc get pod -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} \
         --template='{{ .status.phase }}')
     if [[ ${PHASE} == "Running" ]]; then
-      echo "[INFO] Happy-path test started succesfully"
+      echo "[INFO] Happy-path test started succesfully."
       return
     fi
 
@@ -73,7 +73,7 @@ startHappyPathTest() {
     n=$(( n+1 ))
   done
 
-  echo "Failed to start happy-path test"
+  echo "[ERROR] Failed to start happy-path test."
   exit 1
 }
 
@@ -95,6 +95,13 @@ runTest() {
 
   mkdir -p ${ARTIFACTS_DIR}
   cp -r /tmp/e2e ${ARTIFACTS_DIR}
+
+  EXIT_CODE=$(oc logs -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} -c happy-path-test | grep EXIT_CODE)
+
+  if [[ ${EXIT_CODE} == "+ EXIT_CODE=1" ]]; then
+    echo "[ERROR] Happy-path test failed."
+    exit 1
+  fi
 }
 
 initDefaults
