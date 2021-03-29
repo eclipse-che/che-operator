@@ -1,0 +1,29 @@
+--- /home/runner/work/che-operator/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org_v1_che_crd.yaml	2021-03-26 10:57:19.520607849 +0000
++++ /home/runner/work/che-operator/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml	2021-03-26 10:57:19.528608242 +0000
+@@ -599,7 +599,7 @@
+                     is required, but defining `nonProxyHosts` in a custom resource
+                     leads to merging non proxy hosts lists from the cluster proxy
+                     configuration and ones defined in the custom resources. See the
+-                    doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html).
++                    doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+                     See also the `proxyURL` fields.'
+                   type: string
+                 pluginRegistryCpuLimit:
+@@ -680,7 +680,7 @@
+                     is required, but defining `proxyUrl` in a custom resource leads
+                     to overrides the cluster proxy configuration with fields `proxyUrl`,
+                     `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource.
+-                    See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html).
++                    See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html.
+                     See also the `proxyPort` and `nonProxyHosts` fields.
+                   type: string
+                 proxyUser:
+@@ -753,7 +753,7 @@
+                 useInternalClusterSVCNames:
+                   description: Use internal cluster SVC names to communicate between
+                     components to speed up the traffic and avoid proxy issues. The
+-                    default value is `false`.
++                    default value is `true`.
+                   type: boolean
+                 workspaceNamespaceDefault:
+                   description: Defines Kubernetes default namespace in which user's
