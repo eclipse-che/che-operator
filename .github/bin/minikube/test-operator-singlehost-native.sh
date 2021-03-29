@@ -16,6 +16,7 @@ set -x
 # Get absolute path for root repo directory from github actions context: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/olm/olm.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -35,6 +36,7 @@ runTest() {
 }
 
 initDefaults
+installOperatorMarketPlace
 initLatestTemplates
 prepareTemplates
 buildCheOperatorImage

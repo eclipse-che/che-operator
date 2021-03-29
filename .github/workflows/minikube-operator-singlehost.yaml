@@ -25,7 +25,6 @@ jobs:
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
-        minikube addons enable olm
 
         # Enable registry and portfward to push images to registry
         /bin/bash olm/minikube-registry-addon.sh &
@@ -52,7 +51,6 @@ jobs:
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
-        minikube addons enable olm
 
         # Enable registry and portfward to push images to registry
         /bin/bash olm/minikube-registry-addon.sh &
