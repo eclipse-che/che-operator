@@ -401,12 +401,3 @@ waitWorkspaceStartedDevWorkspaceController() {
 createWorkspaceDevWorkspaceCheOperator() {
   oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
 }
-
-installOlm() {
-  echo "[INFO] Installing test pre-requisistes"
-  IFS=$'\n' read -d '' -r -a olmApiGroups < <( kubectl api-resources --api-group=operators.coreos.com -o name ) || true
-  if [ -z "${olmApiGroups[*]}" ]; then
-      OLM_VERSION=v0.17.0
-      curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/install.sh | bash -s ${OLM_VERSION}
-  fi
-}
