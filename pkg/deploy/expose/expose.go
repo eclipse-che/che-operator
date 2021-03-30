@@ -60,9 +60,9 @@ func Expose(
 	if !util.IsOpenShift {
 		if useGateway {
 			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+pathPrefix, 10, "http://"+endpointName+":8080", stripPrefix)
-			clusterCfg, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)
+			done, err := deploy.SyncConfigMapSpecToCluster(deployContext, &cfg)
 			if !util.IsTestMode() {
-				if clusterCfg == nil {
+				if !done {
 					if err != nil {
 						logrus.Error(err)
 					}
@@ -90,9 +90,9 @@ func Expose(
 	} else {
 		if useGateway {
 			cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, "/"+pathPrefix, 10, "http://"+endpointName+":8080", stripPrefix)
-			clusterCfg, err := deploy.SyncConfigMapToCluster(deployContext, &cfg)
+			done, err := deploy.SyncConfigMapSpecToCluster(deployContext, &cfg)
 			if !util.IsTestMode() {
-				if clusterCfg == nil {
+				if !done {
 					if err != nil {
 						logrus.Error(err)
 					}

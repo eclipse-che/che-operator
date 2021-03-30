@@ -24,33 +24,30 @@ const (
 	injector = "config.openshift.io/inject-trusted-cabundle"
 )
 
-func SyncTrustStoreConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.ConfigMap, error) {
+func SyncTrustStoreConfigMapToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	name := deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName
-	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, name, map[string]string{}, deploy.DefaultCheFlavor(deployContext.CheCluster))
-	if err != nil {
-		return nil, err
-	}
+	configMapSpec := deploy.GetConfigMapSpec(deployContext, name, map[string]string{}, deploy.DefaultCheFlavor(deployContext.CheCluster))
 
 	// OpenShift will automatically injects all certs into the configmap
-	specConfigMap.ObjectMeta.Labels[injector] = "true"
+	configMapSpec.ObjectMeta.Labels[injector] = "true"
 
-	clusterConfigMap, err := deploy.GetClusterConfigMap(specConfigMap.Name, specConfigMap.Namespace, deployContext.ClusterAPI.Client)
+	actual := &corev1.ConfigMap{}
+	exists, err := deploy.GetNamespacedObject(deployContext, name, actual)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	if clusterConfigMap == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specConfigMap.Kind, specConfigMap.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specConfigMap)
-		return nil, err
+	if !exists {
+		// We have to create an empty config map with the specific labels
+		return deploy.Create(deployContext, configMapSpec)
 	}
 
-	if clusterConfigMap.ObjectMeta.Labels[injector] != "true" {
-		clusterConfigMap.ObjectMeta.Labels[injector] = "true"
-		logrus.Infof("Updating existed object: %s, name: %s", specConfigMap.Kind, specConfigMap.Name)
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterConfigMap)
-		return nil, err
+	if actual.ObjectMeta.Labels[injector] != "true" {
+		actual.ObjectMeta.Labels[injector] = "true"
+		logrus.Infof("Updating existed object: %s, name: %s", configMapSpec.Kind, configMapSpec.Name)
+		err := deployContext.ClusterAPI.Client.Update(context.TODO(), actual)
+		return true, err
 	}
 
-	return clusterConfigMap, nil
+	return true, nil
 }

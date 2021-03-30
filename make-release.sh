@@ -181,6 +181,13 @@ updateNightlyOlmFiles() {
   fi
 }
 
+updateVersionFile() {
+  echo "[INFO] updating VERSION file"
+  echo ${RELEASE} > VERSION
+  git add VERSION
+  git commit -m "Update VERSION to $RELEASE" --signoff
+}
+
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
   echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
@@ -257,6 +264,7 @@ prepareCommunityOperatorsUpdate() {
 }
 run() {
   checkoutToReleaseBranch
+  updateVersionFile
   releaseOperatorCode
   if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
     updateNightlyOlmFiles

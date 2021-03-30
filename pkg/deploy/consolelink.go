@@ -79,7 +79,8 @@ func getConsoleLinkSpec(deployContext *DeployContext) *consolev1.ConsoleLink {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	consoleLink := &consolev1.ConsoleLink{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ConsoleLink",
+			Kind:       "ConsoleLink",
+			APIVersion: consolev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DefaultConsoleLinkName(),

@@ -12,9 +12,15 @@
 package deploy
 
 import (
+	"strings"
+
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 )
 
 func NewOAuthClient(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
@@ -49,5 +55,14 @@ func NewOAuthClient(name string, oauthSecret string, keycloakURL string, keycloa
 		RedirectURIs: redirectURIs,
 		GrantMethod:  oauth.GrantHandlerPrompt,
 	}
+}
 
+func ReconcileOAuthClientFinalizer(deployContext *DeployContext) (err error) {
+	cheCluster := deployContext.CheCluster
+	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return AppendFinalizer(deployContext, OAuthFinalizerName)
+	} else {
+		oAuthClientName := cheCluster.Spec.Auth.OAuthClientName
+		return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
+	}
 }

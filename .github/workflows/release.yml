@@ -93,10 +93,15 @@ jobs:
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
           ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${{ github.event.inputs.force_update }}
-      - name: Create MM message
+      - name: Create failure MM message
+        if: ${{ failure() }}
         run: |
-          echo "{\"text\":\":building_construction: Che Operator ${{ github.event.inputs.version }} has been released: https://quay.io/eclipse/che-operator:${{ github.event.inputs.version }}\"}" > mattermost.json
+          echo "{\"text\":\":building_construction: Che Operator ${{ github.event.inputs.version }} release has failed: https://github.com/eclipse-che/che-operator/actions/workflows/release.yml\"}" > mattermost.json
+      - name: Create success MM message
+        run: |
+          echo "{\"text\":\":building_construction: Che Operator ${{ github.event.inputs.version }} release PR have been created: https://github.com/eclipse-che/che-operator/pulls/che-bot\"}" > mattermost.json
       - name: Send MM message
+        if: ${{ success() }} || ${{ failure() }}
         uses: mattermost/action-mattermost-notify@master
         env:
           MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}

@@ -494,18 +494,18 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 }
 
 // SyncAdditionalCACertsConfigMapToCluster makes sure that additional CA certs config map is up to date if any
-func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (*corev1.ConfigMap, error) {
+func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 	// Get all source config maps, if any
 	caConfigMaps, err := getCACertsConfigMaps(deployContext)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if len(cr.Spec.Server.ServerTrustStoreConfigMapName) > 0 {
 		crConfigMap := &corev1.ConfigMap{}
 		err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cr.Spec.Server.ServerTrustStoreConfigMapName}, crConfigMap)
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 		caConfigMaps = append(caConfigMaps, *crConfigMap)
 	}
@@ -535,11 +535,11 @@ func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (*cor
 
 		if reflect.DeepEqual(caConfigMapsCurrentRevisions, caConfigMapsCachedRevisions) {
 			// Existing merged config map is up to date, do nothing
-			return mergedCAConfigMap, nil
+			return true, nil
 		}
 	} else {
 		if !errors.IsNotFound(err) {
-			return nil, err
+			return false, err
 		}
 		// Merged config map doesn't exist. Create it.
 	}
@@ -561,23 +561,10 @@ func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (*cor
 		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
-	mergedCAConfigMapSpec, err := GetSpecConfigMap(deployContext, CheAllCACertsConfigMapName, data, DefaultCheFlavor(cr))
-	if err != nil {
-		return nil, err
-	}
+	mergedCAConfigMapSpec := GetConfigMapSpec(deployContext, CheAllCACertsConfigMapName, data, DefaultCheFlavor(cr))
 	mergedCAConfigMapSpec.ObjectMeta.Labels[KubernetesPartOfLabelKey] = CheEclipseOrg
-
-	if mergedCAConfigMapSpec.ObjectMeta.Annotations == nil {
-		mergedCAConfigMapSpec.ObjectMeta.Annotations = make(map[string]string)
-	}
 	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
-
-	logrus.Infof("Updating additional CA certs config map: %s", CheAllCACertsConfigMapName)
-	mergedCAConfigMap, err = SyncConfigMapToCluster(deployContext, mergedCAConfigMapSpec)
-	if err != nil {
-		return nil, err
-	}
-	return mergedCAConfigMap, nil
+	return SyncConfigMapSpecToCluster(deployContext, mergedCAConfigMapSpec)
 }
 
 // getCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
@@ -599,8 +586,9 @@ func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, err
 
 // GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
 func GetAdditionalCACertsConfigMapVersion(deployContext *DeployContext) string {
-	trustStoreConfigMap, _ := GetClusterConfigMap(CheAllCACertsConfigMapName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if trustStoreConfigMap != nil {
+	trustStoreConfigMap := &corev1.ConfigMap{}
+	exists, _ := GetNamespacedObject(deployContext, CheAllCACertsConfigMapName, trustStoreConfigMap)
+	if exists {
 		return trustStoreConfigMap.ResourceVersion
 	}
 

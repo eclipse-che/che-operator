@@ -88,17 +88,12 @@ type CheConfigMap struct {
 	CheDevWorkspacesEnabled                string `json:"CHE_DEVWORKSPACES_ENABLED"`
 }
 
-func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (*corev1.ConfigMap, error) {
+func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	data, err := GetCheConfigMapData(deployContext)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	specConfigMap, err := deploy.GetSpecConfigMap(deployContext, CheConfigMapName, data, deploy.DefaultCheFlavor(deployContext.CheCluster))
-	if err != nil {
-		return nil, err
-	}
-
-	return deploy.SyncConfigMapToCluster(deployContext, specConfigMap)
+	return deploy.SyncConfigMapDataToCluster(deployContext, CheConfigMapName, data, deploy.DefaultCheFlavor(deployContext.CheCluster))
 }
 
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
@@ -346,8 +341,9 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 }
 
 func GetCheConfigMapVersion(deployContext *deploy.DeployContext) string {
-	cheConfigMap, _ := deploy.GetClusterConfigMap("che", deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if cheConfigMap != nil {
+	cheConfigMap := &corev1.ConfigMap{}
+	exists, _ := deploy.GetNamespacedObject(deployContext, CheConfigMapName, cheConfigMap)
+	if exists {
 		return cheConfigMap.ResourceVersion
 	}
 	return ""

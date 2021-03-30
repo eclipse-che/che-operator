@@ -16,7 +16,7 @@ on:
     branches:
       - master
     paths:
-      - 'deploy/olm-catalog/stable/eclipse-che-preview-*/manifests/che-operator.clusterserviceversion.yaml'
+      - 'VERSION'
 
 jobs:
   build:
