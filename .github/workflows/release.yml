@@ -7,9 +7,10 @@ on:
         description: 'The version that is going to be released. Should be in format 7.y.z'
         required: true
         default: '7.y.z'
-      force_update:
-        description: 'To force update of an existing 7.y.x branch + replace existing 7.y.z tag, use --force'
-        default: ''
+      forceRecreateTags:
+        description: If true, tags will be recreated. Use with caution
+        required: false
+        default: 'false'
 jobs:
   build:
     runs-on: ubuntu-18.04
@@ -17,6 +18,23 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: Check existing tags
+        run: |
+          set +e
+          RECREATE_TAGS=${{ github.event.inputs.forceRecreateTags }}
+          VERSION=${{ github.event.inputs.version }}
+          EXISTING_TAG=$(git ls-remote --exit-code origin refs/tags/${VERSION})
+          if [[ -n ${EXISTING_TAG} ]]; then
+            if [[ ${RECREATE_TAGS} == "true" ]]; then
+              echo "[INFO] Removing tag for ${VERSION} version. New tag will be recreated during release."
+              git push origin :$VERSION
+            else
+              echo "[ERROR] Cannot proceed with release - tag ${EXISTING_TAG} already exists."
+              exit 1
+            fi
+          else
+            echo "[INFO] No existing tags detected for $VERSION"
+          fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -92,7 +110,9 @@ jobs:
           # perform extra checkouts to ensure branches exist locally
           git checkout ${BRANCH}
           git checkout ${CHE_VERSION}-release
-          ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${{ github.event.inputs.force_update }}
+          force_update=""
+          if [[ ${{ github.event.inputs.forceRecreateTags }} == "true" ]]; then force_update="--force"; fi
+          ./make-release.sh ${CHE_VERSION} --push-git-changes --pull-requests ${force_update}
       - name: Create failure MM message
         if: ${{ failure() }}
         run: |
