@@ -120,14 +120,6 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	// If DevWorkspace is enabled deploy Che using single-host by default
-	if deployContext.CheCluster.Spec.DevWorkspace.Enable && deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "" {
-		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = "single-host"
-		if err := deploy.UpdateCheCRSpec(deployContext, "serverExposureStrategy", "single-host"); err != nil {
-			return false, err
-		}
-	}
-
 	devWorkspaceWebhookExists, err := deploy.Get(
 		deployContext,
 		client.ObjectKey{Name: DevWorkspaceWebhookName},
