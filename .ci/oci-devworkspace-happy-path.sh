@@ -17,12 +17,18 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 export HAPPY_PATH_POD_NAME=happy-path-che
-export HAPPY_PATH_DEVFILE='https://github.com/l0rd/spring-petclinic/tree/devfile2'
+export HAPPY_PATH_DEVFILE='https://gist.githubusercontent.com/l0rd/71a04dd0d8c8e921b16ba2690f7d5a47/raw/d520086e148c359b18c229328824dfefcf85e5ef/spring-petclinic-devfile-v2.0.0.yaml'
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
+
+overrideDefaults() {
+  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE:-"quay.io/eclipse/che-operator:nightly"}
+  echo ${OPERATOR_IMAGE}
+}
 
 deployChe() {
   cat > /tmp/che-cr-patch.yaml <<EOL
@@ -33,11 +39,13 @@ spec:
     customCheProperties:
       CHE_FACTORY_DEFAULT__PLUGINS: ""
       CHE_WORKSPACE_DEVFILE_DEFAULT__EDITOR_PLUGINS: ""
+  auth:
+    updateAdminPassword: false
 EOL
 
   cat /tmp/che-cr-patch.yaml
 
-  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --batch --telemetry=off --installer=operator
+  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --batch --telemetry=off --installer=operator --che-operator-image=${OPERATOR_IMAGE}
 }
 
 startHappyPathTest() {
@@ -46,6 +54,7 @@ startHappyPathTest() {
   TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_DEVFILE}"
   sed -i "s@CHE_URL@${ECLIPSE_CHE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
   sed -i "s@WORKSPACE_ROUTE@${TS_SELENIUM_DEVWORKSPACE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
+  sed -i "s@CHE-NAMESPACE@${NAMESPACE}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
   cat ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
 
   oc apply -f ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
@@ -56,7 +65,7 @@ startHappyPathTest() {
     PHASE=$(oc get pod -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} \
         --template='{{ .status.phase }}')
     if [[ ${PHASE} == "Running" ]]; then
-      echo "[INFO] Happy-path test started succesfully"
+      echo "[INFO] Happy-path test started succesfully."
       return
     fi
 
@@ -64,7 +73,7 @@ startHappyPathTest() {
     n=$(( n+1 ))
   done
 
-  echo "Failed to start happy-path test"
+  echo "[ERROR] Failed to start happy-path test."
   exit 1
 }
 
@@ -86,8 +95,16 @@ runTest() {
 
   mkdir -p ${ARTIFACTS_DIR}
   cp -r /tmp/e2e ${ARTIFACTS_DIR}
+
+  EXIT_CODE=$(oc logs -n ${NAMESPACE} ${HAPPY_PATH_POD_NAME} -c happy-path-test | grep EXIT_CODE)
+
+  if [[ ${EXIT_CODE} == "+ EXIT_CODE=1" ]]; then
+    echo "[ERROR] Happy-path test failed."
+    exit 1
+  fi
 }
 
 initDefaults
+overrideDefaults
 provisionOpenShiftOAuthUser
 runTest
