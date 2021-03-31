@@ -37,6 +37,11 @@ case $OPERATOR_SDK_VERSION in
     ;;
 esac
 
+if [ -z "${GOROOT}" ]; then
+  echo "[ERROR] set up '\$GOROOT' env variable to make operator-sdk working"
+  exit 0
+fi
+
 OPERATOR_YAML="${BASE_DIR}"/../deploy/operator.yaml
 NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
 
