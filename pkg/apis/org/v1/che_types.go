@@ -557,6 +557,10 @@ type CheClusterSpecDevWorkspace struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Enable Dev Workspace operator"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	Enable bool `json:"enable"`
+	// Overrides the default container image used in the DevWorkspace deployment.
+	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// +optional
+	DevWorkspaceImage string `json:"devWorkspaceImage,omitempty"`
 }
 
 // CheClusterStatus defines the observed state of Che installation

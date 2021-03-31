@@ -243,7 +243,18 @@ func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceDeploymentFile, &appsv1.Deployment{})
+	dwDeploymentObj := &appsv1.Deployment{}
+	if err := util.ReadObject(DevWorkspaceDeploymentFile, dwDeploymentObj); err != nil {
+		return false, err
+	}
+
+	if deployContext.CheCluster.Spec.DevWorkspace.DevWorkspaceImage != "" {
+		dwDeploymentObj.Spec.Template.Spec.Containers[0].Image = deployContext.CheCluster.Spec.DevWorkspace.DevWorkspaceImage
+	}
+
+	created, err := deploy.CreateIfNotExists(deployContext, dwDeploymentObj)
+
+	return created, err
 }
 
 func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
