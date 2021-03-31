@@ -50,7 +50,7 @@ func TestSyncRoleToCluster(t *testing.T) {
 		},
 	})
 	if !done || err != nil {
-		t.Fatalf("Failed to sync crb: %v", err)
+		t.Fatalf("Failed to sync role: %v", err)
 	}
 
 	done, err = SyncRoleToCluster(deployContext, "test", []rbacv1.PolicyRule{
