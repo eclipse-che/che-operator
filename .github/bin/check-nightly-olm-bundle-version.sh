@@ -26,9 +26,6 @@ CSV_OPENSHIFT_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/mani
 CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/master/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
 checkNightlyBundleVersions() {
-  local CSV_FILE_KUBERNETES="deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  local CSV_FILE_OPENSHIFT="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-
   export NO_DATE_UPDATE="true"
   export NO_INCREMENT="true"
 
@@ -38,9 +35,9 @@ checkNightlyBundleVersions() {
   for file in "${changedFiles[@]}"
   do
     echo $file
-    if [[ "${CSV_FILE_KUBERNETES}" == "${file}" ]]; then
+    if [[ "${CSV_KUBERNETES_NEW}" == "${file}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_KUBERNETES_NEW $CSV_KUBERNETES_CURRENT
-    elif [[ "${CSV_FILE_OPENSHIFT}" == "${file}" ]]; then
+    elif [[ "${CSV_OPENSHIFT_NEW}" == "${file}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEW $CSV_OPENSHIFT_CURRENT
     fi
   done
