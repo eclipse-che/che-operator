@@ -39,7 +39,9 @@ func SyncPVCToCluster(
 
 	actual := &corev1.PersistentVolumeClaim{}
 	exists, err := GetNamespacedObject(deployContext, name, actual)
-	if err == nil && exists {
+	if err != nil {
+		return false, err
+	} else if err == nil && exists {
 		actual.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)] = resource.MustParse(claimSize)
 		return Sync(deployContext, actual, pvcDiffOpts)
 	}
