@@ -56,7 +56,7 @@ compareVersions() {
   VERSION_CURRENT_NUMBER=$(convertVersionToNumber $CSV_VERSION_CURRENT)
   VERSION_NEW_NUMBER=$(convertVersionToNumber $CSV_VERSION_NEW)
 
-  if (( $VERSION_NEW_NUMBER < $VERSION_CURRENT_NUMBER )); then
+  if (( $VERSION_NEW_NUMBER <= $VERSION_CURRENT_NUMBER )); then
     echo "[ERROR] New nightly bundle version is less than the current one."
     echo "[ERROR] Please update nightly bundle with script 'olm/update-nightly-bundle.sh'"
     exit 1
