@@ -12,18 +12,10 @@
 package deploy
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -38,7 +30,7 @@ var roleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
 }
 
-func SyncTLSRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
+func SyncTLSRoleToCluster(deployContext *DeployContext) (bool, error) {
 	tlsPolicyRule := []rbac.PolicyRule{
 		{
 			APIGroups: []string{
@@ -55,7 +47,7 @@ func SyncTLSRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)
 }
 
-func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
+func SyncExecRoleToCluster(deployContext *DeployContext) (bool, error) {
 	execPolicyRule := []rbac.PolicyRule{
 		{
 			APIGroups: []string{
@@ -72,7 +64,7 @@ func SyncExecRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 	return SyncRoleToCluster(deployContext, ExecRoleName, execPolicyRule)
 }
 
-func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
+func SyncViewRoleToCluster(deployContext *DeployContext) (bool, error) {
 	viewPolicyRule := []rbac.PolicyRule{
 		{
 			APIGroups: []string{
@@ -103,53 +95,13 @@ func SyncViewRoleToCluster(deployContext *DeployContext) (*rbac.Role, error) {
 func SyncRoleToCluster(
 	deployContext *DeployContext,
 	name string,
-	policyRule []rbac.PolicyRule) (*rbac.Role, error) {
+	policyRule []rbac.PolicyRule) (bool, error) {
 
-	specRole, err := getSpecRole(deployContext, name, policyRule)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRole, err := getCheClusterRole(specRole.Name, specRole.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterRole == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specRole.Kind, specRole.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRole)
-		return nil, err
-	}
-
-	diff := cmp.Diff(clusterRole, specRole, roleDiffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterRole.Kind, clusterRole.Name)
-		fmt.Printf("Difference:\n%s", diff)
-		clusterRole.Rules = specRole.Rules
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), clusterRole)
-		return nil, err
-	}
-
-	return clusterRole, nil
+	roleSpec := getRoleSpec(deployContext, name, policyRule)
+	return Sync(deployContext, roleSpec, roleDiffOpts)
 }
 
-func getCheClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
-	role := &rbac.Role{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, role)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return role, nil
-}
-
-func getSpecRole(deployContext *DeployContext, name string, policyRule []rbac.PolicyRule) (*rbac.Role, error) {
+func getRoleSpec(deployContext *DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.Role {
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
@@ -164,24 +116,5 @@ func getSpecRole(deployContext *DeployContext, name string, policyRule []rbac.Po
 		Rules: policyRule,
 	}
 
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, role, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	return role, nil
-}
-
-func DeleteRole(name string, namespace string, client runtimeClient.Client) error {
-	role := &rbac.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-	}
-	err := client.Delete(context.TODO(), role)
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-	return nil
+	return role
 }

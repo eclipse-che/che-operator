@@ -180,7 +180,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 
 			// Create test ingress to get certificates chain.
 			// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
-			ingressSpec, err := GetSpecIngress(
+			ingressSpec := GetIngressSpec(
 				deployContext,
 				"test",
 				"",
@@ -188,11 +188,6 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 				8080,
 				deployContext.CheCluster.Spec.Server.CheServerIngress,
 				cheFlavor)
-			if err != nil {
-				return nil, err
-			}
-			// Remove controller reference to prevent queueing new reconcile loop
-			ingressSpec.SetOwnerReferences(nil)
 			// Create ingress manually
 			if err := deployContext.ClusterAPI.Client.Create(context.TODO(), ingressSpec); err != nil {
 				if !errors.IsAlreadyExists(err) {
@@ -212,8 +207,10 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			var ingress *v1beta1.Ingress
 			for wait := true; wait; {
 				time.Sleep(time.Duration(1) * time.Second)
-				ingress, err = GetClusterIngress(ingressSpec.Name, ingressSpec.Namespace, deployContext.ClusterAPI.Client)
-				if err != nil {
+
+				ingress := &v1beta1.Ingress{}
+				exists, err := GetNamespacedObject(deployContext, ingressSpec.Name, ingress)
+				if !exists {
 					return nil, err
 				}
 				wait = len(ingress.Spec.Rules[0].Host) == 0
@@ -330,14 +327,14 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		role, err := SyncTLSRoleToCluster(deployContext)
-		if role == nil {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+		done, err := SyncTLSRoleToCluster(deployContext)
+		if !done {
+			return reconcile.Result{}, err
 		}
 
-		roleBiding, err := SyncRoleBindingToCluster(deployContext, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role")
-		if roleBiding == nil {
-			return reconcile.Result{RequeueAfter: time.Second}, err
+		done, err = SyncRoleBindingToCluster(deployContext, CheTLSJobRoleBindingName, CheTLSJobServiceAccountName, CheTLSJobRoleName, "Role")
+		if !done {
+			return reconcile.Result{}, err
 		}
 
 		domains := deployContext.CheCluster.Spec.K8s.IngressDomain + ",*." + deployContext.CheCluster.Spec.K8s.IngressDomain
@@ -351,13 +348,22 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
 		}
-		job, err := SyncJobToCluster(deployContext, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
-		if err != nil {
-			logrus.Error(err)
+
+		done, err = SyncJobToCluster(deployContext, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
+		if !done {
+			if err != nil {
+				logrus.Error(err)
+			}
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-		if job == nil || job.Status.Succeeded == 0 {
+
+		job := &batchv1.Job{}
+		exists, err := GetNamespacedObject(deployContext, CheTLSJobName, job)
+		if !exists || job.Status.Succeeded == 0 {
 			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
+			if err != nil {
+				logrus.Error(err)
+			}
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}

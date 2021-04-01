@@ -14,6 +14,7 @@ package che
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -59,7 +60,10 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
 			keycloakPostgresPassword := util.GeneratePasswd(12)
 			keycloakDeployment := &appsv1.Deployment{}
-			exists, _ := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
+			exists, err := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
+			if err != nil {
+				logrus.Error(err)
+			}
 			if exists {
 				keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
 			}

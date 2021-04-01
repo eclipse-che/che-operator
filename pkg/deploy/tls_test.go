@@ -86,6 +86,12 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	}
 
 	// check ca-cert-merged
+	_, err = SyncAdditionalCACertsConfigMapToCluster(deployContext)
+	if err != nil {
+		t.Fatalf("Failed to sync config map: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
 	done, err = SyncAdditionalCACertsConfigMapToCluster(deployContext)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync config map: %v", err)

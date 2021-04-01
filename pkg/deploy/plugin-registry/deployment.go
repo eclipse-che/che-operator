@@ -20,20 +20,11 @@ import (
 )
 
 func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.PluginRegistryName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return false, err
-	}
-
-	specDeployment, err := GetPluginRegistrySpecDeployment(deployContext)
-	if err != nil {
-		return false, err
-	}
-
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, nil, nil)
+	specDeployment := GetPluginRegistrySpecDeployment(deployContext)
+	return deploy.SyncDeploymentSpecToCluster(deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
 }
 
-func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployment, error) {
+func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) *appsv1.Deployment {
 	registryType := "plugin"
 	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(deployContext.CheCluster))
 	registryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
@@ -59,7 +50,7 @@ func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) (*apps
 		},
 	}
 
-	specDeployment, err := registry.GetSpecRegistryDeployment(
+	return registry.GetSpecRegistryDeployment(
 		deployContext,
 		registryType,
 		registryImage,
@@ -67,9 +58,4 @@ func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) (*apps
 		registryImagePullPolicy,
 		resources,
 		probePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return specDeployment, nil
 }

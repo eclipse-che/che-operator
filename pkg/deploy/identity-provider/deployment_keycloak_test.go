@@ -12,6 +12,7 @@
 package identity_provider
 
 import (
+	"context"
 	"os"
 	"reflect"
 
@@ -21,9 +22,11 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -218,5 +221,89 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 				t.Errorf("Expected CR and CR returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedSecretEnv, secretEnv))
 			}
 		})
+	}
+}
+
+func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &deploy.DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+		Proxy: &deploy.Proxy{},
+	}
+
+	// initial sync
+	done, err := SyncKeycloakDeploymentToCluster(deployContext)
+	if !done || err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	actual := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: "eclipse-che"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// create certs configmap
+	err = cli.Create(context.TODO(), &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "ca-certs-merged",
+			Namespace:       "eclipse-che",
+			ResourceVersion: "1",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create configmap: %v", err)
+	}
+
+	// create self-signed-certificate secret
+	err = cli.Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "self-signed-certificate",
+			Namespace:       "eclipse-che",
+			ResourceVersion: "2",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create secret: %v", err)
+	}
+
+	// sync a new deployment
+	_, err = SyncKeycloakDeploymentToCluster(deployContext)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
+	done, err = SyncKeycloakDeploymentToCluster(deployContext)
+	if !done || err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	actual = &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: "eclipse-che"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// check ca-certs-merged revision
+	cmRevision := util.FindEnv(actual.Spec.Template.Spec.Containers[0].Env, "CM_REVISION")
+	if cmRevision == nil || cmRevision.Value != "1" {
+		t.Fatalf("Failed to sync deployment")
+	}
+
+	// check self-signed-certificate secret revision
+	if actual.ObjectMeta.Annotations["che.self-signed-certificate.version"] != "2" {
+		t.Fatalf("Failed to sync deployment")
 	}
 }

@@ -14,26 +14,24 @@ package deploy
 import (
 	"context"
 
-	"testing"
-
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"testing"
 )
 
-func TestSyncPVCToCluster(t *testing.T) {
+func TestSyncRoleBindingToCluster(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	rbacv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
 	deployContext := &DeployContext{
 		CheCluster: &orgv1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
-				Name:      "eclipse-che",
 			},
 		},
 		ClusterAPI: ClusterAPI{
@@ -43,30 +41,30 @@ func TestSyncPVCToCluster(t *testing.T) {
 		},
 	}
 
-	done, err := SyncPVCToCluster(deployContext, "test", "1Gi", "che")
+	done, err := SyncRoleBindingToCluster(deployContext, "test", "sa", "clusterrole-1", "kind")
 	if !done || err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
-	// sync a new pvc
-	_, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
+	// sync a new role binding
+	_, err = SyncRoleBindingToCluster(deployContext, "test", "sa", "clusterrole-2", "kind")
 	if err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
-	// sync pvc twice to be sure update done correctly
-	done, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
+	// sync role binding twice to be sure update done correctly
+	done, err = SyncRoleBindingToCluster(deployContext, "test", "sa", "clusterrole-2", "kind")
 	if !done || err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
-	actual := &corev1.PersistentVolumeClaim{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	actual := &rbacv1.RoleBinding{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err != nil {
-		t.Fatalf("Failed to get pvc: %v", err)
+		t.Fatalf("Failed to get crb: %v", err)
 	}
 
-	if !actual.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("2Gi")) {
-		t.Fatalf("Failed to sync pvc: %v", err)
+	if actual.RoleRef.Name != "clusterrole-2" {
+		t.Fatalf("Failed to sync crb: %v", err)
 	}
 }
