@@ -185,7 +185,6 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		}
 	}
 
-
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next
 	// version that should fixed bug https://github.com/eclipse/che/issues/13714
