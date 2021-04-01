@@ -11,9 +11,14 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
+set -x
 
 if [ -z "${BASE_DIR}" ]; then
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+fi
+
+if [ -z "${ROOT_PROJECT_DIR}" ]; then
+  ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 fi
 
 if [ -z "${OPERATOR_SDK_BINARY}" ]; then
@@ -26,7 +31,7 @@ fi
 
 # Check for compatible version of operator-sdk:
 OPERATOR_SDK_VERSION=$(${OPERATOR_SDK_BINARY} version | cut -d, -f1 | cut -d: -f2 | sed 's/[ \"]//g')
-REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${BASE_DIR}/../REQUIREMENTS")
+REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${ROOT_PROJECT_DIR}/REQUIREMENTS")
 case $OPERATOR_SDK_VERSION in
   "${REQUIRED_OPERATOR_SDK}")
     echo "Operator SDK ${OPERATOR_SDK_VERSION} installed"
@@ -42,16 +47,15 @@ if [ -z "${GOROOT}" ]; then
   exit 0
 fi
 
-OPERATOR_YAML="${BASE_DIR}"/../deploy/operator.yaml
+OPERATOR_YAML="${ROOT_PROJECT_DIR}/deploy/operator.yaml"
 NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
 
 # copy licence header
 eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
 
-ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
 TAG=$1
-source ${BASE_DIR}/check-yq.sh
-source ${BASE_DIR}/olm.sh
+source ${ROOT_PROJECT_DIR}/olm/check-yq.sh
+source ${ROOT_PROJECT_DIR}/olm/olm.sh
 
 ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
 ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
@@ -70,13 +74,13 @@ yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").
 >> "${NEW_OPERATOR_YAML}"
 mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
 
-DOCKERFILE=${BASE_DIR}/../Dockerfile
+DOCKERFILE="${ROOT_PROJECT_DIR}/Dockerfile"
 sed -i 's|registry.access.redhat.com/ubi8-minimal:.*|'${UBI8_MINIMAL_IMAGE}'|g' $DOCKERFILE
 
 for platform in 'kubernetes' 'openshift'
 do
   if [ -z "${NO_INCREMENT}" ]; then
-    source "${BASE_DIR}/incrementNightlyBundles.sh"
+    source "${ROOT_PROJECT_DIR}/olm/incrementNightlyBundles.sh"
     incrementNightlyVersion "${platform}"
   fi
 
