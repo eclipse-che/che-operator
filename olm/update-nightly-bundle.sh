@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 if [ -z "${BASE_DIR}" ]; then
   BASE_DIR=$(cd "$(dirname "$0")"; pwd)

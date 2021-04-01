@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -34,7 +33,7 @@ checkNightlyBundleVersions() {
   IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
   for file in "${changedFiles[@]}"
   do
-    echo $file
+    echo "[INFO] Changed file: $file"
     if [[ "${CSV_KUBERNETES_NEW}" == "${file}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_KUBERNETES_NEW $CSV_KUBERNETES_CURRENT
     elif [[ "${CSV_OPENSHIFT_NEW}" == "${file}" ]]; then
