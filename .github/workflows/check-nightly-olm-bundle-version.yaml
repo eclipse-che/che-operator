@@ -20,7 +20,7 @@ jobs:
     - name: Install yq
       run: sudo pip install yq
     - name: Check nightly OLM bundle version
-      run: >-
-        go version &&
-        export GOROOT=/opt/hostedtoolcache/go/1.15.10/x64/ &&
+      run: |
+        go version
+        export GOROOT=/opt/hostedtoolcache/go/1.15.10/x64/
         ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle-version.sh
