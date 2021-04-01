@@ -54,6 +54,19 @@ func TestSyncClusterRole(t *testing.T) {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
+	// sync a new cluster role
+	_, err = SyncClusterRoleToCluster(deployContext, "test", []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{"test-2"},
+			Resources: []string{"test-2"},
+			Verbs:     []string{"test-2"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to cluster role: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
 	done, err = SyncClusterRoleToCluster(deployContext, "test", []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"test-2"},
@@ -61,6 +74,9 @@ func TestSyncClusterRole(t *testing.T) {
 			Verbs:     []string{"test-2"},
 		},
 	})
+	if !done || err != nil {
+		t.Fatalf("Failed to cluster role: %v", err)
+	}
 
 	actual := &rbacv1.ClusterRole{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)

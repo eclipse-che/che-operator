@@ -300,11 +300,7 @@ func doDelete(client client.Client, actual runtime.Object) (bool, error) {
 
 func doUpdate(client client.Client, object runtime.Object) (bool, error) {
 	err := client.Update(context.TODO(), object)
-	if err == nil {
-		return true, nil
-	} else {
-		return false, err
-	}
+	return false, err
 }
 
 func doGet(client client.Client, key client.ObjectKey, object runtime.Object) (bool, error) {

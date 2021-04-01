@@ -278,7 +278,13 @@ func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
 		t.Fatalf("Failed to create secret: %v", err)
 	}
 
-	// sync
+	// sync a new deployment
+	_, err = SyncKeycloakDeploymentToCluster(deployContext)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
 	done, err = SyncKeycloakDeploymentToCluster(deployContext)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)

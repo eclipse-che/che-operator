@@ -46,6 +46,13 @@ func TestSyncRoleBindingToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
+	// sync a new role binding
+	_, err = SyncRoleBindingToCluster(deployContext, "test", "sa", "clusterrole-2", "kind")
+	if err != nil {
+		t.Fatalf("Failed to sync crb: %v", err)
+	}
+
+	// sync role binding twice to be sure update done correctly
 	done, err = SyncRoleBindingToCluster(deployContext, "test", "sa", "clusterrole-2", "kind")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync crb: %v", err)

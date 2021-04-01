@@ -19,8 +19,7 @@ import (
 )
 
 var rolebindingDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
-	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
+	cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta"),
 }
 
 func SyncRoleBindingToCluster(

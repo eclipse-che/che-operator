@@ -48,6 +48,13 @@ func TestSyncPVCToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync pvc: %v", err)
 	}
 
+	// sync a new pvc
+	_, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
+	if err != nil {
+		t.Fatalf("Failed to sync pvc: %v", err)
+	}
+
+	// sync pvc twice to be sure update done correctly
 	done, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync pvc: %v", err)

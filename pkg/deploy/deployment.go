@@ -54,8 +54,15 @@ func SyncDeploymentSpecToCluster(
 	}
 
 	done, err := Sync(deployContext, deploymentSpec, deploymentDiffOpts)
-	if !done || err != nil || util.IsTestMode() {
-		return done, err
+	if err != nil || !done {
+		return false, err
+	} else if !done {
+		return util.IsTestMode(), nil
+	}
+
+	// always return true for tests
+	if util.IsTestMode() {
+		return true, nil
 	}
 
 	actual := &appsv1.Deployment{}

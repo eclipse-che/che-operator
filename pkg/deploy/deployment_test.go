@@ -357,6 +357,12 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	}
 
 	// sync deployment
+	_, err = SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
 	done, err = SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync deployment: %v", err)
