@@ -703,7 +703,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if cheMultiUser == "false" {
 		claimSize := util.GetValue(instance.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
 		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, claimSize, cheFlavor)
-		if !tests && !done {
+		if !done {
 			if err != nil {
 				logrus.Error(err)
 			} else {

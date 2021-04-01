@@ -177,6 +177,14 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 			return err
 		}
 	}
+	pvcClaimSize := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
+	if len(deployContext.CheCluster.Spec.Storage.PvcClaimSize) < 1 {
+		deployContext.CheCluster.Spec.Storage.PvcClaimSize = pvcClaimSize
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc claim size", pvcClaimSize); err != nil {
+			return err
+		}
+	}
+
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next
