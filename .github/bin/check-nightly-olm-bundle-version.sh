@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -26,7 +25,10 @@ CSV_OPENSHIFT_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/mani
 CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/master/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
 checkNightlyBundleVersions() {
-  IFS=$'\n' read -d '' -r -a changedFiles < <( git diff --name-only refs/heads/${GITHUB_BASE_REF}...refs/heads/${GITHUB_HEAD_REF} ) || true
+  changedFiles=(
+    $(git diff --name-only ${GITHUB_BASE_REF}...${GITHUB_HEAD_REF})
+  )
+
   for file in "${changedFiles[@]}"
   do
     echo "[INFO] Changed file: $file"
