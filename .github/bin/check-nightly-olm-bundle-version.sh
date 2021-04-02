@@ -28,7 +28,7 @@ CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator
 checkNightlyBundleVersions() {
   git fetch
   changedFiles=(
-    $(git diff --name-only refs/heads/${GITHUB_BASE_REF}...refs/heads/${GITHUB_HEAD_REF})
+    $(git diff --name-only refs/remotes/origin/${GITHUB_BASE_REF}...refs/remotes/origin/${GITHUB_HEAD_REF})
   )
 
   for file in "${changedFiles[@]}"
