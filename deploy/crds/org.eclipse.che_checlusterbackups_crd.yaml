@@ -31,9 +31,15 @@ spec:
         spec:
           description: CheClusterBackupSpec defines the desired state of CheClusterBackup
           properties:
+            autoconfigureRestBackupServer:
+              description: Automatically setup container with REST backup server and
+                use the server in this configuration. Note, this will overwrite existing
+                configuration.
+              type: boolean
             serverType:
               description: If more than one backup server configured, should specify
-                which one to use, see Servers field.
+                which one to use. Allowed values are fields names form BackupServers
+                struct.
               type: string
             servers:
               description: List of backup servers. Usually only one is used. In case
@@ -64,6 +70,59 @@ spec:
                       description: Server hostname, defaults to 's3.amazonaws.com'.
                         For Amazon alternatives should include protocal, e.g. 'http://host:port'
                       type: string
+                    repoPassword:
+                      description: Holds restic repository password
+                      properties:
+                        repoPassword:
+                          description: Password for restic repository
+                          type: string
+                        repoPasswordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                  required:
+                  - repoPassword
+                  type: object
+                internal:
+                  description: Rest server within the cluster. The server and configuration
+                    are created by operator when AutoconfigureRestBackupServer is
+                    true
+                  properties:
+                    credentialsSecretRef:
+                      description: Secret that contains username and password fields
+                      type: string
+                    hostname:
+                      description: Backup server host
+                      type: string
+                    password:
+                      description: Password to authenticate the user
+                      type: string
+                    port:
+                      description: Backup server port
+                      type: string
+                    protocol:
+                      description: Protocol to use when connection to the server Defaults
+                        to https.
+                      type: string
+                    repo:
+                      description: Restic repository path
+                      type: string
+                    repoPassword:
+                      description: Holds restic repository password
+                      properties:
+                        repoPassword:
+                          description: Password for restic repository
+                          type: string
+                        repoPasswordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                    username:
+                      description: User login on the remote server
+                      type: string
+                  required:
+                  - hostname
+                  - repoPassword
                   type: object
                 minio:
                   description: Minio server
@@ -90,31 +149,57 @@ spec:
                       description: Server hostname, defaults to 's3.amazonaws.com'.
                         For Amazon alternatives should include protocal, e.g. 'http://host:port'
                       type: string
+                    repoPassword:
+                      description: Holds restic repository password
+                      properties:
+                        repoPassword:
+                          description: Password for restic repository
+                          type: string
+                        repoPasswordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                  required:
+                  - repoPassword
                   type: object
                 rest:
                   description: Rest backup server configuration
                   properties:
+                    credentialsSecretRef:
+                      description: Secret that contains username and password fields
+                      type: string
                     hostname:
                       description: Backup server host
+                      type: string
+                    password:
+                      description: Password to authenticate the user
                       type: string
                     port:
                       description: Backup server port
                       type: string
                     protocol:
-                      description: Protocol to use when connection to the server.
-                        Defaults to https.
+                      description: Protocol to use when connection to the server Defaults
+                        to https.
                       type: string
                     repo:
                       description: Restic repository path
                       type: string
-                    sshKeySecretRef:
-                      description: Private ssh key for passwordless login
-                      type: string
+                    repoPassword:
+                      description: Holds restic repository password
+                      properties:
+                        repoPassword:
+                          description: Password for restic repository
+                          type: string
+                        repoPasswordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
                     username:
                       description: User login on the remote server
                       type: string
                   required:
                   - hostname
+                  - repoPassword
                   type: object
                 sftp:
                   description: Sftp backup server configuration
@@ -128,6 +213,16 @@ spec:
                     repo:
                       description: Restic repository path
                       type: string
+                    repoPassword:
+                      description: Holds restic repository password
+                      properties:
+                        repoPassword:
+                          description: Password for restic repository
+                          type: string
+                        repoPasswordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
                     sshKeySecretRef:
                       description: Private ssh key for passwordless login
                       type: string
@@ -136,13 +231,14 @@ spec:
                       type: string
                   required:
                   - hostname
-                  - port
                   - repo
+                  - repoPassword
+                  - sshKeySecretRef
                   - username
                   type: object
               type: object
             triggerNow:
-              description: Set to true to start backup process
+              description: Set to true to start backup process.
               type: boolean
           required:
           - servers

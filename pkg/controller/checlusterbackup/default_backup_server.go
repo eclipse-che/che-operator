@@ -29,10 +29,11 @@ import (
 const (
 	InternalBackupServerType = "internal"
 
-	backupServerDeploymentName = "backup-rest-server-deployment"
-	backupServerPodName        = "backup-rest-server-pod"
-	backupServerServiceName    = "backup-rest-server-service"
-	backupServerPort           = 8000
+	backupServerDeploymentName         = "backup-rest-server-deployment"
+	backupServerPodName                = "backup-rest-server-pod"
+	backupServerServiceName            = "backup-rest-server-service"
+	backupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
+	backupServerPort                   = 8000
 )
 
 func (r *ReconcileCheClusterBackup) EnsureDefaultBackupServerDeploymentExists(backupCR *orgv1.CheClusterBackup) error {
@@ -224,6 +225,9 @@ func (r *ReconcileCheClusterBackup) EnsureInternalBackupServerConfigured(backupC
 		Hostname: backupServerServiceName,
 		Port:     strconv.Itoa(backupServerPort),
 		Username: "user",
+		RepoPassword: orgv1.RepoPassword{
+			RepoPasswordSecretRef: backupServerRepoPasswordSecretName,
+		},
 	}
 	if backupCR.Spec.Servers.Internal != expectedInternalRestServerConfig {
 		backupCR.Spec.Servers.Internal = expectedInternalRestServerConfig

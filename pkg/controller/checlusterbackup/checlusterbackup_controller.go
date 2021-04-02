@@ -14,10 +14,10 @@ package checlusterbackup
 import (
 	"context"
 	"fmt"
+	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,16 +50,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to primary resource CheClusterBackup
 	err = c.Watch(&source.Kind{Type: &orgv1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner CheClusterBackup
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &orgv1.CheClusterBackup{},
-	})
 	if err != nil {
 		return err
 	}
@@ -99,9 +89,20 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	if err := r.CheckBackupSettings(backupCR); err != nil {
+	done, err := r.CheckBackupSettings(backupCR)
+	if err != nil {
 		// An error happened while processing CR data
-		return reconcile.Result{}, err
+		logrus.Error(err)
+		if !done {
+			return reconcile.Result{}, err
+		}
+		// Do not reconcile despite the fact that an error happened.
+		// For example, config in CR is invalid, but we do not requeue as user has to correct it
+		// and then, after modification in the CR, new reconcile loop will be trigerred.
+		return reconcile.Result{}, nil
+	}
+	if !done {
+		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	if backupCR.Spec.TriggerNow {

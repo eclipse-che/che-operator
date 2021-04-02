@@ -17,29 +17,29 @@ import (
 
 // CheckBackupSettings does reconcile on user provided backup settings.
 // It does not do backup itself.
-func (r *ReconcileCheClusterBackup) CheckBackupSettings(backupCR *orgv1.CheClusterBackup) error {
+func (r *ReconcileCheClusterBackup) CheckBackupSettings(backupCR *orgv1.CheClusterBackup) (bool, error) {
 	if backupCR.Spec.AutoconfigureRestBackupServer {
 		// Use internal REST backup server
 		err := r.EnsureDefaultBackupServerDeploymentExists(backupCR)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		err = r.EnsureDefaultBackupServerServiceExists(backupCR)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		err = r.EnsureInternalBackupServerConfigured(backupCR)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	err := r.ValidateBackupServerSettings(backupCR)
+	done, err := r.ValidateBackupServerSettings(backupCR)
 	if err != nil {
-		return err
+		return done, err
 	}
 
-	return nil
+	return true, nil
 }
