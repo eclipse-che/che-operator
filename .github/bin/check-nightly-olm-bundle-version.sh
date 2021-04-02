@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -28,8 +27,6 @@ CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator
 checkNightlyBundleVersions() {
   export NO_DATE_UPDATE="true"
   export NO_INCREMENT="true"
-
-  source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
 
   IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
   for file in "${changedFiles[@]}"
