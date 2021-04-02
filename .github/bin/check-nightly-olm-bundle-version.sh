@@ -25,10 +25,7 @@ CSV_OPENSHIFT_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/mani
 CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/master/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
 checkNightlyBundleVersions() {
-  export NO_DATE_UPDATE="true"
-  export NO_INCREMENT="true"
-
-  IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
+  IFS=$'\n' read -d '' -r -a changedFiles < <( git diff --name-only refs/heads/${GITHUB_HEAD_REF}...refs/heads/${GITHUB_REF} ) || true
   for file in "${changedFiles[@]}"
   do
     echo "[INFO] Changed file: $file"
