@@ -11,6 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
+set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -26,7 +27,7 @@ CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator
 
 checkNightlyBundleVersions() {
   changedFiles=(
-    $(git diff --name-only ${GITHUB_BASE_REF}...${GITHUB_HEAD_REF})
+    $(git diff --name-only refs/heads/${GITHUB_BASE_REF}...${GITHUB_REF})
   )
 
   for file in "${changedFiles[@]}"
