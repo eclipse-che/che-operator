@@ -165,14 +165,15 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 
 			// Wait till the route is ready
 			var route *routev1.Route
-			for wait := true; wait; {
+			for {
 				time.Sleep(time.Duration(1) * time.Second)
 				route := &routev1.Route{}
-				_, err := GetNamespacedObject(deployContext, routeSpec.Name, route)
+				exists, err := GetNamespacedObject(deployContext, routeSpec.Name, route)
 				if err != nil {
 					return nil, err
+				} else if exists {
+					break
 				}
-				wait = len(route.Spec.Host) == 0
 			}
 
 			requestURL = "https://" + route.Spec.Host
@@ -206,15 +207,16 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 
 			// Wait till the ingress is ready
 			var ingress *v1beta1.Ingress
-			for wait := true; wait; {
+			for {
 				time.Sleep(time.Duration(1) * time.Second)
 
 				ingress := &v1beta1.Ingress{}
 				exists, err := GetNamespacedObject(deployContext, ingressSpec.Name, ingress)
-				if !exists {
+				if err != nil {
 					return nil, err
+				} else if exists {
+					break
 				}
-				wait = len(ingress.Spec.Rules[0].Host) == 0
 			}
 
 			requestURL = "https://" + ingress.Spec.Rules[0].Host
