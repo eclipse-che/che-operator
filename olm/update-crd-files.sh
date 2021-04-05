@@ -17,8 +17,9 @@ set -e
 
 init() {
   if [ -z "${BASE_DIR}" ]; then
-    BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+    BASE_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
   fi
+  OPERATOR_DIR="$(dirname "${BASE_DIR}")"
 }
 
 check() {
@@ -31,8 +32,13 @@ check() {
   fi
 
   local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
-  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
+  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${OPERATOR_DIR}/REQUIREMENTS")
   [[ $operatorVersion =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "operator-sdk ${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
+
+  if [ -z "${GOROOT}" ]; then
+    echo "[ERROR] set up '\$GOROOT' env variable to make operator-sdk working"
+    exit 0
+  fi 
 }
 
 updateFiles() {

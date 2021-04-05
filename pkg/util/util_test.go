@@ -39,7 +39,6 @@ func TestGeneratePasswd(t *testing.T) {
 }
 
 
-
 func TestGetValue(t *testing.T) {
 	key := "myvalue"
 	defaultValue := "myDefaultValue"

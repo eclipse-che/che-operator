@@ -690,15 +690,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
 	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
 	if workspaceClusterRole != "" {
-		cheWSCustomRoleBinding, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
-		if cheWSCustomRoleBinding == nil {
-			logrus.Info("Waiting on role binding 'che-workspace-custom' to be created")
+		done, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
+		if !done {
 			if err != nil {
 				logrus.Error(err)
 			}
-			if !tests {
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
+			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -709,35 +706,31 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 
 	if cheMultiUser == "false" {
-		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", cheFlavor)
-		if !tests {
-			if !done {
+		claimSize := util.GetValue(instance.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
+		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, claimSize, cheFlavor)
+		if !done {
+			if err != nil {
+				logrus.Error(err)
+			} else {
 				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
-				if err != nil {
-					logrus.Error(err)
-				}
-				return reconcile.Result{}, err
 			}
+			return reconcile.Result{}, err
 		}
 
 		done, err = deploy.DeleteNamespacedObject(deployContext, deploy.DefaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
-		if !tests {
-			if !done {
-				if err != nil {
-					logrus.Error(err)
-				}
-				return reconcile.Result{}, err
+		if !done {
+			if err != nil {
+				logrus.Error(err)
 			}
+			return reconcile.Result{}, err
 		}
 	} else {
 		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DefaultCheVolumeClaimName, &corev1.PersistentVolumeClaim{})
-		if !tests {
-			if !done {
-				if err != nil {
-					logrus.Error(err)
-				}
-				return reconcile.Result{}, err
+		if !done {
+			if err != nil {
+				logrus.Error(err)
 			}
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -857,7 +850,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
-		ingress, err := deploy.SyncIngressToCluster(
+		done, err := deploy.SyncIngressToCluster(
 			deployContext,
 			cheFlavor,
 			instance.Spec.Server.CheHost,
@@ -865,17 +858,24 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			8080,
 			deployContext.CheCluster.Spec.Server.CheServerIngress,
 			cheFlavor)
-		if !tests {
-			if ingress == nil {
-				logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
-				if err != nil {
-					logrus.Error(err)
-				}
-
-				return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		if !done {
+			logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
+			if err != nil {
+				logrus.Error(err)
 			}
-			cheHost = ingress.Spec.Rules[0].Host
+
+			return reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
+
+		ingress := &v1beta1.Ingress{}
+		exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, ingress)
+		if !exists {
+			return reconcile.Result{}, err
+		} else if err != nil {
+			logrus.Error(err)
+			return reconcile.Result{}, err
+		}
+		cheHost = ingress.Spec.Rules[0].Host
 	} else {
 		customHost := instance.Spec.Server.CheHost
 		if deployContext.DefaultCheHost == customHost {

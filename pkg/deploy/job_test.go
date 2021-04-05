@@ -14,20 +14,18 @@ package deploy
 import (
 	"context"
 
-	"testing"
-
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"testing"
 )
 
-func TestSyncPVCToCluster(t *testing.T) {
+func TestSyncJobToCluster(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
 	deployContext := &DeployContext{
 		CheCluster: &orgv1.CheCluster{
@@ -43,30 +41,23 @@ func TestSyncPVCToCluster(t *testing.T) {
 		},
 	}
 
-	done, err := SyncPVCToCluster(deployContext, "test", "1Gi", "che")
+	done, err := SyncJobToCluster(deployContext, "test", "component", "image-1", "sa", map[string]string{})
 	if !done || err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to sync job: %v", err)
 	}
 
-	// sync a new pvc
-	_, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
-	if err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
-	}
-
-	// sync pvc twice to be sure update done correctly
-	done, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
+	done, err = SyncJobToCluster(deployContext, "test", "component", "image-2", "sa", map[string]string{})
 	if !done || err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to sync job: %v", err)
 	}
 
-	actual := &corev1.PersistentVolumeClaim{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	actual := &batchv1.Job{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err != nil {
-		t.Fatalf("Failed to get pvc: %v", err)
+		t.Fatalf("Failed to get job: %v", err)
 	}
 
-	if !actual.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("2Gi")) {
-		t.Fatalf("Failed to sync pvc: %v", err)
+	if actual.Spec.Template.Spec.Containers[0].Image != "image-2" {
+		t.Fatalf("Failed to sync job")
 	}
 }

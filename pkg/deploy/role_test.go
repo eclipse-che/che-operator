@@ -14,20 +14,19 @@ package deploy
 import (
 	"context"
 
-	"testing"
-
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"testing"
 )
 
-func TestSyncPVCToCluster(t *testing.T) {
+func TestSyncRoleToCluster(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	rbacv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
 	deployContext := &DeployContext{
 		CheCluster: &orgv1.CheCluster{
@@ -43,30 +42,32 @@ func TestSyncPVCToCluster(t *testing.T) {
 		},
 	}
 
-	done, err := SyncPVCToCluster(deployContext, "test", "1Gi", "che")
+	done, err := SyncRoleToCluster(deployContext, "test", []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{"test-1"},
+			Resources: []string{"test-1"},
+			Verbs:     []string{"test-1"},
+		},
+	})
 	if !done || err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to sync role: %v", err)
 	}
 
-	// sync a new pvc
-	_, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
+	done, err = SyncRoleToCluster(deployContext, "test", []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{"test-2"},
+			Resources: []string{"test-2"},
+			Verbs:     []string{"test-2"},
+		},
+	})
+
+	actual := &rbacv1.Role{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
+		t.Fatalf("Failed to get role: %v", err)
 	}
 
-	// sync pvc twice to be sure update done correctly
-	done, err = SyncPVCToCluster(deployContext, "test", "2Gi", "che")
-	if !done || err != nil {
-		t.Fatalf("Failed to sync pvc: %v", err)
-	}
-
-	actual := &corev1.PersistentVolumeClaim{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
-	if err != nil {
-		t.Fatalf("Failed to get pvc: %v", err)
-	}
-
-	if !actual.Spec.Resources.Requests[corev1.ResourceStorage].Equal(resource.MustParse("2Gi")) {
-		t.Fatalf("Failed to sync pvc: %v", err)
+	if actual.Rules[0].Resources[0] != "test-2" {
+		t.Fatalf("Failed to sync role: %v", err)
 	}
 }

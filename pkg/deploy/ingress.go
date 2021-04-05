@@ -12,8 +12,6 @@
 package deploy
 
 import (
-	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 
@@ -21,14 +19,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sirupsen/logrus"
 	"k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var ingressDiffOpts = cmp.Options{
@@ -45,84 +38,21 @@ func SyncIngressToCluster(
 	serviceName string,
 	servicePort int,
 	ingressCustomSettings orgv1.IngressCustomSettings,
-	component string) (*v1beta1.Ingress, error) {
+	component string) (bool, error) {
 
-	specIngress, err := GetSpecIngress(deployContext, name, host, serviceName, servicePort, ingressCustomSettings, component)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterIngress, err := GetClusterIngress(specIngress.Name, specIngress.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterIngress == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specIngress.Kind, specIngress.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specIngress)
-		return nil, err
-	}
-
-	diff := cmp.Diff(clusterIngress, specIngress, ingressDiffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterIngress.Kind, clusterIngress.Name)
-		fmt.Printf("Difference:\n%s", diff)
-
-		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterIngress)
-		if err != nil {
-			return nil, err
-		}
-
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specIngress)
-		return nil, err
-	}
-
-	return clusterIngress, nil
+	ingressSpec := GetIngressSpec(deployContext, name, host, serviceName, servicePort, ingressCustomSettings, component)
+	return Sync(deployContext, ingressSpec, ingressDiffOpts)
 }
 
-// DeleteIngressIfExists removes specified ingress if any
-func DeleteIngressIfExists(name string, deployContext *DeployContext) error {
-	ingress, err := GetClusterIngress(name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return err
-	}
-
-	if ingress != nil {
-		err = deployContext.ClusterAPI.Client.Delete(context.TODO(), ingress)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// GetClusterIngress returns actual ingress config by provided name and namespace
-func GetClusterIngress(name string, namespace string, client runtimeClient.Client) (*v1beta1.Ingress, error) {
-	ingress := &v1beta1.Ingress{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, ingress)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return ingress, nil
-}
-
-// GetSpecIngress returns expected ingress config for given parameters
-func GetSpecIngress(
+// GetIngressSpec returns expected ingress config for given parameters
+func GetIngressSpec(
 	deployContext *DeployContext,
 	name string,
 	host string,
 	serviceName string,
 	servicePort int,
 	ingressCustomSettings orgv1.IngressCustomSettings,
-	component string) (*v1beta1.Ingress, error) {
+	component string) *v1beta1.Ingress {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.Server.ServerExposureStrategy, DefaultServerExposureStrategy)
@@ -212,10 +142,5 @@ func GetSpecIngress(
 		}
 	}
 
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, ingress, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	return ingress, nil
+	return ingress
 }

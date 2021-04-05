@@ -12,22 +12,47 @@
 package deploy
 
 import (
+	"context"
 	"os"
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
+)
+
+var (
+	deployment = &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "eclipse-che",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						corev1.Container{},
+					},
+				},
+			},
+		},
+	}
 )
 
 func TestMountSecret(t *testing.T) {
@@ -297,5 +322,61 @@ func TestMountSecret(t *testing.T) {
 				t.Errorf("Expected deployment and deployment returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedDeployment, testCase.initDeployment))
 			}
 		})
+	}
+}
+
+func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+		Proxy: &Proxy{},
+	}
+
+	// initial sync
+	done, err := SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	if !done || err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	deployment.Spec.Template.Spec.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name:  "test-name",
+			Value: "test-value",
+		},
+	}
+
+	// sync deployment
+	_, err = SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
+	done, err = SyncDeploymentSpecToCluster(deployContext, deployment, DefaultDeploymentDiffOpts)
+	if !done || err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	actual := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to sync deployment: %v", err)
+	}
+
+	// check env var
+	cmRevision := util.FindEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
+	if cmRevision == nil || cmRevision.Value != "test-value" {
+		t.Fatalf("Failed to sync deployment")
 	}
 }

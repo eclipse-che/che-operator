@@ -47,6 +47,13 @@ func TestSyncConfigMapDataToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync config map: %v", err)
 	}
 
+	// sync a new config map
+	_, err = SyncConfigMapDataToCluster(deployContext, "test", map[string]string{"c": "d"}, "che")
+	if err != nil {
+		t.Fatalf("Failed to sync config map: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
 	done, err = SyncConfigMapDataToCluster(deployContext, "test", map[string]string{"c": "d"}, "che")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync config map: %v", err)
@@ -94,6 +101,12 @@ func TestSyncConfigMapSpecDataToCluster(t *testing.T) {
 	// check if labels
 	spec = GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "che")
 	spec.ObjectMeta.Labels = map[string]string{"l": "v"}
+	_, err = SyncConfigMapSpecToCluster(deployContext, spec)
+	if err != nil {
+		t.Fatalf("Failed to sync config map: %v", err)
+	}
+
+	// sync twice to be sure update done correctly
 	done, err = SyncConfigMapSpecToCluster(deployContext, spec)
 	if !done || err != nil {
 		t.Fatalf("Failed to sync config map: %v", err)

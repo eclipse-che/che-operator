@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -41,33 +40,32 @@ const (
 var (
 	trustpass              = util.GeneratePasswd(12)
 	keycloakCustomDiffOpts = cmp.Options{
-		cmp.Comparer(func(x, y appsv1.Deployment) bool {
+		deploy.DefaultDeploymentDiffOpts,
+		cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 			return x.Annotations["che.self-signed-certificate.version"] == y.Annotations["che.self-signed-certificate.version"] &&
 				x.Annotations["che.openshift-api-crt.version"] == y.Annotations["che.openshift-api-crt.version"] &&
 				x.Annotations["che.keycloak-ssl-required-updated"] == y.Annotations["che.keycloak-ssl-required-updated"]
 		}),
 	}
-	keycloakAdditionalDeploymentMerge = func(specDeployment *appsv1.Deployment, clusterDeployment *appsv1.Deployment) *appsv1.Deployment {
-		clusterDeployment.Spec = specDeployment.Spec
-		clusterDeployment.Annotations["che.self-signed-certificate.version"] = specDeployment.Annotations["che.self-signed-certificate.version"]
-		clusterDeployment.Annotations["che.openshift-api-crt.version"] = specDeployment.Annotations["che.openshift-api-crt.version"]
-		clusterDeployment.Annotations["che.keycloak-ssl-required-updated"] = specDeployment.Annotations["che.keycloak-ssl-required-updated"]
-		return clusterDeployment
-	}
 )
 
 func SyncKeycloakDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	clusterDeployment, err := deploy.GetClusterDeployment(deploy.IdentityProviderName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
+	actual := &appsv1.Deployment{}
+	exists, err := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, actual)
 	if err != nil {
 		return false, err
 	}
 
-	specDeployment, err := GetSpecKeycloakDeployment(deployContext, clusterDeployment)
+	if !exists {
+		actual = nil
+	}
+
+	specDeployment, err := GetSpecKeycloakDeployment(deployContext, actual)
 	if err != nil {
 		return false, err
 	}
 
-	return deploy.SyncDeploymentToCluster(deployContext, specDeployment, clusterDeployment, keycloakCustomDiffOpts, keycloakAdditionalDeploymentMerge)
+	return deploy.SyncDeploymentSpecToCluster(deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
 }
 
 func GetSpecKeycloakDeployment(
@@ -173,15 +171,15 @@ func GetSpecKeycloakDeployment(
 
 	if deployContext.Proxy.HttpProxy != "" {
 		proxyEnvVars = []corev1.EnvVar{
-			corev1.EnvVar{
+			{
 				Name:  "HTTP_PROXY",
 				Value: deployContext.Proxy.HttpProxy,
 			},
-			corev1.EnvVar{
+			{
 				Name:  "HTTPS_PROXY",
 				Value: deployContext.Proxy.HttpsProxy,
 			},
-			corev1.EnvVar{
+			{
 				Name:  "NO_PROXY",
 				Value: deployContext.Proxy.NoProxy,
 			},
@@ -686,13 +684,6 @@ func GetSpecKeycloakDeployment(
 		},
 	}
 
-	if !util.IsTestMode() {
-		err := controllerutil.SetControllerReference(deployContext.CheCluster, deployment, deployContext.ClusterAPI.Scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return deployment, nil
 }
 
@@ -717,12 +708,16 @@ func isSslRequiredUpdatedForMasterRealm(deployContext *deploy.DeployContext) boo
 		return false
 	}
 
-	clusterDeployment, _ := deploy.GetClusterDeployment(deploy.IdentityProviderName, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if clusterDeployment == nil {
+	actual := &appsv1.Deployment{}
+	exists, err := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, actual)
+	if !exists || err != nil {
+		if err != nil {
+			logrus.Error(err)
+		}
 		return false
 	}
 
-	value, err := strconv.ParseBool(clusterDeployment.ObjectMeta.Annotations["che.keycloak-ssl-required-updated"])
+	value, err := strconv.ParseBool(actual.ObjectMeta.Annotations["che.keycloak-ssl-required-updated"])
 	if err == nil && value {
 		return true
 	}

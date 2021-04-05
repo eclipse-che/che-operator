@@ -93,7 +93,7 @@ spec:
     # `per-workspace` (one PVC per workspace for all declared volumes) and `unique` (one PVC per declared volume).
     pvcStrategy: 'common'
     # Size of the persistent volume claim for workspaces.
-    pvcClaimSize: '1Gi'
+    pvcClaimSize: '10Gi'
     # Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes.
     preCreateSubPaths: true
     # Storage class for the Persistent Volume Claim dedicated to the PostgreSQL database. When omitted or left blank, a default storage class is used.

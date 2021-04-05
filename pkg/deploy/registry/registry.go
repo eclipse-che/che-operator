@@ -13,12 +13,10 @@ package registry
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	v12 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func GetSpecRegistryDeployment(
@@ -28,7 +26,7 @@ func GetSpecRegistryDeployment(
 	env []v1.EnvVar,
 	registryImagePullPolicy v1.PullPolicy,
 	resources v1.ResourceRequirements,
-	probePath string) (*v12.Deployment, error) {
+	probePath string) *v12.Deployment {
 
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
@@ -135,12 +133,5 @@ func GetSpecRegistryDeployment(
 		},
 	}
 
-	if !util.IsTestMode() {
-		err := controllerutil.SetControllerReference(deployContext.CheCluster, deployment, deployContext.ClusterAPI.Scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return deployment, nil
+	return deployment
 }
