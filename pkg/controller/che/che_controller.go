@@ -701,10 +701,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	cheMultiUser := deploy.GetCheMultiUser(instance)
 
 	if cheMultiUser == "false" {
-		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, "1Gi", cheFlavor)
+		claimSize := util.GetValue(instance.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
+		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, claimSize, cheFlavor)
 		if !done {
 			if err != nil {
 				logrus.Error(err)
+			} else {
+				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
 			}
 			return reconcile.Result{}, err
 		}

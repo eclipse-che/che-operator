@@ -22,7 +22,8 @@ import (
 
 var pvcDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.PersistentVolumeClaim{}, "TypeMeta", "ObjectMeta", "Status"),
-	cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode"),
+	cmpopts.IgnoreFields(corev1.PersistentVolumeClaimSpec{}, "VolumeName", "StorageClassName", "VolumeMode", "Selector", "DataSource"),
+	cmpopts.IgnoreFields(corev1.ResourceRequirements{}, "Limits"),
 	cmp.Comparer(func(x, y resource.Quantity) bool {
 		return x.Cmp(y) == 0
 	}),
@@ -35,6 +36,16 @@ func SyncPVCToCluster(
 	component string) (bool, error) {
 
 	pvcSpec := getPVCSpec(deployContext, name, claimSize, component)
+
+	actual := &corev1.PersistentVolumeClaim{}
+	exists, err := GetNamespacedObject(deployContext, name, actual)
+	if err != nil {
+		return false, err
+	} else if err == nil && exists {
+		actual.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)] = resource.MustParse(claimSize)
+		return Sync(deployContext, actual, pvcDiffOpts)
+	}
+
 	return Sync(deployContext, pvcSpec, pvcDiffOpts)
 }
 
@@ -57,11 +68,7 @@ func getPVCSpec(
 		Resources:   resources,
 	}
 	if len(deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName) > 1 {
-		pvcSpec = corev1.PersistentVolumeClaimSpec{
-			AccessModes:      accessModes,
-			StorageClassName: &deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName,
-			Resources:        resources,
-		}
+		pvcSpec.StorageClassName = &deployContext.CheCluster.Spec.Storage.PostgresPVCStorageClassName
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{
