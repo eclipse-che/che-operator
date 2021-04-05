@@ -12,16 +12,19 @@
 package postgres
 
 import (
+	"context"
 	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -142,5 +145,23 @@ func TestSyncPostgresToCluster(t *testing.T) {
 	done, err := postgres.Sync()
 	if !done || err != nil {
 		t.Fatalf("Failed to sync PostgreSQL: %v", err)
+	}
+
+	service := &corev1.Service{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: "eclipse-che"}, service)
+	if err != nil {
+		t.Fatalf("Failed to get service: %v", err)
+	}
+
+	pvc := &corev1.PersistentVolumeClaim{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: "eclipse-che"}, pvc)
+	if err != nil {
+		t.Fatalf("Failed to get pvc: %v", err)
+	}
+
+	deployment := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: "eclipse-che"}, deployment)
+	if err != nil {
+		t.Fatalf("Failed to get deployment: %v", err)
 	}
 }

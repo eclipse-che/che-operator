@@ -59,6 +59,6 @@ func TestServiceToCluster(t *testing.T) {
 	}
 
 	if actual.Spec.Ports[0].Port != 9090 {
-		t.Fatalf("Failed to sync service: %v", err)
+		t.Fatalf("Failed to sync service.")
 	}
 }
