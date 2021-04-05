@@ -164,10 +164,9 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			}()
 
 			// Wait till the route is ready
-			var route *routev1.Route
+			route := &routev1.Route{}
 			for {
 				time.Sleep(time.Duration(1) * time.Second)
-				route := &routev1.Route{}
 				exists, err := GetNamespacedObject(deployContext, routeSpec.Name, route)
 				if err != nil {
 					return nil, err
@@ -206,11 +205,9 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			}()
 
 			// Wait till the ingress is ready
-			var ingress *v1beta1.Ingress
+			ingress := &v1beta1.Ingress{}
 			for {
 				time.Sleep(time.Duration(1) * time.Second)
-
-				ingress := &v1beta1.Ingress{}
 				exists, err := GetNamespacedObject(deployContext, ingressSpec.Name, ingress)
 				if err != nil {
 					return nil, err
