@@ -11,32 +11,19 @@
 //
 package checlusterbackup
 
-import (
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-)
-
 // CheckBackupSettings does reconcile on user provided backup settings.
 // It does not do backup itself.
-func (r *ReconcileCheClusterBackup) CheckBackupSettings(backupCR *orgv1.CheClusterBackup) (bool, error) {
-	if backupCR.Spec.AutoconfigureRestBackupServer {
+func CheckBackupSettings(bctx *BackupContext) (bool, error) {
+	if bctx.backupCR.Spec.AutoconfigureRestBackupServer {
 		// Use internal REST backup server
-		err := r.EnsureDefaultBackupServerDeploymentExists(backupCR)
-		if err != nil {
-			return false, err
-		}
-
-		err = r.EnsureDefaultBackupServerServiceExists(backupCR)
-		if err != nil {
-			return false, err
-		}
-
-		err = r.EnsureInternalBackupServerConfigured(backupCR)
-		if err != nil {
-			return false, err
+		done, err := ConfigureInternalBackupServer(bctx)
+		if err != nil || !done {
+			return done, err
 		}
 	}
 
-	done, err := r.ValidateBackupServerSettings(backupCR)
+	// Check if current backup server is configured properly
+	done, err := bctx.backupServer.ValidateConfiguration(bctx)
 	if err != nil {
 		return done, err
 	}

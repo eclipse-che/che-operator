@@ -89,7 +89,18 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	done, err := r.CheckBackupSettings(backupCR)
+	// Create backup context
+	bctx, err := NewBackupContext(r, backupCR)
+	if err != nil {
+		// Failed to create backup context.
+		// This is usually caused by invalid configuration of current backup server in the backup CR.
+		logrus.Error(err)
+		// Do not requeue as user has to correct the configuration manually
+		return reconcile.Result{}, nil
+	}
+
+	// Make sure, that CR configuration is valid
+	done, err := CheckBackupSettings(bctx)
 	if err != nil {
 		// An error happened while processing CR data
 		logrus.Error(err)
@@ -97,8 +108,8 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 			return reconcile.Result{}, err
 		}
 		// Do not reconcile despite the fact that an error happened.
-		// For example, config in CR is invalid, but we do not requeue as user has to correct it
-		// and then, after modification in the CR, new reconcile loop will be trigerred.
+		// For example, config in the backup CR is invalid, but we do not requeue as user has to correct it.
+		// After a modification in the backup CR, a new reconcile loop will be trigerred.
 		return reconcile.Result{}, nil
 	}
 	if !done {

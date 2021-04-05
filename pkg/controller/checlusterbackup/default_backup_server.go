@@ -17,6 +17,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,39 +30,110 @@ import (
 const (
 	InternalBackupServerType = "internal"
 
+	BackupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
 	backupServerDeploymentName         = "backup-rest-server-deployment"
 	backupServerPodName                = "backup-rest-server-pod"
 	backupServerServiceName            = "backup-rest-server-service"
-	backupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
 	backupServerPort                   = 8000
 )
 
-func (r *ReconcileCheClusterBackup) EnsureDefaultBackupServerDeploymentExists(backupCR *orgv1.CheClusterBackup) error {
-	backupServerDeployment := &appsv1.Deployment{}
-	namespacedName := types.NamespacedName{
-		Namespace: backupCR.GetNamespace(),
-		Name:      backupServerDeploymentName,
+// ConfigureInternalBackupServer check for existance of internal REST backup server and deploys it if missing.
+// It doesn't do sync as user might change some configuration.
+func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
+	shouldInitResticRepo := false
+
+	backupServerDeployment, err := getInternalBackupServerDeployment(bctx)
+	if err != nil {
+		return false, err
 	}
-	err := r.client.Get(context.TODO(), namespacedName, backupServerDeployment)
-	if err == nil {
-		// Backup server already exists, do nothing
-		return nil
-	}
-	if !errors.IsNotFound(err) {
-		return err
+	if backupServerDeployment == nil {
+		shouldInitResticRepo = true
+		err := createInternalBackupServerDeployment(bctx)
+		if err != nil {
+			return false, err
+		}
 	}
 
-	// Backup server doesn't exists, create it
-	backupServerDeployment, err = r.getBackupServerDeploymentSpec(backupCR.GetNamespace())
+	err = ensureInternalBackupServerServiceExists(bctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = ensureInternalBackupServerConfiguredAndCurrent(bctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if the secret with restic repository password exists
+	repoPasswordsecret := &corev1.Secret{}
+	namespacedName := types.NamespacedName{
+		Namespace: bctx.backupCR.GetNamespace(),
+		Name:      bctx.backupCR.Spec.Servers.Internal.RepoPasswordSecretRef,
+	}
+	err = bctx.r.client.Get(context.TODO(), namespacedName, repoPasswordsecret)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return false, err
+		}
+
+		if !shouldInitResticRepo {
+			// Something is broken by a third party.
+			// There is existing backup server, but no credentials to it.
+			// The only way to regain access to the backup server is to completely recreate it.
+			err := bctx.r.client.Delete(context.TODO(), backupServerDeployment)
+			return false, err
+		}
+
+		// The secret with backup server credentials doesn't exist
+		// Generate a new password and save it in the secret
+		repoPassword := util.GeneratePasswd(12)
+		repoPasswordsecret, err = getRepoPasswordSecretSpec(bctx, repoPassword)
+		if err != nil {
+			return false, err
+		}
+		err = bctx.r.client.Create(context.TODO(), repoPasswordsecret)
+		if err != nil {
+			return false, err
+		}
+
+		// Initialize new restic repository
+		// TODO
+
+		return true, nil
+	}
+
+	// The secret ith backup server credentials exists
+	// Check if the password is the right one
+	// TODO
+
+	return true, nil
+}
+
+func getInternalBackupServerDeployment(bctx *BackupContext) (*appsv1.Deployment, error) {
+	backupServerDeployment := &appsv1.Deployment{}
+	namespacedName := types.NamespacedName{
+		Namespace: bctx.backupCR.GetNamespace(),
+		Name:      backupServerDeploymentName,
+	}
+	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerDeployment)
+	if err == nil {
+		return backupServerDeployment, nil
+	}
+	if !errors.IsNotFound(err) {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func createInternalBackupServerDeployment(bctx *BackupContext) error {
+	// Get default configuration of the backup server deployment
+	backupServerDeployment, err := getBackupServerDeploymentSpec(bctx)
 	if err != nil {
 		return err
 	}
-	// Set CheClusterBackup instance as the owner and controller
-	if err := controllerutil.SetControllerReference(backupCR, backupServerDeployment, r.scheme); err != nil {
-		return err
-	}
 	// Create backup server deployment
-	err = r.client.Create(context.TODO(), backupServerDeployment)
+	err = bctx.r.client.Create(context.TODO(), backupServerDeployment)
 	if err != nil {
 		return err
 	}
@@ -69,13 +141,15 @@ func (r *ReconcileCheClusterBackup) EnsureDefaultBackupServerDeploymentExists(ba
 	return nil
 }
 
-func (r *ReconcileCheClusterBackup) getBackupServerDeploymentSpec(namespace string) (*appsv1.Deployment, error) {
-	cheCR, err := r.GetCheCR(namespace)
+func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, error) {
+	namespace := bctx.backupCR.GetNamespace()
+
+	cheCR, err := bctx.r.GetCheCR(namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	labels, labelSelector := deploy.GetLabelsAndSelector(cheCR, deploy.PostgresName)
+	labels, labelSelector := deploy.GetLabelsAndSelector(cheCR, backupServerDeploymentName)
 	replicas := int32(1)
 	terminationGracePeriodSeconds := int64(30)
 
@@ -100,9 +174,8 @@ func (r *ReconcileCheClusterBackup) getBackupServerDeploymentSpec(namespace stri
 					Containers: []corev1.Container{
 						{
 							Name:            backupServerPodName,
-							Image:           "restic/rest-server:latest",
-							ImagePullPolicy: "IfNotPresent",
-							Command:         []string{"rest-server", "--no-auth"},
+							Image:           "mm4eche/rest-server:latest", // TODO replace with official image
+							ImagePullPolicy: "Always",
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "rest",
@@ -112,20 +185,18 @@ func (r *ReconcileCheClusterBackup) getBackupServerDeploymentSpec(namespace stri
 							},
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/",
+									TCPSocket: &corev1.TCPSocketAction{
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(backupServerPort),
 										},
-										Scheme: corev1.URISchemeHTTP,
 									},
 								},
-								InitialDelaySeconds: 3,
+								InitialDelaySeconds: 1,
 								FailureThreshold:    10,
-								TimeoutSeconds:      3,
+								TimeoutSeconds:      1,
 								SuccessThreshold:    1,
-								PeriodSeconds:       10,
+								PeriodSeconds:       1,
 							},
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -141,16 +212,21 @@ func (r *ReconcileCheClusterBackup) getBackupServerDeploymentSpec(namespace stri
 		},
 	}
 
+	// Set CheClusterBackup instance as the owner and controller
+	if err := controllerutil.SetControllerReference(bctx.backupCR, deployment, bctx.r.scheme); err != nil {
+		return nil, err
+	}
+
 	return deployment, nil
 }
 
-func (r *ReconcileCheClusterBackup) EnsureDefaultBackupServerServiceExists(backupCR *orgv1.CheClusterBackup) error {
+func ensureInternalBackupServerServiceExists(bctx *BackupContext) error {
 	backupServerService := &corev1.Service{}
 	namespacedName := types.NamespacedName{
-		Namespace: backupCR.GetNamespace(),
+		Namespace: bctx.backupCR.GetNamespace(),
 		Name:      backupServerServiceName,
 	}
-	err := r.client.Get(context.TODO(), namespacedName, backupServerService)
+	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerService)
 	if err == nil {
 		// Backup server service already exists, do nothing
 		return nil
@@ -160,16 +236,12 @@ func (r *ReconcileCheClusterBackup) EnsureDefaultBackupServerServiceExists(backu
 	}
 
 	// Backup server service doesn't exists, create it
-	backupServerService, err = r.getBackupServerServiceSpec(backupCR.GetNamespace())
+	backupServerService, err = getBackupServerServiceSpec(bctx)
 	if err != nil {
 		return err
 	}
-	// Set CheClusterBackup instance as the owner and controller
-	if err := controllerutil.SetControllerReference(backupCR, backupServerService, r.scheme); err != nil {
-		return err
-	}
 	// Create backup server service
-	err = r.client.Create(context.TODO(), backupServerService)
+	err = bctx.r.client.Create(context.TODO(), backupServerService)
 	if err != nil {
 		return err
 	}
@@ -177,13 +249,18 @@ func (r *ReconcileCheClusterBackup) EnsureDefaultBackupServerServiceExists(backu
 	return nil
 }
 
-func (r *ReconcileCheClusterBackup) getBackupServerServiceSpec(namespace string) (*corev1.Service, error) {
-	cheCR, err := r.GetCheCR(namespace)
-	if err != nil {
-		return nil, err
+func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
+	namespace := bctx.backupCR.GetNamespace()
+
+	if bctx.optional.cheCR == nil {
+		cheCR, err := bctx.r.GetCheCR(namespace)
+		if err != nil {
+			return nil, err
+		}
+		bctx.optional.cheCR = cheCR
 	}
 
-	labels, _ := deploy.GetLabelsAndSelector(cheCR, deploy.PostgresName)
+	labels := deploy.GetLabels(bctx.optional.cheCR, backupServerServiceName)
 
 	port := corev1.ServicePort{
 		Name:     backupServerServiceName + "-port",
@@ -208,16 +285,24 @@ func (r *ReconcileCheClusterBackup) getBackupServerServiceSpec(namespace string)
 			Selector: labels,
 		},
 	}
+
+	// Set CheClusterBackup instance as the owner and controller
+	if err := controllerutil.SetControllerReference(bctx.backupCR, service, bctx.r.scheme); err != nil {
+		return nil, err
+	}
+
 	return service, nil
 }
 
-// EnsureInternalBackupServerConfigured makes sure that current backup server is configured to internal rest server.
-func (r *ReconcileCheClusterBackup) EnsureInternalBackupServerConfigured(backupCR *orgv1.CheClusterBackup) error {
-	shouldUpdate := false
+// ensureInternalBackupServerConfiguredAndCurrent makes sure that current backup server is configured to internal rest server.
+func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) error {
+	backupCR := bctx.backupCR
+
+	shouldUpdateCR := false
 
 	if backupCR.Spec.ServerType != InternalBackupServerType {
 		backupCR.Spec.ServerType = InternalBackupServerType
-		shouldUpdate = true
+		shouldUpdateCR = true
 	}
 
 	expectedInternalRestServerConfig := orgv1.RestServerConfing{
@@ -225,21 +310,56 @@ func (r *ReconcileCheClusterBackup) EnsureInternalBackupServerConfigured(backupC
 		Hostname: backupServerServiceName,
 		Port:     strconv.Itoa(backupServerPort),
 		Username: "user",
+		Repo:     "che",
 		RepoPassword: orgv1.RepoPassword{
-			RepoPasswordSecretRef: backupServerRepoPasswordSecretName,
+			RepoPasswordSecretRef: BackupServerRepoPasswordSecretName,
 		},
 	}
 	if backupCR.Spec.Servers.Internal != expectedInternalRestServerConfig {
 		backupCR.Spec.Servers.Internal = expectedInternalRestServerConfig
-		shouldUpdate = true
+		shouldUpdateCR = true
 	}
 
-	if shouldUpdate {
-		err := r.UpdateCR(backupCR)
+	if shouldUpdateCR {
+		err := bctx.r.UpdateCR(backupCR)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Secret, error) {
+	namespace := bctx.backupCR.GetNamespace()
+
+	if bctx.optional.cheCR == nil {
+		cheCR, err := bctx.r.GetCheCR(namespace)
+		if err != nil {
+			return nil, err
+		}
+		bctx.optional.cheCR = cheCR
+	}
+
+	labels := deploy.GetLabels(bctx.optional.cheCR, BackupServerRepoPasswordSecretName)
+	data := map[string][]byte{"repo-password": []byte(password)}
+
+	secret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      BackupServerRepoPasswordSecretName,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Data: data,
+	}
+
+	if err := controllerutil.SetControllerReference(bctx.backupCR, secret, bctx.r.scheme); err != nil {
+		return nil, err
+	}
+
+	return secret, nil
 }

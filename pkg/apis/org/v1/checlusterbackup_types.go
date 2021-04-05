@@ -18,25 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	SERVER_TYPE_INTERNAL = "internal"
-	SERVER_TYPE_SFTP     = "sftp"
-	SERVER_TYPE_REST     = "rest"
-	SERVER_TYPE_AWSS3    = "awss3"
-	SERVER_TYPE_MINIO    = "minio"
-)
-
-// ListServerTypes describes allowed values for ServerType field of CheClusterBackupSpec
-func ServerTypes() []string {
-	return []string{
-		SERVER_TYPE_INTERNAL,
-		SERVER_TYPE_SFTP,
-		SERVER_TYPE_REST,
-		SERVER_TYPE_AWSS3,
-		SERVER_TYPE_MINIO,
-	}
-}
-
 // +k8s:openapi-gen=true
 // CheClusterBackupSpec defines the desired state of CheClusterBackup
 type CheClusterBackupSpec struct {
