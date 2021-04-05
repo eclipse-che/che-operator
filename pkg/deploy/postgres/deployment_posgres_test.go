@@ -99,7 +99,8 @@ func TestDeployment(t *testing.T) {
 				Proxy: &deploy.Proxy{},
 			}
 
-			deployment, err := GetSpecPostgresDeployment(deployContext, nil)
+			postgres := NewPostgres(deployContext)
+			deployment, err := postgres.getDeploymentSpec(nil)
 			if err != nil {
 				t.Fatalf("Error creating deployment: %v", err)
 			}

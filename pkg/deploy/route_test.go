@@ -20,7 +20,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -77,14 +76,6 @@ func TestRouteSpec(t *testing.T) {
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
 					},
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion:         "org.eclipse.che/v1",
-							Kind:               "CheCluster",
-							Controller:         util.NewBoolPointer(true),
-							BlockOwnerDeletion: util.NewBoolPointer(true),
-						},
-					},
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Route",
@@ -127,14 +118,6 @@ func TestRouteSpec(t *testing.T) {
 						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
-					},
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion:         "org.eclipse.che/v1",
-							Kind:               "CheCluster",
-							Controller:         util.NewBoolPointer(true),
-							BlockOwnerDeletion: util.NewBoolPointer(true),
-						},
 					},
 				},
 				TypeMeta: metav1.TypeMeta{

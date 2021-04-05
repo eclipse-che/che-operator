@@ -107,7 +107,7 @@ func (p *Postgres) syncDeployment() (bool, error) {
 		clusterDeployment = nil
 	}
 
-	specDeployment, err := GetSpecPostgresDeployment(p.deployContext, clusterDeployment)
+	specDeployment, err := p.getDeploymentSpec(clusterDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -149,12 +149,12 @@ func (p *Postgres) provisionDB() (bool, error) {
 	return true, nil
 }
 
-func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func (p *Postgres) getDeploymentSpec(clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, deploy.PostgresName)
-	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
-	postgresImage := util.GetValue(deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(deployContext.CheCluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
+	labels, labelSelector := deploy.GetLabelsAndSelector(p.deployContext.CheCluster, deploy.PostgresName)
+	chePostgresDb := util.GetValue(p.deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
+	postgresImage := util.GetValue(p.deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(p.deployContext.CheCluster))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(p.deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	if clusterDeployment != nil {
 		clusterContainer := &clusterDeployment.Spec.Template.Spec.Containers[0]
@@ -171,7 +171,7 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploy.PostgresName,
-			Namespace: deployContext.CheCluster.Namespace,
+			Namespace: p.deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -209,18 +209,18 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
+										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
 										deploy.DefaultPostgresMemoryRequest),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
+										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
 										deploy.DefaultPostgresCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
+										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
 										deploy.DefaultPostgresMemoryLimit),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
+										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
 										deploy.DefaultPostgresCpuLimit),
 								},
 							},
@@ -284,7 +284,7 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresSecret := deployContext.CheCluster.Spec.Database.ChePostgresSecret
+	chePostgresSecret := p.deployContext.CheCluster.Spec.Database.ChePostgresSecret
 	if len(chePostgresSecret) > 0 {
 		container.Env = append(container.Env,
 			corev1.EnvVar{
@@ -312,10 +312,10 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 		container.Env = append(container.Env,
 			corev1.EnvVar{
 				Name:  "POSTGRESQL_USER",
-				Value: deployContext.CheCluster.Spec.Database.ChePostgresUser,
+				Value: p.deployContext.CheCluster.Spec.Database.ChePostgresUser,
 			}, corev1.EnvVar{
 				Name:  "POSTGRESQL_PASSWORD",
-				Value: deployContext.CheCluster.Spec.Database.ChePostgresPassword,
+				Value: p.deployContext.CheCluster.Spec.Database.ChePostgresPassword,
 			})
 	}
 

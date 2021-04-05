@@ -796,6 +796,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			return reconcile.Result{}, err
 		}
+
+		route := &routev1.Route{}
+		exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, route)
+		if !exists {
+			if err != nil {
+				logrus.Error(err)
+			}
+			return reconcile.Result{}, err
+		}
 		cheHost = route.Spec.Host
 		if customHost == "" {
 			deployContext.DefaultCheHost = cheHost
