@@ -12,8 +12,13 @@
 package postgres
 
 import (
+	"fmt"
+
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,9 +29,76 @@ var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
+type Postgres struct {
+	deployContext *deploy.DeployContext
+	isMultiUser   bool
+}
+
+func NewPostgres(deployContext *deploy.DeployContext) *Postgres {
+	return &Postgres{
+		deployContext: deployContext,
+		isMultiUser:   deploy.GetCheMultiUser(deployContext.CheCluster) == "true",
+	}
+}
+
+func (p *Postgres) Sync() (bool, error) {
+	if p.deployContext.CheCluster.Spec.Database.ExternalDb {
+		return true, nil
+	}
+
+	done, err := p.syncService()
+	if !done {
+		return false, err
+	}
+
+	done, err = p.syncPVC()
+	if !done {
+		return false, err
+	}
+
+	done, err = p.syncDeployment()
+	if !done {
+		return false, err
+	}
+
+	if !p.deployContext.CheCluster.Status.DbProvisoned {
+		if !util.IsTestMode() { // ignore in tests
+			done, err = p.provisionDB()
+			if !done {
+				return false, err
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func (p *Postgres) syncService() (bool, error) {
+	if !p.isMultiUser {
+		return deploy.DeleteNamespacedObject(p.deployContext, deploy.PostgresName, &corev1.Service{})
+	}
+	return deploy.SyncServiceToCluster(p.deployContext, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
+}
+
+func (p *Postgres) syncPVC() (bool, error) {
+	if !p.isMultiUser {
+		return deploy.DeleteNamespacedObject(p.deployContext, deploy.DefaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
+	}
+
+	done, err := deploy.SyncPVCToCluster(p.deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
+	if !done {
+		logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
+	}
+	return done, err
+}
+
+func (p *Postgres) syncDeployment() (bool, error) {
+	if !p.isMultiUser {
+		return deploy.DeleteNamespacedObject(p.deployContext, deploy.PostgresName, &appsv1.Deployment{})
+	}
+
 	clusterDeployment := &appsv1.Deployment{}
-	exists, err := deploy.GetNamespacedObject(deployContext, deploy.PostgresName, clusterDeployment)
+	exists, err := deploy.GetNamespacedObject(p.deployContext, deploy.PostgresName, clusterDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -35,20 +107,49 @@ func SyncPostgresDeploymentToCluster(deployContext *deploy.DeployContext) (bool,
 		clusterDeployment = nil
 	}
 
-	specDeployment, err := GetSpecPostgresDeployment(deployContext, clusterDeployment)
+	specDeployment, err := GetSpecPostgresDeployment(p.deployContext, clusterDeployment)
 	if err != nil {
 		return false, err
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
+	return deploy.SyncDeploymentSpecToCluster(p.deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
+}
+
+func (p *Postgres) provisionDB() (bool, error) {
+	identityProviderPostgresPassword := p.deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword
+	identityProviderPostgresSecret := p.deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
+	if identityProviderPostgresSecret != "" {
+		secret := &corev1.Secret{}
+		exists, err := deploy.GetNamespacedObject(p.deployContext, identityProviderPostgresSecret, secret)
+		if err != nil {
+			return false, err
+		} else if !exists {
+			return false, fmt.Errorf("Secret '%s' not found", identityProviderPostgresSecret)
+		}
+		identityProviderPostgresPassword = string(secret.Data["password"])
+	}
+
+	_, err := util.K8sclient.ExecIntoPod(
+		p.deployContext.CheCluster,
+		deploy.PostgresName,
+		func(cr *orgv1.CheCluster) (string, error) {
+			return identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword), nil
+		},
+		"create Keycloak DB, user, privileges")
+	if err != nil {
+		return false, err
+	}
+
+	p.deployContext.CheCluster.Status.DbProvisoned = true
+	err = deploy.UpdateCheCRStatus(p.deployContext, "status: provisioned with DB and user", "true")
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
-	isOpenShift, _, err := util.DetectOpenShift()
-	if err != nil {
-		return nil, err
-	}
-
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(deployContext.CheCluster, deploy.PostgresName)
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
@@ -218,7 +319,7 @@ func GetSpecPostgresDeployment(deployContext *deploy.DeployContext, clusterDeplo
 			})
 	}
 
-	if !isOpenShift {
+	if !util.IsOpenShift {
 		var runAsUser int64 = 26
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
 			RunAsUser: &runAsUser,

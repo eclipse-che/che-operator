@@ -315,7 +315,7 @@ func doGet(client client.Client, key client.ObjectKey, object runtime.Object) (b
 }
 
 func isUpdateUsingDeleteCreate(kind string) bool {
-	return "Service" == kind || "Ingress" == kind || "Route" == kind || "Job" == kind
+	return "Service" == kind || "Ingress" == kind || "Route" == kind || "Job" == kind || "Secret" == kind
 }
 
 func setOwnerReferenceIfNeeded(deployContext *DeployContext, blueprint metav1.Object) error {

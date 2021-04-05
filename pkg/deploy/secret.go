@@ -13,10 +13,8 @@ package deploy
 
 import (
 	"context"
-	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -34,69 +32,14 @@ var secretDiffOpts = cmp.Options{
 }
 
 // SyncSecret applies secret into cluster or external namespace
-func SyncSecret(
+func SyncSecretToCluster(
 	deployContext *DeployContext,
 	name string,
 	namespace string,
-	data map[string][]byte) (*corev1.Secret, error) {
+	data map[string][]byte) (bool, error) {
 
-	specSecret, err := GetSpecSecret(deployContext, name, namespace, data)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterSecret, err := GetSecret(deployContext, specSecret.Name, specSecret.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterSecret == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specSecret.Kind, specSecret.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specSecret)
-		return specSecret, err
-	}
-
-	diff := cmp.Diff(clusterSecret, specSecret, secretDiffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterSecret.Kind, clusterSecret.Name)
-		fmt.Printf("Difference:\n%s", diff)
-
-		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterSecret)
-		if err != nil {
-			return nil, err
-		}
-
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), specSecret)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return clusterSecret, nil
-}
-
-// GetSecret retrieves given secret from cluster
-func GetSecret(deployContext *DeployContext, name string, namespace string) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-
-	var err error
-	if namespace == deployContext.CheCluster.ObjectMeta.Namespace {
-		err = deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret)
-	} else {
-		err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), namespacedName, secret)
-	}
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return secret, nil
+	secretSpec := GetSecretSpec(deployContext, name, namespace, data)
+	return Sync(deployContext, secretSpec, secretDiffOpts)
 }
 
 // Get all secrets by labels and annotations
@@ -139,8 +82,8 @@ func GetSecrets(deployContext *DeployContext, labels map[string]string, annotati
 	return secrets, nil
 }
 
-// GetSpecSecret return default secret config for given data
-func GetSpecSecret(deployContext *DeployContext, name string, namespace string, data map[string][]byte) (*corev1.Secret, error) {
+// GetSecretSpec return default secret config for given data
+func GetSecretSpec(deployContext *DeployContext, name string, namespace string, data map[string][]byte) *corev1.Secret {
 	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -155,14 +98,7 @@ func GetSpecSecret(deployContext *DeployContext, name string, namespace string, 
 		Data: data,
 	}
 
-	if deployContext.CheCluster.Namespace == namespace {
-		err := controllerutil.SetControllerReference(deployContext.CheCluster, secret, deployContext.ClusterAPI.Scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return secret, nil
+	return secret
 }
 
 // CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from the given url.
@@ -177,31 +113,10 @@ func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name 
 			return err
 		}
 
-		secret, err = SyncSecret(deployContext, name, deployContext.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
+		_, err = SyncSecretToCluster(deployContext, name, deployContext.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-// DeleteSecret - delete secret by name and namespace
-func DeleteSecret(secretName string, namespace string, runtimeClient client.Client) error {
-	logrus.Infof("Delete secret: %s in the namespace: %s", secretName, namespace)
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-	}
-
-	if err := runtimeClient.Delete(context.TODO(), secret); err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
 	}
 
 	return nil

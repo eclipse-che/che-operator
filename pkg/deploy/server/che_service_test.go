@@ -13,8 +13,9 @@ package server
 
 import (
 	"fmt"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"testing"
+
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,11 +45,7 @@ func TestCreateCheDefaultService(t *testing.T) {
 		CheCluster: cheCluster,
 		ClusterAPI: deploy.ClusterAPI{},
 	}
-	service, err := GetSpecCheService(deployContext)
-
-	if service == nil || err != nil {
-		t.Error("service should be created witn no error")
-	}
+	service := GetSpecCheService(deployContext)
 	ports := service.Spec.Ports
 	if len(ports) != 1 {
 		t.Error("expected 1 default port")
@@ -69,11 +66,7 @@ func TestCreateCheServerDebug(t *testing.T) {
 		ClusterAPI: deploy.ClusterAPI{},
 	}
 
-	service, err := GetSpecCheService(deployContext)
-
-	if service == nil || err != nil {
-		t.Error("service should be created without error")
-	}
+	service := GetSpecCheService(deployContext)
 	ports := service.Spec.Ports
 	if len(ports) != 2 {
 		t.Error("expected 2 default port")
@@ -96,11 +89,7 @@ func TestCreateCheServiceEnableMetrics(t *testing.T) {
 		ClusterAPI: deploy.ClusterAPI{},
 	}
 
-	service, err := GetSpecCheService(deployContext)
-
-	if service == nil || err != nil {
-		t.Error("service should be created witn no error")
-	}
+	service := GetSpecCheService(deployContext)
 	ports := service.Spec.Ports
 	if len(ports) != 1 {
 		t.Error("expected 1 default port")
@@ -122,11 +111,7 @@ func TestCreateCheServiceDisableMetrics(t *testing.T) {
 		ClusterAPI: deploy.ClusterAPI{},
 	}
 
-	service, err := GetSpecCheService(deployContext)
-
-	if service == nil || err != nil {
-		t.Error("service should be created witn no error")
-	}
+	service := GetSpecCheService(deployContext)
 	ports := service.Spec.Ports
 	if len(ports) != 2 {
 		t.Error("expected 2 ports")

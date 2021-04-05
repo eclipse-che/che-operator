@@ -64,14 +64,12 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 }
 
 func syncService(deployContext *deploy.DeployContext) (bool, error) {
-	serviceStatus := deploy.SyncServiceToCluster(
+	return deploy.SyncServiceToCluster(
 		deployContext,
 		deploy.IdentityProviderName,
 		[]string{"http"},
 		[]int32{8080},
 		deploy.IdentityProviderName)
-
-	return serviceStatus.Continue, serviceStatus.Err
 }
 
 func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
@@ -165,7 +163,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	keycloakURL := cr.Spec.Auth.IdentityProviderURL
 	cheFlavor := deploy.DefaultCheFlavor(cr)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
+	oAuthClient := deploy.GetOAuthClientSpec(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
 	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
 	if !provisioned {
 		return false, err

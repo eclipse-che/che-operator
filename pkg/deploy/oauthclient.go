@@ -23,7 +23,7 @@ const (
 	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 )
 
-func NewOAuthClient(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
+func GetOAuthClientSpec(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
 	providerName := "openshift-v3"
 	if isOpenShift4 {
 		providerName = "openshift-v4"

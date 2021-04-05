@@ -23,6 +23,7 @@ import (
 	oauthv1 "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -79,8 +80,14 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	}
 
 	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
-	credentionalSecret, err := deploy.SyncSecret(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData)
-	if credentionalSecret == nil {
+	done, err := deploy.SyncSecretToCluster(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData)
+	if !done {
+		return false, err
+	}
+
+	credentionalSecret := &corev1.Secret{}
+	exists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, credentionalSecret)
+	if !exists {
 		return false, err
 	}
 
@@ -93,8 +100,8 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	}
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
-	secret, err := deploy.SyncSecret(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData)
-	if secret == nil {
+	done, err = deploy.SyncSecretToCluster(deployContext, htpasswdSecretName, ocConfigNamespace, htpasswdFileSecretData)
+	if !done {
 		return false, err
 	}
 
@@ -127,11 +134,13 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 		return err
 	}
 
-	if err := deploy.DeleteSecret(htpasswdSecretName, ocConfigNamespace, iuh.runtimeClient); err != nil {
+	_, err = deploy.Delete(deployContext, types.NamespacedName{Name: htpasswdSecretName, Namespace: ocConfigNamespace}, &corev1.Secret{})
+	if err != nil {
 		return err
 	}
 
-	if err := deploy.DeleteSecret(openShiftOAuthUserCredentialsSecret, cr.Namespace, iuh.runtimeClient); err != nil {
+	_, err = deploy.DeleteNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, &corev1.Secret{})
+	if err != nil {
 		return err
 	}
 

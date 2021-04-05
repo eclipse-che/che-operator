@@ -16,6 +16,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	extentionsv1beta1 "k8s.io/api/extensions/v1beta1"
 )
@@ -96,14 +97,15 @@ func Expose(
 				}
 				return "", false, err
 			}
-			if err := deploy.DeleteRouteIfExists(endpointName, deployContext); !util.IsTestMode() && err != nil {
+
+			_, err = deploy.DeleteNamespacedObject(deployContext, endpointName, &routev1.Route{})
+			if err != nil {
 				logrus.Error(err)
 			}
 		} else {
 			// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-			route, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, routeCustomSettings, component)
-			if route == nil {
-				logrus.Infof("Waiting on route '%s' to be ready", endpointName)
+			done, err := deploy.SyncRouteToCluster(deployContext, endpointName, "", endpointName, 8080, routeCustomSettings, component)
+			if !done {
 				if err != nil {
 					logrus.Error(err)
 				}
@@ -112,6 +114,15 @@ func Expose(
 
 			if err := gateway.DeleteGatewayRouteConfig(gatewayConfig, deployContext); !util.IsTestMode() && err != nil {
 				logrus.Error(err)
+			}
+
+			route := &routev1.Route{}
+			exists, err := deploy.GetNamespacedObject(deployContext, endpointName, route)
+			if !exists {
+				if err != nil {
+					logrus.Error(err)
+				}
+				return "", false, err
 			}
 
 			endpoint = route.Spec.Host

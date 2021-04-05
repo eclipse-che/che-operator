@@ -135,7 +135,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 		if util.IsOpenShift {
 			// Create test route to get certificates chain.
 			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-			routeSpec, err := GetSpecRoute(
+			routeSpec, err := GetRouteSpec(
 				deployContext,
 				"test",
 				"",
@@ -167,7 +167,8 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			var route *routev1.Route
 			for wait := true; wait; {
 				time.Sleep(time.Duration(1) * time.Second)
-				route, err = GetClusterRoute(routeSpec.Name, routeSpec.Namespace, deployContext.ClusterAPI.Client)
+				route := &routev1.Route{}
+				_, err := GetNamespacedObject(deployContext, routeSpec.Name, route)
 				if err != nil {
 					return nil, err
 				}
@@ -322,12 +323,12 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		}
 
 		// Prepare permissions for the certificate generation job
-		sa, err := SyncServiceAccountToCluster(deployContext, CheTLSJobServiceAccountName)
-		if sa == nil {
+		done, err := SyncServiceAccountToCluster(deployContext, CheTLSJobServiceAccountName)
+		if !done {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		done, err := SyncTLSRoleToCluster(deployContext)
+		done, err = SyncTLSRoleToCluster(deployContext)
 		if !done {
 			return reconcile.Result{}, err
 		}

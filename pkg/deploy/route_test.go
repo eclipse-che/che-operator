@@ -12,6 +12,7 @@
 package deploy
 
 import (
+	"context"
 	"os"
 	"reflect"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -172,7 +174,7 @@ func TestRouteSpec(t *testing.T) {
 				},
 			}
 
-			actualRoute, err := GetSpecRoute(deployContext,
+			actualRoute, err := GetRouteSpec(deployContext,
 				testCase.routeName,
 				testCase.routeHost,
 				testCase.serviceName,
@@ -188,5 +190,62 @@ func TestRouteSpec(t *testing.T) {
 				t.Errorf("Expected route and route returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedRoute, actualRoute))
 			}
 		})
+	}
+}
+
+func TestSyncRouteToCluster(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	done, err := SyncRouteToCluster(deployContext, "test", "", "service", 80, orgv1.RouteCustomSettings{}, "test")
+	if !done || err != nil {
+		t.Fatalf("Failed to sync route: %v", err)
+	}
+
+	// sync another route
+	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, orgv1.RouteCustomSettings{}, "test")
+	if !done || err != nil {
+		t.Fatalf("Failed to sync route: %v", err)
+	}
+
+	actual := &routev1.Route{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to get route: %v", err)
+	}
+	if actual.Spec.Port.TargetPort.IntVal != 90 {
+		t.Fatalf("Failed to sync route: %v", err)
+	}
+
+	// sync route with labels & domain
+	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, orgv1.RouteCustomSettings{Labels: "a=b", Domain: "domain"}, "test")
+	if !done || err != nil {
+		t.Fatalf("Failed to sync route: %v", err)
+	}
+
+	actual = &routev1.Route{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to get route: %v", err)
+	}
+	if actual.ObjectMeta.Labels["a"] != "b" {
+		t.Fatalf("Failed to sync route")
+	}
+	if actual.Spec.Host != "test-eclipse-che.domain" {
+		t.Fatalf("Failed to sync route")
 	}
 }
