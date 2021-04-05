@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	corev1 "k8s.io/api/core/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,5 +117,30 @@ func TestDeployment(t *testing.T) {
 
 			util.ValidateSecurityContext(deployment, t)
 		})
+	}
+}
+
+func TestSyncPostgresToCluster(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &deploy.DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	postgres := NewPostgres(deployContext)
+	done, err := postgres.Sync()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync PostgreSQL: %v", err)
 	}
 }
