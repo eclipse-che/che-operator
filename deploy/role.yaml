@@ -82,6 +82,7 @@ rules:
   - checlusters/status
   - checlusters/finalizers
   - checlusterbackups
+  - checlusterrestores
   verbs:
   - '*'
 - apiGroups:

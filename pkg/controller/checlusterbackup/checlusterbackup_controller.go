@@ -99,38 +99,70 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, nil
 	}
 
-	// Make sure, that CR configuration is valid
-	done, err := CheckBackupSettings(bctx)
+	// Pre-set is done, do actual reconcile job
+	done, err := doReconcile(bctx)
 	if err != nil {
-		// An error happened while processing CR data
+		// Log the error, so user can see it
 		logrus.Error(err)
 		if !done {
+			// Reconcile because the job is not done yet.
+			// Probably the error is related to reading some object from cluster, etc.
 			return reconcile.Result{}, err
 		}
 		// Do not reconcile despite the fact that an error happened.
+		// The error cannot be handled automatically by the operator, so the user has to deal with it in manual mode.
 		// For example, config in the backup CR is invalid, but we do not requeue as user has to correct it.
 		// After a modification in the backup CR, a new reconcile loop will be trigerred.
 		return reconcile.Result{}, nil
 	}
 	if !done {
+		// There was no error, but it is required to proceed after some delay,
+		// e.g wait ubntil some resources are flushed and/or ready.
 		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
-	if backupCR.Spec.TriggerNow {
-		// Should create a backup
-		if err := r.CreateBackup(backupCR); err != nil {
-			// An error happened while creating backup
-			return reconcile.Result{}, err
-		}
-
-		// Backup is successfull
-		backupCR.Spec.TriggerNow = false
-		backupCR.Status.Message = "Backup successfully finished"
-		r.UpdateCR(backupCR)
 	}
 
 	// Job is done
 	return reconcile.Result{}, nil
+}
+
+func doReconcile(bctx *BackupContext) (bool, error) {
+	// Check if internal backup server is needed
+	if bctx.backupCR.Spec.AutoconfigureRestBackupServer {
+		// Use internal REST backup server
+		done, err := ConfigureInternalBackupServer(bctx)
+		if err != nil || !done {
+			return done, err
+		}
+	}
+
+	// Make sure, that backup server configuration in the CR is valid
+	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.backupCR.GetNamespace())
+	if err != nil || !done {
+		return done, err
+	}
+
+	// Do backup if requested
+	if bctx.backupCR.Spec.TriggerNow {
+		// Check if credentials provided in the configuration can be used to reach backup server content
+		done, err := bctx.backupServer.CheckRepository()
+		if err != nil || !done {
+			return done, err
+		}
+
+		// Should create a backup
+		// done, err := CreateBackup(backupCR)
+		if err != nil || !done {
+			// An error happened while creating backup
+			return done, err
+		}
+
+		// Backup is successfull
+		bctx.backupCR.Spec.TriggerNow = false
+		bctx.backupCR.Status.Message = "Backup successfully finished"
+		bctx.r.UpdateCR(bctx.backupCR)
+	}
+
+	return true, nil
 }
 
 func (r *ReconcileCheClusterBackup) UpdateCR(cr *orgv1.CheClusterBackup) error {

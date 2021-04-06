@@ -13,12 +13,13 @@ package checlusterbackup
 
 import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	backup "github.com/eclipse-che/che-operator/pkg/backup_servers"
 )
 
 type BackupContext struct {
 	r            *ReconcileCheClusterBackup
 	backupCR     *orgv1.CheClusterBackup
-	backupServer BackupServer
+	backupServer backup.BackupServer
 	optional     backupContextOptional
 }
 
@@ -27,7 +28,7 @@ type backupContextOptional struct {
 }
 
 func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *orgv1.CheClusterBackup) (*BackupContext, error) {
-	backupServer, err := GetCurrentBackupServer(backupCR)
+	backupServer, err := backup.NewBackupServer(backupCR.Spec.Servers, backupCR.Spec.ServerType)
 	if err != nil {
 		return nil, err
 	}
