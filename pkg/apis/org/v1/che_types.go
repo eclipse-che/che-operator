@@ -139,6 +139,28 @@ type CheClusterSpecServer struct {
 	// The default value is `true`.
 	// +optional
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
+	// Overrides the container image used in the dashboard deployment.
+	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// +optional
+	DashboardImage string `json:"dashboardImage,omitempty"`
+	// Overrides the image pull policy used in the dashboard deployment.
+	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// +optional
+	DashboardImagePullPolicy string `json:"dashboardImagePullPolicy,omitempty"`
+	// Overrides the memory limit used in the dashboard deployment. Defaults to 256Mi.
+	// +optional
+	DashboardMemoryLimit string `json:"dashboardMemoryLimit,omitempty"`
+	// Overrides the memory request used in the dashboard deployment. Defaults to 16Mi.
+	// +optional
+	DashboardMemoryRequest string `json:"dashboardMemoryRequest,omitempty"`
+	// Overrides the CPU limit used in the dashboard deployment.
+	// In cores. (500m = .5 cores). Default to 500m.
+	// +optional
+	DashboardCpuLimit string `json:"dashboardCpuLimit,omitempty"`
+	// Overrides the CPU request used in the dashboard deployment.
+	// In cores. (500m = .5 cores). Default to 100m.
+	// +optional
+	DashboardCpuRequest string `json:"dashboardCpuRequest,omitempty"`
 	// Public URL of the devfile registry, that serves sample, ready-to-use devfiles.
 	// Set this ONLY when a use of an external devfile registry is needed. See the `externalDevfileRegistry` field.
 	// By default, this will be automatically calculated by the Operator.

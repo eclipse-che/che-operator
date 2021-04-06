@@ -20,6 +20,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -801,6 +802,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 				return reconcile.Result{}, err
 			}
 		}
+	}
+
+	d := dashboard.NewDashboard(deployContext)
+	done, err = d.SyncAll()
+	if !done {
+		if err != nil {
+			logrus.Errorf("Error provisioning '%s' to cluster: %v", dashboard.DashboardComponent, err)
+		}
+		return reconcile.Result{}, err
 	}
 
 	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited

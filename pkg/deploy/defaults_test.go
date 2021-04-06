@@ -26,7 +26,7 @@ func TestDefaultFromEnv(t *testing.T) {
 	cheVersionTest := os.Getenv("CHE_VERSION")
 
 	cheServerImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
-
+	dashboardImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
 	pluginRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	devfileRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	pvcJobsImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
@@ -48,6 +48,10 @@ func TestDefaultFromEnv(t *testing.T) {
 
 	if DefaultCheServerImage(cheCluster) != cheServerImageTest {
 		t.Errorf("Expected %s but was %s", cheServerImageTest, DefaultCheServerImage(cheCluster))
+	}
+
+	if DefaultDashboardImage(cheCluster) != dashboardImageTest {
+		t.Errorf("Expected %s but was %s", dashboardImageTest, DefaultDashboardImage(cheCluster))
 	}
 
 	if DefaultPluginRegistryImage(cheCluster) != pluginRegistryImageTest {
