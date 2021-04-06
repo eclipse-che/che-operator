@@ -37,6 +37,7 @@ func TestIngressSpec(t *testing.T) {
 		name                  string
 		ingressName           string
 		ingressHost           string
+		ingressPath           string
 		ingressComponent      string
 		serviceName           string
 		servicePort           int
@@ -57,6 +58,7 @@ func TestIngressSpec(t *testing.T) {
 			ingressName:      "test",
 			ingressComponent: "test-component",
 			ingressHost:      "test-host",
+			ingressPath:      "",
 			serviceName:      "che",
 			servicePort:      8080,
 			ingressCustomSettings: orgv1.IngressCustomSettings{
@@ -124,9 +126,10 @@ func TestIngressSpec(t *testing.T) {
 				},
 			}
 
-			actualIngress := GetIngressSpec(deployContext,
+			_, actualIngress := GetIngressSpec(deployContext,
 				testCase.ingressName,
 				testCase.ingressHost,
+				testCase.ingressPath,
 				testCase.serviceName,
 				testCase.servicePort,
 				testCase.ingressCustomSettings,
@@ -157,12 +160,12 @@ func TestSyncIngressToCluster(t *testing.T) {
 		},
 	}
 
-	done, err := SyncIngressToCluster(deployContext, "test", "host-1", "service-1", 8080, orgv1.IngressCustomSettings{}, "component")
+	_, done, err := SyncIngressToCluster(deployContext, "test", "host-1", "", "service-1", 8080, orgv1.IngressCustomSettings{}, "component")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync ingress: %v", err)
 	}
 
-	done, err = SyncIngressToCluster(deployContext, "test", "host-2", "service-2", 8080, orgv1.IngressCustomSettings{}, "component")
+	_, done, err = SyncIngressToCluster(deployContext, "test", "host-2", "", "service-2", 8080, orgv1.IngressCustomSettings{}, "component")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync ingress: %v", err)
 	}

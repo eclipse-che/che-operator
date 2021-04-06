@@ -29,7 +29,7 @@ func GetOAuthClientSpec(name string, oauthSecret string, keycloakURL string, key
 		providerName = "openshift-v4"
 	}
 
-	redirectURLSuffix := "/auth/realms/" + keycloakRealm + "/broker/" + providerName + "/endpoint"
+	redirectURLSuffix := "/realms/" + keycloakRealm + "/broker/" + providerName + "/endpoint"
 	redirectURIs := []string{
 		keycloakURL + redirectURLSuffix,
 	}

@@ -540,7 +540,7 @@ func GetSpecKeycloakDeployment(
 		if cheFlavor == "codeready" {
 			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
 				Name:  "KEYCLOAK_FRONTEND_URL",
-				Value: deployContext.CheCluster.Status.KeycloakURL + "/auth",
+				Value: deployContext.CheCluster.Status.KeycloakURL,
 			})
 		}
 	}

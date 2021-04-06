@@ -80,11 +80,9 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 		false: "http"})[cr.Spec.Server.TlsSupport]
 	endpoint, done, err := expose.Expose(
 		deployContext,
-		cr.Spec.Server.CheHost,
 		deploy.IdentityProviderName,
 		cr.Spec.Auth.IdentityProviderRoute,
-		cr.Spec.Auth.IdentityProviderIngress,
-		deploy.IdentityProviderName)
+		cr.Spec.Auth.IdentityProviderIngress)
 	if !done {
 		return false, err
 	}

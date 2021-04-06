@@ -31,16 +31,14 @@ type DevFileRegistryConfigMap struct {
 /**
  * Create devfile registry resources unless an external registry is used.
  */
-func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost string) (bool, error) {
+func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	devfileRegistryURL := deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
 		endpoint, done, err := expose.Expose(
 			deployContext,
-			cheHost,
 			deploy.DevfileRegistryName,
 			deployContext.CheCluster.Spec.Server.DevfileRegistryRoute,
-			deployContext.CheCluster.Spec.Server.DevfileRegistryIngress,
-			deploy.DevfileRegistryName)
+			deployContext.CheCluster.Spec.Server.DevfileRegistryIngress)
 		if !done {
 			return false, err
 		}

@@ -749,10 +749,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
 	if !isOpenShift {
-		done, err := deploy.SyncIngressToCluster(
+		_, done, err := deploy.SyncIngressToCluster(
 			deployContext,
 			cheFlavor,
-			instance.Spec.Server.CheHost,
+			instance.Spec.K8s.IngressDomain,
+			"",
 			exposedServiceName,
 			8080,
 			deployContext.CheCluster.Spec.Server.CheServerIngress,
@@ -786,6 +787,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			deployContext,
 			cheFlavor,
 			customHost,
+			"",
 			exposedServiceName,
 			8080,
 			deployContext.CheCluster.Spec.Server.CheServerRoute,
@@ -829,7 +831,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = devfile_registry.SyncDevfileRegistryToCluster(deployContext, cheHost)
+	provisioned, err = devfile_registry.SyncDevfileRegistryToCluster(deployContext)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -839,7 +841,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = plugin_registry.SyncPluginRegistryToCluster(deployContext, cheHost)
+	provisioned, err = plugin_registry.SyncPluginRegistryToCluster(deployContext)
 	if !tests {
 		if !provisioned {
 			if err != nil {
@@ -969,6 +971,7 @@ func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 	done, err := deploy.SyncRouteToCluster(
 		deployContext,
 		cheFlavor,
+		"",
 		"",
 		getServerExposingServiceName(deployContext.CheCluster),
 		8080,

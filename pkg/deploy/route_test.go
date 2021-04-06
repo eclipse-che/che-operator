@@ -39,6 +39,7 @@ func TestRouteSpec(t *testing.T) {
 		name                string
 		routeName           string
 		routeHost           string
+		routePath           string
 		routeComponent      string
 		serviceName         string
 		servicePort         int32
@@ -160,6 +161,7 @@ func TestRouteSpec(t *testing.T) {
 			actualRoute, err := GetRouteSpec(deployContext,
 				testCase.routeName,
 				testCase.routeHost,
+				testCase.routePath,
 				testCase.serviceName,
 				testCase.servicePort,
 				testCase.routeCustomSettings,
@@ -194,13 +196,13 @@ func TestSyncRouteToCluster(t *testing.T) {
 		},
 	}
 
-	done, err := SyncRouteToCluster(deployContext, "test", "", "service", 80, orgv1.RouteCustomSettings{}, "test")
+	done, err := SyncRouteToCluster(deployContext, "test", "", "", "service", 80, orgv1.RouteCustomSettings{}, "test")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync route: %v", err)
 	}
 
 	// sync another route
-	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, orgv1.RouteCustomSettings{}, "test")
+	done, err = SyncRouteToCluster(deployContext, "test", "", "", "service", 90, orgv1.RouteCustomSettings{}, "test")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync route: %v", err)
 	}
@@ -215,7 +217,7 @@ func TestSyncRouteToCluster(t *testing.T) {
 	}
 
 	// sync route with labels & domain
-	done, err = SyncRouteToCluster(deployContext, "test", "", "service", 90, orgv1.RouteCustomSettings{Labels: "a=b", Domain: "domain"}, "test")
+	done, err = SyncRouteToCluster(deployContext, "test", "", "", "service", 90, orgv1.RouteCustomSettings{Labels: "a=b", Domain: "domain"}, "test")
 	if !done || err != nil {
 		t.Fatalf("Failed to sync route: %v", err)
 	}
