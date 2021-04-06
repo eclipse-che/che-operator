@@ -207,9 +207,9 @@ func GetServerExposureStrategy(c *orgv1.CheCluster) string {
 	 } else if c.Spec.DevWorkspace.Enable {
 		return "single-host"
 	 } else if IsOpenShift {
-		 return "multi-host"
+		return "multi-host"
 	 } else {
-		  return GetValue(c.Spec.K8s.IngressStrategy, "multi-host")
+		return GetValue(c.Spec.K8s.IngressStrategy, "multi-host")
 	 }
 }
 

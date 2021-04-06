@@ -496,23 +496,12 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
-			if testCase.devWorkspaceEnabled {
-				cr := &orgv1.CheCluster{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr); err != nil {
-					t.Errorf("CR not found")
-				}
-				if !reflect.DeepEqual(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy) {
-					t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy))
-				}
+			cr := &orgv1.CheCluster{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr); err != nil {
+				t.Errorf("CR not found")
 			}
-			if !testCase.devWorkspaceEnabled {
-				cr := &orgv1.CheCluster{}
-				if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr); err != nil {
-					t.Errorf("CR not found")
-				}
-				if !reflect.DeepEqual(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy) {
-					t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy))
-				}
+			if !reflect.DeepEqual(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy) {
+				t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy))
 			}
 		})
 	}

@@ -241,6 +241,11 @@ setServerExposureStrategy() {
   yq -rSY '.spec.server.serverExposureStrategy = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
+enableDevWorkspace() {
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -rSY '.spec.devworkspace.enable = "${2:-false}"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+}
+
 setSingleHostExposureType() {
   local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.k8s.singleHostExposureType = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}

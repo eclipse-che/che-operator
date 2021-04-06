@@ -351,11 +351,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// Reconcile finalizers before CR is deleted
 	r.reconcileFinalizers(deployContext)
 
-	// Set CR Server Exposure strategy
-	if err := ensureServerExposureStrategy(deployContext); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// Reconcile the imagePuller section of the CheCluster
 	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
 	if err != nil {
@@ -1246,17 +1241,6 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 			}
 		}
 	}
-}
-
-func ensureServerExposureStrategy(deployContext *deploy.DeployContext) (err error) {
-	if deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "" && deployContext.CheCluster.Spec.K8s.IngressStrategy == "" {
-		strategy := util.GetServerExposureStrategy(deployContext.CheCluster)
-		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = strategy
-		if err := deploy.UpdateCheCRSpec(deployContext, "serverExposureStrategy", strategy); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (r *ReconcileChe) GetCR(request reconcile.Request) (instance *orgv1.CheCluster, err error) {
