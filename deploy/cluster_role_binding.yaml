@@ -19,7 +19,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: che-operator
-    namespace: che
+    namespace: eclipse-che
 roleRef:
   kind: ClusterRole
   name: che-operator
