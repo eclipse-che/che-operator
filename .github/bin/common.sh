@@ -243,7 +243,7 @@ setServerExposureStrategy() {
 
 enableDevWorkspace() {
   local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.devworkspace.enable = "${2:-false}"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  yq -rSY '.spec.devworkspace.enable = "${2}"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setSingleHostExposureType() {

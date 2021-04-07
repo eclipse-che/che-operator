@@ -667,7 +667,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		cheClusterRoles := strings.Split(instance.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := deploy.GetUniqueClusterRoleBindingName(deployContext, CheServiceAccountName, cheClusterRole)
+			cheClusterRoleBindingName := cheClusterRole
 			done, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, cheClusterRoleBindingName, CheServiceAccountName, cheClusterRole)
 			if !tests {
 				if !done {
@@ -1235,8 +1235,14 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 		cheClusterRoles := strings.Split(deployContext.CheCluster.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := deploy.GetUniqueClusterRoleBindingName(deployContext, CheServiceAccountName, cheClusterRole)
+			cheClusterRoleBindingName := cheClusterRole
 			if err := deploy.ReconcileClusterRoleBindingFinalizer(deployContext, cheClusterRoleBindingName); err != nil {
+				logrus.Error(err)
+			}
+
+			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
+			cheClusterRoleBindingName = deploy.GetLegacyUniqueClusterRoleBindingName(deployContext, CheServiceAccountName, cheClusterRole)
+			if err := deploy.ReconcileLegacyClusterRoleBindingFinalizer(deployContext, cheClusterRoleBindingName); err != nil {
 				logrus.Error(err)
 			}
 		}

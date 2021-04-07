@@ -28,6 +28,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	"github.com/eclipse-che/che-operator/pkg/apis"
 	"github.com/eclipse-che/che-operator/pkg/controller"
@@ -152,6 +153,12 @@ func main() {
 	}
 
 	if err := operatorsv1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	// the v1beta1 is not added to the scheme by default, so we need to add that manually
+	if err := apiextensionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

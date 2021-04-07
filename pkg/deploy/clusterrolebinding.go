@@ -41,18 +41,31 @@ func SyncClusterRoleBindingAndAddFinalizerToCluster(
 	serviceAccountName string,
 	clusterRoleName string) (bool, error) {
 
-	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrolebinding")
+	finalizer := GetFinalizerName(strings.ToLower(name) + ".crb")
 	crbSpec := getClusterRoleBindingSpec(deployContext, name, serviceAccountName, clusterRoleName)
 	return SyncAndAddFinalizer(deployContext, crbSpec, crbDiffOpts, finalizer)
 }
 
 func ReconcileClusterRoleBindingFinalizer(deployContext *DeployContext, name string) error {
-	finalizer := GetFinalizerName(strings.ToLower(name) + ".clusterrolebinding")
+	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
+	finalizer := GetFinalizerName(strings.ToLower(name) + ".crb")
 	return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}, finalizer)
 }
 
-func GetUniqueClusterRoleBindingName(deployContext *DeployContext, serviceAccount string, clusterRole string) string {
+func GetLegacyUniqueClusterRoleBindingName(deployContext *DeployContext, serviceAccount string, clusterRole string) string {
 	return deployContext.CheCluster.Namespace + "-" + serviceAccount + "-" + clusterRole
+}
+
+func ReconcileLegacyClusterRoleBindingFinalizer(deployContext *DeployContext, name string) error {
+	if deployContext.CheCluster.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
+	finalizer := strings.ToLower(name) + ".clusterrolebinding.finalizers.che.eclipse.org"
+	return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}, finalizer)
 }
 
 func getClusterRoleBindingSpec(

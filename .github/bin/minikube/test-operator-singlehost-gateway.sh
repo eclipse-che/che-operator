@@ -25,6 +25,7 @@ trap "catchFinish" EXIT SIGINT
 prepareTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
+  # Enabling by default devworkspace che operator automatically choose `single-host` strategy
   enableDevWorkspace ${TEMPLATES} true
   setSingleHostExposureType ${TEMPLATES} "gateway"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
