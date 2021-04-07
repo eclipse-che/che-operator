@@ -25,9 +25,8 @@ import (
 
 // RestServer implements BackupServer
 type RestServer struct {
-	config       orgv1.RestServerConfing
-	repoPassword string
-	url          string
+	config orgv1.RestServerConfing
+	ResticClient
 }
 
 func (s *RestServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
@@ -88,7 +87,7 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 	}
 
 	// rest:https://user:password@host:5000/repo/
-	s.url = "rest:" + protocol + "://" + credentials + host + port + "/" + repo
+	s.repoUrl = "rest:" + protocol + "://" + credentials + host + port + "/" + repo
 
 	return true, nil
 }

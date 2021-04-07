@@ -38,7 +38,8 @@ const (
 )
 
 // ConfigureInternalBackupServer check for existance of internal REST backup server and deploys it if missing.
-// It doesn't do sync as user might change some configuration.
+// If something is broken in the internal backup server configuration,
+// then it will be recreated, but all data will be lost.
 func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	shouldInitResticRepo := false
 
@@ -96,17 +97,30 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 			return false, err
 		}
 
-		// Initialize new restic repository
-		// TODO
-
-		return true, nil
+		// Initialize new restic repository on the backup server
+		return bctx.backupServer.InitRepository()
 	}
 
-	// The secret ith backup server credentials exists
+	// The secret with backup server credentials exists
 	// Check if the password is the right one
-	// TODO
+	done, err := bctx.backupServer.CheckRepository()
+	if done && err != nil {
+		// Check failed, the password is wrong
+		// Clean broken stuff
+		err = bctx.r.client.Delete(context.TODO(), repoPasswordsecret)
+		if err != nil && !errors.IsNotFound(err) {
+			return false, err
+		}
 
-	return true, nil
+		err = bctx.r.client.Delete(context.TODO(), repoPasswordsecret)
+		if err != nil && !errors.IsNotFound(err) {
+			return false, err
+		}
+
+		// Cleanup is done, but backup server should be created, request requeue
+		return false, nil
+	}
+	return done, err
 }
 
 func getInternalBackupServerDeployment(bctx *BackupContext) (*appsv1.Deployment, error) {
@@ -143,13 +157,8 @@ func createInternalBackupServerDeployment(bctx *BackupContext) error {
 
 func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, error) {
 	namespace := bctx.backupCR.GetNamespace()
+	labels, labelSelector := deploy.GetLabelsAndSelector(bctx.cheCR, backupServerDeploymentName)
 
-	cheCR, err := bctx.r.GetCheCR(namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	labels, labelSelector := deploy.GetLabelsAndSelector(cheCR, backupServerDeploymentName)
 	replicas := int32(1)
 	terminationGracePeriodSeconds := int64(30)
 
@@ -251,16 +260,7 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) error {
 
 func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
 	namespace := bctx.backupCR.GetNamespace()
-
-	if bctx.optional.cheCR == nil {
-		cheCR, err := bctx.r.GetCheCR(namespace)
-		if err != nil {
-			return nil, err
-		}
-		bctx.optional.cheCR = cheCR
-	}
-
-	labels := deploy.GetLabels(bctx.optional.cheCR, backupServerServiceName)
+	labels := deploy.GetLabels(bctx.cheCR, backupServerServiceName)
 
 	port := corev1.ServicePort{
 		Name:     backupServerServiceName + "-port",
@@ -332,16 +332,7 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) error {
 
 func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Secret, error) {
 	namespace := bctx.backupCR.GetNamespace()
-
-	if bctx.optional.cheCR == nil {
-		cheCR, err := bctx.r.GetCheCR(namespace)
-		if err != nil {
-			return nil, err
-		}
-		bctx.optional.cheCR = cheCR
-	}
-
-	labels := deploy.GetLabels(bctx.optional.cheCR, BackupServerRepoPasswordSecretName)
+	labels := deploy.GetLabels(bctx.cheCR, BackupServerRepoPasswordSecretName)
 	data := map[string][]byte{"repo-password": []byte(password)}
 
 	secret := &corev1.Secret{

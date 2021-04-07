@@ -14,6 +14,7 @@ package checlusterbackup
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -117,7 +118,7 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 	}
 	if !done {
 		// There was no error, but it is required to proceed after some delay,
-		// e.g wait ubntil some resources are flushed and/or ready.
+		// e.g wait until some resources are flushed and/or ready.
 		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -149,10 +150,18 @@ func doReconcile(bctx *BackupContext) (bool, error) {
 			return done, err
 		}
 
-		// Should create a backup
-		// done, err := CreateBackup(backupCR)
+		backupDestDir := "/tmp/che-backup"
+		// Schedule cleanup
+		defer os.RemoveAll(backupDestDir)
+		// Collect all needed data to backup
+		done, err = CollectBackupData(bctx, backupDestDir)
 		if err != nil || !done {
-			// An error happened while creating backup
+			return done, err
+		}
+
+		// Upload collected data to backup server
+		done, err = bctx.backupServer.SendSnapshot(backupDestDir)
+		if err != nil || !done {
 			return done, err
 		}
 

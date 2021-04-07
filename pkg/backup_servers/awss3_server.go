@@ -22,13 +22,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	awsAccesKeyIdEnvVarName = "AWS_ACCESS_KEY_ID"
+	awsAccesKeyEnvVarName   = "AWS_SECRET_ACCESS_KEY"
+)
+
 // RestServer implements BackupServer
 type AwsS3Server struct {
-	config       orgv1.AwsS3ServerConfig
-	repoPassword string
-	url          string
-	secretKeyId  string
-	secretKey    string
+	config orgv1.AwsS3ServerConfig
+	ResticClient
+	secretKeyId string
+	secretKey   string
 }
 
 func (s *AwsS3Server) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
@@ -90,7 +94,17 @@ func (s *AwsS3Server) PrepareConfiguration(client client.Client, namespace strin
 
 	// s3:s3.amazonaws.com/bucket
 	// s3:http://server:port/bucket/repo
-	s.url = "s3:" + protocol + host + port + "/" + repo
+	s.repoUrl = "s3:" + protocol + host + port + "/" + repo
+
+	// Configure required env variables
+	s.additionalEnv = s.getAdditionalEnv()
 
 	return true, nil
+}
+
+func (s *AwsS3Server) getAdditionalEnv() []string {
+	return []string{
+		awsAccesKeyIdEnvVarName + "=" + s.secretKeyId,
+		awsAccesKeyEnvVarName + "=" + s.secretKey,
+	}
 }

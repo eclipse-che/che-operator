@@ -27,9 +27,8 @@ import (
 
 // SftpServer implements BackupServer
 type SftpServer struct {
-	config       orgv1.SftpServerConfing
-	repoPassword string
-	url          string
+	config orgv1.SftpServerConfing
+	ResticClient
 }
 
 func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
@@ -84,7 +83,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 	}
 
 	// sftp:user@host:port//srv/repo
-	s.url = "sftp:" + user + "@" + host + port + "/" + path
+	s.repoUrl = "sftp:" + user + "@" + host + port + "/" + path
 
 	// Give ssh client the ssh key to be able to connect to backup server passwordless
 	done, err = s.propageteSshKey(sshKey)

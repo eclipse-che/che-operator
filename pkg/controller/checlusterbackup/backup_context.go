@@ -19,12 +19,8 @@ import (
 type BackupContext struct {
 	r            *ReconcileCheClusterBackup
 	backupCR     *orgv1.CheClusterBackup
+	cheCR        *orgv1.CheCluster
 	backupServer backup.BackupServer
-	optional     backupContextOptional
-}
-
-type backupContextOptional struct {
-	cheCR *orgv1.CheCluster
 }
 
 func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *orgv1.CheClusterBackup) (*BackupContext, error) {
@@ -33,10 +29,15 @@ func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *orgv1.CheClusterBa
 		return nil, err
 	}
 
+	cheCR, err := r.GetCheCR(backupCR.GetNamespace())
+	if err != nil {
+		return nil, err
+	}
+
 	return &BackupContext{
 		r:            r,
 		backupCR:     backupCR,
+		cheCR:        cheCR,
 		backupServer: backupServer,
-		optional:     backupContextOptional{},
 	}, nil
 }
