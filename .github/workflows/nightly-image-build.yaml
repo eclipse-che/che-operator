@@ -13,8 +13,12 @@ name: Nightly Dockerimage Build
 
 on:
   # manual trigger if required
-  workflow_dispatch
-
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason to trigger a build'
+        required: false
+jobs:
   schedule:
     - cron:  '0 0 * * *'
 jobs:
