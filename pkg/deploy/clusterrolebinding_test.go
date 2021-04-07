@@ -88,23 +88,38 @@ func TestSyncClusterRoleBindingAndAddFinalizerToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync crb: %v", err)
 	}
 
-	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test.clusterrolebinding.finalizers.che.eclipse.org") {
+	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
 		t.Fatalf("Failed to add finalizer")
 	}
 
-	deployContext.CheCluster.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	// don't expect any deletion
 	err = ReconcileClusterRoleBindingFinalizer(deployContext, "test")
 	if err != nil {
-		t.Fatalf("Failed to remove finalizer: %v", err)
+		t.Fatalf("Failed to reconcile finalizer: %v", err)
 	}
 
 	actual := &rbacv1.ClusterRoleBinding{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	if err != nil {
+		t.Fatalf("CRD shouldn't be deleted: %v", err)
+	}
+	if !util.ContainsString(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
+		t.Fatalf("Finalizer shouldn't be deleted")
+	}
+
+	// crb must be deleted as well as finalizer
+	deployContext.CheCluster.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	err = ReconcileClusterRoleBindingFinalizer(deployContext, "test")
+	if err != nil {
+		t.Fatalf("Failed to reconcile finalizer: %v", err)
+	}
+
+	actual = &rbacv1.ClusterRoleBinding{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err == nil {
 		t.Fatalf("Failed to remove crb: %v", err)
 	}
-
-	if util.ContainsString(deployContext.CheCluster.Finalizers, "test.clusterrolebinding.finalizers.che.eclipse.org") {
+	if util.ContainsString(deployContext.CheCluster.Finalizers, "test.crb.finalizers.che.eclipse.org") {
 		t.Fatalf("Failed to remove finalizer")
 	}
 }
