@@ -18,7 +18,6 @@ on:
       reason:
         description: 'Reason to trigger a build'
         required: false
-jobs:
   schedule:
     - cron:  '0 0 * * *'
 jobs:
