@@ -12,6 +12,9 @@
 name: Nightly Dockerimage Build
 
 on:
+  # manual trigger if required
+  workflow_dispatch
+
   schedule:
     - cron:  '0 0 * * *'
 jobs:
