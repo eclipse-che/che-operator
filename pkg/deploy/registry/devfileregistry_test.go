@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package plugin_registry
+package registry
 
 import (
 	"os"
@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-func TestDeployment(t *testing.T) {
+func TestDevfileRegistryDeployment(t *testing.T) {
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -44,10 +44,10 @@ func TestDeployment(t *testing.T) {
 		{
 			name:          "Test default limits",
 			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultPluginRegistryMemoryLimit,
-			memoryRequest: deploy.DefaultPluginRegistryMemoryRequest,
-			cpuLimit:      deploy.DefaultPluginRegistryCpuLimit,
-			cpuRequest:    deploy.DefaultPluginRegistryCpuRequest,
+			memoryLimit:   deploy.DefaultDevfileRegistryMemoryLimit,
+			memoryRequest: deploy.DefaultDevfileRegistryMemoryRequest,
+			cpuLimit:      deploy.DefaultDevfileRegistryCpuLimit,
+			cpuRequest:    deploy.DefaultDevfileRegistryCpuRequest,
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -67,10 +67,10 @@ func TestDeployment(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						PluginRegistryCpuLimit:      "250m",
-						PluginRegistryCpuRequest:    "150m",
-						PluginRegistryMemoryLimit:   "250Mi",
-						PluginRegistryMemoryRequest: "150Mi",
+						DevfileRegistryCpuLimit:      "250m",
+						DevfileRegistryCpuRequest:    "150m",
+						DevfileRegistryMemoryLimit:   "250Mi",
+						DevfileRegistryMemoryRequest: "150Mi",
 					},
 				},
 			},
@@ -85,15 +85,16 @@ func TestDeployment(t *testing.T) {
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
 			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
 					Client: cli,
 					Scheme: scheme.Scheme,
 				},
-				Proxy: &deploy.Proxy{},
+				Proxy:      &deploy.Proxy{},
+				CheCluster: testCase.cheCluster,
 			}
 
-			deployment := GetPluginRegistrySpecDeployment(deployContext)
+			devfileregistry := NewDevfileRegistry(deployContext)
+			deployment := devfileregistry.GetDevfileRegistryDeploymentSpec()
 
 			util.CompareResources(deployment,
 				util.TestExpectedResources{

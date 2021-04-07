@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package devfile_registry
+package registry
 
 import (
 	"os"
@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -29,7 +30,7 @@ import (
 	"testing"
 )
 
-func TestDeployment(t *testing.T) {
+func TestPluginRegistryDeployment(t *testing.T) {
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -44,10 +45,10 @@ func TestDeployment(t *testing.T) {
 		{
 			name:          "Test default limits",
 			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultDevfileRegistryMemoryLimit,
-			memoryRequest: deploy.DefaultDevfileRegistryMemoryRequest,
-			cpuLimit:      deploy.DefaultDevfileRegistryCpuLimit,
-			cpuRequest:    deploy.DefaultDevfileRegistryCpuRequest,
+			memoryLimit:   deploy.DefaultPluginRegistryMemoryLimit,
+			memoryRequest: deploy.DefaultPluginRegistryMemoryRequest,
+			cpuLimit:      deploy.DefaultPluginRegistryCpuLimit,
+			cpuRequest:    deploy.DefaultPluginRegistryCpuRequest,
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -67,10 +68,10 @@ func TestDeployment(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						DevfileRegistryCpuLimit:      "250m",
-						DevfileRegistryCpuRequest:    "150m",
-						DevfileRegistryMemoryLimit:   "250Mi",
-						DevfileRegistryMemoryRequest: "150Mi",
+						PluginRegistryCpuLimit:      "250m",
+						PluginRegistryCpuRequest:    "150m",
+						PluginRegistryMemoryLimit:   "250Mi",
+						PluginRegistryMemoryRequest: "150Mi",
 					},
 				},
 			},
@@ -85,15 +86,16 @@ func TestDeployment(t *testing.T) {
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
 			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
 					Client: cli,
 					Scheme: scheme.Scheme,
 				},
-				Proxy:      &deploy.Proxy{},
-				CheCluster: testCase.cheCluster,
+				Proxy: &deploy.Proxy{},
 			}
 
-			deployment := GetDevfileRegistrySpecDeployment(deployContext)
+			pluginregistry := NewPluginRegistry(deployContext)
+			deployment := pluginregistry.GetPluginRegistryDeploymentSpec()
 
 			util.CompareResources(deployment,
 				util.TestExpectedResources{
@@ -106,5 +108,30 @@ func TestDeployment(t *testing.T) {
 
 			util.ValidateSecurityContext(deployment, t)
 		})
+	}
+}
+
+func TestPluginRegistrySyncAll(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &deploy.DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	pluginregistry := NewPluginRegistry(deployContext)
+	done, err := pluginregistry.SyncAll()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync Devfile Registry: %v", err)
 	}
 }

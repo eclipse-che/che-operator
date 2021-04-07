@@ -13,9 +13,9 @@ package registry
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	v12 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
-	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -23,10 +23,10 @@ func GetSpecRegistryDeployment(
 	deployContext *deploy.DeployContext,
 	registryType string,
 	registryImage string,
-	env []v1.EnvVar,
-	registryImagePullPolicy v1.PullPolicy,
-	resources v1.ResourceRequirements,
-	probePath string) *v12.Deployment {
+	env []corev1.EnvVar,
+	registryImagePullPolicy corev1.PullPolicy,
+	resources corev1.ResourceRequirements,
+	probePath string) *appsv1.Deployment {
 
 	terminationGracePeriodSeconds := int64(30)
 	name := registryType + "-registry"
@@ -35,38 +35,38 @@ func GetSpecRegistryDeployment(
 	_1 := int32(1)
 	_2 := int32(2)
 	isOptional := true
-	deployment := &v12.Deployment{
-		TypeMeta: v13.TypeMeta{
+	deployment := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
 		},
-		ObjectMeta: v13.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
-		Spec: v12.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas:             &_1,
 			RevisionHistoryLimit: &_2,
-			Selector:             &v13.LabelSelector{MatchLabels: labelSelector},
-			Strategy: v12.DeploymentStrategy{
-				Type: v12.RollingUpdateDeploymentStrategyType,
-				RollingUpdate: &v12.RollingUpdateDeployment{
+			Selector:             &metav1.LabelSelector{MatchLabels: labelSelector},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
 					MaxSurge:       &_25Percent,
 					MaxUnavailable: &_25Percent,
 				},
 			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: v13.ObjectMeta{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:            "che-" + name,
 							Image:           registryImage,
 							ImagePullPolicy: registryImagePullPolicy,
-							Ports: []v1.ContainerPort{
+							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
 									ContainerPort: 8080,
@@ -74,26 +74,26 @@ func GetSpecRegistryDeployment(
 								},
 							},
 							Env: env,
-							EnvFrom: []v1.EnvFromSource{
+							EnvFrom: []corev1.EnvFromSource{
 								{
-									ConfigMapRef: &v1.ConfigMapEnvSource{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										Optional: &isOptional,
-										LocalObjectReference: v1.LocalObjectReference{
+										LocalObjectReference: corev1.LocalObjectReference{
 											Name: registryType + "-registry",
 										},
 									},
 								},
 							},
 							Resources: resources,
-							ReadinessProbe: &v1.Probe{
-								Handler: v1.Handler{
-									HTTPGet: &v1.HTTPGetAction{
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/" + registryType + "s/",
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(8080),
 										},
-										Scheme: v1.URISchemeHTTP,
+										Scheme: corev1.URISchemeHTTP,
 									},
 								},
 								InitialDelaySeconds: 3,
@@ -102,15 +102,15 @@ func GetSpecRegistryDeployment(
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 							},
-							LivenessProbe: &v1.Probe{
-								Handler: v1.Handler{
-									HTTPGet: &v1.HTTPGetAction{
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/" + registryType + "s/",
 										Port: intstr.IntOrString{
 											Type:   intstr.Int,
 											IntVal: int32(8080),
 										},
-										Scheme: v1.URISchemeHTTP,
+										Scheme: corev1.URISchemeHTTP,
 									},
 								},
 								InitialDelaySeconds: 30,
@@ -119,9 +119,9 @@ func GetSpecRegistryDeployment(
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 							},
-							SecurityContext: &v1.SecurityContext{
-								Capabilities: &v1.Capabilities{
-									Drop: []v1.Capability{"ALL"},
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
 								},
 							},
 						},
