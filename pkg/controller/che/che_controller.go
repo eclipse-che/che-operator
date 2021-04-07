@@ -409,8 +409,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret, err := deploy.GetSecret(deployContext, openShiftOAuthUserCredentialsSecret, instance.Namespace)
-		if secret == nil {
+		secret := &corev1.Secret{}
+		exists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, secret)
+		if !exists {
 			if err == nil {
 				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
 				if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
@@ -604,15 +605,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// Create service account "che" for che-server component.
 	// "che" is the one which token is used to create workspace objects.
 	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
-	cheSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
-	if cheSA == nil {
-		logrus.Info("Waiting on service account 'che' to be created")
+	done, err = deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
+	if !done {
 		if err != nil {
 			logrus.Error(err)
 		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
@@ -711,14 +709,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			return reconcile.Result{}, err
 		}
-
-		done, err = deploy.DeleteNamespacedObject(deployContext, deploy.DefaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{}, err
-		}
 	} else {
 		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DefaultCheVolumeClaimName, &corev1.PersistentVolumeClaim{})
 		if !done {
@@ -729,96 +719,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	// Create Postgres resources and provisioning unless an external DB is used
-	externalDB := instance.Spec.Database.ExternalDb
-	if !externalDB {
-		if cheMultiUser == "false" {
-			done, err := deploy.Delete(deployContext, types.NamespacedName{Name: deploy.PostgresName, Namespace: instance.Namespace}, &appsv1.Deployment{})
-			if !tests {
-				if !done {
-					if err != nil {
-						logrus.Error(err)
-					}
-					return reconcile.Result{}, err
-				}
-			}
-		} else {
-			// Create a new postgres service
-			serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
-			if !tests {
-				if !serviceStatus.Continue {
-					logrus.Info("Waiting on service 'postgres' to be ready")
-					if serviceStatus.Err != nil {
-						logrus.Error(serviceStatus.Err)
-					}
-
-					return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
-				}
-			}
-
-			// Create a new Postgres PVC object
-			done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
-			if !tests {
-				if !done {
-					logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
-					if err != nil {
-						logrus.Error(err)
-					}
-
-					return reconcile.Result{}, err
-				}
-			}
-
-			// Create a new Postgres deployment
-			provisioned, err := postgres.SyncPostgresDeploymentToCluster(deployContext)
-			if !tests {
-				if !provisioned {
-					logrus.Infof("Waiting on deployment '%s' to be ready", deploy.PostgresName)
-					if err != nil {
-						logrus.Error(err)
-					}
-
-					return reconcile.Result{}, err
-				}
-			}
-
-			if !tests {
-				identityProviderPostgresPassword := instance.Spec.Auth.IdentityProviderPostgresPassword
-				identityProviderPostgresSecret := instance.Spec.Auth.IdentityProviderPostgresSecret
-				if len(identityProviderPostgresSecret) > 0 {
-					_, password, err := util.K8sclient.ReadSecret(identityProviderPostgresSecret, instance.Namespace)
-					if err != nil {
-						logrus.Errorf("Failed to read '%s' secret: %s", identityProviderPostgresSecret, err)
-						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-					}
-					identityProviderPostgresPassword = password
-				}
-				dbStatus := instance.Status.DbProvisoned
-				// provision Db and users for Che and Keycloak servers
-				if !dbStatus {
-					_, err := util.K8sclient.ExecIntoPod(
-						instance,
-						deploy.PostgresName,
-						func(cr *orgv1.CheCluster) (string, error) {
-							return identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword), nil
-						},
-						"create Keycloak DB, user, privileges")
-					if err == nil {
-						for {
-							instance.Status.DbProvisoned = true
-							if err := r.UpdateCheCRStatus(instance, "status: provisioned with DB and user", "true"); err != nil &&
-								errors.IsConflict(err) {
-								instance, _ = r.GetCR(request)
-								continue
-							}
-							break
-						}
-					} else {
-						return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 5}, err
-					}
-				}
-			}
+	postgres := postgres.NewPostgres(deployContext)
+	done, err = postgres.Sync()
+	if !done {
+		if err != nil {
+			logrus.Error(err)
 		}
+		return reconcile.Result{}, err
 	}
 
 	tlsSupport := instance.Spec.Server.TlsSupport
@@ -828,16 +735,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// create Che service and route
-	serviceStatus := server.SyncCheServiceToCluster(deployContext)
-	if !tests {
-		if !serviceStatus.Continue {
-			logrus.Infof("Waiting on service '%s' to be ready", deploy.CheServiceName)
-			if serviceStatus.Err != nil {
-				logrus.Error(serviceStatus.Err)
-			}
-
-			return reconcile.Result{Requeue: serviceStatus.Requeue}, serviceStatus.Err
+	done, err = server.SyncCheServiceToCluster(deployContext)
+	if !done {
+		if err != nil {
+			logrus.Error(err)
 		}
+
+		return reconcile.Result{}, err
 	}
 
 	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
@@ -878,7 +782,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			customHost = ""
 		}
 
-		route, err := deploy.SyncRouteToCluster(
+		done, err := deploy.SyncRouteToCluster(
 			deployContext,
 			cheFlavor,
 			customHost,
@@ -886,13 +790,20 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			8080,
 			deployContext.CheCluster.Spec.Server.CheServerRoute,
 			cheFlavor)
-		if route == nil {
-			logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+		if !done {
 			if err != nil {
 				logrus.Error(err)
 			}
+			return reconcile.Result{}, err
+		}
 
-			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+		route := &routev1.Route{}
+		exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, route)
+		if !exists {
+			if err != nil {
+				logrus.Error(err)
+			}
+			return reconcile.Result{}, err
 		}
 		cheHost = route.Spec.Host
 		if customHost == "" {
@@ -1055,7 +966,7 @@ func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
 
 func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	route, err := deploy.SyncRouteToCluster(
+	done, err := deploy.SyncRouteToCluster(
 		deployContext,
 		cheFlavor,
 		"",
@@ -1063,13 +974,22 @@ func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 		8080,
 		deployContext.CheCluster.Spec.Server.CheServerRoute,
 		cheFlavor)
-	if route == nil {
-		logrus.Infof("Waiting on route '%s' to be ready", cheFlavor)
+	if !done {
 		if err != nil {
 			logrus.Error(err)
 		}
 		return "", err
 	}
+
+	route := &routev1.Route{}
+	exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, route)
+	if !exists {
+		if err != nil {
+			logrus.Error(err)
+		}
+		return "", err
+	}
+
 	return route.Spec.Host, nil
 }
 

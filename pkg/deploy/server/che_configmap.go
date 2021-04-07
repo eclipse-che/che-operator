@@ -294,11 +294,12 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		// than Che server namespace, from where the Che TLS secret is not accessable
 		if !util.IsWorkspaceInSameNamespaceWithChe(deployContext.CheCluster) {
 			if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
-				cheTLSSecret, err := deploy.GetSecret(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, deployContext.CheCluster.ObjectMeta.Namespace)
+				cheTLSSecret := &corev1.Secret{}
+				exists, err := deploy.GetNamespacedObject(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, cheTLSSecret)
 				if err != nil {
 					return nil, err
 				}
-				if cheTLSSecret == nil {
+				if !exists {
 					return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
 				} else {
 					if _, exists := cheTLSSecret.Data["tls.key"]; !exists {

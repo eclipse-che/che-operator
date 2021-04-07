@@ -16,7 +16,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func GetSpecCheService(deployContext *deploy.DeployContext) (*v1.Service, error) {
+func GetSpecCheService(deployContext *deploy.DeployContext) *v1.Service {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
 
@@ -30,16 +30,10 @@ func GetSpecCheService(deployContext *deploy.DeployContext) (*v1.Service, error)
 		portNumber = append(portNumber, deploy.DefaultCheDebugPort)
 	}
 
-	return deploy.GetSpecService(deployContext, deploy.CheServiceName, portName, portNumber, deploy.DefaultCheFlavor(deployContext.CheCluster))
+	return deploy.GetServiceSpec(deployContext, deploy.CheServiceName, portName, portNumber, deploy.DefaultCheFlavor(deployContext.CheCluster))
 }
 
-func SyncCheServiceToCluster(deployContext *deploy.DeployContext) deploy.ServiceProvisioningStatus {
-	specService, err := GetSpecCheService(deployContext)
-	if err != nil {
-		return deploy.ServiceProvisioningStatus{
-			ProvisioningStatus: deploy.ProvisioningStatus{Err: err},
-		}
-	}
-
-	return deploy.DoSyncServiceToCluster(deployContext, specService)
+func SyncCheServiceToCluster(deployContext *deploy.DeployContext) (bool, error) {
+	specService := GetSpecCheService(deployContext)
+	return deploy.SyncServiceSpecToCluster(deployContext, specService)
 }

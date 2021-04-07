@@ -135,7 +135,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 		if util.IsOpenShift {
 			// Create test route to get certificates chain.
 			// Note, it is not possible to use SyncRouteToCluster here as it may cause infinite reconcile loop.
-			routeSpec, err := GetSpecRoute(
+			routeSpec, err := GetRouteSpec(
 				deployContext,
 				"test",
 				"",
@@ -164,14 +164,15 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			}()
 
 			// Wait till the route is ready
-			var route *routev1.Route
-			for wait := true; wait; {
+			route := &routev1.Route{}
+			for {
 				time.Sleep(time.Duration(1) * time.Second)
-				route, err = GetClusterRoute(routeSpec.Name, routeSpec.Namespace, deployContext.ClusterAPI.Client)
+				exists, err := GetNamespacedObject(deployContext, routeSpec.Name, route)
 				if err != nil {
 					return nil, err
+				} else if exists {
+					break
 				}
-				wait = len(route.Spec.Host) == 0
 			}
 
 			requestURL = "https://" + route.Spec.Host
@@ -204,16 +205,15 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			}()
 
 			// Wait till the ingress is ready
-			var ingress *v1beta1.Ingress
-			for wait := true; wait; {
+			ingress := &v1beta1.Ingress{}
+			for {
 				time.Sleep(time.Duration(1) * time.Second)
-
-				ingress := &v1beta1.Ingress{}
 				exists, err := GetNamespacedObject(deployContext, ingressSpec.Name, ingress)
-				if !exists {
+				if err != nil {
 					return nil, err
+				} else if exists {
+					break
 				}
-				wait = len(ingress.Spec.Rules[0].Host) == 0
 			}
 
 			requestURL = "https://" + ingress.Spec.Rules[0].Host
@@ -322,12 +322,12 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		}
 
 		// Prepare permissions for the certificate generation job
-		sa, err := SyncServiceAccountToCluster(deployContext, CheTLSJobServiceAccountName)
-		if sa == nil {
+		done, err := SyncServiceAccountToCluster(deployContext, CheTLSJobServiceAccountName)
+		if !done {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		done, err := SyncTLSRoleToCluster(deployContext)
+		done, err = SyncTLSRoleToCluster(deployContext)
 		if !done {
 			return reconcile.Result{}, err
 		}

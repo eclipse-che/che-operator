@@ -125,10 +125,11 @@ func MountSecrets(specDeployment *appsv1.Deployment, deployContext *DeployContex
 			container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 
 		case "env":
-			secret, err := GetSecret(deployContext, secretObj.Name, deployContext.CheCluster.Namespace)
+			secret := &corev1.Secret{}
+			exists, err := GetNamespacedObject(deployContext, secretObj.Name, secret)
 			if err != nil {
 				return err
-			} else if secret == nil {
+			} else if !exists {
 				return fmt.Errorf("Secret '%s' not found", secretObj.Name)
 			}
 

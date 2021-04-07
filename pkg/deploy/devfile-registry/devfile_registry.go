@@ -60,15 +60,13 @@ func SyncDevfileRegistryToCluster(deployContext *deploy.DeployContext, cheHost s
 		}
 
 		// Create a new registry service
-		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.DevfileRegistryName, []string{"http"}, []int32{8080}, deploy.DevfileRegistryName)
+		done, err = deploy.SyncServiceToCluster(deployContext, deploy.DevfileRegistryName, []string{"http"}, []int32{8080}, deploy.DevfileRegistryName)
 		if !util.IsTestMode() {
-			if !serviceStatus.Continue {
-				logrus.Info("Waiting on service '" + deploy.DevfileRegistryName + "' to be ready")
-				if serviceStatus.Err != nil {
-					logrus.Error(serviceStatus.Err)
+			if !done {
+				if err != nil {
+					logrus.Error(err)
 				}
-
-				return false, serviceStatus.Err
+				return false, err
 			}
 		}
 

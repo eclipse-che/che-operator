@@ -20,14 +20,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -57,82 +53,21 @@ func SyncRouteToCluster(
 	serviceName string,
 	servicePort int32,
 	routeCustomSettings orgv1.RouteCustomSettings,
-	component string) (*routev1.Route, error) {
+	component string) (bool, error) {
 
-	specRoute, err := GetSpecRoute(deployContext, name, host, serviceName, servicePort, routeCustomSettings, component)
+	routeSpec, err := GetRouteSpec(deployContext, name, host, serviceName, servicePort, routeCustomSettings, component)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	clusterRoute, err := GetClusterRoute(specRoute.Name, specRoute.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterRoute == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specRoute.Kind, specRoute.Name)
-		err := deployContext.ClusterAPI.Client.Create(context.TODO(), specRoute)
-		if !errors.IsAlreadyExists(err) {
-			return nil, err
-		}
-		return nil, nil
-	}
-
-	diffOpts := routeDiffOpts
 	if host != "" {
-		diffOpts = routeWithHostDiffOpts
+		return Sync(deployContext, routeSpec, routeWithHostDiffOpts)
 	}
-	diff := cmp.Diff(clusterRoute, specRoute, diffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Deleting existed object: %s, name: %s", clusterRoute.Kind, clusterRoute.Name)
-		fmt.Printf("Difference:\n%s", diff)
-
-		err := deployContext.ClusterAPI.Client.Delete(context.TODO(), clusterRoute)
-		if !errors.IsNotFound(err) {
-			return nil, err
-		}
-
-		return nil, nil
-	}
-
-	return clusterRoute, nil
+	return Sync(deployContext, routeSpec, routeDiffOpts)
 }
 
-func DeleteRouteIfExists(name string, deployContext *DeployContext) error {
-	ingress, err := GetClusterRoute(name, deployContext.CheCluster.Namespace, deployContext.ClusterAPI.Client)
-	if err != nil {
-		return err
-	}
-
-	if ingress != nil {
-		err = deployContext.ClusterAPI.Client.Delete(context.TODO(), ingress)
-		if !errors.IsNotFound(err) {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// GetClusterRoute returns existing route.
-func GetClusterRoute(name string, namespace string, client runtimeClient.Client) (*routev1.Route, error) {
-	route := &routev1.Route{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, route)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return route, nil
-}
-
-// GetSpecRoute returns default configuration of a route in Che namespace.
-func GetSpecRoute(
+// GetRouteSpec returns default configuration of a route in Che namespace.
+func GetRouteSpec(
 	deployContext *DeployContext,
 	name string,
 	host string,
@@ -199,11 +134,6 @@ func GetSpecRoute(
 			route.Spec.TLS.Key = string(secret.Data["tls.key"])
 			route.Spec.TLS.Certificate = string(secret.Data["tls.crt"])
 		}
-	}
-
-	err := controllerutil.SetControllerReference(deployContext.CheCluster, route, deployContext.ClusterAPI.Scheme)
-	if err != nil {
-		return nil, err
 	}
 
 	return route, nil

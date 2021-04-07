@@ -47,8 +47,8 @@ const (
 func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
 	// Create "che-workspace" service account.
 	// Che workspace components use this service account.
-	cheWorkspaceSA, err := deploy.SyncServiceAccountToCluster(deployContext, CheWorkspacesServiceAccount)
-	if cheWorkspaceSA == nil {
+	done, err := deploy.SyncServiceAccountToCluster(deployContext, CheWorkspacesServiceAccount)
+	if !done {
 		logrus.Infof("Waiting on service account '%s' to be created", CheWorkspacesServiceAccount)
 		if err != nil {
 			logrus.Error(err)
@@ -58,7 +58,7 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 
 	// Create view role for "che-workspace" service account.
 	// This role used by exec terminals, tasks, metric che-theia plugin and so on.
-	done, err := deploy.SyncViewRoleToCluster(deployContext)
+	done, err = deploy.SyncViewRoleToCluster(deployContext)
 	if !done {
 		logrus.Infof("Waiting on role '%s' to be created", deploy.ViewRoleName)
 		if err != nil {

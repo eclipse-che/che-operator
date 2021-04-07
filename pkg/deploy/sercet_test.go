@@ -12,12 +12,14 @@
 package deploy
 
 import (
+	"context"
 	"os"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -161,5 +163,47 @@ func TestGetSecrets(t *testing.T) {
 				t.Fatalf("Expected %d but found: %d", testCase.expectedAmount, len(secrets))
 			}
 		})
+	}
+}
+
+func TestSyncSecretToCluster(t *testing.T) {
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+		},
+		ClusterAPI: ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	done, err := SyncSecretToCluster(deployContext, "test", "eclipse-che", map[string][]byte{"A": []byte("AAAA")})
+	if !done || err != nil {
+		t.Fatalf("Failed to sync secret: %v", err)
+	}
+
+	// sync another secret
+	done, err = SyncSecretToCluster(deployContext, "test", "eclipse-che", map[string][]byte{"B": []byte("BBBB")})
+	if !done || err != nil {
+		t.Fatalf("Failed to sync secret: %v", err)
+	}
+
+	actual := &corev1.Secret{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	if err != nil {
+		t.Fatalf("Failed to get secret: %v", err)
+	}
+
+	if len(actual.Data) != 1 {
+		t.Fatalf("Failed to sync secret: %v", err)
+	}
+	if string(actual.Data["B"]) != "BBBB" {
+		t.Fatalf("Failed to sync secret: %v", err)
 	}
 }

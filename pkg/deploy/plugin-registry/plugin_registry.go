@@ -62,16 +62,12 @@ func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost st
 		}
 
 		// Create a new registry service
-		serviceStatus := deploy.SyncServiceToCluster(deployContext, deploy.PluginRegistryName, []string{"http"}, []int32{8080}, deploy.PluginRegistryName)
-		if !util.IsTestMode() {
-			if !serviceStatus.Continue {
-				logrus.Info("Waiting on service '" + deploy.PluginRegistryName + "' to be ready")
-				if serviceStatus.Err != nil {
-					logrus.Error(serviceStatus.Err)
-				}
-
-				return false, serviceStatus.Err
+		done, err = deploy.SyncServiceToCluster(deployContext, deploy.PluginRegistryName, []string{"http"}, []int32{8080}, deploy.PluginRegistryName)
+		if !done {
+			if err != nil {
+				logrus.Error(err)
 			}
+			return false, err
 		}
 
 		deployContext.InternalService.PluginRegistryHost = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, deployContext.CheCluster.Namespace)
