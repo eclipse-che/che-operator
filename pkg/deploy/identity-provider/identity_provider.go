@@ -88,7 +88,7 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	keycloakURL := protocol + "://" + endpoint
-	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d", "http", deploy.IdentityProviderName, cr.Namespace, 8080)
+	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d/auth", "http", deploy.IdentityProviderName, cr.Namespace, 8080)
 
 	if cr.Spec.Auth.IdentityProviderURL != keycloakURL {
 		cr.Spec.Auth.IdentityProviderURL = keycloakURL

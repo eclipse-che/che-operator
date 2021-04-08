@@ -175,7 +175,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketEndpoint, webSocketEndpointMinor string
 
 	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
-		keycloakInternalURL = deployContext.InternalService.KeycloakHost + "/auth"
+		keycloakInternalURL = deployContext.InternalService.KeycloakHost
 	} else {
 		keycloakInternalURL = keycloakURL
 	}

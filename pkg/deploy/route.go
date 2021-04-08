@@ -106,6 +106,7 @@ func GetRouteSpec(
 			Name:   serviceName,
 			Weight: &weight,
 		},
+		Path: path,
 		Port: &routev1.RoutePort{
 			TargetPort: targetPort,
 		},
@@ -113,10 +114,8 @@ func GetRouteSpec(
 
 	if host != "" {
 		route.Spec.Host = host
-		route.Spec.Path = path
 	} else if routeCustomSettings.Domain != "" {
 		route.Spec.Host = fmt.Sprintf(HostNameTemplate, route.ObjectMeta.Name, route.ObjectMeta.Namespace, routeCustomSettings.Domain)
-		route.Spec.Path = path
 	}
 
 	if tlsSupport {
