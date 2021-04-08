@@ -24,6 +24,4 @@ jobs:
       with:
         go-version: 1.13
     - name: Check nightly OLM bundle version
-      run: |
-        go version
-        ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle-version.sh
+      run: ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle-version.sh

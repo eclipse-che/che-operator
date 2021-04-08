@@ -27,6 +27,4 @@ jobs:
       with:
         go-version: 1.13
     - name: Che operator code check.
-      run: >-
-        go version
-        ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle.sh
+      run: ${GITHUB_WORKSPACE}/.github/bin/check-nightly-olm-bundle.sh
