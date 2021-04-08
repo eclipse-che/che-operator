@@ -12,100 +12,74 @@
 package registry
 
 import (
-	"os"
-
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"context"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
 
-func TestDevfileRegistryDeployment(t *testing.T) {
-	type testCase struct {
-		name          string
-		initObjects   []runtime.Object
-		memoryLimit   string
-		memoryRequest string
-		cpuRequest    string
-		cpuLimit      string
-		cheCluster    *orgv1.CheCluster
-	}
-
-	testCases := []testCase{
-		{
-			name:          "Test default limits",
-			initObjects:   []runtime.Object{},
-			memoryLimit:   deploy.DefaultDevfileRegistryMemoryLimit,
-			memoryRequest: deploy.DefaultDevfileRegistryMemoryRequest,
-			cpuLimit:      deploy.DefaultDevfileRegistryCpuLimit,
-			cpuRequest:    deploy.DefaultDevfileRegistryCpuRequest,
-			cheCluster: &orgv1.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-			},
-		},
-		{
-			name:          "Test custom limits",
-			initObjects:   []runtime.Object{},
-			cpuLimit:      "250m",
-			cpuRequest:    "150m",
-			memoryLimit:   "250Mi",
-			memoryRequest: "150Mi",
-			cheCluster: &orgv1.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DevfileRegistryCpuLimit:      "250m",
-						DevfileRegistryCpuRequest:    "150m",
-						DevfileRegistryMemoryLimit:   "250Mi",
-						DevfileRegistryMemoryRequest: "150Mi",
-					},
-				},
-			},
+func TestDevfileRegistrySyncAll(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
 
-			deployContext := &deploy.DeployContext{
-				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
-				},
-				Proxy:      &deploy.Proxy{},
-				CheCluster: testCase.cheCluster,
-			}
+	util.IsOpenShift = true
 
-			devfileregistry := NewDevfileRegistry(deployContext)
-			deployment := devfileregistry.GetDevfileRegistryDeploymentSpec()
+	devfileregistry := NewDevfileRegistry(deployContext)
+	done, err := devfileregistry.SyncAll()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync Devfile Registry: %v", err)
+	}
 
-			util.CompareResources(deployment,
-				util.TestExpectedResources{
-					MemoryLimit:   testCase.memoryLimit,
-					MemoryRequest: testCase.memoryRequest,
-					CpuRequest:    testCase.cpuRequest,
-					CpuLimit:      testCase.cpuLimit,
-				},
-				t)
+	// check service
+	service := &corev1.Service{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, service)
+	if err != nil {
+		t.Fatalf("Service not found: %v", err)
+	}
 
-			util.ValidateSecurityContext(deployment, t)
-		})
+	// check endpoint
+	route := &routev1.Route{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, route)
+	if err != nil {
+		t.Fatalf("Route not found: %v", err)
+	}
+
+	// check deployment
+	deployment := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, deployment)
+	if err != nil {
+		t.Fatalf("Deployment not found: %v", err)
+	}
+
+	if cheCluster.Status.DevfileRegistryURL == "" {
+		t.Fatalf("Status wasn't updated")
 	}
 }
