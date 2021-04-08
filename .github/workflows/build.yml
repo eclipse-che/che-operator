@@ -10,7 +10,7 @@
 #    Red Hat, Inc. - initial API and implementation
 #
 name: Eclipse Che operator image
-on: [pull_request, push]
+on: pull_request
 jobs:
   build:
     name: Build
