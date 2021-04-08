@@ -31,6 +31,8 @@ var ingressDiffOpts = cmp.Options{
 	}),
 }
 
+// SyncIngressToCluster creates ingress to expose service with the set settings
+// host and path are evaluated if they are empty
 func SyncIngressToCluster(
 	deployContext *DeployContext,
 	name string,
@@ -47,6 +49,7 @@ func SyncIngressToCluster(
 }
 
 // GetIngressSpec returns expected ingress config for given parameters
+// host and path are evaluated if they are empty
 func GetIngressSpec(
 	deployContext *DeployContext,
 	name string,
@@ -79,11 +82,12 @@ func GetIngressSpec(
 		}
 	}
 
-	var ingressPath string
+	var endpointPath, ingressPath string
 	if path == "" {
-		path, ingressPath = evaluatePath(component, ingressStrategy)
+		endpointPath, ingressPath = evaluatePath(component, ingressStrategy)
 	} else {
 		ingressPath = path
+		endpointPath = path
 	}
 
 	annotations := map[string]string{
@@ -140,34 +144,35 @@ func GetIngressSpec(
 		}
 	}
 
-	return host + path, ingress
+	return host + endpointPath, ingress
 }
 
-func evaluatePath(component, ingressStrategy string) (path, ingressPath string) {
+// evaluatePath evaluates ingress path (one which is used for rule)
+// and endpoint path (one which client should use during endpoint accessing)
+func evaluatePath(component, ingressStrategy string) (endpointPath, ingressPath string) {
 	if ingressStrategy == "multi-host" {
 		ingressPath = "/"
-		path = "/"
+		endpointPath = "/"
 		// Keycloak needs special rule in multihost. It's exposed on / which redirects to /auth
 		// clients which does not support redirects needs /auth be explicitely set
 		if component == IdentityProviderName {
-			path = "/auth"
+			endpointPath = "/auth"
 		}
 	} else {
 		switch component {
 		case IdentityProviderName:
-			path = "/auth"
-			ingressPath = path + "/(.*)"
+			endpointPath = "/auth"
+			ingressPath = endpointPath + "/(.*)"
 		case DevfileRegistryName:
-			path = "/" + DevfileRegistryName
-			ingressPath = path + "/(.*)"
+			fallthrough
 		case PluginRegistryName:
-			path = "/" + PluginRegistryName
-			ingressPath = path + "/(.*)"
+			endpointPath = "/" + component
+			ingressPath = endpointPath + "/(.*)"
 		default:
 			ingressPath = "/"
-			path = "/"
+			endpointPath = "/"
 		}
 
 	}
-	return path, ingressPath
+	return endpointPath, ingressPath
 }
