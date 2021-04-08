@@ -16,7 +16,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type DevfileRegistry struct {
@@ -51,16 +50,9 @@ func (p *DevfileRegistry) SyncAll() (bool, error) {
 		return false, err
 	}
 
-	if p.deployContext.CheCluster.IsAirGapMode() {
-		done, err := p.SyncConfigMap()
-		if !done {
-			return false, err
-		}
-	} else {
-		done, err := deploy.DeleteNamespacedObject(p.deployContext, deploy.DevfileRegistryName, &corev1.ConfigMap{})
-		if !done {
-			return false, err
-		}
+	done, err = p.SyncConfigMap()
+	if !done {
+		return false, err
 	}
 
 	done, err = p.SyncDeployment()

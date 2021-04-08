@@ -828,6 +828,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	} else {
+		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DevfileRegistryName, &corev1.ConfigMap{})
+		if !done {
+			return reconcile.Result{}, err
+		}
+
 		if instance.Spec.Server.DevfileRegistryUrl != instance.Status.DevfileRegistryURL {
 			instance.Status.DevfileRegistryURL = instance.Spec.Server.DevfileRegistryUrl
 			if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", instance.Spec.Server.DevfileRegistryUrl); err != nil {
