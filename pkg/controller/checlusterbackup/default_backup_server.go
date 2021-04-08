@@ -68,7 +68,7 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	// Check if the secret with restic repository password exists
 	repoPasswordsecret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{
-		Namespace: bctx.backupCR.GetNamespace(),
+		Namespace: bctx.namespace,
 		Name:      bctx.backupCR.Spec.Servers.Internal.RepoPasswordSecretRef,
 	}
 	err = bctx.r.client.Get(context.TODO(), namespacedName, repoPasswordsecret)
@@ -126,7 +126,7 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 func getInternalBackupServerDeployment(bctx *BackupContext) (*appsv1.Deployment, error) {
 	backupServerDeployment := &appsv1.Deployment{}
 	namespacedName := types.NamespacedName{
-		Namespace: bctx.backupCR.GetNamespace(),
+		Namespace: bctx.namespace,
 		Name:      backupServerDeploymentName,
 	}
 	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerDeployment)
@@ -156,7 +156,6 @@ func createInternalBackupServerDeployment(bctx *BackupContext) error {
 }
 
 func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, error) {
-	namespace := bctx.backupCR.GetNamespace()
 	labels, labelSelector := deploy.GetLabelsAndSelector(bctx.cheCR, backupServerDeploymentName)
 
 	replicas := int32(1)
@@ -169,7 +168,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      backupServerDeploymentName,
-			Namespace: namespace,
+			Namespace: bctx.namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -232,7 +231,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 func ensureInternalBackupServerServiceExists(bctx *BackupContext) error {
 	backupServerService := &corev1.Service{}
 	namespacedName := types.NamespacedName{
-		Namespace: bctx.backupCR.GetNamespace(),
+		Namespace: bctx.namespace,
 		Name:      backupServerServiceName,
 	}
 	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerService)
@@ -259,7 +258,6 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) error {
 }
 
 func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
-	namespace := bctx.backupCR.GetNamespace()
 	labels := deploy.GetLabels(bctx.cheCR, backupServerServiceName)
 
 	port := corev1.ServicePort{
@@ -277,7 +275,7 @@ func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      backupServerServiceName,
-			Namespace: namespace,
+			Namespace: bctx.namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
@@ -331,7 +329,6 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) error {
 }
 
 func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Secret, error) {
-	namespace := bctx.backupCR.GetNamespace()
 	labels := deploy.GetLabels(bctx.cheCR, BackupServerRepoPasswordSecretName)
 	data := map[string][]byte{"repo-password": []byte(password)}
 
@@ -342,7 +339,7 @@ func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Se
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      BackupServerRepoPasswordSecretName,
-			Namespace: namespace,
+			Namespace: bctx.namespace,
 			Labels:    labels,
 		},
 		Data: data,

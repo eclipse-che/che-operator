@@ -100,18 +100,18 @@ func (s *SftpServer) propageteSshKey(sshKey string) (bool, error) {
 	if err != nil {
 		return true, fmt.Errorf("failed to get user home directory. Reason: %s", err.Error())
 	}
-	destDir := home + "/.ssh/"
+	sshConfigDir := home + "/.ssh/"
 
 	// Ensure destDir exists
-	if _, err := os.Stat(destDir); os.IsNotExist(err) {
-		err = os.MkdirAll(destDir, os.ModePerm)
+	if _, err := os.Stat(sshConfigDir); os.IsNotExist(err) {
+		err = os.MkdirAll(sshConfigDir, os.ModePerm)
 		if err != nil {
 			return true, fmt.Errorf("failed to create SSH keys directory. Reason: %s", err.Error())
 		}
 	}
 
 	// Save the key
-	err = ioutil.WriteFile(destDir+"rest_rsa", []byte(sshKey), 0600)
+	err = ioutil.WriteFile(sshConfigDir+"rest_rsa", []byte(sshKey), 0600)
 	if err != nil {
 		return true, fmt.Errorf("failed to propagate SSH key. Reason: %s", err.Error())
 	}
@@ -123,7 +123,7 @@ func (s *SftpServer) propageteSshKey(sshKey string) (bool, error) {
 	sshConfigPatch := "\nHost " + s.config.Hostname + "\n  StrictHostKeyChecking no\n"
 
 	// Append config patch to ssh client config file or create it if doesn't exist
-	sshConfigFile, err := os.OpenFile(destDir+"config", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	sshConfigFile, err := os.OpenFile(sshConfigDir+"config", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return true, err
 	}

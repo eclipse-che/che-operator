@@ -90,29 +90,26 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	// Create backup context
-	bctx, err := NewBackupContext(r, backupCR)
+	done, err := r.doReconcile(backupCR)
 	if err != nil {
-		// Failed to create backup context.
-		// This is usually caused by invalid configuration of current backup server in the backup CR.
-		logrus.Error(err)
-		// Do not requeue as user has to correct the configuration manually
-		return reconcile.Result{}, nil
-	}
-
-	// Pre-set is done, do actual reconcile job
-	done, err := doReconcile(bctx)
-	if err != nil {
-		// Log the error, so user can see it
+		// Log the error, so user can see it in logs
 		logrus.Error(err)
 		if !done {
 			// Reconcile because the job is not done yet.
-			// Probably the error is related to reading some object from cluster, etc.
+			// Probably the problem is related to a network error, etc.
 			return reconcile.Result{}, err
 		}
+
+		// Update backup CR status with the error
+		backupCR.Status.Message = err.Error()
+		if err := r.UpdateCR(backupCR); err != nil {
+			// Failed to update status, retry
+			return reconcile.Result{}, err
+		}
+
 		// Do not reconcile despite the fact that an error happened.
 		// The error cannot be handled automatically by the operator, so the user has to deal with it in manual mode.
-		// For example, config in the backup CR is invalid, but we do not requeue as user has to correct it.
+		// For example, config in the backup CR is invalid, so do not requeue as user has to correct it.
 		// After a modification in the backup CR, a new reconcile loop will be trigerred.
 		return reconcile.Result{}, nil
 	}
@@ -126,7 +123,16 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 	return reconcile.Result{}, nil
 }
 
-func doReconcile(bctx *BackupContext) (bool, error) {
+func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup) (bool, error) {
+	// Create backup context
+	bctx, err := NewBackupContext(r, backupCR)
+	if err != nil {
+		// Failed to create backup context.
+		// This is usually caused by invalid configuration of current backup server in the backup CR.
+		// Do not requeue as user has to correct the configuration manually.
+		return true, err
+	}
+
 	// Check if internal backup server is needed
 	if bctx.backupCR.Spec.AutoconfigureRestBackupServer {
 		// Use internal REST backup server
@@ -137,7 +143,7 @@ func doReconcile(bctx *BackupContext) (bool, error) {
 	}
 
 	// Make sure, that backup server configuration in the CR is valid
-	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.backupCR.GetNamespace())
+	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
 	if err != nil || !done {
 		return done, err
 	}
@@ -165,10 +171,20 @@ func doReconcile(bctx *BackupContext) (bool, error) {
 			return done, err
 		}
 
-		// Backup is successfull
+		// Backup is successfull, update status
 		bctx.backupCR.Spec.TriggerNow = false
 		bctx.backupCR.Status.Message = "Backup successfully finished"
-		bctx.r.UpdateCR(bctx.backupCR)
+		bctx.backupCR.Status.LastBackupTime = time.Now().String()
+		if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
+			// Wait a bit and retry.
+			// This is needed because actual backup is done successfully,
+			// but only status in the backup CR is not updated.
+			// This update is important, because without it next reconcile loop will start a new backup.
+			time.Sleep(5 * time.Second)
+			if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
+				return false, err
+			}
+		}
 	}
 
 	return true, nil
