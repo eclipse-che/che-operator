@@ -921,7 +921,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 				Proxy: &deploy.Proxy{},
 				InternalService: deploy.InternalService{
-					KeycloakHost: "http://keycloak.eclipse-che.svc:8080",
+					KeycloakHost: "http://keycloak.eclipse-che.svc:8080/auth",
 				},
 			}
 
