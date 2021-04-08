@@ -14,7 +14,6 @@ package devworkspace
 import (
 	"context"
 	"errors"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -32,15 +31,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
+var (
 	DevWorkspaceNamespace      = "devworkspace-controller"
 	DevWorkspaceCheNamespace   = "devworkspace-che"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 
-	DevWorkspaceTemplates    = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
-	DevWorkspaceCheTemplates = "/tmp/devworkspace-che-operator/templates/deployment/openshift/objects/"
+	OpenshiftDevWorkspaceTemplatesPath     = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
+	OpenshiftDevWorkspaceCheTemplatesPath  = "/tmp/devworkspace-che-operator/templates/deployment/openshift/objects/"
+	KubernetesDevWorkspaceTemplatesPath    = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
+	KubernetesDevWorkspaceCheTemplatesPath = "/tmp/devworkspace-che-operator/templates/deployment/kubernetes/objects/"
+
+	DevWorkspaceTemplates    = devWorkspaceTemplatesPath()
+	DevWorkspaceCheTemplates = devWorkspaceCheTemplatesPath()
 
 	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
 	DevWorkspaceRoleFile                      = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
@@ -114,10 +118,6 @@ var (
 )
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
-	if !util.IsOpenShift4 || !util.IsOAuthEnabled(deployContext.CheCluster) {
-		return true, nil
-	}
-
 	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return true, nil
 	}
@@ -241,11 +241,32 @@ func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
+	configMap := &corev1.ConfigMap{}
+	if err := getK8SObjectFromFile(DevWorkspaceConfigMapFile, configMap); err != nil {
+		return false, err
+	}
+	// Remove when DevWorkspace controller should not care about DWR base host #373 https://github.com/devfile/devworkspace-operator/issues/373
+	if !util.IsOpenShift {
+		if configMap.Data == nil {
+			configMap.Data = make(map[string]string, 1)
+		}
+		configMap.Data["devworkspace.routing.cluster_host_suffix"] = deployContext.CheCluster.Spec.K8s.IngressDomain
+	}
+
+	return deploy.CreateIfNotExists(deployContext, configMap)
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceDeploymentFile, &appsv1.Deployment{})
+	dwDeploymentObj := &appsv1.Deployment{}
+	if err := getK8SObjectFromFile(DevWorkspaceDeploymentFile, dwDeploymentObj); err != nil {
+		return false, err
+	}
+
+	if deployContext.CheCluster.Spec.DevWorkspace.ControllerImage != "" {
+		dwDeploymentObj.Spec.Template.Spec.Containers[0].Image = deployContext.CheCluster.Spec.DevWorkspace.ControllerImage
+	}
+
+	return deploy.CreateIfNotExists(deployContext, dwDeploymentObj)
 }
 
 func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
@@ -352,7 +373,7 @@ func synDwCheDeployment(deployContext *deploy.DeployContext) (bool, error) {
 func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {
 	_, exists := cachedObj[yamlFile]
 	if !exists {
-		if err := util.ReadObject(yamlFile, obj); err != nil {
+		if err := getK8SObjectFromFile(yamlFile, obj); err != nil {
 			return false, err
 		}
 		cachedObj[yamlFile] = obj.(metav1.Object)
@@ -360,4 +381,29 @@ func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interf
 
 	objectMeta := cachedObj[yamlFile]
 	return deploy.CreateIfNotExists(deployContext, objectMeta)
+}
+
+func getK8SObjectFromFile(yamlFile string, obj interface{}) error {
+	_, exists := cachedObj[yamlFile]
+	if !exists {
+		if err := util.ReadObject(yamlFile, obj); err != nil {
+			return err
+		}
+		cachedObj[yamlFile] = obj.(metav1.Object)
+	}
+	return nil
+}
+
+func devWorkspaceTemplatesPath() string {
+	if util.IsOpenShift {
+		return OpenshiftDevWorkspaceTemplatesPath
+	}
+	return KubernetesDevWorkspaceTemplatesPath
+}
+
+func devWorkspaceCheTemplatesPath() string {
+	if util.IsOpenShift {
+		return OpenshiftDevWorkspaceCheTemplatesPath
+	}
+	return KubernetesDevWorkspaceCheTemplatesPath
 }

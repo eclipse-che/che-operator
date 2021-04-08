@@ -55,7 +55,7 @@ func GetIngressSpec(
 	component string) *v1beta1.Ingress {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
-	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster, DefaultServerExposureStrategy)
+	ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.Server.ServerExposureStrategy, DefaultServerExposureStrategy)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, component)

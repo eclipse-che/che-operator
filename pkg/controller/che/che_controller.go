@@ -994,7 +994,7 @@ func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
 }
 
 func getServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.ServerExposureStrategy == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
+	if util.GetValue(cr.Spec.Server.ServerExposureStrategy, deploy.DefaultServerExposureStrategy) == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName

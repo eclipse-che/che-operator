@@ -239,5 +239,13 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		}
 	}
 
+	if deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "" && deployContext.CheCluster.Spec.K8s.IngressStrategy == "" {
+		strategy := util.GetServerExposureStrategy(deployContext.CheCluster)
+		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = strategy
+		if err := deploy.UpdateCheCRSpec(deployContext, "serverExposureStrategy", strategy); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

@@ -200,17 +200,17 @@ func MergeMaps(first map[string]string, second map[string]string) map[string]str
 	return ret
 }
 
-func GetServerExposureStrategy(c *orgv1.CheCluster, defaultValue string) string {
+func GetServerExposureStrategy(c *orgv1.CheCluster) string {
 	strategy := c.Spec.Server.ServerExposureStrategy
-	if IsOpenShift {
-		strategy = GetValue(strategy, defaultValue)
-	} else {
-		if strategy == "" {
-			strategy = GetValue(c.Spec.K8s.IngressStrategy, defaultValue)
-		}
-	}
-
-	return strategy
+	if strategy != "" {
+		return strategy
+	 } else if c.Spec.DevWorkspace.Enable {
+		return "single-host"
+	 } else if IsOpenShift {
+		return "multi-host"
+	 } else {
+		return GetValue(c.Spec.K8s.IngressStrategy, "multi-host")
+	 }
 }
 
 func IsTestMode() (isTesting bool) {

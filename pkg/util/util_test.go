@@ -1,3 +1,4 @@
+
 //
 // Copyright (c) 2012-2019 Red Hat, Inc.
 // This program and the accompanying materials are made
@@ -36,6 +37,7 @@ func TestGeneratePasswd(t *testing.T) {
 		t.Errorf("Test failed. Passwords are identical, %s: %s", passwd, passwd1)
 	}
 }
+
 
 func TestGetValue(t *testing.T) {
 	key := "myvalue"

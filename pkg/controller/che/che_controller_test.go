@@ -424,6 +424,89 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 	}
 }
 
+func TestEnsureServerExposureStrategy(t *testing.T) {
+	type testCase struct {
+		name string
+		expectedCr *orgv1.CheCluster
+		devWorkspaceEnabled bool
+		initObjects []runtime.Object
+	}
+
+	testCases:= []testCase{
+		{
+			name: "Single Host should be enabled if devWorkspace is enabled",
+			expectedCr: &orgv1.CheCluster{
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "single-host",
+					},
+				},
+			},
+			devWorkspaceEnabled: true,
+		},
+		{
+			name: "Multi Host should be enabled if devWorkspace is not enabled",
+			expectedCr: &orgv1.CheCluster{
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "multi-host",
+					},
+				},
+			},
+			devWorkspaceEnabled: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			initCR := InitCheWithSimpleCR().DeepCopy()
+			testCase.initObjects = append(testCase.initObjects, initCR)
+			if testCase.devWorkspaceEnabled {
+				initCR.Spec.DevWorkspace.Enable = true
+			}
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+				tests:           true,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			cr := &orgv1.CheCluster{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr); err != nil {
+				t.Errorf("CR not found")
+			}
+			if !reflect.DeepEqual(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy) {
+				t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy))
+			}
+		})
+	}
+}
+
 func TestImagePullerConfiguration(t *testing.T) {
 	type testCase struct {
 		name                  string
@@ -497,6 +580,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 							DeploymentName: "kubernetes-image-puller",
 							ConfigMapName:  "k8s-image-puller",
 						},
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "multi-host",
 					},
 				},
 			},
@@ -1337,6 +1423,9 @@ func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
 			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "multi-host",
+			},
 		},
 	}
 }
@@ -1353,6 +1442,9 @@ func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
+			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "multi-host",
 			},
 		},
 	}
@@ -1375,6 +1467,9 @@ func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
+			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "multi-host",
 			},
 		},
 	}

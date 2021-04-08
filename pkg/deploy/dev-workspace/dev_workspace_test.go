@@ -48,6 +48,9 @@ func TestReconcileDevWorkspace(t *testing.T) {
 				Auth: orgv1.CheClusterSpecAuth{
 					OpenShiftoAuth: util.NewBoolPointer(true),
 				},
+				Server: orgv1.CheClusterSpecServer{
+					ServerExposureStrategy: "single-host",
+				},
 			},
 		},
 		ClusterAPI: deploy.ClusterAPI{
@@ -115,6 +118,9 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 				},
 				Auth: orgv1.CheClusterSpecAuth{
 					OpenShiftoAuth: util.NewBoolPointer(true),
+				},
+				Server: orgv1.CheClusterSpecServer{
+					ServerExposureStrategy: "single-host",
 				},
 			},
 		},
