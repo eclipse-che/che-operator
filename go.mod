@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20200901231735-f852a5a3ea5c
 	github.com/golang/mock v1.3.1
-	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76 // indirect
 	github.com/google/go-cmp v0.4.0
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/operator-framework/api v0.3.20
@@ -14,7 +13,6 @@ require (
 	github.com/prometheus/common v0.7.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	k8s.io/api v0.18.2
 	k8s.io/apiextensions-apiserver v0.18.2
 	k8s.io/apimachinery v0.18.2
