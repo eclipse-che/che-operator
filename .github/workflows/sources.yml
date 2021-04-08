@@ -44,8 +44,6 @@ jobs:
         fi
     - name: Check format
       run: |
-        go get -u github.com/google/addlicense
-        go get -u golang.org/x/tools/cmd/goimports
         git reset HEAD --hard
         go fmt -x ./...
         if [[ ! -z $(git status -s) ]]
@@ -54,13 +52,3 @@ jobs:
           git --no-pager diff
           exit 1
         fi
-
-
-        @{
-		if [[ $$(find . -name '*.go' -exec goimports -l {} \;) != "" ]]; then \
-			echo "Files not formatted; run 'make fmt'"; exit 1 ;\
-		fi ;\
-		if ! addlicense -check -f license_header.txt $$(find . -name '*.go'); then \
-			echo "Licenses are not formatted; run 'make fmt_license'"; exit 1 ;\
-		fi \
-	}
