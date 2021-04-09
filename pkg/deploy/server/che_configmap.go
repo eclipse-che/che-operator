@@ -261,8 +261,8 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	}
 
 	if cheMultiUser == "true" {
-		data.KeycloakURL = keycloakURL + "/auth"
-		data.KeycloakInternalURL = keycloakInternalURL + "/auth"
+		data.KeycloakURL = keycloakURL
+		data.KeycloakInternalURL = keycloakInternalURL
 		data.KeycloakRealm = keycloakRealm
 		data.KeycloakClientId = keycloakClientId
 		data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb

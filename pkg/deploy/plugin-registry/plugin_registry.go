@@ -14,6 +14,7 @@ package plugin_registry
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
@@ -31,25 +32,29 @@ type PluginRegistryConfigMap struct {
 /**
  * Create plugin registry resources unless an external registry is used.
  */
-func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext, cheHost string) (bool, error) {
+func SyncPluginRegistryToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	pluginRegistryURL := deployContext.CheCluster.Spec.Server.PluginRegistryUrl
 	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
 		endpoint, done, err := expose.Expose(
 			deployContext,
-			cheHost,
 			deploy.PluginRegistryName,
 			deployContext.CheCluster.Spec.Server.PluginRegistryRoute,
-			deployContext.CheCluster.Spec.Server.PluginRegistryIngress,
-			deploy.PluginRegistryName)
+			deployContext.CheCluster.Spec.Server.PluginRegistryIngress)
 		if !done {
 			return false, err
 		}
 
 		if pluginRegistryURL == "" {
 			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				pluginRegistryURL = "https://" + endpoint + "/v3"
+				pluginRegistryURL = "https://" + endpoint
 			} else {
-				pluginRegistryURL = "http://" + endpoint + "/v3"
+				pluginRegistryURL = "http://" + endpoint
+			}
+			// append the API version to plugin registry
+			if !strings.HasSuffix(pluginRegistryURL, "/") {
+				pluginRegistryURL = pluginRegistryURL + "/v3"
+			} else {
+				pluginRegistryURL = pluginRegistryURL + "v3"
 			}
 		}
 

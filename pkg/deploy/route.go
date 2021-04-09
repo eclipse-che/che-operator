@@ -50,12 +50,13 @@ func SyncRouteToCluster(
 	deployContext *DeployContext,
 	name string,
 	host string,
+	path string,
 	serviceName string,
 	servicePort int32,
 	routeCustomSettings orgv1.RouteCustomSettings,
 	component string) (bool, error) {
 
-	routeSpec, err := GetRouteSpec(deployContext, name, host, serviceName, servicePort, routeCustomSettings, component)
+	routeSpec, err := GetRouteSpec(deployContext, name, host, path, serviceName, servicePort, routeCustomSettings, component)
 	if err != nil {
 		return false, err
 	}
@@ -71,6 +72,7 @@ func GetRouteSpec(
 	deployContext *DeployContext,
 	name string,
 	host string,
+	path string,
 	serviceName string,
 	servicePort int32,
 	routeCustomSettings orgv1.RouteCustomSettings,
@@ -104,6 +106,7 @@ func GetRouteSpec(
 			Name:   serviceName,
 			Weight: &weight,
 		},
+		Path: path,
 		Port: &routev1.RoutePort{
 			TargetPort: targetPort,
 		},

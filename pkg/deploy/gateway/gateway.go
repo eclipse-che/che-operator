@@ -186,7 +186,7 @@ func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 // GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
 // `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
 // new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
-func GetGatewayRouteConfig(deployContext *deploy.DeployContext, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
+func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
 	pathRewrite := pathPrefix != "/" && stripPrefix
 
 	data := `---
@@ -225,14 +225,14 @@ http:
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      component,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels: util.MergeMaps(
 				deploy.GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
 				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
-			serviceName + ".yml": data,
+			component + ".yml": data,
 		},
 	}
 
@@ -255,7 +255,7 @@ func DeleteGatewayRouteConfig(serviceName string, deployContext *deploy.DeployCo
 // below functions declare the desired states of the various objects required for the gateway
 
 func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) corev1.ConfigMap {
-	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, "/", 1, "http://"+deploy.CheServiceName+":8080", false)
+	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, gatewayServerConfigName, "/", 1, "http://"+deploy.CheServiceName+":8080", false)
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {

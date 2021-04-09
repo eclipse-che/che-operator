@@ -816,7 +816,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
-						IdentityProviderURL:      "http://external-keycloak",
+						IdentityProviderURL:      "http://external-keycloak/auth",
 					},
 				},
 			},
@@ -841,7 +841,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
-						IdentityProviderURL:      "http://external-keycloak",
+						IdentityProviderURL:      "http://external-keycloak/auth",
 					},
 				},
 			},
@@ -866,7 +866,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,
-						IdentityProviderURL:      "http://keycloak",
+						IdentityProviderURL:      "http://keycloak/auth",
 					},
 				},
 				Status: orgv1.CheClusterStatus{
@@ -894,7 +894,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,
-						IdentityProviderURL:      "http://keycloak",
+						IdentityProviderURL:      "http://keycloak/auth",
 					},
 				},
 			},
@@ -921,7 +921,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 				Proxy: &deploy.Proxy{},
 				InternalService: deploy.InternalService{
-					KeycloakHost: "http://keycloak.eclipse-che.svc:8080",
+					KeycloakHost: "http://keycloak.eclipse-che.svc:8080/auth",
 				},
 			}
 

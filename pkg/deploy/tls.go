@@ -139,6 +139,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 				deployContext,
 				"test",
 				"",
+				"",
 				"test",
 				8080,
 				deployContext.CheCluster.Spec.Server.CheServerRoute,
@@ -181,9 +182,10 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 
 			// Create test ingress to get certificates chain.
 			// Note, it is not possible to use SyncIngressToCluster here as it may cause infinite reconcile loop.
-			ingressSpec := GetIngressSpec(
+			_, ingressSpec := GetIngressSpec(
 				deployContext,
 				"test",
+				"",
 				"",
 				"test",
 				8080,

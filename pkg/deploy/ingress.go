@@ -31,28 +31,34 @@ var ingressDiffOpts = cmp.Options{
 	}),
 }
 
+// SyncIngressToCluster creates ingress to expose service with the set settings
+// host and path are evaluated if they are empty
 func SyncIngressToCluster(
 	deployContext *DeployContext,
 	name string,
 	host string,
+	path string,
 	serviceName string,
 	servicePort int,
 	ingressCustomSettings orgv1.IngressCustomSettings,
-	component string) (bool, error) {
+	component string) (endpointUrl string, done bool, err error) {
 
-	ingressSpec := GetIngressSpec(deployContext, name, host, serviceName, servicePort, ingressCustomSettings, component)
-	return Sync(deployContext, ingressSpec, ingressDiffOpts)
+	ingressUrl, ingressSpec := GetIngressSpec(deployContext, name, host, path, serviceName, servicePort, ingressCustomSettings, component)
+	sync, err := Sync(deployContext, ingressSpec, ingressDiffOpts)
+	return ingressUrl, sync, err
 }
 
 // GetIngressSpec returns expected ingress config for given parameters
+// host and path are evaluated if they are empty
 func GetIngressSpec(
 	deployContext *DeployContext,
 	name string,
 	host string,
+	path string,
 	serviceName string,
 	servicePort int,
 	ingressCustomSettings orgv1.IngressCustomSettings,
-	component string) *v1beta1.Ingress {
+	component string) (ingressUrl string, i *v1beta1.Ingress) {
 
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
@@ -63,7 +69,7 @@ func GetIngressSpec(
 
 	if host == "" {
 		if ingressStrategy == "multi-host" {
-			host = name + "-" + deployContext.CheCluster.Namespace + "." + ingressDomain
+			host = component + "-" + deployContext.CheCluster.Namespace + "." + ingressDomain
 		} else if ingressStrategy == "single-host" {
 			host = ingressDomain
 		}
@@ -71,21 +77,17 @@ func GetIngressSpec(
 
 	tlsSecretName := util.GetValue(deployContext.CheCluster.Spec.K8s.TlsSecretName, "")
 	if tlsSupport {
-		if name == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+		if component == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
 			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
 		}
 	}
 
-	path := "/"
-	if ingressStrategy != "multi-host" {
-		switch name {
-		case IdentityProviderName:
-			path = "/auth"
-		case DevfileRegistryName:
-			path = "/" + DevfileRegistryName + "/(.*)"
-		case PluginRegistryName:
-			path = "/" + PluginRegistryName + "/(.*)"
-		}
+	var endpointPath, ingressPath string
+	if path == "" {
+		endpointPath, ingressPath = evaluatePath(component, ingressStrategy)
+	} else {
+		ingressPath = path
+		endpointPath = path
 	}
 
 	annotations := map[string]string{
@@ -94,7 +96,7 @@ func GetIngressSpec(
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 		"nginx.ingress.kubernetes.io/ssl-redirect":          strconv.FormatBool(tlsSupport),
 	}
-	if ingressStrategy != "multi-host" && (name == DevfileRegistryName || name == PluginRegistryName) {
+	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 
@@ -121,7 +123,7 @@ func GetIngressSpec(
 										ServiceName: serviceName,
 										ServicePort: intstr.FromInt(servicePort),
 									},
-									Path: path,
+									Path: ingressPath,
 								},
 							},
 						},
@@ -142,5 +144,35 @@ func GetIngressSpec(
 		}
 	}
 
-	return ingress
+	return host + endpointPath, ingress
+}
+
+// evaluatePath evaluates ingress path (one which is used for rule)
+// and endpoint path (one which client should use during endpoint accessing)
+func evaluatePath(component, ingressStrategy string) (endpointPath, ingressPath string) {
+	if ingressStrategy == "multi-host" {
+		ingressPath = "/"
+		endpointPath = "/"
+		// Keycloak needs special rule in multihost. It's exposed on / which redirects to /auth
+		// clients which does not support redirects needs /auth be explicitely set
+		if component == IdentityProviderName {
+			endpointPath = "/auth"
+		}
+	} else {
+		switch component {
+		case IdentityProviderName:
+			endpointPath = "/auth"
+			ingressPath = endpointPath + "/(.*)"
+		case DevfileRegistryName:
+			fallthrough
+		case PluginRegistryName:
+			endpointPath = "/" + component
+			ingressPath = endpointPath + "/(.*)"
+		default:
+			ingressPath = "/"
+			endpointPath = "/"
+		}
+
+	}
+	return endpointPath, ingressPath
 }
