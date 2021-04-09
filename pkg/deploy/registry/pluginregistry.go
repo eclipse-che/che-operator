@@ -12,6 +12,8 @@
 package registry
 
 import (
+	"strings"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	corev1 "k8s.io/api/core/v1"
@@ -91,9 +93,16 @@ func (p *PluginRegistry) ExposeEndpoint() (string, bool, error) {
 func (p *PluginRegistry) UpdateStatus(endpoint string) (bool, error) {
 	var pluginRegistryURL string
 	if p.deployContext.CheCluster.Spec.Server.TlsSupport {
-		pluginRegistryURL = "https://" + endpoint + "/v3"
+		pluginRegistryURL = "https://" + endpoint
 	} else {
-		pluginRegistryURL = "http://" + endpoint + "/v3"
+		pluginRegistryURL = "http://" + endpoint
+	}
+
+	// append the API version to plugin registry
+	if !strings.HasSuffix(pluginRegistryURL, "/") {
+		pluginRegistryURL = pluginRegistryURL + "/v3"
+	} else {
+		pluginRegistryURL = pluginRegistryURL + "v3"
 	}
 
 	if pluginRegistryURL != p.deployContext.CheCluster.Status.PluginRegistryURL {
