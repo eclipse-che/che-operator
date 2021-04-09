@@ -34,7 +34,7 @@ initDefaults() {
   export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
-
+  export DEV_WORKSPACE_CONTROLLER_VERSION="main"
   export OAUTH="false"
 
   # turn off telemetry
@@ -52,6 +52,11 @@ initOpenShiftDefaults() {
 }
 
 initLatestTemplates() {
+curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip && \
+  unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
+  mkdir -p /tmp/devworkspace-operator/templates/ && \
+  mv /tmp/devfile-devworkspace-operator-*/deploy ${TEMPLATES}/devworkspace
+
   cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
 }
 
