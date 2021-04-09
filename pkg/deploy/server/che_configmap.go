@@ -158,7 +158,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, deploy.DefaultChePostgresDb)
 	keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
 	keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-	ingressStrategy := util.GetValue(deployContext.CheCluster.Spec.Server.ServerExposureStrategy, deploy.DefaultServerExposureStrategy)
+	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
 	devfileRegistryURL := deployContext.CheCluster.Status.DevfileRegistryURL
 	pluginRegistryURL := deployContext.CheCluster.Status.PluginRegistryURL

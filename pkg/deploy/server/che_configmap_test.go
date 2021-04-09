@@ -482,6 +482,26 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "http://devfile-registry.eclipse-che.svc:8080",
 			},
 		},
+		{
+			name: "Kubernetes strategy should be set correctly",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					K8s: orgv1.CheClusterSpecK8SOnly{
+						IngressStrategy: "single-host",
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_INFRA_KUBERNETES_SERVER__STRATEGY": "single-host",
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
