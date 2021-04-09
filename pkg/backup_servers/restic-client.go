@@ -16,6 +16,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -101,7 +103,8 @@ func (c *ResticClient) SendSnapshot(path string) (bool, error) {
 	if len(snapshotSizeMatch) > 0 {
 		stat.info = snapshotSizeMatch[1]
 	}
-	// TODO return stat
+	// Log the fact of successful sending of a snapshot
+	logrus.Infof("Snapshot %s uploaded: %s", stat.id, stat.info)
 
 	return true, nil
 }

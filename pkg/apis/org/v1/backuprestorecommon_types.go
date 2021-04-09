@@ -16,11 +16,11 @@ package v1
 type BackupServers struct {
 	// Rest server within the cluster.
 	// The server and configuration are created by operator when AutoconfigureRestBackupServer is true
-	Internal RestServerConfing `json:"internal,omitempty"`
+	Internal RestServerConfig `json:"internal,omitempty"`
 	// Sftp backup server configuration
 	Sftp SftpServerConfing `json:"sftp,omitempty"`
 	// Rest backup server configuration
-	Rest RestServerConfing `json:"rest,omitempty"`
+	Rest RestServerConfig `json:"rest,omitempty"`
 	// Amazon S3 or alternatives
 	AwsS3 AwsS3ServerConfig `json:"awss3,omitempty"`
 }
@@ -53,7 +53,7 @@ type SftpServerConfing struct {
 // +k8s:openapi-gen=true
 // REST backup server configuration
 // Example: https://user:password@host:5000/repo/
-type RestServerConfing struct {
+type RestServerConfig struct {
 	RepoPassword `json:"repoPassword"`
 	// Protocol to use when connection to the server
 	// Defaults to https.

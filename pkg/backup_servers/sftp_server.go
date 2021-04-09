@@ -32,6 +32,8 @@ type SftpServer struct {
 }
 
 func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
+	s.ResticClient = ResticClient{}
+
 	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.RepoPassword)
 	if err != nil || !done {
 		return done, err

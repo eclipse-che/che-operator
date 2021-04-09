@@ -40,8 +40,8 @@ type CheClusterBackupSpec struct {
 type CheClusterBackupStatus struct {
 	// Backup result or error message
 	Message string `json:"message,omitempty"`
-	// Shows when backup was triggered last time
-	LastTriggered string `json:"lastTriggered,omitempty"`
+	// Shows when backup was done last time
+	LastBackupTime string `json:"lastBackupTime,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

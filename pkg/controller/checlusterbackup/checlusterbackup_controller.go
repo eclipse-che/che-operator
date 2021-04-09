@@ -101,8 +101,8 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 		}
 
 		// Update backup CR status with the error
-		backupCR.Status.Message = err.Error()
-		if err := r.UpdateCR(backupCR); err != nil {
+		backupCR.Status.Message = "Error: " + err.Error()
+		if err := r.UpdateCRStatus(backupCR); err != nil {
 			// Failed to update status, retry
 			return reconcile.Result{}, err
 		}
@@ -171,19 +171,24 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 			return done, err
 		}
 
-		// Backup is successfull, update status
+		// Backup is successfull
 		bctx.backupCR.Spec.TriggerNow = false
-		bctx.backupCR.Status.Message = "Backup successfully finished"
-		bctx.backupCR.Status.LastBackupTime = time.Now().String()
 		if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
 			// Wait a bit and retry.
-			// This is needed because actual backup is done successfully,
-			// but only status in the backup CR is not updated.
+			// This is needed because actual backup is done successfully, but the CR still has backup flag set.
 			// This update is important, because without it next reconcile loop will start a new backup.
 			time.Sleep(5 * time.Second)
 			if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
 				return false, err
 			}
+		}
+
+		bctx.backupCR.Status.Message = "Backup successfully finished"
+		bctx.backupCR.Status.LastBackupTime = time.Now().String()
+		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
+			logrus.Errorf("Failed to update status after successful backup")
+			// Do not reconsile as backup is done, only status is not updated
+			return true, err
 		}
 	}
 
@@ -196,7 +201,15 @@ func (r *ReconcileCheClusterBackup) UpdateCR(cr *orgv1.CheClusterBackup) error {
 		logrus.Errorf("Failed to update %s CR: %s", cr.Name, err.Error())
 		return err
 	}
-	logrus.Infof("Custom resource %s updated", cr.Name)
+	return nil
+}
+
+func (r *ReconcileCheClusterBackup) UpdateCRStatus(cr *orgv1.CheClusterBackup) error {
+	err := r.client.Status().Update(context.TODO(), cr)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR status: %s", cr.Name, err.Error())
+		return err
+	}
 	return nil
 }
 

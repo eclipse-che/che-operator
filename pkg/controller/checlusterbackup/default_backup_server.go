@@ -16,6 +16,7 @@ import (
 	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -97,6 +98,13 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 			return false, err
 		}
 
+		// Use internal backup server
+		bctx.backupServer = &backup_servers.RestServer{Config: bctx.backupCR.Spec.Servers.Internal}
+		done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
+		if err != nil || !done {
+			return done, err
+		}
+
 		// Initialize new restic repository on the backup server
 		return bctx.backupServer.InitRepository()
 	}
@@ -112,7 +120,7 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 			return false, err
 		}
 
-		err = bctx.r.client.Delete(context.TODO(), repoPasswordsecret)
+		err = bctx.r.client.Delete(context.TODO(), backupServerDeployment)
 		if err != nil && !errors.IsNotFound(err) {
 			return false, err
 		}
@@ -157,9 +165,7 @@ func createInternalBackupServerDeployment(bctx *BackupContext) error {
 
 func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, error) {
 	labels, labelSelector := deploy.GetLabelsAndSelector(bctx.cheCR, backupServerDeploymentName)
-
 	replicas := int32(1)
-	terminationGracePeriodSeconds := int64(30)
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -177,6 +183,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
+					Name:   backupServerPodName,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -213,8 +220,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 							},
 						},
 					},
-					RestartPolicy:                 "Always",
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
+					RestartPolicy: "Always",
 				},
 			},
 		},
@@ -303,7 +309,7 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) error {
 		shouldUpdateCR = true
 	}
 
-	expectedInternalRestServerConfig := orgv1.RestServerConfing{
+	expectedInternalRestServerConfig := orgv1.RestServerConfig{
 		Protocol: "http",
 		Hostname: backupServerServiceName,
 		Port:     strconv.Itoa(backupServerPort),

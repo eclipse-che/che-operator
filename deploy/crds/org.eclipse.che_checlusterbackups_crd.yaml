@@ -46,32 +46,36 @@ spec:
                 of several available, ServerType should contain server to use.
               properties:
                 awss3:
-                  description: Amazon S3
+                  description: Amazon S3 or alternatives
                   properties:
                     awsAccessKeyId:
                       description: Content of AWS_ACCESS_KEY_ID environment variable
                       type: string
                     awsAccessKeySecretRef:
-                      description: Reference to secret that contains AWS_SECRET_ACCESS_KEY
-                        and AWS_ACCESS_KEY_ID fields
-                      type: string
-                    awsDefaultRegion:
-                      description: Region used by default. Empty value means automatic
-                        selection by remote server.
+                      description: Reference to secret that contains awsAccessKeyId
+                        and awsSecretAccessKey fields
                       type: string
                     awsSecretAccessKey:
                       description: Content of AWS_SECRET_ACCESS_KEY environment variable
                       type: string
-                    bucketName:
-                      description: Bucket name. If doesn' exist, it will be created
-                        automatically.
-                      type: string
                     hostname:
                       description: Server hostname, defaults to 's3.amazonaws.com'.
-                        For Amazon alternatives should include protocal, e.g. 'http://host:port'
+                        Might be customized in case of alternative server.
+                      type: string
+                    port:
+                      description: Backup server port. Usually default value is used.
+                        Might be customized in case of alternative server.
+                      type: string
+                    protocol:
+                      description: Protocol to use when connection to the server.
+                        Might be customized in case of alternative server.
+                      type: string
+                    repo:
+                      description: Bucket name and repository, e.g. bucket/repo
                       type: string
                     repoPassword:
-                      description: Holds restic repository password
+                      description: Holds restic repository password to decrypt its
+                        content
                       properties:
                         repoPassword:
                           description: Password for restic repository
@@ -81,6 +85,7 @@ spec:
                           type: string
                       type: object
                   required:
+                  - repo
                   - repoPassword
                   type: object
                 internal:
@@ -108,7 +113,8 @@ spec:
                       description: Restic repository path
                       type: string
                     repoPassword:
-                      description: Holds restic repository password
+                      description: Holds restic repository password to decrypt its
+                        content
                       properties:
                         repoPassword:
                           description: Password for restic repository
@@ -122,44 +128,6 @@ spec:
                       type: string
                   required:
                   - hostname
-                  - repoPassword
-                  type: object
-                minio:
-                  description: Minio server
-                  properties:
-                    awsAccessKeyId:
-                      description: Content of AWS_ACCESS_KEY_ID environment variable
-                      type: string
-                    awsAccessKeySecretRef:
-                      description: Reference to secret that contains AWS_SECRET_ACCESS_KEY
-                        and AWS_ACCESS_KEY_ID fields
-                      type: string
-                    awsDefaultRegion:
-                      description: Region used by default. Empty value means automatic
-                        selection by remote server.
-                      type: string
-                    awsSecretAccessKey:
-                      description: Content of AWS_SECRET_ACCESS_KEY environment variable
-                      type: string
-                    bucketName:
-                      description: Bucket name. If doesn' exist, it will be created
-                        automatically.
-                      type: string
-                    hostname:
-                      description: Server hostname, defaults to 's3.amazonaws.com'.
-                        For Amazon alternatives should include protocal, e.g. 'http://host:port'
-                      type: string
-                    repoPassword:
-                      description: Holds restic repository password
-                      properties:
-                        repoPassword:
-                          description: Password for restic repository
-                          type: string
-                        repoPasswordSecretRef:
-                          description: Secret with 'repo-password' filed
-                          type: string
-                      type: object
-                  required:
                   - repoPassword
                   type: object
                 rest:
@@ -185,7 +153,8 @@ spec:
                       description: Restic repository path
                       type: string
                     repoPassword:
-                      description: Holds restic repository password
+                      description: Holds restic repository password to decrypt its
+                        content
                       properties:
                         repoPassword:
                           description: Password for restic repository
@@ -211,10 +180,12 @@ spec:
                       description: Backup server port
                       type: string
                     repo:
-                      description: Restic repository path
+                      description: Restic repository path, relative or absolute, e.g.
+                        /srv/repo
                       type: string
                     repoPassword:
-                      description: Holds restic repository password
+                      description: Holds restic repository password to decrypt its
+                        content
                       properties:
                         repoPassword:
                           description: Password for restic repository
@@ -224,7 +195,8 @@ spec:
                           type: string
                       type: object
                     sshKeySecretRef:
-                      description: Private ssh key for passwordless login
+                      description: Private ssh key under 'ssh-key' field for passwordless
+                        login
                       type: string
                     username:
                       description: User login on the remote server
@@ -246,8 +218,8 @@ spec:
         status:
           description: CheClusterBackupStatus defines the observed state of CheClusterBackup
           properties:
-            lastTriggered:
-              description: Shows when backup was triggered last time
+            lastBackupTime:
+              description: Shows when backup was done last time
               type: string
             message:
               description: Backup result or error message

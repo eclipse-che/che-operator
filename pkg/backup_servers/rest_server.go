@@ -25,18 +25,20 @@ import (
 
 // RestServer implements BackupServer
 type RestServer struct {
-	config orgv1.RestServerConfing
+	Config orgv1.RestServerConfig
 	ResticClient
 }
 
 func (s *RestServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.RepoPassword)
+	s.ResticClient = ResticClient{}
+
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.Config.RepoPassword)
 	if err != nil || !done {
 		return done, err
 	}
 	s.repoPassword = repoPassword
 
-	protocol := s.config.Protocol
+	protocol := s.Config.Protocol
 	if protocol == "" {
 		protocol = "https"
 	}
@@ -44,28 +46,28 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 		return true, fmt.Errorf("unrecognized protocol %s for REST server", protocol)
 	}
 
-	host := s.config.Hostname
+	host := s.Config.Hostname
 	if host == "" {
 		return true, fmt.Errorf("REST server hostname must be configured")
 	}
-	port := getPortString(s.config.Port)
+	port := getPortString(s.Config.Port)
 
-	repo := s.config.Repo
+	repo := s.Config.Repo
 	if repo != "" && !strings.HasSuffix(repo, "/") {
 		repo += "/"
 	}
 
 	// Check backup server credentials if any
-	username := s.config.Username
-	password := s.config.Password
-	if (username == "" || password == "") && s.config.CredentialsSecretRef != "" {
+	username := s.Config.Username
+	password := s.Config.Password
+	if (username == "" || password == "") && s.Config.CredentialsSecretRef != "" {
 		// Use secret as credentials source
 		secret := &corev1.Secret{}
-		namespacedName := types.NamespacedName{Namespace: namespace, Name: s.config.CredentialsSecretRef}
+		namespacedName := types.NamespacedName{Namespace: namespace, Name: s.Config.CredentialsSecretRef}
 		err = client.Get(context.TODO(), namespacedName, secret)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return true, fmt.Errorf("secret '%s' with username and password not found", s.config.CredentialsSecretRef)
+				return true, fmt.Errorf("secret '%s' with username and password not found", s.Config.CredentialsSecretRef)
 			}
 			return false, err
 		}
