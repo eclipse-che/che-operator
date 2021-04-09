@@ -59,4 +59,3 @@ func TestGetDeploymentPod(t *testing.T) {
 	}
 	logrus.Infof("Test passed. Pod %s found", pod)
 }
-

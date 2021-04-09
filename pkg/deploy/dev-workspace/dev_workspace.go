@@ -9,11 +9,13 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package devworkspace
 
 import (
 	"context"
 	"errors"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"

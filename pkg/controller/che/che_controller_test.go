@@ -426,13 +426,13 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 
 func TestEnsureServerExposureStrategy(t *testing.T) {
 	type testCase struct {
-		name string
-		expectedCr *orgv1.CheCluster
+		name                string
+		expectedCr          *orgv1.CheCluster
 		devWorkspaceEnabled bool
-		initObjects []runtime.Object
+		initObjects         []runtime.Object
 	}
 
-	testCases:= []testCase{
+	testCases := []testCase{
 		{
 			name: "Single Host should be enabled if devWorkspace is enabled",
 			expectedCr: &orgv1.CheCluster{

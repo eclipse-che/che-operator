@@ -5,9 +5,10 @@
 package mock_che
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	v1 "k8s.io/api/rbac/v1"
-	reflect "reflect"
 )
 
 // MockPermissionChecker is a mock of PermissionChecker interface
