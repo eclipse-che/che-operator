@@ -12,8 +12,6 @@
 package registry
 
 import (
-	"fmt"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	corev1 "k8s.io/api/core/v1"
@@ -23,10 +21,6 @@ type PluginRegistry struct {
 	deployContext *deploy.DeployContext
 }
 
-const (
-	PluginRegistryInternalUrlTemplate = "http://%s.%s.svc:8080/v3"
-)
-
 func NewPluginRegistry(deployContext *deploy.DeployContext) *PluginRegistry {
 	return &PluginRegistry{
 		deployContext: deployContext,
@@ -34,8 +28,6 @@ func NewPluginRegistry(deployContext *deploy.DeployContext) *PluginRegistry {
 }
 
 func (p *PluginRegistry) SyncAll() (bool, error) {
-	setPluginRegistryInternalUrl(p.deployContext)
-
 	done, err := p.SyncService()
 	if !done {
 		return false, err
@@ -117,8 +109,4 @@ func (p *PluginRegistry) UpdateStatus(endpoint string) (bool, error) {
 func (p *PluginRegistry) SyncDeployment() (bool, error) {
 	spec := p.GetPluginRegistryDeploymentSpec()
 	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
-}
-
-func setPluginRegistryInternalUrl(deployContext *deploy.DeployContext) {
-	deployContext.InternalService.PluginRegistryHost = fmt.Sprintf(PluginRegistryInternalUrlTemplate, deploy.PluginRegistryName, deployContext.CheCluster.Namespace)
 }

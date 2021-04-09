@@ -13,7 +13,6 @@ package identity_provider
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -88,8 +87,6 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	keycloakURL := protocol + "://" + endpoint
-	deployContext.InternalService.KeycloakHost = fmt.Sprintf("%s://%s.%s.svc:%d/auth", "http", deploy.IdentityProviderName, cr.Namespace, 8080)
-
 	if cr.Spec.Auth.IdentityProviderURL != keycloakURL {
 		cr.Spec.Auth.IdentityProviderURL = keycloakURL
 		if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak URL", keycloakURL); err != nil {

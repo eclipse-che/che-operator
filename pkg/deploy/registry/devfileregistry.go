@@ -12,8 +12,6 @@
 package registry
 
 import (
-	"fmt"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 )
@@ -22,10 +20,6 @@ type DevfileRegistry struct {
 	deployContext *deploy.DeployContext
 }
 
-const (
-	DevfileRegistryInternalUrlTemplate = "http://%s.%s.svc:8080"
-)
-
 func NewDevfileRegistry(deployContext *deploy.DeployContext) *DevfileRegistry {
 	return &DevfileRegistry{
 		deployContext: deployContext,
@@ -33,8 +27,6 @@ func NewDevfileRegistry(deployContext *deploy.DeployContext) *DevfileRegistry {
 }
 
 func (p *DevfileRegistry) SyncAll() (bool, error) {
-	setDevfileRegistryInternalUrl(p.deployContext)
-
 	done, err := p.SyncService()
 	if !done {
 		return false, err
@@ -109,8 +101,4 @@ func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
 func (p *DevfileRegistry) SyncDeployment() (bool, error) {
 	spec := p.GetDevfileRegistryDeploymentSpec()
 	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
-}
-
-func setDevfileRegistryInternalUrl(deployContext *deploy.DeployContext) {
-	deployContext.InternalService.DevfileRegistryHost = fmt.Sprintf(DevfileRegistryInternalUrlTemplate, deploy.DevfileRegistryName, deployContext.CheCluster.Namespace)
 }

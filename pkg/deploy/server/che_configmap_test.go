@@ -102,13 +102,12 @@ func TestNewCheConfigMap(t *testing.T) {
 
 func TestConfigMap(t *testing.T) {
 	type testCase struct {
-		name            string
-		isOpenShift     bool
-		isOpenShift4    bool
-		initObjects     []runtime.Object
-		cheCluster      *orgv1.CheCluster
-		internalService deploy.InternalService
-		expectedData    map[string]string
+		name         string
+		isOpenShift  bool
+		isOpenShift4 bool
+		initObjects  []runtime.Object
+		cheCluster   *orgv1.CheCluster
+		expectedData map[string]string
 	}
 
 	testCases := []testCase{
@@ -169,6 +168,10 @@ func TestConfigMap(t *testing.T) {
 		{
 			name: "Test k8s data, with internal cluster svc names",
 			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						CheHost:                    "che-host",
@@ -176,26 +179,24 @@ func TestConfigMap(t *testing.T) {
 					},
 				},
 			},
-			internalService: deploy.InternalService{
-				CheHost: "http://che-host-internal.svc:8080",
-			},
 			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host-internal.svc:8080/api/websocket",
-				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host-internal.svc:8080/api/websocket-minor",
+				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host.eclipse-che.svc:8080/api/websocket",
+				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host.eclipse-che.svc:8080/api/websocket-minor",
 			},
 		},
 		{
 			name: "Test k8s data, without internal cluster svc names",
 			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
+					Namespace: "eclipse-che",
+				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						CheHost:                    "che-host",
 						UseInternalClusterSVCNames: false,
 					},
 				},
-			},
-			internalService: deploy.InternalService{
-				CheHost: "http://che-host-internal.svc:8080",
 			},
 			expectedData: map[string]string{
 				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host/api/websocket",
@@ -213,8 +214,7 @@ func TestConfigMap(t *testing.T) {
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
 			deployContext := &deploy.DeployContext{
-				InternalService: testCase.internalService,
-				CheCluster:      testCase.cheCluster,
+				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
 					Client:          cli,
 					NonCachedClient: nonCachedClient,
@@ -520,9 +520,6 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
-				InternalService: deploy.InternalService{
-					DevfileRegistryHost: "http://devfile-registry.eclipse-che.svc:8080",
-				},
 			}
 
 			util.IsOpenShift = testCase.isOpenShift
@@ -675,9 +672,6 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
-				InternalService: deploy.InternalService{
-					PluginRegistryHost: "http://plugin-registry.eclipse-che.svc:8080/v3",
-				},
 			}
 
 			util.IsOpenShift = testCase.isOpenShift
@@ -770,9 +764,6 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
-				InternalService: deploy.InternalService{
-					CheHost: "http://che-host.eclipse-che.svc:8080",
-				},
 			}
 
 			util.IsOpenShift = testCase.isOpenShift
@@ -920,9 +911,6 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
-				InternalService: deploy.InternalService{
-					KeycloakHost: "http://keycloak.eclipse-che.svc:8080/auth",
-				},
 			}
 
 			util.IsOpenShift = testCase.isOpenShift

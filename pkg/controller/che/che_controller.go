@@ -342,9 +342,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	deployContext := &deploy.DeployContext{
-		ClusterAPI:      clusterAPI,
-		CheCluster:      instance,
-		InternalService: deploy.InternalService{},
+		ClusterAPI: clusterAPI,
+		CheCluster: instance,
 	}
 
 	// Reconcile finalizers before CR is deleted
@@ -712,8 +711,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		return reconcile.Result{}, err
 	}
-
-	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
 
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
