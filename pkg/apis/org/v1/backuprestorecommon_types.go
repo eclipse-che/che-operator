@@ -28,9 +28,9 @@ type BackupServers struct {
 // Holds restic repository password to decrypt its content
 type RepoPassword struct {
 	// Password for restic repository
-	RepoPassword string `json:"repoPassword,omitempty"`
+	Password string `json:"password,omitempty"`
 	// Secret with 'repo-password' filed
-	RepoPasswordSecretRef string `json:"repoPasswordSecretRef,omitempty"`
+	PasswordSecretRef string `json:"passwordSecretRef,omitempty"`
 }
 
 // +k8s:openapi-gen=true

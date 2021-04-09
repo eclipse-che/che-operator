@@ -38,7 +38,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 	if err != nil || !done {
 		return done, err
 	}
-	s.repoPassword = repoPassword
+	s.RepoPassword = repoPassword
 
 	user := s.config.Username
 	if user == "" {
@@ -85,7 +85,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 	}
 
 	// sftp:user@host:port//srv/repo
-	s.repoUrl = "sftp:" + user + "@" + host + port + "/" + path
+	s.RepoUrl = "sftp:" + user + "@" + host + port + "/" + path
 
 	// Give ssh client the ssh key to be able to connect to backup server passwordless
 	done, err = s.propageteSshKey(sshKey)

@@ -42,7 +42,7 @@ func (s *AwsS3Server) PrepareConfiguration(client client.Client, namespace strin
 	if err != nil || !done {
 		return done, err
 	}
-	s.repoPassword = repoPassword
+	s.RepoPassword = repoPassword
 
 	repo := s.config.Repo
 	if repo == "" {
@@ -96,10 +96,10 @@ func (s *AwsS3Server) PrepareConfiguration(client client.Client, namespace strin
 
 	// s3:s3.amazonaws.com/bucket
 	// s3:http://server:port/bucket/repo
-	s.repoUrl = "s3:" + protocol + host + port + "/" + repo
+	s.RepoUrl = "s3:" + protocol + host + port + "/" + repo
 
 	// Configure required env variables
-	s.additionalEnv = s.getAdditionalEnv()
+	s.AdditionalEnv = s.getAdditionalEnv()
 
 	return true, nil
 }

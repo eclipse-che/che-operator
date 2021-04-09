@@ -142,7 +142,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 		}
 	}
 
-	// Make sure, that backup server configuration in the CR is valid
+	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
 	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
 	if err != nil || !done {
 		return done, err

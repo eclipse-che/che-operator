@@ -36,7 +36,7 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 	if err != nil || !done {
 		return done, err
 	}
-	s.repoPassword = repoPassword
+	s.RepoPassword = repoPassword
 
 	protocol := s.Config.Protocol
 	if protocol == "" {
@@ -89,7 +89,7 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 	}
 
 	// rest:https://user:password@host:5000/repo/
-	s.repoUrl = "rest:" + protocol + "://" + credentials + host + port + "/" + repo
+	s.RepoUrl = "rest:" + protocol + "://" + credentials + host + port + "/" + repo
 
 	return true, nil
 }

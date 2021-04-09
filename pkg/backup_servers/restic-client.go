@@ -27,24 +27,24 @@ const (
 )
 
 type ResticClient struct {
-	repoUrl       string
-	repoPassword  string
-	additionalEnv []string
+	RepoUrl       string
+	RepoPassword  string
+	AdditionalEnv []string
 }
 
 type SnapshotStat struct {
-	id   string
-	info string
+	Id   string
+	Info string
 }
 
 func (c *ResticClient) InitRepository() (bool, error) {
-	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.repoPassword)
+	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.RepoPassword)
 
-	initCommand := exec.Command(resticCli, "--repo", c.repoUrl, "init")
+	initCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "init")
 	initCommand.Env = os.Environ()
 	initCommand.Env = append(initCommand.Env, resticPasswordCommandEnvVar)
-	if c.additionalEnv != nil {
-		initCommand.Env = append(initCommand.Env, c.additionalEnv...)
+	if c.AdditionalEnv != nil {
+		initCommand.Env = append(initCommand.Env, c.AdditionalEnv...)
 	}
 
 	if err := initCommand.Run(); err != nil {
@@ -55,13 +55,13 @@ func (c *ResticClient) InitRepository() (bool, error) {
 }
 
 func (c *ResticClient) CheckRepository() (bool, error) {
-	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.repoPassword)
+	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.RepoPassword)
 
-	checkCommand := exec.Command(resticCli, "--repo", c.repoUrl, "check")
+	checkCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "check")
 	checkCommand.Env = os.Environ()
 	checkCommand.Env = append(checkCommand.Env, resticPasswordCommandEnvVar)
-	if c.additionalEnv != nil {
-		checkCommand.Env = append(checkCommand.Env, c.additionalEnv...)
+	if c.AdditionalEnv != nil {
+		checkCommand.Env = append(checkCommand.Env, c.AdditionalEnv...)
 	}
 
 	if err := checkCommand.Run(); err != nil {
@@ -72,18 +72,18 @@ func (c *ResticClient) CheckRepository() (bool, error) {
 }
 
 func (c *ResticClient) SendSnapshot(path string) (bool, error) {
-	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.repoPassword)
+	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.RepoPassword)
 
 	// Check that there is data to send
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return true, err
 	}
 
-	backupCommand := exec.Command(resticCli, "--repo", c.repoUrl, "backup", path)
+	backupCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "backup", path)
 	backupCommand.Env = os.Environ()
 	backupCommand.Env = append(backupCommand.Env, resticPasswordCommandEnvVar)
-	if c.additionalEnv != nil {
-		backupCommand.Env = append(backupCommand.Env, c.additionalEnv...)
+	if c.AdditionalEnv != nil {
+		backupCommand.Env = append(backupCommand.Env, c.AdditionalEnv...)
 	}
 
 	out, err := backupCommand.Output()
@@ -96,21 +96,21 @@ func (c *ResticClient) SendSnapshot(path string) (bool, error) {
 	snapshotIdRegex := regexp.MustCompile("snapshot ([0-9a-f]+) saved")
 	snapshotIdMatch := snapshotIdRegex.FindStringSubmatch(output)
 	if len(snapshotIdMatch) > 0 {
-		stat.id = snapshotIdMatch[1]
+		stat.Id = snapshotIdMatch[1]
 	}
 	snapshotSizeRegex := regexp.MustCompile("processed (.*)")
 	snapshotSizeMatch := snapshotSizeRegex.FindStringSubmatch(output)
 	if len(snapshotSizeMatch) > 0 {
-		stat.info = snapshotSizeMatch[1]
+		stat.Info = snapshotSizeMatch[1]
 	}
 	// Log the fact of successful sending of a snapshot
-	logrus.Infof("Snapshot %s uploaded: %s", stat.id, stat.info)
+	logrus.Infof("Snapshot %s uploaded: %s", stat.Id, stat.Info)
 
 	return true, nil
 }
 
 func (c *ResticClient) DownloadSnapshot(snapshot string, path string) (bool, error) {
-	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.repoPassword)
+	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.RepoPassword)
 
 	// Ensure destination path exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -120,11 +120,11 @@ func (c *ResticClient) DownloadSnapshot(snapshot string, path string) (bool, err
 		}
 	}
 
-	restoreCommand := exec.Command(resticCli, "--repo", c.repoUrl, "restore", snapshot, "--target", path)
+	restoreCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "restore", snapshot, "--target", path)
 	restoreCommand.Env = os.Environ()
 	restoreCommand.Env = append(restoreCommand.Env, resticPasswordCommandEnvVar)
-	if c.additionalEnv != nil {
-		restoreCommand.Env = append(restoreCommand.Env, c.additionalEnv...)
+	if c.AdditionalEnv != nil {
+		restoreCommand.Env = append(restoreCommand.Env, c.AdditionalEnv...)
 	}
 
 	if err := restoreCommand.Run(); err != nil {
