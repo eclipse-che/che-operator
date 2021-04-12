@@ -798,8 +798,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !instance.Spec.Server.ExternalPluginRegistry {
-		pluginregistry := registry.NewPluginRegistry(deployContext)
-		done, err := pluginregistry.SyncAll()
+		pluginRegistry := registry.NewPluginRegistry(deployContext)
+		done, err := pluginRegistry.SyncAll()
 		if !done {
 			if err != nil {
 				logrus.Error(err)
@@ -816,8 +816,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !instance.Spec.Server.ExternalDevfileRegistry {
-		devfileregistry := registry.NewDevfileRegistry(deployContext)
-		done, err := devfileregistry.SyncAll()
+		devfileRegistry := registry.NewDevfileRegistry(deployContext)
+		done, err := devfileRegistry.SyncAll()
 		if !done {
 			if err != nil {
 				logrus.Error(err)
