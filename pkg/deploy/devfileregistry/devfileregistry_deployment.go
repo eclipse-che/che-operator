@@ -9,10 +9,11 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package registry
+package devfileregistry
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/registry"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ func (p *DevfileRegistry) GetDevfileRegistryDeploymentSpec() *appsv1.Deployment 
 		},
 	}
 
-	return GetSpecRegistryDeployment(
+	return registry.GetSpecRegistryDeployment(
 		p.deployContext,
 		registryType,
 		registryImage,

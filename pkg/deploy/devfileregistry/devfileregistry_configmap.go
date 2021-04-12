@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package registry
+package devfileregistry
 
 import (
 	"encoding/json"

@@ -22,10 +22,11 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
+	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
-	"github.com/eclipse-che/che-operator/pkg/deploy/registry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
@@ -798,7 +799,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !instance.Spec.Server.ExternalPluginRegistry {
-		pluginRegistry := registry.NewPluginRegistry(deployContext)
+		pluginRegistry := pluginregistry.NewPluginRegistry(deployContext)
 		done, err := pluginRegistry.SyncAll()
 		if !done {
 			if err != nil {
@@ -816,7 +817,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	if !instance.Spec.Server.ExternalDevfileRegistry {
-		devfileRegistry := registry.NewDevfileRegistry(deployContext)
+		devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
 		done, err := devfileRegistry.SyncAll()
 		if !done {
 			if err != nil {

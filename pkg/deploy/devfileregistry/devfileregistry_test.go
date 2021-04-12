@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2021 Red Hat, Inc.
+// Copyright (c) 2012-2019 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package registry
+package devfileregistry
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-func TestPluginRegistrySyncAll(t *testing.T) {
+func TestDevfileRegistrySyncAll(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -52,34 +52,41 @@ func TestPluginRegistrySyncAll(t *testing.T) {
 
 	util.IsOpenShift = true
 
-	pluginregistry := NewPluginRegistry(deployContext)
-	done, err := pluginregistry.SyncAll()
+	devfileregistry := NewDevfileRegistry(deployContext)
+	done, err := devfileregistry.SyncAll()
 	if !done || err != nil {
-		t.Fatalf("Failed to sync Plugin Registry: %v", err)
+		t.Fatalf("Failed to sync Devfile Registry: %v", err)
 	}
 
 	// check service
 	service := &corev1.Service{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, service)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, service)
 	if err != nil {
 		t.Fatalf("Service not found: %v", err)
 	}
 
 	// check endpoint
 	route := &routev1.Route{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, route)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, route)
 	if err != nil {
 		t.Fatalf("Route not found: %v", err)
 	}
 
+	// check configmap
+	cm := &corev1.ConfigMap{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, cm)
+	if err != nil {
+		t.Fatalf("Config Map not found: %v", err)
+	}
+
 	// check deployment
 	deployment := &appsv1.Deployment{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, deployment)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, deployment)
 	if err != nil {
 		t.Fatalf("Deployment not found: %v", err)
 	}
 
-	if cheCluster.Status.PluginRegistryURL == "" {
+	if cheCluster.Status.DevfileRegistryURL == "" {
 		t.Fatalf("Status wasn't updated")
 	}
 }
