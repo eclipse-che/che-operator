@@ -14,6 +14,10 @@ FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483 as builder
 RUN microdnf install -y golang unzip && \
     go version
 
+# get restic. Needed for backup / restore capabilities
+RUN curl -sLO https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_amd64.bz2 && \
+    bzip2 -d restic_${RESTIC_VERSION}_linux_amd64.bz2 && mv restic_* /tmp/restic && chmod +x /tmp/restic
+
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
@@ -52,6 +56,7 @@ COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/del
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
+COPY --from=builder /tmp/restic /usr/local/bin/restic
 
 # install httpd-tools for /usr/bin/htpasswd
 RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"

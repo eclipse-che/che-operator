@@ -82,6 +82,7 @@ rules:
   - checlusters/status
   - checlusters/finalizers
   - checlusterbackups
+  - checlusterbackups/status
   - checlusterrestores
   verbs:
   - '*'

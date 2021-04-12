@@ -47,7 +47,8 @@ func (c *ResticClient) InitRepository() (bool, error) {
 		initCommand.Env = append(initCommand.Env, c.AdditionalEnv...)
 	}
 
-	if err := initCommand.Run(); err != nil {
+	if output, err := initCommand.CombinedOutput(); err != nil {
+		logrus.Error(string(output))
 		return true, err
 	}
 
@@ -64,7 +65,8 @@ func (c *ResticClient) CheckRepository() (bool, error) {
 		checkCommand.Env = append(checkCommand.Env, c.AdditionalEnv...)
 	}
 
-	if err := checkCommand.Run(); err != nil {
+	if output, err := checkCommand.CombinedOutput(); err != nil {
+		logrus.Error(string(output))
 		return true, err
 	}
 
@@ -86,12 +88,13 @@ func (c *ResticClient) SendSnapshot(path string) (bool, error) {
 		backupCommand.Env = append(backupCommand.Env, c.AdditionalEnv...)
 	}
 
-	out, err := backupCommand.Output()
+	out, err := backupCommand.CombinedOutput()
+	output := string(out)
 	if err != nil {
+		logrus.Error(output)
 		return true, err
 	}
 
-	output := string(out)
 	stat := SnapshotStat{}
 	snapshotIdRegex := regexp.MustCompile("snapshot ([0-9a-f]+) saved")
 	snapshotIdMatch := snapshotIdRegex.FindStringSubmatch(output)
@@ -127,7 +130,8 @@ func (c *ResticClient) DownloadSnapshot(snapshot string, path string) (bool, err
 		restoreCommand.Env = append(restoreCommand.Env, c.AdditionalEnv...)
 	}
 
-	if err := restoreCommand.Run(); err != nil {
+	if output, err := restoreCommand.CombinedOutput(); err != nil {
+		logrus.Error(string(output))
 		return true, err
 	}
 

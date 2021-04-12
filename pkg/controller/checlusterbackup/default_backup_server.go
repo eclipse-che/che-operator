@@ -14,7 +14,7 @@ package checlusterbackup
 import (
 	"context"
 	"net/http"
-	"strconv"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/backup_servers"
@@ -47,8 +47,8 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	taskList := []func(*BackupContext) (bool, error){
 		ensureInternalBackupServerDeploymentExist,
 		ensureInternalBackupServerServiceExists,
-		ensureInternalBackupServerSecretExists,
 		ensureInternalBackupServerConfiguredAndCurrent,
+		ensureInternalBackupServerSecretExists,
 		ensureInternalBackupServerRepositoryInitialized,
 	}
 
@@ -291,8 +291,8 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, 
 	expectedInternalRestServerConfig := orgv1.RestServerConfig{
 		Protocol: "http",
 		// Hostname: backupServerServiceName,
+		// Port:     strconv.Itoa(backupServerPort),
 		Hostname: "rest.192.168.99.254.nip.io", // TODO revert debug code
-		Port:     strconv.Itoa(backupServerPort),
 		Repo:     "che",
 		RepoPassword: orgv1.RepoPassword{
 			PasswordSecretRef: BackupServerRepoPasswordSecretName,
@@ -322,7 +322,8 @@ func ensureInternalBackupServerRepositoryInitialized(bctx *BackupContext) (bool,
 		return done, err
 	}
 
-	response, err := http.Head(restServer.ResticClient.RepoUrl + "/config")
+	defaultCheBackupRepoUrl := strings.TrimPrefix(restServer.ResticClient.RepoUrl, "rest:") + "/config"
+	response, err := http.Head(defaultCheBackupRepoUrl)
 	if err != nil || response.ContentLength == 0 {
 		// Cannot read the repository, probably it doesn't exist
 		return restServer.InitRepository()
