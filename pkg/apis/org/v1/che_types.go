@@ -339,7 +339,7 @@ type CheClusterSpecAuth struct {
 	// If the value is true, then a new OpenShift OAuth user will be created for the HTPasswd identity provider.
 	// If the value is false and the user has already been created, then it will be removed.
 	// If value is an empty, then do nothing.
-	// The user's credentials are stored in the `openshift-oauth-user-credentials` secret by Operator.
+	// The user's credentials are stored in the `openshift-oauth-user-credentials` secret in 'openshift-config' namespace by Operator.
 	// Note that this solution is Openshift 4 platform-specific.
 	InitialOpenShiftOAuthUser *bool `json:"initialOpenShiftOAuthUser,omitempty"`
 	// Instructs the Operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
@@ -565,12 +565,11 @@ type CheClusterSpecDevWorkspace struct {
 
 // CheClusterStatus defines the observed state of Che installation
 type CheClusterStatus struct {
-	// OpenShift OAuth secret that contains user credentials for HTPasswd identity provider.
+	// OpenShift OAuth secret in `openshift-config` namespace that contains user credentials for HTPasswd identity provider.
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="OpenShift OAuth secret that contains user credentials for HTPasswd identity provider."
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="OpenShift OAuth secret in `openshift-config` namespace that contains user credentials for HTPasswd identity provider."
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
 	OpenShiftOAuthUserCredentialsSecret string `json:"openShiftOAuthUserCredentialsSecret,omitempty"`
-	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
 	// Indicates that a PostgreSQL instance has been correctly provisioned or not.
 	// +optional
 	DbProvisoned bool `json:"dbProvisioned"`

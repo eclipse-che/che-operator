@@ -102,7 +102,7 @@ func TestCreateInitialUser(t *testing.T) {
 
 	// Check created objects
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: testNamespace}, expectedCheSecret); err != nil {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, expectedCheSecret); err != nil {
 		t.Errorf("Initial user secret should exists")
 	}
 
@@ -145,7 +145,7 @@ func TestDeleteInitialUser(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      openShiftOAuthUserCredentialsSecret,
-			Namespace: testNamespace,
+			Namespace: ocConfigNamespace,
 		},
 	}
 	htpasswdSecret := &corev1.Secret{
@@ -184,7 +184,7 @@ func TestDeleteInitialUser(t *testing.T) {
 	}
 
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: testNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
 		t.Errorf("Initial user secret should be deleted")
 	}
 

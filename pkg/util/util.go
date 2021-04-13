@@ -372,18 +372,12 @@ func NewBoolPointer(value bool) *bool {
 
 // IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
 func IsOAuthEnabled(c *orgv1.CheCluster) bool {
-	if c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth {
-		return true
-	}
-	return false
+	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
 }
 
 // IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
 func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
-	if c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser {
-		return true
-	}
-	return false
+	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
 }
 
 // IsWorkspaceInDifferentNamespaceThanChe return true when Che workspaces will be executed
