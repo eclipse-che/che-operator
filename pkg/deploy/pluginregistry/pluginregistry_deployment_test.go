@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package plugin_registry
+package pluginregistry
 
 import (
 	"os"
@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-func TestDeployment(t *testing.T) {
+func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -93,7 +93,8 @@ func TestDeployment(t *testing.T) {
 				Proxy: &deploy.Proxy{},
 			}
 
-			deployment := GetPluginRegistrySpecDeployment(deployContext)
+			pluginregistry := NewPluginRegistry(deployContext)
+			deployment := pluginregistry.GetPluginRegistryDeploymentSpec()
 
 			util.CompareResources(deployment,
 				util.TestExpectedResources{

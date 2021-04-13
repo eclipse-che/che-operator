@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package devfile_registry
+package devfileregistry
 
 import "github.com/eclipse-che/che-operator/pkg/deploy"
 

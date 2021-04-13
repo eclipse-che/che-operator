@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package devfile_registry
+package devfileregistry
 
 import (
 	"os"
@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-func TestDeployment(t *testing.T) {
+func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -93,7 +93,8 @@ func TestDeployment(t *testing.T) {
 				CheCluster: testCase.cheCluster,
 			}
 
-			deployment := GetDevfileRegistrySpecDeployment(deployContext)
+			devfileregistry := NewDevfileRegistry(deployContext)
+			deployment := devfileregistry.GetDevfileRegistryDeploymentSpec()
 
 			util.CompareResources(deployment,
 				util.TestExpectedResources{

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package plugin_registry
+package pluginregistry
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -19,39 +19,34 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func SyncPluginRegistryDeploymentToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	specDeployment := GetPluginRegistrySpecDeployment(deployContext)
-	return deploy.SyncDeploymentSpecToCluster(deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
-}
-
-func GetPluginRegistrySpecDeployment(deployContext *deploy.DeployContext) *appsv1.Deployment {
+func (p *PluginRegistry) GetPluginRegistryDeploymentSpec() *appsv1.Deployment {
 	registryType := "plugin"
-	registryImage := util.GetValue(deployContext.CheCluster.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(deployContext.CheCluster))
-	registryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
+	registryImage := util.GetValue(p.deployContext.CheCluster.Spec.Server.PluginRegistryImage, deploy.DefaultPluginRegistryImage(p.deployContext.CheCluster))
+	registryImagePullPolicy := corev1.PullPolicy(util.GetValue(string(p.deployContext.CheCluster.Spec.Server.PluginRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
 	probePath := "/v3/plugins/"
 	pluginImagesEnv := util.GetEnvByRegExp("^.*plugin_registry_image.*$")
 
 	resources := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			corev1.ResourceMemory: util.GetResourceQuantity(
-				deployContext.CheCluster.Spec.Server.PluginRegistryMemoryRequest,
+				p.deployContext.CheCluster.Spec.Server.PluginRegistryMemoryRequest,
 				deploy.DefaultPluginRegistryMemoryRequest),
 			corev1.ResourceCPU: util.GetResourceQuantity(
-				deployContext.CheCluster.Spec.Server.PluginRegistryCpuRequest,
+				p.deployContext.CheCluster.Spec.Server.PluginRegistryCpuRequest,
 				deploy.DefaultPluginRegistryCpuRequest),
 		},
 		Limits: corev1.ResourceList{
 			corev1.ResourceMemory: util.GetResourceQuantity(
-				deployContext.CheCluster.Spec.Server.PluginRegistryMemoryLimit,
+				p.deployContext.CheCluster.Spec.Server.PluginRegistryMemoryLimit,
 				deploy.DefaultPluginRegistryMemoryLimit),
 			corev1.ResourceCPU: util.GetResourceQuantity(
-				deployContext.CheCluster.Spec.Server.PluginRegistryCpuLimit,
+				p.deployContext.CheCluster.Spec.Server.PluginRegistryCpuLimit,
 				deploy.DefaultPluginRegistryCpuLimit),
 		},
 	}
 
 	return registry.GetSpecRegistryDeployment(
-		deployContext,
+		p.deployContext,
 		registryType,
 		registryImage,
 		pluginImagesEnv,

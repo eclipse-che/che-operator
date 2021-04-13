@@ -22,10 +22,10 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
-	devfile_registry "github.com/eclipse-che/che-operator/pkg/deploy/devfile-registry"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
-	plugin_registry "github.com/eclipse-che/che-operator/pkg/deploy/plugin-registry"
+	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -343,9 +343,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	deployContext := &deploy.DeployContext{
-		ClusterAPI:      clusterAPI,
-		CheCluster:      instance,
-		InternalService: deploy.InternalService{},
+		ClusterAPI: clusterAPI,
+		CheCluster: instance,
 	}
 
 	// Reconcile finalizers before CR is deleted
@@ -566,38 +565,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	// If the devfile-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
-	devfileRegistryConfigMap := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: deploy.DevfileRegistryName}, devfileRegistryConfigMap)
-	if err != nil && !errors.IsNotFound(err) {
-		logrus.Errorf("Error getting devfile-registry ConfigMap: %v", err)
-		return reconcile.Result{}, err
-	}
-	if err == nil && instance.Spec.Server.ExternalDevfileRegistry {
-		logrus.Info("Found devfile-registry ConfigMap and while using an external devfile registry.  Deleting.")
-		if err = r.client.Delete(context.TODO(), devfileRegistryConfigMap); err != nil {
-			logrus.Errorf("Error deleting devfile-registry ConfigMap: %v", err)
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{Requeue: true}, nil
-	}
-
-	// If the plugin-registry ConfigMap exists, and we are not in airgapped mode, delete the ConfigMap
-	pluginRegistryConfigMap := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: deploy.PluginRegistryName}, pluginRegistryConfigMap)
-	if err != nil && !errors.IsNotFound(err) {
-		logrus.Errorf("Error getting plugin-registry ConfigMap: %v", err)
-		return reconcile.Result{}, err
-	}
-	if err == nil && !instance.IsAirGapMode() {
-		logrus.Info("Found plugin-registry ConfigMap and not in airgap mode.  Deleting.")
-		if err = r.client.Delete(context.TODO(), pluginRegistryConfigMap); err != nil {
-			logrus.Errorf("Error deleting plugin-registry ConfigMap: %v", err)
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{Requeue: true}, nil
-	}
-
 	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -719,13 +686,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	postgres := postgres.NewPostgres(deployContext)
-	done, err = postgres.Sync()
-	if !done {
-		if err != nil {
-			logrus.Error(err)
+	if !deployContext.CheCluster.Spec.Database.ExternalDb {
+		postgres := postgres.NewPostgres(deployContext)
+		done, err = postgres.SyncAll()
+		if !done {
+			if err != nil {
+				logrus.Error(err)
+			}
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, err
 	}
 
 	tlsSupport := instance.Spec.Server.TlsSupport
@@ -743,8 +712,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		return reconcile.Result{}, err
 	}
-
-	deployContext.InternalService.CheHost = fmt.Sprintf("http://%s.%s.svc:8080", deploy.CheServiceName, deployContext.CheCluster.Namespace)
 
 	exposedServiceName := getServerExposingServiceName(instance)
 	cheHost := ""
@@ -831,23 +798,44 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	provisioned, err = devfile_registry.SyncDevfileRegistryToCluster(deployContext)
-	if !tests {
-		if !provisioned {
+	if !instance.Spec.Server.ExternalPluginRegistry {
+		pluginRegistry := pluginregistry.NewPluginRegistry(deployContext)
+		done, err := pluginRegistry.SyncAll()
+		if !done {
 			if err != nil {
-				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.DevfileRegistryName, err)
+				logrus.Error(err)
 			}
-			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+			return reconcile.Result{}, err
+		}
+	} else {
+		if instance.Spec.Server.PluginRegistryUrl != instance.Status.PluginRegistryURL {
+			instance.Status.PluginRegistryURL = instance.Spec.Server.PluginRegistryUrl
+			if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", instance.Spec.Server.PluginRegistryUrl); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 
-	provisioned, err = plugin_registry.SyncPluginRegistryToCluster(deployContext)
-	if !tests {
-		if !provisioned {
+	if !instance.Spec.Server.ExternalDevfileRegistry {
+		devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
+		done, err := devfileRegistry.SyncAll()
+		if !done {
 			if err != nil {
-				logrus.Errorf("Error provisioning '%s' to cluster: %v", deploy.PluginRegistryName, err)
+				logrus.Error(err)
 			}
-			return reconcile.Result{RequeueAfter: time.Second * 1}, err
+			return reconcile.Result{}, err
+		}
+	} else {
+		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DevfileRegistryName, &corev1.ConfigMap{})
+		if !done {
+			return reconcile.Result{}, err
+		}
+
+		if instance.Spec.Server.DevfileRegistryUrl != instance.Status.DevfileRegistryURL {
+			instance.Status.DevfileRegistryURL = instance.Spec.Server.DevfileRegistryUrl
+			if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", instance.Spec.Server.DevfileRegistryUrl); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 

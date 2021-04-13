@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package plugin_registry
+package pluginregistry
 
 import "github.com/eclipse-che/che-operator/pkg/deploy"
 

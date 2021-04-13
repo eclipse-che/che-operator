@@ -33,7 +33,7 @@ import (
 	"testing"
 )
 
-func TestDeployment(t *testing.T) {
+func TestDeploymentSpec(t *testing.T) {
 	type testCase struct {
 		name          string
 		initObjects   []runtime.Object
@@ -104,7 +104,7 @@ func TestDeployment(t *testing.T) {
 			}
 
 			postgres := NewPostgres(deployContext)
-			deployment, err := postgres.getDeploymentSpec(nil)
+			deployment, err := postgres.GetDeploymentSpec(nil)
 			if err != nil {
 				t.Fatalf("Error creating deployment: %v", err)
 			}
@@ -123,7 +123,7 @@ func TestDeployment(t *testing.T) {
 	}
 }
 
-func TestSyncPostgresToCluster(t *testing.T) {
+func TestSyncAllToCluster(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
@@ -142,7 +142,7 @@ func TestSyncPostgresToCluster(t *testing.T) {
 	}
 
 	postgres := NewPostgres(deployContext)
-	done, err := postgres.Sync()
+	done, err := postgres.SyncAll()
 	if !done || err != nil {
 		t.Fatalf("Failed to sync PostgreSQL: %v", err)
 	}
