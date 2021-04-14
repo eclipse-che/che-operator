@@ -277,8 +277,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 var (
 	_ reconcile.Reconciler = &ReconcileChe{}
 
-	cheWorkspacesClusterPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
-
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
 )
@@ -580,6 +578,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
+	// check if we can delegate cluster roles
+	// fall back to the "narrower" workspace namespace strategy if it not possible
 	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
 		сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
 		exists, err := deploy.Get(deployContext, types.NamespacedName{Name: сheWorkspacesClusterRoleName}, &rbac.ClusterRole{})
@@ -588,13 +588,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 		if !exists {
-			policies := append(getCheWorkspacesNamespacePolicy(), getCheWorkspacesPolicy()...)
-			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
+			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(getNamespaceEditorPolicy(), "")
 			if err != nil {
 				logrus.Error(err)
 				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
-			// fall back to the "narrower" workspace namespace strategy
+			// fall back
 			if len(deniedRules) > 0 {
 				logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
 				logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
@@ -605,27 +604,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 					logrus.Error(err)
 					return reconcile.Result{RequeueAfter: time.Second * 1}, err
 				}
-			} else {
-				reconcileResult, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
-				if err != nil {
-					logrus.Error(err)
-					return reconcile.Result{RequeueAfter: time.Second}, err
-				}
-				if reconcileResult.Requeue {
-					return reconcileResult, err
-				}
 			}
 		}
 	}
 
-	if util.IsOAuthEnabled(instance) || util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		reconcile, err := r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
+	done, err = r.reconcileWorkspacePermissions(deployContext)
+	if !done {
 		if err != nil {
 			logrus.Error(err)
 		}
-		if reconcile.Requeue && !tests {
-			return reconcile, err
-		}
+		return reconcile.Result{}, err
 	}
 
 	if len(instance.Spec.Server.CheClusterRoles) > 0 {
@@ -1134,7 +1122,7 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 		}
 	}
 
-	if err := r.reconcileWorkspacePermissionsFinalizer(deployContext); err != nil {
+	if err := r.reconcileWorkspacePermissionsFinalizers(deployContext); err != nil {
 		logrus.Error(err)
 	}
 
