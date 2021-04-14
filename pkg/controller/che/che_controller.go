@@ -404,7 +404,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, nil
 	}
 
-	// Update status if if OpenShift initial user is deleted (in the previous step)
+	// Update status if OpenShift initial user is deleted (in the previous step)
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
 		legacySecret := &corev1.Secret{}
 		legacySecretExists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, legacySecret)

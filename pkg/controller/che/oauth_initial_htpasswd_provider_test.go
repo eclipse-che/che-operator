@@ -20,6 +20,7 @@ import (
 	util_mocks "github.com/eclipse-che/che-operator/mocks/pkg/util"
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/golang/mock/gomock"
 	oauth_config "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -75,7 +76,7 @@ func TestCreateInitialUser(t *testing.T) {
 	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
 	scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
 
-	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth)
+	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, testCR)
 
 	ctrl := gomock.NewController(t)
 	m := util_mocks.NewMockRunnable(ctrl)
@@ -118,6 +119,10 @@ func TestCreateInitialUser(t *testing.T) {
 
 	if len(expectedOAuth.Spec.IdentityProviders) < 0 {
 		t.Error("List identity providers should not be an empty")
+	}
+
+	if !util.ContainsString(testCR.Finalizers, openshiftOauthUserFinalizerName) {
+		t.Error("Finaizer hasn't been added")
 	}
 }
 
@@ -169,7 +174,7 @@ func TestDeleteInitialUser(t *testing.T) {
 		},
 	}
 
-	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, cheSecret, htpasswdSecret, userIdentity, user)
+	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, cheSecret, htpasswdSecret, userIdentity, user, testCR)
 
 	initialUserHandler := &OpenShiftOAuthUserOperatorHandler{
 		runtimeClient: runtimeClient,
@@ -210,5 +215,9 @@ func TestDeleteInitialUser(t *testing.T) {
 
 	if len(expectedOAuth.Spec.IdentityProviders) != 0 {
 		t.Error("List identity providers should be an empty")
+	}
+
+	if util.ContainsString(testCR.Finalizers, openshiftOauthUserFinalizerName) {
+		t.Error("Finalizer hasn't been removed")
 	}
 }
