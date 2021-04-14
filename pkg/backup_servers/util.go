@@ -62,11 +62,7 @@ func getResticRepoPassword(client client.Client, namespace string, rp orgv1.Repo
 // getPortString returns port part of the url: ':port' or empty string for default port
 func getPortString(port string) string {
 	if port != "" {
-		if port == "80" {
-			port = ""
-		} else {
-			port = ":" + port
-		}
+		port = ":" + port
 	}
 	return port
 }

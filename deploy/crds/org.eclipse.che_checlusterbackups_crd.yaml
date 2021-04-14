@@ -74,19 +74,15 @@ spec:
                       description: Bucket name and repository, e.g. bucket/repo
                       type: string
                     repoPassword:
-                      description: Holds restic repository password to decrypt its
-                        content
+                      description: Restic repository password
                       properties:
-                        repoPassword:
+                        password:
                           description: Password for restic repository
                           type: string
-                        repoPasswordSecretRef:
+                        passwordSecretRef:
                           description: Secret with 'repo-password' filed
                           type: string
                       type: object
-                  required:
-                  - repo
-                  - repoPassword
                   type: object
                 internal:
                   description: Rest server within the cluster. The server and configuration
@@ -113,22 +109,18 @@ spec:
                       description: Restic repository path
                       type: string
                     repoPassword:
-                      description: Holds restic repository password to decrypt its
-                        content
+                      description: Restic repository password
                       properties:
-                        repoPassword:
+                        password:
                           description: Password for restic repository
                           type: string
-                        repoPasswordSecretRef:
+                        passwordSecretRef:
                           description: Secret with 'repo-password' filed
                           type: string
                       type: object
                     username:
                       description: User login on the remote server
                       type: string
-                  required:
-                  - hostname
-                  - repoPassword
                   type: object
                 rest:
                   description: Rest backup server configuration
@@ -153,22 +145,18 @@ spec:
                       description: Restic repository path
                       type: string
                     repoPassword:
-                      description: Holds restic repository password to decrypt its
-                        content
+                      description: Restic repository password
                       properties:
-                        repoPassword:
+                        password:
                           description: Password for restic repository
                           type: string
-                        repoPasswordSecretRef:
+                        passwordSecretRef:
                           description: Secret with 'repo-password' filed
                           type: string
                       type: object
                     username:
                       description: User login on the remote server
                       type: string
-                  required:
-                  - hostname
-                  - repoPassword
                   type: object
                 sftp:
                   description: Sftp backup server configuration
@@ -184,13 +172,12 @@ spec:
                         /srv/repo
                       type: string
                     repoPassword:
-                      description: Holds restic repository password to decrypt its
-                        content
+                      description: Restic repository password
                       properties:
-                        repoPassword:
+                        password:
                           description: Password for restic repository
                           type: string
-                        repoPasswordSecretRef:
+                        passwordSecretRef:
                           description: Secret with 'repo-password' filed
                           type: string
                       type: object
@@ -201,12 +188,6 @@ spec:
                     username:
                       description: User login on the remote server
                       type: string
-                  required:
-                  - hostname
-                  - repo
-                  - repoPassword
-                  - sshKeySecretRef
-                  - username
                   type: object
               type: object
             triggerNow:
@@ -214,6 +195,7 @@ spec:
               type: boolean
           required:
           - servers
+          - triggerNow
           type: object
         status:
           description: CheClusterBackupStatus defines the observed state of CheClusterBackup

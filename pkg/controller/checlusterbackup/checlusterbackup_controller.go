@@ -150,8 +150,20 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 
 	// Do backup if requested
 	if bctx.backupCR.Spec.TriggerNow {
+		// Check for repository existance and init if needed
+		repoExist, done, err := bctx.backupServer.IsRepositoryExist()
+		if err != nil || !done {
+			return done, err
+		}
+		if !repoExist {
+			done, err := bctx.backupServer.InitRepository()
+			if err != nil || !done {
+				return done, err
+			}
+		}
+
 		// Check if credentials provided in the configuration can be used to reach backup server content
-		done, err := bctx.backupServer.CheckRepository()
+		done, err = bctx.backupServer.CheckRepository()
 		if err != nil || !done {
 			return done, err
 		}

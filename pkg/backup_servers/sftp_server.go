@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -48,7 +49,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 	if host == "" {
 		return true, fmt.Errorf("SFTP server hostname must be configured")
 	}
-	port := getPortString(s.config.Port)
+	port := s.config.Port
 	path := s.config.Repo
 	if path == "" {
 		return true, fmt.Errorf("repository (path on server side) must be configured")
@@ -80,12 +81,17 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 		}
 	}
 	// Validate format of the ssh key
-	if !strings.HasPrefix(sshKey, "----- BEGIN") {
+	if !strings.HasPrefix(sshKey, "-----BEGIN") {
 		return true, fmt.Errorf("provided SSH key has invalid format")
 	}
 
-	// sftp:user@host:port//srv/repo
-	s.RepoUrl = "sftp:" + user + "@" + host + port + "/" + path
+	// sftp:user@host:/srv/repo
+	// sftp://user@host:port//srv/repo
+	if port == "" {
+		s.RepoUrl = "sftp:" + user + "@" + host + ":" + path
+	} else {
+		s.RepoUrl = "sftp://" + user + "@" + host + ":" + port + "/" + path
+	}
 
 	// Give ssh client the ssh key to be able to connect to backup server passwordless
 	done, err = s.propageteSshKey(sshKey)
@@ -113,8 +119,8 @@ func (s *SftpServer) propageteSshKey(sshKey string) (bool, error) {
 	}
 
 	// Save the key
-	err = ioutil.WriteFile(sshConfigDir+"rest_rsa", []byte(sshKey), 0600)
-	if err != nil {
+	sshPrivateKeyPath := path.Join(sshConfigDir + "che_sftp_backup_rsa")
+	if err = ioutil.WriteFile(sshPrivateKeyPath, []byte(sshKey), 0600); err != nil {
 		return true, fmt.Errorf("failed to propagate SSH key. Reason: %s", err.Error())
 	}
 
@@ -122,16 +128,34 @@ func (s *SftpServer) propageteSshKey(sshKey string) (bool, error) {
 
 	// TODO rework this insecure approach
 	// Do not check remote SSH server fingerprint when sending backup
-	sshConfigPatch := "\nHost " + s.config.Hostname + "\n  StrictHostKeyChecking no\n"
+	sshConfigPatch := "\nHost " + s.config.Hostname +
+		"\n  StrictHostKeyChecking no" +
+		"\n  IdentityFile " + sshPrivateKeyPath
 
-	// Append config patch to ssh client config file or create it if doesn't exist
-	sshConfigFile, err := os.OpenFile(sshConfigDir+"config", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return true, err
+	sshConfigFilePath := sshConfigDir + "config"
+
+	var shouldApplyPatch bool
+	if _, err := os.Stat(sshConfigFilePath); os.IsNotExist(err) {
+		shouldApplyPatch = true
+	} else {
+		content, err := ioutil.ReadFile(sshConfigFilePath)
+		if err != nil {
+			return true, err
+		}
+		// Check if patch has been already applied
+		shouldApplyPatch = !strings.Contains(string(content), sshConfigPatch)
 	}
-	defer sshConfigFile.Close()
-	if _, err := sshConfigFile.WriteString(sshConfigPatch); err != nil {
-		return true, err
+
+	if shouldApplyPatch {
+		// Append config patch to ssh client config file or create it if doesn't exist
+		sshConfigFile, err := os.OpenFile(sshConfigFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return true, err
+		}
+		defer sshConfigFile.Close()
+		if _, err := sshConfigFile.WriteString(sshConfigPatch); err != nil {
+			return true, err
+		}
 	}
 
 	return true, nil

@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -53,6 +54,29 @@ func (c *ResticClient) InitRepository() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (c *ResticClient) IsRepositoryExist() (bool, bool, error) {
+	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.RepoPassword)
+
+	snapshotsCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "snapshots")
+	snapshotsCommand.Env = os.Environ()
+	snapshotsCommand.Env = append(snapshotsCommand.Env, resticPasswordCommandEnvVar)
+	if c.AdditionalEnv != nil {
+		snapshotsCommand.Env = append(snapshotsCommand.Env, c.AdditionalEnv...)
+	}
+
+	// if output, err := snapshotsCommand.CombinedOutput(); err != nil {
+	output, err := snapshotsCommand.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "Is there a repository at the following location?") {
+			return false, true, nil
+		}
+		logrus.Error(string(output))
+		return false, true, err
+	}
+
+	return true, true, nil
 }
 
 func (c *ResticClient) CheckRepository() (bool, error) {

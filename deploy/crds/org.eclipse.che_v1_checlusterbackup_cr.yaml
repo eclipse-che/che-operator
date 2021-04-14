@@ -3,12 +3,23 @@ kind: CheClusterBackup
 metadata:
   name: eclipse-che-backup
 spec:
+  # If true will setup REST backup server pod and add configuration to use it
   autoconfigureRestBackupServer: false
+  # Set to true to start backup process
   triggerNow: false
+  # Might be omitted if only one server configured
   serverType: 'sftp'
+  # Usually only one server is needed
   servers:
     rest:
-      host: 'rest-host.net'
+      hostname: rest-host.net
+      repo: che
+      repoPassword:
+        password: password
     sftp:
-      host: 'sftp-host.net'
-      port: '1234'
+      hostname: sftp-host.net
+      username: user
+      sshKeySecretRef: backup-server-ssh
+      repo: che-backups
+      repoPassword:
+        passwordSecretRef: backups-password

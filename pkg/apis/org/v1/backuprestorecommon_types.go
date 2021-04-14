@@ -11,6 +11,10 @@
 //
 package v1
 
+const (
+	SSH_PRIVATE_KEY_KEY = "ssh-privatekey" // TODO
+)
+
 // +k8s:openapi-gen=true
 // List of supported backup servers
 type BackupServers struct {
@@ -26,6 +30,7 @@ type BackupServers struct {
 }
 
 // Holds restic repository password to decrypt its content
+// At least one of the fields has to be filled in
 type RepoPassword struct {
 	// Password for restic repository
 	Password string `json:"password,omitempty"`
@@ -36,30 +41,34 @@ type RepoPassword struct {
 // +k8s:openapi-gen=true
 // SFTP backup server configuration
 // Example: user@host://srv/repo
+// Mandatory fields are: RepoPassword, Hostname, Repo, Username, SshKeySecretRef
 type SftpServerConfing struct {
-	RepoPassword `json:"repoPassword"`
+	// Restic repository password
+	RepoPassword `json:"repoPassword,omitempty"`
 	// Backup server host
-	Hostname string `json:"hostname"`
+	Hostname string `json:"hostname,omitempty"`
 	// Backup server port
 	Port string `json:"port,omitempty"`
 	// Restic repository path, relative or absolute, e.g. /srv/repo
-	Repo string `json:"repo"`
+	Repo string `json:"repo,omitempty"`
 	// User login on the remote server
-	Username string `json:"username"`
+	Username string `json:"username,omitempty"`
 	// Private ssh key under 'ssh-key' field for passwordless login
-	SshKeySecretRef string `json:"sshKeySecretRef"`
+	SshKeySecretRef string `json:"sshKeySecretRef,omitempty"`
 }
 
 // +k8s:openapi-gen=true
 // REST backup server configuration
 // Example: https://user:password@host:5000/repo/
+// Mandatory fields are: RepoPassword, Hostname
 type RestServerConfig struct {
-	RepoPassword `json:"repoPassword"`
+	// Restic repository password
+	RepoPassword `json:"repoPassword,omitempty"`
 	// Protocol to use when connection to the server
 	// Defaults to https.
 	Protocol string `json:"protocol,omitempty"`
 	// Backup server host
-	Hostname string `json:"hostname"`
+	Hostname string `json:"hostname,omitempty"`
 	// Backup server port
 	Port string `json:"port,omitempty"`
 	// Restic repository path
@@ -73,8 +82,10 @@ type RestServerConfig struct {
 }
 
 // +k8s:openapi-gen=true
+// Mandatory fields are: RepoPassword, Repo, AWS key+id or secret with it
 type AwsS3ServerConfig struct {
-	RepoPassword `json:"repoPassword"`
+	// Restic repository password
+	RepoPassword `json:"repoPassword,omitempty"`
 	// Protocol to use when connection to the server.
 	// Might be customized in case of alternative server.
 	Protocol string `json:"protocol,omitempty"`
@@ -86,7 +97,7 @@ type AwsS3ServerConfig struct {
 	// Might be customized in case of alternative server.
 	Port string `json:"port,omitempty"`
 	// Bucket name and repository, e.g. bucket/repo
-	Repo string `json:"repo"`
+	Repo string `json:"repo,omitempty"`
 	// Content of AWS_ACCESS_KEY_ID environment variable
 	AwsAccessKeyId string `json:"awsAccessKeyId,omitempty"`
 	// Content of AWS_SECRET_ACCESS_KEY environment variable

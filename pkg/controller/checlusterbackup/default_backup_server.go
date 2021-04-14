@@ -13,11 +13,9 @@ package checlusterbackup
 
 import (
 	"context"
-	"net/http"
-	"strings"
+	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -49,7 +47,6 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 		ensureInternalBackupServerServiceExists,
 		ensureInternalBackupServerConfiguredAndCurrent,
 		ensureInternalBackupServerSecretExists,
-		ensureInternalBackupServerRepositoryInitialized,
 	}
 
 	for _, task := range taskList {
@@ -290,9 +287,8 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, 
 
 	expectedInternalRestServerConfig := orgv1.RestServerConfig{
 		Protocol: "http",
-		// Hostname: backupServerServiceName,
-		// Port:     strconv.Itoa(backupServerPort),
-		Hostname: "rest.192.168.99.254.nip.io", // TODO revert debug code
+		Hostname: backupServerServiceName,
+		Port:     strconv.Itoa(backupServerPort),
 		Repo:     "che",
 		RepoPassword: orgv1.RepoPassword{
 			PasswordSecretRef: BackupServerRepoPasswordSecretName,
@@ -310,23 +306,6 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, 
 		}
 		// Reconcile after CR update
 		return false, nil
-	}
-
-	return true, nil
-}
-
-func ensureInternalBackupServerRepositoryInitialized(bctx *BackupContext) (bool, error) {
-	restServer := backup_servers.RestServer{Config: bctx.backupCR.Spec.Servers.Internal}
-	done, err := restServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
-	if err != nil || !done {
-		return done, err
-	}
-
-	defaultCheBackupRepoUrl := strings.TrimPrefix(restServer.ResticClient.RepoUrl, "rest:") + "/config"
-	response, err := http.Head(defaultCheBackupRepoUrl)
-	if err != nil || response.ContentLength == 0 {
-		// Cannot read the repository, probably it doesn't exist
-		return restServer.InitRepository()
 	}
 
 	return true, nil
