@@ -719,7 +719,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		_, done, err := deploy.SyncIngressToCluster(
 			deployContext,
 			cheFlavor,
-			instance.Spec.K8s.IngressDomain,
+			instance.Spec.Server.CheHost,
 			"",
 			exposedServiceName,
 			8080,
