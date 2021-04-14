@@ -19,6 +19,7 @@ spec:
     sftp:
       hostname: sftp-host.net
       username: user
+      port: 2222
       sshKeySecretRef: backup-server-ssh
       repo: che-backups
       repoPassword:

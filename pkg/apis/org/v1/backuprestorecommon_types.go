@@ -53,7 +53,7 @@ type SftpServerConfing struct {
 	// Backup server host
 	Hostname string `json:"hostname,omitempty"`
 	// Backup server port
-	Port string `json:"port,omitempty"`
+	Port int `json:"port,omitempty"`
 	// Restic repository path, relative or absolute, e.g. /srv/repo
 	Repo string `json:"repo,omitempty"`
 	// User login on the remote server
@@ -75,7 +75,7 @@ type RestServerConfig struct {
 	// Backup server host
 	Hostname string `json:"hostname,omitempty"`
 	// Backup server port
-	Port string `json:"port,omitempty"`
+	Port int `json:"port,omitempty"`
 	// Restic repository path
 	Repo string `json:"repo,omitempty"`
 	// User login on the remote server
@@ -100,7 +100,7 @@ type AwsS3ServerConfig struct {
 	// Backup server port.
 	// Usually default value is used.
 	// Might be customized in case of alternative server.
-	Port string `json:"port,omitempty"`
+	Port int `json:"port,omitempty"`
 	// Bucket name and repository, e.g. bucket/repo
 	Repo string `json:"repo,omitempty"`
 	// Content of AWS_ACCESS_KEY_ID environment variable

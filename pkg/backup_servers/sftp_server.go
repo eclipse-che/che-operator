@@ -49,7 +49,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 	if host == "" {
 		return true, fmt.Errorf("SFTP server hostname must be configured")
 	}
-	port := s.config.Port
+	port := getPortString(s.config.Port)
 	path := s.config.Repo
 	if path == "" {
 		return true, fmt.Errorf("repository (path on server side) must be configured")
@@ -90,7 +90,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 	if port == "" {
 		s.RepoUrl = "sftp:" + user + "@" + host + ":" + path
 	} else {
-		s.RepoUrl = "sftp://" + user + "@" + host + ":" + port + "/" + path
+		s.RepoUrl = "sftp://" + user + "@" + host + port + "/" + path
 	}
 
 	// Give ssh client the ssh key to be able to connect to backup server passwordless

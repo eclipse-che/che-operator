@@ -13,7 +13,6 @@ package checlusterbackup
 
 import (
 	"context"
-	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -288,7 +287,7 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, 
 	expectedInternalRestServerConfig := orgv1.RestServerConfig{
 		Protocol: "http",
 		Hostname: backupServerServiceName,
-		Port:     strconv.Itoa(backupServerPort),
+		Port:     backupServerPort,
 		Repo:     "che",
 		RepoPassword: orgv1.RepoPassword{
 			PasswordSecretRef: BackupServerRepoPasswordSecretName,

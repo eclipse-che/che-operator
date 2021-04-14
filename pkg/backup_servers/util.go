@@ -14,6 +14,7 @@ package backup_servers
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,9 +61,9 @@ func getResticRepoPassword(client client.Client, namespace string, rp orgv1.Repo
 }
 
 // getPortString returns port part of the url: ':port' or empty string for default port
-func getPortString(port string) string {
-	if port != "" {
-		port = ":" + port
+func getPortString(port int) string {
+	if port != 0 {
+		return ":" + strconv.Itoa(port)
 	}
-	return port
+	return ""
 }
