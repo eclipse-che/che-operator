@@ -47,6 +47,16 @@ jobs:
             chectlVersion="${{ github.event.inputs.version }}"
           fi
 
+          # To determine DWO version, we have to replace first 7. with v0.
+          # then major DWO version is behind upstream Che version by 26 
+          # and the minor version is the same
+          # e.g 7.27.0 for Che = v0.1.0 for DWO
+          chectlMajorMinorVersion=${chectlVersion#7.}
+          chectlMajorVersion=${chectlMajorMinorVersion%.*}
+          dwoMajorVersion=((${dwoMajorVersion}-26))
+          dwoMinorVersion=${chectlMajorMinorVersion%.*}
+          dwoVersion=v0.${dwoMajorVersion}.${dwoMinorVersion}
+
           # generic method to call a GH action and pass in a single var=val parameter
           invokeAction() {
               this_repo=$1
@@ -71,9 +81,9 @@ jobs:
                   inputsJson=$(echo "${inputsJson}" | jq ". + {\"${key}\": \"${value}\"}")
               done
 
-              https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${this_github_token}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"${workflow_ref}\",\"inputs\": ${inputsJson} }" || die_with "[ERROR] Problem invoking action https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
+              curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${this_github_token}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"${workflow_ref}\",\"inputs\": ${inputsJson} }"
               echo "[INFO] Invoked '${this_action_name}' action ($workflow_id) - see https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
           }
 
           # invoke action from chectl repo
-          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4267607" "version=${chectlVersion},dwoVersion=${DWO_VERSION}"
+          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4267607" "version=${chectlVersion},dwoVersion=${dwoVersion}"

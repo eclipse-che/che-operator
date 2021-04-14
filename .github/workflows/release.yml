@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'The version that is going to be released. Should be in format 7.y.z'
+        description: 'The version that is going to be released. Should be in format 7.yy.z'
         required: true
-        default: '7.y.z'
       dwoVersion:
         description: 'The version of DevWorkspace Controller. Should be in format v0.y.z'
         required: true
@@ -69,7 +68,9 @@ jobs:
         run: |
           CHE_VERSION=${{ github.event.inputs.version }}
           DWO_VERSION=${{ github.event.inputs.dwoVersion }}
+          if [[ ${DWO_VERSION} != "v"* ]]; then DWO_VERSION="v${DWO_VERSION}"; fi
           DWO_CHE_VERSION=${{ github.event.inputs.dwoCheVersion }}
+          if [[ ${DWO_CHE_VERSION} != "v"* ]]; then DWO_CHE_VERSION="v${DWO_CHE_VERSION}"; fi
           echo "CHE_VERSION=${CHE_VERSION}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
@@ -96,7 +97,7 @@ jobs:
             ./make-release.sh ${CHE_VERSION} --release --release-olm-files --update-nightly-olm-files --dev-workspace-controller-version ${DWO_VERSION} --dev-workspace-che-operator-version ${DWO_CHE_VERSION}
           else
             git checkout ${BRANCH}
-            bash -x ./make-release.sh ${CHE_VERSION} --release --release-olm-files --dev-workspace-controller-version ${DWO_VERSION} --dev-workspace-che-operator-version ${DWO_CHE_VERSION}
+            ./make-release.sh ${CHE_VERSION} --release --release-olm-files --dev-workspace-controller-version ${DWO_VERSION} --dev-workspace-che-operator-version ${DWO_CHE_VERSION}
           fi
 
           # default robot account on quay does not have permissions for application repos
