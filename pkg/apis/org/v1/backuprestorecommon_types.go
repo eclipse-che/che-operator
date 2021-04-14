@@ -12,7 +12,12 @@
 package v1
 
 const (
-	SSH_PRIVATE_KEY_KEY = "ssh-privatekey" // TODO
+	USERNAME_SECRET_KEY              = "username"
+	PASSWORD_SECRET_KEY              = "password"
+	RESTIC_REPO_PASSWORD_SECRET_KEY  = "repo-password"
+	SSH_PRIVATE_KEY_SECRET_KEY       = "ssh-privatekey"
+	AWS_ACCESS_KEY_ID_SECRET_KEY     = "awsAccessKeyId"
+	AWS_SECRET_ACCESS_KEY_SECRET_KEY = "awsSecretAccessKey"
 )
 
 // +k8s:openapi-gen=true
@@ -53,7 +58,7 @@ type SftpServerConfing struct {
 	Repo string `json:"repo,omitempty"`
 	// User login on the remote server
 	Username string `json:"username,omitempty"`
-	// Private ssh key under 'ssh-key' field for passwordless login
+	// Private ssh key under 'ssh-privatekey' field for passwordless login
 	SshKeySecretRef string `json:"sshKeySecretRef,omitempty"`
 }
 

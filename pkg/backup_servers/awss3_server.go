@@ -27,7 +27,7 @@ const (
 	awsAccesKeyEnvVarName   = "AWS_SECRET_ACCESS_KEY"
 )
 
-// RestServer implements BackupServer
+// AwsS3Server implements BackupServer
 type AwsS3Server struct {
 	config orgv1.AwsS3ServerConfig
 	ResticClient
@@ -79,15 +79,15 @@ func (s *AwsS3Server) PrepareConfiguration(client client.Client, namespace strin
 		}
 
 		// Check the secret fields
-		value, exist := secret.Data["awsAccessKeyId"]
+		value, exist := secret.Data[orgv1.AWS_ACCESS_KEY_ID_SECRET_KEY]
 		if !exist || string(value) == "" {
-			return true, fmt.Errorf("%s secret should have access key ID under 'awsAccessKeyId' field", secret.ObjectMeta.Name)
+			return true, fmt.Errorf("%s secret should have access key ID under '%s' field", secret.ObjectMeta.Name, orgv1.AWS_ACCESS_KEY_ID_SECRET_KEY)
 		}
 		secretKeyId = string(value)
 
-		value, exist = secret.Data["awsSecretAccessKey"]
+		value, exist = secret.Data[orgv1.AWS_SECRET_ACCESS_KEY_SECRET_KEY]
 		if !exist || string(value) == "" {
-			return true, fmt.Errorf("%s secret should have access key under 'awsSecretAccessKey' field", secret.ObjectMeta.Name)
+			return true, fmt.Errorf("%s secret should have access key under '%s' field", secret.ObjectMeta.Name, orgv1.AWS_SECRET_ACCESS_KEY_SECRET_KEY)
 		}
 		secretKey = string(value)
 	}

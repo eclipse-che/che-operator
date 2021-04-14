@@ -67,7 +67,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 		}
 		return false, err
 	}
-	if value, exists := secret.Data["ssh-key"]; exists {
+	if value, exists := secret.Data[orgv1.SSH_PRIVATE_KEY_SECRET_KEY]; exists {
 		sshKey = string(value)
 	} else {
 		if len(secret.Data) == 1 {
@@ -77,12 +77,12 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 				break
 			}
 		} else {
-			return true, fmt.Errorf("'%s' secret should have 'ssh-key' field", s.config.SshKeySecretRef)
+			return true, fmt.Errorf("'%s' secret should have '%s' field", s.config.SshKeySecretRef, orgv1.SSH_PRIVATE_KEY_SECRET_KEY)
 		}
 	}
 	// Validate format of the ssh key
 	if !strings.HasPrefix(sshKey, "-----BEGIN") {
-		return true, fmt.Errorf("provided SSH key has invalid format")
+		return true, fmt.Errorf("provided SSH key in '%s' secret has invalid format", s.config.SshKeySecretRef)
 	}
 
 	// sftp:user@host:/srv/repo

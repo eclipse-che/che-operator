@@ -74,15 +74,15 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 		}
 
 		// Check the secret fields
-		if value, exist := secret.Data["username"]; !exist || string(value) == "" {
-			return true, fmt.Errorf("%s secret should have 'username' field", secret.ObjectMeta.Name)
+		if value, exist := secret.Data[orgv1.USERNAME_SECRET_KEY]; !exist || string(value) == "" {
+			return true, fmt.Errorf("%s secret should have '%s' field", secret.ObjectMeta.Name, orgv1.USERNAME_SECRET_KEY)
 		}
-		if value, exist := secret.Data["password"]; !exist || string(value) == "" {
-			return true, fmt.Errorf("%s secret should have 'password' field", secret.ObjectMeta.Name)
+		if value, exist := secret.Data[orgv1.PASSWORD_SECRET_KEY]; !exist || string(value) == "" {
+			return true, fmt.Errorf("%s secret should have '%s' field", secret.ObjectMeta.Name, orgv1.PASSWORD_SECRET_KEY)
 		}
 
-		username = string(secret.Data["username"])
-		password = string(secret.Data["password"])
+		username = string(secret.Data[orgv1.USERNAME_SECRET_KEY])
+		password = string(secret.Data[orgv1.PASSWORD_SECRET_KEY])
 	}
 	credentials := ""
 	if username != "" && password != "" {
