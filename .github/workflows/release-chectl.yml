@@ -42,10 +42,20 @@ jobs:
           set -e
           # if not run manually, need to compute chectl version from latest released CSV
           if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
-            chectlVersion=$(yq -r '.spec.version' deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml")
+            chectlVersion=$(yq -r '.spec.version' "deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml")
           else
             chectlVersion="${{ github.event.inputs.version }}"
           fi
+
+          # To determine DWO version, we have to replace first 7. with v0.
+          # then major DWO version is behind upstream Che version by 26 
+          # and the minor version is the same
+          # e.g 7.27.0 for Che = v0.1.0 for DWO
+          chectlMajorMinorVersion=${chectlVersion#7.}
+          chectlMajorVersion=${chectlMajorMinorVersion%.*}
+          dwoMajorVersion=((${chectlMajorVersion}-26))
+          dwoMinorVersion=${chectlMajorMinorVersion%.*}
+          dwoVersion=v0.${dwoMajorVersion}.${dwoMinorVersion}
 
           # generic method to call a GH action and pass in a single var=val parameter
           invokeAction() {
@@ -60,9 +70,20 @@ jobs:
               # or just pass it in
               workflow_id=$this_workflow_id
 
-              curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"master\",\"inputs\": {\"${this_var}\":\"${this_val}\"} }" || die_with "[ERROR] Problem invoking action https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
+              inputsJson="{}"
+
+              IFS=',' read -ra paramMap <<< "${this_params}"
+              for keyvalue in "${paramMap[@]}"
+              do 
+                  key=${keyvalue%=*}
+                  value=${keyvalue#*=}
+                  echo $var1
+                  inputsJson=$(echo "${inputsJson}" | jq ". + {\"${key}\": \"${value}\"}")
+              done
+
+              curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${this_github_token}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"${workflow_ref}\",\"inputs\": ${inputsJson} }"
               echo "[INFO] Invoked '${this_action_name}' action ($workflow_id) - see https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
           }
 
           # invoke action from chectl repo
-          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4267607" version "${chectlVersion}"
+          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4267607" "version=${chectlVersion},dwoVersion=${dwoVersion}"
