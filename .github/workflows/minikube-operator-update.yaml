@@ -25,6 +25,8 @@ jobs:
       run: sudo pip install yq
     - name: Provision Minikube cluster
       run: |
+        curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
+        sudo install minikube-linux-amd64 /usr/local/bin/minikube
         minikube start --memory=6000mb
     - name: Enable minikube addons
       run: |
