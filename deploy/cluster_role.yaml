@@ -471,23 +471,23 @@ rules:
       - '*'
 # devworkspace requirements: devworkspace-controller-view-workspaces cluster roles
   - apiGroups:
-    - workspace.devfile.io
-  resources:
-    - devworkspaces
-    - devworkspacetemplates
-  verbs:
-    - get
-    - list
-    - watch
-- apiGroups:
-    - controller.devfile.io
-  resources:
-    - devworkspaceroutings
-    - components
-  verbs:
-    - get
-    - list
-    - watch
+      - workspace.devfile.io
+    resources:
+      - devworkspaces
+      - devworkspacetemplates
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - devworkspaceroutings
+      - components
+    verbs:
+      - get
+      - list
+      - watch
 # devworkspace requirements: devworkspace-controller-metrics-reader cluster roles
   - nonResourceURLs:
       - /metrics

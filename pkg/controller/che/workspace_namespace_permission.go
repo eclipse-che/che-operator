@@ -40,7 +40,7 @@ const (
 	CheWorkspacesClusterRoleNameTemplate = "%s-cheworkspaces-clusterrole"
 
 	CheWorkspacesClusterPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
-	CheNamespaceEditorPermissionsFinalizerName   = "namespaces.clusterpermissions.finalizers.che.eclipse.org"
+	NamespacesEditorPermissionsFinalizerName     = "namespaces-editor.permissions.finalizers.che.eclipse.org"
 )
 
 // check if we can delegate cluster roles
@@ -260,7 +260,7 @@ func (r *ReconcileChe) delegateNamespaceEditorPermissions(deployContext *deploy.
 		return false, err
 	}
 
-	err = deploy.AppendFinalizer(deployContext, CheNamespaceEditorPermissionsFinalizerName)
+	err = deploy.AppendFinalizer(deployContext, NamespacesEditorPermissionsFinalizerName)
 	return err == nil, err
 }
 
@@ -277,7 +277,7 @@ func (r *ReconcileChe) removeNamespaceEditorPermissions(deployContext *deploy.De
 		return false, err
 	}
 
-	err = deploy.DeleteFinalizer(deployContext, CheNamespaceEditorPermissionsFinalizerName)
+	err = deploy.DeleteFinalizer(deployContext, NamespacesEditorPermissionsFinalizerName)
 	return err == nil, err
 }
 
