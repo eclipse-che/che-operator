@@ -43,7 +43,7 @@ esac
 
 if [ -z "${GOROOT}" ]; then
   echo "[ERROR] set up '\$GOROOT' env variable to make operator-sdk working"
-  exit 0
+  exit 1
 fi
 
 OPERATOR_YAML="${ROOT_PROJECT_DIR}/deploy/operator.yaml"

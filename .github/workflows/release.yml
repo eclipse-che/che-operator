@@ -61,6 +61,10 @@ jobs:
           sudo chmod +x /usr/local/bin/base32
           #remove base32 from current directory to avoid it being commited during release
           rm $(pwd)/base32 
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
       - name: Release operator
         env:
           IMAGE_REGISTRY_HOST: quay.io

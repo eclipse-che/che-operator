@@ -37,7 +37,7 @@ check() {
 
   if [ -z "${GOROOT}" ]; then
     echo "[ERROR] set up '\$GOROOT' env variable to make operator-sdk working"
-    exit 0
+    exit 1
   fi 
 }
 
