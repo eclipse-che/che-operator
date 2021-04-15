@@ -111,6 +111,11 @@ func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.Deplo
 		if !done {
 			return false, err
 		}
+	} else {
+		done, err := r.removeNamespaceEditorPermissions(deployContext)
+		if !done {
+			return false, err
+		}
 	}
 
 	return true, nil
