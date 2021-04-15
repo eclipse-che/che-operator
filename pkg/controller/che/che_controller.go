@@ -13,7 +13,6 @@ package che
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -578,34 +577,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
-	// check if we can delegate cluster roles
-	// fall back to the "narrower" workspace namespace strategy if it not possible
-	if !util.IsOAuthEnabled(instance) && !util.IsWorkspaceInSameNamespaceWithChe(instance) {
-		сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, instance.Namespace)
-		exists, err := deploy.Get(deployContext, types.NamespacedName{Name: сheWorkspacesClusterRoleName}, &rbac.ClusterRole{})
+	done, err = r.checkWorkspacePermissions(deployContext)
+	if !done {
 		if err != nil {
 			logrus.Error(err)
-			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
-		if !exists {
-			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(getNamespaceEditorPolicy(), "")
-			if err != nil {
-				logrus.Error(err)
-				return reconcile.Result{RequeueAfter: time.Second}, err
-			}
-			// fall back
-			if len(deniedRules) > 0 {
-				logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
-				logrus.Warnf("Fall back to '%s' namespace for workspaces.", instance.Namespace)
-				delete(instance.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
-				instance.Spec.Server.WorkspaceNamespaceDefault = instance.Namespace
-				err := r.UpdateCheCRSpec(instance, "Default namespace for workspaces", instance.Namespace)
-				if err != nil {
-					logrus.Error(err)
-					return reconcile.Result{RequeueAfter: time.Second * 1}, err
-				}
-			}
-		}
+		return reconcile.Result{}, err
 	}
 
 	done, err = r.reconcileWorkspacePermissions(deployContext)
@@ -1122,7 +1099,7 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 		}
 	}
 
-	if err := r.reconcileWorkspacePermissionsFinalizers(deployContext); err != nil {
+	if _, err := r.reconcileWorkspacePermissionsFinalizers(deployContext); err != nil {
 		logrus.Error(err)
 	}
 
