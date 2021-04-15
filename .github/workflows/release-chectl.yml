@@ -53,7 +53,7 @@ jobs:
           # e.g 7.27.0 for Che = v0.1.0 for DWO
           chectlMajorMinorVersion=${chectlVersion#7.}
           chectlMajorVersion=${chectlMajorMinorVersion%.*}
-          dwoMajorVersion=((${dwoMajorVersion}-26))
+          dwoMajorVersion=((${chectlMajorVersion}-26))
           dwoMinorVersion=${chectlMajorMinorVersion%.*}
           dwoVersion=v0.${dwoMajorVersion}.${dwoMinorVersion}
 
