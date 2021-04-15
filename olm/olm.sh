@@ -534,7 +534,7 @@ getBundleListFromCatalogSource() {
   CATALOG_IP=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.clusterIP")
   CATALOG_PORT=$(echo "${CATALOG_SERVICE}" | yq -r ".spec.ports[0].targetPort")
 
-  LIST_BUNDLES=$(kubectl run --generator=run-pod/v1 grpcurl-query -n "${namespace}" \
+  LIST_BUNDLES=$(kubectl run grpcurl-query -n "${namespace}" \
   --rm=true \
   --restart=Never \
   --attach=true \
