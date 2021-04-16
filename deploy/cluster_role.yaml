@@ -273,6 +273,12 @@ rules:
     verbs:
       - get
       - create
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    verbs:
+      - get
 # devworkspace requirements: devworkspace-controller-edit-workspaces cluster roles
   - apiGroups:
       - workspace.devfile.io
