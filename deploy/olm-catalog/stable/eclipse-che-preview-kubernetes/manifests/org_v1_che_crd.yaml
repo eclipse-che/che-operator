@@ -308,6 +308,12 @@ spec:
             devWorkspace:
               description: Dev Workspace operator configuration
               properties:
+                controllerImage:
+                  description: Overrides the container image used in the DevWorkspace
+                    controller deployment. This includes the image tag. Omit it or
+                    leave it empty to use the default container image provided by
+                    the Operator.
+                  type: string
                 enable:
                   description: Deploys the DevWorkspace Operator in the cluster. Does
                     nothing when a matching version of the Operator is already installed.
