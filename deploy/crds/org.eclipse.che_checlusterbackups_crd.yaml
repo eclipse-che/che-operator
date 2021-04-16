@@ -65,7 +65,7 @@ spec:
                     port:
                       description: Backup server port. Usually default value is used.
                         Might be customized in case of alternative server.
-                      type: string
+                      type: integer
                     protocol:
                       description: Protocol to use when connection to the server.
                         Might be customized in case of alternative server.
@@ -100,7 +100,7 @@ spec:
                       type: string
                     port:
                       description: Backup server port
-                      type: string
+                      type: integer
                     protocol:
                       description: Protocol to use when connection to the server Defaults
                         to https.
@@ -136,7 +136,7 @@ spec:
                       type: string
                     port:
                       description: Backup server port
-                      type: string
+                      type: integer
                     protocol:
                       description: Protocol to use when connection to the server Defaults
                         to https.
@@ -166,7 +166,7 @@ spec:
                       type: string
                     port:
                       description: Backup server port
-                      type: string
+                      type: integer
                     repo:
                       description: Restic repository path, relative or absolute, e.g.
                         /srv/repo
@@ -182,8 +182,8 @@ spec:
                           type: string
                       type: object
                     sshKeySecretRef:
-                      description: Private ssh key under 'ssh-key' field for passwordless
-                        login
+                      description: Private ssh key under 'ssh-privatekey' field for
+                        passwordless login
                       type: string
                     username:
                       description: User login on the remote server

@@ -25,7 +25,7 @@ type CheClusterBackupSpec struct {
 	// Note, this will overwrite existing configuration.
 	AutoconfigureRestBackupServer bool `json:"autoconfigureRestBackupServer,omitempty"`
 	// Set to true to start backup process.
-	TriggerNow bool `json:"triggerNow,omitempty"`
+	TriggerNow bool `json:"triggerNow"`
 	// If more than one backup server configured, should specify which one to use.
 	// Allowed values are fields names form BackupServers struct.
 	ServerType string `json:"serverType,omitempty"`

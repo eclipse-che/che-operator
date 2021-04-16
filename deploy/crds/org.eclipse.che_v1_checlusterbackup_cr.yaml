@@ -20,7 +20,16 @@ spec:
       hostname: sftp-host.net
       username: user
       port: 2222
-      sshKeySecretRef: backup-server-ssh
+      sshKeySecretRef: backup-server-ssh-key-secret
       repo: che-backups
       repoPassword:
-        passwordSecretRef: backups-password
+        passwordSecretRef: backups-password-secret
+    awss3:
+      awsAccessKeySecretRef: minio-credentials-secret
+      hostname: minio.mydomain.net
+      port: 9000
+      protocol: http
+      # Bucket should be pre-created
+      repo: che-backups-bucket
+      repoPassword:
+        passwordSecretRef: backups-password-secret

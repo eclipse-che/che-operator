@@ -65,7 +65,9 @@ func NewBackupServer(servers orgv1.BackupServers, serverType string) (BackupServ
 				continue
 			}
 			// Check if actual field value is equal to the empty struct of the filed type
-			if rv.Field(i).Interface() != reflect.New(rv.Field(i).Type()) {
+			value := rv.Field(i).Interface()
+			zeroValue := reflect.Zero(rv.Field(i).Type()).Interface()
+			if !reflect.DeepEqual(value, zeroValue) {
 				// The server configuration is not empty.
 				serverType = strings.ToLower(rv.Type().Field(i).Name)
 				count++
