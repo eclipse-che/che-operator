@@ -14,7 +14,7 @@ name: Check nightly OLM bundle
 on:
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   check-bundle-files:
     runs-on: ubuntu-20.04

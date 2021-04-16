@@ -27,7 +27,7 @@ init() {
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
-  DEV_WORKSPACE_CONTROLLER_VERSION="master"
+  DEV_WORKSPACE_CONTROLLER_VERSION="main"
   DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -82,9 +82,9 @@ checkoutToReleaseBranch() {
     echo "[INFO] $BRANCH exists."
     resetChanges $BRANCH
   else
-    echo "[INFO] $BRANCH does not exist. Will be created a new one from master."
-    resetChanges master
-    git push origin master:$BRANCH
+    echo "[INFO] $BRANCH does not exist. Will be created a new one from main."
+    resetChanges main
+    git push origin main:$BRANCH
   fi
   git checkout -B $RELEASE_BRANCH
 }
@@ -126,7 +126,6 @@ checkImageReferences() {
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 
-  # use ${RELEASE} instead of master
   wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
@@ -240,20 +239,20 @@ createPRToXBranch() {
   set -e
 }
 
-createPRToMasterBranch() {
-  echo "[INFO] createPRToMasterBranch :: Create pull request into master branch to copy csv"
-  resetChanges master
-  local tmpBranch="copy-csv-to-master"
+createPRToMainBranch() {
+  echo "[INFO] createPRToMainBranch :: Create pull request into main branch to copy csv"
+  resetChanges main
+  local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator.yaml' | git apply -3
-  . ${RELEASE_DIR}/replace-images-tags.sh nightly master
+  . ${RELEASE_DIR}/replace-images-tags.sh nightly main
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
-    git commit -am "Copy "$RELEASE" csv to master" --signoff
+    git commit -am "Copy "$RELEASE" csv to main" --signoff
   fi
   git push origin $tmpBranch -f
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
-  hub pull-request $FORCE_UPDATE --base master --head ${tmpBranch} -m "Copy "$RELEASE" csv to master"
+  hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "Copy "$RELEASE" csv to main"
   set -e
 }
 
@@ -291,7 +290,7 @@ fi
 
 if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
   createPRToXBranch
-  createPRToMasterBranch
+  createPRToMainBranch
 fi
 
 if [[ $PREPARE_COMMUNITY_OPERATORS_UPDATE == "true" ]]; then

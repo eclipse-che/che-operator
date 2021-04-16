@@ -14,7 +14,7 @@ name: Minikube
 on:
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   minikube:
     name: Test Eclipse Che update from stable to nightly
