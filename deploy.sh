@@ -20,8 +20,6 @@ NAMESPACE=$1
 oc apply -f ${BASE_DIR}/deploy/service_account.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/role_binding.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/namespaces_cluster_role_binding.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
 # sometimes the operator cannot get CRD right away
 sleep 2
