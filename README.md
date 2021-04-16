@@ -1,6 +1,6 @@
 # Che/CodeReady Workspaces Operator
 
-[![codecov](https://codecov.io/gh/eclipse-che/che-operator/branch/master/graph/badge.svg?token=IlYvrVU5nB)](https://codecov.io/gh/eclipse-che/che-operator)
+[![codecov](https://codecov.io/gh/eclipse-che/che-operator/branch/main/graph/badge.svg?token=IlYvrVU5nB)](https://codecov.io/gh/eclipse-che/che-operator)
 
 Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operator-framework/operator-sdk) and [Go Kube client](https://github.com/kubernetes/client-go) to deploy, update and manage K8S/OpenShift resources that constitute a single or multi-user Eclipse Che/CodeReady Workspaces cluster.
 
@@ -378,7 +378,7 @@ $ export NO_DATE_UPDATE="true" \
 
 ### Che operator PR checks
 
-Documentation about all Che operator test cases can be found [here](https://github.com/eclipse-che/che-operator/tree/master/.ci/README.md)
+Documentation about all Che operator test cases can be found [here](https://github.com/eclipse-che/che-operator/tree/main/.ci/README.md)
 
 ### Generate go mocks.
 

@@ -14,7 +14,7 @@ name: Minishift
 on:
   pull_request:
     branches:
-     - master
+     - main
 jobs:
   minishift:
     name: Test Eclipse Che update from stable to nightly
