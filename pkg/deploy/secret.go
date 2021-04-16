@@ -13,15 +13,17 @@ package deploy
 
 import (
 	"context"
-	"fmt"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -29,92 +31,89 @@ var secretDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
 }
 
-// SyncSecretToCluster applies secret into cluster
+// SyncSecret applies secret into cluster or external namespace
 func SyncSecretToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
-	data map[string][]byte,
-	clusterAPI ClusterAPI) (*corev1.Secret, error) {
+	namespace string,
+	data map[string][]byte) (bool, error) {
 
-	specSecret := GetSpecSecret(checluster, name, data)
-
-	clusterSecret, err := GetClusterSecret(specSecret.Name, specSecret.Namespace, clusterAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterSecret == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specSecret.Kind, specSecret.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specSecret)
-		return specSecret, err
-	}
-
-	diff := cmp.Diff(clusterSecret, specSecret, secretDiffOpts)
-	if len(diff) > 0 {
-		logrus.Infof("Updating existed object: %s, name: %s", clusterSecret.Kind, clusterSecret.Name)
-		fmt.Printf("Difference:\n%s", diff)
-
-		err := clusterAPI.Client.Delete(context.TODO(), clusterSecret)
-		if err != nil {
-			return nil, err
-		}
-
-		err = clusterAPI.Client.Create(context.TODO(), specSecret)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return clusterSecret, nil
+	secretSpec := GetSecretSpec(deployContext, name, namespace, data)
+	return Sync(deployContext, secretSpec, secretDiffOpts)
 }
 
-// GetClusterSecret retrieves given secret from cluster
-func GetClusterSecret(name string, namespace string, clusterAPI ClusterAPI) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := clusterAPI.Client.Get(context.TODO(), namespacedName, secret)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
+// Get all secrets by labels and annotations
+func GetSecrets(deployContext *DeployContext, labels map[string]string, annotations map[string]string) ([]corev1.Secret, error) {
+	secrets := []corev1.Secret{}
+
+	labelSelector := k8slabels.NewSelector()
+	for k, v := range labels {
+		req, err := k8slabels.NewRequirement(k, selection.Equals, []string{v})
+		if err != nil {
+			return secrets, err
 		}
-		return nil, err
+		labelSelector = labelSelector.Add(*req)
 	}
-	return secret, nil
+
+	listOptions := &client.ListOptions{
+		Namespace:     deployContext.CheCluster.Namespace,
+		LabelSelector: labelSelector,
+	}
+	secretList := &corev1.SecretList{}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), secretList, listOptions); err != nil {
+		return secrets, err
+	}
+
+	for _, secret := range secretList.Items {
+		annotationsOk := true
+		for k, v := range annotations {
+			_, annotationExists := secret.Annotations[k]
+			if !annotationExists || secret.Annotations[k] != v {
+				annotationsOk = false
+				break
+			}
+		}
+
+		if annotationsOk {
+			secrets = append(secrets, secret)
+		}
+	}
+
+	return secrets, nil
 }
 
-// GetSpecSecret return default secret config for given data
-func GetSpecSecret(cr *orgv1.CheCluster, name string, data map[string][]byte) *corev1.Secret {
-	labels := GetLabels(cr, DefaultCheFlavor(cr))
-	return &corev1.Secret{
+// GetSecretSpec return default secret config for given data
+func GetSecretSpec(deployContext *DeployContext, name string, namespace string, data map[string][]byte) *corev1.Secret {
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
+	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: cr.Namespace,
+			Namespace: namespace,
 			Labels:    labels,
 		},
 		Data: data,
 	}
+
+	return secret
 }
 
-// CreateTLSSecretFromRoute creates TLS secret with given name which contains certificates obtained from give url.
-// If the url is empty string, then router certificate will be obtained.
-// Works only on Openshift family infrastructures.
-func CreateTLSSecretFromRoute(checluster *orgv1.CheCluster, url string, name string, clusterAPI ClusterAPI) (err error) {
+// CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from the given url.
+// If the url is empty string, then cluster default certificate will be obtained.
+// Does nothing if secret with given name already exists.
+func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name string) (err error) {
 	secret := &corev1.Secret{}
-	if err := clusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: checluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crtBytes, err := GetEndpointTLSCrtBytes(checluster, url, clusterAPI)
+	if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
+		crtBytes, err := GetEndpointTLSCrtBytes(deployContext, url)
 		if err != nil {
 			logrus.Errorf("Failed to extract certificate for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
 			return err
 		}
 
-		secret, err = SyncSecretToCluster(checluster, name, map[string][]byte{"ca.crt": crtBytes}, clusterAPI)
+		_, err = SyncSecretToCluster(deployContext, name, deployContext.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
 		if err != nil {
 			return err
 		}

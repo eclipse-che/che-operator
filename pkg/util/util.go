@@ -13,6 +13,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -22,16 +23,24 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -90,22 +99,29 @@ func MapToKeyValuePairs(m map[string]string) string {
 
 func DetectOpenShift() (isOpenshift bool, isOpenshift4 bool, anError error) {
 	tests := IsTestMode()
-	if !tests {
-		apiGroups, err := getApiList()
-		if err != nil {
-			return false, false, err
+	if tests {
+		openshiftVersionEnv := os.Getenv("OPENSHIFT_VERSION")
+		openshiftVersion, err := strconv.ParseInt(openshiftVersionEnv, 0, 64)
+		if err == nil && openshiftVersion == 4 {
+			return true, true, nil
 		}
-		for _, apiGroup := range apiGroups {
-			if apiGroup.Name == "route.openshift.io" {
-				isOpenshift = true
-			}
-			if apiGroup.Name == "config.openshift.io" {
-				isOpenshift4 = true
-			}
-		}
-		return
+		return true, false, nil
 	}
-	return true, false, nil
+
+	apiGroups, err := getApiList()
+	if err != nil {
+		return false, false, err
+	}
+	for _, apiGroup := range apiGroups {
+		if apiGroup.Name == "route.openshift.io" {
+			isOpenshift = true
+		}
+		if apiGroup.Name == "config.openshift.io" {
+			isOpenshift4 = true
+		}
+	}
+
+	return isOpenshift, isOpenshift4, nil
 }
 
 func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
@@ -128,16 +144,33 @@ func getApiList() ([]v1.APIGroup, error) {
 	return apiList.Groups, nil
 }
 
-func GetServerResources() ([]*v1.APIResourceList, error) {
+func HasAPIResourceName(name string) bool {
 	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
-		return nil, err
+		return false
 	}
-	return discoveryClient.ServerResources()
+
+	_, resourcesList, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false
+	}
+
+	return HasAPIResourceNameInList(name, resourcesList)
+}
+
+func HasAPIResourceNameInList(name string, resources []*metav1.APIResourceList) bool {
+	for _, l := range resources {
+		for _, r := range l.APIResources {
+			if r.Name == name {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func GetValue(key string, defaultValue string) (value string) {
-
 	value = key
 	if len(key) < 1 {
 		value = defaultValue
@@ -145,8 +178,42 @@ func GetValue(key string, defaultValue string) (value string) {
 	return value
 }
 
-func IsTestMode() (isTesting bool) {
+func GetMapValue(value map[string]string, defaultValue map[string]string) map[string]string {
+	ret := value
+	if len(value) < 1 {
+		ret = defaultValue
+	}
 
+	return ret
+}
+
+func MergeMaps(first map[string]string, second map[string]string) map[string]string {
+	ret := make(map[string]string)
+	for k, v := range first {
+		ret[k] = v
+	}
+
+	for k, v := range second {
+		ret[k] = v
+	}
+
+	return ret
+}
+
+func GetServerExposureStrategy(c *orgv1.CheCluster) string {
+	strategy := c.Spec.Server.ServerExposureStrategy
+	if strategy != "" {
+		return strategy
+	} else if c.Spec.DevWorkspace.Enable {
+		return "single-host"
+	} else if IsOpenShift {
+		return "multi-host"
+	} else {
+		return GetValue(c.Spec.K8s.IngressStrategy, "multi-host")
+	}
+}
+
+func IsTestMode() (isTesting bool) {
 	testMode := os.Getenv("MOCK_API")
 	if len(testMode) == 0 {
 		return false
@@ -155,11 +222,15 @@ func IsTestMode() (isTesting bool) {
 }
 
 func GetClusterPublicHostname(isOpenShift4 bool) (hostname string, err error) {
+	// Could be set for debug scripts.
+	CLUSTER_API_URL := os.Getenv("CLUSTER_API_URL")
+	if CLUSTER_API_URL != "" {
+		return CLUSTER_API_URL, nil
+	}
 	if isOpenShift4 {
 		return getClusterPublicHostnameForOpenshiftV4()
-	} else {
-		return getClusterPublicHostnameForOpenshiftV3()
 	}
+	return getClusterPublicHostnameForOpenshiftV3()
 }
 
 // getClusterPublicHostnameForOpenshiftV3 is a hacky way to get OpenShift API public DNS/IP
@@ -243,62 +314,6 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	return hostname, nil
 }
 
-func GenerateProxyJavaOpts(proxyURL string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string, proxySecret string, namespace string) (javaOpts string, err error) {
-	if len(proxySecret) > 0 {
-		user, password, err := k8sclient.ReadSecret(proxySecret, namespace)
-		if err == nil {
-			proxyUser = user
-			proxyPassword = password
-		} else {
-			return "", err
-		}
-	}
-
-	var proxyHost string
-	if strings.HasPrefix(proxyURL, "https://") {
-		proxyHost = strings.TrimPrefix(proxyURL, "https://")
-	} else if strings.HasPrefix(proxyURL, "http://") {
-		proxyHost = strings.TrimPrefix(proxyURL, "http://")
-	} else {
-		proxyHost = proxyURL
-	}
-
-	proxyUserPassword := ""
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		proxyUserPassword =
-			" -Dhttp.proxyUser=" + proxyUser + " -Dhttp.proxyPassword=" + proxyPassword +
-				" -Dhttps.proxyUser=" + proxyUser + " -Dhttps.proxyPassword=" + proxyPassword
-	}
-	javaOpts =
-		" -Dhttp.proxyHost=" + proxyHost + " -Dhttp.proxyPort=" + proxyPort +
-			" -Dhttps.proxyHost=" + proxyHost + " -Dhttps.proxyPort=" + proxyPort +
-			" -Dhttp.nonProxyHosts='" + nonProxyHosts + "'" + proxyUserPassword
-	return javaOpts, nil
-}
-
-func GenerateProxyEnvs(proxyHost string, proxyPort string, nonProxyHosts string, proxyUser string, proxyPassword string, proxySecret string, namespace string) (proxyUrl string, noProxy string, err error) {
-	if len(proxySecret) > 0 {
-		user, password, err := k8sclient.ReadSecret(proxySecret, namespace)
-		if err == nil {
-			proxyUser = user
-			proxyPassword = password
-		} else {
-			return "", "", err
-		}
-	}
-
-	proxyUrl = proxyHost + ":" + proxyPort
-	if len(proxyUser) > 1 && len(proxyPassword) > 1 {
-		protocol := strings.Split(proxyHost, "://")[0]
-		host := strings.Split(proxyHost, "://")[1]
-		proxyUrl = protocol + "://" + proxyUser + ":" + proxyPassword + "@" + host + ":" + proxyPort
-	}
-
-	noProxy = strings.Replace(nonProxyHosts, "|", ",", -1)
-
-	return proxyUrl, noProxy, nil
-}
-
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
 	env := deployment.Spec.Template.Spec.Containers[0].Env
 	for i := range env {
@@ -330,8 +345,108 @@ func GetEnvByRegExp(regExp string) []corev1.EnvVar {
 		envName := pair[0]
 		rxp := regexp.MustCompile(regExp)
 		if rxp.MatchString(envName) {
+			envName = GetArchitectureDependentEnv(envName)
 			env = append(env, corev1.EnvVar{Name: envName, Value: pair[1]})
 		}
 	}
 	return env
+}
+
+// GetArchitectureDependentEnv returns environment variable dependending on architecture
+// by adding "_<ARCHITECTURE>" suffix. If variable is not set then the default will be return.
+func GetArchitectureDependentEnv(env string) string {
+	archEnv := env + "_" + runtime.GOARCH
+	if _, ok := os.LookupEnv(archEnv); ok {
+		return archEnv
+	}
+
+	return env
+}
+
+// NewBoolPointer returns `bool` pointer to value in the memory.
+// Unfortunately golang hasn't got syntax to create `bool` pointer.
+func NewBoolPointer(value bool) *bool {
+	variable := value
+	return &variable
+}
+
+// IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
+func IsOAuthEnabled(c *orgv1.CheCluster) bool {
+	if c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth {
+		return true
+	}
+	return false
+}
+
+// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
+func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
+	if c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser {
+		return true
+	}
+	return false
+}
+
+// IsWorkspaceInSameNamespaceWithChe return true when Che workspaces will be executed in the same namespace with Che, otherwise returns false.
+func IsWorkspaceInSameNamespaceWithChe(cr *orgv1.CheCluster) bool {
+	return GetWorkspaceNamespaceDefault(cr) == cr.Namespace
+}
+
+// GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
+func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.CustomCheProperties != nil {
+		k8sNamespaceDefault := cr.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
+		if k8sNamespaceDefault != "" {
+			return k8sNamespaceDefault
+		}
+	}
+
+	workspaceNamespaceDefault := cr.Namespace
+	if IsOpenShift && IsOAuthEnabled(cr) {
+		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
+	}
+	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
+}
+
+// IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
+func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
+	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""
+}
+
+func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
+	if value != "" {
+		return resource.MustParse(value)
+	}
+	return resource.MustParse(defaultValue)
+}
+
+// Finds Env by a given name
+func FindEnv(envs []corev1.EnvVar, name string) *corev1.EnvVar {
+	for _, env := range envs {
+		if env.Name == name {
+			return &env
+		}
+	}
+
+	return nil
+}
+
+func ReadObject(yamlFile string, obj interface{}) error {
+	data, err := ioutil.ReadFile(yamlFile)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(data, obj)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
+	return client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
+		cheCluster)
 }

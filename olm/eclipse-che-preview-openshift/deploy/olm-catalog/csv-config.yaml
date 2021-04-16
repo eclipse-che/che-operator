@@ -1,3 +1,0 @@
-operator-path: ../../deploy/operator.yaml
-role-paths: [ "generated/roles/role.yaml", "generated/roles/cluster_role.yaml"]
-crd-cr-paths: ["../../deploy/crds/org_v1_che_crd.yaml"]

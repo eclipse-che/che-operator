@@ -17,10 +17,15 @@ spec:
   selector:
     matchLabels:
       app: che-operator
+  strategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: che-operator
+        app.kubernetes.io/name: che
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/component: che-operator
     spec:
       containers:
         - name: che-operator
@@ -51,19 +56,23 @@ spec:
             - name: RELATED_IMAGE_devfile_registry
               value: quay.io/eclipse/che-devfile-registry:nightly
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
-              value: quay.io/eclipse/che-tls-secret-creator:alpine-3029769
+              value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
             - name: RELATED_IMAGE_pvc_jobs
-              value: registry.access.redhat.com/ubi8-minimal:8.2-301.1592810506
+              value: registry.access.redhat.com/ubi8-minimal:8.3-298
             - name: RELATED_IMAGE_postgres
-              value: centos/postgresql-96-centos7:9.6
+              value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
             - name: RELATED_IMAGE_keycloak
               value: quay.io/eclipse/che-keycloak:nightly
             - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
-              value: quay.io/eclipse/che-plugin-metadata-broker:v3.2.0
+              value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
-              value: quay.io/eclipse/che-plugin-artifacts-broker:v3.2.0
+              value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
             - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
-              value: quay.io/eclipse/che-jwtproxy:fd94e60
+              value: quay.io/eclipse/che-jwtproxy:0.10.0
+            - name: RELATED_IMAGE_single_host_gateway
+              value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
+            - name: RELATED_IMAGE_single_host_gateway_config_sidecar
+              value: quay.io/che-incubator/configbump:0.1.4
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME
@@ -80,6 +89,38 @@ spec:
               value: che-identity-postgres-secret
             - name: CHE_POSTGRES_SECRET
               value: che-postgres-secret
+            - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+              value: ca-certs
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 6789
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
       restartPolicy: Always
       serviceAccountName: che-operator
-      terminationGracePeriodSeconds: 5
+      terminationGracePeriodSeconds: 20

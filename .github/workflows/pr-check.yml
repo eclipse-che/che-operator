@@ -1,0 +1,87 @@
+#
+#  Copyright (c) 2012-2020 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+#
+name: PR validation
+on: pull_request
+jobs:
+  build:
+    name: Image build
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build the Docker image
+      run: docker build .
+  multiplatform-build:
+    name: Multi-platform image build
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v1
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Build images
+      uses: docker/build-push-action@v2
+      with:
+        file: Dockerfile
+        platforms: linux/amd64,linux/ppc64le
+        tags: quay.io/eclipse/che-operator:nightly
+  sources:
+    name: Source code validation
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+    - name: Checkout source code
+      uses: actions/checkout@v1
+    - name: Cache go modules
+      id: cache-mod
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Download dependencies
+      run: go mod download
+      if: steps.cache-mod.outputs.cache-hit != 'true'
+    - name: Check go mod status
+      run: |
+        go mod tidy
+        if [[ ! -z $(git status -s) ]]
+        then
+          echo "Go mod state is not clean:"
+          git --no-pager diff
+          exit 1
+        fi
+    - name: Check format
+      run: |
+        git reset HEAD --hard
+        go fmt -x ./...
+        if [[ ! -z $(git status -s) ]]
+        then
+          echo "not well formatted sources are found:"
+          git --no-pager diff
+          exit 1
+        fi
+    - name: Check imports
+      run: |
+        go get -u golang.org/x/tools/cmd/goimports
+        git reset HEAD --hard
+        if [[ $(find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;) != "" ]]
+        then
+          echo "not well formatted sources are found:"
+          find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
+          exit 1
+        fi

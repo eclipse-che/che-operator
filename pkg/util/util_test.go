@@ -12,72 +12,15 @@
 package util
 
 import (
-	"os"
 	"reflect"
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-const (
-	proxyHost                               = "https://myproxy.com"
-	proxyPort                               = "1234"
-	nonProxyHosts                           = "localhost|myhost.com"
-	proxyUser                               = "user"
-	proxyPassword                           = "password"
-	expectedProxyURLWithUsernamePassword    = "https://user:password@myproxy.com:1234"
-	expectedProxyURLWithoutUsernamePassword = "https://myproxy.com:1234"
-	expectedNoProxy                         = "localhost,myhost.com"
-)
-
-func TestGenerateProxyEnvs(t *testing.T) {
-
-	proxyUrl, noProxy, _ := GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword, "", "")
-
-	if !reflect.DeepEqual(proxyUrl, expectedProxyURLWithUsernamePassword) {
-		t.Errorf("Test failed. Expected %s but got %s", expectedProxyURLWithUsernamePassword, proxyUrl)
-	}
-
-	if !reflect.DeepEqual(noProxy, expectedNoProxy) {
-		t.Errorf("Test failed. Expected %s but got %s", expectedNoProxy, noProxy)
-
-	}
-
-	proxyUrl, _, _ = GenerateProxyEnvs(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword, "", "")
-	if !reflect.DeepEqual(proxyUrl, expectedProxyURLWithoutUsernamePassword) {
-		t.Errorf("Test failed. Expected %s but got %s", expectedProxyURLWithoutUsernamePassword, proxyUrl)
-	}
-
-}
-
-func TestGenerateProxyJavaOpts(t *testing.T) {
-	if err := os.Setenv("KUBERNETES_SERVICE_HOST", "172.30.0.1"); err != nil {
-		logrus.Errorf("Failed to set env %s", err)
-	}
-
-	javaOpts, _ := GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, proxyUser, proxyPassword, "", "")
-	expectedJavaOpts := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com' -Dhttp.proxyUser=user " +
-		"-Dhttp.proxyPassword=password -Dhttps.proxyUser=user -Dhttps.proxyPassword=password"
-	if !reflect.DeepEqual(javaOpts, expectedJavaOpts) {
-		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOpts, javaOpts)
-	}
-
-	javaOpts, _ = GenerateProxyJavaOpts(proxyHost, proxyPort, nonProxyHosts, "", proxyPassword, "", "")
-	expectedJavaOptsWithoutUsernamePassword := " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
-	if !reflect.DeepEqual(javaOpts, expectedJavaOptsWithoutUsernamePassword) {
-		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
-	}
-
-	javaOpts, _ = GenerateProxyJavaOpts("http://myproxy.com", proxyPort, nonProxyHosts, "", proxyPassword, "", "")
-	expectedJavaOptsWithoutUsernamePassword = " -Dhttp.proxyHost=myproxy.com -Dhttp.proxyPort=1234 -Dhttps.proxyHost=myproxy.com " +
-		"-Dhttps.proxyPort=1234 -Dhttp.nonProxyHosts='localhost|myhost.com'"
-	if !reflect.DeepEqual(javaOpts, expectedJavaOptsWithoutUsernamePassword) {
-		t.Errorf("Test failed. Expected '%s' but got '%s'", expectedJavaOptsWithoutUsernamePassword, javaOpts)
-	}
-
-}
 
 func TestGeneratePasswd(t *testing.T) {
 	chars := 12
@@ -106,5 +49,35 @@ func TestGetValue(t *testing.T) {
 
 	if !reflect.DeepEqual(var2, defaultValue) {
 		t.Errorf("Test failed. Expected '%s', but got '%s'", var2, defaultValue)
+	}
+}
+
+func TestReload(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "eclipse-che",
+			Name:            "eclipse-che",
+			ResourceVersion: "1",
+		},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+
+	cheCluster = &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "eclipse-che",
+			Name:            "eclipse-che",
+			ResourceVersion: "2",
+		},
+	}
+
+	err := ReloadCheCluster(cli, cheCluster)
+	if err != nil {
+		t.Errorf("Failed to reload checluster, %v", err)
+	}
+
+	if cheCluster.ObjectMeta.ResourceVersion != "1" {
+		t.Errorf("Failed to reload checluster")
 	}
 }

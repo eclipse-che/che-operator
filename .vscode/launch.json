@@ -14,18 +14,148 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (simplest configuration)",
-      "program": "${file}"
+      "name": "Bash-Debug (testCatalogSource.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che",
+      ]
     },
     {
-      "name": "Launch Current File",
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che",
+        "my_catalog"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift nightly",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift stable",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) minikube stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "stable",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) minikube nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "kubernetes",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift stable",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "stable",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (testUpdate.sh) openshift nightly",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "${workspaceFolder}/olm/testUpdate.sh",
+      "args": [
+        "openshift",
+        "nightly",
+        "che"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildAndPushBundleImages.sh) Kubernetes platfrom",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "./buildAndPushBundleImages.sh",
+      "args": [
+        "-p",
+        "kubernetes",
+        "-c",
+        "nightly"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (buildAndPushBundleImages.sh) Openshift platform",
+      "cwd": "${workspaceFolder}/olm",
+      "program": "./buildAndPushBundleImages.sh",
+      "args": [
+        "-p",
+        "openshift",
+        "-c",
+        "nightly"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (simplest configuration)",
+      "program": "${file}",
+    },
+    {
+      "name": "Launch Current Test *.go File",
       "type": "go",
       "request": "launch",
       "mode": "test",
       "program": "${file}",
       "env": {
-        "MOCK_API": true
+        "MOCK_API": true,
+        "CHE_FLAVOR": "che"
       },
+    },
+    {
+      "name": "Launch Main *.go File",
+      "type": "go",
+      "request": "launch",
+      "program": "${file}",
     },
     {
       "useApiV1": false,
@@ -42,7 +172,6 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/manager/main.go",
       "env": {
-        "WATCH_NAMESPACE": "che",
         "CHE_FLAVOR": "che",
         "CONSOLE_LINK_NAME": "che",
         "CONSOLE_LINK_DISPLAY_NAME": "Eclipse Che",
@@ -50,8 +179,10 @@
         "CONSOLE_LINK_IMAGE": "/dashboard/assets/branding/loader.svg",
         "CHE_IDENTITY_SECRET": "che-identity-secret",
         "CHE_IDENTITY_POSTGRES_SECRET": "che-identity-postgres-secret",
-        "CHE_POSTGRES_SECRET": "che-postgres-secret"
+        "CHE_POSTGRES_SECRET": "che-postgres-secret",
+        "CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME": "ca-certs"
       },
+      "envFile": "/tmp/che-operator-debug.env",
       "cwd": "${workspaceFolder}",
       "args": [
         "--defaults-path",

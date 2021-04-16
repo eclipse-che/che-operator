@@ -1,0 +1,5 @@
+quay.io/eclipse/che-theia:next
+quay.io/eclipse/che-theia-dev:next
+quay.io/eclipse/che-theia-endpoint-runtime-binary:next
+quay.io/eclipse/che-sidecar-workspace-data-sync:latest
+quay.io/eclipse/che-machine-exec:nightly

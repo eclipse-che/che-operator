@@ -12,62 +12,97 @@
 package deploy
 
 import (
-	"context"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/sirupsen/logrus"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	runtimeClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	// ViewRoleName role to get k8s object needed for Workspace components(metrics plugin, Che terminals, tasks etc.)
+	ViewRoleName = "view"
+	// ExecRoleName - role name to create Che terminals and tasks in the workspace.
+	ExecRoleName = "exec"
+)
+
+var roleDiffOpts = cmp.Options{
+	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
+	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
+}
+
+func SyncTLSRoleToCluster(deployContext *DeployContext) (bool, error) {
+	tlsPolicyRule := []rbac.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"secrets",
+			},
+			Verbs: []string{
+				"create",
+			},
+		},
+	}
+	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)
+}
+
+func SyncExecRoleToCluster(deployContext *DeployContext) (bool, error) {
+	execPolicyRule := []rbac.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"pods/exec",
+			},
+			Verbs: []string{
+				"*",
+			},
+		},
+	}
+	return SyncRoleToCluster(deployContext, ExecRoleName, execPolicyRule)
+}
+
+func SyncViewRoleToCluster(deployContext *DeployContext) (bool, error) {
+	viewPolicyRule := []rbac.PolicyRule{
+		{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"pods",
+			},
+			Verbs: []string{
+				"list", "get",
+			},
+		},
+		{
+			APIGroups: []string{
+				"metrics.k8s.io",
+			},
+			Resources: []string{
+				"pods",
+			},
+			Verbs: []string{
+				"list", "get", "watch",
+			},
+		},
+	}
+	return SyncRoleToCluster(deployContext, ViewRoleName, viewPolicyRule)
+}
+
 func SyncRoleToCluster(
-	checluster *orgv1.CheCluster,
+	deployContext *DeployContext,
 	name string,
-	resources []string,
-	verbs []string,
-	clusterAPI ClusterAPI) (*rbac.Role, error) {
+	policyRule []rbac.PolicyRule) (bool, error) {
 
-	specRole, err := getSpecRole(checluster, name, resources, verbs, clusterAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRole, err := getClusterRole(specRole.Name, specRole.Namespace, clusterAPI.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	if clusterRole == nil {
-		logrus.Infof("Creating a new object: %s, name %s", specRole.Kind, specRole.Name)
-		err := clusterAPI.Client.Create(context.TODO(), specRole)
-		return nil, err
-	}
-
-	return clusterRole, nil
+	roleSpec := getRoleSpec(deployContext, name, policyRule)
+	return Sync(deployContext, roleSpec, roleDiffOpts)
 }
 
-func getClusterRole(name string, namespace string, client runtimeClient.Client) (*rbac.Role, error) {
-	role := &rbac.Role{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := client.Get(context.TODO(), namespacedName, role)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return role, nil
-}
-
-func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, verbs []string, clusterAPI ClusterAPI) (*rbac.Role, error) {
-	labels := GetLabels(checluster, DefaultCheFlavor(checluster))
+func getRoleSpec(deployContext *DeployContext, name string, policyRule []rbac.PolicyRule) *rbac.Role {
+	labels := GetLabels(deployContext.CheCluster, DefaultCheFlavor(deployContext.CheCluster))
 	role := &rbac.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Role",
@@ -75,24 +110,11 @@ func getSpecRole(checluster *orgv1.CheCluster, name string, resources []string, 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: checluster.Namespace,
+			Namespace: deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
-		Rules: []rbac.PolicyRule{
-			{
-				APIGroups: []string{
-					"",
-				},
-				Resources: resources,
-				Verbs:     verbs,
-			},
-		},
+		Rules: policyRule,
 	}
 
-	err := controllerutil.SetControllerReference(checluster, role, clusterAPI.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	return role, nil
+	return role
 }

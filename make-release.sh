@@ -11,61 +11,64 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
-  GIT_REMOTE_UPSTREAM="git@github.com:eclipse/che-operator.git"
+  RELEASE_BRANCH="${RELEASE}-release"
+  GIT_REMOTE_UPSTREAM="https://github.com/eclipse-che/che-operator.git"
   RUN_RELEASE=false
-  PUSH_OLM_FILES=false
+  PUSH_OLM_BUNDLES=false
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
+  UPDATE_NIGHTLY_OLM_FILES=false
+  PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
+  FORCE_UPDATE=""
+  BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
+  DEV_WORKSPACE_CONTROLLER_VERSION="main"
+  DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--release') RUN_RELEASE=true; shift 0;;
-      '--push-olm-files') PUSH_OLM_FILES=true; shift 0;;
+      '--push-olm-bundles') PUSH_OLM_BUNDLES=true; shift 0;;
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
+      '--update-nightly-olm-files') UPDATE_NIGHTLY_OLM_FILES=true; shift 0;;
+      '--prepare-community-operators-update') PREPARE_COMMUNITY_OPERATORS_UPDATE=true; shift 0;;
+      '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
+      '--dev-workspace-che-operator-version') DEV_WORKSPACE_CHE_OPERATOR_VERSION=$2; shift 1;;
+      '--force') FORCE_UPDATE="--force"; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
     shift 1
   done
 
-  [ -z "$QUAY_USERNAME" ] && echo "[ERROR] QUAY_USERNAME is not set" && exit 1
-  [ -z "$QUAY_PASSWORD" ] && echo "[ERROR] QUAY_PASSWORD is not set" && exit 1
-  command -v operator-courier >/dev/null 2>&1 || { echo "[ERROR] operator-courier is not installed. Aborting."; exit 1; }
-  command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Aborting."; exit 1; }
-  command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Aborting."; exit 1; }
-  [[ $(operator-sdk version) =~ .*v0.10.0.* ]] || { echo "[ERROR] operator-sdk v0.10.0 is required. Aborting."; exit 1; }
-
-  local ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
-  local ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
-  UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:"$ubiMinimal8Version"-"$ubiMinimal8Release
-  skopeo inspect docker://$UBI8_MINIMAL_IMAGE > /dev/null
-
-  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift/* -maxdepth 0 -empty | wc -l)
-  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
-  emptyDirs=$(find $RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes/* -maxdepth 0 -empty | wc -l)
-  [[ $emptyDirs -ne 0 ]] && echo "[ERROR] Found empty directories into eclipse-che-preview-openshift" && exit 1 || true
+  [ -z "$QUAY_ECLIPSE_CHE_USERNAME" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_USERNAME is not set" && exit 1
+  [ -z "$QUAY_ECLIPSE_CHE_PASSWORD" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_PASSWORD is not set" && exit 1
+  command -v operator-courier >/dev/null 2>&1 || { echo "[ERROR] operator-courier is not installed. Abort."; exit 1; }
+  command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed. Abort."; exit 1; }
+  command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed. Abort."; exit 1; }
+  command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }
+  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${RELEASE_DIR}/REQUIREMENTS")
+  [[ $(operator-sdk version) =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "[ERROR] operator-sdk ${REQUIRED_OPERATOR_SDK} is required. Abort."; exit 1; }
 }
 
 usage () {
 	echo "Usage:   $0 [RELEASE_VERSION] --push-olm-files --push-git-changes"
-  echo -e "\t--push-olm-files: to push OLM files to quay.io. This flag should be omitted "
+  echo -e "\t--push-olm-bundles: to push OLM bundle images to quay.io and update catalog image. This flag should be omitted "
   echo -e "\t\tif already a greater version released. For instance, we are releasing 7.9.3 version but"
   echo -e "\t\t7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel."
   echo -e "\t--push-git-changes: to create release branch and push changes into."
 }
 
 resetChanges() {
-  echo "[INFO] Reseting changes in $1 branch"
+  echo "[INFO] Reset changes in $1 branch"
   git reset --hard
   git checkout $1
   git fetch ${GIT_REMOTE_UPSTREAM} --prune
@@ -73,17 +76,17 @@ resetChanges() {
 }
 
 checkoutToReleaseBranch() {
-  echo "[INFO] Checking out to $BRANCH branch."
+  echo "[INFO] Check out to $BRANCH branch."
   local branchExist=$(git ls-remote -q --heads | grep $BRANCH | wc -l)
   if [[ $branchExist == 1 ]]; then
     echo "[INFO] $BRANCH exists."
     resetChanges $BRANCH
   else
-    echo "[INFO] $BRANCH does not exist. Will be created a new one from master."
-    resetChanges master
-    git push origin master:$BRANCH
+    echo "[INFO] $BRANCH does not exist. Will be created a new one from main."
+    resetChanges main
+    git push origin main:$BRANCH
   fi
-  git checkout -B $RELEASE
+  git checkout -B $RELEASE_BRANCH
 }
 
 getPropertyValue() {
@@ -142,110 +145,129 @@ checkImageReferences() {
 }
 
 releaseOperatorCode() {
-  echo "[INFO] Releasing operator code"
-  echo "[INFO] Launching 'replace-images-tags.sh' script"
+  echo "[INFO] releaseOperatorCode :: Release operator code"
+  echo "[INFO] releaseOperatorCode :: Launch 'replace-images-tags.sh' script"
   . ${RELEASE_DIR}/replace-images-tags.sh $RELEASE $RELEASE
 
   local operatoryaml=$RELEASE_DIR/deploy/operator.yaml
-  echo "[INFO] Validating changes for $operatoryaml"
+  echo "[INFO] releaseOperatorCode :: Validate changes for $operatoryaml"
   checkImageReferences $operatoryaml
 
-  local operatorlocalyaml=$RELEASE_DIR/deploy/operator-local.yaml
-  echo "[INFO] Validating changes for $operatorlocalyaml"
-  checkImageReferences $operatorlocalyaml
+  echo "[INFO] releaseOperatorCode :: Commit changes"
+  if git status --porcelain; then
+    git add -A || true # add new generated CSV files in olm/ folder
+    git commit -am "Update defaults tags to "$RELEASE --signoff
+  fi
+  echo "[INFO] releaseOperatorCode :: Login to quay.io..."
+  docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
-  echo "[INFO] List of changed files:"
-  git status -s
-
-  echo "[INFO] Commiting changes"
-  git commit -am "Update defaults tags to "$RELEASE --signoff
-
-  echo "[INFO] Building operator image"
-  docker build -t "quay.io/eclipse/che-operator:${RELEASE}" .
-
-  echo "[INFO] Pushing image to quay.io"
-  docker login quay.io -u $QUAY_USERNAME
-  docker push quay.io/eclipse/che-operator:$RELEASE
+  echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
+  docker buildx build --build-arg DEV_WORKSPACE_CONTROLLER_VERSION=${DEV_WORKSPACE_CONTROLLER_VERSION} --build-arg DEV_WORKSPACE_CHE_OPERATOR_VERSION=${DEV_WORKSPACE_CHE_OPERATOR_VERSION} --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
 }
 
 updateNightlyOlmFiles() {
-  echo "[INFO] Updating nighlty OLM files"
-  echo "[INFO] Launching 'olm/update-nightly-olm-files.sh' script"
-  cd $RELEASE_DIR/olm
-  . update-nightly-olm-files.sh nightly
-  cd $RELEASE_DIR
+  echo "[INFO] updateNightlyOlmFiles :: Update nighlty OLM files"
+  echo "[INFO] updateNightlyOlmFiles :: Launch 'olm/update-nightly-bundle.sh' script"
 
-  echo "[INFO] List of changed files:"
-  git status -s
+  export BASE_DIR=${RELEASE_DIR}/olm
+  . ${BASE_DIR}/update-nightly-bundle.sh nightly
+  unset BASE_DIR
 
-  echo "[INFO] Commiting changes"
-  git add -A
-  git commit -m "Update nightly olm files" --signoff
+  echo "[INFO] updateNightlyOlmFiles :: Commit changes"
+  if git status --porcelain; then
+    git add -A || true # add new generated CSV files in olm/ folder
+    git commit -am "Update nightly olm files" --signoff
+  fi
+}
+
+updateVersionFile() {
+  echo "[INFO] updating VERSION file"
+  echo ${RELEASE} > VERSION
+  git add VERSION
+  git commit -m "Update VERSION to $RELEASE" --signoff
 }
 
 releaseOlmFiles() {
-  echo "[INFO] Releasing OLM files"
-  echo "[INFO] Launching 'olm/release-olm-files.sh' script"
+  echo "[INFO] releaseOlmFiles :: Release OLM files"
+  echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
   cd $RELEASE_DIR/olm
   . release-olm-files.sh $RELEASE
   cd $RELEASE_DIR
 
-  local openshift=$RELEASE_DIR/olm/eclipse-che-preview-openshift/deploy/olm-catalog/eclipse-che-preview-openshift
-  local kubernetes=$RELEASE_DIR/olm/eclipse-che-preview-kubernetes/deploy/olm-catalog/eclipse-che-preview-kubernetes
+  local openshift=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests
+  local kubernetes=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests
 
-  echo "[INFO] Validating changes"
-  grep -q "currentCSV: eclipse-che-preview-openshift.v"$RELEASE $openshift/eclipse-che-preview-openshift.package.yaml
-  grep -q "currentCSV: eclipse-che-preview-kubernetes.v"$RELEASE $kubernetes/eclipse-che-preview-kubernetes.package.yaml
-  grep -q "version: "$RELEASE $openshift/$RELEASE/eclipse-che-preview-openshift.v$RELEASE.clusterserviceversion.yaml
-  grep -q "version: "$RELEASE $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.v$RELEASE.clusterserviceversion.yaml
-  test -f $kubernetes/$RELEASE/eclipse-che-preview-kubernetes.crd.yaml
-  test -f $openshift/$RELEASE/eclipse-che-preview-openshift.crd.yaml
+  echo "[INFO] releaseOlmFiles :: Validate changes"
+  grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
+  grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
 
-  echo "[INFO] List of changed files:"
-  git status -s
-  echo git status -s
+  test -f $kubernetes/org_v1_che_crd.yaml
+  test -f $openshift/org_v1_che_crd.yaml
 
-  echo "[INFO] Commiting changes"
-  git add -A
-  git commit -m "Release OLM files to "$RELEASE --signoff
+  echo "[INFO] releaseOlmFiles :: Commit changes"
+  if git status --porcelain; then
+    git add -A || true # add new generated CSV files in olm/ folder
+    git commit -am "Release OLM files to "$RELEASE --signoff
+  fi
 }
 
-pushOlmFilesToQuayIo() {
-  echo "[INFO] Pushing OLM files to quay.io"
-  cd $RELEASE_DIR/olm
-  . push-olm-files-to-quay.sh
-  cd $RELEASE_DIR
+pushOlmBundlesToQuayIo() {
+  echo "[INFO] releaseOperatorCode :: Login to quay.io..."
+  docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
+  echo "[INFO] Push OLM bundles to quay.io"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "kubernetes" -f "true"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "openshift" -f "true"
 }
 
 pushGitChanges() {
-  echo "[INFO] Pushing git changes into $RELEASE branch"
-  git push origin $RELEASE
-  git tag -a v$RELEASE -m $RELEASE
+  echo "[INFO] Push git changes into $RELEASE_BRANCH branch"
+  git push origin $RELEASE_BRANCH ${FORCE_UPDATE}
+  if [[ $FORCE_UPDATE == "--force" ]]; then # if forced update, delete existing tag so we can replace it
+    if git rev-parse "$RELEASE" >/dev/null 2>&1; then # if tag exists
+      git tag -d $RELEASE
+      git push origin :$RELEASE
+    fi
+  fi
+  git tag -a $RELEASE -m $RELEASE
   git push --tags origin
 }
 
 createPRToXBranch() {
-  echo "[INFO] Creating pull request into ${BRANCH} branch"
-  hub pull-request --base ${BRANCH} --head ${RELEASE} --browse -m "Release version ${RELEASE}"
+  echo "[INFO] createPRToXBranch :: Create pull request into ${BRANCH} branch"
+  if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
+  hub pull-request $FORCE_UPDATE --base ${BRANCH} --head ${RELEASE_BRANCH} -m "Release version ${RELEASE}"
+  set -e
 }
 
-createPRToMasterBranch() {
-  echo "[INFO] Creating pull request into master branch to copy csv"
-  resetChanges master
-  local tmpBranch="update-images-to-master"
+createPRToMainBranch() {
+  echo "[INFO] createPRToMainBranch :: Create pull request into main branch to copy csv"
+  resetChanges main
+  local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE} ':(exclude)deploy/operator-local.yaml' ':(exclude)deploy/operator.yaml' | git apply
-  . ${RELEASE_DIR}/replace-images-tags.sh nightly master
-  git add -A
-  git commit -m "Copy "$RELEASE" csv to master" --signoff
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator.yaml' | git apply -3
+  . ${RELEASE_DIR}/replace-images-tags.sh nightly main
+  if git status --porcelain; then
+    git add -A || true # add new generated CSV files in olm/ folder
+    git commit -am "Copy "$RELEASE" csv to main" --signoff
+  fi
   git push origin $tmpBranch -f
-  hub pull-request --base master --head ${tmpBranch} --browse -m "Copy "$RELEASE" csv to master"
+  if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
+  hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "Copy "$RELEASE" csv to main"
+  set -e
 }
 
+prepareCommunityOperatorsUpdate() {
+  export BASE_DIR=${RELEASE_DIR}/olm
+  . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
+  unset BASE_DIR
+}
 run() {
   checkoutToReleaseBranch
+  updateVersionFile
   releaseOperatorCode
-  updateNightlyOlmFiles
+  if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
+    updateNightlyOlmFiles
+  fi
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
@@ -258,8 +280,8 @@ if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
 fi
 
-if [[ $PUSH_OLM_FILES == "true" ]]; then
-  pushOlmFilesToQuayIo
+if [[ $PUSH_OLM_BUNDLES == "true" ]]; then
+  pushOlmBundlesToQuayIo
 fi
 
 if [[ $PUSH_GIT_CHANGES == "true" ]]; then
@@ -268,5 +290,12 @@ fi
 
 if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
   createPRToXBranch
-  createPRToMasterBranch
+  createPRToMainBranch
+fi
+
+if [[ $PREPARE_COMMUNITY_OPERATORS_UPDATE == "true" ]]; then
+  if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
+    updateNightlyOlmFiles
+  fi
+  prepareCommunityOperatorsUpdate
 fi

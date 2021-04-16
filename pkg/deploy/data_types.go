@@ -13,7 +13,9 @@
 package deploy
 
 import (
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -23,7 +25,37 @@ type ProvisioningStatus struct {
 	Err      error
 }
 
+type DeployContext struct {
+	CheCluster     *orgv1.CheCluster
+	ClusterAPI     ClusterAPI
+	Proxy          *Proxy
+	DefaultCheHost string
+}
+
 type ClusterAPI struct {
-	Client client.Client
-	Scheme *runtime.Scheme
+	Client          client.Client
+	NonCachedClient client.Client
+	DiscoveryClient discovery.DiscoveryInterface
+	Scheme          *runtime.Scheme
+}
+
+type Proxy struct {
+	HttpProxy    string
+	HttpUser     string
+	HttpPassword string
+	HttpHost     string
+	HttpPort     string
+
+	HttpsProxy    string
+	HttpsUser     string
+	HttpsPassword string
+	HttpsHost     string
+	HttpsPort     string
+
+	NoProxy          string
+	TrustedCAMapName string
+}
+
+type Syncable interface {
+	Sync() (bool, error)
 }

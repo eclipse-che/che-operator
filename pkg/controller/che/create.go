@@ -12,243 +12,175 @@
 package che
 
 import (
-	"context"
-	"strings"
-
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
-	"github.com/eclipse/che-operator/pkg/deploy"
-	"github.com/eclipse/che-operator/pkg/util"
-	oauth "github.com/openshift/api/oauth/v1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ReconcileChe) CreateNewOauthClient(instance *orgv1.CheCluster, oAuthClient *oauth.OAuthClient) error {
-	oAuthClientFound := &oauth.OAuthClient{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClient.Name, Namespace: oAuthClient.Namespace}, oAuthClientFound)
-	if err != nil && errors.IsNotFound(err) {
-		logrus.Infof("Creating a new object: %s, name: %s", oAuthClient.Kind, oAuthClient.Name)
-		err = r.client.Create(context.TODO(), oAuthClient)
-		if err != nil {
-			logrus.Errorf("Failed to create %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err)
-			return err
-		}
-		return nil
-	} else if err != nil {
-		logrus.Errorf("An error occurred: %s", err)
-
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) CreateIdentityProviderItems(instance *orgv1.CheCluster, request reconcile.Request, cheFlavor string, keycloakDeploymentName string, isOpenShift4 bool) (err error) {
-	tests := r.tests
-	oAuthClientName := instance.Spec.Auth.OAuthClientName
-	if len(oAuthClientName) < 1 {
-		oAuthClientName = instance.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
-		instance.Spec.Auth.OAuthClientName = oAuthClientName
-		if err := r.UpdateCheCRSpec(instance, "oAuthClient name", oAuthClientName); err != nil {
-			return err
-		}
-	}
-	oauthSecret := instance.Spec.Auth.OAuthSecret
-	if len(oauthSecret) < 1 {
-		oauthSecret = util.GeneratePasswd(12)
-		instance.Spec.Auth.OAuthSecret = oauthSecret
-		if err := r.UpdateCheCRSpec(instance, "oAuthC secret name", oauthSecret); err != nil {
+func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext, request reconcile.Request) (err error) {
+	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	cheNamespace := deployContext.CheCluster.Namespace
+	if len(deployContext.CheCluster.Spec.Server.CheFlavor) < 1 {
+		deployContext.CheCluster.Spec.Server.CheFlavor = cheFlavor
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "installation flavor", cheFlavor); err != nil {
 			return err
 		}
 	}
 
-	keycloakURL := instance.Spec.Auth.IdentityProviderURL
-	keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := deploy.NewOAuthClient(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, isOpenShift4)
-	if err := r.CreateNewOauthClient(instance, oAuthClient); err != nil {
-		return err
-	}
-
-	if !tests {
-		openShiftIdentityProviderCommand, err := deploy.GetOpenShiftIdentityProviderProvisionCommand(instance, oAuthClientName, oauthSecret, isOpenShift4)
-		if err != nil {
-			logrus.Errorf("Failed to build identity provider provisioning command")
-			return err
-		}
-		podToExec, err := util.K8sclient.GetDeploymentPod(keycloakDeploymentName, instance.Namespace)
-		if err != nil {
-			logrus.Errorf("Failed to retrieve pod name. Further exec will fail")
-			return err
-		}
-		_, err = util.K8sclient.ExecIntoPod(podToExec, openShiftIdentityProviderCommand, "create OpenShift identity provider", instance.Namespace)
-		if err == nil {
-			for {
-				instance.Status.OpenShiftoAuthProvisioned = true
-				if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
-					errors.IsConflict(err) {
-					instance, _ = r.GetCR(request)
-					continue
-				}
-				break
-			}
-		}
-		return err
-	}
-	return nil
-}
-
-func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request reconcile.Request, clusterAPI deploy.ClusterAPI) (err error) {
-	cheFlavor := deploy.DefaultCheFlavor(instance)
-	if len(instance.Spec.Server.CheFlavor) < 1 {
-		instance.Spec.Server.CheFlavor = cheFlavor
-		if err := r.UpdateCheCRSpec(instance, "installation flavor", cheFlavor); err != nil {
-			return err
-		}
-	}
-
-	cheMultiUser := deploy.GetCheMultiUser(instance)
+	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
 	if cheMultiUser == "true" {
-		if len(instance.Spec.Database.ChePostgresSecret) < 1 {
-			if len(instance.Spec.Database.ChePostgresUser) < 1 || len(instance.Spec.Database.ChePostgresPassword) < 1 {
+		if len(deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
+			if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 || len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
 				chePostgresSecret := deploy.DefaultChePostgresSecret()
-				deploy.SyncSecretToCluster(instance, chePostgresSecret, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))}, clusterAPI)
-				instance.Spec.Database.ChePostgresSecret = chePostgresSecret
-				if err := r.UpdateCheCRSpec(instance, "Postgres Secret", chePostgresSecret); err != nil {
+				_, err := deploy.SyncSecretToCluster(deployContext, chePostgresSecret, cheNamespace, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))})
+				if err != nil {
+					return err
+				}
+				deployContext.CheCluster.Spec.Database.ChePostgresSecret = chePostgresSecret
+				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres Secret", chePostgresSecret); err != nil {
 					return err
 				}
 			} else {
-				if len(instance.Spec.Database.ChePostgresUser) < 1 {
-					instance.Spec.Database.ChePostgresUser = deploy.DefaultChePostgresUser
-					if err := r.UpdateCheCRSpec(instance, "Postgres User", instance.Spec.Database.ChePostgresUser); err != nil {
+				if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 {
+					deployContext.CheCluster.Spec.Database.ChePostgresUser = deploy.DefaultChePostgresUser
+					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres User", deployContext.CheCluster.Spec.Database.ChePostgresUser); err != nil {
 						return err
 					}
 				}
-				if len(instance.Spec.Database.ChePostgresPassword) < 1 {
-					instance.Spec.Database.ChePostgresPassword = util.GeneratePasswd(12)
-					if err := r.UpdateCheCRSpec(instance, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
+				if len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
+					deployContext.CheCluster.Spec.Database.ChePostgresPassword = util.GeneratePasswd(12)
+					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
 						return err
 					}
 				}
 			}
 		}
-		if len(instance.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
 			keycloakPostgresPassword := util.GeneratePasswd(12)
-			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
+			keycloakDeployment := &appsv1.Deployment{}
+			exists, err := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
 			if err != nil {
-				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating passwd")
-			} else {
+				logrus.Error(err)
+			}
+			if exists {
 				keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
 			}
 
-			if len(instance.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
+			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
 				identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
-				deploy.SyncSecretToCluster(instance, identityPostgresSecret, map[string][]byte{"password": []byte(keycloakPostgresPassword)}, clusterAPI)
-				instance.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
-				if err := r.UpdateCheCRSpec(instance, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
+				_, err := deploy.SyncSecretToCluster(deployContext, identityPostgresSecret, cheNamespace, map[string][]byte{"password": []byte(keycloakPostgresPassword)})
+				if err != nil {
+					return err
+				}
+				deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
+				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
 					return err
 				}
 			}
 		}
 
-		if len(instance.Spec.Auth.IdentityProviderSecret) < 1 {
-			keycloakAdminUserName := util.GetValue(instance.Spec.Auth.IdentityProviderAdminUserName, "admin")
-			keycloakAdminPassword := util.GetValue(instance.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderSecret) < 1 {
+			keycloakAdminUserName := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName, "admin")
+			keycloakAdminPassword := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
 
-			keycloakDeployment, err := r.GetEffectiveDeployment(instance, "keycloak")
-			if err != nil {
-				logrus.Info("Disregard the error. No existing Identity provider deployment found. Generating admin username and password")
-			} else {
+			keycloakDeployment := &appsv1.Deployment{}
+			exists, _ := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
+			if exists {
 				keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
 				keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
 			}
 
-			if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
+			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
 				identityProviderSecret := deploy.DefaultCheIdentitySecret()
-				deploy.SyncSecretToCluster(instance, identityProviderSecret, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)}, clusterAPI)
-				instance.Spec.Auth.IdentityProviderSecret = identityProviderSecret
-				if err := r.UpdateCheCRSpec(instance, "Identity Provider Secret", identityProviderSecret); err != nil {
+				_, err = deploy.SyncSecretToCluster(deployContext, identityProviderSecret, cheNamespace, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
+				if err != nil {
+					return err
+				}
+				deployContext.CheCluster.Spec.Auth.IdentityProviderSecret = identityProviderSecret
+				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Identity Provider Secret", identityProviderSecret); err != nil {
 					return err
 				}
 			} else {
-				if len(instance.Spec.Auth.IdentityProviderPassword) < 1 {
-					instance.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
-					if err := r.UpdateCheCRSpec(instance, "Keycloak admin password", "password hidden"); err != nil {
+				if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
+					deployContext.CheCluster.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
+					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak admin password", "password hidden"); err != nil {
 						return err
 					}
 				}
-				if len(instance.Spec.Auth.IdentityProviderAdminUserName) < 1 {
-					instance.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
-					if err := r.UpdateCheCRSpec(instance, "Keycloak admin username", keycloakAdminUserName); err != nil {
+				if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 {
+					deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
+					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak admin username", keycloakAdminUserName); err != nil {
 						return err
 					}
 				}
 			}
 		}
 
-		chePostgresDb := util.GetValue(instance.Spec.Database.ChePostgresDb, "dbche")
-		if len(instance.Spec.Database.ChePostgresDb) < 1 {
-			instance.Spec.Database.ChePostgresDb = chePostgresDb
-			if err := r.UpdateCheCRSpec(instance, "Postgres DB", chePostgresDb); err != nil {
+		chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
+		if len(deployContext.CheCluster.Spec.Database.ChePostgresDb) < 1 {
+			deployContext.CheCluster.Spec.Database.ChePostgresDb = chePostgresDb
+			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres DB", chePostgresDb); err != nil {
 				return err
 			}
 		}
-		chePostgresHostName := util.GetValue(instance.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
-		if len(instance.Spec.Database.ChePostgresHostName) < 1 {
-			instance.Spec.Database.ChePostgresHostName = chePostgresHostName
-			if err := r.UpdateCheCRSpec(instance, "Postgres hostname", chePostgresHostName); err != nil {
+		chePostgresHostName := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
+		if len(deployContext.CheCluster.Spec.Database.ChePostgresHostName) < 1 {
+			deployContext.CheCluster.Spec.Database.ChePostgresHostName = chePostgresHostName
+			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres hostname", chePostgresHostName); err != nil {
 				return err
 			}
 		}
-		chePostgresPort := util.GetValue(instance.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
-		if len(instance.Spec.Database.ChePostgresPort) < 1 {
-			instance.Spec.Database.ChePostgresPort = chePostgresPort
-			if err := r.UpdateCheCRSpec(instance, "Postgres port", chePostgresPort); err != nil {
+		chePostgresPort := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
+		if len(deployContext.CheCluster.Spec.Database.ChePostgresPort) < 1 {
+			deployContext.CheCluster.Spec.Database.ChePostgresPort = chePostgresPort
+			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres port", chePostgresPort); err != nil {
 				return err
 			}
 		}
-		keycloakRealm := util.GetValue(instance.Spec.Auth.IdentityProviderRealm, cheFlavor)
-		if len(instance.Spec.Auth.IdentityProviderRealm) < 1 {
-			instance.Spec.Auth.IdentityProviderRealm = keycloakRealm
-			if err := r.UpdateCheCRSpec(instance, "Keycloak realm", keycloakRealm); err != nil {
+		keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
+			deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
+			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak realm", keycloakRealm); err != nil {
 				return err
 			}
 		}
-		keycloakClientId := util.GetValue(instance.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-		if len(instance.Spec.Auth.IdentityProviderClientId) < 1 {
-			instance.Spec.Auth.IdentityProviderClientId = keycloakClientId
+		keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
+			deployContext.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
 
-			if err := r.UpdateCheCRSpec(instance, "Keycloak client ID", keycloakClientId); err != nil {
+			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak client ID", keycloakClientId); err != nil {
 				return err
 			}
 		}
 	}
 
-	cheLogLevel := util.GetValue(instance.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
-	if len(instance.Spec.Server.CheLogLevel) < 1 {
-		instance.Spec.Server.CheLogLevel = cheLogLevel
-		if err := r.UpdateCheCRSpec(instance, "log level", cheLogLevel); err != nil {
+	cheLogLevel := util.GetValue(deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
+	if len(deployContext.CheCluster.Spec.Server.CheLogLevel) < 1 {
+		deployContext.CheCluster.Spec.Server.CheLogLevel = cheLogLevel
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "log level", cheLogLevel); err != nil {
 			return err
 		}
 	}
-	cheDebug := util.GetValue(instance.Spec.Server.CheDebug, deploy.DefaultCheDebug)
-	if len(instance.Spec.Server.CheDebug) < 1 {
-		instance.Spec.Server.CheDebug = cheDebug
-		if err := r.UpdateCheCRSpec(instance, "debug", cheDebug); err != nil {
+	cheDebug := util.GetValue(deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
+	if len(deployContext.CheCluster.Spec.Server.CheDebug) < 1 {
+		deployContext.CheCluster.Spec.Server.CheDebug = cheDebug
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "debug", cheDebug); err != nil {
 			return err
 		}
 	}
-	pvcStrategy := util.GetValue(instance.Spec.Storage.PvcStrategy, deploy.DefaultPvcStrategy)
-	if len(instance.Spec.Storage.PvcStrategy) < 1 {
-		instance.Spec.Storage.PvcStrategy = pvcStrategy
-		if err := r.UpdateCheCRSpec(instance, "pvc strategy", pvcStrategy); err != nil {
+	pvcStrategy := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcStrategy, deploy.DefaultPvcStrategy)
+	if len(deployContext.CheCluster.Spec.Storage.PvcStrategy) < 1 {
+		deployContext.CheCluster.Spec.Storage.PvcStrategy = pvcStrategy
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc strategy", pvcStrategy); err != nil {
 			return err
 		}
 	}
-	pvcClaimSize := util.GetValue(instance.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
-	if len(instance.Spec.Storage.PvcClaimSize) < 1 {
-		instance.Spec.Storage.PvcClaimSize = pvcClaimSize
-		if err := r.UpdateCheCRSpec(instance, "pvc claim size", pvcClaimSize); err != nil {
+	pvcClaimSize := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
+	if len(deployContext.CheCluster.Spec.Storage.PvcClaimSize) < 1 {
+		deployContext.CheCluster.Spec.Storage.PvcClaimSize = pvcClaimSize
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc claim size", pvcClaimSize); err != nil {
 			return err
 		}
 	}
@@ -258,51 +190,59 @@ func (r *ReconcileChe) GenerateAndSaveFields(instance *orgv1.CheCluster, request
 	// version that should fixed bug https://github.com/eclipse/che/issues/13714
 	// Or for the transition from CRW 1.2 to 2.0
 
-	if instance.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect ||
-		(deploy.MigratingToCRW2_0(instance) && instance.Spec.Storage.PvcJobsImage != "") {
-		instance.Spec.Storage.PvcJobsImage = ""
-		if err := r.UpdateCheCRSpec(instance, "pvc jobs image", instance.Spec.Storage.PvcJobsImage); err != nil {
+	if deployContext.CheCluster.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect ||
+		(deploy.MigratingToCRW2_0(deployContext.CheCluster) && deployContext.CheCluster.Spec.Storage.PvcJobsImage != "") {
+		deployContext.CheCluster.Spec.Storage.PvcJobsImage = ""
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc jobs image", deployContext.CheCluster.Spec.Storage.PvcJobsImage); err != nil {
 			return err
 		}
 	}
 
-	if instance.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect ||
-		(deploy.MigratingToCRW2_0(instance) && instance.Spec.Database.PostgresImage != "") {
-		instance.Spec.Database.PostgresImage = ""
-		if err := r.UpdateCheCRSpec(instance, "postgres image", instance.Spec.Database.PostgresImage); err != nil {
+	if deployContext.CheCluster.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect ||
+		(deploy.MigratingToCRW2_0(deployContext.CheCluster) && deployContext.CheCluster.Spec.Database.PostgresImage != "") {
+		deployContext.CheCluster.Spec.Database.PostgresImage = ""
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "postgres image", deployContext.CheCluster.Spec.Database.PostgresImage); err != nil {
 			return err
 		}
 	}
 
-	if instance.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect ||
-		(deploy.MigratingToCRW2_0(instance) && instance.Spec.Auth.IdentityProviderImage != "") {
-		instance.Spec.Auth.IdentityProviderImage = ""
-		if err := r.UpdateCheCRSpec(instance, "keycloak image", instance.Spec.Auth.IdentityProviderImage); err != nil {
+	if deployContext.CheCluster.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect ||
+		(deploy.MigratingToCRW2_0(deployContext.CheCluster) && deployContext.CheCluster.Spec.Auth.IdentityProviderImage != "") {
+		deployContext.CheCluster.Spec.Auth.IdentityProviderImage = ""
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "keycloak image", deployContext.CheCluster.Spec.Auth.IdentityProviderImage); err != nil {
 			return err
 		}
 	}
 
-	if deploy.MigratingToCRW2_0(instance) &&
-		!instance.Spec.Server.ExternalPluginRegistry &&
-		instance.Spec.Server.PluginRegistryUrl == deploy.OldCrwPluginRegistryUrl {
-		instance.Spec.Server.PluginRegistryUrl = ""
-		if err := r.UpdateCheCRSpec(instance, "plugin registry url", instance.Spec.Server.PluginRegistryUrl); err != nil {
+	if deploy.MigratingToCRW2_0(deployContext.CheCluster) &&
+		!deployContext.CheCluster.Spec.Server.ExternalPluginRegistry &&
+		deployContext.CheCluster.Spec.Server.PluginRegistryUrl == deploy.OldCrwPluginRegistryUrl {
+		deployContext.CheCluster.Spec.Server.PluginRegistryUrl = ""
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "plugin registry url", deployContext.CheCluster.Spec.Server.PluginRegistryUrl); err != nil {
 			return err
 		}
 	}
 
-	if deploy.MigratingToCRW2_0(instance) &&
-		instance.Spec.Server.CheImage == deploy.OldDefaultCodeReadyServerImageRepo {
-		instance.Spec.Server.CheImage = ""
-		if err := r.UpdateCheCRSpec(instance, "che image repo", instance.Spec.Server.CheImage); err != nil {
+	if deploy.MigratingToCRW2_0(deployContext.CheCluster) &&
+		deployContext.CheCluster.Spec.Server.CheImage == deploy.OldDefaultCodeReadyServerImageRepo {
+		deployContext.CheCluster.Spec.Server.CheImage = ""
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "che image repo", deployContext.CheCluster.Spec.Server.CheImage); err != nil {
 			return err
 		}
 	}
 
-	if deploy.MigratingToCRW2_0(instance) &&
-		instance.Spec.Server.CheImageTag == deploy.OldDefaultCodeReadyServerImageTag {
-		instance.Spec.Server.CheImageTag = ""
-		if err := r.UpdateCheCRSpec(instance, "che image tag", instance.Spec.Server.CheImageTag); err != nil {
+	if deploy.MigratingToCRW2_0(deployContext.CheCluster) &&
+		deployContext.CheCluster.Spec.Server.CheImageTag == deploy.OldDefaultCodeReadyServerImageTag {
+		deployContext.CheCluster.Spec.Server.CheImageTag = ""
+		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "che image tag", deployContext.CheCluster.Spec.Server.CheImageTag); err != nil {
+			return err
+		}
+	}
+
+	if deployContext.CheCluster.Spec.Server.ServerExposureStrategy == "" && deployContext.CheCluster.Spec.K8s.IngressStrategy == "" {
+		strategy := util.GetServerExposureStrategy(deployContext.CheCluster)
+		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = strategy
+		if err := deploy.UpdateCheCRSpec(deployContext, "serverExposureStrategy", strategy); err != nil {
 			return err
 		}
 	}

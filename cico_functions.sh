@@ -22,6 +22,8 @@ function load_jenkins_vars() {
             DEVSHIFT_TAG_LEN \
             QUAY_ECLIPSE_CHE_USERNAME \
             QUAY_ECLIPSE_CHE_PASSWORD \
+            RH_CHE_AUTOMATION_DOCKERHUB_USERNAME \
+            RH_CHE_AUTOMATION_DOCKERHUB_PASSWORD \
             JENKINS_URL \
             GIT_BRANCH \
             GIT_COMMIT \
@@ -62,15 +64,18 @@ function build_and_push() {
   REGISTRY="quay.io"
   ORGANIZATION="eclipse"
   IMAGE="che-operator"
-  QUAY_USERNAME=${QUAY_ECLIPSE_CHE_USERNAME}
-  QUAY_PASSWORD=${QUAY_ECLIPSE_CHE_PASSWORD}
 
-  if [ -n "${QUAY_USERNAME}" ] && [ -n "${QUAY_PASSWORD}" ]; then
-    docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" "${REGISTRY}"
+  if [ -n "${QUAY_ECLIPSE_CHE_USERNAME}" ] && [ -n "${QUAY_ECLIPSE_CHE_PASSWORD}" ]; then
+    docker login -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}" "${REGISTRY}"
   else
     echo "Could not login, missing credentials for pushing to the '${ORGANIZATION}' organization"
   fi
 
+  if [ -n "${RH_CHE_AUTOMATION_DOCKERHUB_USERNAME}" ] && [ -n "${RH_CHE_AUTOMATION_DOCKERHUB_PASSWORD}" ]; then
+    docker login -u "${RH_CHE_AUTOMATION_DOCKERHUB_USERNAME}" -p "${RH_CHE_AUTOMATION_DOCKERHUB_PASSWORD}"
+  else
+    echo "Could not login, missing credentials for pushing to the docker.io"
+  fi
   # Let's build and push images to 'quay.io'
   docker build -t ${IMAGE} .
   tag_push "${REGISTRY}/${ORGANIZATION}/${IMAGE}:${TAG}"

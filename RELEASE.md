@@ -2,9 +2,11 @@
 
 ## 1. Release files
 
+See `release.yml` workflow, which can be used to perform this step using GitHub Actions CI.
+Alternatively, use these manual steps to prepare release pull requrests:
+
 Export environment variables:
-1. `QUAY_USERNAME` and `QUAY_PASSWORD` to access https://quay.io/organization/eclipse
-2. `GIT_USER` and `GIT_PASSWORD` to create PR into https://github.com/operator-framework/community-operators
+1. `QUAY_ECLIPSE_CHE_USERNAME` and `QUAY_ECLIPSE_CHE_PASSWORD` to access https://quay.io/organization/eclipse
 
 ```bash
 ./make-release.sh <RELEASE_VERSION> --release --push-olm-files --push-git-changes --pull-requests
@@ -13,6 +15,7 @@ Export environment variables:
 ```
 Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --push-olm-files --push-git-changes --pull-requests
         --release: to release
+        --update-nightly-olm-files: generate new olm files for nightly version
         --release-olm-files: to release olm files
         --push-olm-files: to push OLM files to quay.io. This flag should be omitted
                 if already a greater version released. For instance, we are releasing 7.9.3 version but
@@ -22,6 +25,9 @@ Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --pus
 ```
 
 ## 2. Testing release on openshift
+
+This part now runs automatically as part of the PR check for release PRs. See PROW CI checks in release PRs.
+Alternatively, use these manual steps to verify operator update on Openshift.
 
 Start a cluster using `cluster-bot` application.
 
@@ -42,6 +48,9 @@ Login using HTPassword then allow selected permissions. Validate that the releas
 
 ## 3. Testing release on minikube
 
+This part now runs automatically as part of the PR check for release PRs. See `minikube-stable-operator-update.yml` action.
+Alternatively, use these manual steps to verify operator update on Minikube.
+
 Run script to test updates:
 
 ```bash
@@ -59,7 +68,7 @@ Validate that the release version is installed and workspace can be created:
 
 ## 4. Merge pull requests
 
-Merge pull request into .x and master branches.
+Merge pull request into .x and main branches.
 
 ## 5. Testing release on minishift (when chectl is released)
 
@@ -72,7 +81,7 @@ oc login <LOCAL_MINISHIFT_CLUSTER_ADDRESS>
 Install the previous version of Eclipse Che using the corresponding version of `chectl`:
 
 ```bash
-chectl server:start --platform=minishift  --installer=operator
+chectl server:deploy --platform=minishift  --installer=operator
 ```
 
 Update Eclipse Che to the latest version. Validate that the correct version is installed and workspace can be created:
@@ -84,6 +93,9 @@ xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $
 ```
 
 ## 6. Prepare community operator PR
+
+See `release-community-operator-PRs.yml` workflow, which will be triggered automatically, once release PRs are merged.
+Alternatively, it can be run manually:
 
 ```bash
 cd olm

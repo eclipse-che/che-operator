@@ -12,15 +12,16 @@
 package util
 
 import (
+	"testing"
+
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"testing"
 )
 
 var (
-	fakeK8s = fakeClientSet()
+	fakeK8s   = fakeClientSet()
 	namespace = "eclipse-che"
 )
 
@@ -58,47 +59,3 @@ func TestGetDeploymentPod(t *testing.T) {
 	}
 	logrus.Infof("Test passed. Pod %s found", pod)
 }
-
-
-func TestGetEvents(t *testing.T) {
-
-	// fire up an event with fake-pod as involvedObject
-	message := "This is a fake event about a fake pod"
-	_, err := fakeK8s.clientset.CoreV1().Events(namespace).Create(&corev1.Event{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Event",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fake-event",
-			Namespace: "eclipse-che",
-		},
-		InvolvedObject: corev1.ObjectReference{
-			FieldPath: "spec.containers{fake-pod}",
-			Kind:      "Pod",
-		},
-		Message: message,
-		Reason:  "Testing event filtering",
-		Type:    "Normal",
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	events := fakeK8s.GetEvents("fake-pod", namespace)
-	fakePodEvents := events.Items
-	if len(fakePodEvents) == 0 {
-		logrus.Fatal("Test failed No events found")
-	} else {
-		logrus.Infof("Test passed. Found %v event", len(fakePodEvents))
-	}
-	// test if event message matches
-	fakePodEventMessage := events.Items[0].Message
-	if len(fakePodEventMessage) != len(message) {
-		t.Errorf("Test failed. Message to be received: %s, but got %s ", message, fakePodEventMessage)
-	} else {
-		logrus.Infof("Test passed. Expected event message: %s. Received event message %s", message, fakePodEventMessage)
-	}
-}
-

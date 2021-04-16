@@ -18,27 +18,34 @@ import (
 	"os"
 	"strings"
 
-	util "github.com/eclipse/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	orgv1 "github.com/eclipse/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 )
 
 var (
-	defaultCheServerImage                string
-	defaultCheVersion                    string
-	defaultPluginRegistryImage           string
-	defaultDevfileRegistryImage          string
-	defaultCheTLSSecretsCreationJobImage string
-	defaultPvcJobsImage                  string
-	defaultPostgresImage                 string
-	defaultKeycloakImage                 string
+	defaultCheServerImage                      string
+	defaultCheVersion                          string
+	defaultPluginRegistryImage                 string
+	defaultDevfileRegistryImage                string
+	defaultCheTLSSecretsCreationJobImage       string
+	defaultPvcJobsImage                        string
+	defaultPostgresImage                       string
+	defaultKeycloakImage                       string
+	defaultSingleHostGatewayImage              string
+	defaultSingleHostGatewayConfigSidecarImage string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
 	defaultCheServerSecureExposerJwtProxyImage    string
+	DefaultSingleHostGatewayConfigMapLabels       = map[string]string{
+		"app":       "che",
+		"component": "che-gateway-config",
+	}
 )
 
 const (
@@ -47,34 +54,32 @@ const (
 	DefaultChePostgresPort     = "5432"
 	DefaultChePostgresDb       = "dbche"
 	DefaultPvcStrategy         = "common"
-	DefaultPvcClaimSize        = "1Gi"
-	DefaultIngressStrategy     = "multi-host"
+	DefaultPvcClaimSize        = "10Gi"
 	DefaultIngressClass        = "nginx"
 
-	DefaultPluginRegistryMemoryLimit   = "256Mi"
-	DefaultPluginRegistryMemoryRequest = "16Mi"
-
-	DefaultDevfileRegistryMemoryLimit   = "256Mi"
-	DefaultDevfileRegistryMemoryRequest = "16Mi"
-	DefaultKeycloakAdminUserName        = "admin"
-	DefaultCheLogLevel                  = "INFO"
-	DefaultCheDebug                     = "false"
-	DefaultCheMultiUser                 = "true"
-	DefaultCheMetricsPort               = int32(8087)
-	DefaultCheDebugPort                 = int32(8000)
-	DefaultCheVolumeMountPath           = "/data"
-	DefaultCheVolumeClaimName           = "che-data-volume"
-	DefaultPostgresVolumeClaimName      = "postgres-data"
+	DefaultKeycloakAdminUserName   = "admin"
+	DefaultCheLogLevel             = "INFO"
+	DefaultCheDebug                = "false"
+	DefaultCheMultiUser            = "true"
+	DefaultCheMetricsPort          = int32(8087)
+	DefaultCheDebugPort            = int32(8000)
+	DefaultCheVolumeMountPath      = "/data"
+	DefaultCheVolumeClaimName      = "che-data-volume"
+	DefaultPostgresVolumeClaimName = "postgres-data"
 
 	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
 	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
 		"-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 " +
 		"-Dsun.zip.disableMemoryMapping=true " +
 		"-Xms20m -Djava.security.egd=file:/dev/./urandom"
-	DefaultServerMemoryRequest      = "512Mi"
-	DefaultServerMemoryLimit        = "1Gi"
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
+
+	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
+
+	DefaultServerExposureStrategy           = "multi-host"
+	DefaultKubernetesSingleHostExposureType = "native"
+	DefaultOpenShiftSingleHostExposureType  = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
@@ -86,6 +91,61 @@ const (
 	OldDefaultCodeReadyServerImageRepo = "registry.redhat.io/codeready-workspaces/server-rhel8"
 	OldDefaultCodeReadyServerImageTag  = "1.2"
 	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
+
+	// kubernetes default labels
+	KubernetesComponentLabelKey = "app.kubernetes.io/component"
+	KubernetesPartOfLabelKey    = "app.kubernetes.io/part-of"
+	KubernetesManagedByLabelKey = "app.kubernetes.io/managed-by"
+	KubernetesInstanceLabelKey  = "app.kubernetes.io/instance"
+	KubernetesNameLabelKey      = "app.kubernetes.io/name"
+
+	CheEclipseOrg         = "che.eclipse.org"
+	OAuthScmConfiguration = "oauth-scm-configuration"
+
+	// che.eclipse.org annotations
+	CheEclipseOrgMountPath              = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
+	CheEclipseOrgNamespace              = "che.eclipse.org/namespace"
+	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
+	CheEclipseOrgOAuthScmServer         = "che.eclipse.org/oauth-scm-server"
+	CheEclipseOrgScmServerEndpoint      = "che.eclipse.org/scm-server-endpoint"
+
+	// components
+	IdentityProviderName = "keycloak"
+	DevfileRegistryName  = "devfile-registry"
+	PluginRegistryName   = "plugin-registry"
+	PostgresName         = "postgres"
+
+	// limits
+	DefaultPluginRegistryMemoryLimit   = "256Mi"
+	DefaultPluginRegistryMemoryRequest = "32Mi"
+	DefaultPluginRegistryCpuLimit      = "500m"
+	DefaultPluginRegistryCpuRequest    = "100m"
+
+	DefaultDevfileRegistryMemoryLimit   = "256Mi"
+	DefaultDevfileRegistryMemoryRequest = "32Mi"
+	DefaultDevfileRegistryCpuLimit      = "500m"
+	DefaultDevfileRegistryCpuRequest    = "100m"
+
+	DefaultServerMemoryLimit   = "1024Mi"
+	DefaultServerMemoryRequest = "512Mi"
+	DefaultServerCpuLimit      = "1"
+	DefaultServerCpuRequest    = "100m"
+
+	DefaultIdentityProviderMemoryLimit   = "1536Mi"
+	DefaultIdentityProviderMemoryRequest = "1024Mi"
+	DefaultIdentityProviderCpuLimit      = "2"
+	DefaultIdentityProviderCpuRequest    = "100m"
+
+	DefaultPostgresMemoryLimit   = "1024Mi"
+	DefaultPostgresMemoryRequest = "512Mi"
+	DefaultPostgresCpuLimit      = "500m"
+	DefaultPostgresCpuRequest    = "100m"
+
+	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket"
+	BitBucketOAuthConfigPrivateKey  = "private.key"
+	BitBucketOAuthConfigConsumerKey = "consumer.key"
 )
 
 func InitDefaults(defaultsPath string) {
@@ -96,45 +156,25 @@ func InitDefaults(defaultsPath string) {
 	}
 }
 
-func InitDefaultsFromEnv() {
-	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
-	defaultCheServerImage = getDefaultFromEnv("RELATED_IMAGE_che_server")
-	defaultPluginRegistryImage = getDefaultFromEnv("RELATED_IMAGE_plugin_registry")
-	defaultDevfileRegistryImage = getDefaultFromEnv("RELATED_IMAGE_devfile_registry")
-	defaultPvcJobsImage = getDefaultFromEnv("RELATED_IMAGE_pvc_jobs")
-	defaultPostgresImage = getDefaultFromEnv("RELATED_IMAGE_postgres")
-	defaultKeycloakImage = getDefaultFromEnv("RELATED_IMAGE_keycloak")
-
-	// CRW images for that are mentioned in the Che server che.properties
-	// For CRW these should be synced by hand with images stored in RH registries
-	// instead of being synced by script with the content of the upstream `che.properties` file
-	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata")
-	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts")
-	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image")
-
-	// Don't get some k8s specific env
-	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv("RELATED_IMAGE_che_tls_secrets_creation_job")
-	}
-}
-
 func InitDefaultsFromFile(defaultsPath string) {
 	operatorDeployment := getDefaultsFromFile(defaultsPath)
 
 	defaultCheVersion = util.GetDeploymentEnv(operatorDeployment, "CHE_VERSION")
-	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_server")
-	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_plugin_registry")
-	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_devfile_registry")
-	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_pvc_jobs")
-	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_postgres")
-	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_keycloak")
-	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_workspace_plugin_broker_metadata")
-	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_workspace_plugin_broker_artifacts")
-	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image")
+	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, "RELATED_IMAGE_che_tls_secrets_creation_job")
+		defaultCheTLSSecretsCreationJobImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }
 
@@ -175,6 +215,10 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 		return true
 	}
 	return false
+}
+
+func DefaultServerTrustStoreConfigMapName() string {
+	return getDefaultFromEnv("CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME")
 }
 
 func DefaultCheFlavor(cr *orgv1.CheCluster) string {
@@ -253,6 +297,18 @@ func DefaultCheServerSecureExposerJwtProxyImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultCheServerSecureExposerJwtProxyImage)
 }
 
+func DefaultSingleHostGatewayImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultSingleHostGatewayImage)
+}
+
+func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
+}
+
+func DefaultKubernetesImagePullerOperatorCSV() string {
+	return KubernetesImagePullerOperatorCSV
+}
+
 func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	tag := "latest"
 	parts := strings.Split(dockerImage, ":")
@@ -273,6 +329,14 @@ func GetCheMultiUser(cr *orgv1.CheCluster) string {
 		}
 	}
 	return DefaultCheMultiUser
+}
+
+func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
+	if util.IsOpenShift {
+		return DefaultOpenShiftSingleHostExposureType
+	}
+
+	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
@@ -330,4 +394,47 @@ func getOrganizationFromImage(image string) string {
 		organization = imageParts[1]
 	}
 	return organization
+}
+
+func InitDefaultsFromEnv() {
+	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
+	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+
+	// CRW images for that are mentioned in the Che server che.properties
+	// For CRW these should be synced by hand with images stored in RH registries
+	// instead of being synced by script with the content of the upstream `che.properties` file
+	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+
+	// Don't get some k8s specific env
+	if !util.IsOpenShift {
+		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+	}
+}
+
+func InitTestDefaultsFromDeployment(deploymentFile string) error {
+	operator := &appsv1.Deployment{}
+	err := util.ReadObject(deploymentFile, operator)
+	if err != nil {
+		return err
+	}
+
+	for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
+		err = os.Setenv(env.Name, env.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	os.Setenv("MOCK_API", "1")
+	InitDefaultsFromEnv()
+	return nil
 }

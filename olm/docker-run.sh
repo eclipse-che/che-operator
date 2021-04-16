@@ -17,7 +17,7 @@ GIT_ROOT_DIRECTORY=$(git rev-parse --show-toplevel)
 IMAGE_NAME="eclipse/che-operator-olm-build"
 
 # Operator SDK
-OPERATOR_SDK_VERSION=v0.10.0
+OPERATOR_SDK_VERSION=$(yq -r ".\"operator-sdk\"" "${GIT_ROOT_DIRECTORY}/REQUIREMENTS")
 
 init() {
   BLUE='\033[1;34m'
@@ -43,11 +43,11 @@ check() {
 build() {
   printf "%bBuilding image %b${IMAGE_NAME}${NC}..." "${BOLD}" "${BLUE}"
   if docker build --build-arg OPERATOR_SDK_VERSION=${OPERATOR_SDK_VERSION} -t ${IMAGE_NAME} > docker-build-log 2>&1 -<<EOF
-  FROM evns/yq
+  FROM golang:1.13-alpine
   ARG OPERATOR_SDK_VERSION
-  RUN apk add --no-cache --update curl bash
+  RUN apk add --no-cache --update curl bash py-pip jq skopeo && pip install yq
   RUN curl -JL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk-${OPERATOR_SDK_VERSION}-x86_64-linux-gnu -o /bin/operator-sdk && chmod u+x /bin/operator-sdk
-  WORKDIR /workdir/olm
+  WORKDIR /che-operator/olm
 EOF
 then
   printf "%b[OK]%b\n" "${GREEN}" "${NC}"
@@ -62,7 +62,7 @@ fi
 
 run() {
   printf "%bRunning%b $*\n" "${BOLD}" "${NC}"
-  if docker run --rm -it -v "${GIT_ROOT_DIRECTORY}":/workdir --entrypoint=/bin/bash ${IMAGE_NAME} "$@"
+  if docker run --rm -it -v "${GIT_ROOT_DIRECTORY}":/che-operator --entrypoint=/bin/bash ${IMAGE_NAME} "$@"
   then
     printf "Script execution %b[OK]%b\n" "${GREEN}" "${NC}"
   else
