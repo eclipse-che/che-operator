@@ -7,10 +7,10 @@ on:
       forceflag:
         description: 'To update an existing PR, use -f or --force flag here'
         default: ''
-  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
+  # trigger on commit to main branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
   push:
     branches:
-      - master
+      - main
     paths:
       - 'version/version.go'
 

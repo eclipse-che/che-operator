@@ -5,7 +5,7 @@ projects:
     source:
       location: 'https://github.com/eclipse-che/che-operator.git'
       type: git
-      branch: master
+      branch: main
     clonePath: src/github.com/eclipse-che/che-operator
 components:
   - id: golang/go/latest

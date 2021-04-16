@@ -11,10 +11,10 @@ on:
       forceflag:
         description: 'To force creation of .x branch, use --force flag here'
         default: ''
-  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
+  # trigger on commit to main branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
   push:
     branches:
-      - master
+      - main
     paths:
       - 'version/version.go'
 
@@ -48,7 +48,7 @@ jobs:
           fi
 
           # To determine DWO version, we have to replace first 7. with v0.
-          # then major DWO version is behind upstream Che version by 26 
+          # then major DWO version is behind upstream Che version by 26
           # and the minor version is the same
           # e.g 7.27.0 for Che = v0.1.0 for DWO
           chectlMajorMinorVersion=${chectlVersion#7.}
@@ -74,7 +74,7 @@ jobs:
 
               IFS=',' read -ra paramMap <<< "${this_params}"
               for keyvalue in "${paramMap[@]}"
-              do 
+              do
                   key=${keyvalue%=*}
                   value=${keyvalue#*=}
                   echo $var1

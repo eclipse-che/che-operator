@@ -12,7 +12,7 @@ All documentation about how to onboard components in Openshift CI can be found i
 All Che operator jobs configurations are defined in `https://github.com/openshift/release/tree/master/ci-operator/config/eclipse-che/che-operator`.
 
 ### Jobs
-- `che-operator-update` - It tests Eclipse Che update from the latest Eclipse Che release version to a new version from the PR and workspace startup. Note this PR check runs against `master` branch and all `7.x.y` branches.
+- `che-operator-update` - It tests Eclipse Che update from the latest Eclipse Che release version to a new version from the PR and workspace startup. Note this PR check runs against `main` branch and all `7.x.y` branches.
 - `che-operator-olm-latest-changes-tests`- It tests Eclipse Che deployment and workspace startup.
 
 All Openshift CI checks name in pull request have a special nomenclature. Example: `ci/prow/v6-che-operator-update where` where `v6` is Openshift4 minor version.

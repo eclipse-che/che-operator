@@ -68,7 +68,7 @@ Validate that the release version is installed and workspace can be created:
 
 ## 4. Merge pull requests
 
-Merge pull request into .x and master branches.
+Merge pull request into .x and main branches.
 
 ## 5. Testing release on minishift (when chectl is released)
 
