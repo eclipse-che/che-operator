@@ -266,6 +266,13 @@ rules:
       - watch
       - get
       - delete
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - create
 # devworkspace requirements: devworkspace-controller-edit-workspaces cluster roles
   - apiGroups:
       - workspace.devfile.io
