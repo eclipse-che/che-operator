@@ -590,7 +590,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err != nil {
 			logrus.Error(err)
 		}
-		return reconcile.Result{}, err
+		// reconcile after 1 seconds since we deal with cluster objects
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	if len(instance.Spec.Server.CheClusterRoles) > 0 {
