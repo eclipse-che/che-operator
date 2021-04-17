@@ -1226,7 +1226,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 					t.Errorf("rolebinding '%s' not found", EditRoleBindingName)
 				}
 			} else {
-				manageNamespacesClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, namespace)
+				manageNamespacesClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, namespace)
 				cheManageNamespaceClusterRole := &rbac.ClusterRole{}
 				if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
 					t.Errorf("role '%s' not found", manageNamespacesClusterRoleName)

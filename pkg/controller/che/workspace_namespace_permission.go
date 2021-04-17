@@ -14,13 +14,12 @@ package che
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	rbac "k8s.io/api/rbac/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -35,65 +34,126 @@ const (
 	ViewRoleBindingName = "che-workspace-view"
 	// ExecRoleBindingName - "exec" role for "che-workspace" service account.
 	ExecRoleBindingName = "che-workspace-exec"
-	// CheWorkspacesNamespaceClusterRoleNameTemplate - manage namespaces "cluster role" and "clusterrolebinding" template name
-	CheWorkspacesNamespaceClusterRoleNameTemplate = "%s-cheworkspaces-namespaces-clusterrole"
+	// CheNamespaceEditorClusterRoleNameTemplate - manage namespaces "cluster role" and "clusterrolebinding" template name
+	CheNamespaceEditorClusterRoleNameTemplate = "%s-cheworkspaces-namespaces-clusterrole"
 	// CheWorkspacesClusterRoleNameTemplate - manage workspaces "cluster role" and "clusterrolebinding" template name
 	CheWorkspacesClusterRoleNameTemplate = "%s-cheworkspaces-clusterrole"
+
+	CheWorkspacesClusterPermissionsFinalizerName = "cheWorkspaces.clusterpermissions.finalizers.che.eclipse.org"
+	NamespacesEditorPermissionsFinalizerName     = "namespaces-editor.permissions.finalizers.che.eclipse.org"
 )
+
+// check if we can delegate cluster roles
+// fall back to the "narrower" workspace namespace strategy otherwise
+func (r *ReconcileChe) checkWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
+	if util.IsWorkspacePermissionsInTheDifferNamespaceThanCheRequired(deployContext.CheCluster) {
+		сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
+		exists, err := deploy.Get(deployContext, types.NamespacedName{Name: сheWorkspacesClusterRoleName}, &rbac.ClusterRole{})
+		if err != nil {
+			return false, err
+		}
+		if !exists {
+			policies := getWorkspacesPolicies()
+			if util.IsWorkspaceInDifferentNamespaceThanChe(deployContext.CheCluster) {
+				policies = append(policies, getNamespaceEditorPolicies()...)
+			}
+			deniedRules, err := r.permissionChecker.GetNotPermittedPolicyRules(policies, "")
+			if err != nil {
+				return false, err
+			}
+			// fall back
+			if len(deniedRules) > 0 {
+				logrus.Warnf("Not enough permissions to start a workspace in dedicated namespace. Denied policies: %v", deniedRules)
+				logrus.Warnf("Fall back to '%s' namespace for workspaces.", deployContext.CheCluster.Namespace)
+				delete(deployContext.CheCluster.Spec.Server.CustomCheProperties, "CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT")
+				deployContext.CheCluster.Spec.Server.WorkspaceNamespaceDefault = deployContext.CheCluster.Namespace
+				err := r.UpdateCheCRSpec(deployContext.CheCluster, "Default namespace for workspaces", deployContext.CheCluster.Namespace)
+				if err != nil {
+					return false, err
+				}
+			}
+		}
+	}
+
+	return true, nil
+}
+
+// Reconcile workspace permissions based on workspace strategy
+func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
+	if util.IsWorkspacePermissionsInTheDifferNamespaceThanCheRequired(deployContext.CheCluster) {
+		// Delete permission set for configuration "same namespace for Che and workspaces".
+		done, err := r.removeWorkspacePermissionsInSameNamespaceWithChe(deployContext)
+		if !done {
+			return false, err
+		}
+
+		// Add workspaces cluster permission finalizer to the CR if deletion timestamp is 0.
+		// Or delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
+		done, err = r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
+		if !done {
+			return false, err
+		}
+	} else {
+		// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
+		done, err := r.removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
+		if !done {
+			return false, err
+		}
+
+		done, err = r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
+		if !done {
+			return false, err
+		}
+	}
+
+	if util.IsWorkspaceInDifferentNamespaceThanChe(deployContext.CheCluster) {
+		done, err := r.delegateNamespaceEditorPermissions(deployContext)
+		if !done {
+			return false, err
+		}
+	} else {
+		done, err := r.removeNamespaceEditorPermissions(deployContext)
+		if !done {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
 
 // delegateWorkspacePermissionsInTheSameNamespaceWithChe - creates "che-workspace" service account(for Che workspaces) and
 // delegates "che-operator" SA permissions to the service accounts: "che" and "che-workspace".
 // Also this method binds "edit" default k8s clusterrole using rolebinding to "che" SA.
-func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
+func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (bool, error) {
 	// Create "che-workspace" service account.
 	// Che workspace components use this service account.
 	done, err := deploy.SyncServiceAccountToCluster(deployContext, CheWorkspacesServiceAccount)
 	if !done {
-		logrus.Infof("Waiting on service account '%s' to be created", CheWorkspacesServiceAccount)
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
+		return false, err
 	}
 
 	// Create view role for "che-workspace" service account.
 	// This role used by exec terminals, tasks, metric che-theia plugin and so on.
 	done, err = deploy.SyncViewRoleToCluster(deployContext)
 	if !done {
-		logrus.Infof("Waiting on role '%s' to be created", deploy.ViewRoleName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
+		return false, err
 	}
 
 	done, err = deploy.SyncRoleBindingToCluster(deployContext, ViewRoleBindingName, CheWorkspacesServiceAccount, deploy.ViewRoleName, "Role")
 	if !done {
-		logrus.Infof("Waiting on role binding '%s' to be created", ViewRoleBindingName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
+		return false, err
 	}
 
 	// Create exec role for "che-workspaces" service account.
 	// This role used by exec terminals, tasks and so on.
 	done, err = deploy.SyncExecRoleToCluster(deployContext)
 	if !done {
-		logrus.Infof("Waiting on role '%s' to be created", deploy.ExecRoleName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
+		return false, err
 	}
 
 	done, err = deploy.SyncRoleBindingToCluster(deployContext, ExecRoleBindingName, CheWorkspacesServiceAccount, deploy.ExecRoleName, "Role")
 	if !done {
-		logrus.Infof("Waiting on role binding '%s' to be created", ExecRoleBindingName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
+		return false, err
 	}
 
 	// Bind "edit" cluster role for "che" service account.
@@ -103,13 +163,40 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 	// So permissions are binding in "non-cluster" scope.
 	done, err = deploy.SyncRoleBindingToCluster(deployContext, EditRoleBindingName, CheServiceAccountName, EditClusterRoleName, "ClusterRole")
 	if !done {
-		logrus.Infof("Waiting on role binding '%s' to be created", EditRoleBindingName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
+		return false, err
 	}
-	return reconcile.Result{}, nil
+
+	return true, nil
+}
+
+// removeWorkspacePermissionsInSameNamespaceWithChe - removes workspaces in same namespace with Che role and rolebindings.
+func (r *ReconcileChe) removeWorkspacePermissionsInSameNamespaceWithChe(deployContext *deploy.DeployContext) (bool, error) {
+	done, err := deploy.DeleteNamespacedObject(deployContext, deploy.ExecRoleName, &rbac.Role{})
+	if !done {
+		return false, err
+	}
+
+	done, err = deploy.DeleteNamespacedObject(deployContext, ExecRoleBindingName, &rbac.RoleBinding{})
+	if !done {
+		return false, err
+	}
+
+	done, err = deploy.DeleteNamespacedObject(deployContext, deploy.ViewRoleName, &rbac.Role{})
+	if !done {
+		return false, err
+	}
+
+	done, err = deploy.DeleteNamespacedObject(deployContext, ViewRoleBindingName, &rbac.RoleBinding{})
+	if !done {
+		return false, err
+	}
+
+	done, err = deploy.DeleteNamespacedObject(deployContext, EditRoleBindingName, &rbac.RoleBinding{})
+	if !done {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Create cluster roles and cluster role bindings for "che" service account.
@@ -121,128 +208,98 @@ func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(dep
 //    workspace components.
 // Notice: After permission delegation che-server will create service account "che-workspace" ITSELF with
 //         "exec" and "view" roles for each new workspace.
-func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (reconcile.Result, error) {
-	tests := r.tests
-
-	сheWorkspacesNamespaceClusterRoleName := fmt.Sprintf(CheWorkspacesNamespaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
-	сheWorkspacesNamespaceClusterRoleBindingName := сheWorkspacesNamespaceClusterRoleName
-	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
-	provisioned, err := deploy.SyncClusterRoleToCluster(deployContext, сheWorkspacesNamespaceClusterRoleName, getCheWorkspacesNamespacePolicy())
-	if !provisioned {
-		logrus.Infof("Waiting on clusterrole '%s' to be created", сheWorkspacesNamespaceClusterRoleName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
-	done, err := deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesNamespaceClusterRoleBindingName, CheServiceAccountName, сheWorkspacesNamespaceClusterRoleName)
-	if !done {
-		if !tests {
-			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", сheWorkspacesNamespaceClusterRoleBindingName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
+func (r *ReconcileChe) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (bool, error) {
 	сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	сheWorkspacesClusterRoleBindingName := сheWorkspacesClusterRoleName
+
 	// Create clusterrole "<workspace-namespace/project-name>-cheworkspaces-namespaces-clusterrole" to create k8s components for Che workspaces.
-	provisioned, err = deploy.SyncClusterRoleToCluster(deployContext, сheWorkspacesClusterRoleName, getCheWorkspacesPolicy())
-	if !provisioned {
-		logrus.Infof("Waiting on clusterrole '%s' to be created", сheWorkspacesClusterRoleName)
-		if err != nil {
-			logrus.Error(err)
-		}
-		if !tests {
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
+	done, err := deploy.SyncClusterRoleToCluster(deployContext, сheWorkspacesClusterRoleName, getWorkspacesPolicies())
+	if !done {
+		return false, err
 	}
+
 	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesClusterRoleBindingName, CheServiceAccountName, сheWorkspacesClusterRoleName)
 	if !done {
-		if !tests {
-			logrus.Infof("Waiting on clusterrolebinding '%s' to be created", сheWorkspacesClusterRoleBindingName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
+		return false, err
 	}
-	return reconcile.Result{}, nil
+
+	err = deploy.AppendFinalizer(deployContext, CheWorkspacesClusterPermissionsFinalizerName)
+	return err == nil, err
 }
 
-// DeleteWorkspacesInSameNamespaceWithChePermissions - removes workspaces in same namespace with Che role and rolebindings.
-func (r *ReconcileChe) DeleteWorkspacesInSameNamespaceWithChePermissions(deployContext *deploy.DeployContext) error {
-	_, err := deploy.DeleteNamespacedObject(deployContext, deploy.ExecRoleName, &rbac.Role{})
-	if err != nil {
-		return err
+func (r *ReconcileChe) removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (bool, error) {
+	cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
+	cheWorkspacesClusterRoleBindingName := cheWorkspacesClusterRoleName
+
+	done, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesClusterRoleName}, &rbac.ClusterRole{})
+	if !done {
+		return false, err
 	}
 
-	_, err = deploy.DeleteNamespacedObject(deployContext, ExecRoleBindingName, &rbac.RoleBinding{})
-	if err != nil {
-		return err
+	done, err = deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesClusterRoleBindingName}, &rbac.ClusterRoleBinding{})
+	if !done {
+		return false, err
 	}
 
-	_, err = deploy.DeleteNamespacedObject(deployContext, deploy.ViewRoleName, &rbac.Role{})
-	if err != nil {
-		return err
-	}
-
-	_, err = deploy.DeleteNamespacedObject(deployContext, ViewRoleBindingName, &rbac.RoleBinding{})
-	if err != nil {
-		return err
-	}
-
-	_, err = deploy.DeleteNamespacedObject(deployContext, EditRoleBindingName, &rbac.RoleBinding{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err = deploy.DeleteFinalizer(deployContext, CheWorkspacesClusterPermissionsFinalizerName)
+	return err == nil, err
 }
 
-func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizer(deployContext *deploy.DeployContext) error {
+func (r *ReconcileChe) delegateNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
+	сheNamespaceEditorClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
+	сheNamespaceEditorClusterRoleBindingName := сheNamespaceEditorClusterRoleName
 
-	if !util.IsOAuthEnabled(deployContext.CheCluster) {
-		if util.IsWorkspaceInSameNamespaceWithChe(deployContext.CheCluster) {
-			// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
-			if err := r.RemoveCheWorkspacesClusterPermissions(deployContext); err != nil {
-				logrus.Errorf("workspace permissions finalizers was not removed from CR, cause %s", err.Error())
-				return err
-			}
-		} else {
-			// Delete permission set for configuration "same namespace for Che and workspaces".
-			if err := r.DeleteWorkspacesInSameNamespaceWithChePermissions(deployContext); err != nil {
-				logrus.Errorf("unable to delete workspaces in same namespace permission set, cause %s", err.Error())
-				return err
-			}
-			// Add workspaces cluster permission finalizer to the CR if deletion timestamp is 0.
-			// Or delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
-			if err := r.ReconcileCheWorkspacesClusterPermissionsFinalizer(deployContext); err != nil {
-				logrus.Errorf("unable to add workspace permissions finalizers to the CR, cause %s", err.Error())
-				return err
-			}
-		}
-	} else {
-		// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
-		if err := r.RemoveCheWorkspacesClusterPermissions(deployContext); err != nil {
-			logrus.Errorf("workspace permissions finalizers was not removed from CR, cause %s", err.Error())
-			return err
-		}
+	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
+	done, err := deploy.SyncClusterRoleToCluster(deployContext, сheNamespaceEditorClusterRoleName, getNamespaceEditorPolicies())
+	if !done {
+		return false, err
 	}
 
-	return nil
+	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheNamespaceEditorClusterRoleBindingName, CheServiceAccountName, сheNamespaceEditorClusterRoleName)
+	if !done {
+		return false, err
+	}
+
+	err = deploy.AppendFinalizer(deployContext, NamespacesEditorPermissionsFinalizerName)
+	return err == nil, err
 }
 
-func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
+func (r *ReconcileChe) removeNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
+	cheNamespaceEditorClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
+
+	done, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheNamespaceEditorClusterRoleName}, &rbac.ClusterRole{})
+	if !done {
+		return false, err
+	}
+
+	done, err = deploy.Delete(deployContext, types.NamespacedName{Name: cheNamespaceEditorClusterRoleName}, &rbac.ClusterRoleBinding{})
+	if !done {
+		return false, err
+	}
+
+	err = deploy.DeleteFinalizer(deployContext, NamespacesEditorPermissionsFinalizerName)
+	return err == nil, err
+}
+
+func (r *ReconcileChe) reconcileWorkspacePermissionsFinalizers(deployContext *deploy.DeployContext) (bool, error) {
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		done, err := r.removeNamespaceEditorPermissions(deployContext)
+		if !done {
+			return false, err
+		}
+
+		return r.removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
+	}
+
+	return true, nil
+}
+
+func getNamespaceEditorPolicies() []rbac.PolicyRule {
 	k8sPolicies := []rbac.PolicyRule{
 		{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
-			Verbs:     []string{"get", "create", "update"},
+			Verbs:     []string{"get", "create", "update", "list"},
 		},
 	}
 
@@ -255,7 +312,7 @@ func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
 		{
 			APIGroups: []string{"project.openshift.io"},
 			Resources: []string{"projects"},
-			Verbs:     []string{"get"},
+			Verbs:     []string{"get", "list"},
 		},
 	}
 
@@ -265,7 +322,7 @@ func getCheWorkspacesNamespacePolicy() []rbac.PolicyRule {
 	return k8sPolicies
 }
 
-func getCheWorkspacesPolicy() []rbac.PolicyRule {
+func getWorkspacesPolicies() []rbac.PolicyRule {
 	k8sPolicies := []rbac.PolicyRule{
 		{
 			APIGroups: []string{""},
