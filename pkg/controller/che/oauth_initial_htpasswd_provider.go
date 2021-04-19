@@ -83,21 +83,11 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	var storedPassword string
 
 	// read existed password from the secret (operator has been restarted case)
-	// read from the legacy secret first from the current namespace
-	// and the from the secret from `openshift-config` namespace
-	legacySecret := &corev1.Secret{}
-	legacySecretExists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, legacySecret)
-	if err != nil {
-		return false, err
-	}
 	secret := &corev1.Secret{}
-	secretExists, err := deploy.Get(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, secret)
+	exists, err := getOpenShiftInitialUserCredentialsSecret(deployContext, secret)
 	if err != nil {
 		return false, err
-	}
-	if legacySecretExists {
-		storedPassword = string(legacySecret.Data["password"])
-	} else if secretExists {
+	} else if exists {
 		storedPassword = string(secret.Data["password"])
 	}
 
@@ -209,6 +199,28 @@ func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {
 		}
 	}
 	return false
+}
+
+// read from the secret from `openshift-config` namespace
+// and then from the legacy secret from the current namespace
+func getOpenShiftInitialUserCredentialsSecret(deployContext *deploy.DeployContext, secret *corev1.Secret) (bool, error) {
+	exists, err := deploy.Get(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, secret)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return true, nil
+	}
+
+	exists, err = deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, secret)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) error {

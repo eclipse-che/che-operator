@@ -406,19 +406,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Update status if OpenShift initial user is deleted (in the previous step)
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		legacySecret := &corev1.Secret{}
-		legacySecretExists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, legacySecret)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-
 		secret := &corev1.Secret{}
-		secretExists, err := deploy.Get(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, secret)
+		exists, err := getOpenShiftInitialUserCredentialsSecret(deployContext, secret)
 		if err != nil {
-			return reconcile.Result{}, err
-		}
-
-		if !legacySecretExists && !secretExists {
+			// We should `Requeue` since we deal with cluster scope objects
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		} else if !exists {
 			if err == nil {
 				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
 				if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
