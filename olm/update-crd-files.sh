@@ -12,7 +12,7 @@
 
 # Generated CRDs based on pkg/apis/org/v1/che_types.go:
 # - deploy/crds/org_v1_che_crd.yaml
-# - deploy/crds/org_v1_che_crd-v1beta1.yaml
+# - deploy/crds/org_v1_che_crd-ocp3.11.yaml
 
 set -e
 
@@ -58,8 +58,8 @@ generateCRD() {
     echo "[INFO] Generated CRD v1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd.yaml"
   elif [[ $version == "v1beta1" ]]; then
     removeRequiredAttribute ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
-    mv ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
-    echo "[INFO] Generated CRD v1beta1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
+    mv ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-ocp3.11.yaml
+    echo "[INFO] Generated CRD v1beta1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-ocp3.11.yaml"
   fi
 }
 

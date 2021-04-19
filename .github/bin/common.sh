@@ -160,7 +160,11 @@ deployEclipseChe() {
   cat ${templates}/che-operator/crds/org_v1_che_cr.yaml
 
   echo "[INFO] Eclipse Che operator deployment"
-  cat ${templates}/che-operator/operator.yaml
+  if [[ $platform == "minishift" ]] then
+    cat ${templates}/che-operator/operator-ocp3.11.yaml
+  elif
+    cat ${templates}/che-operator/operator.yaml
+  fi
 
   chectl server:deploy \
     --platform=${platform} \
@@ -262,9 +266,11 @@ setIngressDomain() {
 }
 
 setCustomOperatorImage() {
-  local file="${1}/che-operator/operator.yaml"
-  yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-  yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  for file in "${1}/che-operator/operator.yaml" "${1}/che-operator/operator-ocp3.11.yaml"
+  do
+    yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+    yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  done
 }
 
 insecurePrivateDockerRegistry() {
