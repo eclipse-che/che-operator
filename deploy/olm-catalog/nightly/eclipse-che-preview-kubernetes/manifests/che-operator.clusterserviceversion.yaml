@@ -76,13 +76,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-04-16T12:46:46Z"
+    createdAt: "2021-04-19T12:46:55Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.30.0-150.nightly
+  name: eclipse-che-preview-kubernetes.v7.30.0-152.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -132,10 +132,10 @@ spec:
             path: message
             x-descriptors:
               - urn:alm:descriptor:text
-          - description: OpenShift OAuth secret that contains user credentials for
-              HTPasswd identity provider.
-            displayName: OpenShift OAuth secret that contains user credentials for
-              HTPasswd identity provider.
+          - description: OpenShift OAuth secret in `openshift-config` namespace that
+              contains user credentials for HTPasswd identity provider.
+            displayName: OpenShift OAuth secret in `openshift-config` namespace that
+              contains user credentials for HTPasswd identity provider.
             path: openShiftOAuthUserCredentialsSecret
             x-descriptors:
               - urn:alm:descriptor:text
@@ -1111,4 +1111,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.30.0-150.nightly
+  version: 7.30.0-152.nightly
