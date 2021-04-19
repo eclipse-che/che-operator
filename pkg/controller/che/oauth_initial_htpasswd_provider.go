@@ -84,7 +84,7 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 
 	// read existed password from the secret (operator has been restarted case)
 	secret := &corev1.Secret{}
-	exists, err := getOpenShiftInitialUserCredentialsSecret(deployContext, secret)
+	exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
 	if err != nil {
 		return false, err
 	} else if exists {
@@ -203,7 +203,7 @@ func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {
 
 // read from the secret from `openshift-config` namespace
 // and then from the legacy secret from the current namespace
-func getOpenShiftInitialUserCredentialsSecret(deployContext *deploy.DeployContext, secret *corev1.Secret) (bool, error) {
+func getOpenShiftOAuthUserCredentialsSecret(deployContext *deploy.DeployContext, secret *corev1.Secret) (bool, error) {
 	exists, err := deploy.Get(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, secret)
 	if err != nil {
 		return false, err

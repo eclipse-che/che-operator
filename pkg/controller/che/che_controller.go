@@ -407,7 +407,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// Update status if OpenShift initial user is deleted (in the previous step)
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
 		secret := &corev1.Secret{}
-		exists, err := getOpenShiftInitialUserCredentialsSecret(deployContext, secret)
+		exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
 		if err != nil {
 			// We should `Requeue` since we deal with cluster scope objects
 			return reconcile.Result{RequeueAfter: time.Second}, err
