@@ -130,10 +130,11 @@ do
   mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
   echo
 
-  echo "   - Generate ci.yaml file"
-  echo "---
-# Use \`replaces-mode\` or \`semver-mode\`. Once you switch to \`semver-mode\`, there is no easy way back.
-updateGraph: replaces-mode" > ${folderToUpdate}/ci.yaml
+  # NOTE: if you update this file, you need to submit a PR against these two files:
+  # https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/ci.yaml
+  # https://github.com/operator-framework/community-operators/blob/master/upstream-community-operators/eclipse-che/ci.yaml
+  echo "   - Replace ci.yaml file"
+  cp ${BASE_DIR}/olm/ci.yaml ${folderToUpdate}/ci.yaml
 
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
