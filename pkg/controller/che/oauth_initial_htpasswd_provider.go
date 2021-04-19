@@ -207,20 +207,11 @@ func getOpenShiftOAuthUserCredentialsSecret(deployContext *deploy.DeployContext,
 	exists, err := deploy.Get(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, secret)
 	if err != nil {
 		return false, err
-	}
-	if exists {
+	} else if exists {
 		return true, nil
 	}
 
-	exists, err = deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, secret)
-	if err != nil {
-		return false, err
-	}
-	if exists {
-		return true, nil
-	}
-
-	return false, nil
+	return deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, secret)
 }
 
 func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) error {
