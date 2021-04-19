@@ -1,0 +1,10 @@
+apiVersion: org.eclipse.che/v1
+kind: CheClusterRestore
+metadata:
+  name: example-checlusterrestore
+spec:
+  deleteAfterRestore: false
+  triggerNow: true
+	backupServers:
+    rest:
+      host: 'rest-host.net'

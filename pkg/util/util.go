@@ -13,6 +13,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
@@ -37,7 +38,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 )
@@ -441,4 +444,30 @@ func ComputeHash256(yamlFile string) (string, error) {
 	hasher.Write(data)
 	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	return sha, nil
+}
+
+func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
+	return client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
+		cheCluster)
+}
+
+func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheCluster, error) {
+	cheClusters := &orgv1.CheClusterList{}
+	if err := client.List(context.TODO(), cheClusters); err != nil {
+		return nil, err
+	}
+
+	if len(cheClusters.Items) != 1 {
+		return nil, fmt.Errorf("expected an instance of CheCluster, but got %d instances", len(cheClusters.Items))
+	}
+
+	cheCR := &orgv1.CheCluster{}
+	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
+	err := client.Get(context.TODO(), namespacedName, cheCR)
+	if err != nil {
+		return nil, err
+	}
+	return cheCR, nil
 }

@@ -13,7 +13,6 @@ package checlusterbackup
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -168,7 +166,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 			return done, err
 		}
 
-		backupDestDir := "/tmp/che-backup"
+		backupDestDir := "/tmp/che-backup-data"
 		// Schedule cleanup
 		defer os.RemoveAll(backupDestDir)
 		// Collect all needed data to backup
@@ -223,23 +221,4 @@ func (r *ReconcileCheClusterBackup) UpdateCRStatus(cr *orgv1.CheClusterBackup) e
 		return err
 	}
 	return nil
-}
-
-func (r *ReconcileCheClusterBackup) GetCheCR(namespace string) (*orgv1.CheCluster, error) {
-	cheClusters := &orgv1.CheClusterList{}
-	if err := r.client.List(context.TODO(), cheClusters, &client.ListOptions{}); err != nil {
-		return nil, err
-	}
-
-	if len(cheClusters.Items) != 1 {
-		return nil, fmt.Errorf("expected an instance of CheCluster, but got %d instances", len(cheClusters.Items))
-	}
-
-	cheCR := &orgv1.CheCluster{}
-	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
-	err := r.client.Get(context.TODO(), namespacedName, cheCR)
-	if err != nil {
-		return nil, err
-	}
-	return cheCR, nil
 }

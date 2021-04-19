@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package checlusterbackup
+package checlusterrestore
 
 import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -17,18 +17,18 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 )
 
-type BackupContext struct {
+type RestoreContext struct {
 	namespace    string
-	r            *ReconcileCheClusterBackup
-	backupCR     *orgv1.CheClusterBackup
+	r            *ReconcileCheClusterRestore
+	restoreCR    *orgv1.CheClusterRestore
 	cheCR        *orgv1.CheCluster
 	backupServer backup.BackupServer
 }
 
-func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *orgv1.CheClusterBackup) (*BackupContext, error) {
-	namespace := backupCR.GetNamespace()
+func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheClusterRestore) (*RestoreContext, error) {
+	namespace := restoreCR.GetNamespace()
 
-	backupServer, err := backup.NewBackupServer(backupCR.Spec.Servers, backupCR.Spec.ServerType)
+	backupServer, err := backup.NewBackupServer(restoreCR.Spec.Servers, restoreCR.Spec.ServerType)
 	if err != nil {
 		return nil, err
 	}
@@ -38,10 +38,10 @@ func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *orgv1.CheClusterBa
 		return nil, err
 	}
 
-	return &BackupContext{
+	return &RestoreContext{
 		namespace:    namespace,
 		r:            r,
-		backupCR:     backupCR,
+		restoreCR:    restoreCR,
 		cheCR:        cheCR,
 		backupServer: backupServer,
 	}, nil
