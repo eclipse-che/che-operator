@@ -412,11 +412,9 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// We should `Requeue` since we deal with cluster scope objects
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		} else if !exists {
-			if err == nil {
-				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
-				if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
-					return reconcile.Result{}, err
-				}
+			instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
+			if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+				return reconcile.Result{}, err
 			}
 		}
 	}
