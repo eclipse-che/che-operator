@@ -38,6 +38,8 @@ var (
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
+	SubscriptionResourceName   = "subscriptions"
+	CheManagerResourcename     = "chemanagers"
 
 	OpenshiftDevWorkspaceTemplatesPath     = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	OpenshiftDevWorkspaceCheTemplatesPath  = "/tmp/devworkspace-che-operator/templates/deployment/openshift/objects/"
@@ -160,6 +162,11 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
+	// If subscriptions resource doesn't exist in cluster WTO as well will not be present
+	if !hasK8SResourceObject(deployContext, SubscriptionResourceName) {
+		return nil
+	}
+
 	subscription := &operatorsv1alpha1.Subscription{}
 	if err := deployContext.ClusterAPI.NonCachedClient.Get(
 		context.TODO(),
@@ -334,6 +341,12 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 	// parts of the installation, but at the same time we don't want to add a dependency on
 	// devworkspace-che-operator. Note that this way of initializing will probably see changes
 	// once we figure out https://github.com/eclipse/che/issues/19220
+
+	// Wait until CRD for CheManager is created
+	if !hasK8SResourceObject(deployContext, CheManagerResourcename) {
+		return false, nil
+	}
+
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
 	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
@@ -390,8 +403,9 @@ func getK8SObjectFromFile(yamlFile string, obj interface{}) error {
 		if err := util.ReadObject(yamlFile, obj); err != nil {
 			return err
 		}
-		cachedObj[yamlFile] = obj.(metav1.Object)
 	}
+	obj = cachedObj[yamlFile]
+
 	return nil
 }
 
@@ -407,4 +421,13 @@ func devWorkspaceCheTemplatesPath() string {
 		return OpenshiftDevWorkspaceCheTemplatesPath
 	}
 	return KubernetesDevWorkspaceCheTemplatesPath
+}
+
+func hasK8SResourceObject(deployContext *deploy.DeployContext, resourceName string) bool {
+	_, resourceList, err := deployContext.ClusterAPI.DiscoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false
+	}
+
+	return util.HasAPIResourceNameInList(resourceName, resourceList)
 }
