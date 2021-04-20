@@ -25,10 +25,14 @@ checkKeycloak() {
   REDIRECT_URIS=$({{ .Script }} get clients/{{ .KeycloakClientId }} -r '{{ .KeycloakRealm }}' | jq '.redirectUris')
   FIND="http://{{ .CheHost }}/factory*"
   for URI in "${REDIRECT_URIS[@]}"; do
-    [[ $FIND == "$URI" ]] && exit 1;
+    [[ $FIND == "$URI" ]] && return 0
   done
+  return 1
 }
 
 connectToKeycloak
 checkKeycloak
-updateKeycloak
+if [ $? -ne 0 ]
+then
+  updateKeycloak
+fi
