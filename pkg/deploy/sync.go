@@ -14,6 +14,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -141,8 +142,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (b
 		return false, err
 	}
 
-	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
-	logrus.Infof("Creating a new object: %s, name: %s", kind, blueprint.GetName())
+	logrus.Infof("Creating a new object: %s, name: %s", getObjectType(blueprint), blueprint.GetName())
 
 	err = setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
@@ -167,8 +167,7 @@ func Create(deployContext *DeployContext, blueprint metav1.Object) (bool, error)
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	kind := runtimeObject.GetObjectKind().GroupVersionKind().Kind
-	logrus.Infof("Creating a new object: %s, name: %s", kind, blueprint.GetName())
+	logrus.Infof("Creating a new object: %s, name: %s", getObjectType(blueprint), blueprint.GetName())
 
 	err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
@@ -213,8 +212,7 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 
 	diff := cmp.Diff(actual, blueprint, diffOpts)
 	if len(diff) > 0 {
-		kind := actual.GetObjectKind().GroupVersionKind().Kind
-		logrus.Infof("Updating existing object: %s, name: %s", kind, actualMeta.GetName())
+		logrus.Infof("Updating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
 		fmt.Printf("Difference:\n%s", diff)
 
 		targetLabels := map[string]string{}
@@ -294,8 +292,7 @@ func doDeleteByKey(client client.Client, scheme *runtime.Scheme, key client.Obje
 		return false, err
 	}
 
-	kind := actual.GetObjectKind().GroupVersionKind().Kind
-	logrus.Infof("Deleting object: %s, name: %s", kind, key.Name)
+	logrus.Infof("Deleting object: %s, name: %s", getObjectType(objectMeta), key.Name)
 
 	return doDelete(client, actual)
 }
@@ -348,4 +345,13 @@ func getClientForObject(objectNamespace string, deployContext *DeployContext) cl
 		return deployContext.ClusterAPI.Client
 	}
 	return deployContext.ClusterAPI.NonCachedClient
+}
+
+func getObjectType(objectMeta metav1.Object) string {
+	objType := reflect.TypeOf(objectMeta).String()
+	if reflect.TypeOf(objectMeta).Kind().String() == "ptr" {
+		objType = objType[1:]
+	}
+
+	return objType
 }

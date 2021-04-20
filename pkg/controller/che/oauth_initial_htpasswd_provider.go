@@ -35,6 +35,7 @@ const (
 	htpasswdSecretName                  = "htpasswd-eclipse-che"
 	ocConfigNamespace                   = "openshift-config"
 	openShiftOAuthUserCredentialsSecret = "openshift-oauth-user-credentials"
+	openshiftOauthUserFinalizerName     = "openshift-oauth-user.finalizers.che.eclipse.org"
 )
 
 var (
@@ -64,9 +65,9 @@ func NewOpenShiftOAuthUserHandler(runtimeClient client.Client) OpenShiftOAuthUse
 	}
 }
 
-// SyncOAuthInitialUser - creates new htpasswd provider with inital user with Che flavor name
+// SyncOAuthInitialUser - creates new htpasswd provider with initial user with Che flavor name
 // if Openshift cluster hasn't got identity providers, otherwise do nothing.
-// It usefull for good first user expirience.
+// It usefull for good first user experience.
 // User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
 // initial user for good first meeting with Eclipse Che.
 func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAuth *oauthv1.OAuth, deployContext *deploy.DeployContext) (bool, error) {
@@ -79,24 +80,28 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 		}
 	}
 
-	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
-	done, err := deploy.SyncSecretToCluster(deployContext, openShiftOAuthUserCredentialsSecret, cr.Namespace, initialUserSecretData)
-	if !done {
+	var storedPassword string
+
+	// read existed password from the secret (operator has been restarted case)
+	secret := &corev1.Secret{}
+	exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
+	if err != nil {
 		return false, err
+	} else if exists {
+		storedPassword = string(secret.Data["password"])
 	}
 
-	credentionalSecret := &corev1.Secret{}
-	exists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, credentionalSecret)
-	if !exists {
-		return false, err
-	}
-
-	storedPassword := string(credentionalSecret.Data["password"])
-	if password != storedPassword {
+	if storedPassword != "" && password != storedPassword {
 		password = storedPassword
 		if htpasswdFileContent, err = iuh.generateHtPasswdUserInfo(userName, password); err != nil {
 			return false, err
 		}
+	}
+
+	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
+	done, err := deploy.SyncSecretToCluster(deployContext, openShiftOAuthUserCredentialsSecret, ocConfigNamespace, initialUserSecretData)
+	if !done {
+		return false, err
 	}
 
 	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
@@ -106,6 +111,10 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) SyncOAuthInitialUser(openshiftOAut
 	}
 
 	if err := appendIdentityProvider(openshiftOAuth, iuh.runtimeClient); err != nil {
+		return false, err
+	}
+
+	if err := deploy.AppendFinalizer(deployContext, openshiftOauthUserFinalizerName); err != nil {
 		return false, err
 	}
 
@@ -139,8 +148,18 @@ func (iuh *OpenShiftOAuthUserOperatorHandler) DeleteOAuthInitialUser(deployConte
 		return err
 	}
 
+	// legacy secret in the current namespace
 	_, err = deploy.DeleteNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, &corev1.Secret{})
 	if err != nil {
+		return err
+	}
+
+	_, err = deploy.Delete(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, &corev1.Secret{})
+	if err != nil {
+		return err
+	}
+
+	if err := deploy.DeleteFinalizer(deployContext, openshiftOauthUserFinalizerName); err != nil {
 		return err
 	}
 
@@ -180,6 +199,19 @@ func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {
 		}
 	}
 	return false
+}
+
+// read from the secret from `openshift-config` namespace
+// and then from the legacy secret from the current namespace
+func getOpenShiftOAuthUserCredentialsSecret(deployContext *deploy.DeployContext, secret *corev1.Secret) (bool, error) {
+	exists, err := deploy.Get(deployContext, types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, secret)
+	if err != nil {
+		return false, err
+	} else if exists {
+		return true, nil
+	}
+
+	return deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, secret)
 }
 
 func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) error {

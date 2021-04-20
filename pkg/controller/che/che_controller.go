@@ -404,16 +404,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, nil
 	}
 
+	// Update status if OpenShift initial user is deleted (in the previous step)
 	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
 		secret := &corev1.Secret{}
-		exists, err := deploy.GetNamespacedObject(deployContext, openShiftOAuthUserCredentialsSecret, secret)
-		if !exists {
-			if err == nil {
-				instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
-				if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
-					return reconcile.Result{}, err
-				}
-			} else {
+		exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
+		if err != nil {
+			// We should `Requeue` since we deal with cluster scope objects
+			return reconcile.Result{RequeueAfter: time.Second}, err
+		} else if !exists {
+			instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
+			if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -1097,6 +1097,12 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
 		if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
 			logrus.Error(err)
+		}
+	}
+
+	if util.IsOpenShift4 && util.IsInitialOpenShiftOAuthUserEnabled(deployContext.CheCluster) {
+		if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+			r.userHandler.DeleteOAuthInitialUser(deployContext)
 		}
 	}
 
