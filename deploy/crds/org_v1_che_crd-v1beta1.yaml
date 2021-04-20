@@ -190,8 +190,9 @@ spec:
                     created for the HTPasswd identity provider. If the value is false
                     and the user has already been created, then it will be removed.
                     If value is an empty, then do nothing. The user's credentials
-                    are stored in the `openshift-oauth-user-credentials` secret by
-                    Operator. Note that this solution is Openshift 4 platform-specific.
+                    are stored in the `openshift-oauth-user-credentials` secret in
+                    'openshift-config' namespace by Operator. Note that this solution
+                    is Openshift 4 platform-specific.
                   type: boolean
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
@@ -849,8 +850,8 @@ spec:
                 Pod is in this condition.
               type: string
             openShiftOAuthUserCredentialsSecret:
-              description: OpenShift OAuth secret that contains user credentials for
-                HTPasswd identity provider.
+              description: OpenShift OAuth secret in `openshift-config` namespace
+                that contains user credentials for HTPasswd identity provider.
               type: string
             openShiftoAuthProvisioned:
               description: Indicates whether an Identity Provider instance, Keycloak
