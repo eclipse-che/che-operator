@@ -42,7 +42,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
-				{Name: "chemanagers"},
+				{Name: CheManagerResourcename},
 			},
 		},
 	}

@@ -163,7 +163,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 
 func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
 	// If subscriptions resource doesn't exist in cluster WTO as well will not be present
-	if !hasK8SResourceObject(deployContext, SubscriptionResourceName) {
+	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, SubscriptionResourceName) {
 		return nil
 	}
 
@@ -249,10 +249,11 @@ func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	configMap := &corev1.ConfigMap{}
-	if err := getK8SObjectFromFile(DevWorkspaceConfigMapFile, configMap); err != nil {
+	if err := getK8SObjectFromFile(DevWorkspaceConfigMapFile, &corev1.ConfigMap{}); err != nil {
 		return false, err
 	}
+	configMap := cachedObj[DevWorkspaceConfigMapFile].(*corev1.ConfigMap)
+
 	// Remove when DevWorkspace controller should not care about DWR base host #373 https://github.com/devfile/devworkspace-operator/issues/373
 	if !util.IsOpenShift {
 		if configMap.Data == nil {
@@ -265,10 +266,10 @@ func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	dwDeploymentObj := &appsv1.Deployment{}
-	if err := getK8SObjectFromFile(DevWorkspaceDeploymentFile, dwDeploymentObj); err != nil {
+	if err := getK8SObjectFromFile(DevWorkspaceDeploymentFile, &appsv1.Deployment{}); err != nil {
 		return false, err
 	}
+	dwDeploymentObj := cachedObj[DevWorkspaceDeploymentFile].(*appsv1.Deployment)
 
 	if deployContext.CheCluster.Spec.DevWorkspace.ControllerImage != "" {
 		dwDeploymentObj.Spec.Template.Spec.Containers[0].Image = deployContext.CheCluster.Spec.DevWorkspace.ControllerImage
@@ -343,7 +344,7 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 	// once we figure out https://github.com/eclipse/che/issues/19220
 
 	// Wait until CRD for CheManager is created
-	if !hasK8SResourceObject(deployContext, CheManagerResourcename) {
+	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, CheManagerResourcename) {
 		return false, nil
 	}
 
@@ -390,11 +391,9 @@ func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interf
 		if err := getK8SObjectFromFile(yamlFile, obj); err != nil {
 			return false, err
 		}
-		cachedObj[yamlFile] = obj.(metav1.Object)
 	}
 
-	objectMeta := cachedObj[yamlFile]
-	return deploy.CreateIfNotExists(deployContext, objectMeta)
+	return deploy.CreateIfNotExists(deployContext, cachedObj[yamlFile])
 }
 
 func getK8SObjectFromFile(yamlFile string, obj interface{}) error {
@@ -403,8 +402,8 @@ func getK8SObjectFromFile(yamlFile string, obj interface{}) error {
 		if err := util.ReadObject(yamlFile, obj); err != nil {
 			return err
 		}
+		cachedObj[yamlFile] = obj.(metav1.Object)
 	}
-	obj = cachedObj[yamlFile]
 
 	return nil
 }
@@ -421,13 +420,4 @@ func devWorkspaceCheTemplatesPath() string {
 		return OpenshiftDevWorkspaceCheTemplatesPath
 	}
 	return KubernetesDevWorkspaceCheTemplatesPath
-}
-
-func hasK8SResourceObject(deployContext *deploy.DeployContext, resourceName string) bool {
-	_, resourceList, err := deployContext.ClusterAPI.DiscoveryClient.ServerGroupsAndResources()
-	if err != nil {
-		return false
-	}
-
-	return util.HasAPIResourceNameInList(resourceName, resourceList)
 }
