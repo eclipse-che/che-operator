@@ -122,6 +122,11 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 			}
 		}
 	}
+	_, err := util.K8sclient.ExecIntoPod(
+		deployContext.CheCluster,
+		deploy.IdentityProviderName,
+		GetKeycloakUpdateCommand,
+		"update redirect URI-s")
 
 	return true, nil
 }

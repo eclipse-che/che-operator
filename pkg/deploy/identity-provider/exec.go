@@ -64,6 +64,32 @@ func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string, err error) 
 	return getCommandFromTemplateFile(cr, "/tmp/keycloak-provision.sh", data)
 }
 
+func GetKeycloakUpdateCommand(cr *v1.CheCluster) (command string, err error) {
+	cheFlavor := deploy.DefaultCheFlavor(cr)
+	realmDisplayName := (map[bool]string{true: "CodeReady Workspaces", false: "Eclipse Che"})[cheFlavor == "codeready"]
+
+	script, keycloakRealm, keycloakClientId, keycloakUserEnvVar, keycloakPasswordEnvVar := getDefaults(cr)
+	data := struct {
+		Script                string
+		KeycloakAdminUserName string
+		KeycloakAdminPassword string
+		KeycloakRealm         string
+		RealmDisplayName      string
+		CheHost               string
+		KeycloakClientId      string
+	}{
+		script,
+		keycloakUserEnvVar,
+		keycloakPasswordEnvVar,
+		keycloakRealm,
+		realmDisplayName,
+		cr.Spec.Server.CheHost,
+		keycloakClientId,
+	}
+	return getCommandFromTemplateFile(cr, "/tmp/keycloak-update.sh", data)
+}
+
+
 func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClientName string, oauthSecret string) (string, error) {
 	isOpenShift4 := util.IsOpenShift4
 	providerId := (map[bool]string{true: "openshift-v4", false: "openshift-v3"})[isOpenShift4]
