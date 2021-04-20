@@ -12,7 +12,6 @@
 #
 # Updates images into:
 # - deploy/operator.yaml
-# - deploy/operator-ocp3.11.yaml
 # Usage:
 #   ./release-operator-code.sh <RELEASE_TAG> <CHE_RELEASE_BRANCH>
 
@@ -29,6 +28,8 @@ function replaceImageTag() {
 }
 
 replaceImagesTags() {
+  OPERATOR_YAML="${BASE_DIR}"/deploy/operator.yaml
+
   lastDefaultCheServerImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value" "${OPERATOR_YAML}")
   lastDefaultKeycloakImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value" "${OPERATOR_YAML}")
   lastDefaultPluginRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value" "${OPERATOR_YAML}")
@@ -39,22 +40,19 @@ replaceImagesTags() {
   PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultPluginRegistryImage}" "${RELEASE_TAG}")
   DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceImageTag "${lastDefaultDevfileRegistryImage}" "${RELEASE_TAG}")
 
-  for OPERATOR_YAML in "${BASE_DIR}"/deploy/operator.yaml" "${BASE_DIR}"/deploy/operator-ocp3.11.yaml"
-  do
-    NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
-    # copy licence header
-    eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
+  NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
+  # copy licence header
+  eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
 
-    cat "${OPERATOR_YAML}" | \
-    yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"quay.io/eclipse/che-operator:${RELEASE_TAG}\"" | \
-    yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE_TAG}\"" | \
-    yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
-    yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
-    yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
-    yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
-    >> "${NEW_OPERATOR_YAML}"
-    mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
-  done
+  cat "${OPERATOR_YAML}" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"quay.io/eclipse/che-operator:${RELEASE_TAG}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE_TAG}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
+  >> "${NEW_OPERATOR_YAML}"
+  mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
 }
 
 init "$@"

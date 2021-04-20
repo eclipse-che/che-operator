@@ -153,10 +153,6 @@ releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatoryaml"
   checkImageReferences $operatoryaml
 
-  local operatory311aml=$RELEASE_DIR/deploy/operator-ocp3.11.yaml
-  echo "[INFO] releaseOperatorCode :: Validate changes for $operatory311aml"
-  checkImageReferences $operatory311aml
-
   echo "[INFO] releaseOperatorCode :: Commit changes"
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
@@ -248,7 +244,7 @@ createPRToMainBranch() {
   resetChanges main
   local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator.yaml' ':(exclude)deploy/operator-ocp3.11.yaml' | git apply -3
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator.yaml' | git apply -3
   . ${RELEASE_DIR}/replace-images-tags.sh nightly main
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder

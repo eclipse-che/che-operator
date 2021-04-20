@@ -349,7 +349,6 @@ $ olm/docker-run.sh olm/update-crd-files.sh
 
 Sometimes, during development, you need to modify some YAML definitions in the `deploy` folder or Che cluster custom resource. There are most frequently changes which should be included to the new OLM bundle:
   - operator deployment `deploy/operator.yaml`
-  - operator deployment `deploy/operator-ocp3.11.yaml`
   - operator roles/cluster roles permissions. They are defined like role/rolebinding or cluster role/rolebinding yamls in the `deploy` folder.
   - operator custom resource CR `deploy/crds/org_v1_che_cr.yaml`. This file contains the default CheCluster sample. Also this file is the default OLM CheCluster sample.
   - Che cluster custom resource definition `pkg/apis/org/v1/che_types.go`. For example you want to fix some properties description or apply new Che type properties with default values. These changes affect CRD `deploy/crds/org_v1_che_crd.yaml`.
