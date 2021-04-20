@@ -11,6 +11,7 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
+set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -25,16 +26,16 @@ function check_che_crds() {
     cd "${ROOT_PROJECT_DIR}"
     # CHE_TYPES_FILE make reference to generated code by operator-sdk.
     # Export variables for cr/crds files.
-    local CR_CRD_FOLDER="deploy/crds"
-    local CR_CRD_REGEX="${CR_CRD_FOLDER}/org_v1_che_crd.yaml"
-    local CR_CRD_V1BETA1_REGEX="${CR_CRD_FOLDER}/org_v1_che_crd-v1beta1.yaml"
+    local CRDS_FOLDER="deploy/crds"
+    local CRD_V1_REGEX="${CRDS_FOLDER}/org_v1_che_crd.yaml"
+    local CRD_V1BETA1_REGEX="${CRDS_FOLDER}/org_v1_che_crd-v1beta1.yaml"
 
     # Update crd
     source "${ROOT_PROJECT_DIR}/olm/update-crd-files.sh"
 
     IFS=$'\n' read -d '' -r -a changedFiles < <( git ls-files -m ) || true
     # Check if there is any difference in the crds. If yes, then fail check.
-    if [[ " ${changedFiles[*]} " =~ $CR_CRD_REGEX ]] || [[ " ${changedFiles[*]} " =~ $CR_CRD_V1BETA1_REGEX ]]; then
+    if [[ " ${changedFiles[*]} " =~ $CRD_V1_REGEX ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1_REGEX ]]; then
         echo "[ERROR] CR/CRD file is up to date: ${BASH_REMATCH}. Use 'che-operator/olm/update-crd-files.sh' script to update it."
         exit 1
     else
