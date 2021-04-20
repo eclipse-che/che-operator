@@ -123,9 +123,3 @@ rules:
   verbs:
   - get
   - list
-- apiGroups:
-  - operators.coreos.com
-  resources:
-  - subscriptions
-  verbs:
-  - get

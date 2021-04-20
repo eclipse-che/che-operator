@@ -11,7 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then

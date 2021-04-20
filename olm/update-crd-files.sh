@@ -26,7 +26,7 @@ init() {
 }
 
 checkOperatorSDKVersion() {
-  if [ -z "${OPERATOR_SK_BINARY}" ]; then
+  if [ -z "${OPERATOR_SDK_BINARY}" ]; then
     OPERATOR_SDK_BINARY=$(command -v operator-sdk)
     if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
       echo "[ERROR] operator-sdk is not installed."
