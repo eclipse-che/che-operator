@@ -10,8 +10,9 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-# This script updates deploy/crds/org_v1_che_cr.yaml and
-# deploy/crds/org_v1_che_crd.yaml files when `che_types.go` is changed.
+# Generated CRDs based on pkg/apis/org/v1/che_types.go:
+# - deploy/crds/org_v1_che_crd.yaml
+# - deploy/crds/org_v1_che_crd-v1beta1.yaml
 
 set -e
 
@@ -19,10 +20,12 @@ init() {
   if [ -z "${BASE_DIR}" ]; then
     BASE_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
   fi
-  OPERATOR_DIR="$(dirname "${BASE_DIR}")"
+  if [ -z "${OPERATOR_DIR}" ]; then
+    OPERATOR_DIR="$(dirname "${BASE_DIR}")"
+  fi
 }
 
-check() {
+checkOperatorSDKVersion() {
   if [ -z "${OPERATOR_SDK_BINARY}" ]; then
     OPERATOR_SDK_BINARY=$(command -v operator-sdk)
     if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
@@ -38,17 +41,30 @@ check() {
   if [ -z "${GOROOT}" ]; then
     echo "[ERROR] set up '\$GOROOT' env variable to make operator-sdk working"
     exit 1
-  fi 
+  fi
 }
 
-updateFiles() {
-  pushd "${BASE_DIR}"/.. || true
+generateCRD() {
+  version=$1
+  pushd "${OPERATOR_DIR}" || true
   "${OPERATOR_SDK_BINARY}" generate k8s
-  "${OPERATOR_SDK_BINARY}" generate crds
+  "${OPERATOR_SDK_BINARY}" generate crds --crd-version $version
   popd
+
+  addLicenseHeader ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
+
+  if [[ $version == "v1" ]]; then
+    mv ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd.yaml
+    echo "[INFO] Generated CRD v1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd.yaml"
+  elif [[ $version == "v1beta1" ]]; then
+    removeRequiredAttribute ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
+    mv ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
+    echo "[INFO] Generated CRD v1beta1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
+  fi
 }
 
-removeRequired() {
+# Removes `required` attributes for fields to be compatible with OCP 3.11
+removeRequiredAttribute() {
   REQUIRED=false
   while IFS= read -r line
   do
@@ -65,35 +81,26 @@ removeRequired() {
           continue
       fi
 
-      echo  "$line" >> $2
+      echo  "$line" >> $1.tmp
   done < "$1"
+  mv $1.tmp $1
 }
 
 addLicenseHeader() {
-  echo $1_license
-
-cat << EOF > $1_license
-$2
-$2  Copyright (c) 2012-2020 Red Hat, Inc.
-$2    This program and the accompanying materials are made
-$2    available under the terms of the Eclipse Public License 2.0
-$2    which is available at https://www.eclipse.org/legal/epl-2.0/
-$2
-$2  SPDX-License-Identifier: EPL-2.0
-$2
-$2  Contributors:
-$2    Red Hat, Inc. - initial API and implementation
-EOF
-
-cat $1 >> $1_license
-mv $1_license $1
+echo -e "#
+#  Copyright (c) 2019-2021 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
+$(cat $1)" > $1
 }
 
 init
-check
-updateFiles
-
-rm "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
-removeRequired "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml" "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml"
-rm "$BASE_DIR/../deploy/crds/org.eclipse.che_checlusters_crd.yaml"
-addLicenseHeader "$BASE_DIR/../deploy/crds/org_v1_che_crd.yaml" "#"
+checkOperatorSDKVersion
+generateCRD "v1"
+generateCRD "v1beta1"

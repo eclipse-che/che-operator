@@ -9,7 +9,6 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-// REMINDER: when updating versions below, see also pkg/apis/org/v1/che_types.go and deploy/crds/org_v1_che_cr.yaml
 package deploy
 
 import (
