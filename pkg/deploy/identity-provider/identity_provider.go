@@ -126,7 +126,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 			deploy.IdentityProviderName,
 			GetKeycloakUpdateCommand,
 			"Update redirect URI-s")
-		return true, err
+		return err == nil, err
 	}
 
 	return true, nil
