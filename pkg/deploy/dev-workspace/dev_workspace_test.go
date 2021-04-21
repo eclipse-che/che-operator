@@ -22,6 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -35,7 +37,15 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 
 	cli := fake.NewFakeClientWithScheme(scheme)
-
+	clientSet := fakeclientset.NewSimpleClientset()
+	fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
+		{
+			APIResources: []metav1.APIResource{
+				{Name: CheManagerResourcename},
+			},
+		},
+	}
 	deployContext := &deploy.DeployContext{
 		CheCluster: &orgv1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -57,6 +67,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			Client:          cli,
 			NonCachedClient: cli,
 			Scheme:          scheme,
+			DiscoveryClient: fakeDiscovery,
 		},
 	}
 
@@ -106,6 +117,15 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 	scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
 
 	cli := fake.NewFakeClientWithScheme(scheme, subscription, &webhook)
+	clientSet := fakeclientset.NewSimpleClientset()
+	fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
+		{
+			APIResources: []metav1.APIResource{
+				{Name: SubscriptionResourceName},
+			},
+		},
+	}
 
 	deployContext := &deploy.DeployContext{
 		CheCluster: &orgv1.CheCluster{
@@ -128,11 +148,13 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 			Client:          cli,
 			NonCachedClient: cli,
 			Scheme:          scheme,
+			DiscoveryClient: fakeDiscovery,
 		},
 	}
 
 	util.IsOpenShift4 = true
 	_, err := ReconcileDevWorkspace(deployContext)
+
 	if err == nil || err.Error() != "A non matching version of the Dev Workspace operator is already installed" {
 		t.Fatalf("Error should be thrown")
 	}

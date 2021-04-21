@@ -144,18 +144,13 @@ func getApiList() ([]v1.APIGroup, error) {
 	return apiList.Groups, nil
 }
 
-func HasAPIResourceName(name string) bool {
-	discoveryClient, err := getDiscoveryClient()
+func HasK8SResourceObject(discoveryClient discovery.DiscoveryInterface, resourceName string) bool {
+	_, resourceList, err := discoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		return false
 	}
 
-	_, resourcesList, err := discoveryClient.ServerGroupsAndResources()
-	if err != nil {
-		return false
-	}
-
-	return HasAPIResourceNameInList(name, resourcesList)
+	return HasAPIResourceNameInList(resourceName, resourceList)
 }
 
 func HasAPIResourceNameInList(name string, resources []*metav1.APIResourceList) bool {
