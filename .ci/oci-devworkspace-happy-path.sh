@@ -45,7 +45,7 @@ EOL
 
   cat /tmp/che-cr-patch.yaml
 
-  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --batch --telemetry=off --installer=operator --che-operator-image=${OPERATOR_IMAGE}
+  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --templates=${TEMPLATES} --batch --telemetry=off --installer=operator --che-operator-image=${OPERATOR_IMAGE}
 }
 
 startHappyPathTest() {
@@ -105,6 +105,7 @@ runTest() {
 }
 
 initDefaults
+initLatestTemplates
 overrideDefaults
 provisionOpenShiftOAuthUser
 runTest
