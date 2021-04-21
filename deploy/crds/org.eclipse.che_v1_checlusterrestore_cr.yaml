@@ -5,6 +5,11 @@ metadata:
 spec:
   deleteAfterRestore: false
   triggerNow: true
-	backupServers:
+  servers:
     rest:
-      host: 'rest-host.net'
+      hostname: rest-host.net
+      repo: che
+      repoPassword:
+        password: password
+  crOverrides:
+    ingressDomain: che-eclipse-che.k8s.domain.net

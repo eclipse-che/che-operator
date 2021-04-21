@@ -96,9 +96,12 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 }
 
 func (s *RestServer) IsRepositoryExist() (bool, bool, error) {
-	defaultCheBackupRepoUrl := strings.TrimPrefix(s.ResticClient.RepoUrl, "rest:") + "/config"
+	defaultCheBackupRepoUrl := strings.TrimPrefix(s.ResticClient.RepoUrl, "rest:") + "config"
 	response, err := http.Head(defaultCheBackupRepoUrl)
-	if err != nil || response.ContentLength == 0 {
+	if err != nil {
+		return false, true, err
+	}
+	if response.StatusCode == 404 || response.ContentLength == 0 {
 		// Cannot read the repository, probably it doesn't exist
 		return false, true, nil
 	}
