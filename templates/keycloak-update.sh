@@ -15,9 +15,8 @@ connectToKeycloak() {
 }
 
 updateKeycloak() {
-  {{ .Script }} update clients \
+  {{ .Script }} update clients/{{ .KeycloakClientId }} \
     -r '{{ .KeycloakRealm }}' \
-    -s clientId={{ .KeycloakClientId }} \
     -s redirectUris='["http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/factory*", "https://{{ .CheHost }}/factory*", "http://{{ .CheHost }}/f*", "https://{{ .CheHost }}/f*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"]'
 }
 
