@@ -56,6 +56,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
+const (
+	backupDestDir = "/tmp/che-backup-data"
+)
+
 // blank assignment to verify that ReconcileCheClusterBackup implements reconcile.Reconciler
 var _ reconcile.Reconciler = &ReconcileCheClusterBackup{}
 
@@ -166,7 +170,6 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 			return done, err
 		}
 
-		backupDestDir := "/tmp/che-backup-data"
 		// Schedule cleanup
 		defer os.RemoveAll(backupDestDir)
 		// Collect all needed data to backup

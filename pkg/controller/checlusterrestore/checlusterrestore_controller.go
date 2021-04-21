@@ -67,6 +67,10 @@ type ReconcileCheClusterRestore struct {
 	scheme *runtime.Scheme
 }
 
+const (
+	backupDataDestDir = "/tmp/che-restore-data"
+)
+
 // Reconcile reads that state of the cluster for a CheClusterRestore object and makes changes based on the state read
 // and what is in the CheClusterRestore.Spec
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
@@ -114,7 +118,7 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 	if !done {
 		// There was no error, but it is required to proceed after some delay,
 		// e.g wait until some resources are flushed and/or ready.
-		return reconcile.Result{RequeueAfter: 1 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
 	// Job is done
@@ -137,54 +141,64 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 	}
 
 	if rctx.restoreCR.Spec.TriggerNow {
-		// Check if repository accesible and credentials provided in the configuration can be used to reach backup server content
-		done, err = rctx.backupServer.CheckRepository()
-		if err != nil || !done {
-			return done, err
+		rctx.UpdateRestoreStage()
+
+		if !rctx.state.backupDownloaded {
+			// Check if repository accesible and credentials provided in the configuration can be used to reach backup server content
+			done, err = rctx.backupServer.CheckRepository()
+			if err != nil || !done {
+				return done, err
+			}
+
+			if err := os.RemoveAll(backupDataDestDir); err != nil {
+				return false, err
+			}
+			// Download data from backup server
+			if rctx.restoreCR.Spec.SnapshotId != "" {
+				done, err = rctx.backupServer.DownloadSnapshot(rctx.restoreCR.Spec.SnapshotId, backupDataDestDir)
+			} else {
+				done, err = rctx.backupServer.DownloadLastSnapshot(backupDataDestDir)
+			}
+			if err != nil || !done {
+				return done, err
+			}
+			logrus.Info("Retrieved data from backup server")
+			rctx.state.backupDownloaded = true
+			rctx.UpdateRestoreStage()
 		}
 
-		backupDataDestDir := "/tmp/che-restore-data"
-		if err := os.RemoveAll(backupDataDestDir); err != nil {
-			return true, err
-		}
-		// Schedule cleanup
-		defer os.RemoveAll(backupDataDestDir)
-		// Download data from backup server
-		if rctx.restoreCR.Spec.SnapshotId != "" {
-			done, err = rctx.backupServer.DownloadSnapshot(rctx.restoreCR.Spec.SnapshotId, backupDataDestDir)
-		} else {
-			done, err = rctx.backupServer.DownloadLastSnapshot(backupDataDestDir)
-		}
-		if err != nil || !done {
-			return done, err
-		}
-		logrus.Info("Retrieved data from backup server")
+		if !rctx.state.cheRestored {
+			// Restore all data from the backup
+			done, err = RestoreChe(rctx, backupDataDestDir)
+			if err != nil || !done {
+				return done, err
+			}
 
-		// Restore all data from the backup
-		done, err = RestoreChe(rctx, backupDataDestDir)
-		if err != nil || !done {
-			return done, err
+			// Clean up backup data after successful restore
+			if err := os.RemoveAll(backupDataDestDir); err != nil {
+				return false, err
+			}
 		}
 
 		// Restore is successfull
 		rctx.restoreCR.Spec.TriggerNow = false
 		if err := rctx.r.UpdateCR(rctx.restoreCR); err != nil {
-			// Wait a bit and retry.
-			// This is needed because actual restore is done successfully, but the CR still has restore flag set.
-			// This update is important, because without it next reconcile loop will start restore process again.
-			time.Sleep(5 * time.Second)
-			if err := rctx.r.UpdateCR(rctx.restoreCR); err != nil {
-				return false, err
-			}
+			return false, err
 		}
 
 		rctx.restoreCR.Status.Message = "Restore successfully finished"
 		if err := rctx.r.UpdateCRStatus(rctx.restoreCR); err != nil {
-			logrus.Errorf("Failed to update status after successful restore")
-			// Do not reconsile as restore is done, only status is not updated
-			return true, err
+			return false, err
+		}
+
+		if rctx.restoreCR.Spec.DeleteConfigurationAfterRestore {
+			if err := rctx.r.client.Delete(context.TODO(), rctx.restoreCR); err != nil {
+				return true, err
+			}
 		}
 	}
+	// Reset restore state
+	rctx.state = NewRestoreState()
 
 	return true, nil
 }

@@ -58,7 +58,7 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		return false, err
 	}
 
-	backupMetadataFilePath := path.Join(destDir, "backup-data.txt")
+	backupMetadataFilePath := path.Join(destDir, "backup-info.txt")
 	if err := ioutil.WriteFile(backupMetadataFilePath, data, backupFilesPerms); err != nil {
 		return false, err
 	}

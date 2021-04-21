@@ -31,6 +31,16 @@ spec:
         spec:
           description: CheClusterRestoreSpec defines the desired state of CheClusterRestore
           properties:
+            crOverrides:
+              description: Amendments for CR from backup
+              properties:
+                ingressDomain:
+                  description: Overrides k8s.ingressDomain in Che CR. Makes sense
+                    only for Kubernetes infrastructures. Must be set in order to restore
+                    Che on a different Kubernetes cluster, that has ingress domain
+                    different from the cluster on which the backup was done.
+                  type: string
+              type: object
             deleteConfigurationAfterRestore:
               description: If true deletes the CR after successful restore.
               type: boolean
@@ -203,6 +213,9 @@ spec:
           properties:
             message:
               description: Backup result or error message
+              type: string
+            stage:
+              description: Describes restore progress
               type: string
           type: object
       type: object
