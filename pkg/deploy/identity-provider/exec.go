@@ -89,7 +89,6 @@ func GetKeycloakUpdateCommand(cr *v1.CheCluster) (command string, err error) {
 	return getCommandFromTemplateFile(cr, "/tmp/keycloak-update.sh", data)
 }
 
-
 func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClientName string, oauthSecret string) (string, error) {
 	isOpenShift4 := util.IsOpenShift4
 	providerId := (map[bool]string{true: "openshift-v4", false: "openshift-v3"})[isOpenShift4]
