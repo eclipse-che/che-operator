@@ -249,11 +249,12 @@ func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	if err := getK8SObjectFromFile(DevWorkspaceConfigMapFile, &corev1.ConfigMap{}); err != nil {
+	objectMeta, err := getK8SObject(DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
+	if err != nil {
 		return false, err
 	}
-	configMap := cachedObj[DevWorkspaceConfigMapFile].(*corev1.ConfigMap)
 
+	configMap := objectMeta.(*corev1.ConfigMap)
 	// Remove when DevWorkspace controller should not care about DWR base host #373 https://github.com/devfile/devworkspace-operator/issues/373
 	if !util.IsOpenShift {
 		if configMap.Data == nil {
@@ -266,16 +267,17 @@ func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	if err := getK8SObjectFromFile(DevWorkspaceDeploymentFile, &appsv1.Deployment{}); err != nil {
+	objectMeta, err := getK8SObject(DevWorkspaceDeploymentFile, &appsv1.Deployment{})
+	if err != nil {
 		return false, err
 	}
-	dwDeploymentObj := cachedObj[DevWorkspaceDeploymentFile].(*appsv1.Deployment)
 
+	deploymentObject := objectMeta.(*appsv1.Deployment)
 	if deployContext.CheCluster.Spec.DevWorkspace.ControllerImage != "" {
-		dwDeploymentObj.Spec.Template.Spec.Containers[0].Image = deployContext.CheCluster.Spec.DevWorkspace.ControllerImage
+		deploymentObject.Spec.Template.Spec.Containers[0].Image = deployContext.CheCluster.Spec.DevWorkspace.ControllerImage
 	}
 
-	return deploy.CreateIfNotExists(deployContext, dwDeploymentObj)
+	return deploy.CreateIfNotExists(deployContext, deploymentObject)
 }
 
 func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
@@ -386,26 +388,24 @@ func synDwCheDeployment(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {
-	_, exists := cachedObj[yamlFile]
-	if !exists {
-		if err := getK8SObjectFromFile(yamlFile, obj); err != nil {
-			return false, err
-		}
+	objectMeta, err := getK8SObject(yamlFile, obj)
+	if err != nil {
+		return false, err
 	}
 
-	return deploy.CreateIfNotExists(deployContext, cachedObj[yamlFile])
+	return deploy.CreateIfNotExists(deployContext, objectMeta)
 }
 
-func getK8SObjectFromFile(yamlFile string, obj interface{}) error {
+func getK8SObject(yamlFile string, obj interface{}) (metav1.Object, error) {
 	_, exists := cachedObj[yamlFile]
 	if !exists {
 		if err := util.ReadObject(yamlFile, obj); err != nil {
-			return err
+			return nil, err
 		}
 		cachedObj[yamlFile] = obj.(metav1.Object)
 	}
 
-	return nil
+	return cachedObj[yamlFile], nil
 }
 
 func devWorkspaceTemplatesPath() string {
