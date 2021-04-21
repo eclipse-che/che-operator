@@ -20,8 +20,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Submit code coverage results
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
          echo "" > coverage.txt
          export MOCK_API=true && go test -mod=vendor -v ./... -coverprofile coverage.txt
