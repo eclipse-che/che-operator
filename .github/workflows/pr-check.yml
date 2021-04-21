@@ -81,7 +81,8 @@ jobs:
         git reset HEAD --hard
         if [[ $(find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;) != "" ]]
         then
-          echo "not well formatted sources are found:"
+          echo "not well organized imports are found."
+          echo "execute `find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;` to fix the following:"
           find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
           exit 1
         fi

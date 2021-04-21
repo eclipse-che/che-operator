@@ -545,6 +545,33 @@ spec:
                         be normally generated in `che` ConfigMap from other CR fields,
                         the value defined in the `customCheProperties` is used instead.
                       type: object
+                    dashboardCpuLimit:
+                      description: Overrides the CPU limit used in the dashboard deployment.
+                        In cores. (500m = .5 cores). Default to 500m.
+                      type: string
+                    dashboardCpuRequest:
+                      description: Overrides the CPU request used in the dashboard
+                        deployment. In cores. (500m = .5 cores). Default to 100m.
+                      type: string
+                    dashboardImage:
+                      description: Overrides the container image used in the dashboard
+                        deployment. This includes the image tag. Omit it or leave
+                        it empty to use the default container image provided by the
+                        Operator.
+                      type: string
+                    dashboardImagePullPolicy:
+                      description: Overrides the image pull policy used in the dashboard
+                        deployment. Default value is `Always` for `nightly` or `latest`
+                        images, and `IfNotPresent` in other cases.
+                      type: string
+                    dashboardMemoryLimit:
+                      description: Overrides the memory limit used in the dashboard
+                        deployment. Defaults to 256Mi.
+                      type: string
+                    dashboardMemoryRequest:
+                      description: Overrides the memory request used in the dashboard
+                        deployment. Defaults to 16Mi.
+                      type: string
                     devfileRegistryCpuLimit:
                       description: Overrides the CPU limit used in the devfile registry
                         deployment. In cores. (500m = .5 cores). Default to 500m.

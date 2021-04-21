@@ -51,6 +51,8 @@ spec:
               value: nightly
             - name: RELATED_IMAGE_che_server
               value: quay.io/eclipse/che-server:nightly
+            - name: RELATED_IMAGE_dashboard
+              value: quay.io/eclipse/che-dashboard:next
             - name: RELATED_IMAGE_plugin_registry
               value: quay.io/eclipse/che-plugin-registry:nightly
             - name: RELATED_IMAGE_devfile_registry

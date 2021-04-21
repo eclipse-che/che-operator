@@ -29,6 +29,7 @@ import (
 var (
 	defaultCheServerImage                      string
 	defaultCheVersion                          string
+	defaultDashboardImage                      string
 	defaultPluginRegistryImage                 string
 	defaultDevfileRegistryImage                string
 	defaultCheTLSSecretsCreationJobImage       string
@@ -117,6 +118,11 @@ const (
 	PostgresName         = "postgres"
 
 	// limits
+	DefaultDashboardMemoryLimit   = "256Mi"
+	DefaultDashboardMemoryRequest = "32Mi"
+	DefaultDashboardCpuLimit      = "500m"
+	DefaultDashboardCpuRequest    = "100m"
+
 	DefaultPluginRegistryMemoryLimit   = "256Mi"
 	DefaultPluginRegistryMemoryRequest = "32Mi"
 	DefaultPluginRegistryCpuLimit      = "500m"
@@ -160,6 +166,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 
 	defaultCheVersion = util.GetDeploymentEnv(operatorDeployment, "CHE_VERSION")
 	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultDashboardImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
 	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
@@ -270,6 +277,10 @@ func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
 
 func DefaultPostgresImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultPostgresImage)
+}
+
+func DefaultDashboardImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultDashboardImage)
 }
 
 func DefaultKeycloakImage(cr *orgv1.CheCluster) string {
@@ -398,6 +409,7 @@ func getOrganizationFromImage(image string) string {
 func InitDefaultsFromEnv() {
 	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
 	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultDashboardImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
 	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
