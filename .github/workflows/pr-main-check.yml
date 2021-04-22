@@ -19,8 +19,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
-    - name: Install yq
-      run: sudo pip install yq
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install yq
+        pip install semver
     - name: Set up Go 1.13
       uses: actions/setup-go@v2
       with:
