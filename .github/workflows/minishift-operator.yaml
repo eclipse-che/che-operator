@@ -32,7 +32,7 @@ jobs:
         eval "$(docker-machine env default)"
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 
-        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 
         docker-machine stop
     - name: Provision Minishift cluster
