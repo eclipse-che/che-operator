@@ -85,7 +85,7 @@ checkNightlyOlmBundle() {
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
      [[ " ${changedFiles[*]} " =~ $CRD_FILE_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CRD_FILE_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'olm/update-resources.sh' to regenrated CSV/CRD files."
+    echo "[ERROR] Run 'olm/update-resources.sh' to regenerate CSV/CRD files."
     exit 1
   else
     echo "[INFO] Nightly bundles are up to date."
