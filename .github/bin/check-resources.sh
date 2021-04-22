@@ -64,7 +64,7 @@ checkCRDs() {
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
-        echo "[ERROR] Run 'olm/update-resources.sh' to regenrated CRD files."
+        echo "[ERROR] Run 'olm/update-resources.sh' to regenerate CRD files."
         exit 1
     else
         echo "[INFO] CRDs files are up to date."
