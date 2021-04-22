@@ -48,14 +48,14 @@ function checkCRDs() {
     local CRD_V1BETA1="deploy/crds/org_v1_che_crd-v1beta1.yaml"
 
     pushd "${ROOT_PROJECT_DIR}"
-    source "${ROOT_PROJECT_DIR}/olm/update-crd-files.sh"
+    source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
 
     changedFiles=($(git diff --name-only))
 
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
-        echo "[ERROR] Run 'olm/update-crd-files.sh' to regenrated CRD files."
+        echo "[ERROR] Run 'olm/update-resources.sh' to regenrated CRD files."
         exit 1
     else
         echo "[INFO] CRDs files are up to date."
@@ -74,13 +74,13 @@ checkNightlyOlmBundle() {
   export NO_INCREMENT="true"
 
   pushd "${ROOT_PROJECT_DIR}" || true
-  source "${ROOT_PROJECT_DIR}/olm/update-nightly-bundle.sh"
+  source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
 
   changedFiles=($(git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
      [[ " ${changedFiles[*]} " =~ $CRD_FILE_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CRD_FILE_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'olm/update-nightly-bundle.sh' to regenrated CSV/CRD files."
+    echo "[ERROR] Run 'olm/update-resources.sh' to regenrated CSV/CRD files."
     exit 1
   else
     echo "[INFO] Nightly bundles are up to date."
@@ -89,8 +89,29 @@ checkNightlyOlmBundle() {
   popd || true
 }
 
+checkDockerfile() {
+  # files to check
+  local Dockerfile="Dockerfile"
+
+  pushd "${ROOT_PROJECT_DIR}" || true
+
+  changedFiles=($(git diff --name-only))
+  if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
+    echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
+    echo "[ERROR] Run 'olm/update-resources.sh' to regenrated CSV/CRD files."
+    exit 1
+  else
+    echo "[INFO] Dockerfile is up to date."
+  fi
+
+  popd || true
+}
+
 installOperatorSDK
+updateResources
 checkCRDs
 checkNightlyOlmBundle
+checkDockerfile
+checkOperatorYaml
 
 echo "[INFO] Done."

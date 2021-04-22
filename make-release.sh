@@ -202,21 +202,6 @@ replaceTag() {
     echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
 }
 
-updateNightlyOlmFiles() {
-  echo "[INFO] updateNightlyOlmFiles :: Update nighlty OLM files"
-  echo "[INFO] updateNightlyOlmFiles :: Launch 'olm/update-nightly-bundle.sh' script"
-
-  export BASE_DIR=${RELEASE_DIR}/olm
-  . ${BASE_DIR}/update-nightly-bundle.sh nightly
-  unset BASE_DIR
-
-  echo "[INFO] updateNightlyOlmFiles :: Commit changes"
-  if git status --porcelain; then
-    git add -A || true # add new generated CSV files in olm/ folder
-    git commit -am "Update nightly olm files" --signoff
-  fi
-}
-
 updateVersionFile() {
   echo "[INFO] updating VERSION file"
   echo ${RELEASE} > VERSION

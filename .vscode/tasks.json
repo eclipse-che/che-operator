@@ -74,21 +74,8 @@
             "group": "build"
         },
         {
-            "label": "Update crd files",
-            "command": "./olm/update-crd-files.sh",
-            "type": "shell",
-            "args": [],
-            "problemMatcher": [
-                "$go"
-            ],
-            "presentation": {
-                "reveal": "always"
-            },
-            "group": "build"
-        },
-        {
-            "label": "Update nightly OLM bundle",
-            "command": "./olm/update-nightly-bundle.sh",
+            "label": "Update resources",
+            "command": "./olm/update-resources.sh",
             "type": "shell",
             "args": [],
             "problemMatcher": [
