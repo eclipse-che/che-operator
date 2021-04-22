@@ -36,6 +36,8 @@ initDefaults
 installYq
 initLatestTemplates
 prepareTemplates
-buildCheOperatorImage
+if [[ -z "$GITHUB_ACTIONS" ]]; then
+  buildCheOperatorImage
+fi
 copyCheOperatorImageToMinishift
 runTest
