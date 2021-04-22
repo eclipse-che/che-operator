@@ -38,9 +38,18 @@ installOperatorSDK() {
   fi
 }
 
+updateResources() {
+  export NO_DATE_UPDATE="true"
+  export NO_INCREMENT="true"
+
+  pushd "${ROOT_PROJECT_DIR}" || true
+  source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
+  popd || true
+}
+
 # check_che_types function check first if pkg/apis/org/v1/che_types.go file suffer modifications and
 # in case of modification should exist also modifications in deploy/crds/* folder.
-function checkCRDs() {
+checkCRDs() {
     echo "[INFO] Checking CRDs"
 
     # files to check
@@ -70,11 +79,7 @@ checkNightlyOlmBundle() {
   local CRD_FILE_KUBERNETES="deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
   local CRD_FILE_OPENSHIFT="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
 
-  export NO_DATE_UPDATE="true"
-  export NO_INCREMENT="true"
-
   pushd "${ROOT_PROJECT_DIR}" || true
-  source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
 
   changedFiles=($(git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
@@ -97,11 +102,29 @@ checkDockerfile() {
 
   changedFiles=($(git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
-    echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'olm/update-resources.sh' to regenrated CSV/CRD files."
+    echo "[ERROR] Dockerfile is not up to date"
+    echo "[ERROR] Run 'olm/update-resources.sh' to update Dockerfile"
     exit 1
   else
     echo "[INFO] Dockerfile is up to date."
+  fi
+
+  popd || true
+}
+
+checkOperatorYaml() {
+  # files to check
+  local OperatorYaml="deploy/operator.yaml"
+
+  pushd "${ROOT_PROJECT_DIR}" || true
+
+  changedFiles=($(git diff --name-only))
+  if [[ " ${changedFiles[*]} " =~ $OperatorYaml ]]; then
+    echo "[ERROR] $OperatorYaml is not up to date"
+    echo "[ERROR] Run 'olm/update-resources.sh' to update $OperatorYaml"
+    exit 1
+  else
+    echo "[INFO] $OperatorYaml is up to date."
   fi
 
   popd || true
