@@ -139,15 +139,15 @@ collectCheLogWithChectl() {
 
 # Build latest operator image
 buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinikube() {
-  eval $(minikube docker-env) && docker load -i operator.tar && rm operator.tar
+  eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinishift() {
-  eval $(minishift docker-env) && docker load -i operator.tar && rm operator.tar
+  eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
 deployEclipseChe() {

@@ -9,32 +9,27 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-name: Build and push catalog and bundle images.
+name: Build catalog and bundle images
 on:
   schedule:
     - cron:  '0 21 * * *'
       branches:
         - main
 jobs:
-
-  build-and-push-images:
+  build-images:
     name: Build
     runs-on: ubuntu-20.04
-
     steps:
     - uses: actions/checkout@v1
-
     - name: Install yq
       run: sudo pip install yq
-
     - name: Docker login
       uses: azure/docker-login@v1
       with:
         login-server: quay.io
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
-
-    - name: Build catalog source and opm bundle images and push to registry
+    - name: Build and push images to quay.io
       run: >
         ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'nightly' -p 'openshift' &&
         ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'nightly' -p 'kubernetes'

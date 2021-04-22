@@ -32,14 +32,14 @@ jobs:
         eval "$(docker-machine env default)"
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 
-        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > operator.tar
+        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 
         docker-machine stop
     - name: Provision Minishift cluster
       run: |
         brew install minishift
         export MINISHIFT_GITHUB_API_TOKEN=${{ secrets.GITHUB_TOKEN }}
-        minishift start --memory=5500 --vm-driver=virtualbox
+        minishift start --memory=5500 --vm-driver=virtualbox --registry-mirror=https://quay.io
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Replace Minishift default certificates

@@ -42,5 +42,8 @@ installYq
 initLatestTemplates
 initStableTemplates "openshift" "stable"
 prepareTemplates
+if [[ -z "$GITHUB_ACTIONS" ]]; then
+  buildCheOperatorImage
+fi
 copyCheOperatorImageToMinishift
 runTest

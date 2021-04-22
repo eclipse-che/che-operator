@@ -11,12 +11,6 @@ OLM packages scripts are using some required dependencies that need to be instal
 
 WARNING: Please make sure to use the precise `v0.17.2` version of the `operator-sdk`.
 
-If these dependencies are not installed, `docker-run.sh` can be used as a container bootstrap to run a given script with the appropriate dependencies, for instance:
-
-```bash
-$ docker-run.sh olm/update-nightly-bundle.sh
-```
-
 ## Eclipse Che OLM bundles
 
 OLM (operator lifecycle manager) provides ways of installing operators. One of the convenient way how to achieve it is by using OLM bundles. See more about the format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md. There two "nightly" platform-specific OLM bundles for Сhe operator:
