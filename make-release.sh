@@ -294,8 +294,12 @@ run() {
 
 init "$@"
 echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
-echo "[INFO] Check if resources are up to date"
-. ${RELEASE_DIR}/.github/bin/check-resources.sh
+
+
+if [[ ${RELEASE} == *".0" ]]; then
+  echo "[INFO] Check if resources are up to date"
+  . ${RELEASE_DIR}/.github/bin/check-resources.sh
+fi
 
 if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
