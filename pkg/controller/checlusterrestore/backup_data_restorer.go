@@ -198,6 +198,8 @@ func restoreConfigMaps(rctx *RestoreContext, dataDir string) (bool, error) {
 			return true, err
 		}
 
+		configMap.ObjectMeta.Namespace = rctx.namespace
+
 		if err := rctx.r.client.Create(context.TODO(), configMap); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				return false, err
@@ -275,10 +277,11 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 		return true, err
 	}
 
+	cheCR.ObjectMeta.Namespace = rctx.namespace
 	// Correct ingress domain if requested
 	if isOpenShift, _, _ := util.DetectOpenShift(); !isOpenShift {
 		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
-			rctx.cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
+			cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
 		}
 	}
 

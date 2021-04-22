@@ -118,7 +118,7 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 	if !done {
 		// There was no error, but it is required to proceed after some delay,
 		// e.g wait until some resources are flushed and/or ready.
-		return reconcile.Result{RequeueAfter: 3 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// Job is done

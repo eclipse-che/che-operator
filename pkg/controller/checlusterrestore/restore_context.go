@@ -25,7 +25,7 @@ type RestoreContext struct {
 	restoreCR    *orgv1.CheClusterRestore
 	cheCR        *orgv1.CheCluster
 	backupServer backup.BackupServer
-	state        RestoreState
+	state        *RestoreState
 }
 
 func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheClusterRestore) (*RestoreContext, error) {
@@ -77,8 +77,8 @@ type RestoreState struct {
 	cheRestored          bool
 }
 
-func NewRestoreState() RestoreState {
-	return RestoreState{
+func NewRestoreState() *RestoreState {
+	return &RestoreState{
 		backupDownloaded:     false,
 		oldCheAvailable:      false,
 		oldCheSuspended:      false,
@@ -89,7 +89,7 @@ func NewRestoreState() RestoreState {
 	}
 }
 
-func (s RestoreState) GetProgressMessage() string {
+func (s *RestoreState) GetProgressMessage() string {
 	if !s.backupDownloaded {
 		return "Downloading backup from backup server"
 	}

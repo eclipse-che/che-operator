@@ -471,3 +471,11 @@ func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheClu
 	}
 	return cheCR, nil
 }
+
+// ClearMetadata removes extra fields from given metadata.
+// It is required to remove ResourceVersion in order to be able to apply the yaml again.
+func ClearMetadata(objectMeta *v1.ObjectMeta) {
+	objectMeta.ResourceVersion = ""
+
+	objectMeta.ManagedFields = []v1.ManagedFieldsEntry{}
+}

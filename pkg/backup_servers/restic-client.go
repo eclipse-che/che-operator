@@ -105,8 +105,8 @@ func (c *ResticClient) SendSnapshot(path string) (bool, error) {
 		return true, err
 	}
 
-	backupCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "backup", path)
-	// Change directory to the backup root to avoid backup root path in target folder after restore
+	backupCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "backup", ".")
+	// Change directory to the backup root to avoid backup root path in the target folder after restore
 	backupCommand.Dir = path
 	backupCommand.Env = os.Environ()
 	backupCommand.Env = append(backupCommand.Env, resticPasswordCommandEnvVar)

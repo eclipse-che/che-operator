@@ -12,14 +12,17 @@
 package checlusterbackup
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"time"
 
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -91,7 +94,7 @@ func CollectBackupData(bctx *BackupContext, destDir string) (bool, error) {
 // prepareDirectory makes sure that the directory by given path exists and empty
 func prepareDirectory(destDir string) error {
 	if _, err := os.Stat(destDir); !os.IsNotExist(err) {
-		// Destibnation directory exists
+		// Destination directory exists
 		if err := os.RemoveAll(destDir); err != nil {
 			return err
 		}
@@ -100,7 +103,14 @@ func prepareDirectory(destDir string) error {
 }
 
 func backupCheCR(bctx *BackupContext, destDir string) (bool, error) {
-	data, err := yaml.Marshal(bctx.cheCR)
+	cheCR := &orgv1.CheCluster{}
+	namespacedName := types.NamespacedName{Namespace: bctx.namespace, Name: bctx.cheCR.GetName()}
+	if err := bctx.r.client.Get(context.TODO(), namespacedName, cheCR); err != nil {
+		return false, err
+	}
+	util.ClearMetadata(&cheCR.ObjectMeta)
+
+	data, err := yaml.Marshal(cheCR)
 	if err != nil {
 		return true, err
 	}
@@ -187,6 +197,7 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 
 	for _, cm := range caBundlesConfigmaps {
 		name := cm.GetName()
+		util.ClearMetadata(&cm.ObjectMeta)
 		data, err := yaml.Marshal(cm)
 		if err != nil {
 			return false, err
