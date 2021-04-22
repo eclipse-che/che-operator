@@ -331,7 +331,7 @@ New golang dependencies in the vendor folder should be committed and included in
 
 ### Updating Custom Resource Definition file
 
-Che cluster custom resource definition (CRD) defines Eclipse CheCluster custom resource object. It contains information about object structure, field types, field descriptions. CRD file is a YAML definition located in the `deploy/crds/org_v1_che_crd.yaml`. The file is auto-generated, so do not edit it directly to update it. If you want to add new fields or fix descriptions in the CRD, make your changes in the file `pkg/apis/org/v1/che_types.go` and run VSCode task `Update resources` or use the terminal
+Che cluster custom resource definition (CRD) defines Eclipse CheCluster custom resource object. It contains information about object structure, field types, field descriptions. CRD file is a YAML definition located in the folder `deploy/crds`. These files are auto-generated, so do not edit it directly to update them. If you want to add new fields or fix descriptions in the CRDs, make your changes in the file `pkg/apis/org/v1/che_types.go` and run VSCode task `Update resources` or use the terminal
 
 ```bash
 $ olm/update-resources.sh
