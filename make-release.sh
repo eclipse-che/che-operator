@@ -22,7 +22,6 @@ init() {
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
-  UPDATE_NIGHTLY_OLM_FILES=false
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
@@ -39,7 +38,6 @@ init() {
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
-      '--update-nightly-olm-files') UPDATE_NIGHTLY_OLM_FILES=true; shift 0;;
       '--prepare-community-operators-update') PREPARE_COMMUNITY_OPERATORS_UPDATE=true; shift 0;;
       '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
       '--dev-workspace-che-operator-version') DEV_WORKSPACE_CHE_OPERATOR_VERSION=$2; shift 1;;
@@ -150,8 +148,8 @@ if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
 
 releaseOperatorCode() {
   echo "[INFO] releaseOperatorCode :: Release operator code"
-  echo "[INFO] releaseOperatorCode :: Launch 'replace-images-tags.sh' script"
-  . ${RELEASE_DIR}/replace-images-tags.sh $RELEASE $RELEASE
+  echo "[INFO] releaseOperatorCode :: Replacing tags"
+  replaceImagesTags
 
   local operatoryaml=$RELEASE_DIR/deploy/operator.yaml
   echo "[INFO] releaseOperatorCode :: Validate changes for $operatoryaml"
@@ -167,6 +165,41 @@ releaseOperatorCode() {
 
   echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
   docker buildx build --build-arg DEV_WORKSPACE_CONTROLLER_VERSION=${DEV_WORKSPACE_CONTROLLER_VERSION} --build-arg DEV_WORKSPACE_CHE_OPERATOR_VERSION=${DEV_WORKSPACE_CHE_OPERATOR_VERSION} --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
+}
+
+replaceImagesTags() {
+  OPERATOR_YAML="${RELEASE_DIR}/deploy/operator.yaml"
+
+  lastDefaultCheServerImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value" "${OPERATOR_YAML}")
+  lastDefaultDashboardImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value" "${OPERATOR_YAML}")
+  lastDefaultKeycloakImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value" "${OPERATOR_YAML}")
+  lastDefaultPluginRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value" "${OPERATOR_YAML}")
+  lastDefaultDevfileRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value" "${OPERATOR_YAML}")
+
+  CHE_SERVER_IMAGE_REALEASE=$(replaceTag "${lastDefaultCheServerImage}" "${RELEASE}")
+  DASHBOARD_IMAGE_REALEASE=$(replaceTag "${lastDefaultDashboardImage}" "${RELEASE}")
+  KEYCLOAK_IMAGE_RELEASE=$(replaceTag "${lastDefaultKeycloakImage}" "${RELEASE}")
+  PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
+  DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
+
+  NEW_OPERATOR_YAML="${OPERATOR_YAML}.new"
+  # copy licence header
+  eval head -10 "${OPERATOR_YAML}" > ${NEW_OPERATOR_YAML}
+
+  cat "${OPERATOR_YAML}" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"quay.io/eclipse/che-operator:${RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value ) = \"${DASHBOARD_IMAGE_REALEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
+  >> "${NEW_OPERATOR_YAML}"
+  mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
+}
+
+replaceTag() {
+    echo "${1}" | sed -e "s/\(.*:\).*/\1${2}/"
 }
 
 updateNightlyOlmFiles() {
@@ -249,7 +282,6 @@ createPRToMainBranch() {
   local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
   git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)deploy/operator.yaml' | git apply -3
-  . ${RELEASE_DIR}/replace-images-tags.sh nightly main
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "Copy "$RELEASE" csv to main" --signoff
@@ -265,13 +297,11 @@ prepareCommunityOperatorsUpdate() {
   . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
   unset BASE_DIR
 }
+
 run() {
   checkoutToReleaseBranch
   updateVersionFile
   releaseOperatorCode
-  if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
-    updateNightlyOlmFiles
-  fi
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
@@ -279,6 +309,8 @@ run() {
 
 init "$@"
 echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
+echo "[INFO] Check if resources are up to date"
+. ${RELEASE_DIR}/.github/bin/check-resources.sh
 
 if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
@@ -298,8 +330,5 @@ if [[ $CREATE_PULL_REQUESTS == "true" ]]; then
 fi
 
 if [[ $PREPARE_COMMUNITY_OPERATORS_UPDATE == "true" ]]; then
-  if [[ $UPDATE_NIGHTLY_OLM_FILES == "true" ]]; then
-    updateNightlyOlmFiles
-  fi
   prepareCommunityOperatorsUpdate
 fi

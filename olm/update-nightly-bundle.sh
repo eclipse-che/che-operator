@@ -12,12 +12,9 @@
 
 set -e
 
-if [ -z "${BASE_DIR}" ]; then
-  BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-fi
-
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
-  ROOT_PROJECT_DIR=$(dirname "${BASE_DIR}")
+  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+  ROOT_PROJECT_DIR=$(dirname $(dirname ${SCRIPT}))
 fi
 
 if [ -z "${OPERATOR_SDK_BINARY}" ]; then

@@ -16,14 +16,8 @@
 
 set -e
 
-init() {
-  if [ -z "${BASE_DIR}" ]; then
-    BASE_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
-  fi
-  if [ -z "${OPERATOR_DIR}" ]; then
-    OPERATOR_DIR="$(dirname "${BASE_DIR}")"
-  fi
-}
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+ROOT_PROJECT_DIR=$(dirname $(dirname ${SCRIPT}))
 
 checkOperatorSDKVersion() {
   if [ -z "${OPERATOR_SDK_BINARY}" ]; then
@@ -35,7 +29,7 @@ checkOperatorSDKVersion() {
   fi
 
   local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
-  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${OPERATOR_DIR}/REQUIREMENTS")
+  REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${ROOT_PROJECT_DIR}/REQUIREMENTS")
   [[ $operatorVersion =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "operator-sdk ${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
 
   if [ -z "${GOROOT}" ]; then
@@ -46,20 +40,20 @@ checkOperatorSDKVersion() {
 
 generateCRD() {
   version=$1
-  pushd "${OPERATOR_DIR}" || true
+  pushd "${ROOT_PROJECT_DIR}" || true
   "${OPERATOR_SDK_BINARY}" generate k8s
   "${OPERATOR_SDK_BINARY}" generate crds --crd-version $version
   popd
 
-  addLicenseHeader ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
+  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
 
   if [[ $version == "v1" ]]; then
-    mv ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd.yaml
-    echo "[INFO] Generated CRD v1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd.yaml"
+    mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml
+    echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
   elif [[ $version == "v1beta1" ]]; then
-    removeRequiredAttribute ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
-    mv ${OPERATOR_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
-    echo "[INFO] Generated CRD v1beta1 ${OPERATOR_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
+    mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
+    echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
   fi
 }
 
@@ -100,7 +94,6 @@ echo -e "#
 $(cat $1)" > $1
 }
 
-init
 checkOperatorSDKVersion
 generateCRD "v1"
 generateCRD "v1beta1"

@@ -42,5 +42,6 @@ installYq
 initLatestTemplates
 initStableTemplates "openshift" "stable"
 prepareTemplates
+buildCheOperatorImage
 copyCheOperatorImageToMinishift
 runTest

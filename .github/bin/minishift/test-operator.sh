@@ -36,6 +36,6 @@ initDefaults
 installYq
 initLatestTemplates
 prepareTemplates
-# build is done on previous github action step
+buildCheOperatorImage
 copyCheOperatorImageToMinishift
 runTest
