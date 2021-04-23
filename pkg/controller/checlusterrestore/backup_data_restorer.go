@@ -21,58 +21,62 @@ import (
 	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/controller/checlusterbackup"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
 func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
-	// Make sure a Che instance is running and available
-	if !rctx.state.oldCheAvailable {
-		if rctx.cheCR == nil {
-			// Deploy Che
-			done, err := restoreCheCR(rctx, dataDir)
-			if err != nil || !done {
-				return done, err
-			}
-
-			return false, nil
-		}
-
-		if rctx.cheCR.Status.CheClusterRunning != "Available" {
-			// Che is not ready yet
-			return false, nil
-		}
-
-		rctx.state.oldCheAvailable = true
-		rctx.UpdateRestoreStage()
-	}
-
-	// Stop existing Che reconciling loop and server itself
-	if !rctx.state.oldCheSuspended {
+	// Delete existing Che resources if any
+	if !rctx.state.oldCheCleaned {
 		done, err := cleanPreviousInstallation(rctx)
 		if err != nil || !done {
 			return done, err
 		}
 
-		rctx.state.oldCheSuspended = true
+		rctx.state.oldCheCleaned = true
 		rctx.UpdateRestoreStage()
 	}
 
-	// Restore additional cluster objects from the backup
+	// Restore cluster objects from the backup
 	if !rctx.state.cheResourcesRestored {
-		done, err := restoreConfigMaps(rctx, dataDir)
+		done, err := restoreCheResources(rctx, dataDir)
 		if err != nil || !done {
 			return done, err
 		}
 
 		rctx.state.cheResourcesRestored = true
+		rctx.UpdateRestoreStage()
+	}
+
+	// Restore Che CR to start main controller reconcile loop
+	if !rctx.state.cheCRRestored {
+		done, err := restoreCheCR(rctx, dataDir)
+		if err != nil || !done {
+			return done, err
+		}
+
+		rctx.state.cheCRRestored = true
+		rctx.UpdateRestoreStage()
+	}
+
+	// Wait until Che deployed and ready
+	if !rctx.state.cheAvailable {
+		if rctx.cheCR.Status.CheClusterRunning != "Available" {
+			return false, nil
+		}
+
+		rctx.state.cheAvailable = true
 		rctx.UpdateRestoreStage()
 	}
 
@@ -84,28 +88,6 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheDatabaseRestored = true
-		rctx.UpdateRestoreStage()
-	}
-
-	// Restore Che CR to start main controller reconcile loop
-	if !rctx.state.cheCRRestored {
-		done, err := restoreCheCR(rctx, dataDir)
-		if err != nil || !done {
-			return done, err
-		}
-		logrus.Info("Che is successfully restored. Wait until Che server is ready.")
-
-		rctx.state.cheCRRestored = true
-		rctx.UpdateRestoreStage()
-	}
-
-	// Wait until Che available again
-	if !rctx.state.cheRestored {
-		if rctx.cheCR.Status.CheClusterRunning != "Available" {
-			return false, nil
-		}
-
-		rctx.state.cheRestored = true
 		rctx.UpdateRestoreStage()
 	}
 
@@ -124,53 +106,99 @@ func cleanPreviousInstallation(rctx *RestoreContext) (bool, error) {
 		return done, err
 	}
 
-	done, err = deleteConfigMaps(rctx)
-	if err != nil || !done {
-		return done, err
-	}
-
-	return true, nil
-}
-
-func deleteDeployments(rctx *RestoreContext) (bool, error) {
-	// Delete Che deployment to prevent new queries into database
-	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
-
-	cheNamespacedName := types.NamespacedName{Namespace: rctx.namespace, Name: cheFlavor}
-	cheDeployment := &appsv1.Deployment{}
-	err := rctx.r.client.Get(context.TODO(), cheNamespacedName, cheDeployment)
-	if err == nil {
-		if err := rctx.r.client.Delete(context.TODO(), cheDeployment); err != nil {
-			return false, err
-		}
-	} else if !errors.IsNotFound(err) {
-		return false, err
-	}
-
-	// The same for Keycloak
-	keycloakNamespacedName := types.NamespacedName{Namespace: rctx.namespace, Name: deploy.IdentityProviderName}
-	keycloakDeployment := &appsv1.Deployment{}
-	err = rctx.r.client.Get(context.TODO(), keycloakNamespacedName, keycloakDeployment)
-	if err == nil {
-		if err := rctx.r.client.Delete(context.TODO(), keycloakDeployment); err != nil {
-			return false, err
-		}
-	} else if !errors.IsNotFound(err) {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func deleteConfigMaps(rctx *RestoreContext) (bool, error) {
 	// Delete all configmaps with custom CA certificates
-	err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace),
+	err = rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace),
 		client.MatchingLabels{
 			deploy.CheCACertsConfigMapLabelKey: deploy.CheCACertsConfigMapLabelValue,
 			deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
 		})
 	if err != nil {
 		return false, err
+	}
+
+	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
+	cheRelatedMatchingLabels := client.MatchingLabels{
+		deploy.KubernetesNameLabelKey:     cheFlavor,
+		deploy.KubernetesInstanceLabelKey: cheFlavor,
+	}
+
+	// TODO "k8s.io/apimachinery/pkg/runtime" runtime.Object list
+
+	// Delete config maps
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
+		return false, err
+	}
+
+	// Delete secrets
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.Secret{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
+		return false, err
+	}
+
+	// Delete ingresses / routes
+	if rctx.isOpenShift {
+		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels)
+	} else {
+		err = rctx.r.client.DeleteAllOf(context.TODO(), &extv1beta1.Ingress{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels)
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// Delete services
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.Service{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
+		return false, err
+	}
+
+	// Delete persistent volumes
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.PersistentVolumeClaim{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func deleteDeployments(rctx *RestoreContext) (bool, error) {
+	// TODO fix selector
+	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
+	cheNameRequirement, _ := labels.NewRequirement(deploy.KubernetesNameLabelKey, selection.Equals, []string{cheFlavor})
+	cheInstanceRequirement, _ := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{cheFlavor})
+	listOptions := &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*cheInstanceRequirement).Add(*cheNameRequirement),
+	}
+	deploymentsList := &appsv1.DeploymentList{}
+	if err := rctx.r.client.List(context.TODO(), deploymentsList, listOptions); err != nil {
+		return false, err
+	}
+
+	deploymentsToDelete := []appsv1.Deployment{}
+	for _, deployment := range deploymentsList.Items {
+		if strings.Contains(deployment.GetName(), "operator") ||
+			deployment.GetName() == checlusterbackup.BackupServerDeploymentName {
+			continue
+		}
+		deploymentsToDelete = append(deploymentsToDelete, deployment)
+	}
+
+	for _, deployment := range deploymentsToDelete {
+		if err := rctx.r.client.Delete(context.TODO(), &deployment); err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
+func restoreCheResources(rctx *RestoreContext, dataDir string) (bool, error) {
+	partsToRestore := []func(*RestoreContext, string) (bool, error){
+		restoreConfigMaps,
+		restoreSecrets,
+	}
+
+	for _, restorePart := range partsToRestore {
+		done, err := restorePart(rctx, dataDir)
+		if err != nil || !done {
+			return done, err
+		}
 	}
 
 	return true, nil
@@ -217,6 +245,85 @@ func restoreConfigMaps(rctx *RestoreContext, dataDir string) (bool, error) {
 	return true, nil
 }
 
+func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
+	secretsDir := path.Join(dataDir, "secrets")
+	if _, err := os.Stat(secretsDir); err != nil {
+		if !os.IsNotExist(err) {
+			return false, err
+		}
+		// Consider there is nothing to restore here
+		return true, nil
+	}
+
+	secrets, _ := ioutil.ReadDir(secretsDir)
+	for _, secretFile := range secrets {
+		secret := &corev1.Secret{}
+
+		secretBytes, err := ioutil.ReadFile(secretFile.Name())
+		if err != nil {
+			return false, fmt.Errorf("failed to read Secret from '%s' file", secretFile.Name())
+		}
+		if err := yaml.Unmarshal(secretBytes, secret); err != nil {
+			return true, err
+		}
+
+		secret.ObjectMeta.Namespace = rctx.namespace
+
+		if err := rctx.r.client.Create(context.TODO(), secret); err != nil {
+			if !errors.IsAlreadyExists(err) {
+				return false, err
+			}
+
+			if err := rctx.r.client.Delete(context.TODO(), secret); err != nil {
+				return false, err
+			}
+			if err := rctx.r.client.Create(context.TODO(), secret); err != nil {
+				return false, err
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
+	cheCRFilePath := path.Join(dataDir, "che-cr.yaml")
+	if _, err := os.Stat(cheCRFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return false, err
+		}
+		// Cannot proceed without CR in backup data
+		return true, err
+	}
+
+	cheCR := &orgv1.CheCluster{}
+	cheCRBytes, err := ioutil.ReadFile(cheCRFilePath)
+	if err != nil {
+		return false, fmt.Errorf("failed to read Che CR from '%s' file", cheCRFilePath)
+	}
+	if err := yaml.Unmarshal(cheCRBytes, cheCR); err != nil {
+		return true, err
+	}
+
+	cheCR.ObjectMeta.Namespace = rctx.namespace
+	// Correct ingress domain if requested
+	if !rctx.isOpenShift {
+		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
+			cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
+		}
+	}
+
+	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
+		if errors.IsAlreadyExists(err) {
+			return false, rctx.r.client.Delete(context.TODO(), cheCR)
+		}
+		return false, err
+	}
+
+	rctx.cheCR = cheCR
+	return true, nil
+}
+
 func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 	dumpsDir := path.Join(dataDir, "db")
 
@@ -256,42 +363,4 @@ func getRestoreDatabasesScript(dbName string) string {
 		pg_restore --create --dbname $DB_NAME $DUMP_FILE
 		rm -f $DUMP_FILE
 	`
-}
-
-func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
-	cheCRFilePath := path.Join(dataDir, "che-cr.yaml")
-	if _, err := os.Stat(cheCRFilePath); err != nil {
-		if !os.IsNotExist(err) {
-			return false, err
-		}
-		// Cannot proceed without CR in backup data
-		return true, err
-	}
-
-	cheCR := &orgv1.CheCluster{}
-	cheCRBytes, err := ioutil.ReadFile(cheCRFilePath)
-	if err != nil {
-		return false, fmt.Errorf("failed to read Che CR from '%s' file", cheCRFilePath)
-	}
-	if err := yaml.Unmarshal(cheCRBytes, cheCR); err != nil {
-		return true, err
-	}
-
-	cheCR.ObjectMeta.Namespace = rctx.namespace
-	// Correct ingress domain if requested
-	if isOpenShift, _, _ := util.DetectOpenShift(); !isOpenShift {
-		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
-			cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
-		}
-	}
-
-	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
-		if errors.IsAlreadyExists(err) {
-			return false, rctx.r.client.Delete(context.TODO(), cheCR)
-		}
-		return false, err
-	}
-
-	rctx.cheCR = cheCR
-	return true, nil
 }

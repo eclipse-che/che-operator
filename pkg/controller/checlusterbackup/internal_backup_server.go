@@ -31,7 +31,7 @@ const (
 	InternalBackupServerComponent = "che-backup-rest-server"
 
 	BackupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
-	backupServerDeploymentName         = "backup-rest-server-deployment"
+	BackupServerDeploymentName         = "backup-rest-server-deployment"
 	backupServerPodName                = "backup-rest-server-pod"
 	backupServerServiceName            = "backup-rest-server-service"
 	backupServerPort                   = 8000
@@ -62,7 +62,7 @@ func ensureInternalBackupServerDeploymentExist(bctx *BackupContext) (bool, error
 	backupServerDeployment := &appsv1.Deployment{}
 	namespacedName := types.NamespacedName{
 		Namespace: bctx.namespace,
-		Name:      backupServerDeploymentName,
+		Name:      BackupServerDeploymentName,
 	}
 	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerDeployment)
 	if err == nil {
@@ -96,7 +96,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      backupServerDeploymentName,
+			Name:      BackupServerDeploymentName,
 			Namespace: bctx.namespace,
 			Labels:    labels,
 		},
@@ -251,7 +251,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 
 func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Secret, error) {
 	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
-	data := map[string][]byte{"repo-password": []byte(password)}
+	data := map[string][]byte{orgv1.RESTIC_REPO_PASSWORD_SECRET_KEY: []byte(password)}
 
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{

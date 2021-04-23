@@ -26,6 +26,7 @@ type RestoreContext struct {
 	cheCR        *orgv1.CheCluster
 	backupServer backup.BackupServer
 	state        *RestoreState
+	isOpenShift  bool
 }
 
 func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheClusterRestore) (*RestoreContext, error) {
@@ -47,6 +48,8 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheCluste
 		cheCR = nil
 	}
 
+	isOpenShift, _, _ := util.DetectOpenShift()
+
 	return &RestoreContext{
 		namespace:    namespace,
 		r:            r,
@@ -54,6 +57,7 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheCluste
 		cheCR:        cheCR,
 		backupServer: backupServer,
 		state:        restoreState,
+		isOpenShift:  isOpenShift,
 	}, nil
 }
 
@@ -69,22 +73,22 @@ var restoreState = NewRestoreState()
 
 type RestoreState struct {
 	backupDownloaded     bool
-	oldCheAvailable      bool
-	oldCheSuspended      bool
+	oldCheCleaned        bool
 	cheResourcesRestored bool
-	cheDatabaseRestored  bool
 	cheCRRestored        bool
+	cheAvailable         bool
+	cheDatabaseRestored  bool
 	cheRestored          bool
 }
 
 func NewRestoreState() *RestoreState {
 	return &RestoreState{
 		backupDownloaded:     false,
-		oldCheAvailable:      false,
-		oldCheSuspended:      false,
+		oldCheCleaned:        false,
 		cheResourcesRestored: false,
-		cheDatabaseRestored:  false,
 		cheCRRestored:        false,
+		cheAvailable:         false,
+		cheDatabaseRestored:  false,
 		cheRestored:          false,
 	}
 }
@@ -93,11 +97,8 @@ func (s *RestoreState) GetProgressMessage() string {
 	if !s.backupDownloaded {
 		return "Downloading backup from backup server"
 	}
-	if !s.oldCheAvailable {
-		return "Deploying clean Che"
-	}
-	if !s.oldCheSuspended {
-		return "Suspending existing Che"
+	if !s.oldCheCleaned {
+		return "Cleaning up existing Che"
 	}
 	if !s.cheResourcesRestored {
 		return "Restoring Che related cluster objects"

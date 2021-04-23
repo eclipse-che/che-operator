@@ -22,6 +22,7 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
@@ -78,6 +79,7 @@ func CollectBackupData(bctx *BackupContext, destDir string) (bool, error) {
 		backupCheCR,
 		backupDatabases,
 		backupConfigMaps,
+		backupSecrets,
 		createBackupMetadataFile,
 	}
 
@@ -204,6 +206,48 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 		}
 		cmFilePath := path.Join(dir, name+".yaml")
 		if err := ioutil.WriteFile(cmFilePath, data, backupFilesPerms); err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
+func backupSecrets(bctx *BackupContext, destDir string) (bool, error) {
+	// Prepare separate directory for secrets
+	dir := path.Join(destDir, "secrets")
+	if err := os.Mkdir(dir, os.ModePerm); err != nil {
+		return true, err
+	}
+
+	// Create secrets list to backup
+	secretsNames := []string{}
+	if bctx.cheCR.Spec.Database.ChePostgresSecret != "" {
+		secretsNames = append(secretsNames, bctx.cheCR.Spec.Database.ChePostgresSecret)
+	}
+	if bctx.cheCR.Spec.Auth.IdentityProviderPostgresSecret != "" {
+		secretsNames = append(secretsNames, bctx.cheCR.Spec.Auth.IdentityProviderPostgresSecret)
+	}
+	if bctx.cheCR.Spec.Auth.IdentityProviderSecret != "" {
+		secretsNames = append(secretsNames, bctx.cheCR.Spec.Auth.IdentityProviderSecret)
+	}
+
+	// Retrieve and save each secret
+	for _, secretName := range secretsNames {
+		secret := &corev1.Secret{}
+		namespacedName := types.NamespacedName{Name: secretName, Namespace: bctx.namespace}
+		if err := bctx.r.client.Get(context.TODO(), namespacedName, secret); err != nil {
+			return false, err
+		}
+
+		util.ClearMetadata(&secret.ObjectMeta)
+
+		data, err := yaml.Marshal(secret)
+		if err != nil {
+			return false, err
+		}
+		secretFilePath := path.Join(dir, secretName+".yaml")
+		if err := ioutil.WriteFile(secretFilePath, data, backupFilesPerms); err != nil {
 			return false, err
 		}
 	}

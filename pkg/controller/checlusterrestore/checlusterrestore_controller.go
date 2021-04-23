@@ -174,6 +174,9 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 				return done, err
 			}
 
+			rctx.state.cheRestored = true
+			rctx.UpdateRestoreStage()
+
 			// Clean up backup data after successful restore
 			if err := os.RemoveAll(backupDataDestDir); err != nil {
 				return false, err
