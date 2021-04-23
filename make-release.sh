@@ -182,9 +182,10 @@ updateNightlyOlmFiles() {
 }
 
 updateVersionFile() {
-  echo "[INFO] updating VERSION file"
-  echo ${RELEASE} > VERSION
-  git add VERSION
+  echo "[INFO] updating version.go file"
+  # change version/version.go file
+  sed -i version/version.go -r -e 's#(Version = ")([0-9.]+)(")#\1'"${RELEASE}"'\3#g'
+  git add version/version.go
   git commit -m "Update VERSION to $RELEASE" --signoff
 }
 
