@@ -25,7 +25,7 @@ CSV_OPENSHIFT_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/mani
 CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
 checkNightlyBundleVersions() {
-  env
+  git remote show
   git fetch -q
   changedFiles=(
     $(git diff --name-only refs/remotes/origin/${GITHUB_BASE_REF}...refs/remotes/origin/${GITHUB_HEAD_REF})
