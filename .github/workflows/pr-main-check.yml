@@ -15,21 +15,6 @@ on:
     branches:
       - main
 jobs:
-  resources:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install yq
-        pip install semver
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.13
-    - name: Check resources
-      run: ${GITHUB_WORKSPACE}/.github/bin/check-resources.sh
   bundle-version:
     runs-on: ubuntu-20.04
     steps:
@@ -42,53 +27,3 @@ jobs:
         go-version: 1.13
     - name: Check nightly OLM bundle version
       run: ${GITHUB_WORKSPACE}/.github/bin/check-bundle-version.sh
-  source-code:
-    runs-on: ubuntu-20.04
-    steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.13
-    - name: Checkout source code
-      uses: actions/checkout@v1
-    - name: Cache go modules
-      id: cache-mod
-      uses: actions/cache@v2
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-    - name: Download dependencies
-      run: go mod download
-      if: steps.cache-mod.outputs.cache-hit != 'true'
-    - name: Check go mod status
-      run: |
-        go mod tidy
-        if [[ ! -z $(git status -s) ]]
-        then
-          echo "Go mod state is not clean:"
-          git --no-pager diff
-          exit 1
-        fi
-    - name: Check format
-      run: |
-        git reset HEAD --hard
-        go fmt -x ./...
-        if [[ ! -z $(git status -s) ]]
-        then
-          echo "not well formatted sources are found:"
-          git --no-pager diff
-          exit 1
-        fi
-    - name: Check imports
-      run: |
-        go get -u golang.org/x/tools/cmd/goimports
-        git reset HEAD --hard
-        if [[ $(find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;) != "" ]]
-        then
-          echo "not well organized imports are found."
-          echo "execute `find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;` to fix the following:"
-          find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
-          exit 1
-        fi
