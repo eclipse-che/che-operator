@@ -14,8 +14,8 @@ set -e
 
 REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
-OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
-BASE_DIR="${OPERATOR_DIR}/olm"
+BASE_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+
 source ${BASE_DIR}/check-yq.sh
 
 command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }

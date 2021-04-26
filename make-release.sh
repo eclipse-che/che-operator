@@ -29,6 +29,8 @@ init() {
   DEV_WORKSPACE_CONTROLLER_VERSION="main"
   DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
+  ROOT_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
   while [[ "$#" -gt 0 ]]; do
@@ -279,9 +281,7 @@ createPRToMainBranch() {
 }
 
 prepareCommunityOperatorsUpdate() {
-  export BASE_DIR=${RELEASE_DIR}/olm
-  . "${BASE_DIR}/prepare-community-operators-update.sh" $FORCE_UPDATE
-  unset BASE_DIR
+  ${ROOT_DIR}/olm/prepare-community-operators-update.sh $FORCE_UPDATE
 }
 
 run() {

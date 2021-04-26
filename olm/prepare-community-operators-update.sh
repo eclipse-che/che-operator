@@ -13,9 +13,9 @@
 set -e
 
 CURRENT_DIR=$(pwd)
-SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
-source "${BASE_DIR}/olm/check-yq.sh"
+BASE_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+ROOT_DIR=$(dirname "${BASE_DIR}")
+source "${ROOT_DIR}/olm/check-yq.sh"
 
 base_branch="master"
 GITHUB_USER="che-bot"
@@ -50,7 +50,7 @@ Options:
 "
 }
 
-. ${BASE_DIR}/olm/olm.sh
+. ${ROOT_DIR}/olm/olm.sh
 installOPM
 
 for platform in 'kubernetes' 'openshift'
@@ -134,7 +134,7 @@ do
   # https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/ci.yaml
   # https://github.com/operator-framework/community-operators/blob/master/upstream-community-operators/eclipse-che/ci.yaml
   echo "   - Replace ci.yaml file"
-  cp ${BASE_DIR}/olm/ci.yaml ${folderToUpdate}/ci.yaml
+  cp ${ROOT_DIR}/olm/ci.yaml ${folderToUpdate}/ci.yaml
 
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"
