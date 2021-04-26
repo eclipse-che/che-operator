@@ -26,7 +26,7 @@ CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator
 
 checkNightlyBundleVersions() {
   git fetch -q
-  git remote add operator git@github.com:eclipse-che/che-operator.git
+  git remote add operator https://github.com/eclipse-che/che-operator.git
   git fetch operator -q
   git diff --name-only refs/remotes/operator/${GITHUB_BASE_REF}
 
