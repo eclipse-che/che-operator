@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
@@ -100,6 +101,17 @@ func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (bool, error
 func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string]string, err error) {
 	cheHost := deployContext.CheCluster.Spec.Server.CheHost
 	keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
+
+	// Adds `/auth` for external identity providers.
+	// If identity provide is deployed by operator then `/auth` is already added.
+	if deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider && !strings.HasSuffix(keycloakURL, "/auth") {
+		if strings.HasSuffix(keycloakURL, "/") {
+			keycloakURL = keycloakURL + "auth"
+		} else {
+			keycloakURL = keycloakURL + "/auth"
+		}
+	}
+
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}
