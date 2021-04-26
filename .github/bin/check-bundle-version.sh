@@ -25,13 +25,12 @@ CSV_OPENSHIFT_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/mani
 CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
 checkNightlyBundleVersions() {
-  git fetch -q
   git remote add operator https://github.com/eclipse-che/che-operator.git
   git fetch operator -q
-  git diff --name-only refs/remotes/operator/${GITHUB_BASE_REF}
+  git fetch origin -q
 
   changedFiles=(
-    $(git diff --name-only refs/remotes/origin/${GITHUB_BASE_REF}...refs/remotes/origin/${GITHUB_HEAD_REF})
+    $(git diff --name-only refs/remotes/operator/${GITHUB_BASE_REF})
   )
 
   for file in "${changedFiles[@]}"
