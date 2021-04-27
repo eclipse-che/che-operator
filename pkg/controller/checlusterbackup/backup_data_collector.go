@@ -13,6 +13,7 @@ package checlusterbackup
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -132,10 +133,7 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 		return true, err
 	}
 
-	databasesToBackup := []string{"dbche", "keycloak"}
-	if bctx.cheCR.Spec.Server.CheFlavor == "codeready" {
-		databasesToBackup = []string{"codeready", "keycloak"}
-	}
+	databasesToBackup := []string{bctx.cheCR.Spec.Database.ChePostgresDb, "keycloak"}
 
 	k8sClient := util.GetK8Client()
 	postgresPodName, err := k8sClient.GetDeploymentPod(deploy.PostgresName, bctx.namespace)
@@ -145,13 +143,15 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 
 	// Dump all databases in a row to reduce the chance of inconsistent data change
 	dumpRemoteCommand := getDumpDatabasesScript(databasesToBackup)
-	if _, err := k8sClient.DoExecIntoPod(bctx.namespace, postgresPodName, dumpRemoteCommand, ""); err != nil {
+	execReason := "dumping databases:" + strings.Join(databasesToBackup, " ")
+	if _, err := k8sClient.DoExecIntoPod(bctx.namespace, postgresPodName, dumpRemoteCommand, execReason); err != nil {
 		return false, err
 	}
 
 	// Get and seve all dumps from the Postgres container
 	for _, dbName := range databasesToBackup {
-		dbDump, err := k8sClient.DoExecIntoPod(bctx.namespace, postgresPodName, getMoveDatabaseDumpScript(dbName), "")
+		execReason := fmt.Sprintf("getting database %s dump", dbName)
+		dbDump, err := k8sClient.DoExecIntoPod(bctx.namespace, postgresPodName, getMoveDatabaseDumpScript(dbName), execReason)
 		if err != nil {
 			return false, err
 		}
@@ -166,21 +166,21 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 }
 
 func getDumpDatabasesScript(databases []string) string {
-	return "DATABASES=" + strings.Join(databases, " ") + `
+	return "DATABASES='" + strings.Join(databases, " ") + `'
 	  DIR=/tmp/che-backup
 		rm -rf $DIR && mkdir -p $DIR
 		for db in $DATABASES; do
-		  pg_dump -Fc $db > $DIR/${db}.pgdump
+		  pg_dump -Fc "$db" > "${DIR}/${db}.pgdump"
 		done
 	`
 }
 
 // Sends given database dump into stdout and deletes the dump
 func getMoveDatabaseDumpScript(dbName string) string {
-	return "DBNAME=" + dbName + `
+	return "DBNAME='" + dbName + `'
 	  DIR=/tmp/che-backup
-	  cat $DIR/${DBNAME}.pgdump
-		rm -f $DIR/${DBNAME}.pgdump > /dev/null 2>&1
+	  cat "${DIR}/${DBNAME}.pgdump"
+		rm -f "${DIR}/${DBNAME}.pgdump" > /dev/null 2>&1
 	`
 }
 

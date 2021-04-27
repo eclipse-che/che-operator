@@ -453,23 +453,23 @@ func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error 
 		cheCluster)
 }
 
-func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheCluster, error) {
+func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheCluster, int, error) {
 	cheClusters := &orgv1.CheClusterList{}
 	if err := client.List(context.TODO(), cheClusters); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if len(cheClusters.Items) != 1 {
-		return nil, fmt.Errorf("expected an instance of CheCluster, but got %d instances", len(cheClusters.Items))
+		return nil, len(cheClusters.Items), fmt.Errorf("expected an instance of CheCluster, but got %d instances", len(cheClusters.Items))
 	}
 
 	cheCR := &orgv1.CheCluster{}
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
 	err := client.Get(context.TODO(), namespacedName, cheCR)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return cheCR, nil
+	return cheCR, 1, nil
 }
 
 // ClearMetadata removes extra fields from given metadata.

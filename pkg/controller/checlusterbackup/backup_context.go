@@ -33,7 +33,7 @@ func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *orgv1.CheClusterBa
 		return nil, err
 	}
 
-	cheCR, err := util.FindCheCRinNamespace(r.client, namespace)
+	cheCR, _, err := util.FindCheCRinNamespace(r.client, namespace)
 	if err != nil {
 		return nil, err
 	}

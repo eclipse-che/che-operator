@@ -12,8 +12,6 @@
 package checlusterrestore
 
 import (
-	"strings"
-
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	backup "github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -37,11 +35,11 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheCluste
 		return nil, err
 	}
 
-	cheCR, err := util.FindCheCRinNamespace(r.client, namespace)
+	cheCR, CRCount, err := util.FindCheCRinNamespace(r.client, namespace)
 	if err != nil {
 		// Check if Che CR is present
-		// TODO find better solution
-		if !strings.HasSuffix(err.Error(), "got 0 instances") {
+		if CRCount > 0 {
+			// Several instances present
 			return nil, err
 		}
 		// Che is not deployed

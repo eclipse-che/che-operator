@@ -39,7 +39,7 @@ import (
 func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 	// Delete existing Che resources if any
 	if !rctx.state.oldCheCleaned {
-		done, err := cleanPreviousInstallation(rctx)
+		done, err := cleanPreviousInstallation(rctx, dataDir)
 		if err != nil || !done {
 			return done, err
 		}
@@ -94,10 +94,24 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 	return true, nil
 }
 
-func cleanPreviousInstallation(rctx *RestoreContext) (bool, error) {
+func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, error) {
+	if rctx.cheCR == nil {
+		// If there is no CR in the cluster, then use one from the backup.
+		// This is needed to be able to clean some related resources.
+		cheCR, done, err := readCheCRFromBackup(rctx, dataDir)
+		if err != nil || !done {
+			return done, err
+		}
+		rctx.cheCR = cheCR
+	}
+
 	// Delete Che CR to stop operator from dealing with current installation
 	err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
-	if err != nil && !errors.IsNotFound(err) {
+	if err == nil {
+		// Che CR is marked for deletion, but actually still exists.
+		// Wait for finalizers and actual resource deletion (not found expected).
+		return false, nil
+	} else if !errors.IsNotFound(err) {
 		return false, err
 	}
 
@@ -122,8 +136,6 @@ func cleanPreviousInstallation(rctx *RestoreContext) (bool, error) {
 		deploy.KubernetesInstanceLabelKey: cheFlavor,
 	}
 
-	// TODO "k8s.io/apimachinery/pkg/runtime" runtime.Object list
-
 	// Delete config maps
 	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
 		return false, err
@@ -144,11 +156,6 @@ func cleanPreviousInstallation(rctx *RestoreContext) (bool, error) {
 		return false, err
 	}
 
-	// Delete services
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.Service{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
-		return false, err
-	}
-
 	// Delete persistent volumes
 	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.PersistentVolumeClaim{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
 		return false, err
@@ -158,7 +165,6 @@ func cleanPreviousInstallation(rctx *RestoreContext) (bool, error) {
 }
 
 func deleteDeployments(rctx *RestoreContext) (bool, error) {
-	// TODO fix selector
 	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
 	cheNameRequirement, _ := labels.NewRequirement(deploy.KubernetesNameLabelKey, selection.Equals, []string{cheFlavor})
 	cheInstanceRequirement, _ := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{cheFlavor})
@@ -180,7 +186,7 @@ func deleteDeployments(rctx *RestoreContext) (bool, error) {
 	}
 
 	for _, deployment := range deploymentsToDelete {
-		if err := rctx.r.client.Delete(context.TODO(), &deployment); err != nil {
+		if err := rctx.r.client.Delete(context.TODO(), &deployment); err != nil && !errors.IsNotFound(err) {
 			return false, err
 		}
 	}
@@ -218,7 +224,7 @@ func restoreConfigMaps(rctx *RestoreContext, dataDir string) (bool, error) {
 	for _, cmFile := range configMaps {
 		configMap := &corev1.ConfigMap{}
 
-		configMapBytes, err := ioutil.ReadFile(cmFile.Name())
+		configMapBytes, err := ioutil.ReadFile(path.Join(configMapsDir, cmFile.Name()))
 		if err != nil {
 			return false, fmt.Errorf("failed to read Config Map from '%s' file", cmFile.Name())
 		}
@@ -259,7 +265,7 @@ func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
 	for _, secretFile := range secrets {
 		secret := &corev1.Secret{}
 
-		secretBytes, err := ioutil.ReadFile(secretFile.Name())
+		secretBytes, err := ioutil.ReadFile(path.Join(secretsDir, secretFile.Name()))
 		if err != nil {
 			return false, fmt.Errorf("failed to read Secret from '%s' file", secretFile.Name())
 		}
@@ -268,6 +274,7 @@ func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		secret.ObjectMeta.Namespace = rctx.namespace
+		secret.ObjectMeta.OwnerReferences = nil
 
 		if err := rctx.r.client.Create(context.TODO(), secret); err != nil {
 			if !errors.IsAlreadyExists(err) {
@@ -287,30 +294,9 @@ func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
 }
 
 func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
-	cheCRFilePath := path.Join(dataDir, "che-cr.yaml")
-	if _, err := os.Stat(cheCRFilePath); err != nil {
-		if !os.IsNotExist(err) {
-			return false, err
-		}
-		// Cannot proceed without CR in backup data
-		return true, err
-	}
-
-	cheCR := &orgv1.CheCluster{}
-	cheCRBytes, err := ioutil.ReadFile(cheCRFilePath)
-	if err != nil {
-		return false, fmt.Errorf("failed to read Che CR from '%s' file", cheCRFilePath)
-	}
-	if err := yaml.Unmarshal(cheCRBytes, cheCR); err != nil {
-		return true, err
-	}
-
-	cheCR.ObjectMeta.Namespace = rctx.namespace
-	// Correct ingress domain if requested
-	if !rctx.isOpenShift {
-		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
-			cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
-		}
+	cheCR, done, err := readCheCRFromBackup(rctx, dataDir)
+	if err != nil || !done {
+		return done, err
 	}
 
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
@@ -322,6 +308,38 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 
 	rctx.cheCR = cheCR
 	return true, nil
+}
+
+func readCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluster, bool, error) {
+	cheCRFilePath := path.Join(dataDir, "che-cr.yaml")
+	if _, err := os.Stat(cheCRFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, false, err
+		}
+		// Cannot proceed without CR in backup data
+		return nil, true, err
+	}
+
+	cheCR := &orgv1.CheCluster{}
+	cheCRBytes, err := ioutil.ReadFile(cheCRFilePath)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to read Che CR from '%s' file", cheCRFilePath)
+	}
+	if err := yaml.Unmarshal(cheCRBytes, cheCR); err != nil {
+		return nil, true, err
+	}
+
+	cheCR.ObjectMeta.Namespace = rctx.namespace
+	// Reset availability status
+	cheCR.Status.CheClusterRunning = ""
+	// Correct ingress domain if requested
+	if !rctx.isOpenShift {
+		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
+			cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
+		}
+	}
+
+	return cheCR, true, nil
 }
 
 func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
@@ -343,8 +361,9 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 			}
 			dumpReader := bytes.NewReader(dumpBytes)
 
+			execReason := fmt.Sprintf("restoring %s database", strings.TrimSuffix(dumpFile.Name(), ".pgdump"))
 			restoreDumpRemoteCommand := getRestoreDatabasesScript(dbDumpFilePath)
-			if output, err := k8sClient.DoExecIntoPodWithStdin(rctx.namespace, postgresPodName, restoreDumpRemoteCommand, dumpReader, ""); err != nil {
+			if output, err := k8sClient.DoExecIntoPodWithStdin(rctx.namespace, postgresPodName, restoreDumpRemoteCommand, dumpReader, execReason); err != nil {
 				logrus.Error(output)
 				return false, err
 			}
@@ -360,7 +379,7 @@ func getRestoreDatabasesScript(dbName string) string {
 		rm -f $DUMP_FILE
 		cat > $DUMP_FILE
 		dropdb $DB_NAME
-		pg_restore --create --dbname $DB_NAME $DUMP_FILE
-		rm -f $DUMP_FILE
-	`
+		pg_restore --create --dbname $DB_NAME $DUMP_FILE`
+	// 	rm -f $DUMP_FILE
+	// ` TODO
 }

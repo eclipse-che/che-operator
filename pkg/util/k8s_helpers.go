@@ -87,7 +87,9 @@ func (cl *k8s) DoExecIntoPodWithStdin(namespace string, podName string, command 
 	stdout, stderr, err := cl.RunExec(args, podName, namespace, stdin)
 	if err != nil {
 		logrus.Errorf("Error running exec: %v, command: %s", err, args)
-		logrus.Errorf("Stderr: %s", stderr)
+		if stderr != "" {
+			logrus.Errorf("Stderr: %s", stderr)
+		}
 		return stdout, err
 	}
 
