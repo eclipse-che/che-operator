@@ -97,7 +97,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, error) {
 	if rctx.cheCR == nil {
 		// If there is no CR in the cluster, then use one from the backup.
-		// This is needed to be able to clean some related resources.
+		// This is needed to be able to clean some related resources if any.
 		cheCR, done, err := readCheCRFromBackup(rctx, dataDir)
 		if err != nil || !done {
 			return done, err
@@ -211,7 +211,7 @@ func restoreCheResources(rctx *RestoreContext, dataDir string) (bool, error) {
 }
 
 func restoreConfigMaps(rctx *RestoreContext, dataDir string) (bool, error) {
-	configMapsDir := path.Join(dataDir, "configmaps")
+	configMapsDir := path.Join(dataDir, checlusterbackup.BackupConfigMapsDir)
 	if _, err := os.Stat(configMapsDir); err != nil {
 		if !os.IsNotExist(err) {
 			return false, err
@@ -252,7 +252,7 @@ func restoreConfigMaps(rctx *RestoreContext, dataDir string) (bool, error) {
 }
 
 func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
-	secretsDir := path.Join(dataDir, "secrets")
+	secretsDir := path.Join(dataDir, checlusterbackup.BackupSecretsDir)
 	if _, err := os.Stat(secretsDir); err != nil {
 		if !os.IsNotExist(err) {
 			return false, err
@@ -311,7 +311,7 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 }
 
 func readCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluster, bool, error) {
-	cheCRFilePath := path.Join(dataDir, "che-cr.yaml")
+	cheCRFilePath := path.Join(dataDir, checlusterbackup.BackupCheCRFileName)
 	if _, err := os.Stat(cheCRFilePath); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, false, err
@@ -343,7 +343,7 @@ func readCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluste
 }
 
 func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
-	dumpsDir := path.Join(dataDir, "db")
+	dumpsDir := path.Join(dataDir, checlusterbackup.BackupDatabasesDir)
 
 	k8sClient := util.GetK8Client()
 	postgresPodName, err := k8sClient.GetDeploymentPod(deploy.PostgresName, rctx.namespace)
@@ -362,9 +362,11 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 			dumpReader := bytes.NewReader(dumpBytes)
 
 			execReason := fmt.Sprintf("restoring %s database", strings.TrimSuffix(dumpFile.Name(), ".pgdump"))
-			restoreDumpRemoteCommand := getRestoreDatabasesScript(dbDumpFilePath)
+			restoreDumpRemoteCommand := getRestoreDatabasesScript(dumpFile.Name())
 			if output, err := k8sClient.DoExecIntoPodWithStdin(rctx.namespace, postgresPodName, restoreDumpRemoteCommand, dumpReader, execReason); err != nil {
-				logrus.Error(output)
+				if output != "" {
+					logrus.Error(output)
+				}
 				return false, err
 			}
 		}
@@ -379,7 +381,7 @@ func getRestoreDatabasesScript(dbName string) string {
 		rm -f $DUMP_FILE
 		cat > $DUMP_FILE
 		dropdb $DB_NAME
-		pg_restore --create --dbname $DB_NAME $DUMP_FILE`
-	// 	rm -f $DUMP_FILE
-	// ` TODO
+		pg_restore --create --dbname $DB_NAME $DUMP_FILE
+		rm -f $DUMP_FILE
+	`
 }

@@ -29,6 +29,12 @@ import (
 )
 
 const (
+	BackupInfoFileName  = "backup-info.txt"
+	BackupCheCRFileName = "che-cr.yaml"
+	BackupConfigMapsDir = "configmaps"
+	BackupSecretsDir    = "secrets"
+	BackupDatabasesDir  = "db"
+
 	backupFilesPerms = 0600
 )
 
@@ -63,7 +69,7 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		return false, err
 	}
 
-	backupMetadataFilePath := path.Join(destDir, "backup-info.txt")
+	backupMetadataFilePath := path.Join(destDir, BackupInfoFileName)
 	if err := ioutil.WriteFile(backupMetadataFilePath, data, backupFilesPerms); err != nil {
 		return false, err
 	}
@@ -118,7 +124,7 @@ func backupCheCR(bctx *BackupContext, destDir string) (bool, error) {
 		return true, err
 	}
 
-	crFilePath := path.Join(destDir, "che-cr.yaml")
+	crFilePath := path.Join(destDir, BackupCheCRFileName)
 	if err := ioutil.WriteFile(crFilePath, data, backupFilesPerms); err != nil {
 		return false, err
 	}
@@ -128,12 +134,18 @@ func backupCheCR(bctx *BackupContext, destDir string) (bool, error) {
 // Saves Che related postgres databases dumps in db/{dbname}.pgdump
 func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 	// Prepare separate directory for dumps
-	dir := path.Join(destDir, "db")
+	dir := path.Join(destDir, BackupDatabasesDir)
 	if err := os.Mkdir(dir, os.ModePerm); err != nil {
 		return true, err
 	}
 
-	databasesToBackup := []string{bctx.cheCR.Spec.Database.ChePostgresDb, "keycloak"}
+	databasesToBackup := []string{}
+	if !bctx.cheCR.Spec.Database.ExternalDb {
+		databasesToBackup = append(databasesToBackup, bctx.cheCR.Spec.Database.ChePostgresDb)
+	}
+	if !bctx.cheCR.Spec.Auth.ExternalIdentityProvider {
+		databasesToBackup = append(databasesToBackup, "keycloak")
+	}
 
 	k8sClient := util.GetK8Client()
 	postgresPodName, err := k8sClient.GetDeploymentPod(deploy.PostgresName, bctx.namespace)
@@ -186,7 +198,7 @@ func getMoveDatabaseDumpScript(dbName string) string {
 
 func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 	// Prepare separate directory for config maps
-	dir := path.Join(destDir, "configmaps")
+	dir := path.Join(destDir, BackupConfigMapsDir)
 	if err := os.Mkdir(dir, os.ModePerm); err != nil {
 		return true, err
 	}
@@ -215,7 +227,7 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 
 func backupSecrets(bctx *BackupContext, destDir string) (bool, error) {
 	// Prepare separate directory for secrets
-	dir := path.Join(destDir, "secrets")
+	dir := path.Join(destDir, BackupSecretsDir)
 	if err := os.Mkdir(dir, os.ModePerm); err != nil {
 		return true, err
 	}

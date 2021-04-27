@@ -150,7 +150,7 @@ func (cl *k8s) RunExec(command []string, podName, namespace string, stdin io.Rea
 
 	req.VersionedParams(&corev1.PodExecOptions{
 		Command: command,
-		Stdin:   false,
+		Stdin:   stdin != nil,
 		Stdout:  true,
 		Stderr:  true,
 		TTY:     false,
