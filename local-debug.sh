@@ -51,6 +51,7 @@ prepareTemplates() {
   cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
   cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
   cp templates/oauth-provision.sh /tmp/oauth-provision.sh
+  cp templates/keycloak-update.sh /tmp/keycloak-update.sh
 
   # Download Dev Workspace operator templates
   echo "[INFO] Downloading Dev Workspace operator templates ..."

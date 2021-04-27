@@ -42,7 +42,7 @@ provisionKeycloak() {
     -s clientId={{ .KeycloakClientId }} \
     -s id={{ .KeycloakClientId }} \
     -s webOrigins='["http://{{ .CheHost }}", "https://{{ .CheHost }}"]' \
-    -s redirectUris='["http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/workspace-loader/*", "https://{{ .CheHost }}/workspace-loader/*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"]' \
+    -s redirectUris='["http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/factory*", "https://{{ .CheHost }}/factory*", "http://{{ .CheHost }}/f*", "https://{{ .CheHost }}/f*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"]' \
     -s directAccessGrantsEnabled=true \
     -s publicClient=true
 

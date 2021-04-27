@@ -35,6 +35,7 @@ var (
 		syncOpenShiftIdentityProvider,
 		SyncGitHubOAuth,
 	}
+	keycloakClientURLsUpdated = false
 )
 
 // SyncIdentityProviderToCluster instantiates the identity provider (Keycloak) in the cluster. Returns true if
@@ -119,6 +120,17 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 					continue
 				}
 				break
+			}
+		}
+		if !keycloakClientURLsUpdated {
+			if _, err := util.K8sclient.ExecIntoPod(
+				deployContext.CheCluster,
+				deploy.IdentityProviderName,
+				GetKeycloakUpdateCommand,
+				"Update redirect URI-s"); err != nil {
+				return false, err
+			} else {
+				keycloakClientURLsUpdated = true
 			}
 		}
 	}

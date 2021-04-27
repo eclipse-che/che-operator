@@ -49,6 +49,7 @@ FROM registry.access.redhat.com/ubi8-minimal:8.3-298.1618432845
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /che-operator/templates/keycloak-provision.sh /tmp/keycloak-provision.sh
+COPY --from=builder /che-operator/templates/keycloak-update.sh /tmp/keycloak-update.sh
 COPY --from=builder /che-operator/templates/oauth-provision.sh /tmp/oauth-provision.sh
 COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
