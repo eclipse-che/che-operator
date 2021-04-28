@@ -139,12 +139,14 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 		return true, err
 	}
 
-	databasesToBackup := []string{}
-	if !bctx.cheCR.Spec.Database.ExternalDb {
-		databasesToBackup = append(databasesToBackup, bctx.cheCR.Spec.Database.ChePostgresDb)
+	if bctx.cheCR.Spec.Database.ExternalDb {
+		// Skip database backup as there is an external server
+		return true, nil
 	}
-	if !bctx.cheCR.Spec.Auth.ExternalIdentityProvider {
-		databasesToBackup = append(databasesToBackup, "keycloak")
+
+	databasesToBackup := []string{
+		bctx.cheCR.Spec.Database.ChePostgresDb,
+		"keycloak",
 	}
 
 	k8sClient := util.GetK8Client()
@@ -155,7 +157,7 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 
 	// Dump all databases in a row to reduce the chance of inconsistent data change
 	dumpRemoteCommand := getDumpDatabasesScript(databasesToBackup)
-	execReason := "dumping databases:" + strings.Join(databasesToBackup, " ")
+	execReason := "dumping databases: " + strings.Join(databasesToBackup, " ")
 	if _, err := k8sClient.DoExecIntoPod(bctx.namespace, postgresPodName, dumpRemoteCommand, execReason); err != nil {
 		return false, err
 	}

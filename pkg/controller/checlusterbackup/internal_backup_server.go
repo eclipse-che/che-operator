@@ -13,16 +13,19 @@ package checlusterbackup
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -44,6 +47,7 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	taskList := []func(*BackupContext) (bool, error){
 		ensureInternalBackupServerDeploymentExist,
 		ensureInternalBackupServerServiceExists,
+		ensureInternalBackupServerPodReady,
 		ensureInternalBackupServerConfiguredAndCurrent,
 		ensureInternalBackupServerSecretExists,
 	}
@@ -105,8 +109,8 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 			Selector: &metav1.LabelSelector{MatchLabels: labelSelector},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-					Name:   backupServerPodName,
+					Labels:       labels,
+					GenerateName: backupServerPodName + "-",
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -120,21 +124,6 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 									ContainerPort: backupServerPort,
 									Protocol:      "TCP",
 								},
-							},
-							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
-									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.IntOrString{
-											Type:   intstr.Int,
-											IntVal: int32(backupServerPort),
-										},
-									},
-								},
-								InitialDelaySeconds: 1,
-								FailureThreshold:    10,
-								TimeoutSeconds:      1,
-								SuccessThreshold:    1,
-								PeriodSeconds:       1,
 							},
 							SecurityContext: &corev1.SecurityContext{
 								Capabilities: &corev1.Capabilities{
@@ -155,6 +144,23 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 	}
 
 	return deployment, nil
+}
+
+func ensureInternalBackupServerPodReady(bctx *BackupContext) (bool, error) {
+	// It is not possible to implement the check via StartupProbe of the pod,
+	// because the probe requires 2xx status, but a fresh REST server responds with 404 only.
+
+	restServerBaseUrl := fmt.Sprintf("http://%s:%d", backupServerServiceName, backupServerPort)
+	_, err := http.Head(restServerBaseUrl)
+	if err != nil {
+		if strings.Contains(err.Error(), "connection refused") {
+			// Internal REST server is not ready yet. Reconcile.
+			logrus.Info("Waiting for internal REST server to be ready")
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func ensureInternalBackupServerServiceExists(bctx *BackupContext) (bool, error) {

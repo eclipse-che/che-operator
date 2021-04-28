@@ -73,6 +73,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 	// Wait until Che deployed and ready
 	if !rctx.state.cheAvailable {
 		if rctx.cheCR.Status.CheClusterRunning != "Available" {
+			logrus.Info("Waiting for Che to be ready")
 			return false, nil
 		}
 
@@ -110,6 +111,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	if err == nil {
 		// Che CR is marked for deletion, but actually still exists.
 		// Wait for finalizers and actual resource deletion (not found expected).
+		logrus.Info("Waiting for Che CR finalizers to be completed")
 		return false, nil
 	} else if !errors.IsNotFound(err) {
 		return false, err
@@ -343,6 +345,11 @@ func readCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluste
 }
 
 func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
+	if rctx.cheCR.Spec.Database.ExternalDb {
+		// Skip database restore as there is an external server to connect to
+		return true, nil
+	}
+
 	dumpsDir := path.Join(dataDir, checlusterbackup.BackupDatabasesDir)
 
 	k8sClient := util.GetK8Client()
