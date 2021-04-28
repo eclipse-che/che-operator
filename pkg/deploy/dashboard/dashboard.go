@@ -18,7 +18,7 @@ import (
 
 const (
 	// DashboardComponent which is supposed to be used for the naming related objects
-	DashboardComponent = "dashboard"
+	DashboardComponent = "che-dashboard"
 )
 
 type Dashboard struct {
