@@ -22,7 +22,35 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 # Stop execution on any error
-trap "catchFinish" EXIT SIGINT
+trap "Catch_Finish" EXIT SIGINT
+
+function bumpPodsInfo() {
+    NS=$1
+    TARGET_DIR="${ARTIFACTS_DIR}/${NS}-info"
+    mkdir -p "$TARGET_DIR"
+
+    for POD in $(oc get pods -o name -n ${NS}); do
+        for CONTAINER in $(oc get -n ${NS} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
+            echo ""
+            echo "======== Getting logs from container $POD/$CONTAINER in $NS"
+            echo ""
+            # container name includes `pod/` prefix. remove it
+            LOGS_FILE=$TARGET_DIR/$(echo ${POD}-${CONTAINER}.log | sed 's|pod/||g')
+            oc logs ${POD} -c ${CONTAINER} -n ${NS} > $LOGS_FILE || true
+        done
+    done
+    echo "======== Bumping events -n ${NS} ========"
+    oc get events -n $NS -o=yaml > $TARGET_DIR/events.log || true
+}
+
+function Catch_Finish() {
+    # grab devworkspace-controller namespace events after running e2e
+    bumpPodsInfo "devworkspace-controller"
+    bumpPodsInfo "admin-che"
+    oc get devworkspaces -n "admin-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml
+
+    collectCheLogWithChectl
+}
 
 overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
