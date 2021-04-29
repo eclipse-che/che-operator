@@ -199,6 +199,8 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 				return true, err
 			}
 		}
+
+		logrus.Info("Restore successfully finished")
 	}
 	// Reset restore state
 	rctx.state = NewRestoreState()

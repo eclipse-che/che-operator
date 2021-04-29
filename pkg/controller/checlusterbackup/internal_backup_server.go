@@ -31,7 +31,7 @@ import (
 
 const (
 	InternalBackupServerType      = "internal"
-	InternalBackupServerComponent = "che-backup-rest-server"
+	InternalBackupServerComponent = "che-backup-internal-rest-server"
 
 	BackupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
 	BackupServerDeploymentName         = "backup-rest-server-deployment"
@@ -40,9 +40,7 @@ const (
 	backupServerPort                   = 8000
 )
 
-// ConfigureInternalBackupServer check for existance of internal REST backup server and deploys it if missing.
-// If something is broken in the internal backup server configuration,
-// then it will be recreated, but all data will be lost.
+// ConfigureInternalBackupServer checks for existance of internal REST backup server and deploys it if it doesn't.
 func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	taskList := []func(*BackupContext) (bool, error){
 		ensureInternalBackupServerDeploymentExist,
@@ -92,6 +90,9 @@ func ensureInternalBackupServerDeploymentExist(bctx *BackupContext) (bool, error
 
 func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, error) {
 	labels, labelSelector := deploy.GetLabelsAndSelector(bctx.cheCR, InternalBackupServerComponent)
+	// TODO should we use component label to select backup related resources instead of part-of label ?
+	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
+
 	replicas := int32(1)
 
 	deployment := &appsv1.Deployment{
@@ -194,6 +195,7 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) (bool, error) 
 
 func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
 	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
+	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
 
 	port := corev1.ServicePort{
 		Name:     backupServerServiceName + "-port",
@@ -257,6 +259,8 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 
 func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Secret, error) {
 	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
+	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
+
 	data := map[string][]byte{orgv1.RESTIC_REPO_PASSWORD_SECRET_KEY: []byte(password)}
 
 	secret := &corev1.Secret{

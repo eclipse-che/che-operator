@@ -99,7 +99,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	if rctx.cheCR == nil {
 		// If there is no CR in the cluster, then use one from the backup.
 		// This is needed to be able to clean some related resources if any.
-		cheCR, done, err := readCheCRFromBackup(rctx, dataDir)
+		cheCR, done, err := readAndAdaptCheCRFromBackup(rctx, dataDir)
 		if err != nil || !done {
 			return done, err
 		}
@@ -117,80 +117,59 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 		return false, err
 	}
 
-	done, err := deleteDeployments(rctx)
-	if err != nil || !done {
-		return done, err
-	}
-
-	// Delete all configmaps with custom CA certificates
-	err = rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace),
-		client.MatchingLabels{
-			deploy.CheCACertsConfigMapLabelKey: deploy.CheCACertsConfigMapLabelValue,
-			deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
-		})
-	if err != nil {
-		return false, err
-	}
-
+	// Define label selector for resources to clean up
 	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
-	cheRelatedMatchingLabels := client.MatchingLabels{
-		deploy.KubernetesNameLabelKey:     cheFlavor,
-		deploy.KubernetesInstanceLabelKey: cheFlavor,
-	}
 
-	// Delete config maps
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
-		return false, err
-	}
-
-	// Delete secrets
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.Secret{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
-		return false, err
-	}
-
-	// Delete ingresses / routes
-	if rctx.isOpenShift {
-		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels)
-	} else {
-		err = rctx.r.client.DeleteAllOf(context.TODO(), &extv1beta1.Ingress{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels)
-	}
-	if err != nil {
-		return false, err
-	}
-
-	// Delete persistent volumes
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.PersistentVolumeClaim{}, client.InNamespace(rctx.namespace), cheRelatedMatchingLabels); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func deleteDeployments(rctx *RestoreContext) (bool, error) {
-	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
 	cheNameRequirement, _ := labels.NewRequirement(deploy.KubernetesNameLabelKey, selection.Equals, []string{cheFlavor})
 	cheInstanceRequirement, _ := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{cheFlavor})
-	listOptions := &client.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*cheInstanceRequirement).Add(*cheNameRequirement),
-	}
+	skipBackupObjectsRequirement, _ := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{checlusterbackup.BackupCheEclipseOrg})
+
+	cheResourcesLabelSelector := labels.NewSelector().Add(*cheInstanceRequirement).Add(*cheNameRequirement).Add(*skipBackupObjectsRequirement)
+	cheResourcesListOptions := &client.ListOptions{LabelSelector: cheResourcesLabelSelector}
+	cheResourcesMatchingLabelsSelector := client.MatchingLabelsSelector{Selector: cheResourcesLabelSelector}
+
+	// Delete all Che related deployments, but keep operator (excluded by name) and internal backup server (excluded by label)
 	deploymentsList := &appsv1.DeploymentList{}
-	if err := rctx.r.client.List(context.TODO(), deploymentsList, listOptions); err != nil {
+	if err := rctx.r.client.List(context.TODO(), deploymentsList, cheResourcesListOptions); err != nil {
 		return false, err
 	}
-
-	deploymentsToDelete := []appsv1.Deployment{}
 	for _, deployment := range deploymentsList.Items {
-		if strings.Contains(deployment.GetName(), "operator") ||
-			deployment.GetName() == checlusterbackup.BackupServerDeploymentName {
+		if strings.Contains(deployment.GetName(), cheFlavor+"-operator") {
 			continue
 		}
-		deploymentsToDelete = append(deploymentsToDelete, deployment)
-	}
-
-	for _, deployment := range deploymentsToDelete {
 		if err := rctx.r.client.Delete(context.TODO(), &deployment); err != nil && !errors.IsNotFound(err) {
 			return false, err
 		}
+	}
+
+	// Delete all Che related secrets, but keep backup server ones (excluded by label)
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.Secret{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+		return false, err
+	}
+
+	// Delete all configmaps with custom CA certificates
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+		return false, err
+	}
+
+	// Delete all Che related config maps
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+		return false, err
+	}
+
+	// Delete all Che related ingresses / routes
+	if rctx.isOpenShift {
+		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
+	} else {
+		err = rctx.r.client.DeleteAllOf(context.TODO(), &extv1beta1.Ingress{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// Delete all Che related persistent volumes
+	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.PersistentVolumeClaim{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+		return false, err
 	}
 
 	return true, nil
@@ -296,7 +275,7 @@ func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
 }
 
 func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
-	cheCR, done, err := readCheCRFromBackup(rctx, dataDir)
+	cheCR, done, err := readAndAdaptCheCRFromBackup(rctx, dataDir)
 	if err != nil || !done {
 		return done, err
 	}
@@ -312,7 +291,7 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 	return true, nil
 }
 
-func readCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluster, bool, error) {
+func readAndAdaptCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluster, bool, error) {
 	cheCRFilePath := path.Join(dataDir, checlusterbackup.BackupCheCRFileName)
 	if _, err := os.Stat(cheCRFilePath); err != nil {
 		if !os.IsNotExist(err) {
@@ -333,12 +312,31 @@ func readCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluste
 
 	cheCR.ObjectMeta.Namespace = rctx.namespace
 	// Reset availability status
+	cheCR.Status = orgv1.CheClusterStatus{}
 	cheCR.Status.CheClusterRunning = ""
-	// Correct ingress domain if requested
-	if !rctx.isOpenShift {
+
+	// Adapt links in Che CR according to new cluster settings
+	if rctx.isOpenShift {
+		// TODO find a way to detect whether CheHost was set to custom value.
+		// Since it is not possible to detect if CheHost contains custom value or just old cluster host,
+		// reset it and let operator automatically set default value.
+		cheCR.Spec.Server.CheHost = ""
+	} else {
+		// Correct ingress domain if requested
+		oldIngressDomain := cheCR.Spec.K8s.IngressDomain
 		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
 			cheCR.Spec.K8s.IngressDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
 		}
+		// Check if Che host has custom value
+		if strings.Contains(cheCR.Spec.Server.CheHost, oldIngressDomain) || strings.Contains(cheCR.Spec.Server.CheHost, cheCR.Spec.K8s.IngressDomain) {
+			// CheHost was generated by operator.
+			// Reset it to let the operator put the correct value according to the new settings (domain and namespace).
+			cheCR.Spec.Server.CheHost = ""
+		}
+	}
+	if !cheCR.Spec.Auth.ExternalIdentityProvider {
+		// Let operator set the URL automatically
+		cheCR.Spec.Auth.IdentityProviderURL = ""
 	}
 
 	return cheCR, true, nil
@@ -388,7 +386,7 @@ func getRestoreDatabasesScript(dbName string) string {
 		rm -f $DUMP_FILE
 		cat > $DUMP_FILE
 		dropdb $DB_NAME
-		pg_restore --create --dbname $DB_NAME $DUMP_FILE
+		pg_restore --create $DUMP_FILE
 		rm -f $DUMP_FILE
 	`
 }

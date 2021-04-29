@@ -207,6 +207,7 @@ spec:
               type: boolean
           required:
           - servers
+          - triggerNow
           type: object
         status:
           description: CheClusterRestoreStatus defines the observed state of CheClusterRestore

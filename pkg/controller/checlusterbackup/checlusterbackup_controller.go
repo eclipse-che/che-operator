@@ -57,6 +57,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 const (
+	BackupCheEclipseOrg = "backup.che.eclipse.org"
+
 	backupDestDir = "/tmp/che-backup-data"
 )
 
@@ -200,9 +202,11 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 		bctx.backupCR.Status.LastBackupTime = time.Now().String()
 		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
 			logrus.Errorf("Failed to update status after successful backup")
-			// Do not reconsile as backup is done, only status is not updated
+			// Do not reconcile as backup is done, only status is not updated
 			return true, err
 		}
+
+		logrus.Info("Backup successfully finished")
 	}
 
 	return true, nil

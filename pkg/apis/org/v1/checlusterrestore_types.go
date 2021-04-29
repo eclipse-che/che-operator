@@ -14,7 +14,7 @@ type CheClusterRestoreSpec struct {
 	// If omitted, latest snapshot will be used.
 	SnapshotId string `json:"snapshotId,omitempty"`
 	// Set to true to start backup process.
-	TriggerNow bool `json:"triggerNow,omitempty"`
+	TriggerNow bool `json:"triggerNow"`
 	// If more than one backup server configured, should specify which one to use.
 	// Allowed values are fields names form BackupServers struct.
 	ServerType string `json:"serverType,omitempty"`

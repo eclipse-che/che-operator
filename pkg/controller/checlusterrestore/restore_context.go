@@ -62,6 +62,7 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheCluste
 // UpdateRestoreStage updates stage message in CR status according to current restore phase.
 // Needed only to show progress to the user.
 func (rctx *RestoreContext) UpdateRestoreStage() error {
+	rctx.restoreCR.Status.Message = "Che is being restored"
 	rctx.restoreCR.Status.Stage = rctx.state.GetProgressMessage()
 	return rctx.r.UpdateCRStatus(rctx.restoreCR)
 }
@@ -92,6 +93,8 @@ func NewRestoreState() *RestoreState {
 }
 
 func (s *RestoreState) GetProgressMessage() string {
+	// Order of the checks below should comply with restore steps order in
+	// RestoreChe function, except backup downloading step that precedes it.
 	if !s.backupDownloaded {
 		return "Downloading backup from backup server"
 	}
@@ -101,14 +104,14 @@ func (s *RestoreState) GetProgressMessage() string {
 	if !s.cheResourcesRestored {
 		return "Restoring Che related cluster objects"
 	}
-	if !s.cheDatabaseRestored {
-		return "Restoring Che database"
-	}
 	if !s.cheCRRestored {
 		return "Restoring Che Custom Resource"
 	}
 	if !s.cheRestored {
 		return "Waiting until Che is ready"
+	}
+	if !s.cheDatabaseRestored {
+		return "Restoring Che database"
 	}
 	return ""
 }

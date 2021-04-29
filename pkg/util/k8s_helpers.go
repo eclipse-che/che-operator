@@ -169,11 +169,8 @@ func (cl *k8s) RunExec(command []string, podName, namespace string, stdin io.Rea
 		Stderr: &stderr,
 		Tty:    false,
 	})
-	if err != nil {
-		return stdout.String(), stderr.String(), err
-	}
 
-	return stdout.String(), stderr.String(), nil
+	return stdout.String(), stderr.String(), err
 }
 
 func (cl *k8s) IsResourceOperationPermitted(resourceAttr *authorizationv1.ResourceAttributes) (ok bool, err error) {
