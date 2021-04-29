@@ -42,7 +42,7 @@ jobs:
           set -e
           # if not run manually, need to compute chectl version from latest released CSV
           if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
-            chectlVersion=$(yq -r '.spec.version' "deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml")
+            chectlVersion=$(grep Version version/version.go | cut -d \" -f2)
           else
             chectlVersion="${{ github.event.inputs.version }}"
           fi
@@ -53,7 +53,7 @@ jobs:
           # e.g 7.27.0 for Che = v0.1.0 for DWO
           chectlMajorMinorVersion=${chectlVersion#7.}
           chectlMajorVersion=${chectlMajorMinorVersion%.*}
-          dwoMajorVersion=((${chectlMajorVersion}-26))
+          dwoMajorVersion=$((${chectlMajorVersion}-26))
           dwoMinorVersion=${chectlMajorMinorVersion%.*}
           dwoVersion=v0.${dwoMajorVersion}.${dwoMinorVersion}
 
