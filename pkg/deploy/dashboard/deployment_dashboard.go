@@ -24,7 +24,8 @@ import (
 
 func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(30)
-	labels := deploy.GetLabels(p.deployContext.CheCluster, DashboardComponent)
+	labels, labelsSelector := deploy.GetLabelsAndSelector(p.deployContext.CheCluster, DashboardComponent)
+
 	dashboardImageAndTag := util.GetValue(p.deployContext.CheCluster.Spec.Server.DashboardImage, deploy.DefaultDashboardImage(p.deployContext.CheCluster))
 	pullPolicy := corev1.PullPolicy(util.GetValue(p.deployContext.CheCluster.Spec.Server.DashboardImagePullPolicy, deploy.DefaultPullPolicyFromDockerImage(dashboardImageAndTag)))
 
@@ -39,7 +40,7 @@ func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labelsSelector},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
