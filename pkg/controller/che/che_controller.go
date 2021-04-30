@@ -91,8 +91,6 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	isOpenShift, _, err := util.DetectOpenShift()
-
 	onAllExceptGenericEventsPredicate := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
 			return true
@@ -108,16 +106,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	if err != nil {
-		logrus.Errorf("An error occurred when detecting current infra: %s", err)
-	}
 	// Create a new controller
 	c, err := controller.New("che-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 	// register OpenShift specific types in the scheme
-	if isOpenShift {
+	if util.IsOpenShift {
 		if err := routev1.AddToScheme(mgr.GetScheme()); err != nil {
 			logrus.Errorf("Failed to add OpenShift route to scheme: %s", err)
 		}
@@ -236,7 +231,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	if isOpenShift {
+	if util.IsOpenShift {
 		err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
@@ -355,11 +350,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return imagePullerResult, err
 	}
 
-	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
-	if err != nil {
-		logrus.Errorf("An error occurred when detecting current infra: %s", err)
-	}
-
 	// Check Che CR correctness
 	if !util.IsTestMode() {
 		if err := ValidateCheCR(instance); err != nil {
@@ -373,17 +363,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if !util.IsTestMode() {
-		if isOpenShift && deployContext.DefaultCheHost == "" {
-			host, err := getDefaultCheHost(deployContext)
-			if host == "" {
-				return reconcile.Result{RequeueAfter: 1 * time.Second}, err
-			}
-			deployContext.DefaultCheHost = host
-		}
-	}
-
-	if isOpenShift4 && util.IsDeleteOAuthInitialUser(instance) {
+	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(instance) {
 		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
 			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
 			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
@@ -420,8 +400,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	if isOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
-		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, isOpenShift4); err != nil {
+	if util.IsOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
+		if reconcileResult, err := r.autoEnableOAuth(deployContext, request, util.IsOpenShift4); err != nil {
 			return reconcileResult, err
 		}
 	}
@@ -458,9 +438,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	cheFlavor := deploy.DefaultCheFlavor(instance)
-	cheDeploymentName := cheFlavor
-
 	// Detect whether self-signed certificate is used
 	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
@@ -468,25 +445,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	if isOpenShift {
+	if util.IsOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if selfSignedCertUsed ||
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(isOpenShift4 && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
+			(util.IsOpenShift4 && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, err
-			}
-		}
-
-		if !tests {
-			deployment := &appsv1.Deployment{}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheDeploymentName, Namespace: instance.Namespace}, deployment)
-			if err != nil && instance.Status.CheClusterRunning != UnavailableStatus {
-				if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-					return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-				}
 			}
 		}
 
@@ -535,33 +502,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		// Config map update is in progress
 		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
 		return reconcile.Result{}, err
-	}
-
-	// Get custom ConfigMap
-	// if it exists, add the data into CustomCheProperties
-	customConfigMap := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: "custom"}, customConfigMap)
-	if err != nil && !errors.IsNotFound(err) {
-		logrus.Errorf("Error getting custom configMap: %v", err)
-		return reconcile.Result{}, err
-	}
-	if err == nil {
-		logrus.Infof("Found legacy custom ConfigMap.  Adding those values to CheCluster.Spec.Server.CustomCheProperties")
-		if instance.Spec.Server.CustomCheProperties == nil {
-			instance.Spec.Server.CustomCheProperties = make(map[string]string)
-		}
-		for k, v := range customConfigMap.Data {
-			instance.Spec.Server.CustomCheProperties[k] = v
-		}
-		if err := r.client.Update(context.TODO(), instance); err != nil {
-			logrus.Errorf("Error updating CheCluster: %v", err)
-			return reconcile.Result{}, err
-		}
-		if err = r.client.Delete(context.TODO(), customConfigMap); err != nil {
-			logrus.Errorf("Error deleting legacy custom ConfigMap: %v", err)
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
@@ -623,28 +563,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		instance, _ = r.GetCR(request)
 		return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 	}
-	cheMultiUser := deploy.GetCheMultiUser(instance)
-
-	if cheMultiUser == "false" {
-		claimSize := util.GetValue(instance.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
-		done, err := deploy.SyncPVCToCluster(deployContext, deploy.DefaultCheVolumeClaimName, claimSize, cheFlavor)
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			} else {
-				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
-			}
-			return reconcile.Result{}, err
-		}
-	} else {
-		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DefaultCheVolumeClaimName, &corev1.PersistentVolumeClaim{})
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{}, err
-		}
-	}
 
 	if !deployContext.CheCluster.Spec.Database.ExternalDb {
 		postgres := postgres.NewPostgres(deployContext)
@@ -657,104 +575,24 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
-	tlsSupport := instance.Spec.Server.TlsSupport
-	protocol := "http"
-	if tlsSupport {
-		protocol = "https"
-	}
-
-	// create Che service and route
-	done, err = server.SyncCheServiceToCluster(deployContext)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-
-		return reconcile.Result{}, err
-	}
-
-	exposedServiceName := getServerExposingServiceName(instance)
-	cheHost := ""
-	if !isOpenShift {
-		_, done, err := deploy.SyncIngressToCluster(
-			deployContext,
-			cheFlavor,
-			instance.Spec.Server.CheHost,
-			"",
-			exposedServiceName,
-			8080,
-			deployContext.CheCluster.Spec.Server.CheServerIngress,
-			cheFlavor)
-		if !done {
-			logrus.Infof("Waiting on ingress '%s' to be ready", cheFlavor)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			return reconcile.Result{RequeueAfter: time.Second * 1}, err
-		}
-
-		ingress := &v1beta1.Ingress{}
-		exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, ingress)
-		if !exists {
-			return reconcile.Result{}, err
-		} else if err != nil {
-			logrus.Error(err)
-			return reconcile.Result{}, err
-		}
-		cheHost = ingress.Spec.Rules[0].Host
-	} else {
-		customHost := instance.Spec.Server.CheHost
-		if deployContext.DefaultCheHost == customHost {
-			// let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
-			customHost = ""
-		}
-
-		done, err := deploy.SyncRouteToCluster(
-			deployContext,
-			cheFlavor,
-			customHost,
-			"/",
-			exposedServiceName,
-			8080,
-			deployContext.CheCluster.Spec.Server.CheServerRoute,
-			cheFlavor)
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{}, err
-		}
-
-		route := &routev1.Route{}
-		exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, route)
-		if !exists {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{}, err
-		}
-		cheHost = route.Spec.Host
-		if customHost == "" {
-			deployContext.DefaultCheHost = cheHost
-		}
-	}
-	if instance.Spec.Server.CheHost != cheHost {
-		instance.Spec.Server.CheHost = cheHost
-		if err := r.UpdateCheCRSpec(instance, "CheHost URL", cheHost); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
 	// create and provision Keycloak related objects
-	provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
-	if !tests {
-		if !provisioned {
-			if err != nil {
-				logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
+	if !instance.Spec.Auth.ExternalIdentityProvider {
+		provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
+		if !tests {
+			if !provisioned {
+				if err != nil {
+					logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
+				}
+				return reconcile.Result{}, err
 			}
-			return reconcile.Result{}, err
+		}
+	} else {
+		keycloakURL := instance.Spec.Auth.IdentityProviderURL
+		if instance.Status.KeycloakURL != keycloakURL {
+			instance.Status.KeycloakURL = keycloakURL
+			if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", keycloakURL); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 
@@ -808,73 +646,19 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// create Che ConfigMap which is synced with CR and is not supposed to be manually edited
-	// controller will reconcile this CM with CR spec
-	done, err = server.SyncCheConfigMapToCluster(deployContext)
-	if !tests {
-		if !done {
-			logrus.Infof("Waiting on config map '%s' to be created", server.CheConfigMapName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{}, err
-		}
-	}
-
 	err = gateway.SyncGatewayToCluster(deployContext)
 	if err != nil {
 		logrus.Errorf("Failed to create the Server Gateway: %s", err)
 		return reconcile.Result{}, err
 	}
 
-	// Create a new che deployment
-	provisioned, err = server.SyncCheDeploymentToCluster(deployContext)
-	if !tests {
-		if !provisioned {
-			logrus.Infof("Waiting on deployment '%s' to be ready", cheFlavor)
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			cheDeployment := &appsv1.Deployment{}
-			exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, cheDeployment)
-			if exists {
-				if cheDeployment.Status.AvailableReplicas < 1 {
-					if instance.Status.CheClusterRunning != UnavailableStatus {
-						if err := r.SetCheUnavailableStatus(instance, request); err != nil {
-							instance, _ = r.GetCR(request)
-							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-						}
-					}
-				} else if cheDeployment.Status.Replicas != 1 {
-					if instance.Status.CheClusterRunning != RollingUpdateInProgressStatus {
-						if err := r.SetCheRollingUpdateStatus(instance, request); err != nil {
-							instance, _ = r.GetCR(request)
-							return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-						}
-					}
-				}
-			}
-			return reconcile.Result{}, err
+	server := server.NewServer(deployContext)
+	done, err = server.SyncAll()
+	if !done {
+		if err != nil {
+			logrus.Error(err)
 		}
-	}
-	// Update available status
-	if instance.Status.CheClusterRunning != AvailableStatus {
-		cheHost := instance.Spec.Server.CheHost
-		if err := r.SetCheAvailableStatus(instance, request, protocol, cheHost); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
-	// Update Che version status
-	cheVersion := EvaluateCheServerVersion(instance)
-	if instance.Status.CheVersion != cheVersion {
-		instance.Status.CheVersion = cheVersion
-		if err := r.UpdateCheCRStatus(instance, "version", cheVersion); err != nil {
-			instance, _ = r.GetCR(request)
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
+		return reconcile.Result{}, err
 	}
 
 	// we can now try to create consolelink, after che instance is available
@@ -889,7 +673,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Delete OpenShift identity provider if OpenShift oAuth is false in spec
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
-	deleted, err := r.ReconcileIdentityProvider(instance, isOpenShift4)
+	deleted, err := r.ReconcileIdentityProvider(instance, util.IsOpenShift4)
 	if deleted {
 		// ignore error
 		deploy.DeleteFinalizer(deployContext, deploy.OAuthFinalizerName)
@@ -915,49 +699,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	return reconcile.Result{}, nil
-}
-
-// EvaluateCheServerVersion evaluate che version
-// based on Checluster information and image defaults from env variables
-func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
-	return util.GetValue(cr.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
-}
-
-func getDefaultCheHost(deployContext *deploy.DeployContext) (string, error) {
-	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	done, err := deploy.SyncRouteToCluster(
-		deployContext,
-		cheFlavor,
-		"",
-		"/",
-		getServerExposingServiceName(deployContext.CheCluster),
-		8080,
-		deployContext.CheCluster.Spec.Server.CheServerRoute,
-		cheFlavor)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return "", err
-	}
-
-	route := &routev1.Route{}
-	exists, err := deploy.GetNamespacedObject(deployContext, cheFlavor, route)
-	if !exists {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return "", err
-	}
-
-	return route.Spec.Host, nil
-}
-
-func getServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if util.GetServerExposureStrategy(cr) == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
-		return gateway.GatewayServiceName
-	}
-	return deploy.CheServiceName
 }
 
 // isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
