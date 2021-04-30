@@ -68,7 +68,7 @@ To deploy Che operator you can use [chectl](https://github.com/che-incubator/che
 2. Deploy Eclipse Che on a running k8s cluster:
 
 ```bash
-$ chectl deploy:deploy --installer operator -p <PLATFORM> --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
+$ chectl server:deploy --installer operator -p <PLATFORM> --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly
 ```
 
 Where:
@@ -77,7 +77,7 @@ Where:
 > INFO: if you have changed Che operator deployment, roles, cluster roles, CRD or CR then you must use `--templates` flag to point chectl to modified Che operator templates. Copy all files from the `deploy` folder of the che-operator project into a folder `<SOME_PATH>/templates/che-operator` and use it with chectl:
 
 ```bash
-$ chectl deploy:deploy --installer operator -p <PLATFORM> --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly --templates <SOME_PATH>/templates
+$ chectl server:deploy --installer operator -p <PLATFORM> --che-operator-image=${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly --templates <SOME_PATH>/templates
 ```
 
 #### Deploy Che operator with chectl using `--installer olm` flag

@@ -399,6 +399,11 @@ func getWorkspacesPolicies() []rbac.PolicyRule {
 			Resources: []string{"rolebindings"},
 			Verbs:     []string{"get", "update", "create"},
 		},
+		{
+			APIGroups: []string{"metrics.k8s.io"},
+			Resources: []string{"pods", "nodes"},
+			Verbs:     []string{"get", "list", "watch"},
+		},
 	}
 	openshiftPolicies := []rbac.PolicyRule{
 		{
