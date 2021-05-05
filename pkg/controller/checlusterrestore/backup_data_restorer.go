@@ -73,7 +73,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 	// Wait until Che deployed and ready
 	if !rctx.state.cheAvailable {
 		if rctx.cheCR.Status.CheClusterRunning != "Available" {
-			logrus.Info("Waiting for Che to be ready")
+			logrus.Info("Restore: Waiting for Che to be ready")
 			return false, nil
 		}
 
@@ -111,7 +111,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	if err == nil {
 		// Che CR is marked for deletion, but actually still exists.
 		// Wait for finalizers and actual resource deletion (not found expected).
-		logrus.Info("Waiting for Che CR finalizers to be completed")
+		logrus.Info("Restore: Waiting for old Che CR finalizers to be completed")
 		return false, nil
 	} else if !errors.IsNotFound(err) {
 		return false, err
@@ -385,8 +385,10 @@ func getRestoreDatabasesScript(dbName string) string {
 	  DUMP_FILE=/tmp/dbdump
 		rm -f $DUMP_FILE
 		cat > $DUMP_FILE
-		dropdb $DB_NAME
-		pg_restore --create $DUMP_FILE
+		psql -c "ALTER DATABASE ${DB_NAME} CONNECTION LIMIT 0;"
+		psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}';"
+		psql -c "DROP DATABASE ${DB_NAME};"
+		pg_restore -d postgres --create $DUMP_FILE
 		rm -f $DUMP_FILE
 	`
 }

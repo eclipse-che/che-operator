@@ -162,7 +162,7 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 			if err != nil || !done {
 				return done, err
 			}
-			logrus.Info("Retrieved data from backup server")
+			logrus.Info("Restore: Retrieved data from backup server")
 			rctx.state.backupDownloaded = true
 			rctx.UpdateRestoreStage()
 		}
@@ -202,8 +202,8 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 
 		logrus.Info("Restore successfully finished")
 	}
-	// Reset restore state
-	rctx.state = NewRestoreState()
+	// Reset state to restart the restore flow on the next reconcile
+	rctx.state.Reset()
 
 	return true, nil
 }
