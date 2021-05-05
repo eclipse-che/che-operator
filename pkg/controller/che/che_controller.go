@@ -490,7 +490,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		if util.IsOAuthEnabled(instance) {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
+			baseURL, _, err := util.GetOpenShiftAPIUrls()
 			if err != nil {
 				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 			} else {

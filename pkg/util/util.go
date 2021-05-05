@@ -216,21 +216,24 @@ func IsTestMode() (isTesting bool) {
 	return true
 }
 
-func GetClusterPublicHostname(isOpenShift4 bool) (hostname string, err error) {
-	// Could be set for debug scripts.
-	CLUSTER_API_URL := os.Getenv("CLUSTER_API_URL")
-	if CLUSTER_API_URL != "" {
-		return CLUSTER_API_URL, nil
+func GetOpenShiftAPIUrls() (string, string, error) {
+	// for debug purpose
+	apiUrl := os.Getenv("CLUSTER_API_URL")
+	apiInternalUrl := os.Getenv("CLUSTER_API_INTERNAL_URL")
+	if apiUrl != "" && apiInternalUrl != "" {
+		return apiUrl, apiInternalUrl, nil
 	}
-	if isOpenShift4 {
-		return getClusterPublicHostnameForOpenshiftV4()
+
+	if IsOpenShift4 {
+		return getAPIUrlsForOpenShiftV4()
 	}
-	return getClusterPublicHostnameForOpenshiftV3()
+
+	return getAPIUrlsForOpenShiftV3()
 }
 
-// getClusterPublicHostnameForOpenshiftV3 is a hacky way to get OpenShift API public DNS/IP
+// getAPIUrlsForOpenShiftV3 is a hacky way to get OpenShift API public DNS/IP
 // to be used in OpenShift oAuth provider as baseURL
-func getClusterPublicHostnameForOpenshiftV3() (hostname string, err error) {
+func getAPIUrlsForOpenShiftV3() (apiUrl string, apiInternalUrl string, err error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
 	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
@@ -239,27 +242,27 @@ func getClusterPublicHostnameForOpenshiftV3() (hostname string, err error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", err
+		return "", "", err
 	}
 	var jsonData map[string]interface{}
 	err = json.Unmarshal(body, &jsonData)
 	if err != nil {
 		logrus.Errorf("An error occurred when unmarshalling: %s", err)
-		return "", err
+		return "", "", err
 	}
-	hostname = jsonData["issuer"].(string)
-	return hostname, nil
+	apiUrl = jsonData["issuer"].(string)
+	return apiUrl, apiUrl, nil
 }
 
 // getClusterPublicHostnameForOpenshiftV3 is a way to get OpenShift API public DNS/IP
 // to be used in OpenShift oAuth provider as baseURL
-func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
+func getAPIUrlsForOpenShiftV4() (apiUrl string, apiInternalUrl string, err error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{}
 	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
@@ -268,7 +271,7 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	file, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
 		logrus.Errorf("Failed to locate token file: %s", err)
-		return "", err
+		return "", "", err
 	}
 	token := string(file)
 
@@ -278,35 +281,36 @@ func getClusterPublicHostnameForOpenshiftV4() (hostname string, err error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		message := url + " - " + resp.Status
 		logrus.Errorf("An error occurred when getting API public hostname: %s", message)
-		return "", errors.New(message)
+		return "", "", errors.New(message)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", err
+		return "", "", err
 	}
 	var jsonData map[string]interface{}
 	err = json.Unmarshal(body, &jsonData)
 	if err != nil {
 		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", err)
-		return "", err
+		return "", "", err
 	}
 	switch status := jsonData["status"].(type) {
 	case map[string]interface{}:
-		hostname = status["apiServerURL"].(string)
+		apiUrl = status["apiServerURL"].(string)
+		apiInternalUrl = status["apiServerInternalURI"].(string)
 	default:
 		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", body)
-		return "", errors.New(string(body))
+		return "", "", errors.New(string(body))
 	}
 
-	return hostname, nil
+	return apiUrl, apiInternalUrl, nil
 }
 
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {

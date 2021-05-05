@@ -354,7 +354,7 @@ deployCheBehindProxy() {
     cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
   server:
-    nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
+    nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
   chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
