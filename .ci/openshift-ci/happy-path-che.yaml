@@ -6,6 +6,9 @@ metadata:
 spec:
   volumes:
     - name: test-run-results
+    - name: dshm
+      emptyDir:
+        medium: Memory
   containers:
     # container containing the tests
     - name: happy-path-test
@@ -45,6 +48,8 @@ spec:
       volumeMounts:
         - name: test-run-results
           mountPath: /tmp/e2e/report/
+        - mountPath: /dev/shm
+          name: dshm
       resources:
         requests:
           memory: "3Gi"
