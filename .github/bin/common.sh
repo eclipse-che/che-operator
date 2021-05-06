@@ -338,10 +338,14 @@ function provisionOpenShiftOAuthUser() {
 
 login() {
   if [[ ${OAUTH} == "false" ]]; then
-    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
+    chectl auth:login -u admin -p admin
   else
     # log in using OpenShift token
-    chectl auth:login --chenamespace=${NAMESPACE}
+    OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
+    OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
+    OPENSHIFT_PASSWORD=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.password}' | base64 --decode)
+    oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD
+    chectl auth:login https://che-$NAMESPACE.apps.$OPENSHIFT_DOMAIN/api
   fi
 }
 

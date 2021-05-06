@@ -30,7 +30,7 @@ overrideDefaults() {
 runTests() {
     # Deploy Eclipse Che behind proxy using chectl cli
     deployCheBehindProxy
-    provisionOAuth
+    # provisionOAuth
     startNewWorkspace
     waitWorkspaceStart
 }
@@ -38,5 +38,5 @@ runTests() {
 initDefaults
 initOpenShiftDefaults
 overrideDefaults
-provisionOpenShiftOAuthUser
+# provisionOpenShiftOAuthUser
 runTests
