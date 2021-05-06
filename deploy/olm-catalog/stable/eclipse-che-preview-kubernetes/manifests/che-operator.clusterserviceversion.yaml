@@ -798,16 +798,9 @@ spec:
                         cpu: 100m
                         memory: 64Mi
                     securityContext:
-                      allowPrivilegeEscalation: false
-                      privileged: false
-                      readOnlyRootFilesystem: false
-                      runAsNonRoot: true
                       capabilities:
                         drop:
                           - ALL
-                hostIPC: false
-                hostNetwork: false
-                hostPID: false
                 restartPolicy: Always
                 serviceAccountName: che-operator
                 terminationGracePeriodSeconds: 20
