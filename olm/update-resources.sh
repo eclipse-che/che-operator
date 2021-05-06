@@ -231,7 +231,7 @@ updateNighltyBundle() {
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."readOnlyRootFilesystem") = "false"' "${NEW_CSV}"
     if [ "${platform}" == "openshift" ]; then
       yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = "false"' "${NEW_CSV}"
-      yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = "false"' "${NEW_CSV}"
+      yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = "true"' "${NEW_CSV}"
     fi
 
     # Format code.
