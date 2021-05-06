@@ -37,15 +37,12 @@ runTests() {
     # Deploy Eclipse Che applying CR
     applyOlmCR
     waitEclipseCheDeployed "nightly"
-    # provisionOAuth
     startNewWorkspace
     waitWorkspaceStart
 }
 
 initDefaults
-initOpenShiftDefaults
 overrideDefaults
-# provisionOpenShiftOAuthUser
 patchEclipseCheOperatorSubscription
 printOlmCheObjects
 runTests

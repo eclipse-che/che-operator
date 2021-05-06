@@ -135,5 +135,4 @@ runTest() {
 initDefaults
 initLatestTemplates
 overrideDefaults
-# provisionOpenShiftOAuthUser
 runTest

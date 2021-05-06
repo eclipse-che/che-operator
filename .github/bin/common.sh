@@ -35,7 +35,7 @@ initDefaults() {
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
-  export OAUTH="false"
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -44,11 +44,6 @@ initDefaults() {
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
-}
-
-initOpenShiftDefaults() {
-  export OAUTH="true"
-  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 }
 
 initLatestTemplates() {
@@ -312,7 +307,6 @@ applyOlmCR() {
 
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
-  CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = ${OAUTH}")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
 
   echo -e "$CR"
@@ -337,13 +331,15 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  if [[ ${OAUTH} == "false" ]]; then
+  local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
+  if [[ ${oauth} == "false" ]]; then
     chectl auth:login -u admin -p admin
   else
     # log in using OpenShift token
     OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
     OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
     OPENSHIFT_PASSWORD=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.password}' | base64 --decode)
+    oc adm policy add-cluster-role-to-user cluster-admin $OPENSHIFT_USER
     oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD
     chectl auth:login https://che-$NAMESPACE.apps.$OPENSHIFT_DOMAIN/api
   fi
