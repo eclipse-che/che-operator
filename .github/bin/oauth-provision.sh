@@ -22,19 +22,19 @@ function provisionOAuth() {
   IDP_USERNAME="admin"
   CHE_USERNAME="admin"
   # Get Eclipse Che IDP secrets and decode to use to connect to IDP
-  IDP_PASSWORD=$(oc get secret che-identity-secret -n eclipse-che -o=jsonpath='{.data.password}' | base64 --decode)
+  IDP_PASSWORD=$(oc get secret che-identity-secret -n $NAMESPACE -o=jsonpath='{.data.password}' | base64 --decode)
 
   # Get Auth Route
   if [[ "${CHE_EXPOSURE_STRATEGY}" == "single-host" ]]; then
-    IDP_HOST="https://"$(oc get route che -n eclipse-che -o=jsonpath='{.spec.host}')
+    IDP_HOST="https://"$(oc get route che -n $NAMESPACE -o=jsonpath='{.spec.host}')
   fi
 
   if [[ "${CHE_EXPOSURE_STRATEGY}" == "multi-host" ]]; then
-    IDP_HOST="https://"$(oc get route keycloak -n eclipse-che -o=jsonpath='{.spec.host}')
+    IDP_HOST="https://"$(oc get route keycloak -n $NAMESPACE -o=jsonpath='{.spec.host}')
   fi
 
   # Get the oauth client from Eclipse Che Custom Resource
-  OAUTH_CLIENT_NAME=$(oc get checluster eclipse-che -n eclipse-che -o=jsonpath='{.spec.auth.oAuthClientName}')
+  OAUTH_CLIENT_NAME=$(oc get checluster eclipse-che -n $NAMESPACE -o=jsonpath='{.spec.auth.oAuthClientName}')
 
   # Obtain from Keycloak the token to make api request authentication
   IDP_TOKEN=$(curl -k --location --request POST ''$IDP_HOST'/auth/realms/master/protocol/openid-connect/token' \
@@ -69,7 +69,7 @@ apiVersion: oauth.openshift.io/v1
 kind: OAuthClientAuthorization
 metadata:
   generateName: $CHE_USERNAME:$OAUTH_CLIENT_NAME
-  namespace: eclipse-che
+  namespace: $NAMESPACE
 clientName: $OAUTH_CLIENT_NAME
 userName: $CHE_USERNAME
 userUID: $OCP_USER_UID
@@ -90,8 +90,8 @@ EOF
 
   # Insert sql script inside of postgres and execute it.
   POSTGRES_POD=$(oc get pods -o json -n eclipse-che | jq -r '.items[] | select(.metadata.name | test("postgres-")).metadata.name')
-  oc cp path.sql "${POSTGRES_POD}":/tmp/ -n eclipse-che
-  oc exec -it "${POSTGRES_POD}" -n eclipse-che  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
+  oc cp path.sql "${POSTGRES_POD}":/tmp/ -n $NAMESPACE
+  oc exec -it "${POSTGRES_POD}" -n $NAMESPACE  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
 
   rm path.sql
 }
