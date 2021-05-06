@@ -288,7 +288,7 @@ func DefaultDashboardImage(cr *orgv1.CheCluster) string {
 }
 
 func DefaultDevworkspaceControllerImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultDevworkspaceCheOperatorImage)
+	return patchDefaultImageName(cr, defaultDevworkspaceControllerImage)
 }
 
 func DefaultDevworkspaceCheOperatorImage(cr *orgv1.CheCluster) string {
