@@ -313,28 +313,9 @@ applyOlmCR() {
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
 }
 
-# Create admin user inside of openshift cluster and login
-function provisionOpenShiftOAuthUser() {
-  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config
-  oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
-  oc adm policy add-cluster-role-to-user cluster-admin user
-
-  echo -e "[INFO] Waiting for htpasswd auth to be working up to 5 minutes"
-  CURRENT_TIME=$(date +%s)
-  ENDTIME=$(($CURRENT_TIME + 300))
-  while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc login -u user -p user --insecure-skip-tls-verify=false; then
-          break
-      fi
-      sleep 10
-  done
-}
-
 login() {
   local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
-  if [[ ${oauth} == "false" ]]; then
-    chectl auth:login -u admin -p admin
-  else
+  if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
     OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
     OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
@@ -342,6 +323,8 @@ login() {
     oc adm policy add-cluster-role-to-user cluster-admin $OPENSHIFT_USER
     oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD
     chectl auth:login https://che-$NAMESPACE.apps.$OPENSHIFT_DOMAIN/api
+  else
+    chectl auth:login -u admin -p admin
   fi
 }
 
