@@ -23,9 +23,7 @@ trap "catchFinish" EXIT SIGINT
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
-
   provisionOAuth
-
   startNewWorkspace
   waitWorkspaceStart
 }
