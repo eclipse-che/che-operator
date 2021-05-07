@@ -32,7 +32,7 @@ type CheClusterBackupSpec struct {
 	// List of backup servers.
 	// Usually only one is used.
 	// In case of several available, ServerType should contain server to use.
-	Servers BackupServers `json:"servers"`
+	Servers BackupServers `json:"servers,omitempty"`
 }
 
 // +k8s:openapi-gen=true

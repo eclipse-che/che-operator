@@ -194,7 +194,6 @@ spec:
               description: Set to true to start backup process.
               type: boolean
           required:
-          - servers
           - triggerNow
           type: object
         status:
