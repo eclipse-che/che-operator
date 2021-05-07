@@ -41,7 +41,7 @@ runTest() {
 }
 
 initDefaults
-installOperatorMarketPlace
+# installOperatorMarketPlace
 initLatestTemplates
 prepareTemplates
 buildCheOperatorImage
