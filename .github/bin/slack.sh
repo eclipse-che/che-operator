@@ -14,12 +14,12 @@ set -e
 set -o pipefail
 # error on unset variables
 set -u
-export OPERATOR_REPO="/home/flacatusu/WORKSPACE/deploy/testing/che-operator"
+
 TMP_JSON=$(mktemp)
 cat "$OPERATOR_REPO"/.github/bin/resources/slack-message-template.json |
     sed -e "s#__REPLACE_DATE__#$(date)#g" |
-    sed -e "s#__REPLACE_JOB_URL__#http://localhost#g" |
-    sed -e "s#__REPLACE_JOB_RESULT__#fake#g" |
+    sed -e "s#__REPLACE_JOB_URL__#${BUILD_URL}#g" |
+    sed -e "s#__REPLACE_JOB_RESULT__#${JOB_RESULT}#g" |
     cat >${TMP_JSON}
 
 curl -X POST -d @${TMP_JSON} -H "Content-type:application/json; charset=utf-8" -X POST -H "Authorization: Bearer ${SLACK_TOKEN}" https://slack.com/api/chat.postMessage

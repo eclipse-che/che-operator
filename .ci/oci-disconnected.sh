@@ -28,20 +28,23 @@ export TAG_NIGHTLY="nightly"
 export SLACK_TOKEN="${SLACK_TOKEN-"UNDEFINED"}"
 
 #Stop execution on any error
-trap "catchDisconnectedFinish" EXIT SIGINT
+trap "catchDisconnectedJenkinsFinish" EXIT SIGINT
 
-function catchDisconnectedFinish() {
-  EXIT_CODE=$?
+function catchDisconnectedJenkinsFinish() {
+    EXIT_CODE=$?
 
-  if [ "$EXIT_CODE" != "0" ]; then
-    export JOB_RESULT=":face_with_head_bandage: Failed :face_with_head_bandage:"
-  else
-    export JOB_RESULT=":tada: Success :tada:"
-  fi
+    if [ "$EXIT_CODE" != "0" ]; then
+      export JOB_RESULT=":alert-siren: Failed :alert-siren:"
+    else
+      export JOB_RESULT=":tada: Success :tada:"
+    fi
+    mkdir -p ${WORKSPACE}/artifacts
+    chectl server:logs --directory=${WORKSPACE}/artifacts
 
-  echo "[INFO] Please check github actions artifacts."
-  /bin/bash "${OPERATOR_REPO}"/.github/bin/slack.sh
-  exit $EXIT_CODE
+    echo "[INFO] Please check Jenkins Artifacts-> ${BUILD_URL}"
+    /bin/bash "${OPERATOR_REPO}"/.github/bin/slack.sh
+
+    exit $EXIT_CODE
 }
 
 if [[ "$SLACK_TOKEN" == "UNDEFINED" ]]; then
@@ -180,9 +183,6 @@ export DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"/
 # Related issue:https://github.com/eclipse/che/issues/17681
 cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
-  server:
-    nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
-spec:
   auth:
     updateAdminPassword: false
   server:
@@ -191,8 +191,14 @@ spec:
     nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
 EOL
 
-# Install chectl cli
-bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-
 # Deploy Eclipse Che
-chectl server:deploy --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
+chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
+
+# Start a golang workspace
+initDefaults
+provisionOpenShiftOAuthUser
+provisionOAuth
+
+chectl auth:login -u admin -p admin
+chectl workspace:create --start --devfile="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
+waitWorkspaceStart
