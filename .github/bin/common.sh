@@ -100,7 +100,7 @@ waitWorkspaceStart() {
   do
     login
 
-    chectl workspace:list --chenamespace=${NAMESPACE})
+    chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
 
     if [ "${workspaceStatus}" == "RUNNING" ]
