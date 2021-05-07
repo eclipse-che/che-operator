@@ -103,11 +103,10 @@ waitWorkspaceStart() {
     chectl workspace:list --chenamespace=${NAMESPACE}
     workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
 
-    if [ "${workspaceStatus}" == "RUNNING" ]
-    then
+    if [ "${workspaceStatus}" == "RUNNING" ]; then
       echo "[INFO] Workspace started successfully"
       break
-    elif [ "${workspaceStatus}" == "STOPPED" ]
+    elif [ "${workspaceStatus}" == "STOPPED" ]; then
       echo "[ERROR] Workspace failed to start"
       exit 1
     fi
