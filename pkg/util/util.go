@@ -371,22 +371,12 @@ func NewBoolPointer(value bool) *bool {
 
 // IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
 func IsOAuthEnabled(c *orgv1.CheCluster) bool {
-	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
+	return IsOpenShift && c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
 }
 
 // IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
 func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
 	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
-}
-
-// IsWorkspaceInDifferentNamespaceThanChe return true when Che workspaces will be executed
-// in the different namespace with Che otherwise returns false.
-func IsWorkspaceInDifferentNamespaceThanChe(cr *orgv1.CheCluster) bool {
-	return GetWorkspaceNamespaceDefault(cr) != cr.Namespace
-}
-
-func IsWorkspacePermissionsInTheDifferNamespaceThanCheRequired(cr *orgv1.CheCluster) bool {
-	return !IsOAuthEnabled(cr) && IsWorkspaceInDifferentNamespaceThanChe(cr)
 }
 
 // GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.

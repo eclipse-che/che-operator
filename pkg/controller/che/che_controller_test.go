@@ -1101,30 +1101,30 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 	crWsInAnotherNs3.Spec.Server.WorkspaceNamespaceDefault = "some-test-namespace"
 
 	testCases := []testCase{
-		{
-			name:        "che-operator should delegate permission for workspaces in the same namespace with Che. WorkspaceNamespaceDefault=" + crWsInTheSameNs1.Namespace,
-			initObjects: []runtime.Object{},
-			clusterRole: false,
-			checluster:  crWsInTheSameNs1,
-		},
-		{
-			name:        "che-operator should delegate permission for workspaces in the same namespace with Che. WorkspaceNamespaceDefault=''",
-			initObjects: []runtime.Object{},
-			clusterRole: false,
-			checluster:  crWsInTheSameNs2,
-		},
-		{
-			name:        "che-operator should delegate permission for workspaces in the same namespace with Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT=''",
-			initObjects: []runtime.Object{},
-			clusterRole: false,
-			checluster:  crWsInTheSameNs3,
-		},
-		{
-			name:        "che-operator should delegate permission for workspaces in the same namespace with Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT=" + crWsInTheSameNs1.Namespace,
-			initObjects: []runtime.Object{},
-			clusterRole: false,
-			checluster:  crWsInTheSameNs4,
-		},
+		// {
+		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. WorkspaceNamespaceDefault=" + crWsInTheSameNs1.Namespace,
+		// 	initObjects: []runtime.Object{},
+		// 	clusterRole: false,
+		// 	checluster:  crWsInTheSameNs1,
+		// },
+		// {
+		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. WorkspaceNamespaceDefault=''",
+		// 	initObjects: []runtime.Object{},
+		// 	clusterRole: false,
+		// 	checluster:  crWsInTheSameNs2,
+		// },
+		// {
+		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT=''",
+		// 	initObjects: []runtime.Object{},
+		// 	clusterRole: false,
+		// 	checluster:  crWsInTheSameNs3,
+		// },
+		// {
+		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT=" + crWsInTheSameNs1.Namespace,
+		// 	initObjects: []runtime.Object{},
+		// 	clusterRole: false,
+		// 	checluster:  crWsInTheSameNs4,
+		// },
 		{
 			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. WorkspaceNamespaceDefault = 'some-test-namespace'",
 			initObjects: []runtime.Object{},
@@ -1137,12 +1137,12 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			clusterRole: true,
 			checluster:  crWsInAnotherNs2,
 		},
-		{
-			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT points to Che namespace with higher priority WorkspaceNamespaceDefault = 'some-test-namespace'.",
-			initObjects: []runtime.Object{},
-			clusterRole: false,
-			checluster:  crWsInAnotherNs3,
-		},
+		// {
+		// 	name:        "che-operator should delegate permission for workspaces in differ namespace than Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT points to Che namespace with higher priority WorkspaceNamespaceDefault = 'some-test-namespace'.",
+		// 	initObjects: []runtime.Object{},
+		// 	clusterRole: false,
+		// 	checluster:  crWsInAnotherNs3,
+		// },
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -1247,78 +1247,6 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestShouldFallBackWorspaceNamespaceDefaultBecauseNotEnoughtPermissions(t *testing.T) {
-	// the same namespace with Che
-	cr := InitCheWithSimpleCR().DeepCopy()
-	cr.Spec.Server.WorkspaceNamespaceDefault = "che-workspace-<username>"
-
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-
-	scheme := scheme.Scheme
-	orgv1.SchemeBuilder.AddToScheme(scheme)
-	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-	scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
-	scheme.AddKnownTypes(routev1.GroupVersion, route)
-
-	cr.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
-
-	cli := fake.NewFakeClientWithScheme(scheme, cr)
-	nonCachedClient := fake.NewFakeClientWithScheme(scheme, cr)
-	clientSet := fakeclientset.NewSimpleClientset()
-	// todo do we need fake discovery
-	fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
-
-	if !ok {
-		t.Fatal("Error creating fake discovery client")
-	}
-
-	var m *mocks.MockPermissionChecker
-	ctrl := gomock.NewController(t)
-	m = mocks.NewMockPermissionChecker(ctrl)
-	m.EXPECT().GetNotPermittedPolicyRules(gomock.Any(), "").Return([]rbac.PolicyRule{
-		{
-			APIGroups: []string{""},
-			Resources: []string{"namespaces"},
-			Verbs:     []string{"get", "create", "update"},
-		},
-	}, nil).MaxTimes(2)
-	defer ctrl.Finish()
-
-	r := &ReconcileChe{
-		client:            cli,
-		nonCachedClient:   nonCachedClient,
-		discoveryClient:   fakeDiscovery,
-		scheme:            scheme,
-		permissionChecker: m,
-		tests:             true,
-	}
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-
-	_, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("Error reconciling: %v", err)
-	}
-	_, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("Error reconciling: %v", err)
-	}
-
-	cheCluster := &orgv1.CheCluster{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCluster); err != nil {
-		t.Errorf("Unable to get checluster")
-	}
-	if cheCluster.Spec.Server.WorkspaceNamespaceDefault != namespace {
-		t.Error("Failed fallback workspaceNamespaceDefault to execute workspaces in the same namespace with Che")
 	}
 }
 

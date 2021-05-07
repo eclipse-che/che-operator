@@ -361,14 +361,16 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Check Che CR correctness
-	if err := ValidateCheCR(instance, isOpenShift); err != nil {
-		// Che cannot be deployed with current configuration.
-		// Print error message in logs and wait until the configuration is changed.
-		logrus.Error(err)
-		if err := r.SetStatusDetails(instance, request, failedValidationReason, err.Error(), ""); err != nil {
-			return reconcile.Result{}, err
+	if !util.IsTestMode() {
+		if err := ValidateCheCR(instance); err != nil {
+			// Che cannot be deployed with current configuration.
+			// Print error message in logs and wait until the configuration is changed.
+			logrus.Error(err)
+			if err := r.SetStatusDetails(instance, request, failedValidationReason, err.Error(), ""); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
 		}
-		return reconcile.Result{}, nil
 	}
 
 	if !util.IsTestMode() {
@@ -574,14 +576,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			logrus.Error(err)
 		}
 		return reconcile.Result{RequeueAfter: time.Second}, err
-	}
-
-	done, err = r.checkWorkspacePermissions(deployContext)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
 	}
 
 	done, err = r.reconcileWorkspacePermissions(deployContext)
