@@ -83,6 +83,7 @@ rules:
   - checlusters/finalizers
   - checlusterbackups
   - checlusterbackups/status
+  - checlusterbackups/finalizers
   - checlusterrestores
   - checlusterrestores/status
   verbs:
