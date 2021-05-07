@@ -28,7 +28,7 @@ prepareTemplates() {
   enableDevWorkspace ${TEMPLATES} true
   setSingleHostExposureType ${TEMPLATES} "native"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
-  if [[ -z "$GITHUB_ACTIONS" ]]; then
+  if [[ ! -z "$GITHUB_ACTIONS" ]]; then
     lowerLimits ${TEMPLATES}
   fi
 }
