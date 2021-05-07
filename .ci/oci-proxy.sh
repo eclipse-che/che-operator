@@ -30,6 +30,9 @@ overrideDefaults() {
 runTests() {
     # Deploy Eclipse Che behind proxy using chectl cli
     deployCheBehindProxy
+
+    provisionOAuth
+
     startNewWorkspace
     waitWorkspaceStart
 }

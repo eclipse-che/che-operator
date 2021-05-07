@@ -17,7 +17,10 @@ set -u
 
 # Link ocp account with Keycloak IDP
 function provisionOAuth() {
-  OCP_USER_UID=$(oc get user user -o=jsonpath='{.metadata.uid}')
+  OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
+  oc adm policy add-cluster-role-to-user cluster-admin $OPENSHIFT_USER
+
+  OCP_USER_UID=$(oc get user che -o=jsonpath='{.metadata.uid}')
 
   IDP_USERNAME="admin"
   CHE_USERNAME="admin"
@@ -89,26 +92,9 @@ EOF
   sed -i "s|INSERT_CHE_USER_HERE|$CHE_USERNAME|g" path.sql
 
   # Insert sql script inside of postgres and execute it.
-  POSTGRES_POD=$(oc get pods -o json -n eclipse-che | jq -r '.items[] | select(.metadata.name | test("postgres-")).metadata.name')
+  POSTGRES_POD=$(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("postgres-")).metadata.name')
   oc cp path.sql "${POSTGRES_POD}":/tmp/ -n $NAMESPACE
   oc exec -it "${POSTGRES_POD}" -n $NAMESPACE  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
 
   rm path.sql
-}
-
-# Create admin user inside of openshift cluster and login
-function provisionOpenShiftOAuthUser() {
-  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config
-  oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
-  oc adm policy add-cluster-role-to-user cluster-admin user
-
-  echo -e "[INFO] Waiting for htpasswd auth to be working up to 5 minutes"
-  CURRENT_TIME=$(date +%s)
-  ENDTIME=$(($CURRENT_TIME + 300))
-  while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc login -u user -p user --insecure-skip-tls-verify=false; then
-          break
-      fi
-      sleep 10
-  done
 }

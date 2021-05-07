@@ -36,7 +36,9 @@ runTests() {
     # Deploy Eclipse Che applying CR
     applyOlmCR
     waitEclipseCheDeployed "nightly"
-    # provisionOAuth
+
+    provisionOAuth
+
     startNewWorkspace
     waitWorkspaceStart
 

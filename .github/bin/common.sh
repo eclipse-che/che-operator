@@ -320,8 +320,7 @@ login() {
     OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
     OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
     OPENSHIFT_PASSWORD=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.password}' | base64 --decode)
-    oc adm policy add-cluster-role-to-user cluster-admin $OPENSHIFT_USER
-    oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD
+    oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD --insecure-skip-tls-verify=false
     chectl auth:login https://che-$NAMESPACE.apps.$OPENSHIFT_DOMAIN/api
   else
     chectl auth:login -u admin -p admin
