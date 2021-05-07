@@ -29,7 +29,7 @@ overrideDefaults() {
 
 runTests() {
     # Deploy Eclipse Che behind proxy using chectl cli
-    deployCheBehindProxy
+    # deployCheBehindProxy
 
     provisionOAuth
 
@@ -38,5 +38,5 @@ runTests() {
 }
 
 initDefaults
-overrideDefaults
+# overrideDefaults
 runTests

@@ -17,9 +17,18 @@ set -u
 
 # Link ocp account with Keycloak IDP
 function provisionOAuth() {
-  OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
+  # Delegate cluster-admin rights to a new OpenShift user
+  local ADMIN_TOKEN=$(oc whoami -t)
+  local OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
+  local API_SERVER=https://api."$OPENSHIFT_DOMAIN":6443
+  local OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
+  local OPENSHIFT_PASSWORD=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.password}' | base64 --decode)
+  oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD --insecure-skip-tls-verify=false
+  oc login --token=$ADMIN_TOKEN --server=$API_SERVER
+  sleep 5s
   oc adm policy add-cluster-role-to-user cluster-admin $OPENSHIFT_USER
 
+  # Bind Eclipse Che and OpenShift users
   OCP_USER_UID=$(oc get user che -o=jsonpath='{.metadata.uid}')
 
   IDP_USERNAME="admin"
