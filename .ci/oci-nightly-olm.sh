@@ -55,6 +55,7 @@ runTests() {
 
 initDefaults
 overrideDefaults
+provisionOpenShiftOAuthUser
 patchEclipseCheOperatorSubscription
 printOlmCheObjects
 runTests

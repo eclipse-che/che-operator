@@ -34,8 +34,8 @@ initDefaults() {
   export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
-  export DEV_WORKSPACE_CONTROLLER_VERSION="main"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  export DEV_WORKSPACE_CONTROLLER_VERSION="main"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -313,17 +313,30 @@ applyOlmCR() {
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
 }
 
+# Create admin user inside of openshift cluster and login
+function provisionOpenShiftOAuthUser() {
+  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config
+  oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
+  oc adm policy add-cluster-role-to-user cluster-admin user
+
+  echo -e "[INFO] Waiting for htpasswd auth to be working up to 5 minutes"
+  CURRENT_TIME=$(date +%s)
+  ENDTIME=$(($CURRENT_TIME + 300))
+  while [ $(date +%s) -lt $ENDTIME ]; do
+      if oc login -u user -p user --insecure-skip-tls-verify=false; then
+          break
+      fi
+      sleep 10
+  done
+}
+
 login() {
   local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
-    OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
-    OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
-    OPENSHIFT_PASSWORD=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.password}' | base64 --decode)
-    oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD --insecure-skip-tls-verify=false
-    chectl auth:login https://che-$NAMESPACE.apps.$OPENSHIFT_DOMAIN/api
+    chectl auth:login --chenamespace=${NAMESPACE}
   else
-    chectl auth:login -u admin -p admin
+    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
   fi
 }
 
@@ -339,7 +352,7 @@ spec:
     nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
-  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image $OPERATOR_IMAGE
+  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
   oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 

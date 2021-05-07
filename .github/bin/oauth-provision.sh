@@ -17,36 +17,24 @@ set -u
 
 # Link ocp account with Keycloak IDP
 function provisionOAuth() {
-  # Delegate cluster-admin rights to a new OpenShift user
-  local ADMIN_TOKEN=$(oc whoami -t)
-  local OPENSHIFT_DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
-  local API_SERVER=https://api."$OPENSHIFT_DOMAIN":6443
-  local OPENSHIFT_USER=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.user}' | base64 --decode)
-  local OPENSHIFT_PASSWORD=$(oc get secret openshift-oauth-user-credentials -n openshift-config -o=jsonpath='{.data.password}' | base64 --decode)
-  oc login -u $OPENSHIFT_USER -p $OPENSHIFT_PASSWORD --insecure-skip-tls-verify=false
-  oc login --token=$ADMIN_TOKEN --server=$API_SERVER
-  sleep 5s
-  oc adm policy add-cluster-role-to-user cluster-admin $OPENSHIFT_USER
-
-  # Bind Eclipse Che and OpenShift users
-  OCP_USER_UID=$(oc get user che -o=jsonpath='{.metadata.uid}')
+  OCP_USER_UID=$(oc get user user -o=jsonpath='{.metadata.uid}')
 
   IDP_USERNAME="admin"
   CHE_USERNAME="admin"
   # Get Eclipse Che IDP secrets and decode to use to connect to IDP
-  IDP_PASSWORD=$(oc get secret che-identity-secret -n $NAMESPACE -o=jsonpath='{.data.password}' | base64 --decode)
+  IDP_PASSWORD=$(oc get secret che-identity-secret -n eclipse-che -o=jsonpath='{.data.password}' | base64 --decode)
 
   # Get Auth Route
   if [[ "${CHE_EXPOSURE_STRATEGY}" == "single-host" ]]; then
-    IDP_HOST="https://"$(oc get route che -n $NAMESPACE -o=jsonpath='{.spec.host}')
+    IDP_HOST="https://"$(oc get route che -n eclipse-che -o=jsonpath='{.spec.host}')
   fi
 
   if [[ "${CHE_EXPOSURE_STRATEGY}" == "multi-host" ]]; then
-    IDP_HOST="https://"$(oc get route keycloak -n $NAMESPACE -o=jsonpath='{.spec.host}')
+    IDP_HOST="https://"$(oc get route keycloak -n eclipse-che -o=jsonpath='{.spec.host}')
   fi
 
   # Get the oauth client from Eclipse Che Custom Resource
-  OAUTH_CLIENT_NAME=$(oc get checluster eclipse-che -n $NAMESPACE -o=jsonpath='{.spec.auth.oAuthClientName}')
+  OAUTH_CLIENT_NAME=$(oc get checluster eclipse-che -n eclipse-che -o=jsonpath='{.spec.auth.oAuthClientName}')
 
   # Obtain from Keycloak the token to make api request authentication
   IDP_TOKEN=$(curl -k --location --request POST ''$IDP_HOST'/auth/realms/master/protocol/openid-connect/token' \
@@ -81,7 +69,7 @@ apiVersion: oauth.openshift.io/v1
 kind: OAuthClientAuthorization
 metadata:
   generateName: $CHE_USERNAME:$OAUTH_CLIENT_NAME
-  namespace: $NAMESPACE
+  namespace: eclipse-che
 clientName: $OAUTH_CLIENT_NAME
 userName: $CHE_USERNAME
 userUID: $OCP_USER_UID
@@ -101,9 +89,9 @@ EOF
   sed -i "s|INSERT_CHE_USER_HERE|$CHE_USERNAME|g" path.sql
 
   # Insert sql script inside of postgres and execute it.
-  POSTGRES_POD=$(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("postgres-")).metadata.name')
-  oc cp path.sql "${POSTGRES_POD}":/tmp/ -n $NAMESPACE
-  oc exec -it "${POSTGRES_POD}" -n $NAMESPACE  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
+  POSTGRES_POD=$(oc get pods -o json -n eclipse-che | jq -r '.items[] | select(.metadata.name | test("postgres-")).metadata.name')
+  oc cp path.sql "${POSTGRES_POD}":/tmp/ -n eclipse-che
+  oc exec -it "${POSTGRES_POD}" -n eclipse-che  -- bash -c "psql -U postgres -d keycloak -d keycloak -f /tmp/path.sql"
 
   rm path.sql
 }

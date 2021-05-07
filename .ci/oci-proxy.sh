@@ -37,4 +37,5 @@ runTests() {
 
 initDefaults
 overrideDefaults
+provisionOpenShiftOAuthUser
 runTests
