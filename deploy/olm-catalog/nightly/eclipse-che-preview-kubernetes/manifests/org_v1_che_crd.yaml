@@ -913,3 +913,122 @@ spec:
     storage: true
     subresources:
       status: {}
+  - name: v2alpha1
+    schema:
+      openAPIV3Schema:
+        description: CheCluster is the configuration of the CheCluster layer of Devworkspace.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CheClusterSpec holds the configuration of the Che controller.
+            properties:
+              gateway:
+                description: Gateway contains the configuration of the gateway used
+                  for workspace endpoint routing.
+                properties:
+                  configurerImage:
+                    description: ConfigurerImage is the docker image to use for the
+                      sidecar of the Che gateway that is used to configure it. This
+                      is only used when Enabled is true. If not defined in the CR,
+                      it is taken from the `RELATED_IMAGE_gateway_configurer` environment
+                      variable of the operator deployment/pod. If not defined there,
+                      it defaults to a hardcoded value.
+                    type: string
+                  enabled:
+                    description: "Enabled enables or disables routing of the url rewrite
+                      supporting devworkspace endpoints through a common gateway (the
+                      hostname of which is defined by the Host). 
+ Default value
+                      is \"true\" meaning that the gateway is enabled. 
+ If set to
+                      true (i.e. the gateway is enabled), endpoints marked using the
+                      \"urlRewriteSupported\" attribute are exposed on unique subpaths
+                      of the Host, while the rest of the devworkspace endpoints are
+                      exposed on subdomains of the Host. 
+ If set to false (i.e.
+                      the gateway is disabled), all endpoints are deployed on subdomains
+                      of the Host."
+                    type: boolean
+                  image:
+                    description: Image is the docker image to use for the Che gateway.  This
+                      is only used if Enabled is true. If not defined in the CR, it
+                      is taken from the `RELATED_IMAGE_gateway` environment variable
+                      of the operator deployment/pod. If not defined there, it defaults
+                      to a hardcoded value.
+                    type: string
+                type: object
+              host:
+                description: "Host is the full host name used to expose devworkspace
+                  endpoints either on subpaths or on subdomains. See the gateway.enabled
+                  attribute for a more detailed description of where and how are devworkspace
+                  endpoints exposed in various configurations. 
+ This attribute is
+                  mandatory on Kubernetes, optional on OpenShift."
+                type: string
+              k8s:
+                description: K8s contains the configuration specific only to Kubernetes
+                properties:
+                  ingressAnnotations:
+                    additionalProperties:
+                      type: string
+                    description: "IngressAnnotations are the annotations to be put
+                      on the generated ingresses. This can be used to configure the
+                      ingress class and the ingress-controller-specific behavior for
+                      both the gateway and the ingresses created to expose the Devworkspace
+                      component endpoints. When not specified, this defaults to: 
+
+                      \    kubernetes.io/ingress.class:                       \"nginx\"
+                      \    nginx.ingress.kubernetes.io/proxy-read-timeout:    \"3600\",
+                      \    nginx.ingress.kubernetes.io/proxy-connect-timeout: \"3600\",
+                      \    nginx.ingress.kubernetes.io/ssl-redirect:          \"true\""
+                    type: object
+                type: object
+              tlsSecretName:
+                description: "Name of a secret that will be used to setup ingress/route
+                  TLS certificate. When the field is empty string, the default cluster
+                  certificate will be used. The same secret is assumed to exist in
+                  the same namespace as the CheCluster CR and is used for both the
+                  gateway and all devworkspace endpoints. In case of the devworkspace
+                  endpoints, the secret is copied to the namespace of the devworkspace.
+                  
+ The secret has to be of type \"tls\"."
+                type: string
+            type: object
+          status:
+            description: CheClusterStatus contains the status of the CheCluster object
+            properties:
+              gatewayHost:
+                description: ResolvedHost is the resolved host of the ingress/route.
+                  This is equal to the Host in the spec on Kubernetes but contains
+                  the actual host name of the route if Host is unspecified on OpenShift.
+                type: string
+              gatewayPhase:
+                description: GatewayPhase specifies the phase in which the gateway
+                  deployment currently is. If the gateway is disabled, the phase is
+                  "Inactive".
+                type: string
+              message:
+                description: Message contains further human-readable info for why
+                  the Che cluster is in the phase it currently is.
+                type: string
+              phase:
+                description: Phase is the phase in which the Che cluster as a whole
+                  finds itself in.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}

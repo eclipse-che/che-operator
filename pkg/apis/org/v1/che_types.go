@@ -666,6 +666,7 @@ type CheClusterStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="Eclipse Che Cluster"
+// +kubebuilder:storageversion
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
