@@ -113,11 +113,14 @@ func (s *RestoreState) GetProgressMessage() string {
 	if !s.cheCRRestored {
 		return "Restoring Che Custom Resource"
 	}
-	if !s.cheRestored {
+	if !s.cheAvailable {
 		return "Waiting until Che is ready"
 	}
 	if !s.cheDatabaseRestored {
 		return "Restoring Che database"
+	}
+	if !s.cheRestored {
+		return "Waiting until Che is ready"
 	}
 	return ""
 }

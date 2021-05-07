@@ -131,7 +131,7 @@ func backupCheCR(bctx *BackupContext, destDir string) (bool, error) {
 	return true, nil
 }
 
-// Saves Che related postgres databases dumps in db/{dbname}.pgdump
+// Saves Che related postgres databases dumps in db/{dbname}.sql
 func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 	// Prepare separate directory for dumps
 	dir := path.Join(destDir, BackupDatabasesDir)
@@ -170,7 +170,7 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 			return false, err
 		}
 
-		dbDumpFilePath := path.Join(dir, dbName+".pgdump")
+		dbDumpFilePath := path.Join(dir, dbName+".sql")
 		if err := ioutil.WriteFile(dbDumpFilePath, []byte(dbDump), backupFilesPerms); err != nil {
 			return false, err
 		}
@@ -184,7 +184,7 @@ func getDumpDatabasesScript(databases []string) string {
 	  DIR=/tmp/che-backup
 		rm -rf $DIR && mkdir -p $DIR
 		for db in $DATABASES; do
-		  pg_dump -Fc "$db" > "${DIR}/${db}.pgdump"
+		  pg_dump "$db" > "${DIR}/${db}.sql"
 		done
 	`
 }
@@ -193,8 +193,8 @@ func getDumpDatabasesScript(databases []string) string {
 func getMoveDatabaseDumpScript(dbName string) string {
 	return "DBNAME='" + dbName + `'
 	  DIR=/tmp/che-backup
-	  cat "${DIR}/${DBNAME}.pgdump"
-		rm -f "${DIR}/${DBNAME}.pgdump" > /dev/null 2>&1
+	  cat "${DIR}/${DBNAME}.sql"
+		rm -f "${DIR}/${DBNAME}.sql" > /dev/null 2>&1
 	`
 }
 

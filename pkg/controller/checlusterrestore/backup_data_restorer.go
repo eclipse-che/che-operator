@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -84,6 +85,12 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 	// Restore database from backup dump
 	if !rctx.state.cheDatabaseRestored {
 		done, err := restoreDatabase(rctx, dataDir)
+		if err != nil || !done {
+			return done, err
+		}
+
+		// After Keycloak's database restoring, it is required to restart Keycloak to invalidate its cache.
+		done, err = deleteKeycloakPod(rctx)
 		if err != nil || !done {
 			return done, err
 		}
@@ -172,6 +179,23 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 		return false, err
 	}
 
+	return true, nil
+}
+
+func deleteKeycloakPod(rctx *RestoreContext) (bool, error) {
+	k8sClient := util.GetK8Client()
+	keycloakPodName, err := k8sClient.GetDeploymentPod(deploy.IdentityProviderName, rctx.namespace)
+	if err != nil {
+		return false, err
+	}
+	keycloakPodNsN := types.NamespacedName{Name: keycloakPodName, Namespace: rctx.namespace}
+	keycloakPod := &corev1.Pod{}
+	if err := rctx.r.client.Get(context.TODO(), keycloakPodNsN, keycloakPod); err != nil {
+		return false, err
+	}
+	if err := rctx.r.client.Delete(context.TODO(), keycloakPod); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -292,22 +316,9 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 }
 
 func readAndAdaptCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.CheCluster, bool, error) {
-	cheCRFilePath := path.Join(dataDir, checlusterbackup.BackupCheCRFileName)
-	if _, err := os.Stat(cheCRFilePath); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, false, err
-		}
-		// Cannot proceed without CR in backup data
-		return nil, true, err
-	}
-
-	cheCR := &orgv1.CheCluster{}
-	cheCRBytes, err := ioutil.ReadFile(cheCRFilePath)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to read Che CR from '%s' file", cheCRFilePath)
-	}
-	if err := yaml.Unmarshal(cheCRBytes, cheCR); err != nil {
-		return nil, true, err
+	cheCR, done, err := readCheCR(rctx, dataDir)
+	if err != nil || !done {
+		return nil, done, err
 	}
 
 	cheCR.ObjectMeta.Namespace = rctx.namespace
@@ -342,6 +353,28 @@ func readAndAdaptCheCRFromBackup(rctx *RestoreContext, dataDir string) (*orgv1.C
 	return cheCR, true, nil
 }
 
+func readCheCR(rctx *RestoreContext, dataDir string) (*orgv1.CheCluster, bool, error) {
+	cheCRFilePath := path.Join(dataDir, checlusterbackup.BackupCheCRFileName)
+	if _, err := os.Stat(cheCRFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, false, err
+		}
+		// Cannot proceed without CR in backup data
+		return nil, true, err
+	}
+
+	cheCR := &orgv1.CheCluster{}
+	cheCRBytes, err := ioutil.ReadFile(cheCRFilePath)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to read Che CR from '%s' file", cheCRFilePath)
+	}
+	if err := yaml.Unmarshal(cheCRBytes, cheCR); err != nil {
+		return nil, true, err
+	}
+
+	return cheCR, true, nil
+}
+
 func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 	if rctx.cheCR.Spec.Database.ExternalDb {
 		// Skip database restore as there is an external server to connect to
@@ -358,7 +391,7 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 
 	dumps, _ := ioutil.ReadDir(dumpsDir)
 	for _, dumpFile := range dumps {
-		if strings.HasSuffix(dumpFile.Name(), ".pgdump") {
+		if strings.HasSuffix(dumpFile.Name(), ".sql") {
 			dbDumpFilePath := path.Join(dumpsDir, dumpFile.Name())
 			dumpBytes, err := ioutil.ReadFile(dbDumpFilePath)
 			if err != nil {
@@ -366,13 +399,37 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 			}
 			dumpReader := bytes.NewReader(dumpBytes)
 
-			execReason := fmt.Sprintf("restoring %s database", strings.TrimSuffix(dumpFile.Name(), ".pgdump"))
-			restoreDumpRemoteCommand := getRestoreDatabasesScript(dumpFile.Name())
+			// Database name is the dump file name without extension
+			dbName := strings.TrimSuffix(dumpFile.Name(), ".sql")
+			dbOwner, err := getDatabaseOwner(rctx, dbName)
+			if err != nil {
+				return false, err
+			}
+			execReason := fmt.Sprintf("restoring %s database", dbName)
+			restoreDumpRemoteCommand := getRestoreDatabaseScript(dbName, dbOwner)
 			if output, err := k8sClient.DoExecIntoPodWithStdin(rctx.namespace, postgresPodName, restoreDumpRemoteCommand, dumpReader, execReason); err != nil {
 				if output != "" {
 					logrus.Error(output)
 				}
 				return false, err
+			}
+
+			if rctx.cheCR.Spec.Server.ServerExposureStrategy == "multi-host" {
+				// Some databases contain values bind to cluster and/or namespace
+				// These values should be adjusted according to new environmant.
+				pathcDatabaseScript, err := getPatchDatabaseScript(rctx, dbName, dataDir)
+				if err != nil {
+					return false, err
+				}
+				if pathcDatabaseScript != "" {
+					execReason := fmt.Sprintf("patching %s database", dbName)
+					if output, err := k8sClient.DoExecIntoPod(rctx.namespace, postgresPodName, pathcDatabaseScript, execReason); err != nil {
+						if output != "" {
+							logrus.Error(output)
+						}
+						return false, err
+					}
+				}
 			}
 		}
 	}
@@ -380,15 +437,97 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 	return true, nil
 }
 
-func getRestoreDatabasesScript(dbName string) string {
-	return "DB_NAME=" + dbName + `
-	  DUMP_FILE=/tmp/dbdump
-		rm -f $DUMP_FILE
+func getDatabaseOwner(rctx *RestoreContext, dbName string) (string, error) {
+	switch dbName {
+	case rctx.cheCR.Spec.Database.ChePostgresDb:
+		if rctx.cheCR.Spec.Database.ChePostgresUser != "" && rctx.cheCR.Spec.Database.ChePostgresPassword != "" {
+			return rctx.cheCR.Spec.Database.ChePostgresUser, nil
+		}
+
+		secret := &corev1.Secret{}
+		chePostgresCredentialSecretNsN := types.NamespacedName{
+			Name:      rctx.cheCR.Spec.Database.ChePostgresSecret,
+			Namespace: rctx.namespace,
+		}
+		if err := rctx.r.client.Get(context.TODO(), chePostgresCredentialSecretNsN, secret); err != nil {
+			return "", err
+		}
+		return string(secret.Data["user"]), nil
+	case "keycloak":
+		return "keycloak", nil
+	default:
+		return "postgres", nil
+	}
+}
+
+func getRestoreDatabaseScript(dbName string, dbOwner string) string {
+	return "DB_NAME='" + dbName + "' \n DB_OWNER='" + dbOwner + "' \n" + `
+	  DUMP_FILE=/tmp/dbdump.sql
 		cat > $DUMP_FILE
 		psql -c "ALTER DATABASE ${DB_NAME} CONNECTION LIMIT 0;"
 		psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}';"
 		psql -c "DROP DATABASE ${DB_NAME};"
-		pg_restore -d postgres --create $DUMP_FILE
-		rm -f $DUMP_FILE
+		createdb "$DB_NAME" --owner="$DB_OWNER"
+		psql "$DB_NAME" < "$DUMP_FILE"
+		rm -f "$DUMP_FILE"
 	`
+}
+
+func getPatchDatabaseScript(rctx *RestoreContext, dbName string, dataDir string) (string, error) {
+	// namespace1.192.168.99.253.nip.io -> namespace2.192.168.99.254.nip.io
+	// in, for example, https://devfile-registry-namespace1.192.168.99.253.nip.io/resources/cpp-cpp-hello-world-master.zip
+	oldNamespace, oldDomain, newNamespace, newDomain, err := getNamespaceDomainReplace(rctx, dataDir)
+	if err != nil {
+		return "", err
+	}
+	oldSubStr := oldNamespace + "." + oldDomain
+	newSubStr := newNamespace + "." + newDomain
+	if oldSubStr == newSubStr {
+		// No need to do anything, restoring into the same cluster and the same namespace
+		return "", nil
+	}
+
+	switch dbName {
+	case rctx.cheCR.Spec.Database.ChePostgresDb:
+		return getReplaceInColumnScript(dbName, "devfile_project", "location", oldSubStr, newSubStr), nil
+	case "keycloak":
+		script := getReplaceInColumnScript(dbName, "redirect_uris", "value", oldSubStr, newSubStr) + "\n" +
+			getReplaceInColumnScript(dbName, "web_origins", "value", oldSubStr, newSubStr)
+		return script, nil
+	}
+	return "", nil
+}
+
+func getReplaceInColumnScript(dbName string, table string, column string, oldSubStr string, newSubStr string) string {
+	query := fmt.Sprintf("UPDATE %s SET %s = REPLACE (%s, '%s', '%s');", table, column, column, oldSubStr, newSubStr)
+	return fmt.Sprintf("psql %s -c \"%s\"", dbName, query)
+}
+
+// getNamespaceDomainReplace returns oldNamespace oldDomain newNamespace newDomain
+func getNamespaceDomainReplace(rctx *RestoreContext, dataDir string) (string, string, string, string, error) {
+	// CheCr from backup without any correction
+	rawCheCR, done, err := readCheCR(rctx, dataDir)
+	if err != nil || !done {
+		return "", "", "", "", err
+	}
+
+	oldNamespace := rawCheCR.GetNamespace()
+	newNamespace := rctx.namespace
+
+	oldDomain := ""
+	newDomain := ""
+	if rctx.isOpenShift {
+		// Openshift
+		// TODO hadle on Openshift
+	} else {
+		// Kubernetes
+		oldDomain = rawCheCR.Spec.K8s.IngressDomain
+		if rctx.restoreCR.Spec.CROverrides.IngressDomain != "" {
+			newDomain = rctx.restoreCR.Spec.CROverrides.IngressDomain
+		} else {
+			newDomain = oldDomain
+		}
+	}
+
+	return oldNamespace, oldDomain, newNamespace, newDomain, nil
 }
