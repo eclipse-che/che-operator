@@ -267,9 +267,9 @@ lowerLimits() {
   yq -rSY '.spec.server.dashboardCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.server.devfileRegistryCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.server.pluginRegistryCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-  yq -rSY '.spec.server.serverCpuLimit = "200m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  yq -rSY '.spec.server.serverCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.auth.identityProviderContainerResources.limits.cpu = "200m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-  yq -rSY '.spec.database.chePostgresContainerResources.limits.cpu = "200m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  yq -rSY '.spec.database.chePostgresContainerResources.limits.cpu = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setCustomOperatorImage() {
