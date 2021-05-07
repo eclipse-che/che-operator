@@ -28,6 +28,7 @@ prepareTemplates() {
   enableDevWorkspace ${TEMPLATES} true
   setSingleHostExposureType ${TEMPLATES} "native"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
+  lowerLimits ${TEMPLATES}
 }
 
 runTest() {

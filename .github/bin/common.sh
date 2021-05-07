@@ -261,6 +261,14 @@ setIngressDomain() {
   yq -rSY '.spec.k8s.ingressDomain = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
+lowerLimits() {
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  yq -rSY '.spec.server.dashboardCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  yq -rSY '.spec.server.devfileRegistryCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  yq -rSY '.spec.server.pluginRegistryCpuLimit = "100m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+  yq -rSY '.spec.server.serverCpuLimit = "250m"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+}
+
 setCustomOperatorImage() {
   local file="${1}/che-operator/operator.yaml"
   yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
