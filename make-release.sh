@@ -22,6 +22,7 @@ init() {
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
+  CHECK_RESOURCES=false
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
@@ -38,6 +39,7 @@ init() {
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
+      '--check-resources') CHECK_RESOURCES=true; shift 0;;
       '--prepare-community-operators-update') PREPARE_COMMUNITY_OPERATORS_UPDATE=true; shift 0;;
       '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
       '--dev-workspace-che-operator-version') DEV_WORKSPACE_CHE_OPERATOR_VERSION=$2; shift 1;;
@@ -285,6 +287,11 @@ prepareCommunityOperatorsUpdate() {
 }
 
 run() {
+  if [[ $CHECK_RESOURCES == "true" ]]; then
+    echo "[INFO] Check if resources are up to date"
+    . ${RELEASE_DIR}/.github/bin/check-resources.sh
+  fi
+
   checkoutToReleaseBranch
   updateVersionFile
   releaseOperatorCode
@@ -295,12 +302,6 @@ run() {
 
 init "$@"
 echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
-
-
-if [[ ${RELEASE} == *".0" ]]; then
-  echo "[INFO] Check if resources are up to date"
-  . ${RELEASE_DIR}/.github/bin/check-resources.sh
-fi
 
 if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
