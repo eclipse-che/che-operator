@@ -157,12 +157,11 @@ do
     if [[ $container != *"che-plugin-sidecar"* ]] &&
        [[ $container != *"che-editor"* ]] && \
        [[ $container != *"che-machine-exec"* ]] && \
-       [[ $container != *"docker.io"* ]]; then
-
+       [[ $container != *"codercom"* ]] && \
+       [[ $container != "docker.io"* ]]; then
         REGISTRY_IMG_NAME=$(echo $container | sed -e "s/quay.io/"${INTERNAL_REGISTRY_URL}"/g")
         sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://"${container}" docker://"${REGISTRY_IMG_NAME}"
     fi
-   # do whatever on $i
 done
 
 # Obtain SIDECAR_IMAGE
