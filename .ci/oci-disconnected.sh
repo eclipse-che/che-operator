@@ -19,17 +19,20 @@ export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
-export REG_CREDS=${XDG_RUNTIME_DIR}/containers/auth.json
+# Define Disconnected tests environment
 export INTERNAL_REGISTRY_URL=${INTERNAL_REGISTRY_URL-"UNDEFINED"}
 export INTERNAL_REG_USERNAME=${INTERNAL_REG_USERNAME-"UNDEFINED"}
 export INTERNAL_REG_PASS="${INTERNAL_REG_PASS-"UNDEFINED"}"
+export SLACK_TOKEN="${SLACK_TOKEN-"UNDEFINED"}"
+export WORKSPACE="${WORKSPACE-"UNDEFINED"}"
+export REG_CREDS=${XDG_RUNTIME_DIR}/containers/auth.json
 export ORGANIZATION="eclipse"
 export TAG_NIGHTLY="nightly"
-export SLACK_TOKEN="${SLACK_TOKEN-"UNDEFINED"}"
 
 #Stop execution on any error
 trap "catchDisconnectedJenkinsFinish" EXIT SIGINT
 
+# Catch an error after existing from jenkins Workspace
 function catchDisconnectedJenkinsFinish() {
     EXIT_CODE=$?
 
@@ -38,6 +41,7 @@ function catchDisconnectedJenkinsFinish() {
     else
       export JOB_RESULT=":tada: Success :tada:"
     fi
+
     mkdir -p ${WORKSPACE}/artifacts
     chectl server:logs --directory=${WORKSPACE}/artifacts
 
@@ -46,6 +50,12 @@ function catchDisconnectedJenkinsFinish() {
 
     exit $EXIT_CODE
 }
+
+# Check if all necessary environment for disconnected test are defined
+if [[ "$WORKSPACE" == "UNDEFINED" ]]; then
+    echo "[ERROR] Jenkins Workspace env is not defined."
+    exit 1
+fi
 
 if [[ "$SLACK_TOKEN" == "UNDEFINED" ]]; then
     echo "[ERROR] Internal registry credentials environment is not defined."
@@ -93,7 +103,9 @@ cd che-plugin-registry
 export SKIP_TEST=true && ./build.sh --organization "${ORGANIZATION}" \
            --registry "${INTERNAL_REGISTRY_URL}" \
            --tag "${TAG_NIGHTLY}" \
-           --offline
+           --offline \
+           --skip-digest-generation
+
 cd .. && rm -rf che-plugin-registry
 
 # Build Che-Machine-Exec
@@ -145,7 +157,7 @@ do
     if [[ $container != *"che-plugin-sidecar"* ]] &&
        [[ $container != *"che-editor"* ]] && \
        [[ $container != *"che-machine-exec"* ]] && \
-       [[ $container != *"index.docker.io"* ]]; then
+       [[ $container != *"docker.io"* ]]; then
 
         REGISTRY_IMG_NAME=$(echo $container | sed -e "s/quay.io/"${INTERNAL_REGISTRY_URL}"/g")
         sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://"${container}" docker://"${REGISTRY_IMG_NAME}"
@@ -191,12 +203,14 @@ spec:
     nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
 EOL
 
-# Deploy Eclipse Che
-chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
-
 # Start a golang workspace
 initDefaults
+initLatestTemplates
 provisionOpenShiftOAuthUser
+
+# Deploy Eclipse Che
+chectl server:deploy --telemetry=off --templates=${TEMPLATES} --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
+
 provisionOAuth
 
 chectl auth:login -u admin -p admin
