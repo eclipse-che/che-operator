@@ -15,6 +15,9 @@ import (
 	"context"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
+	routev1 "github.com/openshift/api/route/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -71,6 +74,131 @@ func TestSyncService(t *testing.T) {
 	checkPort(service.Spec.Ports[0], "http", 8080, t)
 	checkPort(service.Spec.Ports[1], "debug", deploy.DefaultCheDebugPort, t)
 	checkPort(service.Spec.Ports[2], "metrics", deploy.DefaultCheMetricsPort, t)
+}
+
+func TestSyncAll(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				TlsSupport: true,
+			},
+		},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+		Proxy: &deploy.Proxy{},
+	}
+
+	util.IsOpenShift = true
+
+	server := NewServer(deployContext)
+	done, err := server.SyncAll()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync Server: %v", err)
+	}
+
+	// check service
+	service := &corev1.Service{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
+	if err != nil {
+		t.Fatalf("Service not found: %v", err)
+	}
+
+	// check endpoint
+	route := &routev1.Route{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: server.component, Namespace: "eclipse-che"}, route)
+	if err != nil {
+		t.Fatalf("Route not found: %v", err)
+	}
+
+	// check configmap
+	configMap := &corev1.ConfigMap{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: server.component, Namespace: "eclipse-che"}, configMap)
+	if err != nil {
+		t.Fatalf("ConfigMap not found: %v", err)
+	}
+
+	// check deployment
+	deployment := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: server.component, Namespace: "eclipse-che"}, deployment)
+	if err != nil {
+		t.Fatalf("Deployment not found: %v", err)
+	}
+
+	if cheCluster.Status.CheURL == "" {
+		t.Fatalf("CheURL is not set")
+	}
+
+	if cheCluster.Status.CheClusterRunning == "" {
+		t.Fatalf("CheClusterRunning is not set")
+	}
+
+	if cheCluster.Status.CheVersion == "" {
+		t.Fatalf("CheVersion is not set")
+	}
+}
+
+func TestSyncLegacyConfigMap(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				TlsSupport: true,
+			},
+		},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+		Proxy: &deploy.Proxy{},
+	}
+
+	legacyConfigMap := deploy.GetConfigMapSpec(deployContext, "custom", map[string]string{"a": "b"}, "test")
+	err := cli.Create(context.TODO(), legacyConfigMap)
+	if err != nil {
+		t.Fatalf("Failed to create config map: %v", err)
+	}
+
+	server := NewServer(deployContext)
+	done, err := server.syncLegacyConfigMap()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync config map: %v", err)
+	}
+
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "custom"}, &corev1.ConfigMap{})
+	if err == nil {
+		t.Fatalf("Legacy configmap must be removed")
+	}
+
+	if cheCluster.Spec.Server.CustomCheProperties["a"] != "b" {
+		t.Fatalf("CheCluster wasn't updated with legacy configmap data")
+	}
 }
 
 func checkPort(actualPort corev1.ServicePort, expectedName string, expectedPort int32, t *testing.T) {

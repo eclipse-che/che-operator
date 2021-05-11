@@ -69,7 +69,7 @@ func (s *Server) SyncAll() (bool, error) {
 		return false, err
 	}
 
-	done, err = s.updateStatus()
+	done, err = s.updateCheURL()
 	if !done {
 		return false, err
 	}
@@ -124,7 +124,7 @@ func (s Server) exposeEndpoint() (bool, error) {
 			s.deployContext,
 			s.component,
 			s.deployContext.CheCluster.Spec.Server.CheHost,
-			"/",
+			"",
 			exposedServiceName,
 			8080,
 			s.deployContext.CheCluster.Spec.Server.CheServerIngress,
@@ -181,7 +181,7 @@ func (s Server) exposeEndpoint() (bool, error) {
 	return true, nil
 }
 
-func (s Server) updateStatus() (bool, error) {
+func (s Server) updateCheURL() (bool, error) {
 	var cheUrl string
 	if s.deployContext.CheCluster.Spec.Server.TlsSupport {
 		cheUrl = "https://" + s.deployContext.CheCluster.Spec.Server.CheHost
@@ -190,6 +190,7 @@ func (s Server) updateStatus() (bool, error) {
 	}
 
 	if s.deployContext.CheCluster.Status.CheURL != cheUrl {
+		s.deployContext.CheCluster.Status.CheURL = cheUrl
 		err := deploy.UpdateCheCRStatus(s.deployContext, s.component+" server URL", cheUrl)
 		return err == nil, err
 	}
@@ -260,16 +261,19 @@ func (s *Server) updateAvailabilityStatus() (bool, error) {
 	if exists {
 		if cheDeployment.Status.AvailableReplicas < 1 {
 			if s.deployContext.CheCluster.Status.CheClusterRunning != UnavailableStatus {
+				s.deployContext.CheCluster.Status.CheClusterRunning = UnavailableStatus
 				err := deploy.UpdateCheCRStatus(s.deployContext, "status: Che API", UnavailableStatus)
 				return err == nil, err
 			}
 		} else if cheDeployment.Status.Replicas != 1 {
 			if s.deployContext.CheCluster.Status.CheClusterRunning != RollingUpdateInProgressStatus {
+				s.deployContext.CheCluster.Status.CheClusterRunning = RollingUpdateInProgressStatus
 				err := deploy.UpdateCheCRStatus(s.deployContext, "status: Che API", RollingUpdateInProgressStatus)
 				return err == nil, err
 			}
 		} else {
 			if s.deployContext.CheCluster.Status.CheClusterRunning != AvailableStatus {
+				s.deployContext.CheCluster.Status.CheClusterRunning = AvailableStatus
 				err := deploy.UpdateCheCRStatus(s.deployContext, "status: Che API", AvailableStatus)
 				return err == nil, err
 			}
@@ -283,6 +287,7 @@ func (s *Server) updateAvailabilityStatus() (bool, error) {
 			logrus.Infof(name+" is now available at: %s", s.deployContext.CheCluster.Status.CheURL)
 		}
 	} else {
+		s.deployContext.CheCluster.Status.CheClusterRunning = UnavailableStatus
 		err := deploy.UpdateCheCRStatus(s.deployContext, "status: Che API", UnavailableStatus)
 		return err == nil, err
 	}
@@ -309,7 +314,7 @@ func (s *Server) findDefaultCheHost() (bool, error) {
 		s.deployContext,
 		s.component,
 		"",
-		"",
+		"/",
 		GetServerExposingServiceName(s.deployContext.CheCluster),
 		8080,
 		s.deployContext.CheCluster.Spec.Server.CheServerRoute,
