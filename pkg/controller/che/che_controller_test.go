@@ -901,9 +901,6 @@ func TestCheController(t *testing.T) {
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cm); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", cm.Name, err)
 	}
-	if cm.Data["CHE_INFRA_OPENSHIFT_PROJECT"] != "" {
-		t.Errorf("ConfigMap wasn't updated properly. Extecting empty string, got: '%s'", cm.Data["CHE_INFRA_OPENSHIFT_PROJECT"])
-	}
 
 	_, isOpenshiftv4, err := util.DetectOpenShift()
 	if err != nil {
@@ -1101,30 +1098,6 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 	crWsInAnotherNs3.Spec.Server.WorkspaceNamespaceDefault = "some-test-namespace"
 
 	testCases := []testCase{
-		// {
-		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. WorkspaceNamespaceDefault=" + crWsInTheSameNs1.Namespace,
-		// 	initObjects: []runtime.Object{},
-		// 	clusterRole: false,
-		// 	checluster:  crWsInTheSameNs1,
-		// },
-		// {
-		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. WorkspaceNamespaceDefault=''",
-		// 	initObjects: []runtime.Object{},
-		// 	clusterRole: false,
-		// 	checluster:  crWsInTheSameNs2,
-		// },
-		// {
-		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT=''",
-		// 	initObjects: []runtime.Object{},
-		// 	clusterRole: false,
-		// 	checluster:  crWsInTheSameNs3,
-		// },
-		// {
-		// 	name:        "che-operator should delegate permission for workspaces in the same namespace with Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT=" + crWsInTheSameNs1.Namespace,
-		// 	initObjects: []runtime.Object{},
-		// 	clusterRole: false,
-		// 	checluster:  crWsInTheSameNs4,
-		// },
 		{
 			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. WorkspaceNamespaceDefault = 'some-test-namespace'",
 			initObjects: []runtime.Object{},
@@ -1137,12 +1110,6 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			clusterRole: true,
 			checluster:  crWsInAnotherNs2,
 		},
-		// {
-		// 	name:        "che-operator should delegate permission for workspaces in differ namespace than Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT points to Che namespace with higher priority WorkspaceNamespaceDefault = 'some-test-namespace'.",
-		// 	initObjects: []runtime.Object{},
-		// 	clusterRole: false,
-		// 	checluster:  crWsInAnotherNs3,
-		// },
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {

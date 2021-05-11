@@ -45,8 +45,8 @@ const (
 
 // Reconcile workspace permissions based on workspace strategy
 func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
-	// if util.IsWorkspacePermissionsInTheDifferNamespaceThanCheRequired(deployContext.CheCluster) {
-	// Delete permission set for configuration "same namespace for Che and workspaces".
+	// The only supported namespace strategy is `per-user`.
+	// We have to remove some permissions if user switched from others.
 	done, err := r.removeWorkspacePermissionsInSameNamespaceWithChe(deployContext)
 	if !done {
 		return false, err
@@ -58,18 +58,6 @@ func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.Deplo
 	if !done {
 		return false, err
 	}
-	// } else {
-	// 	// Delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
-	// 	done, err := r.removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
-	// 	if !done {
-	// 		return false, err
-	// 	}
-
-	// 	done, err = r.delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext)
-	// 	if !done {
-	// 		return false, err
-	// 	}
-	// }
 
 	done, err = r.delegateNamespaceEditorPermissions(deployContext)
 	if !done {
@@ -78,54 +66,6 @@ func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.Deplo
 
 	return true, nil
 }
-
-// delegateWorkspacePermissionsInTheSameNamespaceWithChe - creates "che-workspace" service account(for Che workspaces) and
-// delegates "che-operator" SA permissions to the service accounts: "che" and "che-workspace".
-// Also this method binds "edit" default k8s clusterrole using rolebinding to "che" SA.
-// func (r *ReconcileChe) delegateWorkspacePermissionsInTheSameNamespaceWithChe(deployContext *deploy.DeployContext) (bool, error) {
-// 	// Create "che-workspace" service account.
-// 	// Che workspace components use this service account.
-// 	done, err := deploy.SyncServiceAccountToCluster(deployContext, CheWorkspacesServiceAccount)
-// 	if !done {
-// 		return false, err
-// 	}
-
-// 	// Create view role for "che-workspace" service account.
-// 	// This role used by exec terminals, tasks, metric che-theia plugin and so on.
-// 	done, err = deploy.SyncViewRoleToCluster(deployContext)
-// 	if !done {
-// 		return false, err
-// 	}
-
-// 	done, err = deploy.SyncRoleBindingToCluster(deployContext, ViewRoleBindingName, CheWorkspacesServiceAccount, deploy.ViewRoleName, "Role")
-// 	if !done {
-// 		return false, err
-// 	}
-
-// 	// Create exec role for "che-workspaces" service account.
-// 	// This role used by exec terminals, tasks and so on.
-// 	done, err = deploy.SyncExecRoleToCluster(deployContext)
-// 	if !done {
-// 		return false, err
-// 	}
-
-// 	done, err = deploy.SyncRoleBindingToCluster(deployContext, ExecRoleBindingName, CheWorkspacesServiceAccount, deploy.ExecRoleName, "Role")
-// 	if !done {
-// 		return false, err
-// 	}
-
-// 	// Bind "edit" cluster role for "che" service account.
-// 	// che-operator doesn't create "edit" role. This role is pre-created on the cluster.
-// 	// Warning: operator binds clusterrole using rolebinding(not clusterrolebinding).
-// 	// That's why "che" service account has got permissions only in the one namespace!
-// 	// So permissions are binding in "non-cluster" scope.
-// 	done, err = deploy.SyncRoleBindingToCluster(deployContext, EditRoleBindingName, CheServiceAccountName, EditClusterRoleName, "ClusterRole")
-// 	if !done {
-// 		return false, err
-// 	}
-
-// 	return true, nil
-// }
 
 // removeWorkspacePermissionsInSameNamespaceWithChe - removes workspaces in same namespace with Che role and rolebindings.
 func (r *ReconcileChe) removeWorkspacePermissionsInSameNamespaceWithChe(deployContext *deploy.DeployContext) (bool, error) {

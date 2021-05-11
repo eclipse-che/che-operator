@@ -165,13 +165,6 @@ func GetSpecCheDeployment(deployContext *deploy.DeployContext) (*appsv1.Deployme
 		corev1.EnvVar{
 			Name:  "CM_REVISION",
 			Value: cmResourceVersions,
-		},
-		corev1.EnvVar{
-			Name: "KUBERNETES_NAMESPACE",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					APIVersion: "v1",
-					FieldPath:  "metadata.namespace"}},
 		})
 
 	cheImageAndTag := GetFullCheServerImageLink(deployContext.CheCluster)

@@ -48,7 +48,6 @@ type CheConfigMap struct {
 	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceAllowUserDefined              string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
 	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                           string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
@@ -128,7 +127,6 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
-	namespaceAllowUserDefined := strconv.FormatBool(deployContext.CheCluster.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	protocol := "http"
 	if tlsSupport {
@@ -232,7 +230,6 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		CheInfrastructureActive:                infra,
 		CheInfraKubernetesServiceAccountName:   "che-workspace",
 		DefaultTargetNamespace:                 workspaceNamespaceDefault,
-		NamespaceAllowUserDefined:              namespaceAllowUserDefined,
 		PvcStrategy:                            pvcStrategy,
 		PvcClaimSize:                           pvcClaimSize,
 		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
@@ -295,7 +292,7 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
 
-		// Add TLS key and server certificate to properties since user workspaces is be created in another
+		// Add TLS key and server certificate to properties since user workspaces is created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
 		if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
 			cheTLSSecret := &corev1.Secret{}
