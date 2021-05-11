@@ -134,7 +134,7 @@ do
   # https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/ci.yaml
   # https://github.com/operator-framework/community-operators/blob/master/upstream-community-operators/eclipse-che/ci.yaml
   echo "   - Replace ci.yaml file"
-  cp ${BASE_DIR}/olm/ci.yaml ${folderToUpdate}/ci.yaml
+  cp ${BASE_DIR}/ci.yaml ${folderToUpdate}/ci.yaml
 
   echo "   - Commit changes"
   cd "${communityOperatorsLocalGitFolder}"

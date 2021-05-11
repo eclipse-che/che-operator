@@ -62,7 +62,7 @@ function provisionOAuth() {
       "userName": "'$CHE_USERNAME'"
   }'
 
-# Create OAuthClientAuthorization object for Eclipse Che in Cluster. 
+# Create OAuthClientAuthorization object for Eclipse Che in Cluster.
 OAUTHCLIENTAuthorization=$(
     oc create -f - -o jsonpath='{.metadata.name}' <<EOF
 apiVersion: oauth.openshift.io/v1

@@ -29,7 +29,6 @@ runTests() {
 }
 
 initDefaults
-initOpenShiftDefaults
 provisionOpenShiftOAuthUser
 initStableTemplates "openshift" "stable"
 runTests

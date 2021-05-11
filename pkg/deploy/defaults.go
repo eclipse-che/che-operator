@@ -30,6 +30,8 @@ var (
 	defaultCheServerImage                      string
 	defaultCheVersion                          string
 	defaultDashboardImage                      string
+	defaultDevworkspaceCheOperatorImage        string
+	defaultDevworkspaceControllerImage         string
 	defaultPluginRegistryImage                 string
 	defaultDevfileRegistryImage                string
 	defaultCheTLSSecretsCreationJobImage       string
@@ -167,6 +169,8 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultCheVersion = util.GetDeploymentEnv(operatorDeployment, "CHE_VERSION")
 	defaultCheServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
 	defaultDashboardImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
+	defaultDevworkspaceCheOperatorImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_che_operator"))
+	defaultDevworkspaceControllerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
 	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
@@ -281,6 +285,14 @@ func DefaultPostgresImage(cr *orgv1.CheCluster) string {
 
 func DefaultDashboardImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultDashboardImage)
+}
+
+func DefaultDevworkspaceControllerImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultDevworkspaceControllerImage)
+}
+
+func DefaultDevworkspaceCheOperatorImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultDevworkspaceCheOperatorImage)
 }
 
 func DefaultKeycloakImage(cr *orgv1.CheCluster) string {
@@ -410,6 +422,8 @@ func InitDefaultsFromEnv() {
 	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
 	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
 	defaultDashboardImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
+	defaultDevworkspaceCheOperatorImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_che_operator"))
+	defaultDevworkspaceControllerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
 	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))

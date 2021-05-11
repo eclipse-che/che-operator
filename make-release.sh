@@ -22,6 +22,7 @@ init() {
   PUSH_GIT_CHANGES=false
   CREATE_PULL_REQUESTS=false
   RELEASE_OLM_FILES=false
+  CHECK_RESOURCES=false
   PREPARE_COMMUNITY_OPERATORS_UPDATE=false
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
@@ -38,6 +39,7 @@ init() {
       '--push-git-changes') PUSH_GIT_CHANGES=true; shift 0;;
       '--pull-requests') CREATE_PULL_REQUESTS=true; shift 0;;
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
+      '--check-resources') CHECK_RESOURCES=true; shift 0;;
       '--prepare-community-operators-update') PREPARE_COMMUNITY_OPERATORS_UPDATE=true; shift 0;;
       '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
       '--dev-workspace-che-operator-version') DEV_WORKSPACE_CHE_OPERATOR_VERSION=$2; shift 1;;
@@ -172,12 +174,16 @@ replaceImagesTags() {
 
   lastDefaultCheServerImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value" "${OPERATOR_YAML}")
   lastDefaultDashboardImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value" "${OPERATOR_YAML}")
+  lastDefaultDevWorkspaceControllerImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_devworkspace_controller\") | .value" "${OPERATOR_YAML}")
+  lastDefaultDevWorkspaceCheOperatorImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_devworkspace_che_operator\") | .value" "${OPERATOR_YAML}")
   lastDefaultKeycloakImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value" "${OPERATOR_YAML}")
   lastDefaultPluginRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value" "${OPERATOR_YAML}")
   lastDefaultDevfileRegistryImage=$(yq -r ".spec.template.spec.containers[] | select(.name == \"che-operator\") | .env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value" "${OPERATOR_YAML}")
 
   CHE_SERVER_IMAGE_REALEASE=$(replaceTag "${lastDefaultCheServerImage}" "${RELEASE}")
   DASHBOARD_IMAGE_REALEASE=$(replaceTag "${lastDefaultDashboardImage}" "${RELEASE}")
+  DEVWORKSPACE_CONTROLLER_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevWorkspaceControllerImage}" "${RELEASE}")
+  DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevWorkspaceCheOperatorImage}" "${RELEASE}")
   KEYCLOAK_IMAGE_RELEASE=$(replaceTag "${lastDefaultKeycloakImage}" "${RELEASE}")
   PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
   DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
@@ -191,6 +197,8 @@ replaceImagesTags() {
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"CHE_VERSION\") | .value ) = \"${RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server\") | .value ) = \"${CHE_SERVER_IMAGE_REALEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_dashboard\") | .value ) = \"${DASHBOARD_IMAGE_REALEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devworkspace_controller\") | .value ) = \"${DEVWORKSPACE_CONTROLLER_IMAGE_RELEASE}\"" | \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devworkspace_che_operator\") | .value ) = \"${DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
@@ -285,6 +293,11 @@ prepareCommunityOperatorsUpdate() {
 }
 
 run() {
+  if [[ $CHECK_RESOURCES == "true" ]]; then
+    echo "[INFO] Check if resources are up to date"
+    . ${RELEASE_DIR}/.github/bin/check-resources.sh
+  fi
+
   checkoutToReleaseBranch
   updateVersionFile
   releaseOperatorCode
@@ -295,12 +308,6 @@ run() {
 
 init "$@"
 echo "[INFO] Release '$RELEASE' from branch '$BRANCH'"
-
-
-if [[ ${RELEASE} == *".0" ]]; then
-  echo "[INFO] Check if resources are up to date"
-  . ${RELEASE_DIR}/.github/bin/check-resources.sh
-fi
 
 if [[ $RUN_RELEASE == "true" ]]; then
   run "$@"
