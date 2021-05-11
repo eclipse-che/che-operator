@@ -224,6 +224,9 @@ updateNighltyBundle() {
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "${NEW_CSV}"
     
     # set Pod Security Context Posture
+    yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "${NEW_CSV}"
+    yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "${NEW_CSV}"
+    yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "${NEW_CSV}"
     if [ "${platform}" == "openshift" ]; then
       yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "${NEW_CSV}"
       yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "${NEW_CSV}"
