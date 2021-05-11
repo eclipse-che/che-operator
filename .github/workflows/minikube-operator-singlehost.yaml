@@ -41,11 +41,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    # - name: Start minikube cluster
-    #   id: run-minikube
-    #   uses: che-incubator/setup-minikube-action@next
-    #   with:
-    #     minikube-version: v1.18.1
+    - name: Install minikube kubernetes cluster
+      run: minikube start --memory=6000 --cpus=3
+    - name: Enable ingress addon
+      run: minikube addons enable ingress
     - name: Enable local registry
       run: /bin/bash olm/minikube-registry-addon.sh &
     - name: Install yq
