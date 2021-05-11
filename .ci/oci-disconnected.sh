@@ -191,7 +191,6 @@ done
 # Get the ocp domain for che custom resources
 export DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
 
-# Related issue:https://github.com/eclipse/che/issues/17681
 cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
   auth:
@@ -199,16 +198,15 @@ spec:
   server:
     airGapContainerRegistryHostname: $INTERNAL_REGISTRY_URL
     airGapContainerRegistryOrganization: 'eclipse'
-    nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
+    nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
 # Start a golang workspace
 initDefaults
-initLatestTemplates
 provisionOpenShiftOAuthUser
 
 # Deploy Eclipse Che
-chectl server:deploy --telemetry=off --templates=${TEMPLATES} --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
+chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
 
 provisionOAuth
 
