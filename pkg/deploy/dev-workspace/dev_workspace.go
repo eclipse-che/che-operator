@@ -272,10 +272,9 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
+	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
 	deploymentObject := objectMeta.(*appsv1.Deployment)
-	if deployContext.CheCluster.Spec.DevWorkspace.ControllerImage != "" {
-		deploymentObject.Spec.Template.Spec.Containers[0].Image = deployContext.CheCluster.Spec.DevWorkspace.ControllerImage
-	}
+	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceControllerImage
 
 	return deploy.CreateIfNotExists(deployContext, deploymentObject)
 }
@@ -384,7 +383,16 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func synDwCheDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheDeploymentFile, &appsv1.Deployment{})
+	objectMeta, err := getK8SObject(DevWorkspaceCheDeploymentFile, &appsv1.Deployment{})
+	if err != nil {
+		return false, err
+	}
+
+	devworkspaceCheOperatorImage := deploy.DefaultDevworkspaceCheOperatorImage(deployContext.CheCluster)
+	deploymentObject := objectMeta.(*appsv1.Deployment)
+	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceCheOperatorImage
+
+	return deploy.CreateIfNotExists(deployContext, deploymentObject)
 }
 
 func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {

@@ -462,9 +462,6 @@ applyCRCheCluster() {
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
-  if [ "${platform}" == "openshift" ] && [ "${OAUTH}" == "false" ]; then
-    CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = false")
-  fi
 
   echo "$CR" | kubectl apply -n "${namespace}" --validate=false -f -
 }
@@ -475,7 +472,7 @@ waitCheServerDeploy() {
     echo "[ERROR] Please specify first argument: 'namespace'"
     exit 1
   fi
-  
+
   echo "[INFO] Waiting for Che server to be deployed"
   set +e -x
 

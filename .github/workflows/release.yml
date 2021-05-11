@@ -98,7 +98,7 @@ jobs:
 
           # we usually do not update nightly files during major releases
           if [[ ${CHE_VERSION} == *".0" ]]; then
-            ./make-release.sh ${CHE_VERSION} --release --release-olm-files --dev-workspace-controller-version ${DWO_VERSION} --dev-workspace-che-operator-version ${DWO_CHE_VERSION}
+            ./make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files --dev-workspace-controller-version ${DWO_VERSION} --dev-workspace-che-operator-version ${DWO_CHE_VERSION}
           else
             git checkout ${BRANCH}
             ./make-release.sh ${CHE_VERSION} --release --release-olm-files --dev-workspace-controller-version ${DWO_VERSION} --dev-workspace-che-operator-version ${DWO_CHE_VERSION}

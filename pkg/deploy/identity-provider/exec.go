@@ -92,7 +92,7 @@ func GetKeycloakUpdateCommand(cr *v1.CheCluster) (command string, err error) {
 func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClientName string, oauthSecret string) (string, error) {
 	isOpenShift4 := util.IsOpenShift4
 	providerId := (map[bool]string{true: "openshift-v4", false: "openshift-v3"})[isOpenShift4]
-	openShiftApiUrl, err := util.GetClusterPublicHostname(isOpenShift4)
+	apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
 	if err != nil {
 		logrus.Errorf("Failed to auto-detect public OpenShift API URL. Configure it in Identity provider details page in Keycloak admin console: %s", err)
 		return "", err
@@ -117,7 +117,7 @@ func GetOpenShiftIdentityProviderProvisionCommand(cr *v1.CheCluster, oAuthClient
 		providerId,
 		oAuthClientName,
 		oauthSecret,
-		openShiftApiUrl,
+		map[bool]string{true: apiInternalUrl, false: apiUrl}[apiInternalUrl != ""],
 		keycloakClientId,
 	}
 	return getCommandFromTemplateFile(cr, "/tmp/oauth-provision.sh", data)
