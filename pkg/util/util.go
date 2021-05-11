@@ -257,7 +257,7 @@ func getAPIUrlsForOpenShiftV3() (apiUrl string, apiInternalUrl string, err error
 		return "", "", err
 	}
 	apiUrl = jsonData["issuer"].(string)
-	return apiUrl, apiUrl, nil
+	return apiUrl, "", nil
 }
 
 // getClusterPublicHostnameForOpenshiftV3 is a way to get OpenShift API public DNS/IP
