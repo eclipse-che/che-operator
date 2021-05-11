@@ -34,8 +34,8 @@ initDefaults() {
   export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
-  export OAUTH="false"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -44,11 +44,6 @@ initDefaults() {
   # prepare templates directory
   rm -rf ${TEMPLATES}
   mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
-}
-
-initOpenShiftDefaults() {
-  export OAUTH="true"
-  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 }
 
 initLatestTemplates() {
@@ -312,7 +307,6 @@ applyOlmCR() {
 
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
-  CR=$(echo "$CR" | yq -r ".spec.auth.openShiftoAuth = ${OAUTH}")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
 
   echo -e "$CR"
@@ -337,11 +331,12 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  if [[ ${OAUTH} == "false" ]]; then
-    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  else
+  local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
+  if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
     chectl auth:login --chenamespace=${NAMESPACE}
+  else
+    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
   fi
 }
 
@@ -354,10 +349,10 @@ deployCheBehindProxy() {
     cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
   server:
-    nonProxyHosts: oauth-openshift.apps.$DOMAIN|api.$DOMAIN
+    nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
-  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
+  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
   oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 

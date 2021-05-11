@@ -77,7 +77,7 @@ EOL
 }
 
 startHappyPathTest() {
-  # patch happy-path-che.yaml 
+  # patch happy-path-che.yaml
   ECLIPSE_CHE_URL=http://$(oc get route -n "${NAMESPACE}" che -o jsonpath='{.status.ingress[0].host}')
   TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_DEVFILE}"
   sed -i "s@CHE_URL@${ECLIPSE_CHE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
