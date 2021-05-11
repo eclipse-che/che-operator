@@ -17,19 +17,15 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
+    - name: Start minikube cluster
+      id: run-minikube
+      uses: che-incubator/setup-minikube-action@next
+      with:
+        minikube-version: v1.18.1
+    - name: Enable local registry
+      run: /bin/bash olm/minikube-registry-addon.sh &
     - name: Install yq
       run: sudo pip install yq
-    - name: Provision Minikube cluster
-      run: |
-        curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
-        sudo install minikube-linux-amd64 /usr/local/bin/minikube
-        minikube start --memory=6000mb
-    - name: Enable minikube addons
-      run: |
-        minikube addons enable ingress
-
-        # Enable registry and portfward to push images to registry
-        /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
@@ -45,19 +41,15 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
+    - name: Start minikube cluster
+      id: run-minikube
+      uses: che-incubator/setup-minikube-action@next
+      with:
+        minikube-version: v1.18.1
+    - name: Enable local registry
+      run: /bin/bash olm/minikube-registry-addon.sh &
     - name: Install yq
       run: sudo pip install yq
-    - name: Provision Minikube cluster
-      run: |
-        curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
-        sudo install minikube-linux-amd64 /usr/local/bin/minikube
-        minikube start --memory=6000mb
-    - name: Enable minikube addons
-      run: |
-        minikube addons enable ingress
-
-        # Enable registry and portfward to push images to registry
-        /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests

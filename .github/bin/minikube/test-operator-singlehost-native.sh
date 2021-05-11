@@ -28,9 +28,6 @@ prepareTemplates() {
   enableDevWorkspace ${TEMPLATES} true
   setSingleHostExposureType ${TEMPLATES} "native"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
-  if [[ ! -z "$GITHUB_ACTIONS" ]]; then
-    lowerLimits ${TEMPLATES}
-  fi
 }
 
 runTest() {
@@ -40,7 +37,7 @@ runTest() {
 }
 
 initDefaults
-# installOperatorMarketPlace
+installOperatorMarketPlace
 initLatestTemplates
 prepareTemplates
 buildCheOperatorImage

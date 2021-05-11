@@ -32,8 +32,7 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
-  # export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
-  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
+  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
   export OAUTH="false"
