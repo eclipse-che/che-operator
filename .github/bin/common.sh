@@ -32,7 +32,7 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
-  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
+  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
@@ -331,7 +331,7 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
+  local oauth=$(kubect get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
     chectl auth:login --chenamespace=${NAMESPACE}
