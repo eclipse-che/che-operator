@@ -35,7 +35,8 @@ jobs:
         docker-machine stop
     - name: Provision Minikube cluster
       run: |
-        brew install minikube
+        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
+        sudo install minikube-darwin-amd64 /usr/local/bin/minikube
         minikube start --memory=8192
     - name: Enable minikube addons
       run: |
@@ -50,7 +51,7 @@ jobs:
     - name: Run tests
       run: |
         #Install yq
-        yq--version
+        yq --version
         /bin/bash .github/bin/minikube/test-operator-singlehost-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
@@ -81,7 +82,8 @@ jobs:
         docker-machine stop
     - name: Provision Minikube cluster
       run: |
-        brew install minikube
+        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
+        sudo install minikube-darwin-amd64 /usr/local/bin/minikube
         minikube start --memory=8192
     - name: Enable minikube addons
       run: |
@@ -91,11 +93,8 @@ jobs:
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install jq
-      run: sudo pip install yq
-    - name: Run tests
+    - name: Install yq
       run: |
-        #Install yq
         brew install python-yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-operator-singlehost-native.sh
