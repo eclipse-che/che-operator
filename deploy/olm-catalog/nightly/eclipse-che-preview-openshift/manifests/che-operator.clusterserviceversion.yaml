@@ -67,13 +67,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-05-06T14:33:21Z"
+    createdAt: "2021-05-11T18:38:45Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.30.0-174.nightly
+  name: eclipse-che-preview-openshift.v7.30.0-176.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1057,9 +1057,16 @@ spec:
                         cpu: 100m
                         memory: 64Mi
                     securityContext:
+                      allowPrivilegeEscalation: false
                       capabilities:
                         drop:
                           - ALL
+                      privileged: false
+                      readOnlyRootFilesystem: false
+                      runAsNonRoot: true
+                hostIPC: false
+                hostNetwork: false
+                hostPID: false
                 restartPolicy: Always
                 serviceAccountName: che-operator
                 terminationGracePeriodSeconds: 20
@@ -1200,4 +1207,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.30.0-174.nightly
+  version: 7.30.0-176.nightly

@@ -117,6 +117,8 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
           securityContext:
+            privileged: false
+            readOnlyRootFilesystem: false
             capabilities:
               drop:
                 - ALL
@@ -127,6 +129,9 @@ spec:
             limits:
               memory: 256Mi
               cpu: 500m
+      hostIPC: false
+      hostNetwork: false
+      hostPID: false
       restartPolicy: Always
       serviceAccountName: che-operator
       terminationGracePeriodSeconds: 20
