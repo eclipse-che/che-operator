@@ -29,7 +29,7 @@ function bumpPodsInfo() {
     TARGET_DIR="${ARTIFACTS_DIR}/${NS}-info"
     mkdir -p "$TARGET_DIR"
 
-    oc get pods
+    oc get pods -n ${NS}
 
     for POD in $(oc get pods -o name -n ${NS}); do
         for CONTAINER in $(oc get -n ${NS} ${POD} -o jsonpath="{.spec.containers[*].name}"); do
