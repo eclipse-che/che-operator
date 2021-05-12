@@ -17,7 +17,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -45,56 +44,12 @@ const (
 
 // Reconcile workspace permissions based on workspace strategy
 func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
-	// The only supported namespace strategy is `per-user`.
-	// We have to remove some permissions if user switched from others.
-	done, err := r.removeWorkspacePermissionsInSameNamespaceWithChe(deployContext)
-	if !done {
-		return false, err
-	}
-
-	// Add workspaces cluster permission finalizer to the CR if deletion timestamp is 0.
-	// Or delete workspaces cluster permission set and finalizer from CR if deletion timestamp is not 0.
-	done, err = r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
+	done, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
 	if !done {
 		return false, err
 	}
 
 	done, err = r.delegateNamespaceEditorPermissions(deployContext)
-	if !done {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// removeWorkspacePermissionsInSameNamespaceWithChe - removes workspaces in same namespace with Che role and rolebindings.
-func (r *ReconcileChe) removeWorkspacePermissionsInSameNamespaceWithChe(deployContext *deploy.DeployContext) (bool, error) {
-	done, err := deploy.DeleteNamespacedObject(deployContext, deploy.ExecRoleName, &rbac.Role{})
-	if !done {
-		return false, err
-	}
-
-	done, err = deploy.DeleteNamespacedObject(deployContext, ExecRoleBindingName, &rbac.RoleBinding{})
-	if !done {
-		return false, err
-	}
-
-	done, err = deploy.DeleteNamespacedObject(deployContext, deploy.ViewRoleName, &rbac.Role{})
-	if !done {
-		return false, err
-	}
-
-	done, err = deploy.DeleteNamespacedObject(deployContext, ViewRoleBindingName, &rbac.RoleBinding{})
-	if !done {
-		return false, err
-	}
-
-	done, err = deploy.DeleteNamespacedObject(deployContext, EditRoleBindingName, &rbac.RoleBinding{})
-	if !done {
-		return false, err
-	}
-
-	done, err = deploy.DeleteNamespacedObject(deployContext, CheWorkspacesServiceAccount, &corev1.ServiceAccount{})
 	if !done {
 		return false, err
 	}

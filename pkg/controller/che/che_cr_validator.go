@@ -33,9 +33,7 @@ func ValidateCheCR(checluster *orgv1.CheCluster) error {
 
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(checluster)
 	if strings.Index(workspaceNamespaceDefault, "<username>") == -1 && strings.Index(workspaceNamespaceDefault, "<userid>") == -1 {
-		return fmt.Errorf(`Namespace strategies other than 'per user' is not supported anymore.
- Using the <username> or <userid> placeholder is required in the 'spec.server.workspaceNamespaceDefault' field.
- The current value is: %s`, workspaceNamespaceDefault)
+		return fmt.Errorf(`Namespace strategies other than 'per user' is not supported anymore. Using the <username> or <userid> placeholder is required in the 'spec.server.workspaceNamespaceDefault' field. The current value is: %s`, workspaceNamespaceDefault)
 	}
 
 	return nil
