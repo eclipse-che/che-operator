@@ -38,6 +38,12 @@ jobs:
         curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
         sudo install minikube-darwin-amd64 /usr/local/bin/minikube
         minikube start --memory=8192
+    - name: Install kubectl
+      run: |
+        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
+        chmod +x ./kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+        kubectl version --client
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
@@ -50,8 +56,6 @@ jobs:
       run: brew install python-yq
     - name: Run tests
       run: |
-        #Install yq
-        yq --version
         /bin/bash .github/bin/minikube/test-operator-singlehost-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
@@ -85,6 +89,12 @@ jobs:
         curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
         sudo install minikube-darwin-amd64 /usr/local/bin/minikube
         minikube start --memory=8192
+    - name: Install kubectl
+      run: |
+        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
+        chmod +x ./kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+        kubectl version --client
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
