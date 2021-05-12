@@ -37,7 +37,7 @@ jobs:
       run: |
         curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
         sudo install minikube-darwin-amd64 /usr/local/bin/minikube
-        minikube start --memory=10000
+        minikube start --memory=10000 --cpus=2
     - name: Install kubectl
       run: |
         curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
@@ -88,7 +88,7 @@ jobs:
       run: |
         curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
         sudo install minikube-darwin-amd64 /usr/local/bin/minikube
-        minikube start --memory=10000
+        minikube start --memory=10000 --cpus=2
     - name: Install kubectl
       run: |
         curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
