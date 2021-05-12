@@ -17,8 +17,6 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install yq
-      run: sudo pip install yq
     - name: Build Che operator image
       run: |
         export OPERATOR_IMAGE=test/che-operator:test
@@ -48,7 +46,10 @@ jobs:
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-operator-singlehost-gateway.sh
+      run: |
+        #Install yq
+        pip install yq
+        /bin/bash .github/bin/minikube/test-operator-singlehost-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
@@ -60,8 +61,6 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install yq
-      run: sudo pip install yq
     - name: Build Che operator image
       run: |
         export OPERATOR_IMAGE=test/che-operator:test
