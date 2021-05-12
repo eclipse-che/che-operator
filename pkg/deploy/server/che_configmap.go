@@ -48,7 +48,6 @@ type CheConfigMap struct {
 	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
 	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
-	NamespaceAllowUserDefined              string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_ALLOW__USER__DEFINED"`
 	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
 	PvcJobsImage                           string `json:"CHE_INFRA_KUBERNETES_PVC_JOBS_IMAGE"`
@@ -128,7 +127,6 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
-	namespaceAllowUserDefined := strconv.FormatBool(deployContext.CheCluster.Spec.Server.AllowUserDefinedWorkspaceNamespaces)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	protocol := "http"
 	if tlsSupport {
@@ -232,7 +230,6 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		CheInfrastructureActive:                infra,
 		CheInfraKubernetesServiceAccountName:   "che-workspace",
 		DefaultTargetNamespace:                 workspaceNamespaceDefault,
-		NamespaceAllowUserDefined:              namespaceAllowUserDefined,
 		PvcStrategy:                            pvcStrategy,
 		PvcClaimSize:                           pvcClaimSize,
 		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
@@ -295,27 +292,25 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
 
-		// Add TLS key and server certificate to properties when user workspaces should be created in another
+		// Add TLS key and server certificate to properties since user workspaces is created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
-		if util.IsWorkspaceInDifferentNamespaceThanChe(deployContext.CheCluster) {
-			if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
-				cheTLSSecret := &corev1.Secret{}
-				exists, err := deploy.GetNamespacedObject(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, cheTLSSecret)
-				if err != nil {
-					return nil, err
+		if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
+			cheTLSSecret := &corev1.Secret{}
+			exists, err := deploy.GetNamespacedObject(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, cheTLSSecret)
+			if err != nil {
+				return nil, err
+			}
+			if !exists {
+				return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+			} else {
+				if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
+					return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
 				}
-				if !exists {
-					return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-				} else {
-					if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
-						return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-					}
-					if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
-						return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
-					}
-					k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
-					k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
+				if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
+					return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
 				}
+				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
+				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
 			}
 		}
 

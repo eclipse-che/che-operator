@@ -447,10 +447,11 @@ spec:
                       install Eclipse Che in a restricted environment.
                     type: string
                   allowUserDefinedWorkspaceNamespaces:
-                    description: Defines that a user is allowed to specify a Kubernetes
-                      namespace, or an OpenShift project, which differs from the default.
-                      It's NOT RECOMMENDED to set to `true` without OpenShift OAuth
-                      configured. The OpenShift infrastructure also uses this property.
+                    description: Deprecated. The value of this flag is ignored. Defines
+                      that a user is allowed to specify a Kubernetes namespace, or
+                      an OpenShift project, which differs from the default. It's NOT
+                      RECOMMENDED to set to `true` without OpenShift OAuth configured.
+                      The OpenShift infrastructure also uses this property.
                     type: boolean
                   cheClusterRoles:
                     description: A comma-separated list of ClusterRoles that will

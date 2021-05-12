@@ -116,6 +116,7 @@ type CheClusterSpecServer struct {
 	// In that case, a new namespace will be created for each user or workspace.
 	// +optional
 	WorkspaceNamespaceDefault string `json:"workspaceNamespaceDefault,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default.
 	// It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
 	// +optional
