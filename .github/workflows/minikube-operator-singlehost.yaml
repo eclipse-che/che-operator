@@ -27,7 +27,6 @@ jobs:
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
-
         # Enable registry and portfward to push images to registry
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
@@ -55,7 +54,6 @@ jobs:
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
-
         # Enable registry and portfward to push images to registry
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl

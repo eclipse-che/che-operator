@@ -32,7 +32,7 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
-  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse/che-devfile-registry/master/devfiles/quarkus/devfile.yaml"
+  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
@@ -90,20 +90,20 @@ initStableTemplates() {
 
 # Utility to wait for a workspace to be started after workspace:create.
 waitWorkspaceStart() {
-  login
-
-  set +e
   export x=0
   while [ $x -le 180 ]
   do
-    chectl workspace:list --chenamespace=${NAMESPACE}
-    workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
-    workspaceStatus=$(echo "$workspaceList" | grep RUNNING | awk '{ print $4} ')
+    login
 
-    if [ "${workspaceStatus:-NOT_RUNNING}" == "RUNNING" ]
-    then
+    chectl workspace:list --chenamespace=${NAMESPACE}
+    workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
+
+    if [ "${workspaceStatus}" == "RUNNING" ]; then
       echo "[INFO] Workspace started successfully"
       break
+    elif [ "${workspaceStatus}" == "STOPPED" ]; then
+      echo "[ERROR] Workspace failed to start"
+      exit 1
     fi
     sleep 10
     x=$(( x+1 ))
@@ -331,7 +331,7 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
+  local oauth=$(kubectl get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
     chectl auth:login --chenamespace=${NAMESPACE}
