@@ -545,9 +545,23 @@ func GetSpecKeycloakDeployment(
 		}
 	}
 
-	command := bashFunctions + "\n" + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand + " && " + changeConfigCommand + enableFixedHostNameProvider +
-		" && /opt/jboss/docker-entrypoint.sh --debug -b 0.0.0.0 -c standalone.xml"
+	// Evaluating keycloak.connectionsHttpClient.default system properties, see details: https://github.com/eclipse/che/issues/19653
+	evaluateExpectContinueEnabled := "if [[ \"x$CONNECTIONS_HTTP_CLIENT_DEFAULT_EXPECT_CONTINUE_ENABLED\" == \"x\" ]]; then CONNECTIONS_HTTP_CLIENT_DEFAULT_EXPECT_CONTINUE_ENABLED=-Dkeycloak.connectionsHttpClient.default.expect-continue-enabled=true; fi"
+	evaluateReuseConnections := "if [[ \"x$CONNECTIONS_HTTP_CLIENT_DEFAULT_REUSE_CONNECTIONS\" == \"x\" ]]; then CONNECTIONS_HTTP_CLIENT_DEFAULT_REUSE_CONNECTIONS=-Dkeycloak.connectionsHttpClient.default.reuse-connections=false; fi"
+
+	command := bashFunctions + "\n" +
+		addCertToTrustStoreCommand +
+		addProxyCliCommand +
+		applyProxyCliCommand +
+		" && " + evaluateExpectContinueEnabled +
+		" && " + evaluateReuseConnections +
+		" && " + changeConfigCommand + enableFixedHostNameProvider +
+		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml"
 	command += " -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
+
+	// Adding keycloak.connectionsHttpClient.default system properties, see details: https://github.com/eclipse/che/issues/19653
+	command += " $CONNECTIONS_HTTP_CLIENT_DEFAULT_EXPECT_CONTINUE_ENABLED"
+	command += " $CONNECTIONS_HTTP_CLIENT_DEFAULT_REUSE_CONNECTIONS"
 	if cheFlavor == "codeready" {
 		addUsernameReadonlyTheme := "baseTemplate=/opt/eap/themes/base/login/login-update-profile.ftl" +
 			" && readOnlyTemplateDir=/opt/eap/themes/codeready-username-readonly/login" +
