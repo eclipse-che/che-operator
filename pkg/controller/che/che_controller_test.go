@@ -35,7 +35,6 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	configv1 "github.com/openshift/api/config/v1"
-	oauth_config "github.com/openshift/api/config/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -359,7 +358,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{})
+			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
 			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
@@ -789,7 +788,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 }
 
 func TestCheController(t *testing.T) {
-	os.Setenv("OPENSHIFT_VERSION", "3")
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -1010,7 +1011,7 @@ func TestCheController(t *testing.T) {
 }
 
 func TestConfiguringLabelsForRoutes(t *testing.T) {
-	os.Setenv("OPENSHIFT_VERSION", "3")
+	util.IsOpenShift = true
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
 
@@ -1063,7 +1064,8 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 }
 
 func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
-	os.Setenv("OPENSHIFT_VERSION", "3")
+	util.IsOpenShift = true
+
 	type testCase struct {
 		name        string
 		initObjects []runtime.Object
@@ -1122,7 +1124,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
+			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
 
 			initCR := testCase.checluster
@@ -1230,6 +1232,7 @@ func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	// Register operator types with the runtime scheme
 	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
+	scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 
 	// Create a fake client to mock API calls
 	return fake.NewFakeClient(objs...), ds, scheme

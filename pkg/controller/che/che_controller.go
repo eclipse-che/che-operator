@@ -417,7 +417,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Read proxy configuration
-	proxy, err := r.getProxyConfiguration(instance)
+	proxy, err := r.getProxyConfiguration(deployContext)
 	if err != nil {
 		logrus.Errorf("Error on reading proxy configuration: %v", err)
 		return reconcile.Result{}, err

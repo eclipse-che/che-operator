@@ -332,7 +332,16 @@ func TestReadProxyConfiguration(t *testing.T) {
 				scheme:          scheme,
 			}
 
-			actualProxyConf, err := r.getProxyConfiguration(testCase.cheCluster)
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCluster,
+				ClusterAPI: deploy.ClusterAPI{
+					Client:          cli,
+					NonCachedClient: cli,
+					Scheme:          scheme,
+				},
+			}
+
+			actualProxyConf, err := r.getProxyConfiguration(deployContext)
 			if err != nil {
 				t.Fatalf("Error reading proxy configuration: %v", err)
 			}
