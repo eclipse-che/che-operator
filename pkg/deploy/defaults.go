@@ -112,6 +112,8 @@ const (
 	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
 	CheEclipseOrgOAuthScmServer         = "che.eclipse.org/oauth-scm-server"
 	CheEclipseOrgScmServerEndpoint      = "che.eclipse.org/scm-server-endpoint"
+	CheEclipseOrgCreatedBy              = "che.eclipse.org/created-by"
+	CheEclipseOrgHash256                = "che.eclipse.org/hash256"
 
 	// components
 	IdentityProviderName = "keycloak"

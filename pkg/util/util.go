@@ -14,7 +14,9 @@ package util
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -430,6 +432,18 @@ func ReadObject(yamlFile string, obj interface{}) error {
 	}
 
 	return nil
+}
+
+func ComputeHash256(yamlFile string) (string, error) {
+	data, err := ioutil.ReadFile(yamlFile)
+	if err != nil {
+		return "", err
+	}
+
+	hasher := sha256.New()
+	hasher.Write(data)
+	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	return sha, nil
 }
 
 func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
