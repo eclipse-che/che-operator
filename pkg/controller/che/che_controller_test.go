@@ -34,6 +34,7 @@ import (
 	console "github.com/openshift/api/console/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	oauth_config "github.com/openshift/api/config/v1"
 	oauth "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -171,19 +172,19 @@ var (
 		},
 	}
 	oAuthClient                  = &oauth.OAuthClient{}
-	oAuthWithNoIdentityProviders = &oauth_config.OAuth{
+	oAuthWithNoIdentityProviders = &configv1.OAuth{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster",
 			Namespace: namespace,
 		},
 	}
-	oAuthWithIdentityProvider = &oauth_config.OAuth{
+	oAuthWithIdentityProvider = &configv1.OAuth{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster",
 			Namespace: namespace,
 		},
-		Spec: oauth_config.OAuthSpec{
-			IdentityProviders: []oauth_config.IdentityProvider{
+		Spec: configv1.OAuthSpec{
+			IdentityProviders: []configv1.IdentityProvider{
 				{
 					Name: "htpasswd",
 				},
@@ -356,8 +357,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			scheme.AddKnownTypes(configv1.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-			scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
+			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{})
+			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
 			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
@@ -397,7 +400,8 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				},
 			}
 
-			os.Setenv("OPENSHIFT_VERSION", testCase.openshiftVersion)
+			util.IsOpenShift = true
+			util.IsOpenShift4 = testCase.openshiftVersion == "4"
 
 			_, err := r.Reconcile(req)
 			if err != nil {

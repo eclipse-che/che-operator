@@ -575,6 +575,15 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	server := server.NewServer(deployContext)
+	done, err = server.ExposeCheEndpoint()
+	if !done {
+		if err != nil {
+			logrus.Error(err)
+		}
+		return reconcile.Result{}, err
+	}
+
 	// create and provision Keycloak related objects
 	if !instance.Spec.Auth.ExternalIdentityProvider {
 		provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
@@ -652,7 +661,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	server := server.NewServer(deployContext)
 	done, err = server.SyncAll()
 	if !done {
 		if err != nil {

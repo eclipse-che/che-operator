@@ -43,53 +43,23 @@ func NewServer(deployContext *deploy.DeployContext) *Server {
 	}
 }
 
-func (s *Server) SyncAll() (bool, error) {
-	done, err := s.syncService()
+func (s *Server) ExposeCheEndpoint() (bool, error) {
+	done, err := s.FindDefaultCheHost()
 	if !done {
 		return false, err
 	}
 
-	done, err = s.syncLegacyConfigMap()
+	done, err = s.SyncService()
 	if !done {
 		return false, err
 	}
 
-	done, err = s.findDefaultCheHost()
+	done, err = s.ExposeEndpoint()
 	if !done {
 		return false, err
 	}
 
-	done, err = s.exposeEndpoint()
-	if !done {
-		return false, err
-	}
-
-	done, err = s.updateCheURL()
-	if !done {
-		return false, err
-	}
-
-	done, err = s.syncPVC()
-	if !done {
-		return false, err
-	}
-
-	done, err = s.syncConfigMap()
-	if !done {
-		return false, err
-	}
-
-	done, err = s.syncDeployment()
-	if !done {
-		return false, err
-	}
-
-	done, err = s.updateAvailabilityStatus()
-	if !done {
-		return false, err
-	}
-
-	done, err = s.updateCheVersion()
+	done, err = s.UpdateCheURL()
 	if !done {
 		return false, err
 	}
@@ -97,7 +67,41 @@ func (s *Server) SyncAll() (bool, error) {
 	return true, nil
 }
 
-func (s *Server) syncService() (bool, error) {
+func (s *Server) SyncAll() (bool, error) {
+	done, err := s.SyncLegacyConfigMap()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.SyncPVC()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.SyncConfigMap()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.SyncDeployment()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.UpdateAvailabilityStatus()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.UpdateCheVersion()
+	if !done {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (s *Server) SyncService() (bool, error) {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
 
@@ -115,7 +119,7 @@ func (s *Server) syncService() (bool, error) {
 	return deploy.Sync(s.deployContext, spec, deploy.ServiceDefaultDiffOpts)
 }
 
-func (s Server) exposeEndpoint() (bool, error) {
+func (s Server) ExposeEndpoint() (bool, error) {
 	cheHost := ""
 	exposedServiceName := GetServerExposingServiceName(s.deployContext.CheCluster)
 
@@ -181,7 +185,7 @@ func (s Server) exposeEndpoint() (bool, error) {
 	return true, nil
 }
 
-func (s Server) updateCheURL() (bool, error) {
+func (s Server) UpdateCheURL() (bool, error) {
 	var cheUrl string
 	if s.deployContext.CheCluster.Spec.Server.TlsSupport {
 		cheUrl = "https://" + s.deployContext.CheCluster.Spec.Server.CheHost
@@ -198,7 +202,7 @@ func (s Server) updateCheURL() (bool, error) {
 	return true, nil
 }
 
-func (s *Server) syncConfigMap() (bool, error) {
+func (s *Server) SyncConfigMap() (bool, error) {
 	data, err := s.getConfigMapData()
 	if err != nil {
 		return false, err
@@ -207,7 +211,7 @@ func (s *Server) syncConfigMap() (bool, error) {
 	return deploy.SyncConfigMapDataToCluster(s.deployContext, CheConfigMapName, data, s.component)
 }
 
-func (s Server) syncLegacyConfigMap() (bool, error) {
+func (s Server) SyncLegacyConfigMap() (bool, error) {
 	// Get custom ConfigMap
 	// if it exists, add the data into CustomCheProperties
 	customConfigMap := &corev1.ConfigMap{}
@@ -235,7 +239,7 @@ func (s Server) syncLegacyConfigMap() (bool, error) {
 	return true, nil
 }
 
-func (s Server) syncPVC() (bool, error) {
+func (s Server) SyncPVC() (bool, error) {
 	cheMultiUser := deploy.GetCheMultiUser(s.deployContext.CheCluster)
 	if cheMultiUser == "false" {
 		claimSize := util.GetValue(s.deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
@@ -251,7 +255,7 @@ func (s Server) syncPVC() (bool, error) {
 	}
 }
 
-func (s *Server) updateAvailabilityStatus() (bool, error) {
+func (s *Server) UpdateAvailabilityStatus() (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(s.deployContext, s.component, cheDeployment)
 	if err != nil {
@@ -295,7 +299,7 @@ func (s *Server) updateAvailabilityStatus() (bool, error) {
 	return true, nil
 }
 
-func (s *Server) syncDeployment() (bool, error) {
+func (s *Server) SyncDeployment() (bool, error) {
 	spec, err := s.getDeploymentSpec()
 	if err != nil {
 		return false, err
@@ -304,7 +308,7 @@ func (s *Server) syncDeployment() (bool, error) {
 	return deploy.SyncDeploymentSpecToCluster(s.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (s *Server) findDefaultCheHost() (bool, error) {
+func (s *Server) FindDefaultCheHost() (bool, error) {
 	// only for OpenShift
 	if !util.IsOpenShift || s.deployContext.DefaultCheHost != "" {
 		return true, nil
@@ -333,7 +337,7 @@ func (s *Server) findDefaultCheHost() (bool, error) {
 	return true, nil
 }
 
-func (s Server) updateCheVersion() (bool, error) {
+func (s Server) UpdateCheVersion() (bool, error) {
 	cheVersion := s.evaluateCheServerVersion()
 	if s.deployContext.CheCluster.Status.CheVersion != cheVersion {
 		s.deployContext.CheCluster.Status.CheVersion = cheVersion
