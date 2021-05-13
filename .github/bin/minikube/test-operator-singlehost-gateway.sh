@@ -25,7 +25,7 @@ prepareTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
-  enableDevWorkspace ${TEMPLATES} true
+  #enableDevWorkspace ${TEMPLATES} true
   setSingleHostExposureType ${TEMPLATES} "gateway"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
 }
