@@ -1,5 +1,5 @@
 {   
-    "channel":"che-qe-notifications",
+    "channel":"devtools-che-deploy",
 	"blocks": [
 		{
 			"type": "header",
