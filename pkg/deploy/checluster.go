@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // UpdateCheCRSpec - updates Che CR "spec" by field
@@ -32,7 +32,7 @@ func UpdateCheCRSpec(deployContext *DeployContext, field string, value string) e
 			return err
 		}
 
-		err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+		err = ReloadCheCluster(deployContext)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func UpdateCheCRSpecByFields(deployContext *DeployContext, fields map[string]str
 			return err
 		}
 
-		err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+		err = ReloadCheCluster(deployContext)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func UpdateCheCRStatus(deployContext *DeployContext, field string, value string)
 			return err
 		}
 
-		err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+		err = ReloadCheCluster(deployContext)
 		if err != nil {
 			return err
 		}
@@ -99,4 +99,11 @@ func SetStatusDetails(deployContext *DeployContext, reason string, message strin
 		}
 	}
 	return nil
+}
+
+func ReloadCheCluster(deployContext *DeployContext) error {
+	return deployContext.ClusterAPI.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: deployContext.CheCluster.Name, Namespace: deployContext.CheCluster.Namespace},
+		deployContext.CheCluster)
 }

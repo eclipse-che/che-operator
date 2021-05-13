@@ -33,7 +33,7 @@ func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 				return err
 			}
 
-			err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+			err = ReloadCheCluster(deployContext)
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
 				return err
 			}
 
-			err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+			err = ReloadCheCluster(deployContext)
 			if err != nil {
 				return err
 			}

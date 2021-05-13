@@ -360,7 +360,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{})
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
 			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue

@@ -119,7 +119,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
 					apierrors.IsConflict(err) {
 
-					util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+					deploy.ReloadCheCluster(deployContext)
 					continue
 				}
 				break
@@ -199,7 +199,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
 					apierrors.IsConflict(err) {
 
-					util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+					deploy.ReloadCheCluster(deployContext)
 					continue
 				}
 				break
