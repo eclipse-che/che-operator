@@ -331,7 +331,7 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  local oauth=$(kubect get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
+  local oauth=$(kubectl get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
     chectl auth:login --chenamespace=${NAMESPACE}

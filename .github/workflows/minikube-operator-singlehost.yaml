@@ -14,32 +14,16 @@ on: pull_request
 jobs:
   minikube-gateway:
     name: Testing latest changes (single-host/gateway)
-    runs-on: macos-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - name: Build Che operator image
-      run: |
-        export OPERATOR_IMAGE=test/che-operator:test
-        # coreutils provides a readlink that supports `-f`
-        brew install coreutils docker docker-machine
-        mkdir -p ~/.docker/machine/cache/
-        sudo curl -Lo ~/.docker/machine/cache/boot2docker.iso https://github.com/boot2docker/boot2docker/releases/download/v19.03.12/boot2docker.iso
-        docker-machine --github-api-token="${{ secrets.GITHUB_TOKEN }}" create --driver virtualbox default
-        eval "$(docker-machine env default)"
-        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
-        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
-        docker-machine stop
+    - name: Install yq
+      run: sudo pip install yq
     - name: Provision Minikube cluster
       run: |
-        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
-        sudo install minikube-darwin-amd64 /usr/local/bin/minikube
-        minikube start --memory=10000 --cpus=2
-    - name: Install kubectl
-      run: |
-        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
-        chmod +x ./kubectl
-        sudo mv ./kubectl /usr/local/bin/kubectl
-        kubectl version --client
+        curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
+        sudo install minikube-linux-amd64 /usr/local/bin/minikube
+        minikube start --memory=6000mb
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
@@ -47,11 +31,8 @@ jobs:
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install jq
-      run: brew install python-yq
     - name: Run tests
-      run: |
-        /bin/bash .github/bin/minikube/test-operator-singlehost-gateway.sh
+      run: /bin/bash .github/bin/minikube/test-operator-singlehost-gateway.sh
     # Run this step even the previous step fail to upload artifacts to GH
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
@@ -60,32 +41,16 @@ jobs:
         path: /tmp/artifacts-che
   minikube-native:
     name: Testing latest changes (single-host/native)
-    runs-on: macos-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - name: Build Che operator image
-      run: |
-        export OPERATOR_IMAGE=test/che-operator:test
-        # coreutils provides a readlink that supports `-f`
-        brew install coreutils docker docker-machine
-        mkdir -p ~/.docker/machine/cache/
-        sudo curl -Lo ~/.docker/machine/cache/boot2docker.iso https://github.com/boot2docker/boot2docker/releases/download/v19.03.12/boot2docker.iso
-        docker-machine --github-api-token="${{ secrets.GITHUB_TOKEN }}" create --driver virtualbox default
-        eval "$(docker-machine env default)"
-        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
-        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
-        docker-machine stop
+    - name: Install yq
+      run: sudo pip install yq
     - name: Provision Minikube cluster
       run: |
-        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64
-        sudo install minikube-darwin-amd64 /usr/local/bin/minikube
-        minikube start --memory=10000 --cpus=2
-    - name: Install kubectl
-      run: |
-        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
-        chmod +x ./kubectl
-        sudo mv ./kubectl /usr/local/bin/kubectl
-        kubectl version --client
+        curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
+        sudo install minikube-linux-amd64 /usr/local/bin/minikube
+        minikube start --memory=6000mb
     - name: Enable minikube addons
       run: |
         minikube addons enable ingress
@@ -93,9 +58,6 @@ jobs:
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install yq
-      run: |
-        brew install python-yq
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-operator-singlehost-native.sh
     # Run this step even the previous step fail to upload artifacts to GH

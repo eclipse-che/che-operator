@@ -38,5 +38,6 @@ runTest() {
 initDefaults
 initLatestTemplates
 prepareTemplates
+buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest
