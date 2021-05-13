@@ -70,7 +70,7 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 func (r *ReconcileChe) putOpenShiftCertsIntoConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName == "" {
 		deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName = deploy.DefaultServerTrustStoreConfigMapName()
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "truststore configmap", deploy.DefaultServerTrustStoreConfigMapName()); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "truststore configmap", deploy.DefaultServerTrustStoreConfigMapName()); err != nil {
 			return false, err
 		}
 	}

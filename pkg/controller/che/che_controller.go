@@ -356,7 +356,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			// Che cannot be deployed with current configuration.
 			// Print error message in logs and wait until the configuration is changed.
 			logrus.Error(err)
-			if err := r.SetStatusDetails(instance, request, failedValidationReason, err.Error(), ""); err != nil {
+			if err := deploy.SetStatusDetails(deployContext, failedValidationReason, err.Error(), ""); err != nil {
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, nil
@@ -367,7 +367,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
 			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
 			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
-			err := r.UpdateCheCRSpec(instance, "initialOpenShiftOAuthUser", "nil")
+			err := deploy.UpdateCheCRSpec(deployContext, "initialOpenShiftOAuthUser", "nil")
 			return reconcile.Result{}, err
 		}
 
@@ -378,7 +378,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			"initialOpenShiftOAuthUser": "nil",
 		}
 
-		if err := r.UpdateCheCRSpecByFields(instance, updateFields); err != nil {
+		if err := deploy.UpdateCheCRSpecByFields(deployContext, updateFields); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -394,7 +394,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		} else if !exists {
 			instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
-			if err := r.UpdateCheCRStatus(instance, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+			if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -504,7 +504,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	if err := r.SetStatusDetails(instance, request, "", "", ""); err != nil {
+	if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -590,7 +590,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		keycloakURL := instance.Spec.Auth.IdentityProviderURL
 		if instance.Status.KeycloakURL != keycloakURL {
 			instance.Status.KeycloakURL = keycloakURL
-			if err := r.UpdateCheCRStatus(instance, "status: Keycloak URL", keycloakURL); err != nil {
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: Keycloak URL", keycloakURL); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -608,7 +608,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	} else {
 		if instance.Spec.Server.PluginRegistryUrl != instance.Status.PluginRegistryURL {
 			instance.Status.PluginRegistryURL = instance.Spec.Server.PluginRegistryUrl
-			if err := r.UpdateCheCRStatus(instance, "status: Plugin Registry URL", instance.Spec.Server.PluginRegistryUrl); err != nil {
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: Plugin Registry URL", instance.Spec.Server.PluginRegistryUrl); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -631,7 +631,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		if instance.Spec.Server.DevfileRegistryUrl != instance.Status.DevfileRegistryURL {
 			instance.Status.DevfileRegistryURL = instance.Spec.Server.DevfileRegistryUrl
-			if err := r.UpdateCheCRStatus(instance, "status: Devfile Registry URL", instance.Spec.Server.DevfileRegistryUrl); err != nil {
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: Devfile Registry URL", instance.Spec.Server.DevfileRegistryUrl); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -673,13 +673,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Delete OpenShift identity provider if OpenShift oAuth is false in spec
 	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
-	deleted, err := r.ReconcileIdentityProvider(instance, util.IsOpenShift4)
+	deleted, err := identity_provider.ReconcileIdentityProvider(deployContext)
 	if deleted {
 		// ignore error
 		deploy.DeleteFinalizer(deployContext, deploy.OAuthFinalizerName)
 		for {
 			instance.Status.OpenShiftoAuthProvisioned = false
-			if err := r.UpdateCheCRStatus(instance, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
 				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
@@ -689,7 +689,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		for {
 			instance.Spec.Auth.OAuthSecret = ""
 			instance.Spec.Auth.OAuthClientName = ""
-			if err := r.UpdateCheCRSpec(instance, "clean oAuth secret name and client name", ""); err != nil &&
+			if err := deploy.UpdateCheCRStatus(deployContext, "clean oAuth secret name and client name", ""); err != nil &&
 				errors.IsConflict(err) {
 				instance, _ = r.GetCR(request)
 				continue
@@ -760,7 +760,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 					reason = failedNoIdentityProviders
 					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
 					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
-					if err := r.UpdateCheCRStatus(cr, "initialOpenShiftOAuthUser", ""); err != nil {
+					if err := deploy.UpdateCheCRStatus(deployContext, "initialOpenShiftOAuthUser", ""); err != nil {
 						return reconcile.Result{}, err
 					}
 					oauth = false
@@ -771,7 +771,7 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 					oauth = true
 					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
 						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
-						if err := r.UpdateCheCRStatus(cr, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
+						if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
 							return reconcile.Result{}, err
 						}
 					}
@@ -798,13 +798,13 @@ func (r *ReconcileChe) autoEnableOAuth(deployContext *deploy.DeployContext, requ
 	newOAuthValue := util.NewBoolPointer(oauth)
 	if !reflect.DeepEqual(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
 		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
-		if err := r.UpdateCheCRSpec(cr, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
 			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 
 	if message != "" && reason != "" {
-		if err := r.SetStatusDetails(cr, request, message, reason, ""); err != nil {
+		if err := deploy.SetStatusDetails(deployContext, message, reason, ""); err != nil {
 			return reconcile.Result{}, err
 		}
 	}

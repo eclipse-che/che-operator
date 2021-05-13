@@ -24,7 +24,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	cheNamespace := deployContext.CheCluster.Namespace
 	if len(deployContext.CheCluster.Spec.Server.CheFlavor) < 1 {
 		deployContext.CheCluster.Spec.Server.CheFlavor = cheFlavor
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "installation flavor", cheFlavor); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "installation flavor", cheFlavor); err != nil {
 			return err
 		}
 	}
@@ -39,19 +39,19 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 					return err
 				}
 				deployContext.CheCluster.Spec.Database.ChePostgresSecret = chePostgresSecret
-				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres Secret", chePostgresSecret); err != nil {
+				if err := deploy.UpdateCheCRSpec(deployContext, "Postgres Secret", chePostgresSecret); err != nil {
 					return err
 				}
 			} else {
 				if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 {
 					deployContext.CheCluster.Spec.Database.ChePostgresUser = deploy.DefaultChePostgresUser
-					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres User", deployContext.CheCluster.Spec.Database.ChePostgresUser); err != nil {
+					if err := deploy.UpdateCheCRSpec(deployContext, "Postgres User", deployContext.CheCluster.Spec.Database.ChePostgresUser); err != nil {
 						return err
 					}
 				}
 				if len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
 					deployContext.CheCluster.Spec.Database.ChePostgresPassword = util.GeneratePasswd(12)
-					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
+					if err := deploy.UpdateCheCRSpec(deployContext, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
 						return err
 					}
 				}
@@ -75,7 +75,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 					return err
 				}
 				deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
-				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
+				if err := deploy.UpdateCheCRSpec(deployContext, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
 					return err
 				}
 			}
@@ -99,19 +99,19 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 					return err
 				}
 				deployContext.CheCluster.Spec.Auth.IdentityProviderSecret = identityProviderSecret
-				if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Identity Provider Secret", identityProviderSecret); err != nil {
+				if err := deploy.UpdateCheCRSpec(deployContext, "Identity Provider Secret", identityProviderSecret); err != nil {
 					return err
 				}
 			} else {
 				if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
 					deployContext.CheCluster.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
-					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak admin password", "password hidden"); err != nil {
+					if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak admin password", "password hidden"); err != nil {
 						return err
 					}
 				}
 				if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 {
 					deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
-					if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak admin username", keycloakAdminUserName); err != nil {
+					if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak admin username", keycloakAdminUserName); err != nil {
 						return err
 					}
 				}
@@ -121,28 +121,28 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
 		if len(deployContext.CheCluster.Spec.Database.ChePostgresDb) < 1 {
 			deployContext.CheCluster.Spec.Database.ChePostgresDb = chePostgresDb
-			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres DB", chePostgresDb); err != nil {
+			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres DB", chePostgresDb); err != nil {
 				return err
 			}
 		}
 		chePostgresHostName := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
 		if len(deployContext.CheCluster.Spec.Database.ChePostgresHostName) < 1 {
 			deployContext.CheCluster.Spec.Database.ChePostgresHostName = chePostgresHostName
-			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres hostname", chePostgresHostName); err != nil {
+			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres hostname", chePostgresHostName); err != nil {
 				return err
 			}
 		}
 		chePostgresPort := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
 		if len(deployContext.CheCluster.Spec.Database.ChePostgresPort) < 1 {
 			deployContext.CheCluster.Spec.Database.ChePostgresPort = chePostgresPort
-			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Postgres port", chePostgresPort); err != nil {
+			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres port", chePostgresPort); err != nil {
 				return err
 			}
 		}
 		keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
 		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
 			deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
-			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak realm", keycloakRealm); err != nil {
+			if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak realm", keycloakRealm); err != nil {
 				return err
 			}
 		}
@@ -150,7 +150,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
 			deployContext.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
 
-			if err := r.UpdateCheCRSpec(deployContext.CheCluster, "Keycloak client ID", keycloakClientId); err != nil {
+			if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak client ID", keycloakClientId); err != nil {
 				return err
 			}
 		}
@@ -159,28 +159,28 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	cheLogLevel := util.GetValue(deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
 	if len(deployContext.CheCluster.Spec.Server.CheLogLevel) < 1 {
 		deployContext.CheCluster.Spec.Server.CheLogLevel = cheLogLevel
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "log level", cheLogLevel); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "log level", cheLogLevel); err != nil {
 			return err
 		}
 	}
 	cheDebug := util.GetValue(deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	if len(deployContext.CheCluster.Spec.Server.CheDebug) < 1 {
 		deployContext.CheCluster.Spec.Server.CheDebug = cheDebug
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "debug", cheDebug); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "debug", cheDebug); err != nil {
 			return err
 		}
 	}
 	pvcStrategy := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcStrategy, deploy.DefaultPvcStrategy)
 	if len(deployContext.CheCluster.Spec.Storage.PvcStrategy) < 1 {
 		deployContext.CheCluster.Spec.Storage.PvcStrategy = pvcStrategy
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc strategy", pvcStrategy); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "pvc strategy", pvcStrategy); err != nil {
 			return err
 		}
 	}
 	pvcClaimSize := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
 	if len(deployContext.CheCluster.Spec.Storage.PvcClaimSize) < 1 {
 		deployContext.CheCluster.Spec.Storage.PvcClaimSize = pvcClaimSize
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc claim size", pvcClaimSize); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "pvc claim size", pvcClaimSize); err != nil {
 			return err
 		}
 	}
@@ -193,7 +193,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	if deployContext.CheCluster.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect ||
 		(deploy.MigratingToCRW2_0(deployContext.CheCluster) && deployContext.CheCluster.Spec.Storage.PvcJobsImage != "") {
 		deployContext.CheCluster.Spec.Storage.PvcJobsImage = ""
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "pvc jobs image", deployContext.CheCluster.Spec.Storage.PvcJobsImage); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "pvc jobs image", deployContext.CheCluster.Spec.Storage.PvcJobsImage); err != nil {
 			return err
 		}
 	}
@@ -201,7 +201,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	if deployContext.CheCluster.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect ||
 		(deploy.MigratingToCRW2_0(deployContext.CheCluster) && deployContext.CheCluster.Spec.Database.PostgresImage != "") {
 		deployContext.CheCluster.Spec.Database.PostgresImage = ""
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "postgres image", deployContext.CheCluster.Spec.Database.PostgresImage); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "postgres image", deployContext.CheCluster.Spec.Database.PostgresImage); err != nil {
 			return err
 		}
 	}
@@ -209,7 +209,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	if deployContext.CheCluster.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect ||
 		(deploy.MigratingToCRW2_0(deployContext.CheCluster) && deployContext.CheCluster.Spec.Auth.IdentityProviderImage != "") {
 		deployContext.CheCluster.Spec.Auth.IdentityProviderImage = ""
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "keycloak image", deployContext.CheCluster.Spec.Auth.IdentityProviderImage); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "keycloak image", deployContext.CheCluster.Spec.Auth.IdentityProviderImage); err != nil {
 			return err
 		}
 	}
@@ -218,7 +218,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 		!deployContext.CheCluster.Spec.Server.ExternalPluginRegistry &&
 		deployContext.CheCluster.Spec.Server.PluginRegistryUrl == deploy.OldCrwPluginRegistryUrl {
 		deployContext.CheCluster.Spec.Server.PluginRegistryUrl = ""
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "plugin registry url", deployContext.CheCluster.Spec.Server.PluginRegistryUrl); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "plugin registry url", deployContext.CheCluster.Spec.Server.PluginRegistryUrl); err != nil {
 			return err
 		}
 	}
@@ -226,7 +226,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	if deploy.MigratingToCRW2_0(deployContext.CheCluster) &&
 		deployContext.CheCluster.Spec.Server.CheImage == deploy.OldDefaultCodeReadyServerImageRepo {
 		deployContext.CheCluster.Spec.Server.CheImage = ""
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "che image repo", deployContext.CheCluster.Spec.Server.CheImage); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "che image repo", deployContext.CheCluster.Spec.Server.CheImage); err != nil {
 			return err
 		}
 	}
@@ -234,7 +234,7 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 	if deploy.MigratingToCRW2_0(deployContext.CheCluster) &&
 		deployContext.CheCluster.Spec.Server.CheImageTag == deploy.OldDefaultCodeReadyServerImageTag {
 		deployContext.CheCluster.Spec.Server.CheImageTag = ""
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "che image tag", deployContext.CheCluster.Spec.Server.CheImageTag); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "che image tag", deployContext.CheCluster.Spec.Server.CheImageTag); err != nil {
 			return err
 		}
 	}

@@ -54,11 +54,6 @@ func (s *Server) SyncAll() (bool, error) {
 		return false, err
 	}
 
-	done, err = s.syncConfigMap()
-	if !done {
-		return false, err
-	}
-
 	done, err = s.findDefaultCheHost()
 	if !done {
 		return false, err
@@ -75,6 +70,11 @@ func (s *Server) SyncAll() (bool, error) {
 	}
 
 	done, err = s.syncPVC()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.syncConfigMap()
 	if !done {
 		return false, err
 	}

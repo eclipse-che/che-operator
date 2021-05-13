@@ -66,14 +66,14 @@ func TestSyncService(t *testing.T) {
 	}
 
 	service := &corev1.Service{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(deployContext.CheCluster), Namespace: "eclipse-che"}, service)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, service)
 	if err != nil {
 		t.Fatalf("Failed to get service, error: %v", err)
 	}
 
 	checkPort(service.Spec.Ports[0], "http", 8080, t)
-	checkPort(service.Spec.Ports[1], "debug", deploy.DefaultCheDebugPort, t)
-	checkPort(service.Spec.Ports[2], "metrics", deploy.DefaultCheMetricsPort, t)
+	checkPort(service.Spec.Ports[1], "metrics", deploy.DefaultCheMetricsPort, t)
+	checkPort(service.Spec.Ports[2], "debug", deploy.DefaultCheDebugPort, t)
 }
 
 func TestSyncAll(t *testing.T) {
