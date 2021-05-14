@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
@@ -425,11 +426,16 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync) (boo
 		return false, err
 	}
 
-	createdByOperator := getCreatedBy(deployContext)
+	isOnlyOneOperatorManagesDWResources, err := isOnlyOneOperatorManagesDWResources(deployContext)
+	if err != nil {
+		return false, err
+	}
 
+	// sync objects if it has been created by same operator
+	// or it is the only operator with the `spec.devWorkspace.enable: true`
 	if !exists ||
-		(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgCreatedBy] == createdByOperator &&
-			actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256) {
+		(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256 &&
+			(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgNamespace] == deployContext.CheCluster.Namespace || isOnlyOneOperatorManagesDWResources)) {
 
 		setAnnotations(deployContext, obj2sync)
 		return deploy.Sync(deployContext, obj2sync.obj, cmp.Options{})
@@ -444,14 +450,26 @@ func setAnnotations(deployContext *deploy.DeployContext, obj2sync *Object2Sync) 
 		annotations = make(map[string]string)
 	}
 
-	annotations[deploy.CheEclipseOrgCreatedBy] = getCreatedBy(deployContext)
+	annotations[deploy.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
 	annotations[deploy.CheEclipseOrgHash256] = obj2sync.hash256
 	obj2sync.obj.SetAnnotations(annotations)
 }
 
-func getCreatedBy(deployContext *deploy.DeployContext) string {
-	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	return cheFlavor + "-operator"
+func isOnlyOneOperatorManagesDWResources(deployContext *deploy.DeployContext) (bool, error) {
+	cheClusters := &orgv1.CheClusterList{}
+	err := deployContext.ClusterAPI.NonCachedClient.List(context.TODO(), cheClusters)
+	if err != nil {
+		return false, err
+	}
+
+	devWorkspaceEnabledNum := 0
+	for _, cheCluster := range cheClusters.Items {
+		if cheCluster.Spec.DevWorkspace.Enable {
+			devWorkspaceEnabledNum++
+		}
+	}
+
+	return devWorkspaceEnabledNum == 1, nil
 }
 
 func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {

@@ -132,15 +132,16 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 	}
 }
 
-func TestShouldSyncObject(t *testing.T) {
+func TestShouldSyncNewObject(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
-	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{}, "test")
+	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{}, "test")
 	obj2sync := &Object2Sync{
-		obj:     testObject,
-		hash256: "hash1",
+		obj:     newObject,
+		hash256: "hash",
 	}
 
+	// tries to sync a new object
 	done, err := syncObject(deployContext, obj2sync)
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
@@ -148,6 +149,7 @@ func TestShouldSyncObject(t *testing.T) {
 		t.Fatalf("Object is not synced.")
 	}
 
+	// reads object and check content, object is supposed to be created
 	actual := &corev1.ConfigMap{}
 	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
 	if err != nil {
@@ -156,44 +158,93 @@ func TestShouldSyncObject(t *testing.T) {
 		t.Fatalf("Object not found")
 	}
 
-	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256 {
+	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != "hash" {
 		t.Fatalf("Invalid hash")
 	}
-	if actual.GetAnnotations()[deploy.CheEclipseOrgCreatedBy] != getCreatedBy(deployContext) {
-		t.Fatalf("Invalid created-by")
+	if actual.GetAnnotations()[deploy.CheEclipseOrgNamespace] != "eclipse-che" {
+		t.Fatalf("Invalid namespace")
 	}
 }
 
-func TestShouldSyncObjectIfHashIsNotEqual(t *testing.T) {
+func TestShouldSyncObjectIfItWasCreatedByAnotherOriginHashDifferent(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
+	}
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+
+	// creates initial object
+	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
+	initialObject.SetAnnotations(map[string]string{
+		deploy.CheEclipseOrgHash256:   "hash2",
+		deploy.CheEclipseOrgNamespace: "eclipse-che-2",
+	})
+	deploy.Create(deployContext, initialObject)
+
+	// tries to sync object with a new hash but different origin
+	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
+	obj2sync := &Object2Sync{
+		obj:     newObject,
+		hash256: "hash",
+	}
+	_, err := syncObject(deployContext, obj2sync)
+	if err != nil {
+		t.Fatalf("Failed to sync object: %v", err)
+	}
+
+	// reads object and check content, object supposed to be updated
+	// there is only one operator to mange DW resources
+	actual := &corev1.ConfigMap{}
+	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
+	if err != nil {
+		t.Fatalf("Failed to get object: %v", err)
+	} else if !exists {
+		t.Fatalf("Object not found")
+	}
+
+	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != "hash" {
+		t.Fatalf("Invalid hash")
+	}
+	if actual.GetAnnotations()[deploy.CheEclipseOrgNamespace] != "eclipse-che" {
+		t.Fatalf("Invalid namespace")
+	}
+	if actual.Data["a"] != "c" {
+		t.Fatalf("Invalid data")
+	}
+}
+
+func TestShouldSyncObjectIfItWasCreatedBySameOriginHashDifferent(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
 	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
 	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash1",
-		deploy.CheEclipseOrgCreatedBy: getCreatedBy(deployContext),
+		deploy.CheEclipseOrgHash256:   "hash",
+		deploy.CheEclipseOrgNamespace: "eclipse-che",
 	})
 	deploy.Create(deployContext, initialObject)
 
-	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
+	// creates initial object
+	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
 	obj2sync := &Object2Sync{
-		obj:     testObject,
-		hash256: "hash2",
+		obj:     newObject,
+		hash256: "newHash",
 	}
 
-	done, err := syncObject(deployContext, obj2sync)
+	// tries to sync object with a new
+	_, err := syncObject(deployContext, obj2sync)
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
-	} else if done {
-		t.Fatalf("Object is updated, another sync is required.")
 	}
 
-	done, err = syncObject(deployContext, obj2sync)
-	if err != nil {
-		t.Fatalf("Failed to sync object: %v", err)
-	} else if !done {
-		t.Fatalf("Object is not synced.")
-	}
-
+	// reads object and check content, object supposed to be updated
+	// it was created by the same origin
 	actual := &corev1.ConfigMap{}
 	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
 	if err != nil {
@@ -202,33 +253,100 @@ func TestShouldSyncObjectIfHashIsNotEqual(t *testing.T) {
 		t.Fatalf("Object not found")
 	}
 
-	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256 {
+	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != "newHash" {
 		t.Fatalf("Invalid hash")
 	}
-	if actual.GetAnnotations()[deploy.CheEclipseOrgCreatedBy] != getCreatedBy(deployContext) {
-		t.Fatalf("Invalid created-by")
+	if actual.GetAnnotations()[deploy.CheEclipseOrgNamespace] != "eclipse-che" {
+		t.Fatalf("Invalid namespace")
 	}
-	if actual.Data["a"] == "b" {
-		t.Fatalf("Object is not updated.")
+	if actual.Data["a"] != "c" {
+		t.Fatalf("Invalid data")
+	}
+}
+
+func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che-1",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
+	}
+	anotherCheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: "eclipse-che-2",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
+	}
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{anotherCheCluster})
+
+	// creates initial object
+	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
+	initialObject.SetAnnotations(map[string]string{
+		deploy.CheEclipseOrgHash256:   "hash-2",
+		deploy.CheEclipseOrgNamespace: "eclipse-che-2",
+	})
+	deploy.Create(deployContext, initialObject)
+
+	// tries to sync object with a new hash but different origin
+	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
+	obj2sync := &Object2Sync{
+		obj:     newObject,
+		hash256: "hash-1",
+	}
+	done, err := syncObject(deployContext, obj2sync)
+	if err != nil {
+		t.Fatalf("Failed to sync object: %v", err)
+	} else if !done {
+		t.Fatalf("Object is not synced.")
+	}
+
+	// reads object and check content, object isn't supposed to be updated
+	actual := &corev1.ConfigMap{}
+	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
+	if err != nil {
+		t.Fatalf("Failed to get object: %v", err)
+	} else if !exists {
+		t.Fatalf("Object not found")
+	}
+
+	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != "hash-2" {
+		t.Fatalf("Invalid hash")
+	}
+	if actual.GetAnnotations()[deploy.CheEclipseOrgNamespace] != "eclipse-che-2" {
+		t.Fatalf("Invalid namespace")
+	}
+	if actual.Data["a"] != "b" {
+		t.Fatalf("Invalid data")
 	}
 }
 
 func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
+	// creates initial object
 	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
 	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash1",
-		deploy.CheEclipseOrgCreatedBy: getCreatedBy(deployContext),
+		deploy.CheEclipseOrgHash256:   "hash",
+		deploy.CheEclipseOrgNamespace: "eclipse-che",
 	})
 	deploy.Create(deployContext, initialObject)
 
-	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
+	// tries to sync object with the same hash
+	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
 	obj2sync := &Object2Sync{
-		obj:     testObject,
-		hash256: "hash1",
+		obj:     newObject,
+		hash256: "hash",
 	}
-
 	done, err := syncObject(deployContext, obj2sync)
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
@@ -236,6 +354,7 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 		t.Fatalf("Object is not synced.")
 	}
 
+	// reads object and check content, object isn't supposed to be updated
 	actual := &corev1.ConfigMap{}
 	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
 	if err != nil {
@@ -244,41 +363,12 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 		t.Fatalf("Object not found")
 	}
 
-	if actual.Data["a"] != "b" {
-		t.Fatalf("Object is not supposed to be updated.")
+	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != "hash" {
+		t.Fatalf("Invalid hash")
 	}
-}
-
-func TestShouldNotSyncObjectIfCreatedByIsDifferent(t *testing.T) {
-	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
-
-	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
-	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256: "hash1",
-	})
-	deploy.Create(deployContext, initialObject)
-
-	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     testObject,
-		hash256: "hash1",
+	if actual.GetAnnotations()[deploy.CheEclipseOrgNamespace] != "eclipse-che" {
+		t.Fatalf("Invalid namespace")
 	}
-
-	done, err := syncObject(deployContext, obj2sync)
-	if err != nil {
-		t.Fatalf("Failed to sync object: %v", err)
-	} else if !done {
-		t.Fatalf("Object is not synced.")
-	}
-
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	if err != nil {
-		t.Fatalf("Failed to get object: %v", err)
-	} else if !exists {
-		t.Fatalf("Object not found")
-	}
-
 	if actual.Data["a"] != "b" {
 		t.Fatalf("Object is not supposed to be updated.")
 	}
