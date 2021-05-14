@@ -39,18 +39,6 @@ runTests() {
     provisionOAuth
     startNewWorkspace
     waitWorkspaceStart
-
-    # Dev Workspace controller tests
-    deployDevWorkspaceController
-    waitDevWorkspaceControllerStarted
-
-    sleep 10s
-    createWorkspaceDevWorkspaceController
-    waitWorkspaceStartedDevWorkspaceController
-
-    sleep 10s
-    createWorkspaceDevWorkspaceCheOperator
-    waitWorkspaceStartedDevWorkspaceController
 }
 
 initDefaults
