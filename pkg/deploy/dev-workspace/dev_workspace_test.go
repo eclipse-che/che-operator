@@ -137,7 +137,7 @@ func TestShouldSyncObject(t *testing.T) {
 
 	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{}, "test")
 	obj2sync := &Object2Sync{
-		obj:  testObject,
+		obj:     testObject,
 		hash256: "hash1",
 	}
 
@@ -176,7 +176,7 @@ func TestShouldSyncObjectIfHashIsNotEqual(t *testing.T) {
 
 	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
 	obj2sync := &Object2Sync{
-		obj:  testObject,
+		obj:     testObject,
 		hash256: "hash2",
 	}
 
@@ -225,7 +225,7 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 
 	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
 	obj2sync := &Object2Sync{
-		obj:  testObject,
+		obj:     testObject,
 		hash256: "hash1",
 	}
 
@@ -260,7 +260,7 @@ func TestShouldNotSyncObjectIfCreatedByIsDifferent(t *testing.T) {
 
 	testObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
 	obj2sync := &Object2Sync{
-		obj:  testObject,
+		obj:     testObject,
 		hash256: "hash1",
 	}
 
