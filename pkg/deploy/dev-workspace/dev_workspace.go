@@ -85,8 +85,8 @@ var (
 )
 
 type Object2Sync struct {
-	obj  metav1.Object
-	hash string
+	obj     metav1.Object
+	hash256 string
 }
 
 var (
@@ -425,12 +425,11 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync) (boo
 		return false, err
 	}
 
-	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	createdBy := cheFlavor + "-operator"
+	createdByOperator := getCreatedBy(deployContext)
 
 	if !exists ||
-		(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgCreatedBy] == createdBy &&
-			actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash) {
+		(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgCreatedBy] == createdByOperator &&
+			actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256) {
 
 		setAnnotations(deployContext, obj2sync)
 		return deploy.Sync(deployContext, obj2sync.obj, cmp.Options{})
@@ -440,17 +439,19 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync) (boo
 }
 
 func setAnnotations(deployContext *deploy.DeployContext, obj2sync *Object2Sync) {
-	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
-	createdBy := cheFlavor + "-operator"
-
 	annotations := obj2sync.obj.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
 
-	annotations[deploy.CheEclipseOrgCreatedBy] = createdBy
-	annotations[deploy.CheEclipseOrgHash256] = obj2sync.hash
+	annotations[deploy.CheEclipseOrgCreatedBy] = getCreatedBy(deployContext)
+	annotations[deploy.CheEclipseOrgHash256] = obj2sync.hash256
 	obj2sync.obj.SetAnnotations(annotations)
+}
+
+func getCreatedBy(deployContext *deploy.DeployContext) string {
+	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	return cheFlavor + "-operator"
 }
 
 func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
@@ -460,14 +461,14 @@ func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
 			return nil, err
 		}
 
-		hash, err := util.ComputeHash256(yamlFile)
+		hash256, err := util.ComputeHash256(yamlFile)
 		if err != nil {
 			return nil, err
 		}
 
 		cachedObj[yamlFile] = &Object2Sync{
 			obj.(metav1.Object),
-			hash,
+			hash256,
 		}
 	}
 

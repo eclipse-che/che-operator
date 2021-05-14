@@ -36,6 +36,7 @@ initDefaults() {
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
+  export DEV_WORKSPACE_ENABLE="false"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -305,9 +306,9 @@ patchEclipseCheOperatorSubscription() {
 applyOlmCR() {
   echo "Creating Custom Resource"
 
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
-  CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}" | yq -r ".[0]")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
+  CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
 
   echo -e "$CR"
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
@@ -354,10 +355,6 @@ EOL
 
   chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
   oc get checluster eclipse-che -n eclipse-che -o yaml
-}
-
-deployDevWorkspaceController() {
-  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": true}}}'
 }
 
 waitDevWorkspaceControllerStarted() {
