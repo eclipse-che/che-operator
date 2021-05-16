@@ -1,0 +1,46 @@
+{   
+    "channel":"devtools-che-deploy",
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Eclipse Che Nightly Deployment in a Restricted Environment",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": "*Result:*\n__REPLACE_JOB_RESULT__"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Created by:*\nEclipse Che Deploy Team"
+				}
+			]
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": "*When:*\n__REPLACE_DATE__"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*Description:*\nTest Eclipse che in Openshift disconnected cluster following documentation: https://www.eclipse.org/che/docs/che-7/installation-guide/installing-che-in-a-restricted-environment/"
+				}
+			]
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "<__REPLACE_JOB_URL__|View Job Artifacts>"
+			}
+		}
+	]
+} 
