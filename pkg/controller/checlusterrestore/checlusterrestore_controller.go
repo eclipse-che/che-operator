@@ -13,6 +13,7 @@ package checlusterrestore
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -126,6 +128,18 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 }
 
 func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRestore) (bool, error) {
+	if restoreCR.Spec.CopyBackupServerConfiguration {
+		done, err := r.copyBackupServersConfiguration(restoreCR)
+		if err != nil || !done {
+			return done, err
+		}
+
+		restoreCR.Spec.CopyBackupServerConfiguration = false
+		if err := r.UpdateCR(restoreCR); err != nil {
+			return false, err
+		}
+	}
+
 	rctx, err := NewRestoreContext(r, restoreCR)
 	if err != nil {
 		// Failed to create context.
@@ -205,6 +219,32 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 	// Reset state to restart the restore flow on the next reconcile
 	rctx.state.Reset()
 
+	return true, nil
+}
+
+func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *orgv1.CheClusterRestore) (bool, error) {
+	backupCRs := &orgv1.CheClusterBackupList{}
+	if err := r.client.List(context.TODO(), backupCRs); err != nil {
+		return false, err
+	}
+
+	if len(backupCRs.Items) != 1 {
+		if len(backupCRs.Items) == 0 {
+			return true, fmt.Errorf("cannot copy backup servers configuration: backup CR not found")
+		}
+		return true, fmt.Errorf("expected an instance of CheClusterBackup, but got %d instances", len(backupCRs.Items))
+	}
+
+	backupCR := &orgv1.CheClusterBackup{}
+	namespacedName := types.NamespacedName{Namespace: restoreCR.GetNamespace(), Name: backupCRs.Items[0].GetName()}
+	if err := r.client.Get(context.TODO(), namespacedName, backupCR); err != nil {
+		return false, err
+	}
+
+	restoreCR.Spec.Servers = backupCR.Spec.Servers
+	if backupCR.Spec.ServerType != "" {
+		restoreCR.Spec.ServerType = backupCR.Spec.ServerType
+	}
 	return true, nil
 }
 

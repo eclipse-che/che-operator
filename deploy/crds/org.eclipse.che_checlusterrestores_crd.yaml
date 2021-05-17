@@ -31,6 +31,10 @@ spec:
         spec:
           description: CheClusterRestoreSpec defines the desired state of CheClusterRestore
           properties:
+            copyBackupServerConfiguration:
+              description: If true, copies backup servers configuration from backup
+                CR
+              type: boolean
             crOverrides:
               description: Amendments for CR from backup
               properties:
@@ -42,7 +46,7 @@ spec:
                   type: string
               type: object
             deleteConfigurationAfterRestore:
-              description: If true deletes the CR after successful restore.
+              description: If true, deletes the CR after successful restore.
               type: boolean
             serverType:
               description: If more than one backup server configured, should specify
@@ -206,7 +210,6 @@ spec:
               description: Set to true to start backup process.
               type: boolean
           required:
-          - servers
           - triggerNow
           type: object
         status:

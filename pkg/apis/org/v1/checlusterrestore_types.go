@@ -8,8 +8,10 @@ import (
 
 // CheClusterRestoreSpec defines the desired state of CheClusterRestore
 type CheClusterRestoreSpec struct {
-	// If true deletes the CR after successful restore.
+	// If true, deletes the CR after successful restore.
 	DeleteConfigurationAfterRestore bool `json:"deleteConfigurationAfterRestore,omitempty"`
+	// If true, copies backup servers configuration from backup CR
+	CopyBackupServerConfiguration bool `json:"copyBackupServerConfiguration,omitempty"`
 	// Snapshit it to restore from.
 	// If omitted, latest snapshot will be used.
 	SnapshotId string `json:"snapshotId,omitempty"`
@@ -21,7 +23,7 @@ type CheClusterRestoreSpec struct {
 	// List of backup servers.
 	// Usually only one is used.
 	// In case of several available, serverType should contain server to use.
-	Servers BackupServers `json:"servers"`
+	Servers BackupServers `json:"servers,omitempty"`
 	// Amendments for CR from backup
 	CROverrides CROverrides `json:"crOverrides,omitempty"`
 }
