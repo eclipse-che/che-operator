@@ -575,6 +575,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	// we have to expose che endpoint independently of syncing other server
+	// resources since che host is used for dashboard deployment and che config map
 	server := server.NewServer(deployContext)
 	done, err = server.ExposeCheEndpoint()
 	if !done {

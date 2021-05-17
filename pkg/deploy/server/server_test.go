@@ -206,6 +206,116 @@ func TestSyncLegacyConfigMap(t *testing.T) {
 	}
 }
 
+func TestSyncPVC(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				CustomCheProperties: map[string]string{
+					"CHE_MULTIUSER": "false",
+				},
+			},
+		},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	server := NewServer(deployContext)
+	done, err := server.SyncPVC()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync PVC: %v", err)
+	}
+
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "custom"}, &corev1.PersistentVolumeClaim{})
+	if err == nil {
+		t.Fatalf("PVC not found")
+	}
+}
+
+func TestUpdateAvailabilityStatus(t *testing.T) {
+	cheDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "che",
+			Namespace: "eclipse-che",
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+		},
+	}
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec:   orgv1.CheClusterSpec{},
+		Status: orgv1.CheClusterStatus{},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	server := NewServer(deployContext)
+	_, err := server.UpdateAvailabilityStatus()
+	if err != nil {
+		t.Fatalf("Failed to update availability status: %v", err)
+	}
+	if cheCluster.Status.CheClusterRunning != UnavailableStatus {
+		t.Fatalf("Expected status: %s, actual: %s", UnavailableStatus, cheCluster.Status.CheClusterRunning)
+	}
+
+	err = cli.Create(context.TODO(), cheDeployment)
+	if err != nil {
+		t.Fatalf("Deployment not found: %v", err)
+	}
+	_, err = server.UpdateAvailabilityStatus()
+	if err != nil {
+		t.Fatalf("Failed to update availability status: %v", err)
+	}
+
+	if cheCluster.Status.CheClusterRunning != AvailableStatus {
+		t.Fatalf("Expected status: %s, actual: %s", AvailableStatus, cheCluster.Status.CheClusterRunning)
+	}
+
+	cheDeployment.Status.Replicas = 2
+	err = cli.Update(context.TODO(), cheDeployment)
+	if err != nil {
+		t.Fatalf("Failed to update deployment: %v", err)
+	}
+
+	_, err = server.UpdateAvailabilityStatus()
+	if err != nil {
+		t.Fatalf("Failed to update availability status: %v", err)
+	}
+	if cheCluster.Status.CheClusterRunning != RollingUpdateInProgressStatus {
+		t.Fatalf("Expected status: %s, actual: %s", RollingUpdateInProgressStatus, cheCluster.Status.CheClusterRunning)
+	}
+}
+
 func checkPort(actualPort corev1.ServicePort, expectedName string, expectedPort int32, t *testing.T) {
 	if actualPort.Name != expectedName || actualPort.Port != expectedPort {
 		t.Errorf("expected port name:`%s` port:`%d`, actual name:`%s` port:`%d`",

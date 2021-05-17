@@ -44,7 +44,7 @@ func NewServer(deployContext *deploy.DeployContext) *Server {
 }
 
 func (s *Server) ExposeCheEndpoint() (bool, error) {
-	done, err := s.FindDefaultCheHost()
+	done, err := s.DetectDefaultCheHost()
 	if !done {
 		return false, err
 	}
@@ -308,7 +308,7 @@ func (s *Server) SyncDeployment() (bool, error) {
 	return deploy.SyncDeploymentSpecToCluster(s.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (s *Server) FindDefaultCheHost() (bool, error) {
+func (s *Server) DetectDefaultCheHost() (bool, error) {
 	// only for OpenShift
 	if !util.IsOpenShift || s.deployContext.DefaultCheHost != "" {
 		return true, nil
