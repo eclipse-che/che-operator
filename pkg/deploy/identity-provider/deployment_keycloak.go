@@ -548,7 +548,8 @@ func GetSpecKeycloakDeployment(
 	evaluateKeycloakSystemProperties := "KEYCLOAK_SYS_PROPS=\"-Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled\""
 
 	// Evaluating keycloak.connectionsHttpClient.default system properties, see details: https://github.com/eclipse/che/issues/19653
-	evaluateExpectContinueEnabled := "if [[ \"$KEYCLOAK_CONNECTIONS_HTTP_CLIENT_DEFAULT_EXPECT_CONTINUE_ENABLED\" != false ]]; then KEYCLOAK_SYS_PROPS=$KEYCLOAK_SYS_PROPS\" -Dkeycloak.connectionsHttpClient.default.expect-continue-enabled=true\"; fi"	evaluateReuseConnections := "if [[ \"KEYCLOAK_CONNECTIONS_HTTP_CLIENT_DEFAULT_REUSE_CONNECTIONS\" != true ]]; then KEYCLOAK_SYS_PROPS=$KEYCLOAK_SYS_PROPS\" -Dkeycloak.connectionsHttpClient.default.reuse-connections=false\"; fi"
+	evaluateExpectContinueEnabled := "if [[ $KEYCLOAK_CONNECTIONS_HTTP_CLIENT_DEFAULT_EXPECT_CONTINUE_ENABLED != false ]]; then KEYCLOAK_SYS_PROPS=$KEYCLOAK_SYS_PROPS\" -Dkeycloak.connectionsHttpClient.default.expect-continue-enabled=true\"; fi"
+	evaluateReuseConnections := "if [[ $KEYCLOAK_CONNECTIONS_HTTP_CLIENT_DEFAULT_REUSE_CONNECTIONS != true ]]; then KEYCLOAK_SYS_PROPS=$KEYCLOAK_SYS_PROPS\" -Dkeycloak.connectionsHttpClient.default.reuse-connections=false\"; fi"
 
 	command := bashFunctions + "\n" +
 		addCertToTrustStoreCommand +
