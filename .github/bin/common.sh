@@ -55,7 +55,7 @@ curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV
   cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
 }
 
-initStableTemplates() {
+getLatestsStableVersions() {
   # Get Stable and new release versions from olm files openshift.
   versions=$(curl \
   -H "Authorization: bearer ${GITHUB_TOKEN}" \
@@ -69,6 +69,10 @@ initStableTemplates() {
   export LAST_PACKAGE_VERSION
   PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
   export PREVIOUS_PACKAGE_VERSION
+}
+
+initStableTemplates() {
+  getLatestsStableVersions
 
   export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
   export previousOperatorPath=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}
@@ -405,4 +409,14 @@ waitWorkspaceStartedDevWorkspaceController() {
 
 createWorkspaceDevWorkspaceCheOperator() {
   oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
+}
+
+deployEclipseCheStableWithChectl() {
+  local CHE_VERSION=$1
+  cat >/tmp/che-cr-patch.yaml <<EOL
+spec:
+  server:
+    updateAdminPassword: false
+EOL
+  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --version="${CHE_VERSION}"
 }
