@@ -382,7 +382,15 @@ waitDevWorkspaceControllerStarted() {
 }
 
 createWorkspaceDevWorkspaceController () {
-  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
+  echo -e "[INFO] Waiting for webhook-server to be running"
+  CURRENT_TIME=$(date +%s)
+  ENDTIME=$(($CURRENT_TIME + 180))
+  while [ $(date +%s) -lt $ENDTIME ]; do
+      if oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}; then
+          break
+      fi
+      sleep 10
+  done
 }
 
 waitWorkspaceStartedDevWorkspaceController() {
