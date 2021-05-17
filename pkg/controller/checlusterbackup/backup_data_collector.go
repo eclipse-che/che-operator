@@ -29,20 +29,23 @@ import (
 )
 
 const (
-	BackupInfoFileName  = "backup-info.txt"
-	BackupCheCRFileName = "che-cr.yaml"
-	BackupConfigMapsDir = "configmaps"
-	BackupSecretsDir    = "secrets"
-	BackupDatabasesDir  = "db"
+	BackupMetadataFileName = "backup-info.yaml"
+	BackupCheCRFileName    = "che-cr.yaml"
+	BackupConfigMapsDir    = "configmaps"
+	BackupSecretsDir       = "secrets"
+	BackupDatabasesDir     = "db"
 
 	backupFilesPerms = 0600
 )
 
-type backupMetadata struct {
+type BackupMetadata struct {
 	MetadataFileVersion string `json:"metadataFileVersion"`
+	CreationDate        string `json:"creationDate"`
 	CheVersion          string `json:"cheVersion"`
 	Infrastructure      string `json:"infrastructure"`
-	CreationDate        string `json:"creationDate"`
+	AppsDomain          string `json:"appsDomain"`
+	APIDomain           string `json:"apiDomain"`
+	Namespace           string `json:"namespace"`
 }
 
 func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error) {
@@ -57,11 +60,35 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		}
 	}
 
-	backupMetadata := backupMetadata{
+	var apiDomain string
+	var appsDomain string
+	if isOpenShift {
+		host, err := util.GetRouterCanonicalHostname(bctx.r.client, bctx.namespace)
+		if err != nil {
+			return false, err
+		}
+		appsDomain = host
+
+		host, err = util.GetClusterPublicHostname(isOpenShift4)
+		if err != nil {
+			return false, err
+		}
+		// https://api.subdomain.openshift.com:6443 -> api.subdomain.openshift.com
+		apiDomain = strings.TrimPrefix(strings.Split(host, ":")[1], "//")
+	} else {
+		// Kubernetes
+		appsDomain = bctx.cheCR.Spec.K8s.IngressDomain
+		apiDomain = appsDomain
+	}
+
+	backupMetadata := BackupMetadata{
 		MetadataFileVersion: "v1",
+		CreationDate:        time.Now().String(),
 		CheVersion:          bctx.cheCR.Status.CheVersion,
 		Infrastructure:      infra,
-		CreationDate:        time.Now().String(),
+		AppsDomain:          appsDomain,
+		APIDomain:           apiDomain,
+		Namespace:           bctx.namespace,
 	}
 
 	data, err := yaml.Marshal(backupMetadata)
@@ -69,7 +96,7 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		return false, err
 	}
 
-	backupMetadataFilePath := path.Join(destDir, BackupInfoFileName)
+	backupMetadataFilePath := path.Join(destDir, BackupMetadataFileName)
 	if err := ioutil.WriteFile(backupMetadataFilePath, data, backupFilesPerms); err != nil {
 		return false, err
 	}

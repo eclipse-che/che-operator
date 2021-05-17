@@ -32,13 +32,15 @@ import (
 	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -134,7 +136,7 @@ func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
 	return discovery.NewDiscoveryClientForConfig(kubeconfig)
 }
 
-func getApiList() ([]v1.APIGroup, error) {
+func getApiList() ([]metav1.APIGroup, error) {
 	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
 		return nil, err
@@ -315,6 +317,75 @@ func getAPIUrlsForOpenShiftV4() (apiUrl string, apiInternalUrl string, err error
 	return apiUrl, apiInternalUrl, nil
 }
 
+func GetRouterCanonicalHostname(client client.Client, namespace string) (string, error) {
+	testRouteYaml, err := GetTestRouteYaml(client, namespace)
+	if err != nil {
+		return "", err
+	}
+	return testRouteYaml.Status.Ingress[0].RouterCanonicalHostname, nil
+}
+
+// GetTestRouteYaml creates test route and returns its spec.
+func GetTestRouteYaml(client client.Client, namespace string) (*routev1.Route, error) {
+	// Create test route to get the info
+	routeSpec := &routev1.Route{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Route",
+			APIVersion: routev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "canonical-hostname-route-name",
+			Namespace: namespace,
+		},
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
+				Kind: "Service",
+				Name: "canonical-hostname-route-nonexisting-service",
+			},
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 8080,
+				},
+			},
+		},
+	}
+
+	if err := client.Create(context.TODO(), routeSpec); err != nil {
+		if !errors.IsAlreadyExists(err) {
+			return nil, err
+		}
+	}
+
+	// Schedule test route cleanup after the job done.
+	defer func() {
+		if err := client.Delete(context.TODO(), routeSpec); err != nil {
+			logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
+		}
+	}()
+
+	// Wait till the route is ready
+	route := &routev1.Route{}
+	errCount := 0
+	for {
+		time.Sleep(time.Duration(1) * time.Second)
+
+		routeNsName := types.NamespacedName{Name: routeSpec.Name, Namespace: namespace}
+		err := client.Get(context.TODO(), routeNsName, route)
+		if err == nil {
+			return route, nil
+		} else if !errors.IsNotFound(err) {
+			errCount++
+			if errCount > 10 {
+				return nil, err
+			}
+		} else {
+			// Reset counter as got not found error
+			errCount = 0
+		}
+	}
+}
+
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
 	env := deployment.Spec.Template.Spec.Containers[0].Env
 	for i := range env {
@@ -474,8 +545,8 @@ func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheClu
 
 // ClearMetadata removes extra fields from given metadata.
 // It is required to remove ResourceVersion in order to be able to apply the yaml again.
-func ClearMetadata(objectMeta *v1.ObjectMeta) {
+func ClearMetadata(objectMeta *metav1.ObjectMeta) {
 	objectMeta.ResourceVersion = ""
 
-	objectMeta.ManagedFields = []v1.ManagedFieldsEntry{}
+	objectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 }
