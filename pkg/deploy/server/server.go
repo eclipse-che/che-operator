@@ -277,18 +277,17 @@ func (s *Server) UpdateAvailabilityStatus() (bool, error) {
 			}
 		} else {
 			if s.deployContext.CheCluster.Status.CheClusterRunning != AvailableStatus {
+				cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
+				name := "Eclipse Che"
+				if cheFlavor == "codeready" {
+					name = "CodeReady Workspaces"
+				}
+
+				logrus.Infof(name+" is now available at: %s", s.deployContext.CheCluster.Status.CheURL)
 				s.deployContext.CheCluster.Status.CheClusterRunning = AvailableStatus
 				err := deploy.UpdateCheCRStatus(s.deployContext, "status: Che API", AvailableStatus)
 				return err == nil, err
 			}
-
-			cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
-			name := "Eclipse Che"
-			if cheFlavor == "codeready" {
-				name = "CodeReady Workspaces"
-			}
-
-			logrus.Infof(name+" is now available at: %s", s.deployContext.CheCluster.Status.CheURL)
 		}
 	} else {
 		s.deployContext.CheCluster.Status.CheClusterRunning = UnavailableStatus
@@ -344,7 +343,6 @@ func (s Server) UpdateCheVersion() (bool, error) {
 		err := deploy.UpdateCheCRStatus(s.deployContext, "version", cheVersion)
 		return err == nil, err
 	}
-
 	return true, nil
 }
 
