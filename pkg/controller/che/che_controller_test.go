@@ -356,7 +356,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
@@ -789,7 +788,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 func TestCheController(t *testing.T) {
 	util.IsOpenShift = true
-	util.IsOpenShift4 = true
+	util.IsOpenShift4 = false
 
 	// Set the logger to development mode for verbose logs.
 	logf.SetLogger(logf.ZapLogger(true))
