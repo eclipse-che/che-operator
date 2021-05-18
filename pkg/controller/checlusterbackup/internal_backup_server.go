@@ -93,6 +93,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 	// TODO should we use component label to select backup related resources instead of part-of label ?
 	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
 
+	restBackupServerImage := deploy.DefaultInternalBackupServerImage(bctx.cheCR)
 	replicas := int32(1)
 
 	deployment := &appsv1.Deployment{
@@ -117,7 +118,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 					Containers: []corev1.Container{
 						{
 							Name:            backupServerPodName,
-							Image:           "mm4eche/rest-server:latest", // TODO replace with official image
+							Image:           restBackupServerImage,
 							ImagePullPolicy: "Always",
 							Ports: []corev1.ContainerPort{
 								{
