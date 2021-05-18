@@ -83,6 +83,13 @@ func (s *Server) SyncAll() (bool, error) {
 		return false, err
 	}
 
+	// ensure configmap is created
+	// the version of the object is used in the deployment
+	exists, err := deploy.GetNamespacedObject(s.deployContext, CheConfigMapName, &corev1.ConfigMap{})
+	if !exists {
+		return false, err
+	}
+
 	done, err = s.SyncDeployment()
 	if !done {
 		return false, err

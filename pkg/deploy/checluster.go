@@ -17,26 +17,17 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 // UpdateCheCRSpec - updates Che CR "spec" by field
 func UpdateCheCRSpec(deployContext *DeployContext, field string, value string) error {
-	for {
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
-		if err == nil {
-			logrus.Infof("Custom resource %s updated with %s: %s", deployContext.CheCluster.Name, field, value)
-			return nil
-		} else if !errors.IsConflict(err) {
-			return err
-		}
-
-		err = ReloadCheCluster(deployContext)
-		if err != nil {
-			return err
-		}
+	err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
+	if err == nil {
+		logrus.Infof("Custom resource spec %s updated with %s: %s", deployContext.CheCluster.Name, field, value)
+		return nil
 	}
+	return err
 }
 
 // UpdateCheCRSpecByFields - updates Che CR "spec" fields by field map
@@ -46,37 +37,23 @@ func UpdateCheCRSpecByFields(deployContext *DeployContext, fields map[string]str
 		updateInfo = append(updateInfo, fmt.Sprintf("%s: %s", updatedField, value))
 	}
 
-	for {
-		err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
-		if err == nil {
-			logrus.Infof(fmt.Sprintf("Custom resource %s updated with: ", deployContext.CheCluster.Name) + strings.Join(updateInfo, ", "))
-			return nil
-		} else if !errors.IsConflict(err) {
-			return err
-		}
-
-		err = ReloadCheCluster(deployContext)
-		if err != nil {
-			return err
-		}
+	err = deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
+	if err == nil {
+		logrus.Infof(fmt.Sprintf("Custom resource spec %s updated with: ", deployContext.CheCluster.Name) + strings.Join(updateInfo, ", "))
+		return nil
 	}
+
+	return err
 }
 
 func UpdateCheCRStatus(deployContext *DeployContext, field string, value string) (err error) {
-	for {
-		err = deployContext.ClusterAPI.Client.Status().Update(context.TODO(), deployContext.CheCluster)
-		if err == nil {
-			logrus.Infof("Custom resource %s updated with %s: %s", deployContext.CheCluster.Name, field, value)
-			return nil
-		} else if !errors.IsConflict(err) {
-			return err
-		}
-
-		err = ReloadCheCluster(deployContext)
-		if err != nil {
-			return err
-		}
+	err = deployContext.ClusterAPI.Client.Status().Update(context.TODO(), deployContext.CheCluster)
+	if err == nil {
+		logrus.Infof("Custom resource status %s updated with %s: %s", deployContext.CheCluster.Name, field, value)
+		return nil
 	}
+
+	return err
 }
 
 func SetStatusDetails(deployContext *DeployContext, reason string, message string, helpLink string) (err error) {
