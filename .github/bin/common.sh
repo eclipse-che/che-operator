@@ -149,7 +149,22 @@ copyCheOperatorImageToMinishift() {
   eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
-deployEclipseChe() {
+deployEclipseCheStable(){
+  local installer=$1
+  local platform=$2
+  local version=$3
+  local CR_PATCH_PATH=$4
+
+  chectl server:deploy \
+    --platform=${platform} \
+    --installer ${installer} \
+    --chenamespace ${NAMESPACE} \
+    --skip-kubernetes-health-check \
+    --che-operator-cr-yaml ${CR_PATCH_PATH}
+    --version=${version}
+}
+
+deployEclipseCheWithTemplates() {
   local installer=$1
   local platform=$2
   local image=$3
@@ -296,7 +311,7 @@ printOlmCheObjects() {
 }
 
 # Patch subscription with image builded from source in Openshift CI job.
-patchEclipseCheOperatorSubscription() {
+patchEclipseCheOperatorImage() {
   OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
   oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
 
@@ -409,14 +424,4 @@ waitWorkspaceStartedDevWorkspaceController() {
 
 createWorkspaceDevWorkspaceCheOperator() {
   oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
-}
-
-deployEclipseCheStableWithChectl() {
-  local CHE_VERSION=$1
-  cat >/tmp/che-cr-patch.yaml <<EOL
-spec:
-  server:
-    updateAdminPassword: false
-EOL
-  chectl server:deploy --installer=operator --platform=openshift --batch --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --version="${CHE_VERSION}"
 }

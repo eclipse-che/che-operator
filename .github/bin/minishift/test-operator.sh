@@ -27,7 +27,7 @@ prepareTemplates() {
 }
 
 runTest() {
-  deployEclipseChe "operator" "minishift" ${OPERATOR_IMAGE} ${TEMPLATES}
+  deployEclipseCheWithTemplates "operator" "minishift" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
   waitWorkspaceStart
 }

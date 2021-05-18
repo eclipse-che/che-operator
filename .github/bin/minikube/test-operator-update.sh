@@ -32,7 +32,7 @@ prepareTemplates() {
 }
 
 runTest() {
-  deployEclipseChe "operator" "minikube" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
+  deployEclipseCheWithTemplates "operator" "minikube" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
   createWorkspace
 
   updateEclipseChe ${OPERATOR_IMAGE} ${TEMPLATES}

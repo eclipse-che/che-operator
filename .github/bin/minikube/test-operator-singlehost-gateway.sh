@@ -30,7 +30,7 @@ prepareTemplates() {
 }
 
 runTest() {
-  deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
+  deployEclipseCheWithTemplates "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
   waitWorkspaceStart
 }
