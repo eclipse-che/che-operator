@@ -51,6 +51,7 @@ runTests() {
     sleep 10s
     createWorkspaceDevWorkspaceCheOperator
     waitWorkspaceStartedDevWorkspaceController
+
 }
 
 initDefaults
