@@ -15,7 +15,9 @@ package devworkspace
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -27,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,9 +84,14 @@ var (
 	WebTerminalOperatorNamespace        = "openshift-operators"
 )
 
+type Object2Sync struct {
+	obj     metav1.Object
+	hash256 string
+}
+
 var (
 	// cachedObjects
-	cachedObj = make(map[string]metav1.Object)
+	cachedObj = make(map[string]*Object2Sync)
 	syncItems = []func(*deploy.DeployContext) (bool, error){
 		createDwNamespace,
 		syncDwServiceAccount,
@@ -134,18 +142,18 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if !devWorkspaceWebhookExists {
-		for _, syncItem := range syncItems {
-			done, err := syncItem(deployContext)
-			if !util.IsTestMode() {
-				if !done {
-					return false, err
-				}
-			}
-		}
-	} else {
+	if devWorkspaceWebhookExists {
 		if err := checkWebTerminalSubscription(deployContext); err != nil {
 			return false, err
+		}
+	}
+
+	for _, syncItem := range syncItems {
+		done, err := syncItem(deployContext)
+		if !util.IsTestMode() {
+			if !done {
+				return false, err
+			}
 		}
 	}
 
@@ -201,60 +209,60 @@ func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceServiceAccountFile, &corev1.ServiceAccount{})
+	return readAndSyncObject(deployContext, DevWorkspaceServiceAccountFile, &corev1.ServiceAccount{})
 }
 
 func syncDwRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceRoleFile, &rbacv1.Role{})
+	return readAndSyncObject(deployContext, DevWorkspaceRoleFile, &rbacv1.Role{})
 }
 
 func syncDwRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceRoleBindingFile, &rbacv1.RoleBinding{})
+	return readAndSyncObject(deployContext, DevWorkspaceRoleBindingFile, &rbacv1.RoleBinding{})
 }
 
 func syncDwClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
+	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
 }
 
 func syncDwProxyClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
+	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
 }
 
 func syncDwClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwProxyClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceProxyClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwViewWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwEditWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwWorkspaceRoutingCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, &apiextensionsv1.CustomResourceDefinition{})
+	return readAndSyncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncDwTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{})
+	return readAndSyncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{})
+	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	objectMeta, err := getK8SObject(DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
+	devObject, err := readK8SObject(DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
 	if err != nil {
 		return false, err
 	}
 
-	configMap := objectMeta.(*corev1.ConfigMap)
+	configMap := devObject.obj.(*corev1.ConfigMap)
 	// Remove when DevWorkspace controller should not care about DWR base host #373 https://github.com/devfile/devworkspace-operator/issues/373
 	if !util.IsOpenShift {
 		if configMap.Data == nil {
@@ -263,20 +271,20 @@ func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 		configMap.Data["devworkspace.routing.cluster_host_suffix"] = deployContext.CheCluster.Spec.K8s.IngressDomain
 	}
 
-	return deploy.CreateIfNotExists(deployContext, configMap)
+	return syncObject(deployContext, devObject)
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	objectMeta, err := getK8SObject(DevWorkspaceDeploymentFile, &appsv1.Deployment{})
+	devObject, err := readK8SObject(DevWorkspaceDeploymentFile, &appsv1.Deployment{})
 	if err != nil {
 		return false, err
 	}
 
 	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
-	deploymentObject := objectMeta.(*appsv1.Deployment)
+	deploymentObject := devObject.obj.(*appsv1.Deployment)
 	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceControllerImage
 
-	return deploy.CreateIfNotExists(deployContext, deploymentObject)
+	return syncObject(deployContext, devObject)
 }
 
 func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
@@ -295,47 +303,47 @@ func createDwCheNamespace(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwCheServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheServiceAccountFile, &corev1.ServiceAccount{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheServiceAccountFile, &corev1.ServiceAccount{})
 }
 
 func syncDwCheClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwCheProxyClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheProxyClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheProxyClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwCheMetricsClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheMetricsReaderClusterRoleFile, &rbacv1.ClusterRole{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheMetricsReaderClusterRoleFile, &rbacv1.ClusterRole{})
 }
 
 func syncDwCheLeaderRole(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheRoleFile, &rbacv1.Role{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheRoleFile, &rbacv1.Role{})
 }
 
 func syncDwCheLeaderRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheRoleBindingFile, &rbacv1.RoleBinding{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheRoleBindingFile, &rbacv1.RoleBinding{})
 }
 
 func syncDwCheProxyRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
 }
 
 func syncDwCheRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{})
 }
 
 func syncDwCheCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheManagersCRDFile, &apiextensionsv1.CustomResourceDefinition{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheManagersCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
 func syncDwCheConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheConfigMapFile, &corev1.ConfigMap{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheConfigMapFile, &corev1.ConfigMap{})
 }
 
 func syncDwCheMetricsService(deployContext *deploy.DeployContext) (bool, error) {
-	return syncObject(deployContext, DevWorkspaceCheMetricsServiceFile, &corev1.Service{})
+	return readAndSyncObject(deployContext, DevWorkspaceCheMetricsServiceFile, &corev1.Service{})
 }
 
 func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
@@ -383,34 +391,102 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func synDwCheDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	objectMeta, err := getK8SObject(DevWorkspaceCheDeploymentFile, &appsv1.Deployment{})
+	devObject, err := readK8SObject(DevWorkspaceCheDeploymentFile, &appsv1.Deployment{})
 	if err != nil {
 		return false, err
 	}
 
 	devworkspaceCheOperatorImage := deploy.DefaultDevworkspaceCheOperatorImage(deployContext.CheCluster)
-	deploymentObject := objectMeta.(*appsv1.Deployment)
+	deploymentObject := devObject.obj.(*appsv1.Deployment)
 	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceCheOperatorImage
 
-	return deploy.CreateIfNotExists(deployContext, deploymentObject)
+	return syncObject(deployContext, devObject)
 }
 
-func syncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {
-	objectMeta, err := getK8SObject(yamlFile, obj)
+func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}) (bool, error) {
+	obj2sync, err := readK8SObject(yamlFile, obj)
 	if err != nil {
 		return false, err
 	}
 
-	return deploy.CreateIfNotExists(deployContext, objectMeta)
+	return syncObject(deployContext, obj2sync)
 }
 
-func getK8SObject(yamlFile string, obj interface{}) (metav1.Object, error) {
+func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync) (bool, error) {
+	runtimeObject, ok := obj2sync.obj.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+
+	actual := runtimeObject.DeepCopyObject()
+	key := types.NamespacedName{Namespace: obj2sync.obj.GetNamespace(), Name: obj2sync.obj.GetName()}
+	exists, err := deploy.Get(deployContext, key, actual.(metav1.Object))
+	if err != nil {
+		return false, err
+	}
+
+	isOnlyOneOperatorManagesDWResources, err := isOnlyOneOperatorManagesDWResources(deployContext)
+	if err != nil {
+		return false, err
+	}
+
+	// sync objects if it has been created by same operator
+	// or it is the only operator with the `spec.devWorkspace.enable: true`
+	if !exists ||
+		(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256 &&
+			(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgNamespace] == deployContext.CheCluster.Namespace || isOnlyOneOperatorManagesDWResources)) {
+
+		setAnnotations(deployContext, obj2sync)
+		return deploy.Sync(deployContext, obj2sync.obj)
+	}
+
+	return true, nil
+}
+
+func setAnnotations(deployContext *deploy.DeployContext, obj2sync *Object2Sync) {
+	annotations := obj2sync.obj.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	annotations[deploy.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
+	annotations[deploy.CheEclipseOrgHash256] = obj2sync.hash256
+	obj2sync.obj.SetAnnotations(annotations)
+}
+
+func isOnlyOneOperatorManagesDWResources(deployContext *deploy.DeployContext) (bool, error) {
+	cheClusters := &orgv1.CheClusterList{}
+	err := deployContext.ClusterAPI.NonCachedClient.List(context.TODO(), cheClusters)
+	if err != nil {
+		return false, err
+	}
+
+	devWorkspaceEnabledNum := 0
+	for _, cheCluster := range cheClusters.Items {
+		if cheCluster.Spec.DevWorkspace.Enable {
+			devWorkspaceEnabledNum++
+		}
+	}
+
+	return devWorkspaceEnabledNum == 1, nil
+}
+
+func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
 	_, exists := cachedObj[yamlFile]
 	if !exists {
 		if err := util.ReadObject(yamlFile, obj); err != nil {
 			return nil, err
 		}
-		cachedObj[yamlFile] = obj.(metav1.Object)
+
+		hash256, err := util.ComputeHash256(yamlFile)
+		if err != nil {
+			return nil, err
+		}
+
+		cachedObj[yamlFile] = &Object2Sync{
+			obj.(metav1.Object),
+			hash256,
+		}
 	}
 
 	return cachedObj[yamlFile], nil

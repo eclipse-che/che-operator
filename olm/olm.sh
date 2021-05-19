@@ -458,6 +458,7 @@ applyCRCheCluster() {
   echo "[INFO] Creating Custom Resource"
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
   if [ "${platform}" == "kubernetes" ]
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")

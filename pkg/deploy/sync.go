@@ -28,7 +28,7 @@ import (
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if object is up to date otherwiser returns false
-func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts ...cmp.Option) (bool, error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -58,7 +58,7 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts cmp.Op
 	if !exists {
 		return Create(deployContext, blueprint)
 	}
-	return Update(deployContext, actual, blueprint, diffOpts)
+	return Update(deployContext, actual, blueprint, diffOpts...)
 }
 
 func SyncAndAddFinalizer(
@@ -198,7 +198,7 @@ func DeleteClusterObject(deployContext *DeployContext, name string, objectMeta m
 
 // Updates object.
 // Returns true if object is up to date otherwiser return false
-func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, error) {
+func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav1.Object, diffOpts ...cmp.Option) (bool, error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -210,10 +210,14 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 		return false, fmt.Errorf("object %T is not a metav1.Object. Cannot sync it", actualMeta)
 	}
 
-	diff := cmp.Diff(actual, blueprint, diffOpts)
+	diff := cmp.Diff(actual, blueprint, diffOpts...)
 	if len(diff) > 0 {
 		logrus.Infof("Updating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
-		fmt.Printf("Difference:\n%s", diff)
+
+		// don't print difference if there are no diffOpts mainly to avoid huge output
+		if len(diffOpts) != 0 {
+			fmt.Printf("Difference:\n%s", diff)
+		}
 
 		targetLabels := map[string]string{}
 		targetAnnos := map[string]string{}

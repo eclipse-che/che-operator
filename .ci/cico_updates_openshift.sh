@@ -20,12 +20,27 @@ source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
+overrideDefaults() {
+  export DEV_WORKSPACE_ENABLE="true"
+}
+
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   provisionOAuth
   startNewWorkspace
   waitWorkspaceStart
+
+  # Dev Workspace controller tests
+  waitDevWorkspaceControllerStarted
+
+  sleep 10s
+  createWorkspaceDevWorkspaceController
+  waitWorkspaceStartedDevWorkspaceController
+
+  sleep 10s
+  createWorkspaceDevWorkspaceCheOperator
+  waitWorkspaceStartedDevWorkspaceController
 }
 
 initDefaults
