@@ -13,7 +13,6 @@ package util
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
@@ -442,11 +441,4 @@ func ComputeHash256(yamlFile string) (string, error) {
 	hasher.Write(data)
 	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	return sha, nil
-}
-
-func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
-	return client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
-		cheCluster)
 }
