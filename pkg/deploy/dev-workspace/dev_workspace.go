@@ -20,7 +20,6 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"github.com/google/go-cmp/cmp"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -438,7 +437,7 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync) (boo
 			(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgNamespace] == deployContext.CheCluster.Namespace || isOnlyOneOperatorManagesDWResources)) {
 
 		setAnnotations(deployContext, obj2sync)
-		return deploy.Sync(deployContext, obj2sync.obj, cmp.Options{})
+		return deploy.Sync(deployContext, obj2sync.obj)
 	}
 
 	return true, nil
