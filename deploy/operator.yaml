@@ -79,8 +79,8 @@ spec:
               value: quay.io/che-incubator/devworkspace-che-operator:ci
             - name: RELATED_IMAGE_devworkspace_controller
               value: quay.io/devfile/devworkspace-controller:next
-              name: RELATED_IMAGE_internal_rest_backup_server
-              value: mm4eche/rest-server:latest
+            - name: RELATED_IMAGE_internal_rest_backup_server
+              value: quay.io/eclipse/che-backup-server-rest:1aac507
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME
