@@ -30,34 +30,23 @@ trap "catchFinish" EXIT SIGINT
 overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
-  export CHE_EXPOSURE_STRATEGY="multi-host"
-  export DEV_WORKSPACE_ENABLE="true"
 }
 
 runTests() {
-    # Deploy Eclipse Che applying CR
-    applyOlmCR
-    waitEclipseCheDeployed "nightly"
-    provisionOAuth
-    startNewWorkspace
-    waitWorkspaceStart
+  deployEclipseCheStable "operator" "openshift" ${LAST_PACKAGE_VERSION}
+  provisionOAuth
+  createWorkspace
 
-    # Dev Workspace controller tests
-    waitDevWorkspaceControllerStarted
-
-    sleep 10s
-    createWorkspaceDevWorkspaceController
-    waitWorkspaceStartedDevWorkspaceController
-
-    sleep 10s
-    createWorkspaceDevWorkspaceCheOperator
-    waitWorkspaceStartedDevWorkspaceController
-
+  # Update Eclipse Che to nightly and start workspace
+  chectl server:update --yes --templates="${TEMPLATES}" --che-operator-image=${OPERATOR_IMAGE}
+  waitEclipseCheDeployed "nightly"
+  startExistedWorkspace
+  waitWorkspaceStart
 }
 
 initDefaults
 overrideDefaults
 provisionOpenShiftOAuthUser
-patchEclipseCheOperatorImage
-printOlmCheObjects
+getLatestsStableVersions
+initLatestTemplates
 runTests

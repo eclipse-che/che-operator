@@ -56,7 +56,7 @@ curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV
   cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
 }
 
-initStableTemplates() {
+getLatestsStableVersions() {
   # Get Stable and new release versions from olm files openshift.
   versions=$(curl \
   -H "Authorization: bearer ${GITHUB_TOKEN}" \
@@ -70,6 +70,10 @@ initStableTemplates() {
   export LAST_PACKAGE_VERSION
   PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
   export PREVIOUS_PACKAGE_VERSION
+}
+
+initStableTemplates() {
+  getLatestsStableVersions
 
   export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
   export previousOperatorPath=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}
@@ -146,7 +150,20 @@ copyCheOperatorImageToMinishift() {
   eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
-deployEclipseChe() {
+deployEclipseCheStable(){
+  local installer=$1
+  local platform=$2
+  local version=$3
+
+  chectl server:deploy \
+    --platform=${platform} \
+    --installer ${installer} \
+    --chenamespace ${NAMESPACE} \
+    --skip-kubernetes-health-check \
+    --version=${version}
+}
+
+deployEclipseCheWithTemplates() {
   local installer=$1
   local platform=$2
   local image=$3
@@ -293,7 +310,7 @@ printOlmCheObjects() {
 }
 
 # Patch subscription with image builded from source in Openshift CI job.
-patchEclipseCheOperatorSubscription() {
+patchEclipseCheOperatorImage() {
   OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
   oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
 
