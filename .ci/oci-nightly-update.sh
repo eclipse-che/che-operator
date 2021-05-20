@@ -32,14 +32,16 @@ overrideDefaults() {
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
 }
 
-runTests() {
-    cat >/tmp/che-cr-patch.yaml <<EOL
+preparePatchYaml() {
+  cat >${OPERATOR_REPO}/tmp/patch.yaml <<EOL
 spec:
   server:
     updateAdminPassword: false
 EOL
+}
 
-  deployEclipseCheStable "operator" "openshift" ${LAST_PACKAGE_VERSION} /tmp/che-cr-patch.yaml
+runTests() {
+  deployEclipseCheStable "operator" "openshift" ${LAST_PACKAGE_VERSION} ${OPERATOR_REPO}/tmp/patch.yaml
   provisionOAuth
   createWorkspace
 
@@ -55,4 +57,5 @@ overrideDefaults
 provisionOpenShiftOAuthUser
 getLatestsStableVersions
 initLatestTemplates
+preparePatchYaml
 runTests
