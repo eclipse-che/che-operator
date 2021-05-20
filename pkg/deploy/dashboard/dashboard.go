@@ -52,3 +52,7 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 	}
 	return deploy.SyncDeploymentSpecToCluster(d.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
 }
+
+func (d *Dashboard) GetComponentName() string {
+	return d.component
+}
