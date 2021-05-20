@@ -24,7 +24,7 @@ type Dashboard struct {
 func NewDashboard(deployContext *deploy.DeployContext) *Dashboard {
 	return &Dashboard{
 		deployContext: deployContext,
-		component:     deploy.DefaultDashboardComponent(deployContext.CheCluster),
+		component:     deploy.DefaultCheFlavor(deployContext.CheCluster) + "-dashboard",
 	}
 }
 
@@ -51,4 +51,8 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 		return false, err
 	}
 	return deploy.SyncDeploymentSpecToCluster(d.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
+}
+
+func (d *Dashboard) GetComponentName() string {
+	return d.component
 }

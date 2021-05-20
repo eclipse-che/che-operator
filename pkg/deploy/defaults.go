@@ -154,9 +154,6 @@ const (
 	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket"
 	BitBucketOAuthConfigPrivateKey  = "private.key"
 	BitBucketOAuthConfigConsumerKey = "consumer.key"
-
-	CodeReadyDashboardComponent = "codeready-dashboard"
-	CheDashboardComponent       = "che-dashboard"
 )
 
 func InitDefaults(defaultsPath string) {
@@ -237,13 +234,6 @@ func DefaultServerTrustStoreConfigMapName() string {
 
 func DefaultCheFlavor(cr *orgv1.CheCluster) string {
 	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
-}
-
-func DefaultDashboardComponent(cr *orgv1.CheCluster) string {
-	if DefaultCheFlavor(cr) == "codeready" {
-		return CodeReadyDashboardComponent
-	}
-	return CheDashboardComponent
 }
 
 func DefaultConsoleLinkName() string {

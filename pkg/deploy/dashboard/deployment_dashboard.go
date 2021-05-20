@@ -51,7 +51,7 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            "dashboard",
+							Name:            d.component,
 							ImagePullPolicy: pullPolicy,
 							Image:           dashboardImageAndTag,
 							Ports: []corev1.ContainerPort{
