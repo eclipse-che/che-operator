@@ -22,12 +22,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
+func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelsSelector := deploy.GetLabelsAndSelector(p.deployContext.CheCluster, DashboardComponent)
+	labels, labelsSelector := deploy.GetLabelsAndSelector(d.deployContext.CheCluster, d.component)
 
-	dashboardImageAndTag := util.GetValue(p.deployContext.CheCluster.Spec.Server.DashboardImage, deploy.DefaultDashboardImage(p.deployContext.CheCluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(p.deployContext.CheCluster.Spec.Server.DashboardImagePullPolicy, deploy.DefaultPullPolicyFromDockerImage(dashboardImageAndTag)))
+	dashboardImageAndTag := util.GetValue(d.deployContext.CheCluster.Spec.Server.DashboardImage, deploy.DefaultDashboardImage(d.deployContext.CheCluster))
+	pullPolicy := corev1.PullPolicy(util.GetValue(d.deployContext.CheCluster.Spec.Server.DashboardImagePullPolicy, deploy.DefaultPullPolicyFromDockerImage(dashboardImageAndTag)))
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -35,8 +35,8 @@ func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      DashboardComponent,
-			Namespace: p.deployContext.CheCluster.Namespace,
+			Name:      d.component,
+			Namespace: d.deployContext.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -51,7 +51,7 @@ func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            "dashboard",
+							Name:            d.component,
 							ImagePullPolicy: pullPolicy,
 							Image:           dashboardImageAndTag,
 							Ports: []corev1.ContainerPort{
@@ -64,18 +64,18 @@ func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Server.DashboardMemoryRequest,
+										d.deployContext.CheCluster.Spec.Server.DashboardMemoryRequest,
 										deploy.DefaultDashboardMemoryRequest),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Server.DashboardCpuRequest,
+										d.deployContext.CheCluster.Spec.Server.DashboardCpuRequest,
 										deploy.DefaultDashboardCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Server.DashboardMemoryLimit,
+										d.deployContext.CheCluster.Spec.Server.DashboardMemoryLimit,
 										deploy.DefaultDashboardMemoryLimit),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Server.DashboardCpuLimit,
+										d.deployContext.CheCluster.Spec.Server.DashboardCpuLimit,
 										deploy.DefaultDashboardCpuLimit),
 								},
 							},
@@ -128,11 +128,11 @@ func (p *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	if !util.IsOpenShift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(p.deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
+		runAsUser, err := strconv.ParseInt(util.GetValue(d.deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(p.deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
+		fsGroup, err := strconv.ParseInt(util.GetValue(d.deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
 		if err != nil {
 			return nil, err
 		}
