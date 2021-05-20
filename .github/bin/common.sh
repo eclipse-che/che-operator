@@ -153,14 +153,12 @@ deployEclipseCheStable(){
   local installer=$1
   local platform=$2
   local version=$3
-  local CR_PATCH_PATH=$4
 
   chectl server:deploy \
     --platform=${platform} \
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
     --skip-kubernetes-health-check \
-    --che-operator-cr-patch-yaml ${CR_PATCH_PATH} \
     --version=${version}
 }
 
