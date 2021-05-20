@@ -578,7 +578,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
 	server := server.NewServer(deployContext)
-	done, err = server.ExposeCheEndpoint()
+	done, err = server.ExposeCheServiceAndEndpoint()
 	if !done {
 		if err != nil {
 			logrus.Error(err)
@@ -589,13 +589,11 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// create and provision Keycloak related objects
 	if !instance.Spec.Auth.ExternalIdentityProvider {
 		provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
-		if !tests {
-			if !provisioned {
-				if err != nil {
-					logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
-				}
-				return reconcile.Result{}, err
+		if !provisioned {
+			if err != nil {
+				logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
 			}
+			return reconcile.Result{}, err
 		}
 	} else {
 		keycloakURL := instance.Spec.Auth.IdentityProviderURL

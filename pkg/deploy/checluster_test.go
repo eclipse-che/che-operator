@@ -49,7 +49,7 @@ func TestReload(t *testing.T) {
 		},
 	}
 
-	err := ReloadCheCluster(deployContext)
+	err := ReloadCheClusterCR(deployContext)
 	if err != nil {
 		t.Errorf("Failed to reload checluster, %v", err)
 	}

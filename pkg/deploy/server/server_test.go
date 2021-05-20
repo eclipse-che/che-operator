@@ -56,7 +56,7 @@ func TestSyncService(t *testing.T) {
 	}
 
 	server := NewServer(deployContext)
-	done, err := server.SyncService()
+	done, err := server.SyncCheService()
 	if !done {
 		if err != nil {
 			t.Fatalf("Failed to sync service, error: %v", err)
@@ -106,7 +106,7 @@ func TestSyncAll(t *testing.T) {
 	util.IsOpenShift = true
 
 	server := NewServer(deployContext)
-	done, err := server.ExposeCheEndpoint()
+	done, err := server.ExposeCheServiceAndEndpoint()
 	if !done || err != nil {
 		t.Fatalf("Failed to sync Server: %v", err)
 	}

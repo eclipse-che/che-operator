@@ -89,7 +89,7 @@ type CheConfigMap struct {
 
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func (s *Server) getConfigMapData() (cheEnv map[string]string, err error) {
+func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	cheHost := s.deployContext.CheCluster.Spec.Server.CheHost
 	keycloakURL := s.deployContext.CheCluster.Spec.Auth.IdentityProviderURL
 

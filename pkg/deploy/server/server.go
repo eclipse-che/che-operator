@@ -43,18 +43,18 @@ func NewServer(deployContext *deploy.DeployContext) *Server {
 	}
 }
 
-func (s *Server) ExposeCheEndpoint() (bool, error) {
+func (s *Server) ExposeCheServiceAndEndpoint() (bool, error) {
 	done, err := s.DetectDefaultCheHost()
 	if !done {
 		return false, err
 	}
 
-	done, err = s.SyncService()
+	done, err = s.SyncCheService()
 	if !done {
 		return false, err
 	}
 
-	done, err = s.ExposeEndpoint()
+	done, err = s.ExposeCheEndpoint()
 	if !done {
 		return false, err
 	}
@@ -78,7 +78,7 @@ func (s *Server) SyncAll() (bool, error) {
 		return false, err
 	}
 
-	done, err = s.SyncConfigMap()
+	done, err = s.SyncCheConfigMap()
 	if !done {
 		return false, err
 	}
@@ -108,7 +108,7 @@ func (s *Server) SyncAll() (bool, error) {
 	return true, nil
 }
 
-func (s *Server) SyncService() (bool, error) {
+func (s *Server) SyncCheService() (bool, error) {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
 
@@ -126,7 +126,7 @@ func (s *Server) SyncService() (bool, error) {
 	return deploy.Sync(s.deployContext, spec, deploy.ServiceDefaultDiffOpts)
 }
 
-func (s Server) ExposeEndpoint() (bool, error) {
+func (s Server) ExposeCheEndpoint() (bool, error) {
 	cheHost := ""
 	exposedServiceName := GetServerExposingServiceName(s.deployContext.CheCluster)
 
@@ -209,8 +209,8 @@ func (s Server) UpdateCheURL() (bool, error) {
 	return true, nil
 }
 
-func (s *Server) SyncConfigMap() (bool, error) {
-	data, err := s.getConfigMapData()
+func (s *Server) SyncCheConfigMap() (bool, error) {
+	data, err := s.getCheConfigMapData()
 	if err != nil {
 		return false, err
 	}

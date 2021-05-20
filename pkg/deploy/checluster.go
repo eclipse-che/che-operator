@@ -78,7 +78,7 @@ func SetStatusDetails(deployContext *DeployContext, reason string, message strin
 	return nil
 }
 
-func ReloadCheCluster(deployContext *DeployContext) error {
+func ReloadCheClusterCR(deployContext *DeployContext) error {
 	return deployContext.ClusterAPI.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: deployContext.CheCluster.Name, Namespace: deployContext.CheCluster.Namespace},
