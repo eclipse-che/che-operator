@@ -16,30 +16,27 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 )
 
-const (
-	// DashboardComponent which is supposed to be used for the naming related objects
-	DashboardComponent = "che-dashboard"
-)
-
 type Dashboard struct {
 	deployContext *deploy.DeployContext
+	component     string
 }
 
 func NewDashboard(deployContext *deploy.DeployContext) *Dashboard {
 	return &Dashboard{
 		deployContext: deployContext,
+		component:     deploy.DefaultCheFlavor(deployContext.CheCluster) + "-dashboard",
 	}
 }
 
 func (d *Dashboard) SyncAll() (done bool, err error) {
 	// Create a new dashboard service
-	done, err = deploy.SyncServiceToCluster(d.deployContext, DashboardComponent, []string{"http"}, []int32{8080}, DashboardComponent)
+	done, err = deploy.SyncServiceToCluster(d.deployContext, d.component, []string{"http"}, []int32{8080}, d.component)
 	if !done {
 		return false, err
 	}
 
 	// Expose dashboard service with route or ingress
-	_, done, err = expose.ExposeWithHostPath(d.deployContext, DashboardComponent, d.deployContext.CheCluster.Spec.Server.CheHost,
+	_, done, err = expose.ExposeWithHostPath(d.deployContext, d.component, d.deployContext.CheCluster.Spec.Server.CheHost,
 		"/dashboard",
 		d.deployContext.CheCluster.Spec.Server.CheServerRoute,
 		d.deployContext.CheCluster.Spec.Server.CheServerIngress,
@@ -54,4 +51,8 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 		return false, err
 	}
 	return deploy.SyncDeploymentSpecToCluster(d.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
+}
+
+func (d *Dashboard) GetComponentName() string {
+	return d.component
 }

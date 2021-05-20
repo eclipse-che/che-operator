@@ -60,21 +60,21 @@ func TestDashboardAll(t *testing.T) {
 
 	// check service
 	service := &corev1.Service{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardComponent, Namespace: "eclipse-che"}, service)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, service)
 	if err != nil {
 		t.Fatalf("Service not found: %v", err)
 	}
 
 	// check endpoint
 	route := &routev1.Route{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardComponent, Namespace: "eclipse-che"}, route)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, route)
 	if err != nil {
 		t.Fatalf("Route not found: %v", err)
 	}
 
 	// check deployment
 	deployment := &appsv1.Deployment{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardComponent, Namespace: "eclipse-che"}, deployment)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, deployment)
 	if err != nil {
 		t.Fatalf("Deployment not found: %v", err)
 	}

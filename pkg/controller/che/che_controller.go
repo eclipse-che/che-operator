@@ -808,7 +808,7 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 	done, err = d.SyncAll()
 	if !done {
 		if err != nil {
-			logrus.Errorf("Error provisioning '%s' to cluster: %v", dashboard.DashboardComponent, err)
+			logrus.Errorf("Error provisioning '%s' to cluster: %v", d.GetComponentName(), err)
 		}
 		return reconcile.Result{}, err
 	}
