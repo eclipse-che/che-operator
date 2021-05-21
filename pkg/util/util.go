@@ -36,7 +36,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -352,7 +352,7 @@ func GetTestRouteYaml(client client.Client, namespace string) (*routev1.Route, e
 	}
 
 	if err := client.Create(context.TODO(), routeSpec); err != nil {
-		if !errors.IsAlreadyExists(err) {
+		if !k8sErrors.IsAlreadyExists(err) {
 			return nil, err
 		}
 	}
@@ -374,7 +374,7 @@ func GetTestRouteYaml(client client.Client, namespace string) (*routev1.Route, e
 		err := client.Get(context.TODO(), routeNsName, route)
 		if err == nil {
 			return route, nil
-		} else if !errors.IsNotFound(err) {
+		} else if !k8sErrors.IsNotFound(err) {
 			errCount++
 			if errCount > 10 {
 				return nil, err

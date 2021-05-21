@@ -69,12 +69,12 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		}
 		appsDomain = host
 
-		host, err = util.GetClusterPublicHostname(isOpenShift4)
+		_, internalAPIUrl, err := util.GetOpenShiftAPIUrls()
 		if err != nil {
 			return false, err
 		}
 		// https://api.subdomain.openshift.com:6443 -> api.subdomain.openshift.com
-		apiDomain = strings.TrimPrefix(strings.Split(host, ":")[1], "//")
+		apiDomain = strings.TrimPrefix(strings.Split(internalAPIUrl, ":")[1], "//")
 	} else {
 		// Kubernetes
 		appsDomain = bctx.cheCR.Spec.K8s.IngressDomain

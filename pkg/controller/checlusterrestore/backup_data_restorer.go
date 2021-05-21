@@ -550,14 +550,9 @@ func getNamespaceDomainReplace(rctx *RestoreContext, dataDir string) (string, st
 			return "", "", "", "", "", "", err
 		}
 
-		_, isOpenShift4, err := util.DetectOpenShift()
-		if err != nil {
-			// Suppose newer platform
-			isOpenShift4 = true
-		}
-		newAPIDomain, err = util.GetClusterPublicHostname(isOpenShift4)
+		_, internalAPIUrl, err := util.GetOpenShiftAPIUrls()
 		// https://api.subdomain.openshift.com:6443 -> api.subdomain.openshift.com
-		newAPIDomain = strings.TrimPrefix(strings.Split(newAPIDomain, ":")[1], "//")
+		newAPIDomain = strings.TrimPrefix(strings.Split(internalAPIUrl, ":")[1], "//")
 		if err != nil {
 			return "", "", "", "", "", "", err
 		}
