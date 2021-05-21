@@ -25,7 +25,7 @@ const (
 	CheServiceName = "che-host"
 )
 
-var serviceDiffOpts = cmp.Options{
+var ServiceDefaultDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta"),
 	cmp.Comparer(func(x, y corev1.ServiceSpec) bool {
 		return cmp.Equal(x.Ports, y.Ports, cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort")) &&
@@ -45,7 +45,7 @@ func SyncServiceToCluster(
 }
 
 func SyncServiceSpecToCluster(deployContext *DeployContext, serviceSpec *corev1.Service) (bool, error) {
-	return Sync(deployContext, serviceSpec, serviceDiffOpts)
+	return Sync(deployContext, serviceSpec, ServiceDefaultDiffOpts)
 }
 
 func GetServiceSpec(

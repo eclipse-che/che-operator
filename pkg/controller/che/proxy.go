@@ -12,30 +12,29 @@
 package che
 
 import (
-	"context"
-
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*deploy.Proxy, error) {
+func (r *ReconcileChe) getProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
 	// OpenShift 4.x
 	if util.IsOpenShift4 {
 		clusterProxy := &configv1.Proxy{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, clusterProxy); err != nil {
-			return nil, err
-		}
-
-		clusterWideProxyConf, err := deploy.ReadClusterWideProxyConfiguration(clusterProxy)
+		exists, err := deploy.GetClusterObject(deployContext, "cluster", clusterProxy)
 		if err != nil {
 			return nil, err
 		}
 
-		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(checluster)
+		clusterWideProxyConf := &deploy.Proxy{}
+		if exists {
+			clusterWideProxyConf, err = deploy.ReadClusterWideProxyConfiguration(clusterProxy)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext.CheCluster)
 		if err != nil {
 			return nil, err
 		}
@@ -58,11 +57,11 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 	}
 
 	// OpenShift 3.x and k8s
-	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(checluster)
+	cheClusterProxyConf, err := deploy.ReadCheClusterProxyConfiguration(deployContext.CheCluster)
 	if err != nil {
 		return nil, err
 	}
-	if checluster.Spec.Server.UseInternalClusterSVCNames {
+	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
 		cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
 	}
 	return cheClusterProxyConf, nil
@@ -71,10 +70,10 @@ func (r *ReconcileChe) getProxyConfiguration(checluster *orgv1.CheCluster) (*dep
 func (r *ReconcileChe) putOpenShiftCertsIntoConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName == "" {
 		deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName = deploy.DefaultServerTrustStoreConfigMapName()
-		if err := r.UpdateCheCRSpec(deployContext.CheCluster, "truststore configmap", deploy.DefaultServerTrustStoreConfigMapName()); err != nil {
+		if err := deploy.UpdateCheCRSpec(deployContext, "truststore configmap", deploy.DefaultServerTrustStoreConfigMapName()); err != nil {
 			return false, err
 		}
 	}
 
-	return server.SyncTrustStoreConfigMapToCluster(deployContext)
+	return SyncTrustStoreConfigMapToCluster(deployContext)
 }

@@ -12,6 +12,7 @@
 package identity_provider
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -21,8 +22,10 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -116,7 +119,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with Keycloak", "true"); err != nil &&
 					apierrors.IsConflict(err) {
 
-					util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+					deploy.ReloadCheClusterCR(deployContext)
 					continue
 				}
 				break
@@ -196,7 +199,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 				if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "true"); err != nil &&
 					apierrors.IsConflict(err) {
 
-					util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+					deploy.ReloadCheClusterCR(deployContext)
 					continue
 				}
 				break
@@ -280,4 +283,38 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted bool, err error) {
+	if !util.IsOAuthEnabled(deployContext.CheCluster) && deployContext.CheCluster.Status.OpenShiftoAuthProvisioned == true {
+		keycloakDeployment := &appsv1.Deployment{}
+		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: deployContext.CheCluster.Namespace}, keycloakDeployment); err != nil {
+			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err.Error())
+		}
+
+		providerName := "openshift-v3"
+		if util.IsOpenShift4 {
+			providerName = "openshift-v4"
+		}
+		_, err := util.K8sclient.ExecIntoPod(
+			deployContext.CheCluster,
+			keycloakDeployment.Name,
+			func(cr *orgv1.CheCluster) (string, error) {
+				return GetIdentityProviderDeleteCommand(deployContext.CheCluster, providerName)
+			},
+			"delete OpenShift identity provider")
+		if err == nil {
+			oAuthClient := &oauth.OAuthClient{}
+			oAuthClientName := deployContext.CheCluster.Spec.Auth.OAuthClientName
+			if err := deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
+				logrus.Errorf("OAuthClient %s not found: %s", oAuthClient.Name, err.Error())
+			}
+			if err := deployContext.ClusterAPI.NonCachedClient.Delete(context.TODO(), oAuthClient); err != nil {
+				logrus.Errorf("Failed to delete %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err.Error())
+			}
+			return true, nil
+		}
+		return false, err
+	}
+	return false, nil
 }

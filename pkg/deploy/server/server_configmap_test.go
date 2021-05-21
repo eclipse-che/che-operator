@@ -90,7 +90,8 @@ func TestNewCheConfigMap(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}
@@ -226,7 +227,8 @@ func TestConfigMap(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}
@@ -353,7 +355,8 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 				Proxy: &deploy.Proxy{},
 			}
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}
@@ -525,7 +528,8 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}
@@ -677,7 +681,8 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}
@@ -769,7 +774,8 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}
@@ -943,7 +949,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			actualData, err := GetCheConfigMapData(deployContext)
+			server := NewServer(deployContext)
+			actualData, err := server.getCheConfigMapData()
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}

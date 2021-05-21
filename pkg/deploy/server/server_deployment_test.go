@@ -95,7 +95,8 @@ func TestDeployment(t *testing.T) {
 				},
 			}
 
-			deployment, err := GetSpecCheDeployment(deployContext)
+			server := NewServer(deployContext)
+			deployment, err := server.getDeploymentSpec()
 			if err != nil {
 				t.Fatalf("Error creating deployment: %v", err)
 			}
@@ -201,7 +202,8 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 				Proxy: &deploy.Proxy{},
 			}
 
-			deployment, err := GetSpecCheDeployment(deployContext)
+			server := NewServer(deployContext)
+			deployment, err := server.getDeploymentSpec()
 			if err != nil {
 				t.Fatalf("Error creating deployment: %v", err)
 			}

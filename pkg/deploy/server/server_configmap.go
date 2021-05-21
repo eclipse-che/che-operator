@@ -87,23 +87,15 @@ type CheConfigMap struct {
 	CheDevWorkspacesEnabled                string `json:"CHE_DEVWORKSPACES_ENABLED"`
 }
 
-func SyncCheConfigMapToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	data, err := GetCheConfigMapData(deployContext)
-	if err != nil {
-		return false, err
-	}
-	return deploy.SyncConfigMapDataToCluster(deployContext, CheConfigMapName, data, deploy.DefaultCheFlavor(deployContext.CheCluster))
-}
-
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string]string, err error) {
-	cheHost := deployContext.CheCluster.Spec.Server.CheHost
-	keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
+func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
+	cheHost := s.deployContext.CheCluster.Spec.Server.CheHost
+	keycloakURL := s.deployContext.CheCluster.Spec.Auth.IdentityProviderURL
 
 	// Adds `/auth` for external identity providers.
 	// If identity provide is deployed by operator then `/auth` is already added.
-	if deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider && !strings.HasSuffix(keycloakURL, "/auth") {
+	if s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider && !strings.HasSuffix(keycloakURL, "/auth") {
 		if strings.HasSuffix(keycloakURL, "/") {
 			keycloakURL = keycloakURL + "auth"
 		} else {
@@ -114,20 +106,20 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	if err != nil {
 		logrus.Errorf("Failed to get current infra: %s", err)
 	}
-	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
+	cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
 	infra := "kubernetes"
 	if util.IsOpenShift {
 		infra = "openshift"
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && util.IsOAuthEnabled(s.deployContext.CheCluster) {
 		openShiftIdentityProviderId = "openshift-v3"
 		if util.IsOpenShift4 {
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
-	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
+	tlsSupport := s.deployContext.CheCluster.Spec.Server.TlsSupport
 	protocol := "http"
 	if tlsSupport {
 		protocol = "https"
@@ -135,76 +127,76 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 	}
 
 	proxyJavaOpts := ""
-	cheWorkspaceNoProxy := deployContext.Proxy.NoProxy
-	if deployContext.Proxy.HttpProxy != "" {
-		if deployContext.Proxy.NoProxy == "" {
+	cheWorkspaceNoProxy := s.deployContext.Proxy.NoProxy
+	if s.deployContext.Proxy.HttpProxy != "" {
+		if s.deployContext.Proxy.NoProxy == "" {
 			cheWorkspaceNoProxy = os.Getenv("KUBERNETES_SERVICE_HOST")
 		} else {
 			cheWorkspaceNoProxy = cheWorkspaceNoProxy + "," + os.Getenv("KUBERNETES_SERVICE_HOST")
 		}
-		proxyJavaOpts, err = deploy.GenerateProxyJavaOpts(deployContext.Proxy, cheWorkspaceNoProxy)
+		proxyJavaOpts, err = deploy.GenerateProxyJavaOpts(s.deployContext.Proxy, cheWorkspaceNoProxy)
 		if err != nil {
 			logrus.Errorf("Failed to generate java proxy options: %v", err)
 		}
 	}
 
-	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
-	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
-	securityContextFsGroup := util.GetValue(deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup)
-	securityContextRunAsUser := util.GetValue(deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser)
-	pvcStrategy := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcStrategy, deploy.DefaultPvcStrategy)
-	pvcClaimSize := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
-	workspacePvcStorageClassName := deployContext.CheCluster.Spec.Storage.WorkspacePVCStorageClassName
+	ingressDomain := s.deployContext.CheCluster.Spec.K8s.IngressDomain
+	tlsSecretName := s.deployContext.CheCluster.Spec.K8s.TlsSecretName
+	securityContextFsGroup := util.GetValue(s.deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup)
+	securityContextRunAsUser := util.GetValue(s.deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser)
+	pvcStrategy := util.GetValue(s.deployContext.CheCluster.Spec.Storage.PvcStrategy, deploy.DefaultPvcStrategy)
+	pvcClaimSize := util.GetValue(s.deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
+	workspacePvcStorageClassName := s.deployContext.CheCluster.Spec.Storage.WorkspacePVCStorageClassName
 
-	defaultPVCJobsImage := deploy.DefaultPvcJobsImage(deployContext.CheCluster)
-	pvcJobsImage := util.GetValue(deployContext.CheCluster.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
+	defaultPVCJobsImage := deploy.DefaultPvcJobsImage(s.deployContext.CheCluster)
+	pvcJobsImage := util.GetValue(s.deployContext.CheCluster.Spec.Storage.PvcJobsImage, defaultPVCJobsImage)
 	preCreateSubPaths := "true"
-	if !deployContext.CheCluster.Spec.Storage.PreCreateSubPaths {
+	if !s.deployContext.CheCluster.Spec.Storage.PreCreateSubPaths {
 		preCreateSubPaths = "false"
 	}
-	chePostgresHostName := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
-	chePostgresPort := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
-	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, deploy.DefaultChePostgresDb)
-	keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
-	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
-	devfileRegistryURL := deployContext.CheCluster.Status.DevfileRegistryURL
-	pluginRegistryURL := deployContext.CheCluster.Status.PluginRegistryURL
-	cheLogLevel := util.GetValue(deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
-	cheDebug := util.GetValue(deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
-	cheMetrics := strconv.FormatBool(deployContext.CheCluster.Spec.Metrics.Enable)
-	cheLabels := util.MapToKeyValuePairs(deploy.GetLabels(deployContext.CheCluster, deploy.DefaultCheFlavor(deployContext.CheCluster)))
-	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
-	workspaceExposure := deploy.GetSingleHostExposureType(deployContext.CheCluster)
-	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
-	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(deployContext.CheCluster)
+	chePostgresHostName := util.GetValue(s.deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
+	chePostgresPort := util.GetValue(s.deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
+	chePostgresDb := util.GetValue(s.deployContext.CheCluster.Spec.Database.ChePostgresDb, deploy.DefaultChePostgresDb)
+	keycloakRealm := util.GetValue(s.deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
+	keycloakClientId := util.GetValue(s.deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+	ingressStrategy := util.GetServerExposureStrategy(s.deployContext.CheCluster)
+	ingressClass := util.GetValue(s.deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
+	devfileRegistryURL := s.deployContext.CheCluster.Status.DevfileRegistryURL
+	pluginRegistryURL := s.deployContext.CheCluster.Status.PluginRegistryURL
+	cheLogLevel := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
+	cheDebug := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
+	cheMetrics := strconv.FormatBool(s.deployContext.CheCluster.Spec.Metrics.Enable)
+	cheLabels := util.MapToKeyValuePairs(deploy.GetLabels(s.deployContext.CheCluster, deploy.DefaultCheFlavor(s.deployContext.CheCluster)))
+	cheMultiUser := deploy.GetCheMultiUser(s.deployContext.CheCluster)
+	workspaceExposure := deploy.GetSingleHostExposureType(s.deployContext.CheCluster)
+	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(s.deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
+	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(s.deployContext.CheCluster)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketEndpoint, webSocketEndpointMinor string
 
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
-		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, deployContext.CheCluster.Namespace)
+	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, s.deployContext.CheCluster.Namespace)
 	} else {
 		keycloakInternalURL = keycloakURL
 	}
 
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, deployContext.CheCluster.Namespace)
+	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
+		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, s.deployContext.CheCluster.Namespace)
 	} else {
 		devfileRegistryInternalURL = devfileRegistryURL
 	}
 
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
-		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, deployContext.CheCluster.Namespace)
+	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
+		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, s.deployContext.CheCluster.Namespace)
 	} else {
 		pluginRegistryInternalURL = pluginRegistryURL
 	}
 
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
-		cheInternalAPI = fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, deployContext.CheCluster.Namespace)
-		webSocketEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, deployContext.CheCluster.Namespace)
-		webSocketEndpointMinor = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket-minor", deploy.CheServiceName, deployContext.CheCluster.Namespace)
+	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+		cheInternalAPI = fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
+		webSocketEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
+		webSocketEndpointMinor = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket-minor", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
 	} else {
 		cheInternalAPI = cheAPI
 
@@ -243,23 +235,23 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		WorkspaceJavaOpts:                      deploy.DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
 		WorkspaceMavenOpts:                     deploy.DefaultWorkspaceJavaOpts + " " + proxyJavaOpts,
 		WorkspaceProxyJavaOpts:                 proxyJavaOpts,
-		WorkspaceHttpProxy:                     deployContext.Proxy.HttpProxy,
-		WorkspaceHttpsProxy:                    deployContext.Proxy.HttpsProxy,
+		WorkspaceHttpProxy:                     s.deployContext.Proxy.HttpProxy,
+		WorkspaceHttpsProxy:                    s.deployContext.Proxy.HttpsProxy,
 		WorkspaceNoProxy:                       cheWorkspaceNoProxy,
 		PluginRegistryUrl:                      pluginRegistryURL,
 		PluginRegistryInternalUrl:              pluginRegistryInternalURL,
 		DevfileRegistryUrl:                     devfileRegistryURL,
 		DevfileRegistryInternalUrl:             devfileRegistryInternalURL,
-		CheWorkspacePluginBrokerMetadataImage:  deploy.DefaultCheWorkspacePluginBrokerMetadataImage(deployContext.CheCluster),
-		CheWorkspacePluginBrokerArtifactsImage: deploy.DefaultCheWorkspacePluginBrokerArtifactsImage(deployContext.CheCluster),
-		CheServerSecureExposerJwtProxyImage:    deploy.DefaultCheServerSecureExposerJwtProxyImage(deployContext.CheCluster),
+		CheWorkspacePluginBrokerMetadataImage:  deploy.DefaultCheWorkspacePluginBrokerMetadataImage(s.deployContext.CheCluster),
+		CheWorkspacePluginBrokerArtifactsImage: deploy.DefaultCheWorkspacePluginBrokerArtifactsImage(s.deployContext.CheCluster),
+		CheServerSecureExposerJwtProxyImage:    deploy.DefaultCheServerSecureExposerJwtProxyImage(s.deployContext.CheCluster),
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
 		CheTrustedCABundlesConfigMap:           deploy.CheAllCACertsConfigMapName,
 		ServerStrategy:                         ingressStrategy,
 		WorkspaceExposure:                      workspaceExposure,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
-		CheDevWorkspacesEnabled:                strconv.FormatBool(deployContext.CheCluster.Spec.DevWorkspace.Enable),
+		CheDevWorkspacesEnabled:                strconv.FormatBool(s.deployContext.CheCluster.Spec.DevWorkspace.Enable),
 	}
 
 	if cheMultiUser == "true" {
@@ -268,9 +260,9 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		data.KeycloakRealm = keycloakRealm
 		data.KeycloakClientId = keycloakClientId
 		data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
-		if len(deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
-			data.DbUserName = deployContext.CheCluster.Spec.Database.ChePostgresUser
-			data.DbPassword = deployContext.CheCluster.Spec.Database.ChePostgresPassword
+		if len(s.deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
+			data.DbUserName = s.deployContext.CheCluster.Spec.Database.ChePostgresUser
+			data.DbPassword = s.deployContext.CheCluster.Spec.Database.ChePostgresPassword
 		}
 	}
 
@@ -294,20 +286,20 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 
 		// Add TLS key and server certificate to properties since user workspaces is created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
-		if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
+		if s.deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
 			cheTLSSecret := &corev1.Secret{}
-			exists, err := deploy.GetNamespacedObject(deployContext, deployContext.CheCluster.Spec.K8s.TlsSecretName, cheTLSSecret)
+			exists, err := deploy.GetNamespacedObject(s.deployContext, s.deployContext.CheCluster.Spec.K8s.TlsSecretName, cheTLSSecret)
 			if err != nil {
 				return nil, err
 			}
 			if !exists {
-				return nil, fmt.Errorf("%s secret not found", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+				return nil, fmt.Errorf("%s secret not found", s.deployContext.CheCluster.Spec.K8s.TlsSecretName)
 			} else {
 				if _, exists := cheTLSSecret.Data["tls.key"]; !exists {
-					return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+					return nil, fmt.Errorf("%s secret has no 'tls.key' key in data", s.deployContext.CheCluster.Spec.K8s.TlsSecretName)
 				}
 				if _, exists := cheTLSSecret.Data["tls.crt"]; !exists {
-					return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", deployContext.CheCluster.Spec.K8s.TlsSecretName)
+					return nil, fmt.Errorf("%s secret has no 'tls.crt' key in data", s.deployContext.CheCluster.Spec.K8s.TlsSecretName)
 				}
 				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__KEY"] = string(cheTLSSecret.Data["tls.key"])
 				k8sCheEnv["CHE_INFRA_KUBERNETES_TLS__CERT"] = string(cheTLSSecret.Data["tls.crt"])
@@ -317,10 +309,10 @@ func GetCheConfigMapData(deployContext *deploy.DeployContext) (cheEnv map[string
 		addMap(cheEnv, k8sCheEnv)
 	}
 
-	addMap(cheEnv, deployContext.CheCluster.Spec.Server.CustomCheProperties)
+	addMap(cheEnv, s.deployContext.CheCluster.Spec.Server.CustomCheProperties)
 
 	// Update BitBucket endpoints
-	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+	secrets, err := deploy.GetSecrets(s.deployContext, map[string]string{
 		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
 		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
 	}, map[string]string{

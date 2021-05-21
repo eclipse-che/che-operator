@@ -23,8 +23,8 @@ import (
 
 func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 	if !util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
-		deployContext.CheCluster.ObjectMeta.Finalizers = append(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 		for {
+			deployContext.CheCluster.ObjectMeta.Finalizers = append(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
 			if err == nil {
 				logrus.Infof("Added finalizer: %s", finalizer)
@@ -33,7 +33,7 @@ func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 				return err
 			}
 
-			err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+			err = ReloadCheClusterCR(deployContext)
 			if err != nil {
 				return err
 			}
@@ -45,8 +45,8 @@ func AppendFinalizer(deployContext *DeployContext, finalizer string) error {
 
 func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
 	if util.ContainsString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer) {
-		deployContext.CheCluster.ObjectMeta.Finalizers = util.DoRemoveString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 		for {
+			deployContext.CheCluster.ObjectMeta.Finalizers = util.DoRemoveString(deployContext.CheCluster.ObjectMeta.Finalizers, finalizer)
 			err := deployContext.ClusterAPI.Client.Update(context.TODO(), deployContext.CheCluster)
 			if err == nil {
 				logrus.Infof("Deleted finalizer: %s", finalizer)
@@ -55,7 +55,7 @@ func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
 				return err
 			}
 
-			err = util.ReloadCheCluster(deployContext.ClusterAPI.Client, deployContext.CheCluster)
+			err = ReloadCheClusterCR(deployContext)
 			if err != nil {
 				return err
 			}
