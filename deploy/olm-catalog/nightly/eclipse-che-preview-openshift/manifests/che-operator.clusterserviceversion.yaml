@@ -1009,7 +1009,7 @@ spec:
                       - name: RELATED_IMAGE_devworkspace_controller
                         value: quay.io/devfile/devworkspace-controller:next
                       - name: RELATED_IMAGE_internal_rest_backup_server
-                        value: quay.io/eclipse/che-backup-server-rest:1aac507
+                        value: quay.io/eclipse/che-backup-server-rest:eeacd92
                       - name: CHE_FLAVOR
                         value: che
                       - name: CONSOLE_LINK_NAME
@@ -1028,7 +1028,7 @@ spec:
                         value: che-postgres-secret
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
-                    image: quay.io/eclipse/che-operator:nightly
+                    image: mm4eche/che-operator:latest
                     imagePullPolicy: Always
                     livenessProbe:
                       failureThreshold: 10

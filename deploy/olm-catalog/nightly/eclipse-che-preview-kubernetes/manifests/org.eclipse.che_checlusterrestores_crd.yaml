@@ -1,0 +1,230 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: checlusterrestores.org.eclipse.che
+spec:
+  group: org.eclipse.che
+  names:
+    kind: CheClusterRestore
+    listKind: CheClusterRestoreList
+    plural: checlusterrestores
+    singular: checlusterrestore
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: CheClusterRestore is the Schema for the checlusterrestores API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: CheClusterRestoreSpec defines the desired state of CheClusterRestore
+          properties:
+            copyBackupServerConfiguration:
+              description: If true, copies backup servers configuration from backup
+                CR
+              type: boolean
+            crOverrides:
+              description: Amendments for CR from backup
+              properties:
+                ingressDomain:
+                  description: Overrides k8s.ingressDomain in Che CR. Makes sense
+                    only for Kubernetes infrastructures. Must be set in order to restore
+                    Che on a different Kubernetes cluster, that has ingress domain
+                    different from the cluster on which the backup was done.
+                  type: string
+              type: object
+            deleteConfigurationAfterRestore:
+              description: If true, deletes the CR after successful restore.
+              type: boolean
+            serverType:
+              description: If more than one backup server configured, should specify
+                which one to use. Allowed values are fields names form BackupServers
+                struct.
+              type: string
+            servers:
+              description: List of backup servers. Usually only one is used. In case
+                of several available, serverType should contain server to use.
+              properties:
+                awss3:
+                  description: Amazon S3 or alternatives
+                  properties:
+                    awsAccessKeyId:
+                      description: Content of AWS_ACCESS_KEY_ID environment variable
+                      type: string
+                    awsAccessKeySecretRef:
+                      description: Reference to secret that contains awsAccessKeyId
+                        and awsSecretAccessKey fields
+                      type: string
+                    awsSecretAccessKey:
+                      description: Content of AWS_SECRET_ACCESS_KEY environment variable
+                      type: string
+                    hostname:
+                      description: Server hostname, defaults to 's3.amazonaws.com'.
+                        Might be customized in case of alternative server.
+                      type: string
+                    port:
+                      description: Backup server port. Usually default value is used.
+                        Might be customized in case of alternative server.
+                      type: integer
+                    protocol:
+                      description: Protocol to use when connection to the server.
+                        Might be customized in case of alternative server.
+                      type: string
+                    repo:
+                      description: Bucket name and repository, e.g. bucket/repo
+                      type: string
+                    repoPassword:
+                      description: Restic repository password
+                      properties:
+                        password:
+                          description: Password for restic repository
+                          type: string
+                        passwordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                  type: object
+                internal:
+                  description: Rest server within the cluster. The server and configuration
+                    are created by operator when AutoconfigureRestBackupServer is
+                    true
+                  properties:
+                    credentialsSecretRef:
+                      description: Secret that contains username and password fields
+                      type: string
+                    hostname:
+                      description: Backup server host
+                      type: string
+                    password:
+                      description: Password to authenticate the user
+                      type: string
+                    port:
+                      description: Backup server port
+                      type: integer
+                    protocol:
+                      description: Protocol to use when connection to the server Defaults
+                        to https.
+                      type: string
+                    repo:
+                      description: Restic repository path
+                      type: string
+                    repoPassword:
+                      description: Restic repository password
+                      properties:
+                        password:
+                          description: Password for restic repository
+                          type: string
+                        passwordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                    username:
+                      description: User login on the remote server
+                      type: string
+                  type: object
+                rest:
+                  description: Rest backup server configuration
+                  properties:
+                    credentialsSecretRef:
+                      description: Secret that contains username and password fields
+                      type: string
+                    hostname:
+                      description: Backup server host
+                      type: string
+                    password:
+                      description: Password to authenticate the user
+                      type: string
+                    port:
+                      description: Backup server port
+                      type: integer
+                    protocol:
+                      description: Protocol to use when connection to the server Defaults
+                        to https.
+                      type: string
+                    repo:
+                      description: Restic repository path
+                      type: string
+                    repoPassword:
+                      description: Restic repository password
+                      properties:
+                        password:
+                          description: Password for restic repository
+                          type: string
+                        passwordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                    username:
+                      description: User login on the remote server
+                      type: string
+                  type: object
+                sftp:
+                  description: Sftp backup server configuration
+                  properties:
+                    hostname:
+                      description: Backup server host
+                      type: string
+                    port:
+                      description: Backup server port
+                      type: integer
+                    repo:
+                      description: Restic repository path, relative or absolute, e.g.
+                        /srv/repo
+                      type: string
+                    repoPassword:
+                      description: Restic repository password
+                      properties:
+                        password:
+                          description: Password for restic repository
+                          type: string
+                        passwordSecretRef:
+                          description: Secret with 'repo-password' filed
+                          type: string
+                      type: object
+                    sshKeySecretRef:
+                      description: Private ssh key under 'ssh-privatekey' field for
+                        passwordless login
+                      type: string
+                    username:
+                      description: User login on the remote server
+                      type: string
+                  type: object
+              type: object
+            snapshotId:
+              description: Snapshit it to restore from. If omitted, latest snapshot
+                will be used.
+              type: string
+            triggerNow:
+              description: Set to true to start backup process.
+              type: boolean
+          required:
+          - triggerNow
+          type: object
+        status:
+          description: CheClusterRestoreStatus defines the observed state of CheClusterRestore
+          properties:
+            message:
+              description: Backup result or error message
+              type: string
+            stage:
+              description: Describes restore progress
+              type: string
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true

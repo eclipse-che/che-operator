@@ -173,6 +173,9 @@ updateNighltyBundle() {
       incrementNightlyVersion "${platform}"
     fi
 
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+
     templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
     platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 

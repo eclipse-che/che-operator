@@ -80,7 +80,7 @@ spec:
             - name: RELATED_IMAGE_devworkspace_controller
               value: quay.io/devfile/devworkspace-controller:next
             - name: RELATED_IMAGE_internal_rest_backup_server
-              value: quay.io/eclipse/che-backup-server-rest:1aac507
+              value: quay.io/eclipse/che-backup-server-rest:eeacd92
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME

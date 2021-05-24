@@ -79,6 +79,12 @@ $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
   ./testUpdate.sh "openshift" "nightly" <ECLIPSE_CHE_NAMESPACE>
 ```
 
+Note, to test your own operator image, it must be defined in `OPERATOR_IMAGE` environment variable before running `testCatalogSource.sh` script, for example:
+
+```bash
+export OPERATOR_IMAGE=registry/account/che-operator:tag
+```
+
 ### Testing custom CatalogSource and bundle images on the Kubernetes
 
 To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry. For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
