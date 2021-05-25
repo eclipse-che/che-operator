@@ -78,8 +78,6 @@ type ReconcileCheClusterBackup struct {
 // Note: The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	logrus.Info("ReconcileCheClusterBackup") // TODO delete debug code
-
 	// Fetch the CheClusterBackup instance
 	backupCR := &orgv1.CheClusterBackup{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, backupCR)

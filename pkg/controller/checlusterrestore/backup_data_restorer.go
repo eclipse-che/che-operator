@@ -507,15 +507,20 @@ func getPatchDatabaseScript(rctx *RestoreContext, dbName string, dataDir string)
 	}
 	oldAppsSubStr := oldNamespace + "." + oldAppsDomain
 	newAppsSubStr := newNamespace + "." + newAppsDomain
-	if oldAppsSubStr == newAppsSubStr {
-		// No need to do anything, restoring into the same cluster and the same namespace
-		return "", nil
-	}
+	shouldPatchUrls := oldAppsSubStr != newAppsSubStr
 
 	switch dbName {
 	case rctx.cheCR.Spec.Database.ChePostgresDb:
-		return getReplaceInColumnScript(dbName, "devfile_project", "location", oldAppsSubStr, newAppsSubStr), nil
+		script := getCleanRunningWorkspacesScript(dbName)
+		if shouldPatchUrls {
+			script += "\n" + getReplaceInColumnScript(dbName, "devfile_project", "location", oldAppsSubStr, newAppsSubStr)
+		}
+		return script, nil
 	case "keycloak":
+		if !shouldPatchUrls {
+			// No need to do anything, restoring into the same cluster and the same namespace
+			break
+		}
 		script := getReplaceInColumnScript(dbName, "redirect_uris", "value", oldAppsSubStr, newAppsSubStr) + "\n" +
 			getReplaceInColumnScript(dbName, "web_origins", "value", oldAppsSubStr, newAppsSubStr) + "\n" +
 			getReplaceInColumnScript(dbName, "identity_provider_config", "value", oldAPIDomain, newAPIDomain)
@@ -526,6 +531,22 @@ func getPatchDatabaseScript(rctx *RestoreContext, dbName string, dataDir string)
 
 func getReplaceInColumnScript(dbName string, table string, column string, oldSubStr string, newSubStr string) string {
 	query := fmt.Sprintf("UPDATE %s SET %s = REPLACE (%s, '%s', '%s');", table, column, column, oldSubStr, newSubStr)
+	return fmt.Sprintf("psql %s -c \"%s\"", dbName, query)
+}
+
+// getCleanRunningWorkspacesScript returns script that clears workspace runtime related tables,
+// so Che server doesn't think that some workspaces are running any more.
+func getCleanRunningWorkspacesScript(dbName string) string {
+	tables := [...]string{
+		"che_k8s_runtime",
+		"che_k8s_machine",
+		"che_k8s_machine_attributes",
+		"che_k8s_server",
+		"che_k8s_server_attributes",
+		"k8s_runtime_command",
+		"k8s_runtime_command_attributes",
+	}
+	query := "TRUNCATE " + strings.Join(tables[:], ", ")
 	return fmt.Sprintf("psql %s -c \"%s\"", dbName, query)
 }
 
