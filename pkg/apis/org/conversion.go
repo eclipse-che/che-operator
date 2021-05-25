@@ -4,7 +4,7 @@ import (
 	v1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/apis/org/v2alpha1"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 const (

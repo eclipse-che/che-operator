@@ -9,8 +9,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/apis/org/v2alpha1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
-	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func TestV1ToV2alpha1(t *testing.T) {
@@ -52,8 +52,6 @@ func TestV1ToV2alpha1(t *testing.T) {
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "routeDomain",
 				},
-				// a nil map gets unmarshalled into an empty map, so just use an empty map here to avoid a diff below
-				SingleHostGatewayConfigMapLabels: map[string]string{},
 			},
 			Storage: v1.CheClusterSpecStorage{
 				PvcStrategy: "common",
@@ -85,7 +83,9 @@ func TestV1ToV2alpha1(t *testing.T) {
 		}
 
 		restoredV1Spec := v1.CheClusterSpec{}
-		yaml.Unmarshal([]byte(storedV1), &restoredV1Spec)
+		if err = yaml.Unmarshal([]byte(storedV1), &restoredV1Spec); err != nil {
+			t.Error(err)
+		}
 
 		if !reflect.DeepEqual(&v1Obj.Spec, &restoredV1Spec) {
 			t.Errorf("The spec should be restored verbatim from the annotations, but there's a diff %s", cmp.Diff(&v1Obj.Spec, &restoredV1Spec))

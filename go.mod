@@ -13,7 +13,6 @@ require (
 	github.com/prometheus/common v0.7.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
-	gopkg.in/yaml.v2 v2.2.5
 	k8s.io/api v0.18.2
 	k8s.io/apiextensions-apiserver v0.18.2
 	k8s.io/apimachinery v0.18.2
