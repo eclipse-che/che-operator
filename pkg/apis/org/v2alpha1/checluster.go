@@ -133,6 +133,9 @@ type CheClusterStatus struct {
 	// Phase is the phase in which the Che cluster as a whole finds itself in.
 	Phase ClusterPhase `json:"phase,omitempty"`
 
+	// A brief CamelCase message indicating details about why the pod is in this state.
+	Reason string `json:"reason,omitempty"`
+
 	// Message contains further human-readable info for why the Che cluster is in the phase it currently is.
 	Message string `json:"message,omitempty"`
 
