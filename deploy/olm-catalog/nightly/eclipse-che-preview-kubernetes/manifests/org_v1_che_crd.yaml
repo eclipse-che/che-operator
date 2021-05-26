@@ -615,17 +615,29 @@ spec:
                     type: object
                   devfileRegistryUrl:
                     description: Public URL of the devfile registry, that serves sample,
-                      ready-to-use devfiles. Set this ONLY when a use of an external
-                      devfile registry is needed. See the `externalDevfileRegistry`
-                      field. By default, this will be automatically calculated by
-                      the Operator.
+                      ready-to-use devfiles. This will be automatically calculated
+                      by the Operator. See the `externalDevfileRegistry` and `externalDevfileRegistries`
+                      fields.
                     type: string
+                  externalDevfileRegistries:
+                    description: External devfile registries, that serves sample,
+                      ready-to-use devfiles. See the `externalDevfileRegistry` field.
+                    items:
+                      description: Settings for installation and configuration of
+                        the external devfile registries.
+                      properties:
+                        url:
+                          description: Public URL of the devfile registry.
+                          type: string
+                      type: object
+                    type: array
                   externalDevfileRegistry:
                     description: Instructs the Operator on whether to deploy a dedicated
                       devfile registry server. By default, a dedicated devfile registry
                       server is started. When `externalDevfileRegistry` is `true`,
                       no such dedicated server will be started by the Operator and
-                      you will have to manually set the `devfileRegistryUrl` field
+                      you will have to manually set the `externalDevfileRegistries`
+                      field
                     type: boolean
                   externalPluginRegistry:
                     description: Instructs the Operator on whether to deploy a dedicated

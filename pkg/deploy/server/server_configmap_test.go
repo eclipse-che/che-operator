@@ -12,17 +12,12 @@
 package server
 
 import (
-	"os"
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -71,24 +66,9 @@ func TestNewCheConfigMap(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
@@ -204,28 +184,33 @@ func TestConfigMap(t *testing.T) {
 				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host/api/websocket-minor",
 			},
 		},
+		{
+			name: "Kubernetes strategy should be set correctly",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					K8s: orgv1.CheClusterSpecK8SOnly{
+						IngressStrategy: "single-host",
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_INFRA_KUBERNETES_SERVER__STRATEGY": "single-host",
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
@@ -339,21 +324,7 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
@@ -378,7 +349,7 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Should use 'external' devfile registry url, when internal network is enabled",
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL #1",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -391,13 +362,8 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalDevfileRegistry:    true,
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					DevfileRegistryURL: "http://external-devfile-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -405,7 +371,7 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 			},
 		},
 		{
-			name: "Should use 'external' devfile registry url, when internal network is disabled",
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL #2",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -418,13 +384,8 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalDevfileRegistry:    true,
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					DevfileRegistryURL: "http://external-devfile-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -432,7 +393,7 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 			},
 		},
 		{
-			name: "Should use public devfile registry url, when internal network is disabled",
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL #3",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -445,13 +406,8 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalDevfileRegistry:    false,
+						DevfileRegistryUrl:         "http://devfile-registry",
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					DevfileRegistryURL: "http://devfile-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -459,7 +415,7 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 			},
 		},
 		{
-			name: "Should use internal devfile registry url, when internal network is enabled",
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL #4",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -472,61 +428,22 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalDevfileRegistry:    false,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
+						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
 				},
-				Status: orgv1.CheClusterStatus{
-					DevfileRegistryURL: "http://external-devfile-registry",
-				},
+				Status: orgv1.CheClusterStatus{},
 			},
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "http://devfile-registry.eclipse-che.svc:8080",
-			},
-		},
-		{
-			name: "Kubernetes strategy should be set correctly",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					K8s: orgv1.CheClusterSpecK8SOnly{
-						IngressStrategy: "single-host",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_INFRA_KUBERNETES_SERVER__STRATEGY": "single-host",
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
@@ -551,7 +468,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Should use 'external' public plugin registry url, when internal network is enabled",
+			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #1",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -564,13 +481,11 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalPluginRegistry:     true,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
-				},
-				Status: orgv1.CheClusterStatus{
-					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -578,7 +493,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 			},
 		},
 		{
-			name: "Should use 'external' public plugin registry url, when internal network is disabled",
+			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #2",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -591,13 +506,11 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalPluginRegistry:     true,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
-				},
-				Status: orgv1.CheClusterStatus{
-					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -605,7 +518,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 			},
 		},
 		{
-			name: "Should use public plugin registry url, when internal network is disabled",
+			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #3",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -618,13 +531,11 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalPluginRegistry:     false,
+						PluginRegistryUrl:          "http://plugin-registry/v3",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
-				},
-				Status: orgv1.CheClusterStatus{
-					PluginRegistryURL: "http://plugin-registry/v3",
 				},
 			},
 			expectedData: map[string]string{
@@ -632,7 +543,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 			},
 		},
 		{
-			name: "Should use internal plugin registry url, when internal network is enabled",
+			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #4",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -645,13 +556,11 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalPluginRegistry:     false,
+						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
-				},
-				Status: orgv1.CheClusterStatus{
-					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -662,24 +571,9 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
@@ -755,24 +649,9 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
@@ -926,28 +805,108 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://keycloak/auth",
 			},
 		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #1",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						DevfileRegistryUrl:      "https://devfile-registry.internal",
+						ExternalDevfileRegistry: false,
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.internal",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #2",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						DevfileRegistryUrl:      "https://devfile-registry.internal",
+						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.1"},
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.internal https://devfile-registry.external.1 https://devfile-registry.external.2",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #3",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: true,
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.1"},
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.external.1 https://devfile-registry.external.2",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #4",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						DevfileRegistryUrl:      "https://devfile-registry.external.3",
+						ExternalDevfileRegistry: true,
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.1"},
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.external.3 https://devfile-registry.external.1 https://devfile-registry.external.2",
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: nonCachedClient,
-					Scheme:          scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			server := NewServer(deployContext)
 			actualData, err := server.getCheConfigMapData()
