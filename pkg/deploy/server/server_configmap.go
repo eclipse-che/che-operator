@@ -162,13 +162,13 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	ingressStrategy := util.GetServerExposureStrategy(s.deployContext.CheCluster)
 	ingressClass := util.GetValue(s.deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
 
-	devfileRegistryURL := s.deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
+	devfileRegistryURL := s.deployContext.CheCluster.Status.DevfileRegistryURL
 	for _, r := range s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistries {
 		devfileRegistryURL += " " + r.Url
 	}
 	devfileRegistryURL = strings.TrimSpace(devfileRegistryURL)
 
-	pluginRegistryURL := s.deployContext.CheCluster.Spec.Server.PluginRegistryUrl
+	pluginRegistryURL := s.deployContext.CheCluster.Status.PluginRegistryURL
 	cheLogLevel := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
 	cheDebug := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(s.deployContext.CheCluster.Spec.Metrics.Enable)

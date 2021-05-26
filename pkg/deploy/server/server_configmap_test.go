@@ -337,7 +337,7 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 	}
 }
 
-func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
+func TestShouldSetUpCorrectlyDevfileRegistryServiceURL(t *testing.T) {
 	type testCase struct {
 		name         string
 		isOpenShift  bool
@@ -362,8 +362,10 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalDevfileRegistry:    true,
-						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "http://external-devfile-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -384,8 +386,10 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalDevfileRegistry:    true,
-						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "http://external-devfile-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -406,8 +410,10 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalDevfileRegistry:    false,
-						DevfileRegistryUrl:         "http://devfile-registry",
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "http://devfile-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -428,13 +434,115 @@ func TestShouldSetUpCorrectlyInternalDevfileRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalDevfileRegistry:    false,
-						DevfileRegistryUrl:         "http://external-devfile-registry",
 					},
 				},
-				Status: orgv1.CheClusterStatus{},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "http://external-devfile-registry",
+				},
 			},
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "http://devfile-registry.eclipse-che.svc:8080",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #1",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: false,
+					},
+				},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "https://devfile-registry.internal",
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.internal",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #2",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: false,
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.1"},
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "https://devfile-registry.internal",
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.internal https://devfile-registry.external.1 https://devfile-registry.external.2",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #3",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: true,
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.1"},
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.external.1 https://devfile-registry.external.2",
+			},
+		},
+		{
+			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #4",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: true,
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.1"},
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+				Status: orgv1.CheClusterStatus{
+					DevfileRegistryURL: "https://devfile-registry.external.3",
+				},
+			},
+			expectedData: map[string]string{
+				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.external.3 https://devfile-registry.external.1 https://devfile-registry.external.2",
 			},
 		},
 	}
@@ -481,11 +589,13 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalPluginRegistry:     true,
-						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -506,11 +616,13 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalPluginRegistry:     true,
-						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -531,11 +643,13 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: false,
 						ExternalPluginRegistry:     false,
-						PluginRegistryUrl:          "http://plugin-registry/v3",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					PluginRegistryURL: "http://plugin-registry/v3",
 				},
 			},
 			expectedData: map[string]string{
@@ -556,11 +670,13 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						UseInternalClusterSVCNames: true,
 						ExternalPluginRegistry:     false,
-						PluginRegistryUrl:          "http://external-plugin-registry",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
+				},
+				Status: orgv1.CheClusterStatus{
+					PluginRegistryURL: "http://external-plugin-registry",
 				},
 			},
 			expectedData: map[string]string{
@@ -803,101 +919,6 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 			expectedData: map[string]string{
 				"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL": "http://keycloak.eclipse-che.svc:8080/auth",
 				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://keycloak/auth",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #1",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DevfileRegistryUrl:      "https://devfile-registry.internal",
-						ExternalDevfileRegistry: false,
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.internal",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #2",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DevfileRegistryUrl:      "https://devfile-registry.internal",
-						ExternalDevfileRegistry: false,
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.1"},
-							{Url: "https://devfile-registry.external.2"},
-						},
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.internal https://devfile-registry.external.1 https://devfile-registry.external.2",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #3",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: true,
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.1"},
-							{Url: "https://devfile-registry.external.2"},
-						},
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.external.1 https://devfile-registry.external.2",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_DEVFILE__REGISTRY__URL #4",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DevfileRegistryUrl:      "https://devfile-registry.external.3",
-						ExternalDevfileRegistry: true,
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.1"},
-							{Url: "https://devfile-registry.external.2"},
-						},
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL": "https://devfile-registry.external.3 https://devfile-registry.external.1 https://devfile-registry.external.2",
 			},
 		},
 	}
