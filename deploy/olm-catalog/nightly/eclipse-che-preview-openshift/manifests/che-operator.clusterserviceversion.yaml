@@ -1028,7 +1028,7 @@ spec:
                         value: che-postgres-secret
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
-                    image: mm4eche/che-operator:latest
+                    image: quay.io/eclipse/che-operator:nightly
                     imagePullPolicy: Always
                     livenessProbe:
                       failureThreshold: 10
