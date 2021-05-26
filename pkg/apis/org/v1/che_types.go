@@ -591,7 +591,7 @@ type CheClusterSpecDevWorkspace struct {
 }
 
 // +k8s:openapi-gen=true
-// Settings for installation and configuration of the external devfile registries.
+// Settings forconfiguration of the external devfile registries.
 type ExternalDevfileRegistries struct {
 	// Public URL of the devfile registry.
 	// +optional

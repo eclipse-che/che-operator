@@ -623,8 +623,8 @@ spec:
                     description: External devfile registries, that serves sample,
                       ready-to-use devfiles. See the `externalDevfileRegistry` field.
                     items:
-                      description: Settings for installation and configuration of
-                        the external devfile registries.
+                      description: Settings forconfiguration of the external devfile
+                        registries.
                       properties:
                         url:
                           description: Public URL of the devfile registry.
