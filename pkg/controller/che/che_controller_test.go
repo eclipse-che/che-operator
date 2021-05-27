@@ -552,17 +552,17 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						ExternalDevfileRegistry: false,
+						DevfileRegistryUrl:      "https://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.1"},
 							{Url: "https://devfile-registry.external.2"},
 						},
 					},
 				},
 			},
-			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./ https://devfile-registry.external.1 https://devfile-registry.external.2",
+			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
 		},
 		{
-			name: "Test Status.DevfileRegistryURL #3",
+			name: "Test Status.DevfileRegistryURL #2",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "CheCluster",
@@ -575,38 +575,14 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						ExternalDevfileRegistry: true,
+						DevfileRegistryUrl:      "https://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.1"},
 							{Url: "https://devfile-registry.external.2"},
 						},
 					},
 				},
 			},
-			expectedDevfileRegistryURL: "https://devfile-registry.external.1 https://devfile-registry.external.2",
-		},
-		{
-			name: "Test Status.DevfileRegistryURL #4",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: true,
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.1"},
-							{Url: "https://devfile-registry.external.2"},
-						},
-						DevfileRegistryUrl: "https://devfile-registry.external.3",
-					},
-				},
-			},
-			expectedDevfileRegistryURL: "https://devfile-registry.external.3 https://devfile-registry.external.1 https://devfile-registry.external.2",
+			expectedDevfileRegistryURL: "",
 		},
 	}
 

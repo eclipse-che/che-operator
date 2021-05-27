@@ -26,7 +26,7 @@ func (p *DevfileRegistry) GetConfigMapData() (map[string]string, error) {
 	data := &DevFileRegistryConfigMap{
 		CheDevfileImagesRegistryURL:          p.deployContext.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
 		CheDevfileImagesRegistryOrganization: p.deployContext.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
-		CheDevfileRegistryURL:                p.devfileRegistryUrl,
+		CheDevfileRegistryURL:                p.url,
 	}
 
 	out, err := json.Marshal(data)

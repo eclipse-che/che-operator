@@ -633,13 +633,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 	}
-	done, err = devfileRegistry.UpdateStatus()
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
-	}
 
 	d := dashboard.NewDashboard(deployContext)
 	done, err = d.SyncAll()

@@ -161,7 +161,21 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	keycloakClientId := util.GetValue(s.deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 	ingressStrategy := util.GetServerExposureStrategy(s.deployContext.CheCluster)
 	ingressClass := util.GetValue(s.deployContext.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
+
+	// grab first the devfile registry url which is deployed by operator
 	devfileRegistryURL := s.deployContext.CheCluster.Status.DevfileRegistryURL
+
+	// `Spec.Server.DevfileRegistryUrl` is deprecated in favor of `Server.ExternalDevfileRegistries`
+	if s.deployContext.CheCluster.Spec.Server.DevfileRegistryUrl != "" {
+		devfileRegistryURL += " " + s.deployContext.CheCluster.Spec.Server.DevfileRegistryUrl
+	}
+	for _, r := range s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistries {
+		if strings.Index(devfileRegistryURL, r.Url) == -1 {
+			devfileRegistryURL += " " + r.Url
+		}
+	}
+	devfileRegistryURL = strings.TrimSpace(devfileRegistryURL)
+
 	pluginRegistryURL := s.deployContext.CheCluster.Status.PluginRegistryURL
 	cheLogLevel := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheLogLevel, deploy.DefaultCheLogLevel)
 	cheDebug := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
@@ -181,10 +195,13 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		keycloakInternalURL = keycloakURL
 	}
 
-	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, s.deployContext.CheCluster.Namespace)
-	} else {
-		devfileRegistryInternalURL = devfileRegistryURL
+	// If there is a devfile registry deployed by operator
+	if !s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
+		if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+			devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, s.deployContext.CheCluster.Namespace)
+		} else {
+			devfileRegistryInternalURL = s.deployContext.CheCluster.Status.DevfileRegistryURL
+		}
 	}
 
 	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {

@@ -93,7 +93,7 @@ func TestUpdateStatus(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
 	devfileregistry := NewDevfileRegistry(deployContext)
-	devfileregistry.devfileRegistryUrl = "https://devfile-registry.internal"
+	devfileregistry.url = "https://devfile-registry.internal"
 
 	done, err := devfileregistry.UpdateStatus()
 	if !done || err != nil {
