@@ -9,13 +9,23 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# NOTE: using registry.access.redhat.com/rhel8/go-toolset does not work (user is requested to use registry.redhat.io)
-# NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
-# NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.15-4  as builder
-ENV PATH=/opt/rh/go-toolset-1.13/root/usr/bin:${PATH} \
-    GOPATH=/go/
+# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
+FROM registry.access.redhat.com/ubi8-minimal:8.4-200 as builder
+RUN microdnf install -y rpm gcc go-srpm-macros unzip
+RUN ARCH=$(uname -m) && \
+    if [ $ARCH == "s390x" ] || [ $ARCH == "ppc64le" ]; then \
+        GO_VERSION=1.14-1; \
+        curl -L https://rpmfind.net/linux/fedora-secondary/releases/32/Everything/${ARCH}/os/Packages/g/golang-src-${GO_VERSION}.fc32.noarch.rpm -o golang-src.rpm ; \
+        curl -L https://rpmfind.net/linux/fedora-secondary/releases/32/Everything/${ARCH}/os/Packages/g/golang-bin-${GO_VERSION}.fc32.${ARCH}.rpm -o golang-bin.rpm; \
+        curl -L https://rpmfind.net/linux/fedora-secondary/releases/32/Everything/${ARCH}/os/Packages/g/golang-${GO_VERSION}.fc32.${ARCH}.rpm -o golang.rpm; \
+    else \
+        GO_VERSION=1.14.15-3; \
+        curl -L https://rpmfind.net/linux/fedora/linux/updates/32/Everything/${ARCH}/Packages/g/golang-src-${GO_VERSION}.fc32.noarch.rpm -o golang-src.rpm ; \
+        curl -L https://rpmfind.net/linux/fedora/linux/updates/32/Everything/${ARCH}/Packages/g/golang-bin-${GO_VERSION}.fc32.${ARCH}.rpm -o golang-bin.rpm; \
+        curl -L https://rpmfind.net/linux/fedora/linux/updates/32/Everything/${ARCH}/Packages/g/golang-${GO_VERSION}.fc32.${ARCH}.rpm -o golang.rpm; \
+    fi && \
+    rpm -Uhv go* && \
+    go version
 
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
