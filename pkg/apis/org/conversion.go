@@ -35,6 +35,7 @@ func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 	}
 	v2.Annotations[v1StorageAnnotation] = string(v1Spec)
 
+	v1ToV2alpha1_Enabled(v1, v2)
 	v1ToV2alpha1_Host(v1, v2)
 	v1ToV2alpha1_WorkspaceBaseDomain(v1, v2)
 	v1ToV2alpha1_GatewayEnabled(v1, v2)
@@ -69,6 +70,7 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 	}
 	v1Obj.Annotations[v2alpha1StorageAnnotation] = string(v2Spec)
 
+	v2alpha1ToV1_Enabled(v1Obj, v2)
 	v2alpha1ToV1_Host(v1Obj, v2)
 	v2alpha1ToV1_WorkspaceBaseDomain(v1Obj, v2)
 	v2alpha1ToV1_GatewayEnabled(v1Obj, v2)
@@ -78,6 +80,10 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 	v2alpha1ToV1_K8sIngressAnnotations(v1Obj, v2)
 
 	return nil
+}
+
+func v1ToV2alpha1_Enabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	v2.Spec.Enabled = &v1.Spec.DevWorkspace.Enable
 }
 
 func v1ToV2alpha1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -93,7 +99,15 @@ func v1ToV2alpha1_WorkspaceBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster
 }
 
 func v1ToV2alpha1_GatewayEnabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	val := util.GetServerExposureStrategy(v1) == "single-host"
+	exposureStrategy := util.GetServerExposureStrategy(v1)
+	// On Kubernetes, we can have single-host realized using ingresses (that use the same host but different paths).
+	// This is actually not supported on DWCO where we always use the gateway for that. So here, we actually just
+	// ignore the Spec.K8s.SingleHostExposureType, but we need to be aware of it when converting back.
+	// Note that default-host is actually not supported on v2, but it is similar enough to default host that we
+	// treat it as such for v2. The difference between default-host and single-host is that the default-host uses
+	// the cluster domain itself as the base domain whereas single-host uses a configured domain. In v2 we always
+	// need a domain configured.
+	val := exposureStrategy == "single-host" || exposureStrategy == "default-host"
 	v2.Spec.Gateway.Enabled = &val
 }
 
@@ -132,6 +146,10 @@ func v1ToV2alpha1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheClust
 	v2.Spec.K8s.IngressAnnotations = annotations
 }
 
+func v2alpha1ToV1_Enabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	v1.Spec.DevWorkspace.Enable = v2.Spec.IsEnabled()
+}
+
 func v2alpha1ToV1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	v1.Spec.Server.CheHost = v2.Spec.Gateway.Host
 }
@@ -149,22 +167,63 @@ func v2alpha1ToV1_WorkspaceBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster
 
 func v2alpha1ToV1_GatewayEnabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	v1Strategy := util.GetServerExposureStrategy(v1)
+	v1IngressStrategy := v1.Spec.K8s.IngressStrategy
+
 	var v2Strategy string
-	if *v2.Spec.Gateway.Enabled {
+	if v2.Spec.Gateway.IsEnabled() {
 		v2Strategy = "single-host"
 	} else {
 		v2Strategy = "multi-host"
 	}
 
-	if v1Strategy != v2Strategy && v1Strategy != "default-host" {
-		// we need to reconstruct what the configuration might have looked like in the original
-		if v1.Spec.Server.ServerExposureStrategy == "" {
-			if util.IsOpenShift {
+	if v1.Spec.Server.ServerExposureStrategy == "" {
+		// in the original, the server exposure strategy was undefined, so we need to check whether we can leave it that way
+		if util.IsOpenShift {
+			if v2Strategy != v1Strategy {
+				// only update if the v2Strategy doesn't correspond to the default determined from the v1
 				v1.Spec.Server.ServerExposureStrategy = v2Strategy
-			} else {
-				v1.Spec.K8s.IngressStrategy = v2Strategy
 			}
 		} else {
+			// on Kubernetes, the strategy might have been defined by the deprecated Spec.K8s.IngressStrategy
+			if v1IngressStrategy != "" {
+				// check for the default host
+				if v1IngressStrategy == "default-host" {
+					if v2Strategy != "single-host" {
+						v1.Spec.K8s.IngressStrategy = v2Strategy
+					}
+				} else if v2Strategy != v1Strategy {
+					// only change the strategy if the determined strategy would differ
+					v1.Spec.K8s.IngressStrategy = v2Strategy
+				}
+			} else {
+				if v2Strategy != v1Strategy {
+					// only update if the v2Strategy doesn't correspond to the default determined from the v1
+					v1.Spec.Server.ServerExposureStrategy = v2Strategy
+				}
+			}
+		}
+	} else {
+		// The below table specifies how to convert the v2Strategy back to v1 taking into the account the original state of v1
+		// from which v2 was converted before (which could also be just the default v1, if v2 was created on its own)
+		//
+		// v2Strategy | orig v1Strategy | orig v1ExposureType | resulting v1Strategy | resulting v1ExposureType
+		// ----------------------------------------------------------------------------------------------------
+		// single     | single          | native              | single               | orig
+		// single     | single          | gateway             | single               | orig
+		// single     | default         | NA                  | default              | orig
+		// single     | multi           | NA                  | single               | orig
+		// multi      | single          | native              | multi                | orig
+		// multi      | single          | gateway             | multi                | orig
+		// multi      | default         | NA                  | multi                | orig
+		// multi      | multi           | NA                  | multi                | orig
+		//
+		// Notice that we don't ever want to update the singlehost exposure type. This is only used on Kubernetes and dictates how
+		// we are going to expose the singlehost endpoints - either using ingresses (native) or using the gateway.
+		// Because this distinction is not made in DWCO, which always uses the gateway, we just keep whatever the value was originally.
+		//
+		// The default-host is actually not supported in v2... but it is quite similar to single host in that everything is exposed
+		// through the cluster hostname and when converting to v2, we convert it to single-host
+		if v1Strategy != "default-host" || v2Strategy != "single-host" {
 			v1.Spec.Server.ServerExposureStrategy = v2Strategy
 		}
 	}

@@ -28,6 +28,9 @@ import (
 // CheClusterSpec holds the configuration of the Che controller.
 // \k8s:openapi-gen=true
 type CheClusterSpec struct {
+	// If false, Che is disabled and does not resolve the devworkspaces with the che routingClass.
+	Enabled *bool `json:"enabled,omitempty"`
+
 	// The workspace endpoints that need to be deployed on a subdomain will be deployed on subdomains of this base domain.
 	// This is mandatory on Kubernetes. On OpenShift, an attempt is made to automatically figure out the base domain of
 	// the routes. The resolved value of this property is written to the status.
@@ -169,4 +172,14 @@ type CheClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&CheCluster{}, &CheClusterList{})
+}
+
+// IsEnabled is a utility method checking the `Enabled` property using its optional value or the default.
+func (s *CheClusterSpec) IsEnabled() bool {
+	return s.Enabled == nil || *s.Enabled
+}
+
+// IsEnabled is a utility method checking the `Enabled` property using its optional value or the default.
+func (s *CheGatewaySpec) IsEnabled() bool {
+	return s.Enabled == nil || *s.Enabled
 }
