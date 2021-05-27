@@ -12,7 +12,6 @@
 package devfileregistry
 
 import (
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 )
@@ -82,10 +81,16 @@ func (p *DevfileRegistry) ExposeEndpoint() (string, bool, error) {
 }
 
 func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
-	url := computeUrl(endpoint, p.deployContext.CheCluster)
-	if url != p.deployContext.CheCluster.Status.DevfileRegistryURL {
-		p.deployContext.CheCluster.Status.DevfileRegistryURL = url
-		if err := deploy.UpdateCheCRStatus(p.deployContext, "status: Devfile Registry URL", url); err != nil {
+	var devfileRegistryURL string
+	if p.deployContext.CheCluster.Spec.Server.TlsSupport {
+		devfileRegistryURL = "https://" + endpoint
+	} else {
+		devfileRegistryURL = "http://" + endpoint
+	}
+
+	if devfileRegistryURL != p.deployContext.CheCluster.Status.DevfileRegistryURL {
+		p.deployContext.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
+		if err := deploy.UpdateCheCRStatus(p.deployContext, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
 			return false, err
 		}
 	}
@@ -96,12 +101,4 @@ func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
 func (p *DevfileRegistry) SyncDeployment() (bool, error) {
 	spec := p.GetDevfileRegistryDeploymentSpec()
 	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
-}
-
-func computeUrl(endpoint string, cheCluster *orgv1.CheCluster) string {
-	if cheCluster.Spec.Server.TlsSupport {
-		return "https://" + endpoint
-	} else {
-		return "http://" + endpoint
-	}
 }
