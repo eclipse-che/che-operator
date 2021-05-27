@@ -1,0 +1,18 @@
+--- /home/runner/work/che-operator/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org_v1_che_crd.yaml	2021-05-27 12:52:59.835255085 +0000
++++ /home/runner/work/che-operator/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml	2021-05-27 12:52:59.847255096 +0000
+@@ -447,10 +447,11 @@
+                       install Eclipse Che in a restricted environment.
+                     type: string
+                   allowUserDefinedWorkspaceNamespaces:
+-                    description: Defines that a user is allowed to specify a Kubernetes
+-                      namespace, or an OpenShift project, which differs from the default.
+-                      It's NOT RECOMMENDED to set to `true` without OpenShift OAuth
+-                      configured. The OpenShift infrastructure also uses this property.
++                    description: Deprecated. The value of this flag is ignored. Defines
++                      that a user is allowed to specify a Kubernetes namespace, or
++                      an OpenShift project, which differs from the default. It's NOT
++                      RECOMMENDED to set to `true` without OpenShift OAuth configured.
++                      The OpenShift infrastructure also uses this property.
+                     type: boolean
+                   cheClusterRoles:
+                     description: A comma-separated list of ClusterRoles that will
