@@ -203,7 +203,7 @@ type CheClusterSpecServer struct {
 	// External devfile registries, that serves sample, ready-to-use devfiles.
 	// See the `externalDevfileRegistry` field.
 	// +optional
-	ExternalDevfileRegistries []ExternalDevfileRegistries `json:"externalDevfileRegistries"`
+	ExternalDevfileRegistries []ExternalDevfileRegistries `json:"externalDevfileRegistries,omitempty"`
 	// Public URL of the plugin registry that serves sample ready-to-use devfiles.
 	// Set this ONLY when a use of an external devfile registry is needed.
 	// See the `externalPluginRegistry` field. By default, this will be automatically calculated by the Operator.
