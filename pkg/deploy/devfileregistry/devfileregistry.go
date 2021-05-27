@@ -18,7 +18,6 @@ import (
 )
 
 type DevfileRegistry struct {
-	url           string
 	deployContext *deploy.DeployContext
 }
 
@@ -36,13 +35,10 @@ func (p *DevfileRegistry) SyncAll() (bool, error) {
 
 	endpoint, done, err := p.ExposeEndpoint()
 	if !done {
-		p.url = ""
 		return false, err
-	} else {
-		p.url = computeUrl(endpoint, p.deployContext.CheCluster)
 	}
 
-	done, err = p.UpdateStatus()
+	done, err = p.UpdateStatus(endpoint)
 	if !done {
 		return false, err
 	}
@@ -85,10 +81,11 @@ func (p *DevfileRegistry) ExposeEndpoint() (string, bool, error) {
 		p.deployContext.CheCluster.Spec.Server.DevfileRegistryIngress)
 }
 
-func (p *DevfileRegistry) UpdateStatus() (bool, error) {
-	if p.deployContext.CheCluster.Status.DevfileRegistryURL != p.url {
-		p.deployContext.CheCluster.Status.DevfileRegistryURL = p.url
-		if err := deploy.UpdateCheCRStatus(p.deployContext, "status: Devfile Registry URL", p.url); err != nil {
+func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
+	url := computeUrl(endpoint, p.deployContext.CheCluster)
+	if url != p.deployContext.CheCluster.Status.DevfileRegistryURL {
+		p.deployContext.CheCluster.Status.DevfileRegistryURL = url
+		if err := deploy.UpdateCheCRStatus(p.deployContext, "status: Devfile Registry URL", url); err != nil {
 			return false, err
 		}
 	}
