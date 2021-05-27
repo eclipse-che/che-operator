@@ -44,6 +44,7 @@ runTests() {
 }
 
 initDefaults
+overrideDefaults
 provisionOpenShiftOAuthUser
 initStableTemplates "openshift" "stable"
 runTests
