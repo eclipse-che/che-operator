@@ -37,11 +37,12 @@ func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 
 	v1ToV2alpha1_Enabled(v1, v2)
 	v1ToV2alpha1_Host(v1, v2)
-	v1ToV2alpha1_WorkspaceBaseDomain(v1, v2)
 	v1ToV2alpha1_GatewayEnabled(v1, v2)
 	v1ToV2alpha1_GatewayImage(v1, v2)
 	v1ToV2alpha1_GatewayConfigurerImage(v1, v2)
-	v1ToV2alpha1_TlsSecretName(v1, v2)
+	v1ToV2alpha1_GatewayTlsSecretName(v1, v2)
+	v1ToV2alpha1_WorkspaceDomainEndpointsBaseDomain(v1, v2)
+	v1ToV2alpha1_WorkspaceDomainEndpointsTlsSecretName(v1, v2)
 	v1ToV2alpha1_K8sIngressAnnotations(v1, v2)
 
 	return nil
@@ -72,11 +73,12 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 
 	v2alpha1ToV1_Enabled(v1Obj, v2)
 	v2alpha1ToV1_Host(v1Obj, v2)
-	v2alpha1ToV1_WorkspaceBaseDomain(v1Obj, v2)
 	v2alpha1ToV1_GatewayEnabled(v1Obj, v2)
 	v2alpha1ToV1_GatewayImage(v1Obj, v2)
 	v2alpha1ToV1_GatewayConfigurerImage(v1Obj, v2)
-	v2alpha1ToV1_TlsSecretName(v1Obj, v2)
+	v2alpha1ToV1_GatewayTlsSecretName(v1Obj, v2)
+	v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1Obj, v2)
+	v2alpha1ToV1_WorkspaceDomainEndpointsTlsSecretName(v1Obj, v2)
 	v2alpha1ToV1_K8sIngressAnnotations(v1Obj, v2)
 
 	return nil
@@ -90,11 +92,20 @@ func v1ToV2alpha1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	v2.Spec.Gateway.Host = v1.Spec.Server.CheHost
 }
 
-func v1ToV2alpha1_WorkspaceBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+func v1ToV2alpha1_WorkspaceDomainEndpointsBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	if util.IsOpenShift {
-		v2.Spec.WorkspaceBaseDomain = v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey]
+		v2.Spec.WorkspaceDomainEndpoints.BaseDomain = v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey]
 	} else {
-		v2.Spec.WorkspaceBaseDomain = v1.Spec.K8s.IngressDomain
+		v2.Spec.WorkspaceDomainEndpoints.BaseDomain = v1.Spec.K8s.IngressDomain
+	}
+}
+
+func v1ToV2alpha1_WorkspaceDomainEndpointsTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	// Che server always uses the default cluster certificate for subdomain workspace endpoints on OpenShift, and the K8s.TlsSecretName on K8s.
+	// Because we're dealing with endpoints, let's try to use the secret on Kubernetes and nothing (e.g. the default cluster cert on OpenShift)
+	// which is in line with the logic of the Che server.
+	if !util.IsOpenShift {
+		v2.Spec.WorkspaceDomainEndpoints.TlsSecretName = v1.Spec.K8s.TlsSecretName
 	}
 }
 
@@ -119,16 +130,11 @@ func v1ToV2alpha1_GatewayConfigurerImage(v1 *v1.CheCluster, v2 *v2alpha1.CheClus
 	v2.Spec.Gateway.ConfigurerImage = v1.Spec.Server.SingleHostGatewayConfigSidecarImage
 }
 
-func v1ToV2alpha1_TlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+func v1ToV2alpha1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	// v1.Spec.Server.CheHostTLSSecret is used specifically for Che Host - i.e. the host under which che server is deployed.
 	// In DW we would only used that for subpath endpoints but wouldn't know what TLS to use for subdomain endpoints.
-	// Che server always uses the default cluster certificate for these on OpenShift, and the K8s.TlsSecretName on K8s.
-	// Because we're dealing with endpoints, let's try to use the secret on Kubernetes and nothing (e.g. the default cluster cert on OpenShift)
-	// which is in line with the logic of the Che server. Let's ignore CheHostTLSSecret for now - this is used only for che server which
-	// we are not exposing anyway.
-	if !util.IsOpenShift {
-		v2.Spec.TlsSecretName = v1.Spec.K8s.TlsSecretName
-	}
+
+	v2.Spec.Gateway.TlsSecretName = v1.Spec.Server.CheHostTLSSecret
 }
 
 func v1ToV2alpha1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -154,14 +160,21 @@ func v2alpha1ToV1_Host(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	v1.Spec.Server.CheHost = v2.Spec.Gateway.Host
 }
 
-func v2alpha1ToV1_WorkspaceBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+func v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	if util.IsOpenShift {
 		if v1.Spec.Server.CustomCheProperties == nil {
 			v1.Spec.Server.CustomCheProperties = map[string]string{}
 		}
-		v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] = v2.Spec.WorkspaceBaseDomain
+		v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
 	} else {
-		v1.Spec.K8s.IngressDomain = v2.Spec.WorkspaceBaseDomain
+		v1.Spec.K8s.IngressDomain = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
+	}
+}
+
+func v2alpha1ToV1_WorkspaceDomainEndpointsTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	// see the comments in the v1 to v2alpha1 conversion method
+	if !util.IsOpenShift {
+		v1.Spec.K8s.TlsSecretName = v2.Spec.WorkspaceDomainEndpoints.TlsSecretName
 	}
 }
 
@@ -237,10 +250,9 @@ func v2alpha1ToV1_GatewayConfigurerImage(v1 *v1.CheCluster, v2 *v2alpha1.CheClus
 	v1.Spec.Server.SingleHostGatewayConfigSidecarImage = v2.Spec.Gateway.Image
 }
 
-func v2alpha1ToV1_TlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	if !util.IsOpenShift {
-		v1.Spec.K8s.TlsSecretName = v2.Spec.TlsSecretName
-	}
+func v2alpha1ToV1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	// see the comments in the v1 to v2alpha1 conversion method
+	v1.Spec.Server.CheHostTLSSecret = v2.Spec.Gateway.TlsSecretName
 }
 
 func v2alpha1ToV1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {

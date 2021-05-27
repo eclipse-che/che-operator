@@ -31,27 +31,36 @@ type CheClusterSpec struct {
 	// If false, Che is disabled and does not resolve the devworkspaces with the che routingClass.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// The workspace endpoints that need to be deployed on a subdomain will be deployed on subdomains of this base domain.
-	// This is mandatory on Kubernetes. On OpenShift, an attempt is made to automatically figure out the base domain of
-	// the routes. The resolved value of this property is written to the status.
-	WorkspaceBaseDomain string `json:"workspaceBaseDomain,omitempty"`
+	// Configuration of the workspace endpoints that are exposed on separate domains, as opposed to the subpaths
+	// of the gateway.
+	WorkspaceDomainEndpoints `json:"workspaceDomainEndpoints,omitempty"`
 
 	// Gateway contains the configuration of the gateway used for workspace endpoint routing.
 	Gateway CheGatewaySpec `json:"gateway,omitempty"`
 
-	// Name of a secret that will be used to setup ingress/route TLS certificate.
-	// When the field is empty string, the default cluster certificate will be used.
-	// The same secret is assumed to exist in the same namespace as the CheCluster CR and is used for both
-	// the gateway and all devworkspace endpoints.
-	// In case of the devworkspace endpoints, the secret is copied to the namespace of the devworkspace.
+	// K8s contains the configuration specific only to Kubernetes
+	K8s CheClusterSpecK8s `json:"k8s,omitempty"`
+}
+
+type WorkspaceDomainEndpoints struct {
+	// The workspace endpoints that need to be deployed on a subdomain will be deployed on subdomains of this base domain.
+	// This is mandatory on Kubernetes. On OpenShift, an attempt is made to automatically figure out the base domain of
+	// the routes. The resolved value of this property is written to the status.
+	BaseDomain string `json:"baseDomain,omitempty"`
+
+	// Name of a secret that will be used to setup ingress/route TLS certificate for the workspace endpoints. The endpoints
+	// will be on randomly named subdomains of the `BaseDomain` and therefore the TLS certificate should a wildcard certificate.
+	//
+	// When the field is empty string, the endpoints are served over unecrypted HTTP. This might be OK because the workspace endpoints
+	// generally only expose applications in debugging sessions during development.
+	//
+	// The secret is assumed to exist in the same namespace as the CheCluster CR is copied to the namespace of the devworkspace on
+	// devworkspace start (so that the ingresses on Kubernetes can reference it).
 	//
 	// The secret has to be of type "tls".
 	//
 	// +optional
 	TlsSecretName string `json:"tlsSecretName,omitempty"`
-
-	// K8s contains the configuration specific only to Kubernetes
-	K8s CheClusterSpecK8s `json:"k8s,omitempty"`
 }
 
 type CheGatewaySpec struct {
@@ -74,6 +83,15 @@ type CheGatewaySpec struct {
 	//
 	// This attribute is mandatory on Kubernetes, optional on OpenShift.
 	Host string `json:"host,omitempty"`
+
+	// Name of a secret that will be used to setup ingress/route TLS certificate for the gateway host.
+	// When the field is empty string, the default cluster certificate will be used.
+	// The secret is assumed to exist in the same namespace as the CheCluster CR.
+	//
+	// The secret has to be of type "tls".
+	//
+	// +optional
+	TlsSecretName string `json:"tlsSecretName,omitempty"`
 
 	// Image is the docker image to use for the Che gateway.  This is only used if Enabled is true.
 	// If not defined in the CR, it is taken from

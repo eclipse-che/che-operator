@@ -51,6 +51,7 @@ func TestV1ToV2alpha1(t *testing.T) {
 				CheHost:                "cheHost",
 				CheImage:               "teh-che-severe",
 				SingleHostGatewayImage: "single-host-image-of-the-year",
+				CheHostTLSSecret:       "cheSecret",
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "routeDomain",
 				},
@@ -118,7 +119,7 @@ func TestV1ToV2alpha1(t *testing.T) {
 		}
 	})
 
-	t.Run("WorkspaceBaseDomain-k8s", func(t *testing.T) {
+	t.Run("WorkspaceDomainEndpointsBaseDomain-k8s", func(t *testing.T) {
 		onFakeKubernetes(func() {
 			v2 := &v2alpha1.CheCluster{}
 			err := V1ToV2alpha1(&v1Obj, v2)
@@ -126,13 +127,13 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.Error(err)
 			}
 
-			if v2.Spec.WorkspaceBaseDomain != "ingressDomain" {
-				t.Errorf("Unexpected v2.Spec.WorkspaceBaseDomain: %s", v2.Spec.WorkspaceBaseDomain)
+			if v2.Spec.WorkspaceDomainEndpoints.BaseDomain != "ingressDomain" {
+				t.Errorf("Unexpected v2.Spec.WorkspaceDomainEndpoints.BaseDomain: %s", v2.Spec.WorkspaceDomainEndpoints.BaseDomain)
 			}
 		})
 	})
 
-	t.Run("WorkspaceBaseDomain-opensfhit", func(t *testing.T) {
+	t.Run("WorkspaceDomainEndpointsBaseDomain-opensfhit", func(t *testing.T) {
 		onFakeOpenShift(func() {
 			v2 := &v2alpha1.CheCluster{}
 			err := V1ToV2alpha1(&v1Obj, v2)
@@ -140,8 +141,36 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.Error(err)
 			}
 
-			if v2.Spec.WorkspaceBaseDomain != "routeDomain" {
-				t.Errorf("Unexpected v2.Spec.WorkspaceBaseDomain: %s", v2.Spec.WorkspaceBaseDomain)
+			if v2.Spec.WorkspaceDomainEndpoints.BaseDomain != "routeDomain" {
+				t.Errorf("Unexpected v2.Spec.WorkspaceWorkspaceDomainEndpoints.BaseDomainBaseDomain: %s", v2.Spec.WorkspaceDomainEndpoints.BaseDomain)
+			}
+		})
+	})
+
+	t.Run("WorkspaceDomainEndpointsTlsSecretName_k8s", func(t *testing.T) {
+		onFakeKubernetes(func() {
+			v2 := &v2alpha1.CheCluster{}
+			err := V1ToV2alpha1(&v1Obj, v2)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if v2.Spec.WorkspaceDomainEndpoints.TlsSecretName != "k8sSecret" {
+				t.Errorf("Unexpected TlsSecretName")
+			}
+		})
+	})
+
+	t.Run("WorkspaceDomainEndpointsTlsSecretName_OpenShift", func(t *testing.T) {
+		onFakeOpenShift(func() {
+			v2 := &v2alpha1.CheCluster{}
+			err := V1ToV2alpha1(&v1Obj, v2)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if v2.Spec.WorkspaceDomainEndpoints.TlsSecretName != "" {
+				t.Errorf("Unexpected TlsSecretName")
 			}
 		})
 	})
@@ -177,32 +206,16 @@ func TestV1ToV2alpha1(t *testing.T) {
 		}
 	})
 
-	t.Run("TlsSecretName_k8s", func(t *testing.T) {
-		onFakeKubernetes(func() {
-			v2 := &v2alpha1.CheCluster{}
-			err := V1ToV2alpha1(&v1Obj, v2)
-			if err != nil {
-				t.Error(err)
-			}
+	t.Run("GatewayTlsSecretName", func(t *testing.T) {
+		v2 := &v2alpha1.CheCluster{}
+		err := V1ToV2alpha1(&v1Obj, v2)
+		if err != nil {
+			t.Error(err)
+		}
 
-			if v2.Spec.TlsSecretName != "k8sSecret" {
-				t.Errorf("Unexpected TlsSecretName")
-			}
-		})
-	})
-
-	t.Run("TlsSecretName_OpenShift", func(t *testing.T) {
-		onFakeOpenShift(func() {
-			v2 := &v2alpha1.CheCluster{}
-			err := V1ToV2alpha1(&v1Obj, v2)
-			if err != nil {
-				t.Error(err)
-			}
-
-			if v2.Spec.TlsSecretName != "" {
-				t.Errorf("Unexpected TlsSecretName")
-			}
-		})
+		if v2.Spec.Gateway.TlsSecretName != "cheSecret" {
+			t.Errorf("Unexpected TlsSecretName")
+		}
 	})
 }
 
@@ -216,15 +229,18 @@ func TestV2alpha1ToV1(t *testing.T) {
 			},
 		},
 		Spec: v2alpha1.CheClusterSpec{
-			Enabled:             pointer.BoolPtr(true),
-			WorkspaceBaseDomain: "baseDomain",
+			Enabled: pointer.BoolPtr(true),
+			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
+				BaseDomain:    "baseDomain",
+				TlsSecretName: "workspaceSecret",
+			},
 			Gateway: v2alpha1.CheGatewaySpec{
 				Host:            "v2Host",
 				Enabled:         pointer.BoolPtr(true),
 				Image:           "gateway-image",
 				ConfigurerImage: "configurer-image",
+				TlsSecretName:   "superSecret",
 			},
-			TlsSecretName: "superSecret",
 			K8s: v2alpha1.CheClusterSpecK8s{
 				IngressAnnotations: map[string]string{
 					"kubernetes.io/ingress.class": "some-other-ingress",
@@ -265,6 +281,18 @@ func TestV2alpha1ToV1(t *testing.T) {
 		}
 	})
 
+	t.Run("Enabled", func(t *testing.T) {
+		v1 := &v1.CheCluster{}
+		err := V2alpha1ToV1(&v2Obj, v1)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !v1.Spec.DevWorkspace.Enable {
+			t.Errorf("Unexpected v1.Spec.DevWorkspace.Enable: %v", v1.Spec.DevWorkspace.Enable)
+		}
+	})
+
 	t.Run("Host", func(t *testing.T) {
 		v1 := &v1.CheCluster{}
 		err := V2alpha1ToV1(&v2Obj, v1)
@@ -277,7 +305,7 @@ func TestV2alpha1ToV1(t *testing.T) {
 		}
 	})
 
-	t.Run("WorkspaceBaseDomain-k8s", func(t *testing.T) {
+	t.Run("WorkspaceDomainEndpointsBaseDomain-k8s", func(t *testing.T) {
 		onFakeKubernetes(func() {
 			v1 := &v1.CheCluster{}
 			err := V2alpha1ToV1(&v2Obj, v1)
@@ -291,7 +319,7 @@ func TestV2alpha1ToV1(t *testing.T) {
 		})
 	})
 
-	t.Run("WorkspaceBaseDomain-openshift", func(t *testing.T) {
+	t.Run("WorkspaceDomainEndpointsBaseDomain-openshift", func(t *testing.T) {
 		onFakeOpenShift(func() {
 			v1 := &v1.CheCluster{}
 			err := V2alpha1ToV1(&v2Obj, v1)
@@ -301,6 +329,34 @@ func TestV2alpha1ToV1(t *testing.T) {
 
 			if v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] != "baseDomain" {
 				t.Errorf("Unexpected v1.Spec.Server.CustomCheProperties[%s]: %s", routeDomainSuffixPropertyKey, v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey])
+			}
+		})
+	})
+
+	t.Run("WorkspaceDomainEndpointsTlsSecretName_k8s", func(t *testing.T) {
+		onFakeKubernetes(func() {
+			v1 := &v1.CheCluster{}
+			err := V2alpha1ToV1(&v2Obj, v1)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if v1.Spec.K8s.TlsSecretName != "workspaceSecret" {
+				t.Errorf("Unexpected TlsSecretName: %s", v1.Spec.K8s.TlsSecretName)
+			}
+		})
+	})
+
+	t.Run("WorkspaceDomainEndpointsTlsSecretName_OpenShift", func(t *testing.T) {
+		onFakeOpenShift(func() {
+			v1 := &v1.CheCluster{}
+			err := V2alpha1ToV1(&v2Obj, v1)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if v1.Spec.K8s.TlsSecretName != "" {
+				t.Errorf("Unexpected TlsSecretName")
 			}
 		})
 	})
@@ -332,32 +388,16 @@ func TestV2alpha1ToV1(t *testing.T) {
 		}
 	})
 
-	t.Run("TlsSecretName_k8s", func(t *testing.T) {
-		onFakeKubernetes(func() {
-			v1 := &v1.CheCluster{}
-			err := V2alpha1ToV1(&v2Obj, v1)
-			if err != nil {
-				t.Error(err)
-			}
+	t.Run("GatewayTlsSecretName", func(t *testing.T) {
+		v1 := &v1.CheCluster{}
+		err := V2alpha1ToV1(&v2Obj, v1)
+		if err != nil {
+			t.Error(err)
+		}
 
-			if v1.Spec.K8s.TlsSecretName != "superSecret" {
-				t.Errorf("Unexpected TlsSecretName: %s", v1.Spec.K8s.TlsSecretName)
-			}
-		})
-	})
-
-	t.Run("TlsSecretName_OpenShift", func(t *testing.T) {
-		onFakeOpenShift(func() {
-			v1 := &v1.CheCluster{}
-			err := V2alpha1ToV1(&v2Obj, v1)
-			if err != nil {
-				t.Error(err)
-			}
-
-			if v1.Spec.K8s.TlsSecretName != "" {
-				t.Errorf("Unexpected TlsSecretName")
-			}
-		})
+		if v1.Spec.Server.CheHostTLSSecret != "superSecret" {
+			t.Errorf("Unexpected TlsSecretName: %s", v1.Spec.Server.CheHostTLSSecret)
+		}
 	})
 }
 
