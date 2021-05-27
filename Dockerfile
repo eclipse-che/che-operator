@@ -11,20 +11,7 @@
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.4-200 as builder
-RUN microdnf install -y rpm gcc go-srpm-macros unzip
-RUN ARCH=$(uname -m) && \
-    if [ $ARCH == "s390x" ] || [ $ARCH == "ppc64le" ]; then \
-        GO_VERSION=1.14-1; \
-        curl -L https://rpmfind.net/linux/fedora-secondary/releases/32/Everything/${ARCH}/os/Packages/g/golang-src-${GO_VERSION}.fc32.noarch.rpm -o golang-src.rpm ; \
-        curl -L https://rpmfind.net/linux/fedora-secondary/releases/32/Everything/${ARCH}/os/Packages/g/golang-bin-${GO_VERSION}.fc32.${ARCH}.rpm -o golang-bin.rpm; \
-        curl -L https://rpmfind.net/linux/fedora-secondary/releases/32/Everything/${ARCH}/os/Packages/g/golang-${GO_VERSION}.fc32.${ARCH}.rpm -o golang.rpm; \
-    else \
-        GO_VERSION=1.14.15-3; \
-        curl -L https://rpmfind.net/linux/fedora/linux/updates/32/Everything/${ARCH}/Packages/g/golang-src-${GO_VERSION}.fc32.noarch.rpm -o golang-src.rpm ; \
-        curl -L https://rpmfind.net/linux/fedora/linux/updates/32/Everything/${ARCH}/Packages/g/golang-bin-${GO_VERSION}.fc32.${ARCH}.rpm -o golang-bin.rpm; \
-        curl -L https://rpmfind.net/linux/fedora/linux/updates/32/Everything/${ARCH}/Packages/g/golang-${GO_VERSION}.fc32.${ARCH}.rpm -o golang.rpm; \
-    fi && \
-    rpm -Uhv go* && \
+RUN microdnf install -y golang unzip && \
     go version
 
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
