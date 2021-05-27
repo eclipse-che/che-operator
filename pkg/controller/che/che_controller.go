@@ -623,8 +623,8 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
 	if !instance.Spec.Server.ExternalDevfileRegistry {
-		devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
 		done, err := devfileRegistry.SyncAll()
 		if !done {
 			if err != nil {
@@ -632,18 +632,13 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			return reconcile.Result{}, err
 		}
-	} else {
-		done, err := deploy.DeleteNamespacedObject(deployContext, deploy.DevfileRegistryName, &corev1.ConfigMap{})
-		if !done {
-			return reconcile.Result{}, err
+	}
+	done, err = devfileRegistry.UpdateStatus()
+	if !done {
+		if err != nil {
+			logrus.Error(err)
 		}
-
-		if instance.Spec.Server.DevfileRegistryUrl != instance.Status.DevfileRegistryURL {
-			instance.Status.DevfileRegistryURL = instance.Spec.Server.DevfileRegistryUrl
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: Devfile Registry URL", instance.Spec.Server.DevfileRegistryUrl); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
+		return reconcile.Result{}, err
 	}
 
 	d := dashboard.NewDashboard(deployContext)

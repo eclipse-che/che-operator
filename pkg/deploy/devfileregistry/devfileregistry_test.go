@@ -22,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -85,8 +86,21 @@ func TestDevfileRegistrySyncAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Deployment not found: %v", err)
 	}
+}
 
-	if cheCluster.Status.DevfileRegistryURL == "" {
-		t.Fatalf("Status wasn't updated")
+func TestUpdateStatus(t *testing.T) {
+	expectedDevfileRegistryUrl := "https://devfile-registry.internal"
+	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
+
+	devfileregistry := NewDevfileRegistry(deployContext)
+	devfileregistry.devfileRegistryUrl = "https://devfile-registry.internal"
+
+	done, err := devfileregistry.UpdateStatus()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync Devfile Registry: %v", err)
+	}
+
+	if deployContext.CheCluster.Status.DevfileRegistryURL != expectedDevfileRegistryUrl {
+		t.Fatalf("Expected %s, but found: %s", expectedDevfileRegistryUrl, deployContext.CheCluster.Status.DevfileRegistryURL)
 	}
 }
