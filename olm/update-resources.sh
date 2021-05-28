@@ -113,7 +113,7 @@ updateOperatorYaml() {
 
 updateDockerfile() {
   DOCKERFILE="${ROOT_PROJECT_DIR}/Dockerfile"
-  sed -i 's|registry.access.redhat.com/ubi8-minimal:.*|'${UBI8_MINIMAL_IMAGE}'|g' $DOCKERFILE
+  sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'${UBI8_MINIMAL_IMAGE}' |g' $DOCKERFILE
 }
 
 updateNighltyBundle() {
@@ -222,7 +222,7 @@ updateNighltyBundle() {
 
     # set `app.kubernetes.io/managed-by` label
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "${NEW_CSV}"
-    
+
     # set Pod Security Context Posture
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "${NEW_CSV}"
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "${NEW_CSV}"

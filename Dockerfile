@@ -9,13 +9,10 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# NOTE: using registry.access.redhat.com/rhel8/go-toolset does not work (user is requested to use registry.redhat.io)
-# NOTE: using registry.redhat.io/rhel8/go-toolset requires login, which complicates automation
-# NOTE: since updateBaseImages.sh does not support other registries than RHCC, update to RHEL8
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/devtools/go-toolset-rhel7
-FROM registry.access.redhat.com/devtools/go-toolset-rhel7:1.13.15-4  as builder
-ENV PATH=/opt/rh/go-toolset-1.13/root/usr/bin:${PATH} \
-    GOPATH=/go/
+# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
+FROM registry.access.redhat.com/ubi8-minimal:8.4-200 as builder
+RUN microdnf install -y golang unzip && \
+    go version
 
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
