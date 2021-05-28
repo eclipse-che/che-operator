@@ -508,6 +508,134 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 	}
 }
 
+func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
+	type testCase struct {
+		name                       string
+		isOpenShift                bool
+		isOpenShift4               bool
+		initObjects                []runtime.Object
+		cheCluster                 *orgv1.CheCluster
+		expectedDevfileRegistryURL string
+	}
+
+	testCases := []testCase{
+		{
+			name: "Test Status.DevfileRegistryURL #1",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: false,
+					},
+				},
+			},
+			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
+		},
+		{
+			name: "Test Status.DevfileRegistryURL #2",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: false,
+						DevfileRegistryUrl:      "https://devfile-registry.external.1",
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+			},
+			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
+		},
+		{
+			name: "Test Status.DevfileRegistryURL #2",
+			cheCluster: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						ExternalDevfileRegistry: true,
+						DevfileRegistryUrl:      "https://devfile-registry.external.1",
+						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
+							{Url: "https://devfile-registry.external.2"},
+						},
+					},
+				},
+			},
+			expectedDevfileRegistryURL: "",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			testCase.initObjects = append(testCase.initObjects, testCase.cheCluster)
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+
+			r := &ReconcileChe{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				scheme:          scheme,
+				tests:           true,
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			util.IsOpenShift = testCase.isOpenShift
+			util.IsOpenShift4 = testCase.isOpenShift4
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+
+			cr := &orgv1.CheCluster{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cr); err != nil {
+				t.Errorf("CR not found")
+			}
+
+			if cr.Status.DevfileRegistryURL != testCase.expectedDevfileRegistryURL {
+				t.Fatalf("Exected: %s, but found: %s", testCase.expectedDevfileRegistryURL, cr.Status.DevfileRegistryURL)
+			}
+		})
+	}
+}
+
 func TestImagePullerConfiguration(t *testing.T) {
 	type testCase struct {
 		name                  string

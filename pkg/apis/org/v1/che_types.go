@@ -163,8 +163,8 @@ type CheClusterSpecServer struct {
 	// +optional
 	DashboardCpuRequest string `json:"dashboardCpuRequest,omitempty"`
 	// Public URL of the devfile registry, that serves sample, ready-to-use devfiles.
-	// Set this ONLY when a use of an external devfile registry is needed. See the `externalDevfileRegistry` field.
-	// By default, this will be automatically calculated by the Operator.
+	// This will be automatically calculated by the Operator.
+	// See the `externalDevfileRegistry` and `externalDevfileRegistries` fields.
 	// +optional
 	DevfileRegistryUrl string `json:"devfileRegistryUrl,omitempty"`
 	// Overrides the container image used in the devfile registry deployment.
@@ -197,9 +197,13 @@ type CheClusterSpecServer struct {
 	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
 	// Instructs the Operator on whether to deploy a dedicated devfile registry server.
 	// By default, a dedicated devfile registry server is started. When `externalDevfileRegistry` is `true`, no such dedicated server
-	// will be started by the Operator and you will have to manually set the `devfileRegistryUrl` field
+	// will be started by the Operator and you will have to manually set the `externalDevfileRegistries` field
 	// +optional
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
+	// External devfile registries, that serves sample, ready-to-use devfiles.
+	// See the `externalDevfileRegistry` field.
+	// +optional
+	ExternalDevfileRegistries []ExternalDevfileRegistries `json:"externalDevfileRegistries,omitempty"`
 	// Public URL of the plugin registry that serves sample ready-to-use devfiles.
 	// Set this ONLY when a use of an external devfile registry is needed.
 	// See the `externalPluginRegistry` field. By default, this will be automatically calculated by the Operator.
@@ -584,6 +588,14 @@ type CheClusterSpecDevWorkspace struct {
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	ControllerImage string `json:"controllerImage,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+// Settings forconfiguration of the external devfile registries.
+type ExternalDevfileRegistries struct {
+	// Public URL of the devfile registry.
+	// +optional
+	Url string `json:"url,omitempty"`
 }
 
 // CheClusterStatus defines the observed state of Che installation
