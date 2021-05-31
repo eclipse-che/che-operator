@@ -13,6 +13,18 @@ const (
 	routeDomainSuffixPropertyKey = "CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"
 )
 
+func AsV1(v2 *v2alpha1.CheCluster) *v1.CheCluster {
+	ret := &v1.CheCluster{}
+	V2alpha1ToV1(v2, ret)
+	return ret
+}
+
+func AsV2alpha1(v1 *v1.CheCluster) *v2alpha1.CheCluster {
+	ret := &v2alpha1.CheCluster{}
+	V1ToV2alpha1(v1, ret)
+	return ret
+}
+
 func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 	v2Data := v1.Annotations[v2alpha1StorageAnnotation]
 	v2Spec := v2alpha1.CheClusterSpec{}
