@@ -135,9 +135,9 @@ const (
 type ClusterPhase string
 
 const (
-	ManagerPhaseActive          = "Active"
-	ManagerPhaseInactive        = "Inactive"
-	ManagerPhasePendingDeletion = "PendingDeletion"
+	ClusterPhaseActive          = "Active"
+	ClusterPhaseInactive        = "Inactive"
+	ClusterPhasePendingDeletion = "PendingDeletion"
 )
 
 // CheClusterStatus contains the status of the CheCluster object
