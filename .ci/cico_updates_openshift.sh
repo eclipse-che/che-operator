@@ -22,6 +22,7 @@ trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
   export DEV_WORKSPACE_ENABLE="true"
+  export CHE_EXPOSURE_STRATEGY="single-host"
 }
 
 runTests() {
@@ -44,6 +45,7 @@ runTests() {
 }
 
 initDefaults
+overrideDefaults
 provisionOpenShiftOAuthUser
 initStableTemplates "openshift" "stable"
 runTests
