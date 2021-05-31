@@ -78,6 +78,7 @@ func GetRouteSpec(
 	routeCustomSettings orgv1.RouteCustomSettings,
 	component string) (*routev1.Route, error) {
 
+	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, routeCustomSettings.Labels)
@@ -124,7 +125,8 @@ func GetRouteSpec(
 			Termination:                   routev1.TLSTerminationEdge,
 		}
 
-		if name == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+		// for server and dashboard ingresses
+		if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
 			secret := &corev1.Secret{}
 			namespacedName := types.NamespacedName{
 				Namespace: deployContext.CheCluster.Namespace,
