@@ -9,13 +9,15 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
+// Important: when any changes are made, CRD must be regenerated.
+// Please use olm/update-resources.sh script for that.
+
 package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// Important: Run "operator-sdk generate k8s" and "operator-sdk generate crds" to regenerate code after modifying this file
 
 // CheClusterRestoreSpec defines the desired state of CheClusterRestore
 type CheClusterRestoreSpec struct {

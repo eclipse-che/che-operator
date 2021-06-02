@@ -10,7 +10,8 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-// Important: Run "operator-sdk generate k8s" and "operator-sdk generate crds" to regenerate code after modifying this file
+// Important: when any changes are made, CRD must be regenerated.
+// Please use olm/update-resources.sh script for that.
 
 package v1
 

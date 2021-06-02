@@ -35,19 +35,26 @@ setLatestReleasedVersion() {
 downloadLatestReleasedBundleCRCRD() {
   mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/${platform}" "${STABLE_BUNDLE_PATH}/metadata"
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
-  PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
+  PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
+  PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterbackups_crd.yaml"
+  PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterrestores_crd.yaml"
 
   compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.2")
   if [ "${compareResult}" == "1" ]; then
+    # Version is newer than 7.27.2
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
         -q -O "${PRE_RELEASE_CSV}"
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
-        -q -O "${PRE_RELEASE_CRD}"
+        -q -O "${PRE_RELEASE_CHE_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
   else
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.v${LAST_RELEASE_VERSION}.clusterserviceversion.yaml" \
          -q -O "${PRE_RELEASE_CSV}"
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.crd.yaml" \
-          -q -O "${PRE_RELEASE_CRD}"
+          -q -O "${PRE_RELEASE_CHE_CRD}"
   fi
 }
 
@@ -74,7 +81,9 @@ do
 
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
   RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-  RELEASE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+  RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+  RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
+  RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
 
   setLatestReleasedVersion
   downloadLatestReleasedBundleCRCRD
@@ -97,7 +106,7 @@ do
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NIGHTLY_CSV}" > "${RELEASE_CSV}"
 
-  cp "${LAST_NIGHTLY_CRD}" "${RELEASE_CRD}"
+  cp "${LAST_NIGHTLY_CRD}" "${RELEASE_CHE_CRD}"
   cp -rf "${NIGHTLY_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
   cp -rf "${NIGHTLY_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 
@@ -121,9 +130,13 @@ do
 
   popd || true
 
-  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then
+  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CHE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
-    diff -u "${PRE_RELEASE_CRD}" "${RELEASE_CRD}" > "${RELEASE_CRD}.diff" || true
+    diff -u "${PRE_RELEASE_CHE_CRD}" "${RELEASE_CHE_CRD}" > "${RELEASE_CHE_CRD}.diff" || true
+  fi
+  if [[ -n "${PRE_RELEASE_CHE_BACKUP_CRD}" ]] && [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
+    diff -u "${PRE_RELEASE_CHE_BACKUP_CRD}" "${RELEASE_CHE_BACKUP_CRD}" > "${RELEASE_CHE_BACKUP_CRD}.diff" || true
+    diff -u "${PRE_RELEASE_CHE_RESTORE_CRD}" "${RELEASE_CHE_RESTORE_CRD}" > "${RELEASE_CHE_RESTORE_CRD}.diff" || true
   fi
 done
 

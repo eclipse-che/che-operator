@@ -17,8 +17,9 @@ RUN microdnf install -y golang unzip && \
 # get restic. Needed for backup / restore capabilities
 ENV RESTIC_VERSION=0.12.0
 RUN microdnf install -y bzip2 && \
-    curl -sLO https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_amd64.bz2 && \
-    bzip2 -d restic_${RESTIC_VERSION}_linux_amd64.bz2 && mv restic_* /tmp/restic && chmod +x /tmp/restic
+    export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
+    curl -sLO https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 && \
+    bzip2 -d restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 && mv restic_* /tmp/restic && chmod +x /tmp/restic
 
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"

@@ -31,7 +31,7 @@ while [[ "$#" -gt 0 ]]; do
   esac
   shift 1
 done
-if [[ ! ${GITHUB_TOKEN} ]]; then 
+if [[ ! ${GITHUB_TOKEN} ]]; then
   echo "Error: Must export GITHUB_TOKEN=[your token here] in order to generate pull request!"
   exit 1
 fi
@@ -121,9 +121,11 @@ do
   > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
   echo
-  echo "   - Update the CRD file"
+  echo "   - Update the CRD files"
   cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org_v1_che_crd.yaml" \
   "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
+  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml"
+  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml"
   echo
   echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
@@ -147,7 +149,7 @@ do
   echo
   template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
   HUB=$(command -v hub 2>/dev/null)
-  if [[ $HUB ]] && [[ -x $HUB ]]; then 
+  if [[ $HUB ]] && [[ -x $HUB ]]; then
     echo "   - Use $HUB to generate PR from template: ${template_file}"
     PRbody=$(curl -sSLo - ${template_file} | \
     sed -r -n '/#+ Updates to existing Operators/,$p' | sed -r -e "s#\[\ \]#[x]#g")
@@ -156,7 +158,7 @@ do
   $HUB pull-request -f -m "${lastCommitComment}
 
 ${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
-  else 
+  else
     echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
 ${template_file}
 
@@ -167,7 +169,7 @@ ${GIT_REMOTE_FORK_CLEAN}/pull/new/${branch}
 done
 cd "${CURRENT_DIR}"
 
-echo 
+echo
 echo "Generated pull requests will be here:
 
 https://github.com/operator-framework/community-operators/pulls?q=is%3Apr+%22Update+eclipse-che+operator+for%22+is%3Aopen
