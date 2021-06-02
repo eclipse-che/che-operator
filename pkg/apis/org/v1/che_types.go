@@ -162,9 +162,7 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	DashboardCpuRequest string `json:"dashboardCpuRequest,omitempty"`
-	// Public URL of the devfile registry, that serves sample, ready-to-use devfiles.
-	// This will be automatically calculated by the Operator.
-	// See the `externalDevfileRegistry` and `externalDevfileRegistries` fields.
+	// Deprecated in favor of `externalDevfileRegistries` fields.
 	// +optional
 	DevfileRegistryUrl string `json:"devfileRegistryUrl,omitempty"`
 	// Overrides the container image used in the devfile registry deployment.
@@ -196,12 +194,14 @@ type CheClusterSpecServer struct {
 	// +optional
 	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
 	// Instructs the Operator on whether to deploy a dedicated devfile registry server.
-	// By default, a dedicated devfile registry server is started. When `externalDevfileRegistry` is `true`, no such dedicated server
-	// will be started by the Operator and you will have to manually set the `externalDevfileRegistries` field
+	// By default, a dedicated devfile registry server is started. When `externalDevfileRegistry` is `true`,
+	// no such dedicated server will be started by the Operator and configure at least one
+	// devfile registry with `externalDevfileRegistries` field.
 	// +optional
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
 	// External devfile registries, that serves sample, ready-to-use devfiles.
-	// See the `externalDevfileRegistry` field.
+	// Configure this in addition to a dedicated devfile registry (when `externalDevfileRegistry` is `false`)
+	// or instead of it (when `externalDevfileRegistry` is `true`)
 	// +optional
 	ExternalDevfileRegistries []ExternalDevfileRegistries `json:"externalDevfileRegistries,omitempty"`
 	// Public URL of the plugin registry that serves sample ready-to-use devfiles.
@@ -591,7 +591,7 @@ type CheClusterSpecDevWorkspace struct {
 }
 
 // +k8s:openapi-gen=true
-// Settings forconfiguration of the external devfile registries.
+// Settings for a configuration of the external devfile registries.
 type ExternalDevfileRegistries struct {
 	// Public URL of the devfile registry.
 	// +optional
