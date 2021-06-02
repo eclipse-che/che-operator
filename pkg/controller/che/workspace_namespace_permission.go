@@ -60,7 +60,7 @@ func (r *ReconcileChe) reconcileWorkspacePermissions(deployContext *deploy.Deplo
 // Create cluster roles and cluster role bindings for "che" service account.
 // che-server uses "che" service account for creation new workspaces and workspace components.
 // Operator will create two cluster roles:
-// - "<workspace-namespace/project-name>-cheworkspaces-namespaces-clusterrole" - cluster role to mange namespace(for Kubernetes platform)
+// - "<workspace-namespace/project-name>-cheworkspaces-namespaces-clusterrole" - cluster role to manage namespace(for Kubernetes platform)
 //    or project(for Openshift platform) for new workspace.
 // - "<workspace-namespace/project-name>-cheworkspaces-clusterrole" - cluster role to create and manage k8s objects required for
 //    workspace components.
@@ -205,7 +205,7 @@ func getWorkspacesPolicies() []rbac.PolicyRule {
 		{
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumeclaims"},
-			Verbs:     []string{"get", "create", "watch"},
+			Verbs:     []string{"get", "create", "watch", "delete"},
 		},
 		{
 			APIGroups: []string{""},
