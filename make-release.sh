@@ -266,7 +266,7 @@ pushGitChanges() {
 createPRToXBranch() {
   echo "[INFO] createPRToXBranch :: Create pull request into ${BRANCH} branch"
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
-  hub pull-request $FORCE_UPDATE --base ${BRANCH} --head ${RELEASE_BRANCH} -m "Release version ${RELEASE}"
+  hub pull-request $FORCE_UPDATE --base ${BRANCH} --head ${RELEASE_BRANCH} -m "ci: Release version ${RELEASE}"
   set -e
 }
 
@@ -282,7 +282,7 @@ createPRToMainBranch() {
   fi
   git push origin $tmpBranch -f
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
-  hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "Copy "$RELEASE" csv to main"
+  hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "ci: Copy "$RELEASE" csv to main"
   set -e
 }
 
