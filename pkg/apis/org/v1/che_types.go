@@ -195,12 +195,12 @@ type CheClusterSpecServer struct {
 	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
 	// Instructs the Operator on whether to deploy a dedicated devfile registry server.
 	// By default, a dedicated devfile registry server is started. When `externalDevfileRegistry` is `true`,
-	// no such dedicated server will be started by the Operator.
-	// See the `externalDevfileRegistries` field.
+	// no such dedicated server will be started by the Operator and configure at least one
+	// devfile registry with `externalDevfileRegistries` field.
 	// +optional
 	ExternalDevfileRegistry bool `json:"externalDevfileRegistry"`
 	// External devfile registries, that serves sample, ready-to-use devfiles.
-	// Configure this in addition to an dedicated devfile registry (when `externalDevfileRegistry` is `false`)
+	// Configure this in addition to a dedicated devfile registry (when `externalDevfileRegistry` is `false`)
 	// or instead of it (when `externalDevfileRegistry` is `true`)
 	// +optional
 	ExternalDevfileRegistries []ExternalDevfileRegistries `json:"externalDevfileRegistries,omitempty"`
