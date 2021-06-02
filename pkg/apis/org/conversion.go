@@ -11,6 +11,8 @@ const (
 	v1StorageAnnotation          = "che.eclipse.org/cheClusterV1Spec"
 	v2alpha1StorageAnnotation    = "che.eclipse.org/cheClusterV2alpha1Spec"
 	routeDomainSuffixPropertyKey = "CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX"
+	defaultV2alpha1IngressClass  = "nginx"
+	defaultV1IngressClass        = "nginx"
 )
 
 func AsV1(v2 *v2alpha1.CheCluster) *v1.CheCluster {
@@ -150,18 +152,18 @@ func v1ToV2alpha1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluste
 }
 
 func v1ToV2alpha1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	annotations := map[string]string{
-		"kubernetes.io/ingress.class":                       v1.Spec.K8s.IngressClass,
-		"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-		"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
+	// The only property in v1 spec that boils down to the ingress annotations is the K8s.IngressClass
+	if v1.Spec.K8s.IngressClass != "" && v1.Spec.K8s.IngressClass != defaultV2alpha1IngressClass {
+		if v2.Spec.K8s.IngressAnnotations == nil {
+			v2.Spec.K8s.IngressAnnotations = map[string]string{}
+		}
+		v2.Spec.K8s.IngressAnnotations["kubernetes.io/ingress.class"] = v1.Spec.K8s.IngressClass
 	}
+
 	// This is what is applied in the deploy/ingress.go but I don't think it is applicable in our situation
 	// if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
 	// 	annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	// }
-
-	v2.Spec.K8s.IngressAnnotations = annotations
 }
 
 func v2alpha1ToV1_Enabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -259,7 +261,7 @@ func v2alpha1ToV1_GatewayImage(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 }
 
 func v2alpha1ToV1_GatewayConfigurerImage(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	v1.Spec.Server.SingleHostGatewayConfigSidecarImage = v2.Spec.Gateway.Image
+	v1.Spec.Server.SingleHostGatewayConfigSidecarImage = v2.Spec.Gateway.ConfigurerImage
 }
 
 func v2alpha1ToV1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -270,7 +272,9 @@ func v2alpha1ToV1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluste
 func v2alpha1ToV1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	ingressClass := v2.Spec.K8s.IngressAnnotations["kubernetes.io/ingress.class"]
 	if ingressClass == "" {
-		ingressClass = "nginx"
+		ingressClass = defaultV2alpha1IngressClass
 	}
-	v1.Spec.K8s.IngressClass = ingressClass
+	if v1.Spec.K8s.IngressClass != "" || ingressClass != defaultV1IngressClass {
+		v1.Spec.K8s.IngressClass = ingressClass
+	}
 }

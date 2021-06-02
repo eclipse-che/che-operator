@@ -575,6 +575,106 @@ func TestExposureStrategyConversions(t *testing.T) {
 	})
 }
 
+func TestFullCircleV1(t *testing.T) {
+	v1Obj := v1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "che-cluster",
+			Annotations: map[string]string{
+				"anno1": "annoValue1",
+				"anno2": "annoValue2",
+			},
+		},
+		Spec: v1.CheClusterSpec{
+			Auth: v1.CheClusterSpecAuth{
+				IdentityProviderURL: "kachny",
+			},
+			Database: v1.CheClusterSpecDB{
+				ExternalDb:    true,
+				PostgresImage: "postgres:the-best-version",
+			},
+			DevWorkspace: v1.CheClusterSpecDevWorkspace{},
+			ImagePuller: v1.CheClusterSpecImagePuller{
+				Spec: v1alpha1.KubernetesImagePullerSpec{
+					ConfigMapName: "pulled-kachna",
+				},
+			},
+			K8s: v1.CheClusterSpecK8SOnly{
+				IngressDomain:   "ingressDomain",
+				IngressClass:    "traefik",
+				TlsSecretName:   "k8sSecret",
+				IngressStrategy: "single-host",
+			},
+			Metrics: v1.CheClusterSpecMetrics{
+				Enable: true,
+			},
+			Server: v1.CheClusterSpecServer{
+				CheHost:                "cheHost",
+				CheImage:               "teh-che-severe",
+				SingleHostGatewayImage: "single-host-image-of-the-year",
+				CheHostTLSSecret:       "cheSecret",
+				CustomCheProperties: map[string]string{
+					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "routeDomain",
+				},
+			},
+			Storage: v1.CheClusterSpecStorage{
+				PvcStrategy: "common",
+			},
+		},
+	}
+
+	v2Obj := v2alpha1.CheCluster{}
+	V1ToV2alpha1(&v1Obj, &v2Obj)
+
+	convertedV1 := v1.CheCluster{}
+	V2alpha1ToV1(&v2Obj, &convertedV1)
+
+	if !reflect.DeepEqual(&v1Obj, &convertedV1) {
+		t.Errorf("V1 not equal to itself after the conversion through v2alpha1: %v", cmp.Diff(&v1Obj, &convertedV1))
+	}
+}
+
+func TestFullCircleV2(t *testing.T) {
+	v2Obj := v2alpha1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "che-cluster",
+			Annotations: map[string]string{
+				"anno1": "annoValue1",
+				"anno2": "annoValue2",
+			},
+		},
+		Spec: v2alpha1.CheClusterSpec{
+			Enabled: pointer.BoolPtr(true),
+			WorkspaceDomainEndpoints: v2alpha1.WorkspaceDomainEndpoints{
+				BaseDomain:    "baseDomain",
+				TlsSecretName: "workspaceSecret",
+			},
+			Gateway: v2alpha1.CheGatewaySpec{
+				Host:            "v2Host",
+				Enabled:         pointer.BoolPtr(true),
+				Image:           "gateway-image",
+				ConfigurerImage: "configurer-image",
+				TlsSecretName:   "superSecret",
+			},
+			K8s: v2alpha1.CheClusterSpecK8s{
+				IngressAnnotations: map[string]string{
+					"kubernetes.io/ingress.class": "some-other-ingress",
+					"a":                           "b",
+				},
+			},
+		},
+	}
+
+	v1Obj := v1.CheCluster{}
+	V2alpha1ToV1(&v2Obj, &v1Obj)
+
+	convertedV2 := v2alpha1.CheCluster{}
+	V1ToV2alpha1(&v1Obj, &convertedV2)
+
+	if !reflect.DeepEqual(&v2Obj, &convertedV2) {
+		t.Errorf("V2alpha1 not equal to itself after the conversion through v1: %v", cmp.Diff(&v2Obj, &convertedV2))
+	}
+}
+
 func onFakeOpenShift(f func()) {
 	origOpenshift := util.IsOpenShift
 	origOpenshift4 := util.IsOpenShift4
