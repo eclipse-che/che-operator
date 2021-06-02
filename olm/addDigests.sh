@@ -95,7 +95,7 @@ do
     if [[ -z ${RELATED_IMAGES_ENV} ]]; then
       RELATED_IMAGES_ENV="${ENV}"
     elif [[ ! ${RELATED_IMAGES_ENV} =~ ${relatedImageEnvName} ]]; then
-        RELATED_IMAGES_ENV="${RELATED_IMAGES_ENV}, ${ENV}"
+      RELATED_IMAGES_ENV="${RELATED_IMAGES_ENV}, ${ENV}"
     fi
   fi
 
