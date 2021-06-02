@@ -29,7 +29,7 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] -t [IMAGE_TAG] "
-	echo "Example: ./olm/addDigests.sh -w . -s 'deploy/olm-catalog/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml' -t 7.21.1"
+	echo "Example: ./olm/addDigests.sh -w . -s 'deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml' -t 7.21.1"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -94,15 +94,16 @@ do
     ENV="{ name: \"${relatedImageEnvName}\", value: \"${dest}\"}"
     if [[ -z ${RELATED_IMAGES_ENV} ]]; then
       RELATED_IMAGES_ENV="${ENV}"
-    else
+    elif [[ ! ${RELATED_IMAGES_ENV} =~ ${relatedImageEnvName} ]]; then
       RELATED_IMAGES_ENV="${RELATED_IMAGES_ENV}, ${ENV}"
     fi
   fi
 
-  RELATED_IMAGE="{ name: \"${name}-${tagOrDigest}\", image: \"${dest}\", tag: \"${source}\"}"
+  relatedImageName=${name}-${tagOrDigest}
+  RELATED_IMAGE="{ name: \"${relatedImageName}\", image: \"${dest}\", tag: \"${source}\"}"
   if [[ -z ${RELATED_IMAGES} ]]; then
     RELATED_IMAGES="${RELATED_IMAGE}"
-  else
+  elif [[ ! ${RELATED_IMAGES} =~ ${relatedImageName} ]]; then
     RELATED_IMAGES="${RELATED_IMAGES}, ${RELATED_IMAGE}"
   fi
 
