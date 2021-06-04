@@ -162,6 +162,12 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	DashboardCpuRequest string `json:"dashboardCpuRequest,omitempty"`
+	// Dashboard ingress custom settings.
+	// +optional
+	DashboardIngress IngressCustomSettings `json:"dashboardIngress,omitempty"`
+	// Dashboard route custom settings.
+	// +optional
+	DashboardRoute RouteCustomSettings `json:"dashboardRoute,omitempty"`
 	// Deprecated in favor of `externalDevfileRegistries` fields.
 	// +optional
 	DevfileRegistryUrl string `json:"devfileRegistryUrl,omitempty"`
@@ -457,6 +463,9 @@ type IngressCustomSettings struct {
 	// Comma separated list of labels that can be used to organize and categorize objects by scoping and selecting.
 	// +optional
 	Labels string `json:"labels,omitempty"`
+	// Unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // Route custom settings, can be extended in the future
@@ -469,6 +478,9 @@ type RouteCustomSettings struct {
 	// The generated host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.
 	// +optional
 	Domain string `json:"domain,omitempty"`
+	// Unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ResourceRequirements describes the compute resource requirements.

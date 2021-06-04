@@ -62,7 +62,8 @@ func TestIngressSpec(t *testing.T) {
 			serviceName:      "che",
 			servicePort:      8080,
 			ingressCustomSettings: orgv1.IngressCustomSettings{
-				Labels: "type=default",
+				Labels:      "type=default",
+				Annotations: map[string]string{"annotation-key": "annotation-value"},
 			},
 			initObjects: []runtime.Object{},
 			expectedIngress: &v1beta1.Ingress{
@@ -81,6 +82,7 @@ func TestIngressSpec(t *testing.T) {
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
+						"annotation-key": "annotation-value",
 					},
 				},
 				TypeMeta: metav1.TypeMeta{

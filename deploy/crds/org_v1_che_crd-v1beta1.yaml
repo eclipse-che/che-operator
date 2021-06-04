@@ -115,6 +115,13 @@ spec:
                 identityProviderIngress:
                   description: Ingress custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -153,6 +160,13 @@ spec:
                 identityProviderRoute:
                   description: Route custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     domain:
                       description: 'Operator uses the domain to generate a hostname
                         for a route. In a conjunction with labels it creates a route,
@@ -491,6 +505,13 @@ spec:
                 cheServerIngress:
                   description: The Che server ingress custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -499,6 +520,13 @@ spec:
                 cheServerRoute:
                   description: The Che server route custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     domain:
                       description: 'Operator uses the domain to generate a hostname
                         for a route. In a conjunction with labels it creates a route,
@@ -543,6 +571,21 @@ spec:
                     deployment. Default value is `Always` for `nightly` or `latest`
                     images, and `IfNotPresent` in other cases.
                   type: string
+                dashboardIngress:
+                  description: Dashboard ingress custom settings.
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize objects by scoping and selecting.
+                      type: string
+                  type: object
                 dashboardMemoryLimit:
                   description: Overrides the memory limit used in the dashboard deployment.
                     Defaults to 256Mi.
@@ -551,6 +594,27 @@ spec:
                   description: Overrides the memory request used in the dashboard
                     deployment. Defaults to 16Mi.
                   type: string
+                dashboardRoute:
+                  description: Dashboard route custom settings.
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
+                    domain:
+                      description: 'Operator uses the domain to generate a hostname
+                        for a route. In a conjunction with labels it creates a route,
+                        which is served by a non-default Ingress controller. The generated
+                        host name will follow this pattern: `<route-name>-<route-namespace>.<domain>`.'
+                      type: string
+                    labels:
+                      description: Comma separated list of labels that can be used
+                        to organize and categorize objects by scoping and selecting.
+                      type: string
+                  type: object
                 devfileRegistryCpuLimit:
                   description: Overrides the CPU limit used in the devfile registry
                     deployment. In cores. (500m = .5 cores). Default to 500m.
@@ -567,6 +631,13 @@ spec:
                 devfileRegistryIngress:
                   description: The devfile registry ingress custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -588,6 +659,13 @@ spec:
                 devfileRegistryRoute:
                   description: The devfile registry route custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     domain:
                       description: 'Operator uses the domain to generate a hostname
                         for a route. In a conjunction with labels it creates a route,
@@ -665,6 +743,13 @@ spec:
                 pluginRegistryIngress:
                   description: Plugin registry ingress custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     labels:
                       description: Comma separated list of labels that can be used
                         to organize and categorize objects by scoping and selecting.
@@ -686,6 +771,13 @@ spec:
                 pluginRegistryRoute:
                   description: Plugin registry route custom settings.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Unstructured key value map stored with a resource
+                        that may be set by external tools to store and retrieve arbitrary
+                        metadata.
+                      type: object
                     domain:
                       description: 'Operator uses the domain to generate a hostname
                         for a route. In a conjunction with labels it creates a route,

@@ -102,6 +102,11 @@ func GetIngressSpec(
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 
+	// add custom annotations
+	for k, v := range ingressCustomSettings.Annotations {
+		annotations[k] = v
+	}
+
 	ingress := &v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",

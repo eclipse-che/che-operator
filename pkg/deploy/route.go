@@ -83,6 +83,12 @@ func GetRouteSpec(
 	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, routeCustomSettings.Labels)
 
+	// add custom annotations
+	annotations := map[string]string{}
+	for k, v := range routeCustomSettings.Annotations {
+		annotations[k] = v
+	}
+
 	weight := int32(100)
 
 	targetPort := intstr.IntOrString{
@@ -95,9 +101,10 @@ func GetRouteSpec(
 			APIVersion: routev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: deployContext.CheCluster.Namespace,
-			Labels:    labels,
+			Name:        name,
+			Namespace:   deployContext.CheCluster.Namespace,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 	}
 
