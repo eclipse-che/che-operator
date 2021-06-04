@@ -64,7 +64,6 @@ func GetIngressSpec(
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
-	tlsHosts := []string{ingressDomain}
 	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, component)
@@ -74,9 +73,6 @@ func GetIngressSpec(
 		// for server and dashboard ingresses
 		if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
 			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
-			if host != "" {
-				tlsHosts = []string{host}
-			}
 		}
 	}
 
@@ -142,7 +138,7 @@ func GetIngressSpec(
 	if tlsSupport {
 		ingress.Spec.TLS = []v1beta1.IngressTLS{
 			{
-				Hosts:      tlsHosts,
+				Hosts:      []string{host},
 				SecretName: tlsSecretName,
 			},
 		}
