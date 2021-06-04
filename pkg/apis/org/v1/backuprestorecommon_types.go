@@ -24,18 +24,22 @@ const (
 // List of supported backup servers
 type BackupServers struct {
 	// Rest server within the cluster.
-	// The server and configuration are created by operator when AutoconfigureRestBackupServer is true
+	// The server and configuration are created by operator when AutoconfigureRestBackupServer is true.
 	Internal RestServerConfig `json:"internal,omitempty"`
-	// Sftp backup server configuration
+	// Sftp backup server configuration.
+	// Mandatory fields are: RepoPassword, Hostname, Repo, Username, SshKeySecretRef.
 	Sftp SftpServerConfing `json:"sftp,omitempty"`
-	// Rest backup server configuration
+	// Rest backup server configuration.
+	// Mandatory fields are: RepoPassword, Hostname.
 	Rest RestServerConfig `json:"rest,omitempty"`
-	// Amazon S3 or alternatives
+	// Amazon S3 or alternatives.
+	// Mandatory fields are: RepoPassword, Repo, AWS key+id or secret with it.
 	AwsS3 AwsS3ServerConfig `json:"awss3,omitempty"`
 }
 
-// Holds restic repository password to decrypt its content
-// At least one of the fields has to be filled in
+// Holds restic repository password to decrypt its content.
+// At least one of the fields has to be filled in.
+// In case both field are provided Password field gets precedence.
 type RepoPassword struct {
 	// Password for restic repository
 	Password string `json:"password,omitempty"`
@@ -48,7 +52,9 @@ type RepoPassword struct {
 // Example: user@host://srv/repo
 // Mandatory fields are: RepoPassword, Hostname, Repo, Username, SshKeySecretRef
 type SftpServerConfing struct {
-	// Restic repository password
+	// Restic repository password.
+	// At least one of the fields has to be filled in.
+	// In case both field are provided Password field gets precedence.
 	RepoPassword `json:"repoPassword,omitempty"`
 	// Backup server host
 	Hostname string `json:"hostname,omitempty"`
@@ -67,7 +73,9 @@ type SftpServerConfing struct {
 // Example: https://user:password@host:5000/repo/
 // Mandatory fields are: RepoPassword, Hostname
 type RestServerConfig struct {
-	// Restic repository password
+	// Restic repository password.
+	// At least one of the fields has to be filled in.
+	// In case both field are provided Password field gets precedence.
 	RepoPassword `json:"repoPassword,omitempty"`
 	// Protocol to use when connection to the server
 	// Defaults to https.
@@ -78,18 +86,23 @@ type RestServerConfig struct {
 	Port int `json:"port,omitempty"`
 	// Restic repository path
 	Repo string `json:"repo,omitempty"`
-	// User login on the remote server
+	// User login on the remote server.
+	// Together with Password field is alternative with higher priority to CredentialsSecretRef.
 	Username string `json:"username,omitempty"`
-	// Password to authenticate the user
+	// Password to authenticate the user.
+	// Together with Username field is alternative with higher priority to CredentialsSecretRef.
 	Password string `json:"password,omitempty"`
-	// Secret that contains username and password fields
+	// Secret that contains username and password fields.
+	// If Username and Password fields are set, then they are used instead.
 	CredentialsSecretRef string `json:"credentialsSecretRef,omitempty"`
 }
 
 // +k8s:openapi-gen=true
 // Mandatory fields are: RepoPassword, Repo, AWS key+id or secret with it
 type AwsS3ServerConfig struct {
-	// Restic repository password
+	// Restic repository password.
+	// At least one of the fields has to be filled in.
+	// In case both field are provided Password field gets precedence.
 	RepoPassword `json:"repoPassword,omitempty"`
 	// Protocol to use when connection to the server.
 	// Might be customized in case of alternative server.
@@ -103,10 +116,13 @@ type AwsS3ServerConfig struct {
 	Port int `json:"port,omitempty"`
 	// Bucket name and repository, e.g. bucket/repo
 	Repo string `json:"repo,omitempty"`
-	// Content of AWS_ACCESS_KEY_ID environment variable
+	// Content of AWS_ACCESS_KEY_ID environment variable.
+	// Together with AwsSecretAccessKey field is higher priority alternative to AwsAccessKeySecretRef.
 	AwsAccessKeyId string `json:"awsAccessKeyId,omitempty"`
-	// Content of AWS_SECRET_ACCESS_KEY environment variable
+	// Content of AWS_SECRET_ACCESS_KEY environment variable.
+	// Together with AwsAccessKeyId field is higher priority alternative to AwsAccessKeySecretRef.
 	AwsSecretAccessKey string `json:"awsSecretAccessKey,omitempty"`
-	// Reference to secret that contains awsAccessKeyId and awsSecretAccessKey fields
+	// Reference to secret that contains awsAccessKeyId and awsSecretAccessKey keys.
+	// Alternative with lower priority to sibling AwsAccessKeyId and AwsSecretAccessKey fields.
 	AwsAccessKeySecretRef string `json:"awsAccessKeySecretRef,omitempty"`
 }

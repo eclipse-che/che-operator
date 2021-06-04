@@ -31,7 +31,7 @@ type CheClusterRestoreSpec struct {
 	// Set to true to start backup process.
 	TriggerNow bool `json:"triggerNow"`
 	// If more than one backup server configured, should specify which one to use.
-	// Allowed values are fields names form BackupServers struct.
+	// Allowed values are keys from sibling Servers field.
 	ServerType string `json:"serverType,omitempty"`
 	// List of backup servers.
 	// Usually only one is used.

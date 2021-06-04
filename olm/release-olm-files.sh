@@ -46,10 +46,13 @@ downloadLatestReleasedBundleCRCRD() {
         -q -O "${PRE_RELEASE_CSV}"
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_CRD}"
+    # Ignore download errors as new CRDs might not yet exist
+    set +e
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
+    set -e
   else
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.v${LAST_RELEASE_VERSION}.clusterserviceversion.yaml" \
          -q -O "${PRE_RELEASE_CSV}"

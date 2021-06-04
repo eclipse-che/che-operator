@@ -26,7 +26,7 @@ import (
 // getResticRepoPassword checks if the password for restic repository is specified and retrieves it.
 // It doesn't check the password correctness.
 // Returns:
-//  - password or empty string if password is not set.
+//  - password or empty string if password is not set
 //  - done status
 //  - error if any
 // Password from CR takes precedence over the password from secret.
