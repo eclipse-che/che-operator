@@ -212,6 +212,11 @@ func (in *CheClusterSpecServer) DeepCopyInto(out *CheClusterSpecServer) {
 	in.DashboardRoute.DeepCopyInto(&out.DashboardRoute)
 	in.DevfileRegistryIngress.DeepCopyInto(&out.DevfileRegistryIngress)
 	in.DevfileRegistryRoute.DeepCopyInto(&out.DevfileRegistryRoute)
+	if in.ExternalDevfileRegistries != nil {
+		in, out := &in.ExternalDevfileRegistries, &out.ExternalDevfileRegistries
+		*out = make([]ExternalDevfileRegistries, len(*in))
+		copy(*out, *in)
+	}
 	in.PluginRegistryIngress.DeepCopyInto(&out.PluginRegistryIngress)
 	in.PluginRegistryRoute.DeepCopyInto(&out.PluginRegistryRoute)
 	if in.CustomCheProperties != nil {
