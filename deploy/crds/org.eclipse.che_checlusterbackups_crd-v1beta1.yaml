@@ -48,25 +48,30 @@ spec:
               type: boolean
             serverType:
               description: If more than one backup server configured, should specify
-                which one to use. Allowed values are fields names form BackupServers
-                struct.
+                which one to use. Allowed values are keys from sibling Servers field.
               type: string
             servers:
               description: List of backup servers. Usually only one is used. In case
                 of several available, ServerType should contain server to use.
               properties:
                 awss3:
-                  description: Amazon S3 or alternatives
+                  description: 'Amazon S3 or alternatives. Mandatory fields are: RepoPassword,
+                    Repo, AWS key+id or secret with it.'
                   properties:
                     awsAccessKeyId:
-                      description: Content of AWS_ACCESS_KEY_ID environment variable
+                      description: Content of AWS_ACCESS_KEY_ID environment variable.
+                        Together with AwsSecretAccessKey field is higher priority
+                        alternative to AwsAccessKeySecretRef.
                       type: string
                     awsAccessKeySecretRef:
                       description: Reference to secret that contains awsAccessKeyId
-                        and awsSecretAccessKey fields
+                        and awsSecretAccessKey keys. Alternative with lower priority
+                        to sibling AwsAccessKeyId and AwsSecretAccessKey fields.
                       type: string
                     awsSecretAccessKey:
-                      description: Content of AWS_SECRET_ACCESS_KEY environment variable
+                      description: Content of AWS_SECRET_ACCESS_KEY environment variable.
+                        Together with AwsAccessKeyId field is higher priority alternative
+                        to AwsAccessKeySecretRef.
                       type: string
                     hostname:
                       description: Server hostname, defaults to 's3.amazonaws.com'.
@@ -84,7 +89,9 @@ spec:
                       description: Bucket name and repository, e.g. bucket/repo
                       type: string
                     repoPassword:
-                      description: Restic repository password
+                      description: Restic repository password. At least one of the
+                        fields has to be filled in. In case both field are provided
+                        Password field gets precedence.
                       properties:
                         password:
                           description: Password for restic repository
@@ -97,16 +104,19 @@ spec:
                 internal:
                   description: Rest server within the cluster. The server and configuration
                     are created by operator when AutoconfigureRestBackupServer is
-                    true
+                    true.
                   properties:
                     credentialsSecretRef:
-                      description: Secret that contains username and password fields
+                      description: Secret that contains username and password fields.
+                        If Username and Password fields are set, then they are used
+                        instead.
                       type: string
                     hostname:
                       description: Backup server host
                       type: string
                     password:
-                      description: Password to authenticate the user
+                      description: Password to authenticate the user. Together with
+                        Username field is alternative with higher priority to CredentialsSecretRef.
                       type: string
                     port:
                       description: Backup server port
@@ -119,7 +129,9 @@ spec:
                       description: Restic repository path
                       type: string
                     repoPassword:
-                      description: Restic repository password
+                      description: Restic repository password. At least one of the
+                        fields has to be filled in. In case both field are provided
+                        Password field gets precedence.
                       properties:
                         password:
                           description: Password for restic repository
@@ -129,20 +141,25 @@ spec:
                           type: string
                       type: object
                     username:
-                      description: User login on the remote server
+                      description: User login on the remote server. Together with
+                        Password field is alternative with higher priority to CredentialsSecretRef.
                       type: string
                   type: object
                 rest:
-                  description: Rest backup server configuration
+                  description: 'Rest backup server configuration. Mandatory fields
+                    are: RepoPassword, Hostname.'
                   properties:
                     credentialsSecretRef:
-                      description: Secret that contains username and password fields
+                      description: Secret that contains username and password fields.
+                        If Username and Password fields are set, then they are used
+                        instead.
                       type: string
                     hostname:
                       description: Backup server host
                       type: string
                     password:
-                      description: Password to authenticate the user
+                      description: Password to authenticate the user. Together with
+                        Username field is alternative with higher priority to CredentialsSecretRef.
                       type: string
                     port:
                       description: Backup server port
@@ -155,7 +172,9 @@ spec:
                       description: Restic repository path
                       type: string
                     repoPassword:
-                      description: Restic repository password
+                      description: Restic repository password. At least one of the
+                        fields has to be filled in. In case both field are provided
+                        Password field gets precedence.
                       properties:
                         password:
                           description: Password for restic repository
@@ -165,11 +184,13 @@ spec:
                           type: string
                       type: object
                     username:
-                      description: User login on the remote server
+                      description: User login on the remote server. Together with
+                        Password field is alternative with higher priority to CredentialsSecretRef.
                       type: string
                   type: object
                 sftp:
-                  description: Sftp backup server configuration
+                  description: 'Sftp backup server configuration. Mandatory fields
+                    are: RepoPassword, Hostname, Repo, Username, SshKeySecretRef.'
                   properties:
                     hostname:
                       description: Backup server host
@@ -182,7 +203,9 @@ spec:
                         /srv/repo
                       type: string
                     repoPassword:
-                      description: Restic repository password
+                      description: Restic repository password. At least one of the
+                        fields has to be filled in. In case both field are provided
+                        Password field gets precedence.
                       properties:
                         password:
                           description: Password for restic repository
