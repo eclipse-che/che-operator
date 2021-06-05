@@ -178,9 +178,6 @@ do
     fi
 done
 
-# Get the ocp domain for che custom resources
-export DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
-
 # Define the CR patch specifying the airgap registry and nonProxy-hosts
 cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
@@ -189,7 +186,6 @@ spec:
   server:
     airGapContainerRegistryHostname: $INTERNAL_REGISTRY_URL
     airGapContainerRegistryOrganization: 'eclipse'
-    nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
 # Provision test user to openshift cluster
@@ -199,9 +195,6 @@ provisionOpenShiftOAuthUser
 # Deploy Eclipse Che and retrieve golang devfile from devfile-registry
 chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
 
-# Add a sleep of 2 hours to do some manual tests in the cluster.
-sleep 2h
-
 DEVFILEURL=$(oc get checluster/eclipse-che -n eclipse-che -o "jsonpath={.status.devfileRegistryURL}")
 curl -sSLo- -vk "${DEVFILEURL}/devfiles/go/devfile.yaml" > /tmp/devfile.yaml
 
@@ -210,3 +203,6 @@ provisionOAuth
 chectl auth:login -u admin -p admin
 chectl workspace:create --start --devfile=/tmp/devfile.yaml
 waitWorkspaceStart
+
+# Add a sleep of 2 hours to do some manual tests in the cluster if need it.
+sleep 2h
