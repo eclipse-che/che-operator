@@ -11,6 +11,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 )
@@ -52,6 +53,10 @@ func TestV1ToV2alpha1(t *testing.T) {
 				CheImage:               "teh-che-severe",
 				SingleHostGatewayImage: "single-host-image-of-the-year",
 				CheHostTLSSecret:       "cheSecret",
+				SingleHostGatewayConfigMapLabels: labels.Set{
+					"a": "b",
+					"c": "d",
+				},
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "routeDomain",
 				},
@@ -217,6 +222,18 @@ func TestV1ToV2alpha1(t *testing.T) {
 			t.Errorf("Unexpected TlsSecretName")
 		}
 	})
+
+	t.Run("GatewayConfigLabels", func(t *testing.T) {
+		v2 := &v2alpha1.CheCluster{}
+		err := V1ToV2alpha1(&v1Obj, v2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !reflect.DeepEqual(v2.Spec.Gateway.ConfigLabels, v1Obj.Spec.Server.SingleHostGatewayConfigMapLabels) {
+			t.Errorf("Unexpected Spec.Gateway.ConfigLabels: %v", cmp.Diff(v1Obj.Spec.Server.SingleHostGatewayConfigMapLabels, v2.Spec.Gateway.ConfigLabels))
+		}
+	})
 }
 
 func TestV2alpha1ToV1(t *testing.T) {
@@ -240,6 +257,9 @@ func TestV2alpha1ToV1(t *testing.T) {
 				Image:           "gateway-image",
 				ConfigurerImage: "configurer-image",
 				TlsSecretName:   "superSecret",
+				ConfigLabels: labels.Set{
+					"a": "b",
+				},
 			},
 			K8s: v2alpha1.CheClusterSpecK8s{
 				IngressAnnotations: map[string]string{
@@ -397,6 +417,18 @@ func TestV2alpha1ToV1(t *testing.T) {
 
 		if v1.Spec.Server.CheHostTLSSecret != "superSecret" {
 			t.Errorf("Unexpected TlsSecretName: %s", v1.Spec.Server.CheHostTLSSecret)
+		}
+	})
+
+	t.Run("GatewayConfigLabels", func(t *testing.T) {
+		v1 := &v1.CheCluster{}
+		err := V2alpha1ToV1(&v2Obj, v1)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !reflect.DeepEqual(v1.Spec.Server.SingleHostGatewayConfigMapLabels, v2Obj.Spec.Gateway.ConfigLabels) {
+			t.Errorf("Unexpected SingleHostGatewayConfigMapLabels: %s", v1.Spec.Server.SingleHostGatewayConfigMapLabels)
 		}
 	})
 }
@@ -612,6 +644,9 @@ func TestFullCircleV1(t *testing.T) {
 				CheImage:               "teh-che-severe",
 				SingleHostGatewayImage: "single-host-image-of-the-year",
 				CheHostTLSSecret:       "cheSecret",
+				SingleHostGatewayConfigMapLabels: labels.Set{
+					"a": "b",
+				},
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "routeDomain",
 				},
@@ -654,6 +689,9 @@ func TestFullCircleV2(t *testing.T) {
 				Image:           "gateway-image",
 				ConfigurerImage: "configurer-image",
 				TlsSecretName:   "superSecret",
+				ConfigLabels: labels.Set{
+					"a": "b",
+				},
 			},
 			K8s: v2alpha1.CheClusterSpecK8s{
 				IngressAnnotations: map[string]string{
@@ -699,14 +737,4 @@ func onFakeKubernetes(f func()) {
 
 	util.IsOpenShift = origOpenshift
 	util.IsOpenShift4 = origOpenshift4
-}
-
-func toString(b *bool) string {
-	if b == nil {
-		return "nil"
-	} else if *b {
-		return "true"
-	} else {
-		return "false"
-	}
 }
