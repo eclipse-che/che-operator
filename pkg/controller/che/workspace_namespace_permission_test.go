@@ -54,8 +54,6 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 	if !exists {
 		t.Fatalf("Cluster Role '%s' not found", name)
 	}
-
-	name = "eclipse-che-cheworkspaces-clusterrole"
 	exists, _ = deploy.Get(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{})
 	if !exists {
 		t.Fatalf("Cluster Role Binding '%s' not found", name)
@@ -66,8 +64,6 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 	if !exists {
 		t.Fatalf("Cluster Role '%s' not found", name)
 	}
-
-	name = "eclipse-che-cheworkspaces-namespaces-clusterrole"
 	exists, _ = deploy.Get(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{})
 	if !exists {
 		t.Fatalf("Cluster Role Binding '%s' not found", name)
@@ -78,8 +74,6 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 	if !exists {
 		t.Fatalf("Cluster Role '%s' not found", name)
 	}
-
-	name = "eclipse-che-cheworkspaces-devworkspace-clusterrole"
 	exists, _ = deploy.Get(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{})
 	if !exists {
 		t.Fatalf("Cluster Role Binding '%s' not found", name)
