@@ -80,15 +80,17 @@ EOL
 }
 
 startHappyPathTest() {
-  # patch happy-path-che.yaml
+  # patch pod-che-happy-path.yaml
   ECLIPSE_CHE_URL=http://$(oc get route -n "${NAMESPACE}" che -o jsonpath='{.status.ingress[0].host}')
   TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_DEVFILE}"
-  sed -i "s@CHE_URL@${ECLIPSE_CHE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
-  sed -i "s@WORKSPACE_ROUTE@${TS_SELENIUM_DEVWORKSPACE_URL}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
-  sed -i "s@CHE-NAMESPACE@${NAMESPACE}@g" ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
-  cat ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
 
-  oc apply -f ${OPERATOR_REPO}/.ci/openshift-ci/happy-path-che.yaml
+  curl https://raw.githubusercontent.com/eclipse/che/main/tests/.infra/openshift-ci/pod-che-happy-path.yaml > /tmp/pod-che-happy-path.yaml
+  sed -i "s@CHE_URL@${ECLIPSE_CHE_URL}@g" /tmp/pod-che-happy-path.yaml
+  sed -i "s@WORKSPACE_ROUTE@${TS_SELENIUM_DEVWORKSPACE_URL}@g" /tmp/pod-che-happy-path.yaml
+  sed -i "s@CHE-NAMESPACE@${NAMESPACE}@g" /tmp/pod-che-happy-path.yaml
+  cat /tmp/pod-che-happy-path.yaml
+
+  oc apply -f /tmp/pod-che-happy-path.yaml
   # wait for the pod to start
   n=0
   while [ $n -le 120 ]
