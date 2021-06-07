@@ -205,7 +205,7 @@ func getDevWorkspacePolicies() []rbac.PolicyRule {
 	k8sPolicies := []rbac.PolicyRule{
 		{
 			APIGroups: []string{"workspace.devfile.io"},
-			Resources: []string{"devworkspaces", "devworkspacetemplate"},
+			Resources: []string{"devworkspaces", "devworkspacetemplates"},
 			Verbs:     []string{"get", "create", "delete", "list", "update", "patch"},
 		},
 	}
