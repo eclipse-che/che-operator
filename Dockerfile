@@ -10,7 +10,7 @@
 #
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.4-200 as builder
+FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483 as builder
 RUN microdnf install -y golang unzip && \
     go version
 
@@ -42,7 +42,7 @@ RUN curl -L https://api.github.com/repos/che-incubator/devworkspace-che-operator
     mv /tmp/che-incubator-devworkspace-che-operator-*/deploy /tmp/devworkspace-che-operator/templates/
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.4-200
+FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483
 
 COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
 COPY --from=builder /che-operator/templates/keycloak-provision.sh /tmp/keycloak-provision.sh

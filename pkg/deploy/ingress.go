@@ -60,25 +60,27 @@ func GetIngressSpec(
 	ingressCustomSettings orgv1.IngressCustomSettings,
 	component string) (ingressUrl string, i *v1beta1.Ingress) {
 
+	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
+	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, ingressCustomSettings.Labels)
+
+	if tlsSupport {
+		// for server and dashboard ingresses
+		if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
+		}
+	}
 
 	if host == "" {
 		if ingressStrategy == "multi-host" {
 			host = component + "-" + deployContext.CheCluster.Namespace + "." + ingressDomain
 		} else if ingressStrategy == "single-host" {
 			host = ingressDomain
-		}
-	}
-
-	tlsSecretName := util.GetValue(deployContext.CheCluster.Spec.K8s.TlsSecretName, "")
-	if tlsSupport {
-		if component == DefaultCheFlavor(deployContext.CheCluster) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
-			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
 		}
 	}
 
@@ -98,6 +100,11 @@ func GetIngressSpec(
 	}
 	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
+	}
+
+	// add custom annotations
+	for k, v := range ingressCustomSettings.Annotations {
+		annotations[k] = v
 	}
 
 	ingress := &v1beta1.Ingress{
@@ -136,9 +143,7 @@ func GetIngressSpec(
 	if tlsSupport {
 		ingress.Spec.TLS = []v1beta1.IngressTLS{
 			{
-				Hosts: []string{
-					ingressDomain,
-				},
+				Hosts:      []string{host},
 				SecretName: tlsSecretName,
 			},
 		}
