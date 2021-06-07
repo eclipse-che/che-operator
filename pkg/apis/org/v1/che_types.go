@@ -20,6 +20,7 @@ package v1
 
 import (
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	"github.com/eclipse-che/che-operator/pkg/apis/org/v2alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -671,6 +672,10 @@ type CheClusterStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Help link"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:org.w3:link"
 	HelpLink string `json:"helpLink,omitempty"`
+
+	// The status of the Devworkspace subsystem
+	// +optional
+	DevworkspaceStatus v2alpha1.CheClusterStatus `json:"devworkspaceStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -679,6 +684,7 @@ type CheClusterStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="Eclipse Che Cluster"
+// +kubebuilder:storageversion
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

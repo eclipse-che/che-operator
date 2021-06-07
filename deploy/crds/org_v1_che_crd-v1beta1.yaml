@@ -868,6 +868,38 @@ spec:
             devfileRegistryURL:
               description: Public URL to the devfile registry.
               type: string
+            devworkspaceStatus:
+              description: The status of the Devworkspace subsystem
+              properties:
+                gatewayHost:
+                  description: GatewayHost is the resolved host of the ingress/route.
+                    This is equal to the Host in the spec on Kubernetes but contains
+                    the actual host name of the route if Host is unspecified on OpenShift.
+                  type: string
+                gatewayPhase:
+                  description: GatewayPhase specifies the phase in which the gateway
+                    deployment currently is. If the gateway is disabled, the phase
+                    is "Inactive".
+                  type: string
+                message:
+                  description: Message contains further human-readable info for why
+                    the Che cluster is in the phase it currently is.
+                  type: string
+                phase:
+                  description: Phase is the phase in which the Che cluster as a whole
+                    finds itself in.
+                  type: string
+                reason:
+                  description: A brief CamelCase message indicating details about
+                    why the Che cluster is in this state.
+                  type: string
+                workspaceBaseDomain:
+                  description: The resolved workspace base domain. This is either
+                    the copy of the explicitly defined property of the same name in
+                    the spec or, if it is undefined in the spec and we're running
+                    on OpenShift, the automatically resolved basedomain for routes.
+                  type: string
+              type: object
             gitHubOAuthProvisioned:
               description: Indicates whether an Identity Provider instance, Keycloak
                 or RH-SSO, has been configured to integrate with the GitHub OAuth.
