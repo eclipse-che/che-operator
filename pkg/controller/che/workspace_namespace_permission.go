@@ -167,13 +167,14 @@ func (r *ReconcileChe) delegateDevWorkspacePermissions(deployContext *deploy.Dep
 
 func (r *ReconcileChe) removeDevWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
 	devWorkspaceClusterRoleName := fmt.Sprintf(DevWorkspaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
+	devWorkspaceClusterRoleBindingName := devWorkspaceClusterRoleName
 
 	done, err := deploy.Delete(deployContext, types.NamespacedName{Name: devWorkspaceClusterRoleName}, &rbac.ClusterRole{})
 	if !done {
 		return false, err
 	}
 
-	done, err = deploy.Delete(deployContext, types.NamespacedName{Name: devWorkspaceClusterRoleName}, &rbac.ClusterRoleBinding{})
+	done, err = deploy.Delete(deployContext, types.NamespacedName{Name: devWorkspaceClusterRoleBindingName}, &rbac.ClusterRoleBinding{})
 	if !done {
 		return false, err
 	}
