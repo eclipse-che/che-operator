@@ -151,7 +151,6 @@ func (r *ReconcileChe) delegateDevWorkspacePermissions(deployContext *deploy.Dep
 	devWorkspaceClusterRoleName := fmt.Sprintf(DevWorkspaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	devWorkspaceClusterRoleBindingName := devWorkspaceClusterRoleName
 
-	// Create clusterrole "<workspace-namespace/project-name>-clusterrole-manage-namespaces" to manage namespace/projects for Che workspaces.
 	done, err := deploy.SyncClusterRoleToCluster(deployContext, devWorkspaceClusterRoleName, getDevWorkspacePolicies())
 	if !done {
 		return false, err
