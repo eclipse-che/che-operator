@@ -23,7 +23,7 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
 
 
 ### PR Checklist
-
+          
 [As the author of this Pull Request I made sure that:](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#pull-request-template-and-its-checklist)
 
 - [ ] [The Eclipse Contributor Agreement is valid](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#the-eclipse-contributor-agreement-is-valid)
