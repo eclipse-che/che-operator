@@ -235,7 +235,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 	repoPasswordSecret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{
 		Namespace: bctx.namespace,
-		Name:      bctx.backupCR.Spec.Servers.Internal.PasswordSecretRef,
+		Name:      bctx.backupCR.Spec.Servers.Internal.ResticRepoPasswordSecretRef,
 	}
 	err := bctx.r.client.Get(context.TODO(), namespacedName, repoPasswordSecret)
 	if err == nil {
@@ -296,13 +296,11 @@ func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, 
 	}
 
 	expectedInternalRestServerConfig := orgv1.RestServerConfig{
-		Protocol: "http",
-		Hostname: backupServerServiceName,
-		Port:     backupServerPort,
-		Repo:     "che",
-		RepoPassword: orgv1.RepoPassword{
-			PasswordSecretRef: BackupServerRepoPasswordSecretName,
-		},
+		Protocol:                    "http",
+		Hostname:                    backupServerServiceName,
+		Port:                        backupServerPort,
+		Repo:                        "che",
+		ResticRepoPasswordSecretRef: BackupServerRepoPasswordSecretName,
 	}
 	if backupCR.Spec.Servers.Internal != expectedInternalRestServerConfig {
 		backupCR.Spec.Servers.Internal = expectedInternalRestServerConfig

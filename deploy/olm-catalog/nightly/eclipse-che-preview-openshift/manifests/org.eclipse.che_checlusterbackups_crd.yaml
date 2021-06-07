@@ -58,20 +58,9 @@ spec:
                     description: 'Amazon S3 or alternatives. Mandatory fields are:
                       RepoPassword, Repo, AWS key+id or secret with it.'
                     properties:
-                      awsAccessKeyId:
-                        description: Content of AWS_ACCESS_KEY_ID environment variable.
-                          Together with AwsSecretAccessKey field is higher priority
-                          alternative to AwsAccessKeySecretRef.
-                        type: string
                       awsAccessKeySecretRef:
                         description: Reference to secret that contains awsAccessKeyId
-                          and awsSecretAccessKey keys. Alternative with lower priority
-                          to sibling AwsAccessKeyId and AwsSecretAccessKey fields.
-                        type: string
-                      awsSecretAccessKey:
-                        description: Content of AWS_SECRET_ACCESS_KEY environment
-                          variable. Together with AwsAccessKeyId field is higher priority
-                          alternative to AwsAccessKeySecretRef.
+                          and awsSecretAccessKey keys.
                         type: string
                       hostname:
                         description: Server hostname, defaults to 's3.amazonaws.com'.
@@ -88,18 +77,11 @@ spec:
                       repo:
                         description: Bucket name and repository, e.g. bucket/repo
                         type: string
-                      repoPassword:
-                        description: Restic repository password. At least one of the
-                          fields has to be filled in. In case both field are provided
-                          Password field gets precedence.
-                        properties:
-                          password:
-                            description: Password for restic repository
-                            type: string
-                          passwordSecretRef:
-                            description: Secret with 'repo-password' filed
-                            type: string
-                        type: object
+                      resticRepoPasswordSecretRef:
+                        description: Holds reference to a secret with restic repository
+                          password under 'repo-password' field to encrypt / decrypt
+                          its content.
+                        type: string
                     type: object
                   internal:
                     description: Rest server within the cluster. The server and configuration
@@ -107,16 +89,12 @@ spec:
                       true.
                     properties:
                       credentialsSecretRef:
-                        description: Secret that contains username and password fields.
-                          If Username and Password fields are set, then they are used
-                          instead.
+                        description: Secret that contains username and password fields
+                          to login into restic server. Note, each repository is encrypted
+                          with own password. See ResticRepoPasswordSecretRef field.
                         type: string
                       hostname:
                         description: Backup server host
-                        type: string
-                      password:
-                        description: Password to authenticate the user. Together with
-                          Username field is alternative with higher priority to CredentialsSecretRef.
                         type: string
                       port:
                         description: Backup server port
@@ -128,21 +106,10 @@ spec:
                       repo:
                         description: Restic repository path
                         type: string
-                      repoPassword:
-                        description: Restic repository password. At least one of the
-                          fields has to be filled in. In case both field are provided
-                          Password field gets precedence.
-                        properties:
-                          password:
-                            description: Password for restic repository
-                            type: string
-                          passwordSecretRef:
-                            description: Secret with 'repo-password' filed
-                            type: string
-                        type: object
-                      username:
-                        description: User login on the remote server. Together with
-                          Password field is alternative with higher priority to CredentialsSecretRef.
+                      resticRepoPasswordSecretRef:
+                        description: Holds reference to a secret with restic repository
+                          password under 'repo-password' field to encrypt / decrypt
+                          its content.
                         type: string
                     type: object
                   rest:
@@ -150,16 +117,12 @@ spec:
                       are: RepoPassword, Hostname.'
                     properties:
                       credentialsSecretRef:
-                        description: Secret that contains username and password fields.
-                          If Username and Password fields are set, then they are used
-                          instead.
+                        description: Secret that contains username and password fields
+                          to login into restic server. Note, each repository is encrypted
+                          with own password. See ResticRepoPasswordSecretRef field.
                         type: string
                       hostname:
                         description: Backup server host
-                        type: string
-                      password:
-                        description: Password to authenticate the user. Together with
-                          Username field is alternative with higher priority to CredentialsSecretRef.
                         type: string
                       port:
                         description: Backup server port
@@ -171,21 +134,10 @@ spec:
                       repo:
                         description: Restic repository path
                         type: string
-                      repoPassword:
-                        description: Restic repository password. At least one of the
-                          fields has to be filled in. In case both field are provided
-                          Password field gets precedence.
-                        properties:
-                          password:
-                            description: Password for restic repository
-                            type: string
-                          passwordSecretRef:
-                            description: Secret with 'repo-password' filed
-                            type: string
-                        type: object
-                      username:
-                        description: User login on the remote server. Together with
-                          Password field is alternative with higher priority to CredentialsSecretRef.
+                      resticRepoPasswordSecretRef:
+                        description: Holds reference to a secret with restic repository
+                          password under 'repo-password' field to encrypt / decrypt
+                          its content.
                         type: string
                     type: object
                   sftp:
@@ -202,18 +154,11 @@ spec:
                         description: Restic repository path, relative or absolute,
                           e.g. /srv/repo
                         type: string
-                      repoPassword:
-                        description: Restic repository password. At least one of the
-                          fields has to be filled in. In case both field are provided
-                          Password field gets precedence.
-                        properties:
-                          password:
-                            description: Password for restic repository
-                            type: string
-                          passwordSecretRef:
-                            description: Secret with 'repo-password' filed
-                            type: string
-                        type: object
+                      resticRepoPasswordSecretRef:
+                        description: Holds reference to a secret with restic repository
+                          password under 'repo-password' field to encrypt / decrypt
+                          its content.
+                        type: string
                       sshKeySecretRef:
                         description: Private ssh key under 'ssh-privatekey' field
                           for passwordless login

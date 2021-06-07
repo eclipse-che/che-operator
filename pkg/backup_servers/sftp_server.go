@@ -19,7 +19,7 @@ import (
 	"path"
 	"strings"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,14 +28,14 @@ import (
 
 // SftpServer implements BackupServer
 type SftpServer struct {
-	config orgv1.SftpServerConfing
+	config chev1.SftpServerConfing
 	ResticClient
 }
 
 func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
 	s.ResticClient = ResticClient{}
 
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.RepoPassword)
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.ResticRepoPasswordSecretRef)
 	if err != nil || !done {
 		return done, err
 	}
@@ -67,7 +67,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 		}
 		return false, err
 	}
-	if value, exists := secret.Data[orgv1.SSH_PRIVATE_KEY_SECRET_KEY]; exists {
+	if value, exists := secret.Data[chev1.SSH_PRIVATE_KEY_SECRET_KEY]; exists {
 		sshKey = string(value)
 	} else {
 		if len(secret.Data) == 1 {
@@ -77,7 +77,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 				break
 			}
 		} else {
-			return true, fmt.Errorf("'%s' secret should have '%s' field", s.config.SshKeySecretRef, orgv1.SSH_PRIVATE_KEY_SECRET_KEY)
+			return true, fmt.Errorf("'%s' secret should have '%s' field", s.config.SshKeySecretRef, chev1.SSH_PRIVATE_KEY_SECRET_KEY)
 		}
 	}
 	// Validate format of the ssh key

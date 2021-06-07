@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"strconv"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -29,20 +29,15 @@ import (
 //  - password or empty string if password is not set
 //  - done status
 //  - error if any
-// Password from CR takes precedence over the password from secret.
-func getResticRepoPassword(client client.Client, namespace string, rp orgv1.RepoPassword) (string, bool, error) {
-	if rp.Password != "" {
-		return rp.Password, true, nil
-	}
-
-	if rp.PasswordSecretRef == "" {
-		return "", true, fmt.Errorf("restic repository password should be specified")
+func getResticRepoPassword(client client.Client, namespace string, repoPasswordSecretRef string) (string, bool, error) {
+	if repoPasswordSecretRef == "" {
+		return "", true, fmt.Errorf("restic repository password secret should be specified in %s field.", chev1.RESTIC_REPO_PASSWORD_SECRET_KEY)
 	}
 	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Namespace: namespace, Name: rp.PasswordSecretRef}
+	namespacedName := types.NamespacedName{Namespace: namespace, Name: repoPasswordSecretRef}
 	err := client.Get(context.TODO(), namespacedName, secret)
 	if err == nil {
-		password, exist := secret.Data["repo-password"]
+		password, exist := secret.Data[chev1.RESTIC_REPO_PASSWORD_SECRET_KEY]
 		if !exist {
 			// repo-password field not found, check if there is only one field
 			if len(secret.Data) == 1 {
@@ -51,13 +46,13 @@ func getResticRepoPassword(client client.Client, namespace string, rp orgv1.Repo
 					return string(password), true, nil
 				}
 			}
-			return "", true, fmt.Errorf("%s secret should have 'repo-password' field", rp.PasswordSecretRef)
+			return "", true, fmt.Errorf("%s secret should have '%s' field", repoPasswordSecretRef, chev1.RESTIC_REPO_PASSWORD_SECRET_KEY)
 		}
 		return string(password), true, nil
 	} else if !errors.IsNotFound(err) {
 		return "", false, err
 	}
-	return "", true, fmt.Errorf("secret '%s' with restic repository password not found", rp.PasswordSecretRef)
+	return "", true, fmt.Errorf("secret '%s' with restic repository password not found", repoPasswordSecretRef)
 }
 
 // getPortString returns port part of the url: ':port' or empty string for default port

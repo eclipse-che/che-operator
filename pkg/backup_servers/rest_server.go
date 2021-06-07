@@ -17,7 +17,7 @@ import (
 	"net/http"
 	"strings"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,14 +26,14 @@ import (
 
 // RestServer implements BackupServer
 type RestServer struct {
-	Config orgv1.RestServerConfig
+	Config chev1.RestServerConfig
 	ResticClient
 }
 
 func (s *RestServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
 	s.ResticClient = ResticClient{}
 
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.Config.RepoPassword)
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.Config.ResticRepoPasswordSecretRef)
 	if err != nil || !done {
 		return done, err
 	}
@@ -59,34 +59,32 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 	}
 
 	// Check backup server credentials if any
-	username := s.Config.Username
-	password := s.Config.Password
-	if (username == "" || password == "") && s.Config.CredentialsSecretRef != "" {
-		// Use secret as credentials source
+	credentials := ""
+	if s.Config.CredentialsSecretRef != "" {
+		// Use secret as REST server credentials source
 		secret := &corev1.Secret{}
 		namespacedName := types.NamespacedName{Namespace: namespace, Name: s.Config.CredentialsSecretRef}
 		err = client.Get(context.TODO(), namespacedName, secret)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return true, fmt.Errorf("secret '%s' with username and password not found", s.Config.CredentialsSecretRef)
+				return true, fmt.Errorf("secret '%s' with REST server username and password not found", s.Config.CredentialsSecretRef)
 			}
 			return false, err
 		}
 
 		// Check the secret fields
-		if value, exist := secret.Data[orgv1.USERNAME_SECRET_KEY]; !exist || string(value) == "" {
-			return true, fmt.Errorf("%s secret should have '%s' field", secret.ObjectMeta.Name, orgv1.USERNAME_SECRET_KEY)
+		if value, exist := secret.Data[chev1.USERNAME_SECRET_KEY]; !exist || string(value) == "" {
+			return true, fmt.Errorf("%s secret should have '%s' field", secret.ObjectMeta.Name, chev1.USERNAME_SECRET_KEY)
 		}
-		if value, exist := secret.Data[orgv1.PASSWORD_SECRET_KEY]; !exist || string(value) == "" {
-			return true, fmt.Errorf("%s secret should have '%s' field", secret.ObjectMeta.Name, orgv1.PASSWORD_SECRET_KEY)
+		if value, exist := secret.Data[chev1.PASSWORD_SECRET_KEY]; !exist || string(value) == "" {
+			return true, fmt.Errorf("%s secret should have '%s' field", secret.ObjectMeta.Name, chev1.PASSWORD_SECRET_KEY)
 		}
 
-		username = string(secret.Data[orgv1.USERNAME_SECRET_KEY])
-		password = string(secret.Data[orgv1.PASSWORD_SECRET_KEY])
-	}
-	credentials := ""
-	if username != "" && password != "" {
-		credentials = username + ":" + password + "@"
+		username := string(secret.Data[chev1.USERNAME_SECRET_KEY])
+		password := string(secret.Data[chev1.PASSWORD_SECRET_KEY])
+		if username != "" && password != "" {
+			credentials = username + ":" + password + "@"
+		}
 	}
 
 	// rest:https://user:password@host:5000/repo/
