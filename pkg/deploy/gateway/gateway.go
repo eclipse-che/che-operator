@@ -13,6 +13,7 @@ package gateway
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -42,10 +43,12 @@ const (
 )
 
 var (
-	serviceAccountDiffOpts = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
-	roleDiffOpts           = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
-	roleBindingDiffOpts    = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
-	serviceDiffOpts        = cmp.Options{
+	serviceAccountDiffOpts     = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
+	roleDiffOpts               = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
+	clusterRoleDiffOpts        = cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta")
+	roleBindingDiffOpts        = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
+	clusterRoleBindingDiffOpts = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
+	serviceDiffOpts            = cmp.Options{
 		cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP"),
 	}
@@ -77,6 +80,23 @@ func syncAll(deployContext *deploy.DeployContext) error {
 	roleBinding := getGatewayRoleBindingSpec(instance)
 	if _, err := deploy.Sync(deployContext, &roleBinding, roleBindingDiffOpts); err != nil {
 		return err
+	}
+
+	if util.IsNativeUserEnabled(instance) {
+		clusterRole := getGatewayClusterRoleSpec(instance)
+		if _, err := deploy.Sync(deployContext, &clusterRole, clusterRoleDiffOpts); err != nil {
+			return err
+		}
+
+		clusterRoleBinding := getGatewayClusterRoleBindingSpec(instance)
+		if _, err := deploy.Sync(deployContext, &clusterRoleBinding, clusterRoleBindingDiffOpts); err != nil {
+			return err
+		}
+
+		oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance)
+		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+			return err
+		}
 	}
 
 	traefikConfig := getGatewayTraefikConfigSpec(instance)
@@ -318,7 +338,98 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 	}
 }
 
+func getGatewayClusterRoleSpec(instance *orgv1.CheCluster) rbac.ClusterRole {
+	return rbac.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbac.SchemeGroupVersion.String(),
+			Kind:       "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   instance.Namespace + "-" + GatewayServiceName,
+			Labels: deploy.GetLabels(instance, GatewayServiceName),
+		},
+		Rules: []rbac.PolicyRule{
+			{
+				Verbs:     []string{"create"},
+				APIGroups: []string{"authentication.k8s.io"},
+				Resources: []string{"tokenreviews"},
+			},
+			{
+				Verbs:     []string{"create"},
+				APIGroups: []string{"authorization.k8s.io"},
+				Resources: []string{"subjectaccessreviews"},
+			},
+		},
+	}
+}
+
+func getGatewayClusterRoleBindingSpec(instance *orgv1.CheCluster) rbac.ClusterRoleBinding {
+	return rbac.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbac.SchemeGroupVersion.String(),
+			Kind:       "ClusterRoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   instance.Namespace + "-" + GatewayServiceName,
+			Labels: deploy.GetLabels(instance, GatewayServiceName),
+		},
+		RoleRef: rbac.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     instance.Namespace + "-" + GatewayServiceName,
+		},
+		Subjects: []rbac.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      GatewayServiceName,
+				Namespace: instance.Namespace,
+			},
+		},
+	}
+}
+
+func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+	return corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "che-gateway-config-oauth-proxy",
+			Namespace: instance.Namespace,
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+		},
+		Data: map[string]string{
+			"oauth-proxy.cfg": fmt.Sprintf(`
+http_address = ":8080"
+https_address = ""
+provider = "openshift"
+redirect_url = "https://%s/oauth/callback"
+upstreams = [
+	"http://127.0.0.1:8081/"
+]
+client_id = "%s"
+client_secret = "%s"
+scope = "user:full"
+openshift_service_account = "%s"
+cookie_secret = "wgg2UoihVgdmnnJzekA0qQ=="
+email_domains = "*"
+standard_logging = true
+request_logging = false
+auth_logging = true
+cookie_secure = true
+cookie_httponly = false
+pass_access_token = true
+skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName),
+		},
+	}
+}
+
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+	traefikPort := 8080
+	if util.IsNativeUserEnabled(instance) {
+		traefikPort = 8088
+	}
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -330,14 +441,10 @@ func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		Data: map[string]string{
-			"traefik.yml": `
+			"traefik.yml": fmt.Sprintf(`
 entrypoints:
   http:
-    address: ":8080"
-    forwardedHeaders:
-      insecure: true
-  https:
-    address: ":8443"
+    address: ":%d"
     forwardedHeaders:
       insecure: true
 global:
@@ -348,19 +455,15 @@ providers:
     directory: "/dynamic-config"
     watch: true
 log:
-  level: "INFO"`,
+  level: "DEBUG"`, traefikPort),
 		},
 	}
 }
 
 func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
-	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(instance))
-	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
-	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
 	terminationGracePeriodSeconds := int64(10)
 
-	configLabels := labels.FormatLabels(configLabelsMap)
-	labels, labelsSelector := deploy.GetLabelsAndSelector(instance, GatewayServiceName)
+	deployLabels, labelsSelector := deploy.GetLabelsAndSelector(instance, GatewayServiceName)
 
 	return appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -370,7 +473,7 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GatewayServiceName,
 			Namespace: instance.Namespace,
-			Labels:    labels,
+			Labels:    deployLabels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -381,81 +484,157 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: deployLabels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					ServiceAccountName:            GatewayServiceName,
 					RestartPolicy:                 corev1.RestartPolicyAlways,
-					Containers: []corev1.Container{
-						{
-							Name:            "gateway",
-							Image:           gatewayImage,
-							ImagePullPolicy: corev1.PullAlways,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "static-config",
-									MountPath: "/etc/traefik",
-								},
-								{
-									Name:      "dynamic-config",
-									MountPath: "/dynamic-config",
-								},
-							},
-						},
-						{
-							Name:            "configbump",
-							Image:           sidecarImage,
-							ImagePullPolicy: corev1.PullAlways,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "dynamic-config",
-									MountPath: "/dynamic-config",
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "CONFIG_BUMP_DIR",
-									Value: "/dynamic-config",
-								},
-								{
-									Name:  "CONFIG_BUMP_LABELS",
-									Value: configLabels,
-								},
-								{
-									Name: "CONFIG_BUMP_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "metadata.namespace",
-										},
-									},
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "static-config",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "che-gateway-config",
-									},
-								},
-							},
-						},
-						{
-							Name: "dynamic-config",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
+					Containers:                    getContainersSpec(instance),
+					Volumes:                       getVolumesSpec(instance),
+				},
+			},
+		},
+	}
+}
+
+func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
+	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
+	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(instance))
+	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
+	configLabels := labels.FormatLabels(configLabelsMap)
+
+	containers := []corev1.Container{
+		{
+			Name:            "traefik",
+			Image:           gatewayImage,
+			ImagePullPolicy: corev1.PullAlways,
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "static-config",
+					MountPath: "/etc/traefik",
+				},
+				{
+					Name:      "dynamic-config",
+					MountPath: "/dynamic-config",
+				},
+			},
+		},
+		{
+			Name:            "configbump",
+			Image:           sidecarImage,
+			ImagePullPolicy: corev1.PullAlways,
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "dynamic-config",
+					MountPath: "/dynamic-config",
+				},
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name:  "CONFIG_BUMP_DIR",
+					Value: "/dynamic-config",
+				},
+				{
+					Name:  "CONFIG_BUMP_LABELS",
+					Value: configLabels,
+				},
+				{
+					Name: "CONFIG_BUMP_NAMESPACE",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "metadata.namespace",
 						},
 					},
 				},
 			},
 		},
 	}
+
+	if util.IsNativeUserEnabled(instance) {
+		containers = append(containers,
+			corev1.Container{
+				Name:            "oauth-proxy",
+				Image:           "quay.io/openshift/origin-oauth-proxy:4.7",
+				ImagePullPolicy: corev1.PullAlways,
+				Args: []string{
+					"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+				},
+				VolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      "oauth-proxy-config",
+						MountPath: "/etc/oauth-proxy",
+					},
+				},
+				Ports: []corev1.ContainerPort{
+					{ContainerPort: 8080},
+				},
+			},
+			corev1.Container{
+				Name:            "header-rewrite-rpxy",
+				Image:           "quay.io/mvala/header-rewrite-rpxy:latest",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/header-rewrite-rpxy"},
+				Args:            []string{"--upstream=http://127.0.0.1:8088", "--bind=127.0.0.1:8081"},
+			},
+			corev1.Container{
+				Name:            "kube-rbac-proxy",
+				Image:           "quay.io/openshift/origin-kube-rbac-proxy:4.7",
+				ImagePullPolicy: corev1.PullAlways,
+				Args: []string{
+					"--insecure-listen-address=127.0.0.1:8089",
+					"--upstream=http://127.0.0.1:8090/bench",
+					"--logtostderr=true",
+					"--v=10",
+				},
+			},
+			corev1.Container{
+				Name:            "dummy-http",
+				Image:           "containous/whoami:v1.5.0",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/whoami"},
+				Args:            []string{"--port", "8090"},
+			})
+	}
+
+	return containers
+}
+
+func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
+	volumes := []corev1.Volume{
+		{
+			Name: "static-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-gateway-config",
+					},
+				},
+			},
+		},
+		{
+			Name: "dynamic-config",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
+	if util.IsNativeUserEnabled(instance) {
+		volumes = append(volumes, corev1.Volume{
+			Name: "oauth-proxy-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-gateway-config-oauth-proxy",
+					},
+				},
+			},
+		})
+	}
+
+	return volumes
 }
 
 func getGatewayServiceSpec(instance *orgv1.CheCluster) corev1.Service {
@@ -479,12 +658,6 @@ func getGatewayServiceSpec(instance *orgv1.CheCluster) corev1.Service {
 					Port:       8080,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: intstr.FromInt(8080),
-				},
-				{
-					Name:       "gateway-https",
-					Port:       8443,
-					Protocol:   corev1.ProtocolTCP,
-					TargetPort: intstr.FromInt(8443),
 				},
 			},
 		},

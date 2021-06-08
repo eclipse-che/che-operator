@@ -368,6 +368,11 @@ func NewBoolPointer(value bool) *bool {
 	return &variable
 }
 
+func IsNativeUserEnabled(c *orgv1.CheCluster) bool {
+	logrus.Infof("blabol nativeuser [%+v]", c.Spec.Auth.NativeUser)
+	return IsOpenShift && c.Spec.Auth.NativeUser != nil && *c.Spec.Auth.NativeUser
+}
+
 // IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
 func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	return IsOpenShift && c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth

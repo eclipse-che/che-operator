@@ -450,6 +450,9 @@ type CheClusterSpecAuth struct {
 	// Identity provider container custom settings.
 	// +optional
 	IdentityProviderContainerResources ResourcesCustomSettings `json:"identityProviderContainerResources,omitempty"`
+	// Native User
+	// +optional
+	NativeUser *bool `json:"nativeUser,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future

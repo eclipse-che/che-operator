@@ -200,6 +200,9 @@ spec:
                         secret in 'openshift-config' namespace by Operator. Note that
                         this solution is Openshift 4 platform-specific.
                       type: boolean
+                    nativeUser:
+                      description: Native User
+                      type: boolean
                     oAuthClientName:
                       description: Name of the OpenShift `OAuthClient` resource used
                         to setup identity federation on the OpenShift side. Auto-generated
