@@ -107,7 +107,7 @@ type CheGatewaySpec struct {
 	ConfigurerImage string `json:"configurerImage,omitempty"`
 
 	// ConfigLabels are labels that are put on the gateway configuration configmaps so that they are picked up
-	// by the gateway configurer. The default value are labels: app=che,component=chec-gateway-config
+	// by the gateway configurer. The default value are labels: app=che,component=che-gateway-config
 	// +optional
 	ConfigLabels labels.Set `json:"configLabels,omitempty"`
 }
