@@ -105,14 +105,15 @@ const (
 	OAuthScmConfiguration = "oauth-scm-configuration"
 
 	// che.eclipse.org annotations
-	CheEclipseOrgMountPath              = "che.eclipse.org/mount-path"
-	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
-	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
-	CheEclipseOrgNamespace              = "che.eclipse.org/namespace"
-	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
-	CheEclipseOrgOAuthScmServer         = "che.eclipse.org/oauth-scm-server"
-	CheEclipseOrgScmServerEndpoint      = "che.eclipse.org/scm-server-endpoint"
-	CheEclipseOrgHash256                = "che.eclipse.org/hash256"
+	CheEclipseOrgMountPath                = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs                  = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName                  = "che.eclipse.org/env-name"
+	CheEclipseOrgNamespace                = "che.eclipse.org/namespace"
+	CheEclipseOrgGithubOAuthCredentials   = "che.eclipse.org/github-oauth-credentials"
+	CheEclipseOrgOAuthScmServer           = "che.eclipse.org/oauth-scm-server"
+	CheEclipseOrgScmServerEndpoint        = "che.eclipse.org/scm-server-endpoint"
+	CheEclipseOrgHash256                  = "che.eclipse.org/hash256"
+	CheEclipseOrgManagedAnnotationsDigest = "che.eclipse.org/managed-annotations-digest"
 
 	// components
 	IdentityProviderName = "keycloak"

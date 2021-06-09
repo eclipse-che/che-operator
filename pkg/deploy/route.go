@@ -15,8 +15,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -36,7 +38,7 @@ var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
-			((len(x.Annotations) == 0 && len(y.Annotations) == 0) || reflect.DeepEqual(x.Annotations, y.Annotations))
+			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 var routeWithHostDiffOpts = cmp.Options{
@@ -44,7 +46,7 @@ var routeWithHostDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
-			((len(x.Annotations) == 0 && len(y.Annotations) == 0) || reflect.DeepEqual(x.Annotations, y.Annotations))
+			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 
@@ -89,6 +91,23 @@ func GetRouteSpec(
 	annotations := map[string]string{}
 	for k, v := range routeCustomSettings.Annotations {
 		annotations[k] = v
+	}
+
+	// add 'che.eclipse.org/managed-annotations-digest' annotation
+	// to store and compare annotations managed by operator only
+	annotationsKeys := make([]string, 0, len(annotations))
+	for k := range annotations {
+		annotationsKeys = append(annotationsKeys, k)
+	}
+	if len(annotationsKeys) > 0 {
+		sort.Strings(annotationsKeys)
+
+		data := ""
+		for _, k := range annotationsKeys {
+			data += k + ":" + annotations[k] + ","
+		}
+		digest, _ := util.ComputeHash256([]byte(data))
+		annotations[CheEclipseOrgManagedAnnotationsDigest] = digest
 	}
 
 	weight := int32(100)
