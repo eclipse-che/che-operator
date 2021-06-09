@@ -34,7 +34,7 @@ metadata:
   namespace: ${NAMESPACE}
 spec:
   triggerNow: true
-  autoconfigureRestBackupServer: true
+  useInternalBackupServer: true
 EOF
 }
 
@@ -46,7 +46,6 @@ metadata:
   name: eclipse-che-restore
   namespace: ${NAMESPACE}
 spec:
-  triggerNow: true
   copyBackupServerConfiguration: true
 EOF
 }
