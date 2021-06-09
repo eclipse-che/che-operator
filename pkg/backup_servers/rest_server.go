@@ -33,7 +33,7 @@ type RestServer struct {
 func (s *RestServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
 	s.ResticClient = ResticClient{}
 
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.Config.ResticRepoPasswordSecretRef)
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.Config.RepositoryPasswordSecretRef)
 	if err != nil || !done {
 		return done, err
 	}
@@ -53,7 +53,7 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 	}
 	port := getPortString(s.Config.Port)
 
-	repo := s.Config.Repo
+	repo := s.Config.RepositoryPath
 	if repo != "" && !strings.HasSuffix(repo, "/") {
 		repo += "/"
 	}

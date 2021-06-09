@@ -38,13 +38,13 @@ type AwsS3Server struct {
 func (s *AwsS3Server) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
 	s.ResticClient = ResticClient{}
 
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.ResticRepoPasswordSecretRef)
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.RepositoryPasswordSecretRef)
 	if err != nil || !done {
 		return done, err
 	}
 	s.RepoPassword = repoPassword
 
-	repo := s.config.Repo
+	repo := s.config.RepositoryPath
 	if repo == "" {
 		return true, fmt.Errorf("bucket (repository) must be configured")
 	}

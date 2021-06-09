@@ -22,78 +22,96 @@ const (
 
 // +k8s:openapi-gen=true
 // List of supported backup servers
-type BackupServers struct {
-	// Rest server within the cluster.
-	// The server and configuration are created by operator when AutoconfigureRestBackupServer is true.
-	Internal RestServerConfig `json:"internal,omitempty"`
+type BackupServersConfigs struct {
 	// Sftp backup server configuration.
-	// Mandatory fields are: RepoPassword, Hostname, Repo, Username, SshKeySecretRef.
+	// Mandatory fields are: Username, Hostname, RepositoryPath, RepositoryPasswordSecretRef, SshKeySecretRef.
+	// +optional
 	Sftp SftpServerConfing `json:"sftp,omitempty"`
 	// Rest backup server configuration.
-	// Mandatory fields are: RepoPassword, Hostname.
+	// Mandatory fields are: Hostname, RepositoryPasswordSecretRef.
+	// +optional
 	Rest RestServerConfig `json:"rest,omitempty"`
-	// Amazon S3 or alternatives.
-	// Mandatory fields are: RepoPassword, Repo, AWS key+id or secret with it.
+	// Amazon S3 or compatible alternatives.
+	// Mandatory fields are: RepositoryPasswordSecretRef, RepositoryPath, CredentialsSecretRef.
+	// +optional
 	AwsS3 AwsS3ServerConfig `json:"awss3,omitempty"`
 }
 
 // +k8s:openapi-gen=true
 // SFTP backup server configuration
 // Example: user@host://srv/repo
-// Mandatory fields are: ResticRepoPasswordSecretRef, Hostname, Repo, Username, SshKeySecretRef
+// Mandatory fields are: Username, Hostname, RepositoryPath, RepositoryPasswordSecretRef, SshKeySecretRef
 type SftpServerConfing struct {
-	// Holds reference to a secret with restic repository password under 'repo-password' field to encrypt / decrypt its content.
-	ResticRepoPasswordSecretRef string `json:"resticRepoPasswordSecretRef,omitempty"`
+	// User login on the remote server
+	// +optional
+	Username string `json:"username,omitempty"`
 	// Backup server host
+	// +optional
 	Hostname string `json:"hostname,omitempty"`
 	// Backup server port
+	// +optional
 	Port int `json:"port,omitempty"`
 	// Restic repository path, relative or absolute, e.g. /srv/repo
-	Repo string `json:"repo,omitempty"`
-	// User login on the remote server
-	Username string `json:"username,omitempty"`
+	// +optional
+	RepositoryPath string `json:"repositoryPath,omitempty"`
+	// Holds reference to a secret with restic repository password under 'repo-password' field to encrypt / decrypt its content.
+	// +optional
+	RepositoryPasswordSecretRef string `json:"repositoryPasswordSecretRef,omitempty"`
 	// Private ssh key under 'ssh-privatekey' field for passwordless login
+	// +optional
 	SshKeySecretRef string `json:"sshKeySecretRef,omitempty"`
 }
 
 // +k8s:openapi-gen=true
 // REST backup server configuration
 // Example: https://user:password@host:5000/repo/
-// Mandatory fields are: ResticRepoPasswordSecretRef, Hostname
+// Mandatory fields are: Hostname, RepositoryPasswordSecretRef.
 type RestServerConfig struct {
-	// Holds reference to a secret with restic repository password under 'repo-password' field to encrypt / decrypt its content.
-	ResticRepoPasswordSecretRef string `json:"resticRepoPasswordSecretRef,omitempty"`
 	// Protocol to use when connection to the server
 	// Defaults to https.
+	// +optional
 	Protocol string `json:"protocol,omitempty"`
 	// Backup server host
+	// +optional
 	Hostname string `json:"hostname,omitempty"`
 	// Backup server port
+	// +optional
 	Port int `json:"port,omitempty"`
 	// Restic repository path
-	Repo string `json:"repo,omitempty"`
+	// +optional
+	RepositoryPath string `json:"repositoryPath,omitempty"`
+	// Holds reference to a secret with restic repository password under 'repo-password' field to encrypt / decrypt its content.
+	// +optional
+	RepositoryPasswordSecretRef string `json:"repositoryPasswordSecretRef,omitempty"`
 	// Secret that contains username and password fields to login into restic server.
 	// Note, each repository is encrypted with own password. See ResticRepoPasswordSecretRef field.
+	// +optional
 	CredentialsSecretRef string `json:"credentialsSecretRef,omitempty"`
 }
 
 // +k8s:openapi-gen=true
-// Mandatory fields are: ResticRepoPasswordSecretRef, Repo, AwsAccessKeySecretRef
+// Mandatory fields are: RepositoryPasswordSecretRef, RepositoryPath, CredentialsSecretRef.
 type AwsS3ServerConfig struct {
-	// Holds reference to a secret with restic repository password under 'repo-password' field to encrypt / decrypt its content.
-	ResticRepoPasswordSecretRef string `json:"resticRepoPasswordSecretRef,omitempty"`
 	// Protocol to use when connection to the server.
 	// Might be customized in case of alternative server.
+	// +optional
 	Protocol string `json:"protocol,omitempty"`
 	// Server hostname, defaults to 's3.amazonaws.com'.
 	// Might be customized in case of alternative server.
+	// +optional
 	Hostname string `json:"hostname,omitempty"`
 	// Backup server port.
 	// Usually default value is used.
 	// Might be customized in case of alternative server.
+	// +optional
 	Port int `json:"port,omitempty"`
 	// Bucket name and repository, e.g. bucket/repo
-	Repo string `json:"repo,omitempty"`
+	// +optional
+	RepositoryPath string `json:"repositoryPath,omitempty"`
+	// Holds reference to a secret with restic repository password under 'repo-password' field to encrypt / decrypt its content.
+	// +optional
+	RepositoryPasswordSecretRef string `json:"repositoryPasswordSecretRef,omitempty"`
 	// Reference to secret that contains awsAccessKeyId and awsSecretAccessKey keys.
+	// +optional
 	AwsAccessKeySecretRef string `json:"awsAccessKeySecretRef,omitempty"`
 }

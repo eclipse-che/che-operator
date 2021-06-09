@@ -43,32 +43,16 @@ spec:
             properties:
               copyBackupServerConfiguration:
                 description: If true, copies backup servers configuration from backup
-                  CR
+                  CR to `BackupServerConfig` field. When the configuration is copied
+                  the flag is set to false.
                 type: boolean
-              crOverrides:
-                description: Amendments for CR from backup
-                properties:
-                  ingressDomain:
-                    description: Overrides k8s.ingressDomain in Che CR. Makes sense
-                      only for Kubernetes infrastructures. Must be set in order to
-                      restore Che on a different Kubernetes cluster, that has ingress
-                      domain different from the cluster on which the backup was done.
-                    type: string
-                type: object
-              deleteConfigurationAfterRestore:
-                description: If true, deletes the CR after successful restore.
-                type: boolean
-              serverType:
-                description: If more than one backup server configured, should specify
-                  which one to use. Allowed values are keys from sibling Servers field.
-                type: string
               servers:
-                description: List of backup servers. Usually only one is used. In
-                  case of several available, serverType should contain server to use.
+                description: List of backup servers. Only one backup server is allowed
+                  to configure at a time.
                 properties:
                   awss3:
-                    description: 'Amazon S3 or alternatives. Mandatory fields are:
-                      RepoPassword, Repo, AWS key+id or secret with it.'
+                    description: 'Amazon S3 or compatible alternatives. Mandatory
+                      fields are: RepositoryPasswordSecretRef, RepositoryPath, CredentialsSecretRef.'
                     properties:
                       awsAccessKeySecretRef:
                         description: Reference to secret that contains awsAccessKeyId
@@ -86,47 +70,18 @@ spec:
                         description: Protocol to use when connection to the server.
                           Might be customized in case of alternative server.
                         type: string
-                      repo:
+                      repositoryPasswordSecretRef:
+                        description: Holds reference to a secret with restic repository
+                          password under 'repo-password' field to encrypt / decrypt
+                          its content.
+                        type: string
+                      repositoryPath:
                         description: Bucket name and repository, e.g. bucket/repo
-                        type: string
-                      resticRepoPasswordSecretRef:
-                        description: Holds reference to a secret with restic repository
-                          password under 'repo-password' field to encrypt / decrypt
-                          its content.
-                        type: string
-                    type: object
-                  internal:
-                    description: Rest server within the cluster. The server and configuration
-                      are created by operator when AutoconfigureRestBackupServer is
-                      true.
-                    properties:
-                      credentialsSecretRef:
-                        description: Secret that contains username and password fields
-                          to login into restic server. Note, each repository is encrypted
-                          with own password. See ResticRepoPasswordSecretRef field.
-                        type: string
-                      hostname:
-                        description: Backup server host
-                        type: string
-                      port:
-                        description: Backup server port
-                        type: integer
-                      protocol:
-                        description: Protocol to use when connection to the server
-                          Defaults to https.
-                        type: string
-                      repo:
-                        description: Restic repository path
-                        type: string
-                      resticRepoPasswordSecretRef:
-                        description: Holds reference to a secret with restic repository
-                          password under 'repo-password' field to encrypt / decrypt
-                          its content.
                         type: string
                     type: object
                   rest:
                     description: 'Rest backup server configuration. Mandatory fields
-                      are: RepoPassword, Hostname.'
+                      are: Hostname, RepositoryPasswordSecretRef.'
                     properties:
                       credentialsSecretRef:
                         description: Secret that contains username and password fields
@@ -143,18 +98,19 @@ spec:
                         description: Protocol to use when connection to the server
                           Defaults to https.
                         type: string
-                      repo:
-                        description: Restic repository path
-                        type: string
-                      resticRepoPasswordSecretRef:
+                      repositoryPasswordSecretRef:
                         description: Holds reference to a secret with restic repository
                           password under 'repo-password' field to encrypt / decrypt
                           its content.
                         type: string
+                      repositoryPath:
+                        description: Restic repository path
+                        type: string
                     type: object
                   sftp:
                     description: 'Sftp backup server configuration. Mandatory fields
-                      are: RepoPassword, Hostname, Repo, Username, SshKeySecretRef.'
+                      are: Username, Hostname, RepositoryPath, RepositoryPasswordSecretRef,
+                      SshKeySecretRef.'
                     properties:
                       hostname:
                         description: Backup server host
@@ -162,14 +118,14 @@ spec:
                       port:
                         description: Backup server port
                         type: integer
-                      repo:
-                        description: Restic repository path, relative or absolute,
-                          e.g. /srv/repo
-                        type: string
-                      resticRepoPasswordSecretRef:
+                      repositoryPasswordSecretRef:
                         description: Holds reference to a secret with restic repository
                           password under 'repo-password' field to encrypt / decrypt
                           its content.
+                        type: string
+                      repositoryPath:
+                        description: Restic repository path, relative or absolute,
+                          e.g. /srv/repo
                         type: string
                       sshKeySecretRef:
                         description: Private ssh key under 'ssh-privatekey' field
@@ -181,14 +137,9 @@ spec:
                     type: object
                 type: object
               snapshotId:
-                description: Snapshit it to restore from. If omitted, latest snapshot
+                description: Snapshot ID to restore from. If omitted, latest snapshot
                   will be used.
                 type: string
-              triggerNow:
-                description: Set to true to start backup process.
-                type: boolean
-            required:
-            - triggerNow
             type: object
           status:
             description: CheClusterRestoreStatus defines the observed state of CheClusterRestore

@@ -44,7 +44,6 @@ type BackupMetadata struct {
 	CheVersion          string `json:"cheVersion"`
 	Infrastructure      string `json:"infrastructure"`
 	AppsDomain          string `json:"appsDomain"`
-	APIDomain           string `json:"apiDomain"`
 	Namespace           string `json:"namespace"`
 }
 
@@ -60,7 +59,6 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		}
 	}
 
-	var apiDomain string
 	var appsDomain string
 	if isOpenShift {
 		host, err := util.GetRouterCanonicalHostname(bctx.r.client, bctx.namespace)
@@ -68,17 +66,9 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 			return false, err
 		}
 		appsDomain = host
-
-		_, internalAPIUrl, err := util.GetOpenShiftAPIUrls()
-		if err != nil {
-			return false, err
-		}
-		// https://api.subdomain.openshift.com:6443 -> api.subdomain.openshift.com
-		apiDomain = strings.TrimPrefix(strings.Split(internalAPIUrl, ":")[1], "//")
 	} else {
 		// Kubernetes
 		appsDomain = bctx.cheCR.Spec.K8s.IngressDomain
-		apiDomain = appsDomain
 	}
 
 	backupMetadata := BackupMetadata{
@@ -87,7 +77,6 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 		CheVersion:          bctx.cheCR.Status.CheVersion,
 		Infrastructure:      infra,
 		AppsDomain:          appsDomain,
-		APIDomain:           apiDomain,
 		Namespace:           bctx.namespace,
 	}
 

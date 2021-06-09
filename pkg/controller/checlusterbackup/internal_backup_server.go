@@ -17,7 +17,7 @@ import (
 	"net/http"
 	"strings"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	InternalBackupServerType      = "internal"
+	InternalBackupServerType      = "rest"
 	InternalBackupServerComponent = "che-backup-internal-rest-server"
 
 	BackupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
@@ -235,7 +235,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 	repoPasswordSecret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{
 		Namespace: bctx.namespace,
-		Name:      bctx.backupCR.Spec.Servers.Internal.ResticRepoPasswordSecretRef,
+		Name:      bctx.backupCR.Spec.BackupServerConfig.Rest.RepositoryPasswordSecretRef,
 	}
 	err := bctx.r.client.Get(context.TODO(), namespacedName, repoPasswordSecret)
 	if err == nil {
@@ -262,7 +262,7 @@ func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Se
 	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
 	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
 
-	data := map[string][]byte{orgv1.RESTIC_REPO_PASSWORD_SECRET_KEY: []byte(password)}
+	data := map[string][]byte{chev1.RESTIC_REPO_PASSWORD_SECRET_KEY: []byte(password)}
 
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -288,26 +288,19 @@ func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Se
 func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, error) {
 	backupCR := bctx.backupCR
 
-	shouldUpdateCR := false
-
-	if backupCR.Spec.ServerType != InternalBackupServerType {
-		backupCR.Spec.ServerType = InternalBackupServerType
-		shouldUpdateCR = true
-	}
-
-	expectedInternalRestServerConfig := orgv1.RestServerConfig{
+	expectedInternalRestServerConfig := chev1.RestServerConfig{
 		Protocol:                    "http",
 		Hostname:                    backupServerServiceName,
 		Port:                        backupServerPort,
-		Repo:                        "che",
-		ResticRepoPasswordSecretRef: BackupServerRepoPasswordSecretName,
+		RepositoryPath:              "che",
+		RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
 	}
-	if backupCR.Spec.Servers.Internal != expectedInternalRestServerConfig {
-		backupCR.Spec.Servers.Internal = expectedInternalRestServerConfig
-		shouldUpdateCR = true
-	}
-
-	if shouldUpdateCR {
+	if backupCR.Spec.BackupServerConfig.Rest != expectedInternalRestServerConfig {
+		// Reset all configurations
+		backupCR.Spec.BackupServerConfig = chev1.BackupServersConfigs{}
+		// Configure REST server
+		backupCR.Spec.BackupServerConfig.Rest = expectedInternalRestServerConfig
+		// Update CR
 		err := bctx.r.UpdateCR(backupCR)
 		if err != nil {
 			return false, err

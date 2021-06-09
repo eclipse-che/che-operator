@@ -97,12 +97,12 @@ func (c *ResticClient) CheckRepository() (bool, error) {
 	return true, nil
 }
 
-func (c *ResticClient) SendSnapshot(path string) (bool, error) {
+func (c *ResticClient) SendSnapshot(path string) (*SnapshotStat, bool, error) {
 	resticPasswordCommandEnvVar := fmt.Sprintf("%s=echo '%s'", resticPasswordCommandEnvVarName, c.RepoPassword)
 
 	// Check that there is data to send
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return true, err
+		return nil, true, err
 	}
 
 	backupCommand := exec.Command(resticCli, "--repo", c.RepoUrl, "backup", ".")
@@ -118,10 +118,10 @@ func (c *ResticClient) SendSnapshot(path string) (bool, error) {
 	output := string(out)
 	if err != nil {
 		logrus.Error(output)
-		return true, err
+		return nil, true, err
 	}
 
-	stat := SnapshotStat{}
+	stat := &SnapshotStat{}
 	snapshotIdRegex := regexp.MustCompile("snapshot ([0-9a-f]+) saved")
 	snapshotIdMatch := snapshotIdRegex.FindStringSubmatch(output)
 	if len(snapshotIdMatch) > 0 {
@@ -135,7 +135,7 @@ func (c *ResticClient) SendSnapshot(path string) (bool, error) {
 	// Log the fact of successful sending of a snapshot
 	logrus.Infof("Snapshot %s uploaded: %s", stat.Id, stat.Info)
 
-	return true, nil
+	return stat, true, nil
 }
 
 func (c *ResticClient) DownloadSnapshot(snapshot string, path string) (bool, error) {

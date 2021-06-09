@@ -22,27 +22,30 @@ import (
 // +k8s:openapi-gen=true
 // CheClusterBackupSpec defines the desired state of CheClusterBackup
 type CheClusterBackupSpec struct {
-	// Automatically setup container with REST backup server and use the server in this configuration.
+	// Automatically setup pod with REST backup server and use the server in this configuration.
 	// Note, this will overwrite existing configuration.
-	AutoconfigureRestBackupServer bool `json:"autoconfigureRestBackupServer,omitempty"`
+	// +optional
+	UseInternalBackupServer bool `json:"useInternalBackupServer,omitempty"`
 	// Set to true to start backup process.
+	// +optional
 	TriggerNow bool `json:"triggerNow"`
-	// If more than one backup server configured, should specify which one to use.
-	// Allowed values are keys from sibling Servers field.
-	ServerType string `json:"serverType,omitempty"`
 	// List of backup servers.
-	// Usually only one is used.
-	// In case of several available, ServerType should contain server to use.
-	Servers BackupServers `json:"servers,omitempty"`
+	// Only one backup server is allowed to configure at a time.
+	// Note, UseInternalBackupServer field can configure internal backup server.
+	// +optional
+	BackupServerConfig BackupServersConfigs `json:"servers,omitempty"`
 }
 
 // +k8s:openapi-gen=true
 // CheClusterBackupStatus defines the observed state of CheClusterBackup
 type CheClusterBackupStatus struct {
-	// Backup result or error message
+	// Message explaining the state of the backup or an error message
+	// +optional
 	Message string `json:"message,omitempty"`
-	// Shows when backup was done last time
-	LastBackupTime string `json:"lastBackupTime,omitempty"`
+	// Backup progress state: InProgress, Failed, Successed
+	State string `json:"state,omitempty"`
+	// Last backup snapshot ID
+	SnapshotId string `json:"snapshotId,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

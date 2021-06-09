@@ -125,17 +125,16 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRestore) (bool, error) {
+func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRestore) (done bool, err error) {
 	if restoreCR.Spec.CopyBackupServerConfiguration {
-		done, err := r.copyBackupServersConfiguration(restoreCR)
+		done, err = r.copyBackupServersConfiguration(restoreCR)
 		if err != nil || !done {
 			return done, err
 		}
 
 		restoreCR.Spec.CopyBackupServerConfiguration = false
-		if err := r.UpdateCR(restoreCR); err != nil {
-			return false, err
-		}
+		err = r.UpdateCR(restoreCR)
+		return false, err
 	}
 
 	rctx, err := NewRestoreContext(r, restoreCR)
@@ -145,78 +144,67 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 		// Do not requeue as user has to correct the configuration manually.
 		return true, err
 	}
+	defer func() {
+		if done {
+			// Reset state to restart the restore flow on the next reconcile
+			rctx.state.Reset()
+		}
+	}()
 
 	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
-	done, err := rctx.backupServer.PrepareConfiguration(rctx.r.client, rctx.namespace)
+	done, err = rctx.backupServer.PrepareConfiguration(rctx.r.client, rctx.namespace)
 	if err != nil || !done {
 		return done, err
 	}
 
-	if rctx.restoreCR.Spec.TriggerNow {
+	rctx.UpdateRestoreStage()
+	if !rctx.state.backupDownloaded {
+		// Check if repository accesible and credentials provided in the configuration can be used to reach backup server content
+		done, err = rctx.backupServer.CheckRepository()
+		if err != nil || !done {
+			return done, err
+		}
+
+		if err := os.RemoveAll(backupDataDestDir); err != nil {
+			return false, err
+		}
+		// Download data from backup server
+		if rctx.restoreCR.Spec.SnapshotId != "" {
+			done, err = rctx.backupServer.DownloadSnapshot(rctx.restoreCR.Spec.SnapshotId, backupDataDestDir)
+		} else {
+			done, err = rctx.backupServer.DownloadLastSnapshot(backupDataDestDir)
+		}
+		if err != nil || !done {
+			return done, err
+		}
+		logrus.Info("Restore: Retrieved data from backup server")
+		rctx.state.backupDownloaded = true
+		rctx.UpdateRestoreStage()
+	}
+
+	if !rctx.state.cheRestored {
+		// Restore all data from the backup
+		done, err = RestoreChe(rctx, backupDataDestDir)
+		if err != nil || !done {
+			return done, err
+		}
+
+		rctx.state.cheRestored = true
 		rctx.UpdateRestoreStage()
 
-		if !rctx.state.backupDownloaded {
-			// Check if repository accesible and credentials provided in the configuration can be used to reach backup server content
-			done, err = rctx.backupServer.CheckRepository()
-			if err != nil || !done {
-				return done, err
-			}
-
-			if err := os.RemoveAll(backupDataDestDir); err != nil {
-				return false, err
-			}
-			// Download data from backup server
-			if rctx.restoreCR.Spec.SnapshotId != "" {
-				done, err = rctx.backupServer.DownloadSnapshot(rctx.restoreCR.Spec.SnapshotId, backupDataDestDir)
-			} else {
-				done, err = rctx.backupServer.DownloadLastSnapshot(backupDataDestDir)
-			}
-			if err != nil || !done {
-				return done, err
-			}
-			logrus.Info("Restore: Retrieved data from backup server")
-			rctx.state.backupDownloaded = true
-			rctx.UpdateRestoreStage()
-		}
-
-		if !rctx.state.cheRestored {
-			// Restore all data from the backup
-			done, err = RestoreChe(rctx, backupDataDestDir)
-			if err != nil || !done {
-				return done, err
-			}
-
-			rctx.state.cheRestored = true
-			rctx.UpdateRestoreStage()
-
-			// Clean up backup data after successful restore
-			if err := os.RemoveAll(backupDataDestDir); err != nil {
-				return false, err
-			}
-		}
-
-		// Restore is successfull
-		rctx.restoreCR.Spec.TriggerNow = false
-		if err := rctx.r.UpdateCR(rctx.restoreCR); err != nil {
+		// Clean up backup data after successful restore
+		if err := os.RemoveAll(backupDataDestDir); err != nil {
 			return false, err
 		}
-
-		rctx.restoreCR.Status.Message = "Restore successfully finished"
-		if err := rctx.r.UpdateCRStatus(rctx.restoreCR); err != nil {
-			return false, err
-		}
-
-		if rctx.restoreCR.Spec.DeleteConfigurationAfterRestore {
-			if err := rctx.r.client.Delete(context.TODO(), rctx.restoreCR); err != nil {
-				return true, err
-			}
-		}
-
-		logrus.Info("Restore successfully finished")
 	}
-	// Reset state to restart the restore flow on the next reconcile
-	rctx.state.Reset()
 
+	rctx.restoreCR.Status.Message = "Restore successfully finished"
+	rctx.restoreCR.Status.Phase = "Succeeded"
+	if err := rctx.r.UpdateCRStatus(rctx.restoreCR); err != nil {
+		return false, err
+	}
+
+	logrus.Info(rctx.restoreCR.Status.Message)
 	return true, nil
 }
 
@@ -239,10 +227,6 @@ func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *o
 		return false, err
 	}
 
-	restoreCR.Spec.Servers = backupCR.Spec.Servers
-	if backupCR.Spec.ServerType != "" {
-		restoreCR.Spec.ServerType = backupCR.Spec.ServerType
-	}
 	return true, nil
 }
 

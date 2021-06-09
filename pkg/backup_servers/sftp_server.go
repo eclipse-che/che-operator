@@ -35,7 +35,7 @@ type SftpServer struct {
 func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
 	s.ResticClient = ResticClient{}
 
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.ResticRepoPasswordSecretRef)
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.RepositoryPasswordSecretRef)
 	if err != nil || !done {
 		return done, err
 	}
@@ -50,7 +50,7 @@ func (s *SftpServer) PrepareConfiguration(client client.Client, namespace string
 		return true, fmt.Errorf("SFTP server hostname must be configured")
 	}
 	port := getPortString(s.config.Port)
-	path := s.config.Repo
+	path := s.config.RepositoryPath
 	if path == "" {
 		return true, fmt.Errorf("repository (path on server side) must be configured")
 	}

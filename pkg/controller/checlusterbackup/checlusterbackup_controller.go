@@ -104,6 +104,8 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 
 		// Update backup CR status with the error
 		backupCR.Status.Message = "Error: " + err.Error()
+		backupCR.Status.State = "Failed"
+		backupCR.Status.SnapshotId = ""
 		if err := r.UpdateCRStatus(backupCR); err != nil {
 			// Failed to update status, retry
 			return reconcile.Result{}, err
@@ -136,7 +138,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 	}
 
 	// Check if internal backup server is needed
-	if bctx.backupCR.Spec.AutoconfigureRestBackupServer {
+	if bctx.backupCR.Spec.UseInternalBackupServer {
 		// Use internal REST backup server
 		done, err := ConfigureInternalBackupServer(bctx)
 		if err != nil || !done {
@@ -152,6 +154,14 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 
 	// Do backup if requested
 	if bctx.backupCR.Spec.TriggerNow {
+		// Update status
+		bctx.backupCR.Status.Message = "Backup is in progress. Start time: " + time.Now().String()
+		bctx.backupCR.Status.State = "InProgress"
+		bctx.backupCR.Status.SnapshotId = ""
+		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
+			return false, err
+		}
+
 		// Check for repository existance and init if needed
 		repoExist, done, err := bctx.backupServer.IsRepositoryExist()
 		if err != nil || !done {
@@ -179,7 +189,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 		}
 
 		// Upload collected data to backup server
-		done, err = bctx.backupServer.SendSnapshot(backupDestDir)
+		snapshotStat, done, err := bctx.backupServer.SendSnapshot(backupDestDir)
 		if err != nil || !done {
 			return done, err
 		}
@@ -196,15 +206,17 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 			}
 		}
 
-		bctx.backupCR.Status.Message = "Backup successfully finished"
-		bctx.backupCR.Status.LastBackupTime = time.Now().String()
+		// Update status
+		bctx.backupCR.Status.Message = "Backup successfully finished at " + time.Now().String()
+		bctx.backupCR.Status.State = "Succeeded"
+		bctx.backupCR.Status.SnapshotId = snapshotStat.Id
 		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
 			logrus.Errorf("Failed to update status after successful backup")
 			// Do not reconcile as backup is done, only status is not updated
 			return true, err
 		}
 
-		logrus.Info("Backup successfully finished")
+		logrus.Info(bctx.backupCR.Status.Message)
 	}
 
 	return true, nil

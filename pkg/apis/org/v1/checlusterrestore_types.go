@@ -21,40 +21,28 @@ import (
 
 // CheClusterRestoreSpec defines the desired state of CheClusterRestore
 type CheClusterRestoreSpec struct {
-	// If true, deletes the CR after successful restore.
-	DeleteConfigurationAfterRestore bool `json:"deleteConfigurationAfterRestore,omitempty"`
-	// If true, copies backup servers configuration from backup CR
+	// If true, copies backup servers configuration from backup CR to `BackupServerConfig` field.
+	// When the configuration is copied the flag is set to false.
+	// +optional
 	CopyBackupServerConfiguration bool `json:"copyBackupServerConfiguration,omitempty"`
-	// Snapshit it to restore from.
+	// Snapshot ID to restore from.
 	// If omitted, latest snapshot will be used.
+	// +optional
 	SnapshotId string `json:"snapshotId,omitempty"`
-	// Set to true to start backup process.
-	TriggerNow bool `json:"triggerNow"`
-	// If more than one backup server configured, should specify which one to use.
-	// Allowed values are keys from sibling Servers field.
-	ServerType string `json:"serverType,omitempty"`
 	// List of backup servers.
-	// Usually only one is used.
-	// In case of several available, serverType should contain server to use.
-	Servers BackupServers `json:"servers,omitempty"`
-	// Amendments for CR from backup
-	CROverrides CROverrides `json:"crOverrides,omitempty"`
-}
-
-type CROverrides struct {
-	// Overrides k8s.ingressDomain in Che CR.
-	// Makes sense only for Kubernetes infrastructures.
-	// Must be set in order to restore Che on a different Kubernetes cluster,
-	// that has ingress domain different from the cluster on which the backup was done.
-	IngressDomain string `json:"ingressDomain,omitempty"`
+	// Only one backup server is allowed to configure at a time.
+	// +optional
+	BackupServerConfig BackupServersConfigs `json:"servers,omitempty"`
 }
 
 // CheClusterRestoreStatus defines the observed state of CheClusterRestore
 type CheClusterRestoreStatus struct {
 	// Backup result or error message
+	// +optional
 	Message string `json:"message,omitempty"`
 	// Describes restore progress
-	Stage string `json:"stage,omitempty"`
+	// +optional
+	Phase string `json:"stage,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

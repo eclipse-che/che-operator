@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"strings"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,7 +37,7 @@ type BackupServer interface {
 	CheckRepository() (bool, error)
 
 	// SendSnapshot creates snapshot on the remote backup server from given directory.
-	SendSnapshot(path string) (bool, error)
+	SendSnapshot(path string) (*SnapshotStat, bool, error)
 
 	// DownloadLastSnapshot downloads newet snapshot from the remote backup server into given directory.
 	DownloadLastSnapshot(path string) (bool, error)
@@ -47,46 +47,41 @@ type BackupServer interface {
 }
 
 // NewBackupServer is a factory to get backup server backend.
-// If only one backup server is configured, serverType can be empty.
-// Note, it is required to call PrepareConfiguration later in order to retrieve and validate the server configuration.
-// Returns error if the backup server type is invalid or not properly configured.
-func NewBackupServer(servers orgv1.BackupServers, serverType string) (BackupServer, error) {
-	var backupServer BackupServer
-
-	if serverType == "" {
-		// Autodetect server type.
-		// Only one backup server should be configured.
-		count := 0
-		// Iterate over all possible servers (fields of Spec.Servers) to find non empty one(s)
-		rv := reflect.ValueOf(servers)
-		for i := 0; i < rv.NumField(); i++ {
-			// Skip private fields
-			if !rv.Field(i).CanInterface() {
-				continue
-			}
-			// Check if actual field value is equal to the empty struct of the filed type
-			value := rv.Field(i).Interface()
-			zeroValue := reflect.Zero(rv.Field(i).Type()).Interface()
-			if !reflect.DeepEqual(value, zeroValue) {
-				// The server configuration is not empty.
-				serverType = strings.ToLower(rv.Type().Field(i).Name)
-				count++
-			}
+// Only one backup server is allowed at a time.
+// Note, it is required to call PrepareConfiguration later in order to retrieve credentials and validate the server configuration.
+func NewBackupServer(servers chev1.BackupServersConfigs) (BackupServer, error) {
+	// Autodetect server type
+	// Only one backup server should be configured
+	serverType := ""
+	count := 0
+	// Iterate over all possible servers (fields of Spec.Servers) to find non empty one(s)
+	rv := reflect.ValueOf(servers)
+	for i := 0; i < rv.NumField(); i++ {
+		// Skip private fields
+		if !rv.Field(i).CanInterface() {
+			continue
 		}
-
-		if count != 1 {
-			if count == 0 {
-				// No server is configured
-				return nil, fmt.Errorf("at least one backup server should be configured")
-			}
-			// There are several servers configured, but it is not specified which server to use
-			return nil, fmt.Errorf("%d backup servers configured, please select which one to use by setting 'serverType' field", count)
+		// Check if actual field value is equal to the empty struct of the filed type
+		value := rv.Field(i).Interface()
+		zeroValue := reflect.Zero(rv.Field(i).Type()).Interface()
+		if !reflect.DeepEqual(value, zeroValue) {
+			// The server configuration is not empty.
+			serverType = strings.ToLower(rv.Type().Field(i).Name)
+			count++
 		}
 	}
 
+	if count != 1 {
+		if count == 0 {
+			// No backup server is configured
+			return nil, fmt.Errorf("at least one backup server should be configured")
+		}
+		// There are several servers configured
+		return nil, fmt.Errorf("%d backup servers configured, but only one is allowed at a time", count)
+	}
+
+	var backupServer BackupServer
 	switch serverType {
-	case "internal":
-		backupServer = &RestServer{Config: servers.Internal}
 	case "rest":
 		backupServer = &RestServer{Config: servers.Rest}
 	case "sftp":
@@ -94,7 +89,8 @@ func NewBackupServer(servers orgv1.BackupServers, serverType string) (BackupServ
 	case "awss3":
 		backupServer = &AwsS3Server{config: servers.AwsS3}
 	default:
-		return nil, fmt.Errorf("unknown server type: %s, please correct spec.serverType field", serverType)
+		// Should never happen
+		return nil, fmt.Errorf("internal error while detecting backup server type")
 	}
 
 	return backupServer, nil

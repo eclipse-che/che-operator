@@ -30,7 +30,7 @@ type RestoreContext struct {
 func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheClusterRestore) (*RestoreContext, error) {
 	namespace := restoreCR.GetNamespace()
 
-	backupServer, err := backup.NewBackupServer(restoreCR.Spec.Servers, restoreCR.Spec.ServerType)
+	backupServer, err := backup.NewBackupServer(restoreCR.Spec.BackupServerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -62,9 +62,11 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheCluste
 // UpdateRestoreStage updates stage message in CR status according to current restore phase.
 // Needed only to show progress to the user.
 func (rctx *RestoreContext) UpdateRestoreStage() error {
-	rctx.restoreCR.Status.Stage = rctx.state.GetProgressMessage()
-	if rctx.restoreCR.Status.Stage != "" {
+	rctx.restoreCR.Status.Phase = rctx.state.GetProgressMessage()
+	if rctx.restoreCR.Status.Phase != "" {
 		rctx.restoreCR.Status.Message = "Che is being restored"
+	} else {
+		rctx.restoreCR.Status.Message = ""
 	}
 	return rctx.r.UpdateCRStatus(rctx.restoreCR)
 }

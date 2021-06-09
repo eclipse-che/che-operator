@@ -35,4 +35,9 @@ jobs:
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
       run: /bin/bash .github/bin/minikube/test-backup-restore.sh
-
+    # Run this step even the previous step fail
+    - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
+      with:
+        name: minikube-backup-restore-artifacts
+        path: /tmp/artifacts-che
