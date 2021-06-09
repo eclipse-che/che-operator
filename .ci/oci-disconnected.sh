@@ -27,7 +27,7 @@ export SLACK_TOKEN="${SLACK_TOKEN-"UNDEFINED"}"
 export WORKSPACE="${WORKSPACE-"UNDEFINED"}"
 export REG_CREDS=${XDG_RUNTIME_DIR}/containers/auth.json
 export ORGANIZATION="eclipse"
-export TAG_NIGHTLY="nightly"
+export TAG_NIGHTLY="next"
 
 # catch and stop execution on any error
 trap "catchDisconnectedJenkinsFinish" EXIT SIGINT
