@@ -66,7 +66,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools, OpenShift Optional
     certified: "false"
-    containerImage: quay.io/eclipse/che-operator:nightly
+    containerImage: quay.io/eclipse/che-operator:next
     createdAt: "2021-06-18T10:49:38Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.

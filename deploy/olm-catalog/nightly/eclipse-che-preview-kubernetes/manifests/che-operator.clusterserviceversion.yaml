@@ -75,7 +75,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: quay.io/eclipse/che-operator:nightly
+    containerImage: quay.io/eclipse/che-operator:next
     createdAt: "2021-06-18T10:49:25Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
