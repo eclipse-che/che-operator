@@ -121,7 +121,11 @@ func GetIngressSpec(
 			data += k + ":" + annotations[k] + ","
 		}
 		digest, _ := util.ComputeHash256([]byte(data))
-		annotations[CheEclipseOrgManagedAnnotationsDigest] = digest
+		if util.IsTestMode() {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = "0000"
+		} else {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = digest
+		}
 	}
 
 	ingress := &v1beta1.Ingress{

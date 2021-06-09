@@ -88,9 +88,12 @@ func GetRouteSpec(
 	MergeLabels(labels, routeCustomSettings.Labels)
 
 	// add custom annotations
-	annotations := map[string]string{}
-	for k, v := range routeCustomSettings.Annotations {
-		annotations[k] = v
+	var annotations map[string]string
+	if len(routeCustomSettings.Annotations) > 0 {
+		annotations = make(map[string]string)
+		for k, v := range routeCustomSettings.Annotations {
+			annotations[k] = v
+		}
 	}
 
 	// add 'che.eclipse.org/managed-annotations-digest' annotation

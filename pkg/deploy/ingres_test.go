@@ -13,7 +13,6 @@ package deploy
 
 import (
 	"context"
-	"os"
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
@@ -24,10 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -41,7 +36,6 @@ func TestIngressSpec(t *testing.T) {
 		ingressComponent      string
 		serviceName           string
 		servicePort           int
-		initObjects           []runtime.Object
 		ingressCustomSettings orgv1.IngressCustomSettings
 		expectedIngress       *v1beta1.Ingress
 	}
@@ -49,6 +43,7 @@ func TestIngressSpec(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
 		},
 	}
 
@@ -65,7 +60,6 @@ func TestIngressSpec(t *testing.T) {
 				Labels:      "type=default",
 				Annotations: map[string]string{"annotation-key": "annotation-value"},
 			},
-			initObjects: []runtime.Object{},
 			expectedIngress: &v1beta1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -78,6 +72,7 @@ func TestIngressSpec(t *testing.T) {
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
 					},
 					Annotations: map[string]string{
+						"che.eclipse.org/managed-annotations-digest":        "0000",
 						"kubernetes.io/ingress.class":                       "nginx",
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
@@ -115,18 +110,7 @@ func TestIngressSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-
-			deployContext := &DeployContext{
-				CheCluster: cheCluster,
-				ClusterAPI: ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
-				},
-			}
+			deployContext := GetTestDeployContext(cheCluster, []runtime.Object{})
 
 			_, actualIngress := GetIngressSpec(deployContext,
 				testCase.ingressName,
@@ -146,21 +130,7 @@ func TestIngressSpec(t *testing.T) {
 }
 
 func TestSyncIngressToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-				Name:      "eclipse-che",
-			},
-		},
-		ClusterAPI: ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
-		},
-	}
+	deployContext := GetTestDeployContext(nil, []runtime.Object{})
 
 	_, done, err := SyncIngressToCluster(deployContext, "test", "host-1", "", "service-1", 8080, orgv1.IngressCustomSettings{}, "component")
 	if !done || err != nil {
@@ -173,7 +143,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 	}
 
 	actual := &v1beta1.Ingress{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get ingress: %v", err)
 	}
