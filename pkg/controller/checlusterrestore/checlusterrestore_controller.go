@@ -227,6 +227,8 @@ func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *o
 		return false, err
 	}
 
+	restoreCR.Spec.BackupServerConfig = backupCR.Spec.BackupServerConfig
+
 	return true, nil
 }
 
