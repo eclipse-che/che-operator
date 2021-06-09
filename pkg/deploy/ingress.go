@@ -27,7 +27,8 @@ import (
 var ingressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "Status"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels) && reflect.DeepEqual(x.Annotations, y.Annotations)
+		return reflect.DeepEqual(x.Labels, y.Labels) &&
+			((len(x.Annotations) == 0 && len(y.Annotations) == 0) || reflect.DeepEqual(x.Annotations, y.Annotations))
 	}),
 }
 

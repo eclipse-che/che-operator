@@ -35,14 +35,16 @@ var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels) && reflect.DeepEqual(x.Annotations, y.Annotations)
+		return reflect.DeepEqual(x.Labels, y.Labels) &&
+			((len(x.Annotations) == 0 && len(y.Annotations) == 0) || reflect.DeepEqual(x.Annotations, y.Annotations))
 	}),
 }
 var routeWithHostDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels) && reflect.DeepEqual(x.Annotations, y.Annotations)
+		return reflect.DeepEqual(x.Labels, y.Labels) &&
+			((len(x.Annotations) == 0 && len(y.Annotations) == 0) || reflect.DeepEqual(x.Annotations, y.Annotations))
 	}),
 }
 
