@@ -42,9 +42,11 @@ type CheClusterBackupStatus struct {
 	// Message explaining the state of the backup or an error message
 	// +optional
 	Message string `json:"message,omitempty"`
-	// Backup progress state: InProgress, Failed, Successed
+	// Backup progress state: InProgress, Failed, Succeeded
+	// +optional
 	State string `json:"state,omitempty"`
 	// Last backup snapshot ID
+	// +optional
 	SnapshotId string `json:"snapshotId,omitempty"`
 }
 

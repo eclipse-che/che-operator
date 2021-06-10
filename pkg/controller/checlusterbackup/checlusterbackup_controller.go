@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,7 +48,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource CheClusterBackup
-	err = c.Watch(&source.Kind{Type: &orgv1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &chev1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ type ReconcileCheClusterBackup struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the CheClusterBackup instance
-	backupCR := &orgv1.CheClusterBackup{}
+	backupCR := &chev1.CheClusterBackup{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, backupCR)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -104,7 +104,7 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 
 		// Update backup CR status with the error
 		backupCR.Status.Message = "Error: " + err.Error()
-		backupCR.Status.State = "Failed"
+		backupCR.Status.State = chev1.STATE_FAILED
 		backupCR.Status.SnapshotId = ""
 		if err := r.UpdateCRStatus(backupCR); err != nil {
 			// Failed to update status, retry
@@ -127,7 +127,7 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup) (bool, error) {
+func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup) (bool, error) {
 	// Create backup context
 	bctx, err := NewBackupContext(r, backupCR)
 	if err != nil {
@@ -155,11 +155,13 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 	// Do backup if requested
 	if bctx.backupCR.Spec.TriggerNow {
 		// Update status
-		bctx.backupCR.Status.Message = "Backup is in progress. Start time: " + time.Now().String()
-		bctx.backupCR.Status.State = "InProgress"
-		bctx.backupCR.Status.SnapshotId = ""
-		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
-			return false, err
+		if bctx.backupCR.Status.State != chev1.STATE_IN_PROGRESS {
+			bctx.backupCR.Status.Message = "Backup is in progress. Start time: " + time.Now().String()
+			bctx.backupCR.Status.State = chev1.STATE_IN_PROGRESS
+			bctx.backupCR.Status.SnapshotId = ""
+			if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
+				return false, err
+			}
 		}
 
 		// Check for repository existance and init if needed
@@ -208,7 +210,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 
 		// Update status
 		bctx.backupCR.Status.Message = "Backup successfully finished at " + time.Now().String()
-		bctx.backupCR.Status.State = "Succeeded"
+		bctx.backupCR.Status.State = chev1.STATE_SUCCEEDED
 		bctx.backupCR.Status.SnapshotId = snapshotStat.Id
 		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
 			logrus.Errorf("Failed to update status after successful backup")
@@ -222,7 +224,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *orgv1.CheClusterBackup
 	return true, nil
 }
 
-func (r *ReconcileCheClusterBackup) UpdateCR(cr *orgv1.CheClusterBackup) error {
+func (r *ReconcileCheClusterBackup) UpdateCR(cr *chev1.CheClusterBackup) error {
 	err := r.client.Update(context.TODO(), cr)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR: %s", cr.Name, err.Error())
@@ -231,7 +233,7 @@ func (r *ReconcileCheClusterBackup) UpdateCR(cr *orgv1.CheClusterBackup) error {
 	return nil
 }
 
-func (r *ReconcileCheClusterBackup) UpdateCRStatus(cr *orgv1.CheClusterBackup) error {
+func (r *ReconcileCheClusterBackup) UpdateCRStatus(cr *chev1.CheClusterBackup) error {
 	err := r.client.Status().Update(context.TODO(), cr)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR status: %s", cr.Name, err.Error())

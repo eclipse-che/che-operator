@@ -18,6 +18,10 @@ const (
 	SSH_PRIVATE_KEY_SECRET_KEY       = "ssh-privatekey"
 	AWS_ACCESS_KEY_ID_SECRET_KEY     = "awsAccessKeyId"
 	AWS_SECRET_ACCESS_KEY_SECRET_KEY = "awsSecretAccessKey"
+
+	STATE_IN_PROGRESS = "InProgress"
+	STATE_SUCCEEDED   = "Succeeded"
+	STATE_FAILED      = "Failed"
 )
 
 // +k8s:openapi-gen=true

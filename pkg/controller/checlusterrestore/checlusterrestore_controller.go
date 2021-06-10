@@ -17,7 +17,7 @@ import (
 	"os"
 	"time"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,7 +50,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource CheClusterRestore
-	err = c.Watch(&source.Kind{Type: &orgv1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &chev1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ const (
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the CheClusterRestore instance
-	restoreCR := &orgv1.CheClusterRestore{}
+	restoreCR := &chev1.CheClusterRestore{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, restoreCR)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -104,6 +104,7 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 
 		// Update restore CR status with the error
 		restoreCR.Status.Message = "Error: " + err.Error()
+		restoreCR.Status.State = chev1.STATE_FAILED
 		if err := r.UpdateCRStatus(restoreCR); err != nil {
 			// Failed to update status, retry
 			return reconcile.Result{}, err
@@ -125,7 +126,13 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRestore) (done bool, err error) {
+func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRestore) (done bool, err error) {
+	// Prevent any further action if restore process finished (succeeded or failed).
+	// To restart restore process one need to recreate restore CR.
+	if restoreCR.Status.State != chev1.STATE_IN_PROGRESS && restoreCR.Status.State != "" {
+		return true, nil
+	}
+
 	if restoreCR.Spec.CopyBackupServerConfiguration {
 		done, err = r.copyBackupServersConfiguration(restoreCR)
 		if err != nil || !done {
@@ -157,7 +164,7 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 		return done, err
 	}
 
-	rctx.UpdateRestoreStage()
+	rctx.UpdateRestoreStatus()
 	if !rctx.state.backupDownloaded {
 		// Check if repository accesible and credentials provided in the configuration can be used to reach backup server content
 		done, err = rctx.backupServer.CheckRepository()
@@ -179,7 +186,7 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 		}
 		logrus.Info("Restore: Retrieved data from backup server")
 		rctx.state.backupDownloaded = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 	}
 
 	if !rctx.state.cheRestored {
@@ -190,7 +197,7 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 		}
 
 		rctx.state.cheRestored = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 
 		// Clean up backup data after successful restore
 		if err := os.RemoveAll(backupDataDestDir); err != nil {
@@ -199,7 +206,8 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 	}
 
 	rctx.restoreCR.Status.Message = "Restore successfully finished"
-	rctx.restoreCR.Status.Phase = "Succeeded"
+	rctx.restoreCR.Status.State = chev1.STATE_SUCCEEDED
+	rctx.restoreCR.Status.Phase = ""
 	if err := rctx.r.UpdateCRStatus(rctx.restoreCR); err != nil {
 		return false, err
 	}
@@ -208,8 +216,8 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *orgv1.CheClusterRest
 	return true, nil
 }
 
-func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *orgv1.CheClusterRestore) (bool, error) {
-	backupCRs := &orgv1.CheClusterBackupList{}
+func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *chev1.CheClusterRestore) (bool, error) {
+	backupCRs := &chev1.CheClusterBackupList{}
 	if err := r.client.List(context.TODO(), backupCRs); err != nil {
 		return false, err
 	}
@@ -221,7 +229,7 @@ func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *o
 		return true, fmt.Errorf("expected an instance of CheClusterBackup, but got %d instances", len(backupCRs.Items))
 	}
 
-	backupCR := &orgv1.CheClusterBackup{}
+	backupCR := &chev1.CheClusterBackup{}
 	namespacedName := types.NamespacedName{Namespace: restoreCR.GetNamespace(), Name: backupCRs.Items[0].GetName()}
 	if err := r.client.Get(context.TODO(), namespacedName, backupCR); err != nil {
 		return false, err
@@ -232,7 +240,7 @@ func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *o
 	return true, nil
 }
 
-func (r *ReconcileCheClusterRestore) UpdateCR(cr *orgv1.CheClusterRestore) error {
+func (r *ReconcileCheClusterRestore) UpdateCR(cr *chev1.CheClusterRestore) error {
 	err := r.client.Update(context.TODO(), cr)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR: %s", cr.Name, err.Error())
@@ -241,7 +249,7 @@ func (r *ReconcileCheClusterRestore) UpdateCR(cr *orgv1.CheClusterRestore) error
 	return nil
 }
 
-func (r *ReconcileCheClusterRestore) UpdateCRStatus(cr *orgv1.CheClusterRestore) error {
+func (r *ReconcileCheClusterRestore) UpdateCRStatus(cr *chev1.CheClusterRestore) error {
 	err := r.client.Status().Update(context.TODO(), cr)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR status: %s", cr.Name, err.Error())

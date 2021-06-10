@@ -46,7 +46,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.oldCheCleaned = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 	}
 
 	// Restore cluster objects from the backup
@@ -57,7 +57,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheResourcesRestored = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 	}
 
 	// Restore Che CR to start main controller reconcile loop
@@ -68,7 +68,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheCRRestored = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 	}
 
 	// Wait until Che deployed and ready
@@ -79,7 +79,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheAvailable = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 	}
 
 	// Restore database from backup dump
@@ -96,7 +96,7 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheDatabaseRestored = true
-		rctx.UpdateRestoreStage()
+		rctx.UpdateRestoreStatus()
 	}
 
 	return true, nil
@@ -501,9 +501,14 @@ func getPatchDatabaseScript(rctx *RestoreContext, dbName string, dataDir string)
 
 	oldNamespace := backupMetadata.Namespace
 	newNamespace := rctx.namespace
-	appsDomain, err := util.GetRouterCanonicalHostname(rctx.r.client, rctx.namespace)
-	if err != nil {
-		return "", err
+	appsDomain := ""
+	if rctx.isOpenShift {
+		appsDomain, err = util.GetRouterCanonicalHostname(rctx.r.client, rctx.namespace)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		appsDomain = rctx.cheCR.Spec.K8s.IngressDomain
 	}
 
 	oldAppsSubStr := oldNamespace + "." + appsDomain

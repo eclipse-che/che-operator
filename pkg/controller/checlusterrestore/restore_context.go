@@ -12,7 +12,7 @@
 package checlusterrestore
 
 import (
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	backup "github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/util"
 )
@@ -20,14 +20,14 @@ import (
 type RestoreContext struct {
 	namespace    string
 	r            *ReconcileCheClusterRestore
-	restoreCR    *orgv1.CheClusterRestore
-	cheCR        *orgv1.CheCluster
+	restoreCR    *chev1.CheClusterRestore
+	cheCR        *chev1.CheCluster
 	backupServer backup.BackupServer
 	state        *RestoreState
 	isOpenShift  bool
 }
 
-func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheClusterRestore) (*RestoreContext, error) {
+func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *chev1.CheClusterRestore) (*RestoreContext, error) {
 	namespace := restoreCR.GetNamespace()
 
 	backupServer, err := backup.NewBackupServer(restoreCR.Spec.BackupServerConfig)
@@ -59,10 +59,11 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *orgv1.CheCluste
 	}, nil
 }
 
-// UpdateRestoreStage updates stage message in CR status according to current restore phase.
+// UpdateRestoreStatus updates stage message in CR status according to current restore phase.
 // Needed only to show progress to the user.
-func (rctx *RestoreContext) UpdateRestoreStage() error {
+func (rctx *RestoreContext) UpdateRestoreStatus() error {
 	rctx.restoreCR.Status.Phase = rctx.state.GetProgressMessage()
+	rctx.restoreCR.Status.State = chev1.STATE_IN_PROGRESS
 	if rctx.restoreCR.Status.Phase != "" {
 		rctx.restoreCR.Status.Message = "Che is being restored"
 	} else {

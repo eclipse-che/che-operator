@@ -152,7 +152,7 @@ spec:
               description: Last backup snapshot ID
               type: string
             state:
-              description: 'Backup progress state: InProgress, Failed, Successed'
+              description: 'Backup progress state: InProgress, Failed, Succeeded'
               type: string
           type: object
       type: object

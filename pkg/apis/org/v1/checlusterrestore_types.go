@@ -43,6 +43,9 @@ type CheClusterRestoreStatus struct {
 	// Describes restore progress
 	// +optional
 	Phase string `json:"stage,omitempty"`
+	// Restore progress state: InProgress, Failed, Succeeded
+	// +optional
+	State string `json:"state,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -150,6 +150,9 @@ spec:
             stage:
               description: Describes restore progress
               type: string
+            state:
+              description: 'Restore progress state: InProgress, Failed, Succeeded'
+              type: string
           type: object
       type: object
   version: v1
