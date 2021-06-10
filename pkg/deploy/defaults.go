@@ -40,6 +40,8 @@ var (
 	defaultKeycloakImage                       string
 	defaultSingleHostGatewayImage              string
 	defaultSingleHostGatewayConfigSidecarImage string
+	defaultGatewayAuthenticationSidecarImage   string
+	defaultGatewayAuthorizationSidecarImage    string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
@@ -179,6 +181,8 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
+	defaultGatewayAuthorizationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
 	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
@@ -328,6 +332,14 @@ func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
 }
 
+func DefaultGatewayAuthenticationSidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultGatewayAuthenticationSidecarImage)
+}
+
+func DefaultGatewayAuthorizationSidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultGatewayAuthorizationSidecarImage)
+}
+
 func DefaultKubernetesImagePullerOperatorCSV() string {
 	return KubernetesImagePullerOperatorCSV
 }
@@ -432,6 +444,8 @@ func InitDefaultsFromEnv() {
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
+	defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries

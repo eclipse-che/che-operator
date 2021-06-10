@@ -10,7 +10,7 @@
 #
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.4-200 as builder
+FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483 as builder
 RUN microdnf install -y golang unzip && \
     go version
 

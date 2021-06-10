@@ -501,7 +501,9 @@ func getGatewayDeploymentSpec(instance *orgv1.CheCluster) appsv1.Deployment {
 func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
 	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(instance))
-	sidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
+	configSidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
+	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
+	authzImage := util.GetValue(instance.Spec.Auth.GatewayAuthorizationSidecarImage, deploy.DefaultGatewayAuthorizationSidecarImage(instance))
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
@@ -522,7 +524,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 		},
 		{
 			Name:            "configbump",
-			Image:           sidecarImage,
+			Image:           configSidecarImage,
 			ImagePullPolicy: corev1.PullAlways,
 			VolumeMounts: []corev1.VolumeMount{
 				{
@@ -556,7 +558,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 		containers = append(containers,
 			corev1.Container{
 				Name:            "oauth-proxy",
-				Image:           "quay.io/openshift/origin-oauth-proxy:4.7",
+				Image:           authnImage,
 				ImagePullPolicy: corev1.PullAlways,
 				Args: []string{
 					"--config=/etc/oauth-proxy/oauth-proxy.cfg",
@@ -572,7 +574,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				},
 			},
 			corev1.Container{
-				Name:            "header-rewrite-rpxy",
+				Name:            "auth-header-rpxy",
 				Image:           "quay.io/mvala/header-rewrite-rpxy:latest",
 				ImagePullPolicy: corev1.PullAlways,
 				Command:         []string{"/header-rewrite-rpxy"},
@@ -580,7 +582,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 			},
 			corev1.Container{
 				Name:            "kube-rbac-proxy",
-				Image:           "quay.io/openshift/origin-kube-rbac-proxy:4.7",
+				Image:           authzImage,
 				ImagePullPolicy: corev1.PullAlways,
 				Args: []string{
 					"--insecure-listen-address=127.0.0.1:8089",
@@ -590,7 +592,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				},
 			},
 			corev1.Container{
-				Name:            "dummy-http",
+				Name:            "blackhole-http",
 				Image:           "containous/whoami:v1.5.0",
 				ImagePullPolicy: corev1.PullAlways,
 				Command:         []string{"/whoami"},

@@ -62,6 +62,16 @@ spec:
                       are about to use. See also all the other fields starting with:
                       `identityProvider`.'
                     type: boolean
+                  gatewayAuthenticationSidecarImage:
+                    description: Gateway sidecar responsible for authentication when
+                      NativeUser is enabled. See link:https://github.com/oauth2-proxy/oauth2-proxy[oauth2-proxy]
+                      or link:https://github.com/openshift/oauth-proxy[openshift/oauth-proxy].
+                    type: string
+                  gatewayAuthorizationSidecarImage:
+                    description: Gateway sidecar responsible for authorization when
+                      NativeUser is enabled. See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy]
+                      or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
+                    type: string
                   identityProviderAdminUserName:
                     description: Overrides the name of the Identity Provider administrator
                       user. Defaults to `admin`.
@@ -196,7 +206,9 @@ spec:
                       solution is Openshift 4 platform-specific.
                     type: boolean
                   nativeUser:
-                    description: Native User
+                    description: Enables native user mode. Currently works only on
+                      OpenShift. Native User mode uses OpenShift OAuth directly as
+                      identity provider, without Keycloak.
                     type: boolean
                   oAuthClientName:
                     description: Name of the OpenShift `OAuthClient` resource used

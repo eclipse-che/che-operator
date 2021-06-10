@@ -249,7 +249,6 @@ func resolveOAuthClientSecret(deployContext *deploy.DeployContext) error {
 	return nil
 }
 
-
 // SyncGitHubOAuth provisions GitHub OAuth if secret with annotation
 // `che.eclipse.org/github-oauth-credentials=true` or `che.eclipse.org/oauth-scm-configuration=github`
 // is mounted into a container

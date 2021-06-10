@@ -450,9 +450,18 @@ type CheClusterSpecAuth struct {
 	// Identity provider container custom settings.
 	// +optional
 	IdentityProviderContainerResources ResourcesCustomSettings `json:"identityProviderContainerResources,omitempty"`
-	// Native User
+	// Enables native user mode. Currently works only on OpenShift.
+	// Native User mode uses OpenShift OAuth directly as identity provider, without Keycloak.
 	// +optional
 	NativeUser *bool `json:"nativeUser,omitempty"`
+	// Gateway sidecar responsible for authentication when NativeUser is enabled.
+	// See link:https://github.com/oauth2-proxy/oauth2-proxy[oauth2-proxy] or link:https://github.com/openshift/oauth-proxy[openshift/oauth-proxy].
+	// +optional
+	GatewayAuthenticationSidecarImage string `json:"gatewayAuthenticationSidecarImage,omitempty"`
+	// Gateway sidecar responsible for authorization when NativeUser is enabled.
+	// See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy] or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
+	// +optional
+	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
