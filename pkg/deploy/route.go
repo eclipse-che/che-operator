@@ -109,8 +109,11 @@ func GetRouteSpec(
 		for _, k := range annotationsKeys {
 			data += k + ":" + annotations[k] + ","
 		}
-		digest, _ := util.ComputeHash256([]byte(data))
-		annotations[CheEclipseOrgManagedAnnotationsDigest] = digest
+		if util.IsTestMode() {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = "0000"
+		} else {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = util.ComputeHash256([]byte(data))
+		}
 	}
 
 	weight := int32(100)

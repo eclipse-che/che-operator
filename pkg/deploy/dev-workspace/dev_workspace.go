@@ -486,14 +486,9 @@ func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
 			return nil, err
 		}
 
-		hash256, err := util.ComputeHash256(data)
-		if err != nil {
-			return nil, err
-		}
-
 		cachedObj[yamlFile] = &Object2Sync{
 			obj.(metav1.Object),
-			hash256,
+			util.ComputeHash256(data),
 		}
 	}
 
