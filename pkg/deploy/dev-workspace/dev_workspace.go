@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -66,6 +65,8 @@ var (
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
+	DevWorkspaceIssuerFile                    = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
+	DevWorkspaceCertificateFile               = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
 
 	DevWorkspaceCheServiceAccountFile           = DevWorkspaceCheTemplates + "/devworkspace-che-serviceaccount.ServiceAccount.yaml"
 	DevWorkspaceCheRoleFile                     = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-role.Role.yaml"
@@ -103,6 +104,8 @@ var (
 		syncDwRoleBinding,
 		syncDwClusterRoleBinding,
 		syncDwProxyClusterRoleBinding,
+		syncDwIssuer,
+		syncDwCertificate,
 		syncDwCRD,
 		syncDwTemplatesCRD,
 		syncDwWorkspaceRoutingCRD,
@@ -256,6 +259,32 @@ func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
 	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{})
 }
 
+func syncDwIssuer(deployContext *deploy.DeployContext) (bool, error) {
+	if !util.IsOpenShift {
+		// We're using unstructured to not require a direct dependency on the cert-manager
+		// This will cause a failure if cert-manager is not installed, which we're ok with
+		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
+		// In case of cert-manager objects, we don't want that because we would have to depend
+		// on cert manager, which would require us to also update operator-sdk version because cert-manager
+		// uses extension/v1 objects. So, we have to go the unstructured way here...
+		return readAndSyncUnstructured(deployContext, DevWorkspaceIssuerFile)
+	}
+	return true, nil
+}
+
+func syncDwCertificate(deployContext *deploy.DeployContext) (bool, error) {
+	if !util.IsOpenShift {
+		// We're using unstructured to not require a direct dependency on the cert-manager
+		// This will cause a failure if cert-manager is not installed, which we're ok with
+		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
+		// In case of cert-manager objects, we don't want that because we would have to depend
+		// on cert manager, which would require us to also update operator-sdk version because cert-manager
+		// uses extension/v1 objects. So, we have to go the unstructured way here...
+		return readAndSyncUnstructured(deployContext, DevWorkspaceCertificateFile)
+	}
+	return true, nil
+}
+
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 	devObject, err := readK8SObject(DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
 	if err != nil {
@@ -357,27 +386,40 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 		return false, nil
 	}
 
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "che.eclipse.org/v1alpha1",
+			"kind":       "CheManager",
+			"metadata": map[string]interface{}{
+				"name":      "devworkspace-che",
+				"namespace": DevWorkspaceCheNamespace,
+			},
+		},
+	}
+	if !util.IsOpenShift {
+		// CheManager requires the gatewayHost on Kubernetes.
+		obj.Object["spec"] = map[string]interface{}{
+			"gatewayHost": "devworkspace-che." + deployContext.CheCluster.Spec.K8s.IngressDomain,
+		}
+	}
+
+	return createUnstructured(deployContext, obj)
+}
+
+func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.Unstructured) (bool, error) {
+	check := &unstructured.Unstructured{}
+	check.SetGroupVersionKind(obj.GroupVersionKind())
+
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			obj = nil
+			check = nil
 		} else {
 			return false, err
 		}
 	}
 
-	if obj == nil {
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "che.eclipse.org",
-			Version: "v1alpha1",
-			Kind:    "CheManager",
-		})
-		obj.SetName("devworkspace-che")
-		obj.SetNamespace(DevWorkspaceCheNamespace)
-
+	if check == nil {
 		err = deployContext.ClusterAPI.Client.Create(context.TODO(), obj)
 		if err != nil {
 			if apierrors.IsAlreadyExists(err) {
@@ -410,6 +452,16 @@ func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj
 	}
 
 	return syncObject(deployContext, obj2sync)
+}
+
+func readAndSyncUnstructured(deployContext *deploy.DeployContext, yamlFile string) (bool, error) {
+	obj := &unstructured.Unstructured{}
+	obj2sync, err := readK8SObject(yamlFile, obj)
+	if err != nil {
+		return false, err
+	}
+
+	return createUnstructured(deployContext, obj2sync.obj.(*unstructured.Unstructured))
 }
 
 func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync) (bool, error) {

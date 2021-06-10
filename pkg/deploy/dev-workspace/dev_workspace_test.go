@@ -45,31 +45,59 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{
 				ServerExposureStrategy: "single-host",
 			},
-		},
-	}
-
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
-	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
-	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-		{
-			APIResources: []metav1.APIResource{
-				{Name: CheManagerResourcename},
+			K8s: orgv1.CheClusterSpecK8SOnly{
+				IngressDomain: "ingress.domain",
 			},
 		},
 	}
 
-	util.IsOpenShift4 = true
-	done, err := ReconcileDevWorkspace(deployContext)
+	newDeployContext := func() *deploy.DeployContext {
+		deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+		deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+		deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+			{
+				APIResources: []metav1.APIResource{
+					{Name: CheManagerResourcename},
+				},
+			},
+		}
 
-	if err != nil {
-		t.Fatalf("Error: %v", err)
+		return deployContext
 	}
 
-	if !done {
-		t.Fatalf("Dev Workspace operator has not been provisioned")
+	test := func(deployContext *deploy.DeployContext) {
+		done, err := ReconcileDevWorkspace(deployContext)
+
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		if !done {
+			t.Fatalf("Dev Workspace operator has not been provisioned")
+		}
+
+		t.Run("defaultCheManagerDeployed", func(t *testing.T) {
+			obj := &unstructured.Unstructured{}
+			obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+			err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
+			if err != nil {
+				t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
+			}
+
+			if obj.GetName() != "devworkspace-che" {
+				t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
+			}
+		})
 	}
 
-	t.Run("defaultCheManagerDeployed", func(t *testing.T) {
+	onOpenShift(func() {
+		test(newDeployContext())
+	})
+
+	onKubernetes(func() {
+		deployContext := newDeployContext()
+		test(deployContext)
+
 		obj := &unstructured.Unstructured{}
 		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
 		err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
@@ -77,9 +105,43 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
 		}
 
-		if obj.GetName() != "devworkspace-che" {
-			t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
+		// On Kubernetes, the spec should mention the domain for the gateway, derived from the ingressDomain
+		gatewayHost := obj.Object["spec"].(map[string]interface{})["gatewayHost"]
+		if gatewayHost != "devworkspace-che.ingress.domain" {
+			t.Fatalf("Unexpected gatewayHost: %v", gatewayHost)
 		}
+
+		// Ok, we need to admit something right here at this place.
+		// The tests for creating the devworkspace objects don't actually test much, because
+		// we don't put the deployment files in the expected location on the filesystem and so
+		// no objects get actually created, only the CheManager resource, which is actually created
+		// by hand in the code.
+		//
+		// So the two subtests below are commented out, because they don't work UNLESS you
+		// put the deployment of the devworkspace-operator under /tmp/devworkspace-operator/templates.
+		//
+		// Basically, you need to replicate locally what the Dockerfile does to put the deployment
+		// files in the expected place in the docker image.
+		//
+		// I wish I knew of a simple way to do that automagically here.
+
+		// t.Run("IssuerDeployed", func(t *testing.T) {
+		// 	obj := &unstructured.Unstructured{}
+		// 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Issuer"})
+		// 	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-controller-selfsigned-issuer", Namespace: DevWorkspaceNamespace}, obj)
+		// 	if err != nil {
+		// 		t.Fatalf("Should have found an Issuer with default config but got an error: %s", err)
+		// 	}
+		// })
+
+		// t.Run("CertificateDeployed", func(t *testing.T) {
+		// 	obj := &unstructured.Unstructured{}
+		// 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Certificate"})
+		// 	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-controller-serving-cert", Namespace: DevWorkspaceNamespace}, obj)
+		// 	if err != nil {
+		// 		t.Fatalf("Should have found an Issuer with default config but got an error: %s", err)
+		// 	}
+		// })
 	})
 }
 
@@ -372,4 +434,36 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 	if actual.Data["a"] != "b" {
 		t.Fatalf("Object is not supposed to be updated.")
 	}
+}
+
+func onOpenShift(f func()) {
+	origIsOpenShift := util.IsOpenShift
+	origIsOpenShift4 := util.IsOpenShift4
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+
+	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
+	DevWorkspaceCheTemplates = devWorkspaceCheTemplatesPath()
+
+	f()
+
+	util.IsOpenShift = origIsOpenShift
+	util.IsOpenShift4 = origIsOpenShift4
+}
+
+func onKubernetes(f func()) {
+	origIsOpenShift := util.IsOpenShift
+	origIsOpenShift4 := util.IsOpenShift4
+
+	util.IsOpenShift = false
+	util.IsOpenShift4 = false
+
+	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
+	DevWorkspaceCheTemplates = devWorkspaceCheTemplatesPath()
+
+	f()
+
+	util.IsOpenShift = origIsOpenShift
+	util.IsOpenShift4 = origIsOpenShift4
 }
