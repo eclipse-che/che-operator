@@ -60,6 +60,9 @@ generateCRD() {
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
   fi
+
+  # removes some left overs after operator-sdk
+  rm ${ROOT_PROJECT_DIR}/deploy/crds/__crd.yaml
 }
 
 # Removes `required` attributes for fields to be compatible with OCP 3.11
