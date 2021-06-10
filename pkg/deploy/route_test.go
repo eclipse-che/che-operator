@@ -62,14 +62,18 @@ func TestRouteSpec(t *testing.T) {
 			serviceName:    "che",
 			servicePort:    8080,
 			routeCustomSettings: orgv1.RouteCustomSettings{
-				Labels: "type=default",
-				Domain: "route-domain",
+				Labels:      "type=default",
+				Domain:      "route-domain",
+				Annotations: map[string]string{"annotation-key": "annotation-value"},
 			},
 			initObjects: []runtime.Object{},
 			expectedRoute: &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "eclipse-che",
+					Annotations: map[string]string{
+						"annotation-key": "annotation-value",
+					},
 					Labels: map[string]string{
 						"type":                         "default",
 						"app.kubernetes.io/component":  "test-component",
@@ -106,7 +110,8 @@ func TestRouteSpec(t *testing.T) {
 			serviceName:    "che",
 			servicePort:    8080,
 			routeCustomSettings: orgv1.RouteCustomSettings{
-				Labels: "type=default",
+				Labels:      "type=default",
+				Annotations: map[string]string{"annotation-key": "annotation-value"},
 			},
 			initObjects: []runtime.Object{},
 			expectedRoute: &routev1.Route{
@@ -119,6 +124,9 @@ func TestRouteSpec(t *testing.T) {
 						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
+					},
+					Annotations: map[string]string{
+						"annotation-key": "annotation-value",
 					},
 				},
 				TypeMeta: metav1.TypeMeta{
