@@ -26,15 +26,15 @@ type BackupServersConfigs struct {
 	// Sftp backup server configuration.
 	// Mandatory fields are: Username, Hostname, RepositoryPath, RepositoryPasswordSecretRef, SshKeySecretRef.
 	// +optional
-	Sftp SftpServerConfing `json:"sftp,omitempty"`
+	Sftp *SftpServerConfing `json:"sftp,omitempty"`
 	// Rest backup server configuration.
 	// Mandatory fields are: Hostname, RepositoryPasswordSecretRef.
 	// +optional
-	Rest RestServerConfig `json:"rest,omitempty"`
+	Rest *RestServerConfig `json:"rest,omitempty"`
 	// Amazon S3 or compatible alternatives.
 	// Mandatory fields are: RepositoryPasswordSecretRef, RepositoryPath, CredentialsSecretRef.
 	// +optional
-	AwsS3 AwsS3ServerConfig `json:"awss3,omitempty"`
+	AwsS3 *AwsS3ServerConfig `json:"awss3,omitempty"`
 }
 
 // +k8s:openapi-gen=true

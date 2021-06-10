@@ -31,7 +31,7 @@ import (
 //  - error if any
 func getResticRepoPassword(client client.Client, namespace string, repoPasswordSecretRef string) (string, bool, error) {
 	if repoPasswordSecretRef == "" {
-		return "", true, fmt.Errorf("restic repository password secret should be specified in %s field.", chev1.RESTIC_REPO_PASSWORD_SECRET_KEY)
+		return "", true, fmt.Errorf("restic repository password secret should be specified in %s field", chev1.RESTIC_REPO_PASSWORD_SECRET_KEY)
 	}
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: repoPasswordSecretRef}

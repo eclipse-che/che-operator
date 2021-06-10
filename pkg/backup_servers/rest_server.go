@@ -26,20 +26,20 @@ import (
 
 // RestServer implements BackupServer
 type RestServer struct {
-	Config chev1.RestServerConfig
+	config *chev1.RestServerConfig
 	ResticClient
 }
 
 func (s *RestServer) PrepareConfiguration(client client.Client, namespace string) (bool, error) {
 	s.ResticClient = ResticClient{}
 
-	repoPassword, done, err := getResticRepoPassword(client, namespace, s.Config.RepositoryPasswordSecretRef)
+	repoPassword, done, err := getResticRepoPassword(client, namespace, s.config.RepositoryPasswordSecretRef)
 	if err != nil || !done {
 		return done, err
 	}
 	s.RepoPassword = repoPassword
 
-	protocol := s.Config.Protocol
+	protocol := s.config.Protocol
 	if protocol == "" {
 		protocol = "https"
 	}
@@ -47,27 +47,27 @@ func (s *RestServer) PrepareConfiguration(client client.Client, namespace string
 		return true, fmt.Errorf("unrecognized protocol %s for REST server", protocol)
 	}
 
-	host := s.Config.Hostname
+	host := s.config.Hostname
 	if host == "" {
 		return true, fmt.Errorf("REST server hostname must be configured")
 	}
-	port := getPortString(s.Config.Port)
+	port := getPortString(s.config.Port)
 
-	repo := s.Config.RepositoryPath
+	repo := s.config.RepositoryPath
 	if repo != "" && !strings.HasSuffix(repo, "/") {
 		repo += "/"
 	}
 
 	// Check backup server credentials if any
 	credentials := ""
-	if s.Config.CredentialsSecretRef != "" {
+	if s.config.CredentialsSecretRef != "" {
 		// Use secret as REST server credentials source
 		secret := &corev1.Secret{}
-		namespacedName := types.NamespacedName{Namespace: namespace, Name: s.Config.CredentialsSecretRef}
+		namespacedName := types.NamespacedName{Namespace: namespace, Name: s.config.CredentialsSecretRef}
 		err = client.Get(context.TODO(), namespacedName, secret)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return true, fmt.Errorf("secret '%s' with REST server username and password not found", s.Config.CredentialsSecretRef)
+				return true, fmt.Errorf("secret '%s' with REST server username and password not found", s.config.CredentialsSecretRef)
 			}
 			return false, err
 		}

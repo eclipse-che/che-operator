@@ -63,16 +63,16 @@ waitBackupFinished() {
       exit 1
     fi
 
-    if [ $x -gt $maxAttempts ]; then
-      echo "[ERROR] Filed to create backup: timeout."
-      echo "[INFO] Backup state: ${statusMessage}"
-      kubectl get pods -n ${NAMESPACE}
-      exit 1
-    fi
-
     sleep 10
     count=$((count+1))
   done
+
+  if [ $count -gt $maxAttempts ]; then
+    echo "[ERROR] Filed to create backup: timeout."
+    echo "[INFO] Backup state: ${statusMessage}"
+    kubectl get pods -n ${NAMESPACE}
+    exit 1
+  fi
 }
 
 waitRestoreFinished() {
@@ -89,17 +89,17 @@ waitRestoreFinished() {
       exit 1
     fi
 
-    if [ $x -gt $maxAttempts ]; then
-      echo "[ERROR] Filed to restore Che: timeout."
-      stage=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.stage}')
-      echo "[INFO] Restore state: $stage"
-      kubectl get pods -n ${NAMESPACE}
-      exit 1
-    fi
-
     sleep 10
     count=$((count+1))
   done
+
+  if [ $count -gt $maxAttempts ]; then
+    echo "[ERROR] Filed to restore Che: timeout."
+    stage=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.stage}')
+    echo "[INFO] Restore state: $stage"
+    kubectl get pods -n ${NAMESPACE}
+    exit 1
+  fi
 }
 
 runTest() {

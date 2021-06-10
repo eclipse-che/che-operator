@@ -28,7 +28,7 @@ import (
 
 // SftpServer implements BackupServer
 type SftpServer struct {
-	config chev1.SftpServerConfing
+	config *chev1.SftpServerConfing
 	ResticClient
 }
 

@@ -29,7 +29,7 @@ const (
 
 // AwsS3Server implements BackupServer
 type AwsS3Server struct {
-	config chev1.AwsS3ServerConfig
+	config *chev1.AwsS3ServerConfig
 	ResticClient
 	secretKeyId string
 	secretKey   string

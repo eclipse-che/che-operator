@@ -50,11 +50,11 @@ type BackupServer interface {
 // Only one backup server is allowed at a time.
 // Note, it is required to call PrepareConfiguration later in order to retrieve credentials and validate the server configuration.
 func NewBackupServer(servers chev1.BackupServersConfigs) (BackupServer, error) {
-	// Autodetect server type
-	// Only one backup server should be configured
+	// Autodetect server type.
+	// Only one backup server should be configured.
 	serverType := ""
 	count := 0
-	// Iterate over all possible servers (fields of Spec.Servers) to find non empty one(s)
+	// Iterate over all possible servers (fields of Spec.BackupServerConfig) to find non empty one(s)
 	rv := reflect.ValueOf(servers)
 	for i := 0; i < rv.NumField(); i++ {
 		// Skip private fields
@@ -83,7 +83,7 @@ func NewBackupServer(servers chev1.BackupServersConfigs) (BackupServer, error) {
 	var backupServer BackupServer
 	switch serverType {
 	case "rest":
-		backupServer = &RestServer{Config: servers.Rest}
+		backupServer = &RestServer{config: servers.Rest}
 	case "sftp":
 		backupServer = &SftpServer{config: servers.Sftp}
 	case "awss3":

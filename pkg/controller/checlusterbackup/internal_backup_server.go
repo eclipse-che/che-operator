@@ -284,24 +284,23 @@ func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Se
 	return secret, nil
 }
 
-// ensureInternalBackupServerConfiguredAndCurrent makes sure that current backup server is configured to internal rest server.
+// ensureInternalBackupServerConfiguredAndCurrent makes sure that current backup server is configured to internal REST server.
 func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, error) {
-	backupCR := bctx.backupCR
-
-	expectedInternalRestServerConfig := chev1.RestServerConfig{
+	expectedInternalRestServerConfig := &chev1.RestServerConfig{
 		Protocol:                    "http",
 		Hostname:                    backupServerServiceName,
 		Port:                        backupServerPort,
 		RepositoryPath:              "che",
 		RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
 	}
-	if backupCR.Spec.BackupServerConfig.Rest != expectedInternalRestServerConfig {
+
+	if bctx.backupCR.Spec.BackupServerConfig.Rest == nil || *bctx.backupCR.Spec.BackupServerConfig.Rest != *expectedInternalRestServerConfig {
 		// Reset all configurations
-		backupCR.Spec.BackupServerConfig = chev1.BackupServersConfigs{}
+		bctx.backupCR.Spec.BackupServerConfig = chev1.BackupServersConfigs{}
 		// Configure REST server
-		backupCR.Spec.BackupServerConfig.Rest = expectedInternalRestServerConfig
+		bctx.backupCR.Spec.BackupServerConfig.Rest = expectedInternalRestServerConfig
 		// Update CR
-		err := bctx.r.UpdateCR(backupCR)
+		err := bctx.r.UpdateCR(bctx.backupCR)
 		if err != nil {
 			return false, err
 		}
