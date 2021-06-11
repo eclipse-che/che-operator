@@ -60,10 +60,12 @@ generateCRD() {
     echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
     echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
   elif [[ $version == "v1beta1" ]]; then
-    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml"
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml"

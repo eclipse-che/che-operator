@@ -74,6 +74,10 @@ spec:
                       repositoryPath:
                         description: Bucket name and repository, e.g. bucket/repo
                         type: string
+                    required:
+                    - awsAccessKeySecretRef
+                    - repositoryPasswordSecretRef
+                    - repositoryPath
                     type: object
                   rest:
                     description: 'Rest backup server configuration. Mandatory fields
@@ -102,6 +106,9 @@ spec:
                       repositoryPath:
                         description: Restic repository path
                         type: string
+                    required:
+                    - hostname
+                    - repositoryPasswordSecretRef
                     type: object
                   sftp:
                     description: 'Sftp backup server configuration. Mandatory fields
@@ -130,6 +137,12 @@ spec:
                       username:
                         description: User login on the remote server
                         type: string
+                    required:
+                    - hostname
+                    - repositoryPasswordSecretRef
+                    - repositoryPath
+                    - sshKeySecretRef
+                    - username
                     type: object
                 type: object
               triggerNow:
