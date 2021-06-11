@@ -9,10 +9,6 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-
-// Important: when any changes are made, CRD must be regenerated.
-// Please use olm/update-resources.sh script for that.
-
 package v1
 
 import (
@@ -33,7 +29,7 @@ type CheClusterBackupSpec struct {
 	// Only one backup server is allowed to configure at a time.
 	// Note, UseInternalBackupServer field can configure internal backup server.
 	// +optional
-	BackupServerConfig BackupServersConfigs `json:"servers,omitempty"`
+	BackupServerConfig BackupServersConfigs `json:"backupServerConfig,omitempty"`
 }
 
 // +k8s:openapi-gen=true

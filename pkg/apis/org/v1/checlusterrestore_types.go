@@ -9,10 +9,6 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-
-// Important: when any changes are made, CRD must be regenerated.
-// Please use olm/update-resources.sh script for that.
-
 package v1
 
 import (
@@ -32,7 +28,7 @@ type CheClusterRestoreSpec struct {
 	// List of backup servers.
 	// Only one backup server is allowed to configure at a time.
 	// +optional
-	BackupServerConfig BackupServersConfigs `json:"servers,omitempty"`
+	BackupServerConfig BackupServersConfigs `json:"backupServerConfig,omitempty"`
 }
 
 // CheClusterRestoreStatus defines the observed state of CheClusterRestore

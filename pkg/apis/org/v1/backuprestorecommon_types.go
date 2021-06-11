@@ -94,7 +94,7 @@ type RestServerConfig struct {
 }
 
 // +k8s:openapi-gen=true
-// Mandatory fields are: RepositoryPasswordSecretRef, RepositoryPath, CredentialsSecretRef.
+// Mandatory fields are: RepositoryPasswordSecretRef, RepositoryPath, AwsAccessKeySecretRef.
 type AwsS3ServerConfig struct {
 	// Protocol to use when connection to the server.
 	// Might be customized in case of alternative server.

@@ -41,7 +41,7 @@ spec:
           spec:
             description: CheClusterBackupSpec defines the desired state of CheClusterBackup
             properties:
-              servers:
+              backupServerConfig:
                 description: List of backup servers. Only one backup server is allowed
                   to configure at a time. Note, UseInternalBackupServer field can
                   configure internal backup server.

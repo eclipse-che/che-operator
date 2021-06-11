@@ -41,12 +41,7 @@ spec:
         spec:
           description: CheClusterRestoreSpec defines the desired state of CheClusterRestore
           properties:
-            copyBackupServerConfiguration:
-              description: If true, copies backup servers configuration from backup
-                CR to `BackupServerConfig` field. When the configuration is copied
-                the flag is set to false.
-              type: boolean
-            servers:
+            backupServerConfig:
               description: List of backup servers. Only one backup server is allowed
                 to configure at a time.
               properties:
@@ -136,6 +131,11 @@ spec:
                       type: string
                   type: object
               type: object
+            copyBackupServerConfiguration:
+              description: If true, copies backup servers configuration from backup
+                CR to `BackupServerConfig` field. When the configuration is copied
+                the flag is set to false.
+              type: boolean
             snapshotId:
               description: Snapshot ID to restore from. If omitted, latest snapshot
                 will be used.

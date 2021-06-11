@@ -49,10 +49,9 @@ type BackupMetadata struct {
 
 func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error) {
 	infra := "Kubernetes"
-	isOpenShift, isOpenShift4, _ := util.DetectOpenShift()
-	if isOpenShift {
+	if util.IsOpenShift {
 		infra = "Openshift "
-		if isOpenShift4 {
+		if util.IsOpenShift4 {
 			infra += "4"
 		} else {
 			infra += "3"
@@ -60,7 +59,7 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 	}
 
 	var appsDomain string
-	if isOpenShift {
+	if util.IsOpenShift {
 		host, err := util.GetRouterCanonicalHostname(bctx.r.client, bctx.namespace)
 		if err != nil {
 			return false, err
