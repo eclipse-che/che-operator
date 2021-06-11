@@ -431,14 +431,8 @@ func ReadObject(yamlFile string, obj interface{}) error {
 	return nil
 }
 
-func ComputeHash256(yamlFile string) (string, error) {
-	data, err := ioutil.ReadFile(yamlFile)
-	if err != nil {
-		return "", err
-	}
-
+func ComputeHash256(data []byte) string {
 	hasher := sha256.New()
 	hasher.Write(data)
-	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	return sha, nil
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
