@@ -14,6 +14,7 @@ package v2alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -104,6 +105,11 @@ type CheGatewaySpec struct {
 	// it is taken from the `RELATED_IMAGE_gateway_configurer` environment variable of the operator
 	// deployment/pod. If not defined there, it defaults to a hardcoded value.
 	ConfigurerImage string `json:"configurerImage,omitempty"`
+
+	// ConfigLabels are labels that are put on the gateway configuration configmaps so that they are picked up
+	// by the gateway configurer. The default value are labels: app=che,component=che-gateway-config
+	// +optional
+	ConfigLabels labels.Set `json:"configLabels,omitempty"`
 }
 
 // CheClusterSpecK8s contains the configuration options specific to Kubernetes only.
