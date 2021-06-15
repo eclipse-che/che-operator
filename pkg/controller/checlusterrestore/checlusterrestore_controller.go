@@ -24,8 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -43,6 +45,22 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Filter events to allow only create event on restore CR trigger a new reconcile loop
+	restorePredicate := predicate.Funcs{
+		UpdateFunc: func(evt event.UpdateEvent) bool {
+			return false
+		},
+		CreateFunc: func(evt event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(evt event.DeleteEvent) bool {
+			return false
+		},
+		GenericFunc: func(evt event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	// Create a new controller
 	c, err := controller.New("checlusterrestore-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -50,7 +68,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource CheClusterRestore
-	err = c.Watch(&source.Kind{Type: &chev1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{})
+	// As every restore process is bound to its CR (to create a new restore it is needed to create a new CR),
+	// it is needed to trigger reconcile loop only for on create event. To reach that, restorePredicate is used.
+	err = c.Watch(&source.Kind{Type: &chev1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{}, restorePredicate)
 	if err != nil {
 		return err
 	}
@@ -151,12 +171,6 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 		// Do not requeue as user has to correct the configuration manually.
 		return true, err
 	}
-	defer func() {
-		if done {
-			// Reset state to restart the restore flow on the next reconcile
-			rctx.state.Reset()
-		}
-	}()
 
 	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
 	done, err = rctx.backupServer.PrepareConfiguration(rctx.r.client, rctx.namespace)
@@ -211,6 +225,9 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 	if err := rctx.r.UpdateCRStatus(rctx.restoreCR); err != nil {
 		return false, err
 	}
+
+	// Reset restore state to allow next restore
+	rctx.state.Reset()
 
 	logrus.Info(rctx.restoreCR.Status.Message)
 	return true, nil
