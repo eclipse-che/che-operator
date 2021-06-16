@@ -181,7 +181,7 @@ type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CheClusterSpec   `json:"spec,omitempty"`
+	Spec   CheClusterSpec           `json:"spec,omitempty"`
 	Status CheClusterStatusV2Alpha1 `json:"status,omitempty"`
 }
 
