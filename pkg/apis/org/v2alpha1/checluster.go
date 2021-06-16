@@ -146,9 +146,9 @@ const (
 	ClusterPhasePendingDeletion = "PendingDeletion"
 )
 
-// CheClusterStatus contains the status of the CheCluster object
+// CheClusterStatusV2Alpha1 contains the status of the CheCluster object
 // \k8s:openapi-gen=true
-type CheClusterStatus struct {
+type CheClusterStatusV2Alpha1 struct {
 	// GatewayPhase specifies the phase in which the gateway deployment currently is.
 	// If the gateway is disabled, the phase is "Inactive".
 	GatewayPhase GatewayPhase `json:"gatewayPhase,omitempty"`
@@ -182,7 +182,7 @@ type CheCluster struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   CheClusterSpec   `json:"spec,omitempty"`
-	Status CheClusterStatus `json:"status,omitempty"`
+	Status CheClusterStatusV2Alpha1 `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
