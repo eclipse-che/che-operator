@@ -37,7 +37,7 @@ overrideDefaults() {
 runTests() {
     # Deploy Eclipse Che applying CR
     applyOlmCR
-    waitEclipseCheDeployed "nightly"
+    waitEclipseCheDeployed "next"
     provisionOAuth
     startNewWorkspace
     waitWorkspaceStart
