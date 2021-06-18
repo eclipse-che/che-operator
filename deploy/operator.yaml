@@ -83,6 +83,10 @@ spec:
               value: quay.io/openshift/origin-oauth-proxy:4.7
             - name: RELATED_IMAGE_gateway_authorization_sidecar
               value: quay.io/openshift/origin-kube-rbac-proxy:4.7
+            - name: RELATED_IMAGE_gateway_header_sidecar
+              value: quay.io/che-incubator/header-rewrite-proxy:latest
+            - name: RELATED_IMAGE_gateway_http_sink_sidecar
+              value: containous/whoami:v1.5.0
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME

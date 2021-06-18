@@ -460,15 +460,21 @@ type CheClusterSpecAuth struct {
 	// Enables native user mode. Currently works only on OpenShift.
 	// Native User mode uses OpenShift OAuth directly as identity provider, without Keycloak.
 	// +optional
-	NativeUser *bool `json:"nativeUser,omitempty"`
-	// Gateway sidecar responsible for authentication when NativeUser is enabled.
+	NativeUserMode *bool `json:"nativeUserMode,omitempty"`
+	// Gateway sidecar responsible for authentication when NativeUserMode is enabled.
 	// See link:https://github.com/oauth2-proxy/oauth2-proxy[oauth2-proxy] or link:https://github.com/openshift/oauth-proxy[openshift/oauth-proxy].
 	// +optional
 	GatewayAuthenticationSidecarImage string `json:"gatewayAuthenticationSidecarImage,omitempty"`
-	// Gateway sidecar responsible for authorization when NativeUser is enabled.
+	// Gateway sidecar responsible for authorization when NativeUserMode is enabled.
 	// See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy] or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
 	// +optional
 	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
+	// Header Rewrite Proxy sidecar image is used to properly set authorization header.
+	// See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
+	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
+	// Dummy upstream application for kube-rbac-proxy in the Gateway.
+	// We're interested in kube-rbac-proxy response, but it has to have some upstream configured.
+	GatewayHttpSinkSidecarImage string `json:"gatewayHttpSinkSidecarImage,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future

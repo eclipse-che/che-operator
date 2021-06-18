@@ -161,7 +161,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 					FieldPath:  "metadata.namespace"}},
 		})
 
-	if util.IsNativeUserEnabled(s.deployContext.CheCluster) {
+	if util.IsNativeUserModeEnabled(s.deployContext.CheCluster) {
 		cheEnv = append(cheEnv, corev1.EnvVar{
 			Name:  "CHE_AUTH_NATIVEUSER",
 			Value: "true",

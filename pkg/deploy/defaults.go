@@ -42,6 +42,8 @@ var (
 	defaultSingleHostGatewayConfigSidecarImage string
 	defaultGatewayAuthenticationSidecarImage   string
 	defaultGatewayAuthorizationSidecarImage    string
+	defaultGatewayHeaderProxySidecarImage      string
+	defaultGatewayHttpSinkSidecarImage         string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
@@ -340,6 +342,14 @@ func DefaultGatewayAuthorizationSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultGatewayAuthorizationSidecarImage)
 }
 
+func DefaultGatewayHeaderProxySidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultGatewayHeaderProxySidecarImage)
+}
+
+func DefaultGatewayHttpSinkSidecarImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultGatewayHttpSinkSidecarImage)
+}
+
 func DefaultKubernetesImagePullerOperatorCSV() string {
 	return KubernetesImagePullerOperatorCSV
 }
@@ -446,6 +456,8 @@ func InitDefaultsFromEnv() {
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
 	defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
+	defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))
+	defaultGatewayHttpSinkSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_http_sink_sidecar"))
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries

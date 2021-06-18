@@ -82,7 +82,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	if util.IsNativeUserEnabled(instance) {
+	if util.IsNativeUserModeEnabled(instance) {
 		clusterRole := getGatewayClusterRoleSpec(instance)
 		if _, err := deploy.Sync(deployContext, &clusterRole, clusterRoleDiffOpts); err != nil {
 			return err
@@ -95,6 +95,11 @@ func syncAll(deployContext *deploy.DeployContext) error {
 
 		oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance)
 		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+			return err
+		}
+
+		headerRewriteProxyConfig := getGatewayHeaderRewriteProxyConfigSpec(instance)
+		if _, err := deploy.Sync(deployContext, &headerRewriteProxyConfig, configMapDiffOpts); err != nil {
 			return err
 		}
 	}
@@ -425,9 +430,32 @@ skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.O
 	}
 }
 
+func getGatewayHeaderRewriteProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+	return corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "che-gateway-config-header-rewrite-proxy",
+			Namespace: instance.Namespace,
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+		},
+		Data: map[string]string{
+			"rules.yaml": `
+rules:
+- from: X-Forwarded-Access-Token
+  to: Authorization
+  prefix: 'Bearer '
+  keep-original: false
+`,
+		},
+	}
+}
+
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	traefikPort := 8080
-	if util.IsNativeUserEnabled(instance) {
+	if util.IsNativeUserModeEnabled(instance) {
 		traefikPort = 8088
 	}
 	return corev1.ConfigMap{
@@ -504,11 +532,13 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 	configSidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
 	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
 	authzImage := util.GetValue(instance.Spec.Auth.GatewayAuthorizationSidecarImage, deploy.DefaultGatewayAuthorizationSidecarImage(instance))
+	headerProxyImage := util.GetValue(instance.Spec.Auth.GatewayHeaderRewriteSidecarImage, deploy.DefaultGatewayHeaderProxySidecarImage(instance))
+	httpSinkImage := util.GetValue(instance.Spec.Auth.GatewayHttpSinkSidecarImage, deploy.DefaultGatewayHttpSinkSidecarImage(instance))
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
 		{
-			Name:            "traefik",
+			Name:            "gateway",
 			Image:           gatewayImage,
 			ImagePullPolicy: corev1.PullAlways,
 			VolumeMounts: []corev1.VolumeMount{
@@ -554,7 +584,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 		},
 	}
 
-	if util.IsNativeUserEnabled(instance) {
+	if util.IsNativeUserModeEnabled(instance) {
 		containers = append(containers,
 			corev1.Container{
 				Name:            "oauth-proxy",
@@ -574,11 +604,16 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				},
 			},
 			corev1.Container{
-				Name:            "auth-header-rpxy",
-				Image:           "quay.io/mvala/header-rewrite-rpxy:latest",
+				Name:            "header-rewrite-proxy",
+				Image:           headerProxyImage,
 				ImagePullPolicy: corev1.PullAlways,
-				Command:         []string{"/header-rewrite-rpxy"},
-				Args:            []string{"--upstream=http://127.0.0.1:8088", "--bind=127.0.0.1:8081"},
+				Args:            []string{"--upstream=http://127.0.0.1:8088", "--bind=127.0.0.1:8081", "--rules=/etc/rules/rules.yaml"},
+				VolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      "header-rewrite-proxy-rules",
+						MountPath: "/etc/rules",
+					},
+				},
 			},
 			corev1.Container{
 				Name:            "kube-rbac-proxy",
@@ -592,8 +627,8 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				},
 			},
 			corev1.Container{
-				Name:            "blackhole-http",
-				Image:           "containous/whoami:v1.5.0",
+				Name:            "http-sink",
+				Image:           httpSinkImage,
 				ImagePullPolicy: corev1.PullAlways,
 				Command:         []string{"/whoami"},
 				Args:            []string{"--port", "8090"},
@@ -623,13 +658,24 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 		},
 	}
 
-	if util.IsNativeUserEnabled(instance) {
+	if util.IsNativeUserModeEnabled(instance) {
 		volumes = append(volumes, corev1.Volume{
 			Name: "oauth-proxy-config",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: "che-gateway-config-oauth-proxy",
+					},
+				},
+			},
+		})
+
+		volumes = append(volumes, corev1.Volume{
+			Name: "header-rewrite-proxy-rules",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-gateway-config-header-rewrite-proxy",
 					},
 				},
 			},

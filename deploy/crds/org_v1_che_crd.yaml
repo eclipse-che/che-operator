@@ -64,13 +64,22 @@ spec:
                     type: boolean
                   gatewayAuthenticationSidecarImage:
                     description: Gateway sidecar responsible for authentication when
-                      NativeUser is enabled. See link:https://github.com/oauth2-proxy/oauth2-proxy[oauth2-proxy]
+                      NativeUserMode is enabled. See link:https://github.com/oauth2-proxy/oauth2-proxy[oauth2-proxy]
                       or link:https://github.com/openshift/oauth-proxy[openshift/oauth-proxy].
                     type: string
                   gatewayAuthorizationSidecarImage:
                     description: Gateway sidecar responsible for authorization when
-                      NativeUser is enabled. See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy]
+                      NativeUserMode is enabled. See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy]
                       or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
+                    type: string
+                  gatewayHeaderRewriteSidecarImage:
+                    description: Header Rewrite Proxy sidecar image is used to properly
+                      set authorization header. See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
+                    type: string
+                  gatewayHttpSinkSidecarImage:
+                    description: Dummy upstream application for kube-rbac-proxy in
+                      the Gateway. We're interested in kube-rbac-proxy response, but
+                      it has to have some upstream configured.
                     type: string
                   identityProviderAdminUserName:
                     description: Overrides the name of the Identity Provider administrator
@@ -219,7 +228,7 @@ spec:
                       in 'openshift-config' namespace by Operator. Note that this
                       solution is Openshift 4 platform-specific.
                     type: boolean
-                  nativeUser:
+                  nativeUserMode:
                     description: Enables native user mode. Currently works only on
                       OpenShift. Native User mode uses OpenShift OAuth directly as
                       identity provider, without Keycloak.
