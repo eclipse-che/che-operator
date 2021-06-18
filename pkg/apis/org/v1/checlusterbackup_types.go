@@ -19,17 +19,13 @@ import (
 // CheClusterBackupSpec defines the desired state of CheClusterBackup
 type CheClusterBackupSpec struct {
 	// Automatically setup pod with REST backup server and use the server in this configuration.
-	// Note, this will overwrite existing configuration.
+	// Note, this flag takes precedence and will overwrite existing backup server configuration.
 	// +optional
 	UseInternalBackupServer bool `json:"useInternalBackupServer,omitempty"`
-	// Set to true to start backup process.
+	// Name of custom resource with a backup server configuration to use for this backup.
+	// Note, UseInternalBackupServer field can configure internal backup server automatically.
 	// +optional
-	TriggerNow bool `json:"triggerNow"`
-	// List of backup servers.
-	// Only one backup server is allowed to configure at a time.
-	// Note, UseInternalBackupServer field can configure internal backup server.
-	// +optional
-	BackupServerConfig BackupServersConfigs `json:"backupServerConfig,omitempty"`
+	BackupServerConfigRef string `json:"backupServerConfigRef,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -41,6 +37,9 @@ type CheClusterBackupStatus struct {
 	// Backup progress state: InProgress, Failed, Succeeded
 	// +optional
 	State string `json:"state,omitempty"`
+	// Describes backup progress
+	// +optional
+	Phase string `json:"stage,omitempty"`
 	// Last backup snapshot ID
 	// +optional
 	SnapshotId string `json:"snapshotId,omitempty"`

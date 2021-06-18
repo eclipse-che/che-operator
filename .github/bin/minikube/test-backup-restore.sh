@@ -33,7 +33,6 @@ metadata:
   name: eclipse-che-backup
   namespace: ${NAMESPACE}
 spec:
-  triggerNow: true
   useInternalBackupServer: true
 EOF
 }
@@ -45,8 +44,7 @@ kind: CheClusterRestore
 metadata:
   name: eclipse-che-restore
   namespace: ${NAMESPACE}
-spec:
-  copyBackupServerConfiguration: true
+spec: {}
 EOF
 }
 
@@ -54,12 +52,13 @@ waitBackupFinished() {
   maxAttempts=25
   count=0
   while [ $count -le $maxAttempts ]; do
-    statusMessage=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status.message}')
-    if [[ "$statusMessage" == *'successfully finished'* ]]; then
+    state=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status.state}')
+    if [[ "$state" == 'Succeeded' ]]; then
       break
     fi
-    if echo "$statusMessage" | grep -iqF error ; then
-      echo "[ERROR] Filed to backup Che: $statusMessage."
+    if [[ "$state" == 'Failed' ]]; then
+      status=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status}')
+      echo "[ERROR] Filed to backup Che: $status."
       exit 1
     fi
 
@@ -69,7 +68,8 @@ waitBackupFinished() {
 
   if [ $count -gt $maxAttempts ]; then
     echo "[ERROR] Filed to create backup: timeout."
-    echo "[INFO] Backup state: ${statusMessage}"
+    status=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status}')
+    echo "[INFO] Backup status: ${status}"
     kubectl get pods -n ${NAMESPACE}
     exit 1
   fi
@@ -79,13 +79,13 @@ waitRestoreFinished() {
   maxAttempts=75
   count=0
   while [ $count -le $maxAttempts ]; do
-    statusMessage=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.message}')
-    if [[ "$statusMessage" == *'successfully finished'* ]]; then
+    state=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status.state}')
+    if [[ "$state" == 'Succeeded' ]]; then
       break
     fi
-    if echo "$statusMessage" | grep -iqF error ; then
-      stage=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.stage}')
-      echo "[ERROR] Filed to restore Che: $stage."
+    if [[ "$state" == 'Failed' ]]; then
+      status=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status}')
+      echo "[ERROR] Filed to restore Che: $status."
       exit 1
     fi
 
@@ -95,8 +95,8 @@ waitRestoreFinished() {
 
   if [ $count -gt $maxAttempts ]; then
     echo "[ERROR] Filed to restore Che: timeout."
-    stage=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.stage}')
-    echo "[INFO] Restore state: $stage"
+    status=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status}')
+    echo "[INFO] Restore status: $status"
     kubectl get pods -n ${NAMESPACE}
     exit 1
   fi

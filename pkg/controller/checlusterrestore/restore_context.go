@@ -12,6 +12,8 @@
 package checlusterrestore
 
 import (
+	"fmt"
+
 	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	backup "github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -27,10 +29,10 @@ type RestoreContext struct {
 	isOpenShift  bool
 }
 
-func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *chev1.CheClusterRestore) (*RestoreContext, error) {
+func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *chev1.CheClusterRestore, backupServerConfig *chev1.CheBackupServerConfiguration) (*RestoreContext, error) {
 	namespace := restoreCR.GetNamespace()
 
-	backupServer, err := backup.NewBackupServer(restoreCR.Spec.BackupServerConfig)
+	backupServer, err := backup.NewBackupServer(backupServerConfig.Spec)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +48,10 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *chev1.CheCluste
 		cheCR = nil
 	}
 
-	isOpenShift, _, _ := util.DetectOpenShift()
+	restoreState, err := NewRestoreState(restoreCR)
+	if err != nil {
+		return nil, err
+	}
 
 	return &RestoreContext{
 		namespace:    namespace,
@@ -55,25 +60,18 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *chev1.CheCluste
 		cheCR:        cheCR,
 		backupServer: backupServer,
 		state:        restoreState,
-		isOpenShift:  isOpenShift,
 	}, nil
 }
 
-// UpdateRestoreStatus updates stage message in CR status according to current restore phase.
-// Needed only to show progress to the user.
+// UpdateRestoreStatus updates stage message in CR status according to current restore phase
 func (rctx *RestoreContext) UpdateRestoreStatus() error {
-	rctx.restoreCR.Status.Phase = rctx.state.GetProgressMessage()
-	rctx.restoreCR.Status.State = chev1.STATE_IN_PROGRESS
-	if rctx.restoreCR.Status.Phase != "" {
-		rctx.restoreCR.Status.Message = "Che is being restored"
-	} else {
-		rctx.restoreCR.Status.Message = ""
+	phase := rctx.state.GetPhaseMessage()
+	if phase != rctx.restoreCR.Status.Phase {
+		rctx.restoreCR.Status.Phase = phase
+		return rctx.r.UpdateCRStatus(rctx.restoreCR)
 	}
-	return rctx.r.UpdateCRStatus(rctx.restoreCR)
+	return nil
 }
-
-// Keep state as a global variable to preserve between reconcile loops
-var restoreState = NewRestoreState()
 
 type RestoreState struct {
 	backupDownloaded     bool
@@ -85,45 +83,80 @@ type RestoreState struct {
 	cheRestored          bool
 }
 
-func (rs *RestoreState) Reset() {
-	rs.backupDownloaded = false
-	rs.oldCheCleaned = false
-	rs.cheResourcesRestored = false
-	rs.cheCRRestored = false
-	rs.cheAvailable = false
-	rs.cheDatabaseRestored = false
-	rs.cheRestored = false
-}
+// RestoreState phase messages
+// Each message represents state in progress, not done
+const (
+	restoreStateIn_backupDownloaded     = "Downloading backup from backup server"
+	restoreStateIn_oldCheCleaned        = "Cleaning up existing Che"
+	restoreStateIn_cheResourcesRestored = "Restoring Che related cluster objects"
+	restoreStateIn_cheCRRestored        = "Restoring Che Custom Resource"
+	restoreStateIn_cheAvailable         = "Waiting until clean Che is ready"
+	restoreStateIn_cheDatabaseRestored  = "Restoring Che database"
+	restoreStateIn_cheRestored          = "Waiting until Che is ready"
+)
 
-func NewRestoreState() *RestoreState {
-	rs := &RestoreState{}
-	rs.Reset()
-	return rs
-}
-
-func (s *RestoreState) GetProgressMessage() string {
-	// Order of the checks below should comply with restore steps order in
-	// RestoreChe function, except backup downloading step that precedes it.
+func (s *RestoreState) GetPhaseMessage() string {
+	// Order of the checks below should comply with restore steps order
 	if !s.backupDownloaded {
-		return "Downloading backup from backup server"
+		return restoreStateIn_backupDownloaded
 	}
 	if !s.oldCheCleaned {
-		return "Cleaning up existing Che"
+		return restoreStateIn_oldCheCleaned
 	}
 	if !s.cheResourcesRestored {
-		return "Restoring Che related cluster objects"
+		return restoreStateIn_cheResourcesRestored
 	}
 	if !s.cheCRRestored {
-		return "Restoring Che Custom Resource"
+		return restoreStateIn_cheCRRestored
 	}
 	if !s.cheAvailable {
-		return "Waiting until Che is ready"
+		return restoreStateIn_cheAvailable
 	}
 	if !s.cheDatabaseRestored {
-		return "Restoring Che database"
+		return restoreStateIn_cheDatabaseRestored
 	}
 	if !s.cheRestored {
-		return "Waiting until Che is ready"
+		return restoreStateIn_cheRestored
 	}
 	return ""
+}
+
+func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) {
+	rs := &RestoreState{}
+
+	phase := restoreCR.Status.Phase
+	if phase != "" {
+		if restoreCR.Status.State == chev1.STATE_SUCCEEDED {
+			phase = chev1.STATE_SUCCEEDED
+		}
+		switch phase {
+		case chev1.STATE_SUCCEEDED:
+			rs.cheRestored = true
+			fallthrough
+		case restoreStateIn_cheRestored:
+			rs.cheDatabaseRestored = true
+			fallthrough
+		case restoreStateIn_cheDatabaseRestored:
+			rs.cheAvailable = true
+			fallthrough
+		case restoreStateIn_cheAvailable:
+			rs.cheCRRestored = true
+			fallthrough
+		case restoreStateIn_cheCRRestored:
+			rs.cheResourcesRestored = true
+			fallthrough
+		case restoreStateIn_cheResourcesRestored:
+			rs.oldCheCleaned = true
+			fallthrough
+		case restoreStateIn_oldCheCleaned:
+			rs.backupDownloaded = true
+			fallthrough
+		case restoreStateIn_backupDownloaded:
+			break
+		default:
+			return nil, fmt.Errorf("unrecognized restore phase '%s' in status", phase)
+		}
+	}
+
+	return rs, nil
 }

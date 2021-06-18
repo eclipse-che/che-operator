@@ -33,6 +33,7 @@ const (
 	InternalBackupServerType      = "rest"
 	InternalBackupServerComponent = "che-backup-internal-rest-server"
 
+	BackupServerConfigurationName      = "backup-rest-server-configuration"
 	BackupServerRepoPasswordSecretName = "backup-rest-server-repo-password"
 	BackupServerDeploymentName         = "backup-rest-server-deployment"
 	backupServerPodName                = "backup-rest-server-pod"
@@ -46,7 +47,8 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 		ensureInternalBackupServerDeploymentExist,
 		ensureInternalBackupServerServiceExists,
 		ensureInternalBackupServerPodReady,
-		ensureInternalBackupServerConfiguredAndCurrent,
+		ensureInternalBackupServerConfigurationExistAndCorrect,
+		ensureInternalBackupServerConfigurationCurrent,
 		ensureInternalBackupServerSecretExists,
 	}
 
@@ -230,12 +232,91 @@ func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
 	return service, nil
 }
 
+// ensureInternalBackupServerConfigurationExistAndCorrect makes sure that there is CR with correct internal backup server configuration
+func ensureInternalBackupServerConfigurationExistAndCorrect(bctx *BackupContext) (bool, error) {
+	// Check if the internal backup server configuration exists
+	internalBackupServerConfiguration := &chev1.CheBackupServerConfiguration{}
+	namespacedName := types.NamespacedName{Namespace: bctx.namespace, Name: BackupServerConfigurationName}
+	err := bctx.r.client.Get(context.TODO(), namespacedName, internalBackupServerConfiguration)
+	if err == nil {
+		// Configuration exist, check if it is correct
+		expectedInternalRestServerConfig := getExpectedInternalRestServerConfiguration()
+		if *internalBackupServerConfiguration.Spec.Rest != *expectedInternalRestServerConfig {
+			// Something is wrong in the configuration
+			if err := bctx.r.client.Delete(context.TODO(), internalBackupServerConfiguration); err != nil {
+				return false, err
+			}
+			// Reconcile to recreate the configuration
+			return false, nil
+		}
+		// Everything is correct
+		return true, nil
+	}
+	if !errors.IsNotFound(err) {
+		return false, err
+	}
+
+	// Create internal backup server configuration
+	internalBackupServerConfiguration = getInternalBackupServerConfigurationSpec(bctx)
+	err = bctx.r.client.Create(context.TODO(), internalBackupServerConfiguration)
+	if err != nil {
+		return false, err
+	}
+	// Reconcile after internal backup server configuration creation
+	return false, nil
+}
+
+func getInternalBackupServerConfigurationSpec(bctx *BackupContext) *chev1.CheBackupServerConfiguration {
+	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
+	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
+
+	return &chev1.CheBackupServerConfiguration{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CheBackupServerConfiguration",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      BackupServerConfigurationName,
+			Namespace: bctx.namespace,
+			Labels:    labels,
+		},
+		Spec: chev1.CheBackupServerConfigurationSpec{
+			Rest: getExpectedInternalRestServerConfiguration(),
+		},
+	}
+}
+
+func getExpectedInternalRestServerConfiguration() *chev1.RestServerConfig {
+	return &chev1.RestServerConfig{
+		Protocol:                    "http",
+		Hostname:                    backupServerServiceName,
+		Port:                        backupServerPort,
+		RepositoryPath:              "che",
+		RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
+	}
+}
+
+// ensureInternalBackupServerConfigurationCurrent makes sure that current backup configuration is internal backup server
+func ensureInternalBackupServerConfigurationCurrent(bctx *BackupContext) (bool, error) {
+	if bctx.backupCR.Spec.BackupServerConfigRef != BackupServerConfigurationName {
+		// Update backup CR configuration
+		bctx.backupCR.Spec.BackupServerConfigRef = BackupServerConfigurationName
+		if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
+			return false, err
+		}
+		// Reconcile after backup server config reference update
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 	// Check if the secret with restic repository password exists
 	repoPasswordSecret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{
 		Namespace: bctx.namespace,
-		Name:      bctx.backupCR.Spec.BackupServerConfig.Rest.RepositoryPasswordSecretRef,
+		Name:      bctx.backupServerConfigCR.Spec.Rest.RepositoryPasswordSecretRef,
 	}
 	err := bctx.r.client.Get(context.TODO(), namespacedName, repoPasswordSecret)
 	if err == nil {
@@ -282,31 +363,4 @@ func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Se
 	}
 
 	return secret, nil
-}
-
-// ensureInternalBackupServerConfiguredAndCurrent makes sure that current backup server is configured to internal REST server.
-func ensureInternalBackupServerConfiguredAndCurrent(bctx *BackupContext) (bool, error) {
-	expectedInternalRestServerConfig := &chev1.RestServerConfig{
-		Protocol:                    "http",
-		Hostname:                    backupServerServiceName,
-		Port:                        backupServerPort,
-		RepositoryPath:              "che",
-		RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
-	}
-
-	if bctx.backupCR.Spec.BackupServerConfig.Rest == nil || *bctx.backupCR.Spec.BackupServerConfig.Rest != *expectedInternalRestServerConfig {
-		// Reset all configurations
-		bctx.backupCR.Spec.BackupServerConfig = chev1.BackupServersConfigs{}
-		// Configure REST server
-		bctx.backupCR.Spec.BackupServerConfig.Rest = expectedInternalRestServerConfig
-		// Update CR
-		err := bctx.r.UpdateCR(bctx.backupCR)
-		if err != nil {
-			return false, err
-		}
-		// Reconcile after CR update
-		return false, nil
-	}
-
-	return true, nil
 }

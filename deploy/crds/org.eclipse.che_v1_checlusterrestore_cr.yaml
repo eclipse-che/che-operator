@@ -13,12 +13,5 @@ kind: CheClusterRestore
 metadata:
   name: example-checlusterrestore
 spec:
-  # One may use only the following line in case if backup CR is properly configured
-  # copyBackupServerConfiguration: true
-
-  # Manual configuration
-  backupServerConfig:
-    rest:
-      hostname: rest-server-host.net
-      repositoryPath: che
-      repositoryPasswordSecretRef: secret-name
+  # Reference to an object of backup server configuration.
+  backupServerConfigRef: example-chebackupserverconfiguration

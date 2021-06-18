@@ -49,7 +49,7 @@ type BackupServer interface {
 // NewBackupServer is a factory to get backup server backend.
 // Only one backup server is allowed at a time.
 // Note, it is required to call PrepareConfiguration later in order to retrieve credentials and validate the server configuration.
-func NewBackupServer(servers chev1.BackupServersConfigs) (BackupServer, error) {
+func NewBackupServer(servers chev1.CheBackupServerConfigurationSpec) (BackupServer, error) {
 	// Autodetect server type.
 	// Only one backup server should be configured.
 	serverType := ""

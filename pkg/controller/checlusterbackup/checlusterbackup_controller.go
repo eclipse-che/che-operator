@@ -13,6 +13,7 @@ package checlusterbackup
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -20,10 +21,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -41,6 +45,22 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Filter events to allow only create event on backup CR to trigger a new backup process
+	backupCRPredicate := predicate.Funcs{
+		UpdateFunc: func(evt event.UpdateEvent) bool {
+			return false
+		},
+		CreateFunc: func(evt event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(evt event.DeleteEvent) bool {
+			return false
+		},
+		GenericFunc: func(evt event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	// Create a new controller
 	c, err := controller.New("checlusterbackup-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -48,7 +68,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource CheClusterBackup
-	err = c.Watch(&source.Kind{Type: &chev1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{})
+	// As every backup process is bound to its CR (to create a new backup it is needed to create a new CR),
+	// it is needed to trigger reconcile loop only for on create event. To reach that, backupCRPredicate is used.
+	err = c.Watch(&source.Kind{Type: &chev1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{}, backupCRPredicate)
 	if err != nil {
 		return err
 	}
@@ -99,7 +121,7 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 		if !done {
 			// Reconcile because the job is not done yet.
 			// Probably the problem is related to a network error, etc.
-			return reconcile.Result{}, err
+			return reconcile.Result{RequeueAfter: 1 * time.Second}, err
 		}
 
 		// Update backup CR status with the error
@@ -128,13 +150,47 @@ func (r *ReconcileCheClusterBackup) Reconcile(request reconcile.Request) (reconc
 }
 
 func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup) (bool, error) {
+	// Prevent any further action if backup process finished (succeeded or failed).
+	// To restart restore process one need to recreate restore CR.
+	if backupCR.Status.State != chev1.STATE_IN_PROGRESS && backupCR.Status.State != "" {
+		return true, nil
+	}
+
+	// Validate backup CR
+	if backupCR.Spec.BackupServerConfigRef == "" && !backupCR.Spec.UseInternalBackupServer {
+		return true, fmt.Errorf("BackupServerConfigRef is not set, nor UseInternalBackupServer requested")
+	}
+
+	// Fetch backup server config, if any
+	var backupServerConfigCR *chev1.CheBackupServerConfiguration
+	if backupCR.Spec.BackupServerConfigRef != "" {
+		backupServerConfigCR = &chev1.CheBackupServerConfiguration{}
+		backupServerConfigNamespacedName := types.NamespacedName{Namespace: backupCR.GetNamespace(), Name: backupCR.Spec.BackupServerConfigRef}
+		if err := r.client.Get(context.TODO(), backupServerConfigNamespacedName, backupServerConfigCR); err != nil {
+			if errors.IsNotFound(err) {
+				return true, fmt.Errorf("backup server configuration with name '%s' not found in '%s' namespace", backupCR.Spec.BackupServerConfigRef, backupCR.GetNamespace())
+			}
+			return false, err
+		}
+	}
+
 	// Create backup context
-	bctx, err := NewBackupContext(r, backupCR)
+	bctx, err := NewBackupContext(r, backupCR, backupServerConfigCR)
 	if err != nil {
 		// Failed to create backup context.
 		// This is usually caused by invalid configuration of current backup server in the backup CR.
 		// Do not requeue as user has to correct the configuration manually.
 		return true, err
+	}
+
+	// Update status with progress on the first reconcile loop
+	if bctx.backupCR.Status.State == "" {
+		bctx.backupCR.Status.Message = "Backup is in progress. Start time: " + time.Now().String()
+		bctx.backupCR.Status.State = chev1.STATE_IN_PROGRESS
+		bctx.backupCR.Status.Phase = bctx.state.GetPhaseMessage()
+		if err := r.UpdateCRStatus(backupCR); err != nil {
+			return false, err
+		}
 	}
 
 	// Check if internal backup server is needed
@@ -146,81 +202,70 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup
 		}
 	}
 
+	// Update progress
+	// If internal backup server is not needed, consider step is done
+	bctx.state.internalBackupServerSetup = true
+	bctx.UpdateBackupStatusPhase()
+
 	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
 	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
 	if err != nil || !done {
 		return done, err
 	}
 
-	// Do backup if requested
-	if bctx.backupCR.Spec.TriggerNow {
-		// Update status
-		if bctx.backupCR.Status.State != chev1.STATE_IN_PROGRESS {
-			bctx.backupCR.Status.Message = "Backup is in progress. Start time: " + time.Now().String()
-			bctx.backupCR.Status.State = chev1.STATE_IN_PROGRESS
-			bctx.backupCR.Status.SnapshotId = ""
-			if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
-				return false, err
-			}
-		}
-
-		// Check for repository existance and init if needed
-		repoExist, done, err := bctx.backupServer.IsRepositoryExist()
+	// Check for repository existance and init if needed
+	repoExist, done, err := bctx.backupServer.IsRepositoryExist()
+	if err != nil || !done {
+		return done, err
+	}
+	if !repoExist {
+		done, err := bctx.backupServer.InitRepository()
 		if err != nil || !done {
 			return done, err
 		}
-		if !repoExist {
-			done, err := bctx.backupServer.InitRepository()
-			if err != nil || !done {
-				return done, err
-			}
-		}
-
-		// Check if credentials provided in the configuration can be used to reach backup server content
-		done, err = bctx.backupServer.CheckRepository()
-		if err != nil || !done {
-			return done, err
-		}
-
-		// Schedule cleanup
-		defer os.RemoveAll(backupDestDir)
-		// Collect all needed data to backup
-		done, err = CollectBackupData(bctx, backupDestDir)
-		if err != nil || !done {
-			return done, err
-		}
-
-		// Upload collected data to backup server
-		snapshotStat, done, err := bctx.backupServer.SendSnapshot(backupDestDir)
-		if err != nil || !done {
-			return done, err
-		}
-
-		// Backup is successfull
-		bctx.backupCR.Spec.TriggerNow = false
-		if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
-			// Wait a bit and retry.
-			// This is needed because actual backup is done successfully, but the CR still has backup flag set.
-			// This update is important, because without it next reconcile loop will start a new backup.
-			time.Sleep(5 * time.Second)
-			if err := bctx.r.UpdateCR(bctx.backupCR); err != nil {
-				return false, err
-			}
-		}
-
-		// Update status
-		bctx.backupCR.Status.Message = "Backup successfully finished at " + time.Now().String()
-		bctx.backupCR.Status.State = chev1.STATE_SUCCEEDED
-		bctx.backupCR.Status.SnapshotId = snapshotStat.Id
-		if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
-			logrus.Errorf("Failed to update status after successful backup")
-			// Do not reconcile as backup is done, only status is not updated
-			return true, err
-		}
-
-		logrus.Info(bctx.backupCR.Status.Message)
 	}
 
+	// Check if credentials provided in the configuration can be used to reach backup server content
+	done, err = bctx.backupServer.CheckRepository()
+	if err != nil || !done {
+		return done, err
+	}
+
+	// Update progress
+	bctx.state.backupRepositoryReady = true
+	bctx.UpdateBackupStatusPhase()
+
+	// Schedule cleanup
+	defer os.RemoveAll(backupDestDir)
+	// Collect all needed data to backup
+	done, err = CollectBackupData(bctx, backupDestDir)
+	if err != nil || !done {
+		return done, err
+	}
+
+	// Update progress
+	bctx.state.cheInstallationBackupDataCollected = true
+	bctx.UpdateBackupStatusPhase()
+
+	// Upload collected data to backup server
+	snapshotStat, done, err := bctx.backupServer.SendSnapshot(backupDestDir)
+	if err != nil || !done {
+		return done, err
+	}
+
+	// Backup is successfully done
+	// Update status
+	bctx.state.backupSnapshotSent = true
+	bctx.backupCR.Status.Phase = bctx.state.GetPhaseMessage()
+	bctx.backupCR.Status.Message = "Backup successfully finished at " + time.Now().String()
+	bctx.backupCR.Status.State = chev1.STATE_SUCCEEDED
+	bctx.backupCR.Status.SnapshotId = snapshotStat.Id
+	if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
+		logrus.Errorf("Failed to update status after successful backup: %v", err)
+		return true, err
+	}
+
+	logrus.Info(bctx.backupCR.Status.Message)
 	return true, nil
 }
 

@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -541,6 +542,24 @@ func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheClu
 		return nil, 0, err
 	}
 	return cheCR, 1, nil
+}
+
+func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *chev1.CheBackupServerConfiguration) error {
+	err := client.Update(context.TODO(), backupServerConfig)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR: %s", backupServerConfig.Name, err.Error())
+		return err
+	}
+	return nil
+}
+
+func UpdateBackupServerConfigurationStatus(client client.Client, backupServerConfig *chev1.CheBackupServerConfiguration) error {
+	err := client.Status().Update(context.TODO(), backupServerConfig)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR status: %s", backupServerConfig.Name, err.Error())
+		return err
+	}
+	return nil
 }
 
 // ClearMetadata removes extra fields from given metadata.

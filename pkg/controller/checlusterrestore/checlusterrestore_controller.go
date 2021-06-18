@@ -46,7 +46,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Filter events to allow only create event on restore CR trigger a new reconcile loop
-	restorePredicate := predicate.Funcs{
+	restoreCRPredicate := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
 			return false
 		},
@@ -69,8 +69,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to primary resource CheClusterRestore
 	// As every restore process is bound to its CR (to create a new restore it is needed to create a new CR),
-	// it is needed to trigger reconcile loop only for on create event. To reach that, restorePredicate is used.
-	err = c.Watch(&source.Kind{Type: &chev1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{}, restorePredicate)
+	// it is needed to trigger reconcile loop only for on create event. To reach that, restoreCRPredicate is used.
+	err = c.Watch(&source.Kind{Type: &chev1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{}, restoreCRPredicate)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (r *ReconcileCheClusterRestore) Reconcile(request reconcile.Request) (recon
 		if !done {
 			// Reconcile because the job is not done yet.
 			// Probably the problem is related to a network error, etc.
-			return reconcile.Result{}, err
+			return reconcile.Result{RequeueAfter: 1 * time.Second}, err
 		}
 
 		// Update restore CR status with the error
@@ -153,18 +153,31 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 		return true, nil
 	}
 
-	if restoreCR.Spec.CopyBackupServerConfiguration {
-		done, err = r.copyBackupServersConfiguration(restoreCR)
-		if err != nil || !done {
-			return done, err
+	// Fetch backup server config
+	var backupServerConfigCR *chev1.CheBackupServerConfiguration
+	backupServerConfigName := restoreCR.Spec.BackupServerConfigRef
+	if backupServerConfigName == "" {
+		// Try to find backup server configuration in the same namespace
+		cheBackupServersConfigurationList := &chev1.CheBackupServerConfigurationList{}
+		if err := r.client.List(context.TODO(), cheBackupServersConfigurationList); err != nil {
+			return false, err
 		}
-
-		restoreCR.Spec.CopyBackupServerConfiguration = false
-		err = r.UpdateCR(restoreCR)
+		if len(cheBackupServersConfigurationList.Items) != 1 {
+			return true, fmt.Errorf("expected an instance of CheBackupServersConfiguration, but got %d instances", len(cheBackupServersConfigurationList.Items))
+		}
+		backupServerConfigName = cheBackupServersConfigurationList.Items[0].GetName()
+		logrus.Infof("Restore: using '%s' backup server configuration", backupServerConfigName)
+	}
+	backupServerConfigCR = &chev1.CheBackupServerConfiguration{}
+	backupServerConfigNamespacedName := types.NamespacedName{Namespace: restoreCR.GetNamespace(), Name: backupServerConfigName}
+	if err := r.client.Get(context.TODO(), backupServerConfigNamespacedName, backupServerConfigCR); err != nil {
+		if errors.IsNotFound(err) {
+			return true, fmt.Errorf("backup server configuration with name '%s' not found in '%s' namespace", restoreCR.Spec.BackupServerConfigRef, restoreCR.GetNamespace())
+		}
 		return false, err
 	}
 
-	rctx, err := NewRestoreContext(r, restoreCR)
+	rctx, err := NewRestoreContext(r, restoreCR, backupServerConfigCR)
 	if err != nil {
 		// Failed to create context.
 		// This is usually caused by invalid configuration of current backup server in the restore CR.
@@ -172,13 +185,22 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 		return true, err
 	}
 
-	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
+	// Update status with progress on the first reconcile loop
+	if rctx.restoreCR.Status.State == "" {
+		rctx.restoreCR.Status.Message = "Restore is in progress. Start time: " + time.Now().String()
+		rctx.restoreCR.Status.State = chev1.STATE_IN_PROGRESS
+		rctx.restoreCR.Status.Phase = rctx.state.GetPhaseMessage()
+		if err := r.UpdateCRStatus(restoreCR); err != nil {
+			return false, err
+		}
+	}
+
+	// Makrctxe sure, that backup server configuration in the CR is valid and cache cluster resources
 	done, err = rctx.backupServer.PrepareConfiguration(rctx.r.client, rctx.namespace)
 	if err != nil || !done {
 		return done, err
 	}
 
-	rctx.UpdateRestoreStatus()
 	if !rctx.state.backupDownloaded {
 		// Check if repository accesible and credentials provided in the configuration can be used to reach backup server content
 		done, err = rctx.backupServer.CheckRepository()
@@ -223,37 +245,11 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 	rctx.restoreCR.Status.State = chev1.STATE_SUCCEEDED
 	rctx.restoreCR.Status.Phase = ""
 	if err := rctx.r.UpdateCRStatus(rctx.restoreCR); err != nil {
+		logrus.Errorf("Failed to update status after successful restore: %v", err)
 		return false, err
 	}
-
-	// Reset restore state to allow next restore
-	rctx.state.Reset()
 
 	logrus.Info(rctx.restoreCR.Status.Message)
-	return true, nil
-}
-
-func (r *ReconcileCheClusterRestore) copyBackupServersConfiguration(restoreCR *chev1.CheClusterRestore) (bool, error) {
-	backupCRs := &chev1.CheClusterBackupList{}
-	if err := r.client.List(context.TODO(), backupCRs); err != nil {
-		return false, err
-	}
-
-	if len(backupCRs.Items) != 1 {
-		if len(backupCRs.Items) == 0 {
-			return true, fmt.Errorf("cannot copy backup servers configuration: backup CR not found")
-		}
-		return true, fmt.Errorf("expected an instance of CheClusterBackup, but got %d instances", len(backupCRs.Items))
-	}
-
-	backupCR := &chev1.CheClusterBackup{}
-	namespacedName := types.NamespacedName{Namespace: restoreCR.GetNamespace(), Name: backupCRs.Items[0].GetName()}
-	if err := r.client.Get(context.TODO(), namespacedName, backupCR); err != nil {
-		return false, err
-	}
-
-	restoreCR.Spec.BackupServerConfig = backupCR.Spec.BackupServerConfig
-
 	return true, nil
 }
 

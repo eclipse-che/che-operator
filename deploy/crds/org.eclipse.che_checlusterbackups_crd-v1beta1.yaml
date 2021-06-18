@@ -41,104 +41,15 @@ spec:
         spec:
           description: CheClusterBackupSpec defines the desired state of CheClusterBackup
           properties:
-            backupServerConfig:
-              description: List of backup servers. Only one backup server is allowed
-                to configure at a time. Note, UseInternalBackupServer field can configure
-                internal backup server.
-              properties:
-                awss3:
-                  description: 'Amazon S3 or compatible alternatives. Mandatory fields
-                    are: RepositoryPasswordSecretRef, RepositoryPath, CredentialsSecretRef.'
-                  properties:
-                    awsAccessKeySecretRef:
-                      description: Reference to secret that contains awsAccessKeyId
-                        and awsSecretAccessKey keys.
-                      type: string
-                    hostname:
-                      description: Server hostname, defaults to 's3.amazonaws.com'.
-                        Might be customized in case of alternative server.
-                      type: string
-                    port:
-                      description: Backup server port. Usually default value is used.
-                        Might be customized in case of alternative server.
-                      type: integer
-                    protocol:
-                      description: Protocol to use when connection to the server.
-                        Might be customized in case of alternative server.
-                      type: string
-                    repositoryPasswordSecretRef:
-                      description: Holds reference to a secret with restic repository
-                        password under 'repo-password' field to encrypt / decrypt
-                        its content.
-                      type: string
-                    repositoryPath:
-                      description: Bucket name and repository, e.g. bucket/repo
-                      type: string
-                  type: object
-                rest:
-                  description: 'Rest backup server configuration. Mandatory fields
-                    are: Hostname, RepositoryPasswordSecretRef.'
-                  properties:
-                    credentialsSecretRef:
-                      description: Secret that contains username and password fields
-                        to login into restic server. Note, each repository is encrypted
-                        with own password. See ResticRepoPasswordSecretRef field.
-                      type: string
-                    hostname:
-                      description: Backup server host
-                      type: string
-                    port:
-                      description: Backup server port
-                      type: integer
-                    protocol:
-                      description: Protocol to use when connection to the server Defaults
-                        to https.
-                      type: string
-                    repositoryPasswordSecretRef:
-                      description: Holds reference to a secret with restic repository
-                        password under 'repo-password' field to encrypt / decrypt
-                        its content.
-                      type: string
-                    repositoryPath:
-                      description: Restic repository path
-                      type: string
-                  type: object
-                sftp:
-                  description: 'Sftp backup server configuration. Mandatory fields
-                    are: Username, Hostname, RepositoryPath, RepositoryPasswordSecretRef,
-                    SshKeySecretRef.'
-                  properties:
-                    hostname:
-                      description: Backup server host
-                      type: string
-                    port:
-                      description: Backup server port
-                      type: integer
-                    repositoryPasswordSecretRef:
-                      description: Holds reference to a secret with restic repository
-                        password under 'repo-password' field to encrypt / decrypt
-                        its content.
-                      type: string
-                    repositoryPath:
-                      description: Restic repository path, relative or absolute, e.g.
-                        /srv/repo
-                      type: string
-                    sshKeySecretRef:
-                      description: Private ssh key under 'ssh-privatekey' field for
-                        passwordless login
-                      type: string
-                    username:
-                      description: User login on the remote server
-                      type: string
-                  type: object
-              type: object
-            triggerNow:
-              description: Set to true to start backup process.
-              type: boolean
+            backupServerConfigRef:
+              description: Name of custom resource with a backup server configuration
+                to use for this backup. Note, UseInternalBackupServer field can configure
+                internal backup server automatically.
+              type: string
             useInternalBackupServer:
               description: Automatically setup pod with REST backup server and use
-                the server in this configuration. Note, this will overwrite existing
-                configuration.
+                the server in this configuration. Note, this flag takes precedence
+                and will overwrite existing backup server configuration.
               type: boolean
           type: object
         status:
@@ -150,6 +61,9 @@ spec:
               type: string
             snapshotId:
               description: Last backup snapshot ID
+              type: string
+            stage:
+              description: Describes backup progress
               type: string
             state:
               description: 'Backup progress state: InProgress, Failed, Succeeded'
