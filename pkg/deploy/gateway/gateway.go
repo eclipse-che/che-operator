@@ -45,9 +45,7 @@ const (
 var (
 	serviceAccountDiffOpts     = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
 	roleDiffOpts               = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
-	clusterRoleDiffOpts        = cmpopts.IgnoreFields(rbac.ClusterRole{}, "TypeMeta", "ObjectMeta")
 	roleBindingDiffOpts        = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
-	clusterRoleBindingDiffOpts = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
 	serviceDiffOpts            = cmp.Options{
 		cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP"),
@@ -83,16 +81,6 @@ func syncAll(deployContext *deploy.DeployContext) error {
 	}
 
 	if util.IsNativeUserModeEnabled(instance) {
-		clusterRole := getGatewayClusterRoleSpec(instance)
-		if _, err := deploy.Sync(deployContext, &clusterRole, clusterRoleDiffOpts); err != nil {
-			return err
-		}
-
-		clusterRoleBinding := getGatewayClusterRoleBindingSpec(instance)
-		if _, err := deploy.Sync(deployContext, &clusterRoleBinding, clusterRoleBindingDiffOpts); err != nil {
-			return err
-		}
-
 		oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance)
 		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
 			return err
@@ -338,56 +326,6 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 			{
 				Kind: "ServiceAccount",
 				Name: GatewayServiceName,
-			},
-		},
-	}
-}
-
-func getGatewayClusterRoleSpec(instance *orgv1.CheCluster) rbac.ClusterRole {
-	return rbac.ClusterRole{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbac.SchemeGroupVersion.String(),
-			Kind:       "ClusterRole",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   instance.Namespace + "-" + GatewayServiceName,
-			Labels: deploy.GetLabels(instance, GatewayServiceName),
-		},
-		Rules: []rbac.PolicyRule{
-			{
-				Verbs:     []string{"create"},
-				APIGroups: []string{"authentication.k8s.io"},
-				Resources: []string{"tokenreviews"},
-			},
-			{
-				Verbs:     []string{"create"},
-				APIGroups: []string{"authorization.k8s.io"},
-				Resources: []string{"subjectaccessreviews"},
-			},
-		},
-	}
-}
-
-func getGatewayClusterRoleBindingSpec(instance *orgv1.CheCluster) rbac.ClusterRoleBinding {
-	return rbac.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbac.SchemeGroupVersion.String(),
-			Kind:       "ClusterRoleBinding",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   instance.Namespace + "-" + GatewayServiceName,
-			Labels: deploy.GetLabels(instance, GatewayServiceName),
-		},
-		RoleRef: rbac.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     instance.Namespace + "-" + GatewayServiceName,
-		},
-		Subjects: []rbac.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      GatewayServiceName,
-				Namespace: instance.Namespace,
 			},
 		},
 	}

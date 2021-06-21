@@ -192,7 +192,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	keycloakURL := cr.Spec.Auth.IdentityProviderURL
 	cheFlavor := deploy.DefaultCheFlavor(cr)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := deploy.GetKeocloakOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
+	oAuthClient := deploy.GetKeycloakOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
 	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
 	if !provisioned {
 		return false, err
