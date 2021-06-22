@@ -457,7 +457,7 @@ type CheClusterSpecAuth struct {
 	// Identity provider container custom settings.
 	// +optional
 	IdentityProviderContainerResources ResourcesCustomSettings `json:"identityProviderContainerResources,omitempty"`
-	// Enables native user mode. Currently works only on OpenShift.
+	// Enables native user mode. Currently works only on OpenShift and DevWorkspace engine.
 	// Native User mode uses OpenShift OAuth directly as identity provider, without Keycloak.
 	// +optional
 	NativeUserMode *bool `json:"nativeUserMode,omitempty"`

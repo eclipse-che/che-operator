@@ -228,9 +228,9 @@ spec:
                     is Openshift 4 platform-specific.
                   type: boolean
                 nativeUserMode:
-                  description: Enables native user mode. Currently works only on OpenShift.
-                    Native User mode uses OpenShift OAuth directly as identity provider,
-                    without Keycloak.
+                  description: Enables native user mode. Currently works only on OpenShift
+                    and DevWorkspace engine. Native User mode uses OpenShift OAuth
+                    directly as identity provider, without Keycloak.
                   type: boolean
                 oAuthClientName:
                   description: Name of the OpenShift `OAuthClient` resource used to
