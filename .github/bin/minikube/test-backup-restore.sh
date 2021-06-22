@@ -79,7 +79,7 @@ waitRestoreFinished() {
   maxAttempts=75
   count=0
   while [ $count -le $maxAttempts ]; do
-    state=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status.state}')
+    state=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.state}')
     if [[ "$state" == 'Succeeded' ]]; then
       break
     fi
@@ -95,7 +95,7 @@ waitRestoreFinished() {
 
   if [ $count -gt $maxAttempts ]; then
     echo "[ERROR] Filed to restore Che: timeout."
-    status=$(kubectl get checlusterbackup eclipse-che-backup -n ${NAMESPACE} -o jsonpath='{.status}')
+    status=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status}')
     echo "[INFO] Restore status: $status"
     kubectl get pods -n ${NAMESPACE}
     exit 1
