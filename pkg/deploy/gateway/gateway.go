@@ -43,10 +43,10 @@ const (
 )
 
 var (
-	serviceAccountDiffOpts     = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
-	roleDiffOpts               = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
-	roleBindingDiffOpts        = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
-	serviceDiffOpts            = cmp.Options{
+	serviceAccountDiffOpts = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
+	roleDiffOpts           = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
+	roleBindingDiffOpts    = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
+	serviceDiffOpts        = cmp.Options{
 		cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta", "Status"),
 		cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP"),
 	}

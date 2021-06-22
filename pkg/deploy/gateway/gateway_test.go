@@ -109,36 +109,36 @@ func TestNativeUserGateway(t *testing.T) {
 }
 
 func TestNoGatewayForMultiHost(t *testing.T) {
-    orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-    corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
-    cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-    deployContext := &deploy.DeployContext{
-        CheCluster: &orgv1.CheCluster{
-            ObjectMeta: metav1.ObjectMeta{
-                Namespace: "eclipse-che",
-                Name:      "eclipse-che",
-            },
-            Spec: orgv1.CheClusterSpec{
-                Server: orgv1.CheClusterSpecServer{
-                    ServerExposureStrategy: "multi-host",
-                },
-            },
-        },
-        ClusterAPI: deploy.ClusterAPI{
-            Client:          cli,
-            NonCachedClient: cli,
-            Scheme:          scheme.Scheme,
-        },
-    }
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	deployContext := &deploy.DeployContext{
+		CheCluster: &orgv1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "eclipse-che",
+				Name:      "eclipse-che",
+			},
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ServerExposureStrategy: "multi-host",
+				},
+			},
+		},
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
 
-    err := SyncGatewayToCluster(deployContext)
-    if err != nil {
-        t.Fatalf("Failed to sync Gateway: %v", err)
-    }
+	err := SyncGatewayToCluster(deployContext)
+	if err != nil {
+		t.Fatalf("Failed to sync Gateway: %v", err)
+	}
 
-    deployment := &appsv1.Deployment{}
-    err = cli.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
-    if err == nil {
+	deployment := &appsv1.Deployment{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: GatewayServiceName, Namespace: "eclipse-che"}, deployment)
+	if err == nil {
 		t.Fatalf("Failed to get deployment: %v", err)
 	} else {
 		if v, ok := err.(errors.APIStatus); ok {
