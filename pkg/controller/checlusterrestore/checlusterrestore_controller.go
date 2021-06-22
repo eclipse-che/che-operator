@@ -166,7 +166,6 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 			return true, fmt.Errorf("expected an instance of CheBackupServersConfiguration, but got %d instances", len(cheBackupServersConfigurationList.Items))
 		}
 		backupServerConfigName = cheBackupServersConfigurationList.Items[0].GetName()
-		logrus.Infof("Restore: using '%s' backup server configuration", backupServerConfigName)
 	}
 	backupServerConfigCR = &chev1.CheBackupServerConfiguration{}
 	backupServerConfigNamespacedName := types.NamespacedName{Namespace: restoreCR.GetNamespace(), Name: backupServerConfigName}
