@@ -74,15 +74,22 @@ func (cl *k8s) ExecIntoPod(
 }
 
 func (cl *k8s) DoExecIntoPod(namespace string, podName string, command string, reason string) (string, error) {
+	var stdin io.Reader
+	return cl.DoExecIntoPodWithStdin(namespace, podName, command, stdin, reason)
+}
+
+func (cl *k8s) DoExecIntoPodWithStdin(namespace string, podName string, command string, stdin io.Reader, reason string) (string, error) {
 	if reason != "" {
 		logrus.Infof("Running exec for '%s' in the pod '%s'", reason, podName)
 	}
 
 	args := []string{"/bin/bash", "-c", command}
-	stdout, stderr, err := cl.RunExec(args, podName, namespace)
+	stdout, stderr, err := cl.RunExec(args, podName, namespace, stdin)
 	if err != nil {
 		logrus.Errorf("Error running exec: %v, command: %s", err, args)
-		logrus.Errorf("Stderr: %s", stderr)
+		if stderr != "" {
+			logrus.Errorf("Stderr: %s", stderr)
+		}
 		return stdout, err
 	}
 
@@ -133,7 +140,7 @@ func (cl *k8s) ReadSecret(name string, ns string) (user string, password string,
 	return string(secret.Data["user"]), string(secret.Data["password"]), nil
 }
 
-func (cl *k8s) RunExec(command []string, podName, namespace string) (string, string, error) {
+func (cl *k8s) RunExec(command []string, podName, namespace string, stdin io.Reader) (string, string, error) {
 
 	req := cl.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -143,7 +150,7 @@ func (cl *k8s) RunExec(command []string, podName, namespace string) (string, str
 
 	req.VersionedParams(&corev1.PodExecOptions{
 		Command: command,
-		Stdin:   false,
+		Stdin:   stdin != nil,
 		Stdout:  true,
 		Stderr:  true,
 		TTY:     false,
@@ -156,18 +163,14 @@ func (cl *k8s) RunExec(command []string, podName, namespace string) (string, str
 	}
 
 	var stdout, stderr bytes.Buffer
-	var stdin io.Reader
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin:  stdin,
 		Stdout: &stdout,
 		Stderr: &stderr,
 		Tty:    false,
 	})
-	if err != nil {
-		return stdout.String(), stderr.String(), err
-	}
 
-	return stdout.String(), stderr.String(), nil
+	return stdout.String(), stderr.String(), err
 }
 
 func (cl *k8s) IsResourceOperationPermitted(resourceAttr *authorizationv1.ResourceAttributes) (ok bool, err error) {

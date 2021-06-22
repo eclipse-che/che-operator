@@ -18,6 +18,8 @@ command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
 ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
+ECLIPSE_CHE_BACKUP_CRD="./deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
+ECLIPSE_CHE_RESTORE_CRD="./deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
 DEV_WORKSPACE_CONTROLLER_VERSION="main"
 DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
@@ -88,6 +90,8 @@ createNamespace() {
 
 applyCRandCRD() {
   kubectl apply -f ${ECLIPSE_CHE_CRD}
+  kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD}
+  kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD}
   kubectl apply -f ${ECLIPSE_CHE_CR} -n $ECLIPSE_CHE_NAMESPACE
 }
 

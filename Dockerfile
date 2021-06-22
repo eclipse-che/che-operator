@@ -14,6 +14,13 @@ FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483 as builder
 RUN microdnf install -y golang unzip && \
     go version
 
+# get restic. Needed for backup / restore capabilities
+ENV RESTIC_VERSION=0.12.0
+RUN microdnf install -y bzip2 && \
+    export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
+    curl -sLO https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 && \
+    bzip2 -d restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 && mv restic_* /tmp/restic && chmod +x /tmp/restic
+
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
@@ -52,9 +59,11 @@ COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/del
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
+COPY --from=builder /tmp/restic /usr/local/bin/restic
 
 # install httpd-tools for /usr/bin/htpasswd
-RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages"
+RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
+    mkdir ~/.ssh && chmod 0766  ~/.ssh
 CMD ["che-operator"]
 
 # append Brew metadata here - see https://github.com/redhat-developer/codeready-workspaces-images/blob/crw-2-rhel-8/crw-jenkins/jobs/CRW_CI/crw-operator_2.x.jenkinsfile

@@ -51,14 +51,29 @@ generateCRD() {
   popd
 
   addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
+  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml
+  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml
+  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml
 
   if [[ $version == "v1" ]]; then
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml
     echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
+    echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
+    echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
+    echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
   elif [[ $version == "v1beta1" ]]; then
-    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
+    mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml
+    mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml
+    mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml
+    removeRequiredAttribute ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml"
+    echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml"
+    echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml"
+    echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml"
   fi
 
   # removes some left overs after operator-sdk
@@ -180,6 +195,8 @@ updateNighltyBundle() {
     platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 
     cp -rf $templateCRD $platformCRD
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
     if [[ $platform == "openshift" ]]; then
       yq -riSY  '.spec.preserveUnknownFields = false' $platformCRD
       eval head -10 $templateCRD | cat - ${platformCRD} > tmp.crd && mv tmp.crd ${platformCRD}
@@ -259,8 +276,8 @@ $(cat $1)" > $1
 
 checkOperatorSDKVersion
 detectImages
-generateCRD "v1"
 generateCRD "v1beta1"
+generateCRD "v1"
 updateOperatorYaml
 updateDockerfile
 updateNighltyBundle

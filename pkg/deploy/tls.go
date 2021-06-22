@@ -505,7 +505,7 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 	// Get all source config maps, if any
-	caConfigMaps, err := getCACertsConfigMaps(deployContext)
+	caConfigMaps, err := GetCACertsConfigMaps(deployContext)
 	if err != nil {
 		return false, err
 	}
@@ -575,9 +575,9 @@ func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool
 	return SyncConfigMapSpecToCluster(deployContext, mergedCAConfigMapSpec)
 }
 
-// getCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
+// GetCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
 // The selection is based on the specific label
-func getCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
+func GetCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
 	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
