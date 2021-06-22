@@ -357,10 +357,6 @@ scope = "user:full"
 openshift_service_account = "%s"
 cookie_secret = "wgg2UoihVgdmnnJzekA0qQ=="
 email_domains = "*"
-standard_logging = true
-request_logging = false
-auth_logging = true
-cookie_secure = true
 cookie_httponly = false
 pass_access_token = true
 skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName),
@@ -385,7 +381,6 @@ rules:
 - from: X-Forwarded-Access-Token
   to: Authorization
   prefix: 'Bearer '
-  keep-original: false
 `,
 		},
 	}
@@ -421,7 +416,7 @@ providers:
     directory: "/dynamic-config"
     watch: true
 log:
-  level: "DEBUG"`, traefikPort),
+  level: "INFO"`, traefikPort),
 		},
 	}
 }
