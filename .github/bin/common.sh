@@ -121,6 +121,30 @@ waitWorkspaceStart() {
   fi
 }
 
+waitExistedWorkspaceStop() {
+  login
+
+  maxAttempts=10
+  count=0
+  while [ $count -le $maxAttempts ]; do
+    chectl workspace:list --chenamespace=${NAMESPACE}
+    workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
+
+    if [ "${workspaceStatus}" == "STOPPED" ]; then
+      echo "[INFO] Workspace stopped successfully"
+      break
+    fi
+
+    if [ $x -gt $maxAttempts ]; then
+      echo "[ERROR] Filed to stop workspace"
+      exit 1
+    fi
+
+    sleep 10
+    count=$((count+1))
+  done
+}
+
 installYq() {
   YQ=$(command -v yq) || true
   if [[ ! -x "${YQ}" ]]; then
@@ -176,6 +200,7 @@ deployEclipseCheWithTemplates() {
   cat ${templates}/che-operator/operator.yaml
 
   chectl server:deploy \
+    --batch \
     --platform=${platform} \
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
@@ -224,6 +249,16 @@ startNewWorkspace() {
   chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
 }
 
+getOnlyWorkspaceId() {
+  workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
+
+  # Grep applied to MacOS
+  workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
+  workspaceID="${workspaceID%'ID'}"
+
+  echo $workspaceID
+}
+
 createWorkspace() {
   sleep 5s
   login
@@ -233,15 +268,29 @@ createWorkspace() {
 startExistedWorkspace() {
   sleep 5s
   login
-  chectl workspace:list --chenamespace=${NAMESPACE}
-  workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
 
-  # Grep applied to MacOS
-  workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
-  workspaceID="${workspaceID%'ID'}"
+  workspaceID=$(getOnlyWorkspaceId)
   echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
 
   chectl workspace:start $workspaceID
+}
+
+stopExistedWorkspace() {
+  login
+
+  workspaceID=$(getOnlyWorkspaceId)
+  echo "[INFO] Workspace id of the workspace to stop is: ${workspaceID}"
+
+  chectl workspace:stop $workspaceID
+}
+
+deleteExistedWorkspace() {
+  login
+
+  workspaceID=$(getOnlyWorkspaceId)
+  echo "[INFO] Workspace id of the workspace to delete is: ${workspaceID}"
+
+  chectl workspace:delete $workspaceID
 }
 
 disableOpenShiftOAuth() {

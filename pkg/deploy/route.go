@@ -15,8 +15,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -35,14 +37,16 @@ var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels)
+		return reflect.DeepEqual(x.Labels, y.Labels) &&
+			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 var routeWithHostDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.Route{}, "TypeMeta", "Status"),
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels)
+		return reflect.DeepEqual(x.Labels, y.Labels) &&
+			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 
@@ -84,9 +88,32 @@ func GetRouteSpec(
 	MergeLabels(labels, routeCustomSettings.Labels)
 
 	// add custom annotations
-	annotations := map[string]string{}
-	for k, v := range routeCustomSettings.Annotations {
-		annotations[k] = v
+	var annotations map[string]string
+	if len(routeCustomSettings.Annotations) > 0 {
+		annotations = make(map[string]string)
+		for k, v := range routeCustomSettings.Annotations {
+			annotations[k] = v
+		}
+	}
+
+	// add 'che.eclipse.org/managed-annotations-digest' annotation
+	// to store and compare annotations managed by operator only
+	annotationsKeys := make([]string, 0, len(annotations))
+	for k := range annotations {
+		annotationsKeys = append(annotationsKeys, k)
+	}
+	if len(annotationsKeys) > 0 {
+		sort.Strings(annotationsKeys)
+
+		data := ""
+		for _, k := range annotationsKeys {
+			data += k + ":" + annotations[k] + ","
+		}
+		if util.IsTestMode() {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = "0000"
+		} else {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = util.ComputeHash256([]byte(data))
+		}
 	}
 
 	weight := int32(100)

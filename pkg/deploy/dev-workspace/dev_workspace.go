@@ -16,6 +16,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -526,18 +528,19 @@ func isOnlyOneOperatorManagesDWResources(deployContext *deploy.DeployContext) (b
 func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
 	_, exists := cachedObj[yamlFile]
 	if !exists {
-		if err := util.ReadObject(yamlFile, obj); err != nil {
+		data, err := ioutil.ReadFile(yamlFile)
+		if err != nil {
 			return nil, err
 		}
 
-		hash256, err := util.ComputeHash256(yamlFile)
+		err = yaml.Unmarshal(data, obj)
 		if err != nil {
 			return nil, err
 		}
 
 		cachedObj[yamlFile] = &Object2Sync{
 			obj.(metav1.Object),
-			hash256,
+			util.ComputeHash256(data),
 		}
 	}
 

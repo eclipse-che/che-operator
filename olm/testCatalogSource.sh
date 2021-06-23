@@ -123,6 +123,12 @@ buildOLMImages() {
   then
     echo "[INFO]: Starting to build catalog image and push to ImageStream."
 
+    if [ -n "${OPERATOR_IMAGE}" ]; then
+      # Use custom operator image, if set, in the latest CSV
+      sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
+      echo "[INFO]: Using custom operator image: ${OPERATOR_IMAGE}"
+    fi
+
     echo "============"
     echo "[INFO] Current user is $(oc whoami)"
     echo "============"

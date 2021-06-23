@@ -14,6 +14,7 @@ package v2alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -104,6 +105,11 @@ type CheGatewaySpec struct {
 	// it is taken from the `RELATED_IMAGE_gateway_configurer` environment variable of the operator
 	// deployment/pod. If not defined there, it defaults to a hardcoded value.
 	ConfigurerImage string `json:"configurerImage,omitempty"`
+
+	// ConfigLabels are labels that are put on the gateway configuration configmaps so that they are picked up
+	// by the gateway configurer. The default value are labels: app=che,component=che-gateway-config
+	// +optional
+	ConfigLabels labels.Set `json:"configLabels,omitempty"`
 }
 
 // CheClusterSpecK8s contains the configuration options specific to Kubernetes only.
@@ -140,9 +146,9 @@ const (
 	ClusterPhasePendingDeletion = "PendingDeletion"
 )
 
-// CheClusterStatus contains the status of the CheCluster object
+// CheClusterStatusV2Alpha1 contains the status of the CheCluster object
 // \k8s:openapi-gen=true
-type CheClusterStatus struct {
+type CheClusterStatusV2Alpha1 struct {
 	// GatewayPhase specifies the phase in which the gateway deployment currently is.
 	// If the gateway is disabled, the phase is "Inactive".
 	GatewayPhase GatewayPhase `json:"gatewayPhase,omitempty"`
@@ -175,8 +181,8 @@ type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CheClusterSpec   `json:"spec,omitempty"`
-	Status CheClusterStatus `json:"status,omitempty"`
+	Spec   CheClusterSpec           `json:"spec,omitempty"`
+	Status CheClusterStatusV2Alpha1 `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

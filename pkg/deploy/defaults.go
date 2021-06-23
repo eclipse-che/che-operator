@@ -40,6 +40,7 @@ var (
 	defaultKeycloakImage                       string
 	defaultSingleHostGatewayImage              string
 	defaultSingleHostGatewayConfigSidecarImage string
+	defaultInternalRestBackupServerImage       string
 
 	defaultCheWorkspacePluginBrokerMetadataImage  string
 	defaultCheWorkspacePluginBrokerArtifactsImage string
@@ -105,14 +106,15 @@ const (
 	OAuthScmConfiguration = "oauth-scm-configuration"
 
 	// che.eclipse.org annotations
-	CheEclipseOrgMountPath              = "che.eclipse.org/mount-path"
-	CheEclipseOrgMountAs                = "che.eclipse.org/mount-as"
-	CheEclipseOrgEnvName                = "che.eclipse.org/env-name"
-	CheEclipseOrgNamespace              = "che.eclipse.org/namespace"
-	CheEclipseOrgGithubOAuthCredentials = "che.eclipse.org/github-oauth-credentials"
-	CheEclipseOrgOAuthScmServer         = "che.eclipse.org/oauth-scm-server"
-	CheEclipseOrgScmServerEndpoint      = "che.eclipse.org/scm-server-endpoint"
-	CheEclipseOrgHash256                = "che.eclipse.org/hash256"
+	CheEclipseOrgMountPath                = "che.eclipse.org/mount-path"
+	CheEclipseOrgMountAs                  = "che.eclipse.org/mount-as"
+	CheEclipseOrgEnvName                  = "che.eclipse.org/env-name"
+	CheEclipseOrgNamespace                = "che.eclipse.org/namespace"
+	CheEclipseOrgGithubOAuthCredentials   = "che.eclipse.org/github-oauth-credentials"
+	CheEclipseOrgOAuthScmServer           = "che.eclipse.org/oauth-scm-server"
+	CheEclipseOrgScmServerEndpoint        = "che.eclipse.org/scm-server-endpoint"
+	CheEclipseOrgHash256                  = "che.eclipse.org/hash256"
+	CheEclipseOrgManagedAnnotationsDigest = "che.eclipse.org/managed-annotations-digest"
 
 	// components
 	IdentityProviderName = "keycloak"
@@ -182,6 +184,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultCheWorkspacePluginBrokerMetadataImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	defaultCheWorkspacePluginBrokerArtifactsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
 	defaultCheServerSecureExposerJwtProxyImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+	defaultInternalRestBackupServerImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
@@ -328,6 +331,10 @@ func DefaultSingleHostGatewayConfigSidecarImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultSingleHostGatewayConfigSidecarImage)
 }
 
+func DefaultInternalBackupServerImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultInternalRestBackupServerImage)
+}
+
 func DefaultKubernetesImagePullerOperatorCSV() string {
 	return KubernetesImagePullerOperatorCSV
 }
@@ -432,6 +439,7 @@ func InitDefaultsFromEnv() {
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultInternalRestBackupServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries

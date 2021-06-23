@@ -55,6 +55,7 @@ func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 	v1ToV2alpha1_GatewayImage(v1, v2)
 	v1ToV2alpha1_GatewayConfigurerImage(v1, v2)
 	v1ToV2alpha1_GatewayTlsSecretName(v1, v2)
+	v1toV2alpha1_GatewayConfigLabels(v1, v2)
 	v1ToV2alpha1_WorkspaceDomainEndpointsBaseDomain(v1, v2)
 	v1ToV2alpha1_WorkspaceDomainEndpointsTlsSecretName(v1, v2)
 	v1ToV2alpha1_K8sIngressAnnotations(v1, v2)
@@ -91,6 +92,7 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 	v2alpha1ToV1_GatewayImage(v1Obj, v2)
 	v2alpha1ToV1_GatewayConfigurerImage(v1Obj, v2)
 	v2alpha1ToV1_GatewayTlsSecretName(v1Obj, v2)
+	v2alpha1ToV1_GatewayConfigLabels(v1Obj, v2)
 	v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1Obj, v2)
 	v2alpha1ToV1_WorkspaceDomainEndpointsTlsSecretName(v1Obj, v2)
 	v2alpha1ToV1_K8sIngressAnnotations(v1Obj, v2)
@@ -149,6 +151,10 @@ func v1ToV2alpha1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluste
 	// In DW we would only used that for subpath endpoints but wouldn't know what TLS to use for subdomain endpoints.
 
 	v2.Spec.Gateway.TlsSecretName = v1.Spec.Server.CheHostTLSSecret
+}
+
+func v1toV2alpha1_GatewayConfigLabels(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	v2.Spec.Gateway.ConfigLabels = v1.Spec.Server.SingleHostGatewayConfigMapLabels
 }
 
 func v1ToV2alpha1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
@@ -267,6 +273,10 @@ func v2alpha1ToV1_GatewayConfigurerImage(v1 *v1.CheCluster, v2 *v2alpha1.CheClus
 func v2alpha1ToV1_GatewayTlsSecretName(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 	// see the comments in the v1 to v2alpha1 conversion method
 	v1.Spec.Server.CheHostTLSSecret = v2.Spec.Gateway.TlsSecretName
+}
+
+func v2alpha1ToV1_GatewayConfigLabels(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
+	v1.Spec.Server.SingleHostGatewayConfigMapLabels = v2.Spec.Gateway.ConfigLabels
 }
 
 func v2alpha1ToV1_K8sIngressAnnotations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
