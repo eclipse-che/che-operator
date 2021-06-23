@@ -157,13 +157,12 @@ func syncOpenShiftIdentityProvider(deployContext *deploy.DeployContext) (bool, e
 }
 
 func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool, error) {
-	logrus.Infof("blabol Syncinc native user items")
 	cr := deployContext.CheCluster
 
-	if err := resolveOAuthClientName(deployContext); err != nil {
+	if err := resolveOpenshiftOAuthClientName(deployContext); err != nil {
 		return false, err
 	}
-	if err := resolveOAuthClientSecret(deployContext); err != nil {
+	if err := resolveOpenshiftOAuthClientSecret(deployContext); err != nil {
 		return false, err
 	}
 
@@ -182,10 +181,10 @@ func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool,
 func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 
-	if err := resolveOAuthClientName(deployContext); err != nil {
+	if err := resolveOpenshiftOAuthClientName(deployContext); err != nil {
 		return false, err
 	}
-	if err := resolveOAuthClientSecret(deployContext); err != nil {
+	if err := resolveOpenshiftOAuthClientSecret(deployContext); err != nil {
 		return false, err
 	}
 
@@ -228,7 +227,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	return true, nil
 }
 
-func resolveOAuthClientName(deployContext *deploy.DeployContext) error {
+func resolveOpenshiftOAuthClientName(deployContext *deploy.DeployContext) error {
 	cr := deployContext.CheCluster
 	oAuthClientName := cr.Spec.Auth.OAuthClientName
 	if len(oAuthClientName) < 1 {
@@ -241,7 +240,7 @@ func resolveOAuthClientName(deployContext *deploy.DeployContext) error {
 	return nil
 }
 
-func resolveOAuthClientSecret(deployContext *deploy.DeployContext) error {
+func resolveOpenshiftOAuthClientSecret(deployContext *deploy.DeployContext) error {
 	cr := deployContext.CheCluster
 	oauthSecret := cr.Spec.Auth.OAuthSecret
 	if len(oauthSecret) < 1 {

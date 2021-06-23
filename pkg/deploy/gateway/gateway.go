@@ -408,6 +408,10 @@ entrypoints:
     address: ":%d"
     forwardedHeaders:
       insecure: true
+  sink:
+    address: ":8090"
+ping:
+  entryPoint: "sink"
 global:
   checkNewVersion: false
   sendAnonymousUsage: false
@@ -466,7 +470,6 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
 	authzImage := util.GetValue(instance.Spec.Auth.GatewayAuthorizationSidecarImage, deploy.DefaultGatewayAuthorizationSidecarImage(instance))
 	headerProxyImage := util.GetValue(instance.Spec.Auth.GatewayHeaderRewriteSidecarImage, deploy.DefaultGatewayHeaderProxySidecarImage(instance))
-	httpSinkImage := util.GetValue(instance.Spec.Auth.GatewayHttpSinkSidecarImage, deploy.DefaultGatewayHttpSinkSidecarImage(instance))
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
@@ -554,17 +557,10 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				ImagePullPolicy: corev1.PullAlways,
 				Args: []string{
 					"--insecure-listen-address=127.0.0.1:8089",
-					"--upstream=http://127.0.0.1:8090/bench",
+					"--upstream=http://127.0.0.1:8090/ping",
 					"--logtostderr=true",
 					"--v=10",
 				},
-			},
-			corev1.Container{
-				Name:            "http-sink",
-				Image:           httpSinkImage,
-				ImagePullPolicy: corev1.PullAlways,
-				Command:         []string{"/whoami"},
-				Args:            []string{"--port", "8090"},
 			})
 	}
 

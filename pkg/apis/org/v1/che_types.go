@@ -472,9 +472,6 @@ type CheClusterSpecAuth struct {
 	// Header Rewrite Proxy sidecar image is used to properly set authorization header.
 	// See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
 	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
-	// Dummy upstream application for kube-rbac-proxy in the Gateway.
-	// We're interested in kube-rbac-proxy response, but it has to have some upstream configured.
-	GatewayHttpSinkSidecarImage string `json:"gatewayHttpSinkSidecarImage,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future

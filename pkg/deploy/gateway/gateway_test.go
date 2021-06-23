@@ -97,8 +97,8 @@ func TestNativeUserGateway(t *testing.T) {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
 
-	if len(deployment.Spec.Template.Spec.Containers) != 6 {
-		t.Fatalf("With native user mode, there should be 6 containers in the gateway.. But it has '%d' containers.", len(deployment.Spec.Template.Spec.Containers))
+	if len(deployment.Spec.Template.Spec.Containers) != 5 {
+		t.Fatalf("With native user mode, there should be 5 containers in the gateway.. But it has '%d' containers.", len(deployment.Spec.Template.Spec.Containers))
 	}
 
 	service := &corev1.Service{}
