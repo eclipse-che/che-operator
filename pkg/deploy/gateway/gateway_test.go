@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"context"
+	"testing"
+
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func TestSyncAllToCluster(t *testing.T) {
