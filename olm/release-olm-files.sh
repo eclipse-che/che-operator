@@ -36,6 +36,7 @@ downloadLatestReleasedBundleCRCRD() {
   mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/${platform}" "${STABLE_BUNDLE_PATH}/metadata"
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
+  PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
   PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterbackups_crd.yaml"
   PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterrestores_crd.yaml"
 
@@ -43,13 +44,12 @@ downloadLatestReleasedBundleCRCRD() {
       -q -O "${PRE_RELEASE_CSV}"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
       -q -O "${PRE_RELEASE_CHE_CRD}"
-  # Ignore download errors as new CRDs might not yet exist
-  set +e
+  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
+      -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
       -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
       -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
-  set -e
 }
 
 if [[ "$1" =~ $REGEX ]]
@@ -76,6 +76,7 @@ do
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
   RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+  RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
   RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
   RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
 
@@ -128,8 +129,13 @@ do
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
     diff -u "${PRE_RELEASE_CHE_CRD}" "${RELEASE_CHE_CRD}" > "${RELEASE_CHE_CRD}.diff" || true
   fi
-  if [[ -n "${PRE_RELEASE_CHE_BACKUP_CRD}" ]] && [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
+  if [[ -n "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" ]]; then
+    diff -u "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" > "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}.diff" || true
+  fi
+  if [[ -n "${PRE_RELEASE_CHE_BACKUP_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CHE_BACKUP_CRD}" "${RELEASE_CHE_BACKUP_CRD}" > "${RELEASE_CHE_BACKUP_CRD}.diff" || true
+  fi
+  if [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CHE_RESTORE_CRD}" "${RELEASE_CHE_RESTORE_CRD}" > "${RELEASE_CHE_RESTORE_CRD}.diff" || true
   fi
 done
