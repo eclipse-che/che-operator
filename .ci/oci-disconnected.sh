@@ -27,7 +27,7 @@ export SLACK_TOKEN="${SLACK_TOKEN-"UNDEFINED"}"
 export WORKSPACE="${WORKSPACE-"UNDEFINED"}"
 export REG_CREDS=${XDG_RUNTIME_DIR}/containers/auth.json
 export ORGANIZATION="eclipse"
-export TAG_NIGHTLY="next"
+export TAG="next"
 
 # catch and stop execution on any error
 trap "catchDisconnectedJenkinsFinish" EXIT SIGINT
@@ -92,7 +92,7 @@ cd che-devfile-registry
 
 ./build.sh --organization "${ORGANIZATION}" \
            --registry "${INTERNAL_REGISTRY_URL}" \
-           --tag "${TAG_NIGHTLY}" \
+           --tag "${TAG}" \
            --offline
 cd .. && rm -rf che-devfile-registry
 
@@ -103,22 +103,22 @@ cd che-plugin-registry
 export SKIP_TEST=true
 ./build.sh --organization "${ORGANIZATION}" \
            --registry "${INTERNAL_REGISTRY_URL}" \
-           --tag "${TAG_NIGHTLY}" \
+           --tag "${TAG}" \
            --offline \
            --skip-digest-generation
 
 cd .. && rm -rf che-plugin-registry
 
 # Push devfile and plugins image to private registry
-podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-devfile-registry:"${TAG_NIGHTLY}"
-podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-plugin-registry:"${TAG_NIGHTLY}"
+podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-devfile-registry:"${TAG}"
+podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-plugin-registry:"${TAG}"
 
 # Get all containers images used in eclipse-che deployment(postgresql, che-server, che-dashboard, keycloak...)
 curl -sSLo- https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/operator.yaml > /tmp/yam.yaml
 export ARRAY_OF_IMAGES=$(cat /tmp/yam.yaml | yq '.spec.template.spec.containers[0].env[] | select(.name|test("RELATED_")) | .value' -r)
 
 # Remove from Array of images devfile and plugins because will be builded using build.sh in offline mode.
-for delete in 'quay.io/eclipse/che-plugin-registry:nightly' 'quay.io/eclipse/che-devfile-registry:nightly'
+for delete in 'quay.io/eclipse/che-plugin-registry:next' 'quay.io/eclipse/che-devfile-registry:next'
 do
     #Quotes when working with strings
     ARRAY_OF_IMAGES=("${ARRAY_OF_IMAGES[@]/$delete}")
@@ -140,11 +140,11 @@ do
 done
 
 # Copy Che Operator into private registry
-sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://quay.io/eclipse/che-operator:nightly docker://${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly
+sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://quay.io/eclipse/che-operator:next docker://${INTERNAL_REGISTRY_URL}/eclipse/che-operator:next
 
 # Filter all necessary plugins need it to start a workspace in disconnected en
 IFS=$'\r\n' GLOBIGNORE='*' command eval 'PLUGINS_IMAGES=($(podman run --authfile=${XDG_RUNTIME_DIR}/containers/auth.json -it --rm \
-  --entrypoint cat ${INTERNAL_REGISTRY_URL}/eclipse/che-plugin-registry:nightly  /var/www/html/v3/external_images.txt))'
+  --entrypoint cat ${INTERNAL_REGISTRY_URL}/eclipse/che-plugin-registry:next  /var/www/html/v3/external_images.txt))'
 for container in "${PLUGINS_IMAGES[@]}";
 do
     if [[ $container != *"che-plugin-sidecar"* ]] &&
@@ -158,7 +158,7 @@ done
 
 # Obtain workspace golang SIDECAR_IMAGE and copy to internal registry
 podman run --authfile=${XDG_RUNTIME_DIR}/containers/auth.json -it --rm \
-  --entrypoint cat "${INTERNAL_REGISTRY_URL}"/eclipse/che-plugin-registry:nightly  /var/www/html/v3/plugins/golang/go/latest/meta.yaml > /tmp/workspace.yaml
+  --entrypoint cat "${INTERNAL_REGISTRY_URL}"/eclipse/che-plugin-registry:next  /var/www/html/v3/plugins/golang/go/latest/meta.yaml > /tmp/workspace.yaml
 
 export SIDECAR_IMAGE=$(cat /tmp/workspace.yaml | yq '.spec.containers[] | .image' -r)
 if [[ "$SIDECAR_IMAGE" =~ ^quay.io* ]]; then
@@ -168,7 +168,7 @@ fi
 
 # Obtain the golang image and push to internal Registry
 IFS=$'\r\n' GLOBIGNORE='*' command eval 'DEVFILE_IMAGES=($(podman run --authfile=${XDG_RUNTIME_DIR}/containers/auth.json -it --rm \
-  --entrypoint cat ${INTERNAL_REGISTRY_URL}/eclipse/che-devfile-registry:nightly /var/www/html/devfiles/external_images.txt))'
+  --entrypoint cat ${INTERNAL_REGISTRY_URL}/eclipse/che-devfile-registry:next /var/www/html/devfiles/external_images.txt))'
 
 for container in "${DEVFILE_IMAGES[@]}"
 do
@@ -193,7 +193,7 @@ initDefaults
 provisionOpenShiftOAuthUser
 
 # Deploy Eclipse Che and retrieve golang devfile from devfile-registry
-chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:nightly --platform=openshift --installer=operator
+chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:next --platform=openshift --installer=operator
 
 DEVFILEURL=$(oc get checluster/eclipse-che -n eclipse-che -o "jsonpath={.status.devfileRegistryURL}")
 curl -sSLo- -vk "${DEVFILEURL}/devfiles/go/devfile.yaml" > /tmp/devfile.yaml
