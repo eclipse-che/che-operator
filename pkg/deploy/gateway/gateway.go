@@ -13,10 +13,10 @@ package gateway
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
-	"strconv"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -332,6 +332,7 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 }
 
 func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
+	cookieSecret := generateRandomCookieSecret()
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -355,13 +356,17 @@ client_id = "%s"
 client_secret = "%s"
 scope = "user:full"
 openshift_service_account = "%s"
-cookie_secret = "wgg2UoihVgdmnnJzekA0qQ=="
+cookie_secret = "%s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
-skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName),
+skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName, cookieSecret),
 		},
 	}
+}
+
+func generateRandomCookieSecret() string {
+	return base64.StdEncoding.EncodeToString([]byte(util.GeneratePasswd(16)))
 }
 
 func getGatewayHeaderRewriteProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {

@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/base64"
 	"testing"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -149,5 +150,17 @@ func TestNoGatewayForMultiHost(t *testing.T) {
 		} else {
 			t.Fatalf("Wrong error returned.")
 		}
+	}
+}
+
+func TestRandomCookieSecret(t *testing.T) {
+	secret := generateRandomCookieSecret()
+	if len(secret) != 24 {
+		t.Fatalf("lenght of the secret should be 24")
+	}
+
+	_, err := base64.StdEncoding.DecodeString(secret)
+	if err != nil {
+		t.Fatalf("Failed to decode the secret '%s'", err)
 	}
 }
