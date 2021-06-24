@@ -9,14 +9,11 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483 as builder
-RUN microdnf install -y golang unzip && \
-    go version
-
+# https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8/go-toolset
+FROM registry.access.redhat.com/ubi8/go-toolset:1.15.7-11 as builder
+ENV GOPATH=/go/
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
-
 USER root
 ADD . /che-operator
 WORKDIR /che-operator
