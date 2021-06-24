@@ -17,6 +17,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/component: che-operator
 rules:
+  ### CHE-OPERATOR ROLES ONLY: BEGIN
   - apiGroups:
       - oauth.openshift.io
     resources:
@@ -281,61 +282,6 @@ rules:
       - subscriptions
     verbs:
       - get
-# devworkspace requirements: devworkspace-controller-edit-workspaces cluster roles
-  - apiGroups:
-      - workspace.devfile.io
-    resources:
-      - devworkspaces
-      - devworkspacetemplates
-    verbs:
-      - create
-      - delete
-      - deletecollection
-      - patch
-      - update
-  - apiGroups:
-      - controller.devfile.io
-    resources:
-      - devworkspaceroutings
-      - components
-    verbs:
-      - create
-      - delete
-      - deletecollection
-      - patch
-      - update
-# devworkspace requirements: devworkspace-controller-proxy-role cluster roles
-  - apiGroups:
-      - authentication.k8s.io
-    resources:
-      - tokenreviews
-    verbs:
-      - create
-  - apiGroups:
-      - authorization.k8s.io
-    resources:
-      - subjectaccessreviews
-    verbs:
-      - create
-# devworkspace requirements: devworkspace-controller-role cluster roles
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-      - persistentvolumeclaims
-      - pods
-      - secrets
-      - serviceaccounts
-    verbs:
-      - '*'
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
-      - get
-      - list
-      - watch
   - apiGroups:
       - metrics.k8s.io
     resources:
@@ -345,386 +291,460 @@ rules:
       - get
       - list
       - watch
+  ### CHE-OPERATOR ROLES ONLY: END
+  # devworkspace-controller-view-workspaces.ClusterRole.yaml
   - apiGroups:
-      - batch
-      - ""
+    - workspace.devfile.io
     resources:
-      - pods/exec
+    - devworkspaces
+    - devworkspacetemplates
     verbs:
-      - create
+    - get
+    - list
+    - watch
   - apiGroups:
-      - ""
+    - controller.devfile.io
     resources:
-      - services
+    - devworkspaceroutings
+    - components
     verbs:
-      - '*'
+    - get
+    - list
+    - watch
+  # devworkspace-controller-edit-workspaces.ClusterRole.yaml
   - apiGroups:
-      - admissionregistration.k8s.io
+    - workspace.devfile.io
     resources:
-      - mutatingwebhookconfigurations
-      - validatingwebhookconfigurations
+    - devworkspaces
+    - devworkspacetemplates
     verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
   - apiGroups:
-      - apps
+    - controller.devfile.io
+    resources:
+    - devworkspaceroutings
+    - components
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  # devworkspace-controller-leader-election-role.Role.yaml
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps/status
+    verbs:
+    - get
+    - update
+    - patch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+  # devworkspace-controller-proxy-role.ClusterRole.yaml
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  # devworkspace-controller-role.ClusterRole.yaml
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    - persistentvolumeclaims
+    - pods
+    - secrets
+    - serviceaccounts
+    verbs:
+    - '*'
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - pods/exec
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resources:
+    - services
+    verbs:
+    - '*'
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - mutatingwebhookconfigurations
+    - validatingwebhookconfigurations
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - apps
     resourceNames:
-      - devworkspace-controller
+    - devworkspace-controller
     resources:
-      - deployments/finalizers
+    - deployments/finalizers
     verbs:
-      - update
+    - update
   - apiGroups:
-      - apps
-      - extensions
-    resources:
-      - deployments
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - apps
-      - extensions
-    resources:
-      - deployments
-      - replicasets
-    verbs:
-      - '*'
-  - apiGroups:
-      - apps
-      - extensions
-    resources:
-      - replicasets
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - batch
-    resources:
-      - jobs
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - controller.devfile.io
-    resources:
-      - '*'
-    verbs:
-      - '*'
-  - apiGroups:
-      - controller.devfile.io
-    resources:
-      - devworkspaceroutings
-    verbs:
-      - '*'
-  - apiGroups:
-      - controller.devfile.io
-    resources:
-      - devworkspaceroutings/status
-    verbs:
-      - get
-      - patch
-      - update
-  - apiGroups:
-      - extensions
-    resources:
-      - ingresses
-    verbs:
-      - '*'
-  - apiGroups:
-      - monitoring.coreos.com
-    resources:
-      - servicemonitors
-    verbs:
-      - create
-      - get
-  - apiGroups:
-      - oauth.openshift.io
-    resources:
-      - oauthclients
-    verbs:
-      - create
-      - delete
-      - deletecollection
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - clusterrolebindings
-      - clusterroles
-      - rolebindings
-      - roles
-    verbs:
-      - create
-      - get
-      - list
-      - update
-      - watch
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes
-    verbs:
-      - '*'
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes/custom-host
-    verbs:
-      - create
-  - apiGroups:
-      - workspace.devfile.io
-    resources:
-      - '*'
-    verbs:
-      - '*'
-# devworkspace requirements: devworkspace-controller-view-workspaces cluster roles
-  - apiGroups:
-      - workspace.devfile.io
-    resources:
-      - devworkspaces
-      - devworkspacetemplates
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - controller.devfile.io
-    resources:
-      - devworkspaceroutings
-      - components
-    verbs:
-      - get
-      - list
-      - watch
-# devworkspace requirements: devworkspace-controller-metrics-reader cluster roles
-  - nonResourceURLs:
-      - /metrics
-    verbs:
-      - get
-# devworkspace requirements: devworkspace-controller-leader-election-role roles
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps/status
-    verbs:
-      - get
-      - update
-      - patch
-  - apiGroups:
-      - ""
-    resources:
-      - events
-    verbs:
-      - create
-      - patch
-# devworkspace-che requirements
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-      - persistentvolumeclaims
-      - pods
-      - secrets
-      - serviceaccounts
-    verbs:
-      - '*'
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
-      - get
-  - apiGroups:
-      - ""
-    resources:
-      - pods/exec
-    verbs:
-      - create
-  - apiGroups:
-      - ""
-    resources:
-      - services
-    verbs:
-      - '*'
-  - apiGroups:
-      - apps
-    resourceNames:
-      - devworkspace-che-operator
-    resources:
-      - deployments/finalizers
-    verbs:
-      - update
-  - apiGroups:
-      - apps
-      - extensions
+    - apps
+    - extensions
     resources:
     - deployments
     verbs:
-      - get
-      - list
-      - watch
+    - get
+    - list
+    - watch
   - apiGroups:
-      - apps
-      - extensions
+    - apps
+    - extensions
     resources:
-      - deployments
-      - replicasets
+    - deployments
+    - replicasets
     verbs:
-      - '*'
+    - '*'
   - apiGroups:
-      - apps
-      - extensions
+    - apps
+    - extensions
     resources:
-      - replicasets
+    - replicasets
     verbs:
-      - get
-      - list
-      - watch
+    - get
+    - list
+    - watch
   - apiGroups:
-      - batch
+    - batch
     resources:
-      - jobs
+    - jobs
     verbs:
-      - create
-      - delete
-      - get
-      - update
-      - watch
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
-      - che.eclipse.org
+    - controller.devfile.io
     resources:
-      - '*'
+    - '*'
     verbs:
-      - '*'
+    - '*'
   - apiGroups:
-      - che.eclipse.org
+    - controller.devfile.io
     resources:
-      - chemanagers
+    - devworkspaceroutings
     verbs:
-      - '*'
+    - '*'
   - apiGroups:
-      - che.eclipse.org
+    - controller.devfile.io
     resources:
-      - chemanagers/status
+    - devworkspaceroutings/status
     verbs:
-      - get
-      - patch
-      - update
+    - get
+    - patch
+    - update
   - apiGroups:
-      - che.eclipse.org
+    - extensions
     resources:
-      - chemanagers/finalizers
+    - ingresses
     verbs:
-      - update
+    - '*'
   - apiGroups:
-      - controller.devfile.io
+    - monitoring.coreos.com
     resources:
-      - devworkspaceroutings
+    - servicemonitors
     verbs:
-      - '*'
+    - create
+    - get
   - apiGroups:
-      - controller.devfile.io
+    - oauth.openshift.io
     resources:
-      - devworkspaceroutings/finalizers
+    - oauthclients
     verbs:
-      - update
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
-      - controller.devfile.io
+    - rbac.authorization.k8s.io
     resources:
-      - devworkspaceroutings/status
+    - clusterrolebindings
+    - clusterroles
+    - rolebindings
+    - roles
     verbs:
-      - get
-      - patch
-      - update
+    - create
+    - get
+    - list
+    - update
+    - watch
   - apiGroups:
-      - ""
+    - route.openshift.io
     resources:
-      - configmap
+    - routes
     verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
+    - '*'
   - apiGroups:
-      - extensions
+    - route.openshift.io
     resources:
-      - ingresses
+    - routes/custom-host
     verbs:
-      - '*'
+    - create
   - apiGroups:
-      - monitoring.coreos.com
+    - workspace.devfile.io
     resources:
-      - servicemonitors
+    - '*'
     verbs:
-      - create
-      - get
+    - '*'
+  # devworkspace-controller-view-workspaces.ClusterRole.yaml
   - apiGroups:
-      - oauth.openshift.io
+    - workspace.devfile.io
     resources:
-      - oauthclients
+    - devworkspaces
+    - devworkspacetemplates
     verbs:
-      - create
-      - delete
-      - deletecollection
-      - get
-      - list
-      - patch
-      - update
-      - watch
+    - get
+    - list
+    - watch
   - apiGroups:
-      - rbac.authorization.k8s.io
+    - controller.devfile.io
     resources:
-      - clusterrolebindings
-      - clusterroles
-      - rolebindings
-      - roles
+    - devworkspaceroutings
+    - components
     verbs:
-      - create
-      - get
-      - list
-      - update
-      - watch
+    - get
+    - list
+    - watch
+  # devworkspace-che-role.ClusterRole.yaml
   - apiGroups:
-      - route.openshift.io
+    - ""
     resources:
-      - routes
+    - configmaps
+    - persistentvolumeclaims
+    - pods
+    - secrets
+    - serviceaccounts
     verbs:
-      - '*'
+    - '*'
   - apiGroups:
-      - route.openshift.io
+    - ""
     resources:
-      - routes/custom-host
+    - namespaces
     verbs:
-      - create
+    - get
+  - apiGroups:
+    - ""
+    resources:
+    - pods/exec
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resources:
+    - services
+    verbs:
+    - '*'
+  - apiGroups:
+    - apps
+    resourceNames:
+    - devworkspace-che-operator
+    resources:
+    - deployments/finalizers
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - deployments
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - deployments
+    - replicasets
+    verbs:
+    - '*'
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - replicasets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - batch
+    resources:
+    - jobs
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+    - watch
+  - apiGroups:
+    - che.eclipse.org
+    resources:
+    - '*'
+    verbs:
+    - '*'
+  - apiGroups:
+    - che.eclipse.org
+    resources:
+    - chemanagers
+    verbs:
+    - '*'
+  - apiGroups:
+    - che.eclipse.org
+    resources:
+    - chemanagers/status
+    verbs:
+    - get
+    - patch
+    - update
+  - apiGroups:
+    - che.eclipse.org
+    resources:
+    - chemanagers/finalizers
+    verbs:
+    - update
+  - apiGroups:
+    - controller.devfile.io
+    resources:
+    - devworkspaceroutings
+    verbs:
+    - '*'
+  - apiGroups:
+    - controller.devfile.io
+    resources:
+    - devworkspaceroutings/finalizers
+    verbs:
+    - update
+  - apiGroups:
+    - controller.devfile.io
+    resources:
+    - devworkspaceroutings/status
+    verbs:
+    - get
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - configmap
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - ingresses
+    verbs:
+    - '*'
+  - apiGroups:
+    - monitoring.coreos.com
+    resources:
+    - servicemonitors
+    verbs:
+    - create
+    - get
+  - apiGroups:
+    - oauth.openshift.io
+    resources:
+    - oauthclients
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - clusterrolebindings
+    - clusterroles
+    - rolebindings
+    - roles
+    verbs:
+    - create
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes
+    verbs:
+    - '*'
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes/custom-host
+    verbs:
+    - create
+  # devworkspace-che-metrics-reader.ClusterRole.yaml
+  - nonResourceURLs:
+    - /metrics
+    verbs:
+    - get

@@ -1,3 +1,13 @@
+#
+#  Copyright (c) 2019-2021 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
 apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
@@ -506,6 +516,33 @@ spec:
               verbs:
                 - get
             - apiGroups:
+                - metrics.k8s.io
+              resources:
+                - pods
+                - nodes
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - workspace.devfile.io
+              resources:
+                - devworkspaces
+                - devworkspacetemplates
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings
+                - components
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
                 - workspace.devfile.io
               resources:
                 - devworkspaces
@@ -527,6 +564,33 @@ spec:
                 - deletecollection
                 - patch
                 - update
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
             - apiGroups:
                 - authentication.k8s.io
               resources:
@@ -558,16 +622,6 @@ spec:
                 - list
                 - watch
             - apiGroups:
-                - metrics.k8s.io
-              resources:
-                - pods
-                - nodes
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - batch
                 - ""
               resources:
                 - pods/exec
@@ -733,37 +787,6 @@ spec:
                 - get
                 - list
                 - watch
-            - nonResourceURLs:
-                - /metrics
-              verbs:
-                - get
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps/status
-              verbs:
-                - get
-                - update
-                - patch
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
             - apiGroups:
                 - ""
               resources:
@@ -945,7 +968,25 @@ spec:
                 - routes/custom-host
               verbs:
                 - create
+            - nonResourceURLs:
+                - /metrics
+              verbs:
+                - get
           serviceAccountName: che-operator
+        - rules:
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: default
       deployments:
         - name: che-operator
           spec:
@@ -1060,6 +1101,49 @@ spec:
                       requests:
                         cpu: 100m
                         memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      privileged: false
+                      readOnlyRootFilesystem: false
+                      runAsNonRoot: true
+                  - args:
+                      - --enable-leader-election
+                      - --metrics-addr
+                      - "0"
+                    command:
+                      - /usr/local/bin/devworkspace-che-operator
+                    env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: devworkspace-operator
+                      - name: MAX_CONCURRENT_RECONCILES
+                        value: "1"
+                      - name: CONTROLLER_SERVICE_ACCOUNT_NAME
+                        value: che-operator
+                      - name: RELATED_IMAGE_gateway
+                        value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
+                      - name: RELATED_IMAGE_gateway_configurer
+                        value: quay.io/che-incubator/configbump:0.1.4
+                    image: quay.io/che-incubator/devworkspace-che-operator:ci
+                    imagePullPolicy: Always
+                    name: devworkspace-che-operator
+                    resources:
+                      limits:
+                        cpu: 100m
+                        memory: 256Mi
+                      requests:
+                        cpu: 100m
+                        memory: 32Mi
                     securityContext:
                       allowPrivilegeEscalation: false
                       capabilities:
@@ -1189,6 +1273,32 @@ spec:
               verbs:
                 - get
                 - list
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
