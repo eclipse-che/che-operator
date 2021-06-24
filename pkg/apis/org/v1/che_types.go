@@ -702,7 +702,7 @@ type CheClusterStatus struct {
 
 	// The status of the Devworkspace subsystem
 	// +optional
-	DevworkspaceStatus v2alpha1.CheClusterStatus `json:"devworkspaceStatus,omitempty"`
+	DevworkspaceStatus v2alpha1.CheClusterStatusV2Alpha1 `json:"devworkspaceStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

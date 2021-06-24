@@ -13,6 +13,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
@@ -30,14 +31,19 @@ import (
 	"strings"
 	"time"
 
+	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 )
@@ -131,7 +137,7 @@ func getDiscoveryClient() (*discovery.DiscoveryClient, error) {
 	return discovery.NewDiscoveryClientForConfig(kubeconfig)
 }
 
-func getApiList() ([]v1.APIGroup, error) {
+func getApiList() ([]metav1.APIGroup, error) {
 	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
 		return nil, err
@@ -312,6 +318,75 @@ func getAPIUrlsForOpenShiftV4() (apiUrl string, apiInternalUrl string, err error
 	return apiUrl, apiInternalUrl, nil
 }
 
+func GetRouterCanonicalHostname(client client.Client, namespace string) (string, error) {
+	testRouteYaml, err := GetTestRouteYaml(client, namespace)
+	if err != nil {
+		return "", err
+	}
+	return testRouteYaml.Status.Ingress[0].RouterCanonicalHostname, nil
+}
+
+// GetTestRouteYaml creates test route and returns its spec.
+func GetTestRouteYaml(client client.Client, namespace string) (*routev1.Route, error) {
+	// Create test route to get the info
+	routeSpec := &routev1.Route{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Route",
+			APIVersion: routev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "canonical-hostname-route-name",
+			Namespace: namespace,
+		},
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
+				Kind: "Service",
+				Name: "canonical-hostname-route-nonexisting-service",
+			},
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 8080,
+				},
+			},
+		},
+	}
+
+	if err := client.Create(context.TODO(), routeSpec); err != nil {
+		if !k8sErrors.IsAlreadyExists(err) {
+			return nil, err
+		}
+	}
+
+	// Schedule test route cleanup after the job done.
+	defer func() {
+		if err := client.Delete(context.TODO(), routeSpec); err != nil {
+			logrus.Errorf("Failed to delete test route %s: %s", routeSpec.Name, err)
+		}
+	}()
+
+	// Wait till the route is ready
+	route := &routev1.Route{}
+	errCount := 0
+	for {
+		time.Sleep(time.Duration(1) * time.Second)
+
+		routeNsName := types.NamespacedName{Name: routeSpec.Name, Namespace: namespace}
+		err := client.Get(context.TODO(), routeNsName, route)
+		if err == nil {
+			return route, nil
+		} else if !k8sErrors.IsNotFound(err) {
+			errCount++
+			if errCount > 10 {
+				return nil, err
+			}
+		} else {
+			// Reset counter as got not found error
+			errCount = 0
+		}
+	}
+}
+
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
 	env := deployment.Spec.Template.Spec.Containers[0].Env
 	for i := range env {
@@ -436,14 +511,60 @@ func ReadObject(yamlFile string, obj interface{}) error {
 	return nil
 }
 
-func ComputeHash256(yamlFile string) (string, error) {
-	data, err := ioutil.ReadFile(yamlFile)
-	if err != nil {
-		return "", err
-	}
-
+func ComputeHash256(data []byte) string {
 	hasher := sha256.New()
 	hasher.Write(data)
-	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	return sha, nil
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+}
+
+func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
+	return client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
+		cheCluster)
+}
+
+func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheCluster, int, error) {
+	cheClusters := &orgv1.CheClusterList{}
+	if err := client.List(context.TODO(), cheClusters); err != nil {
+		return nil, 0, err
+	}
+
+	if len(cheClusters.Items) != 1 {
+		return nil, len(cheClusters.Items), fmt.Errorf("expected an instance of CheCluster, but got %d instances", len(cheClusters.Items))
+	}
+
+	cheCR := &orgv1.CheCluster{}
+	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
+	err := client.Get(context.TODO(), namespacedName, cheCR)
+	if err != nil {
+		return nil, 0, err
+	}
+	return cheCR, 1, nil
+}
+
+func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *chev1.CheBackupServerConfiguration) error {
+	err := client.Update(context.TODO(), backupServerConfig)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR: %s", backupServerConfig.Name, err.Error())
+		return err
+	}
+	return nil
+}
+
+func UpdateBackupServerConfigurationStatus(client client.Client, backupServerConfig *chev1.CheBackupServerConfiguration) error {
+	err := client.Status().Update(context.TODO(), backupServerConfig)
+	if err != nil {
+		logrus.Errorf("Failed to update %s CR status: %s", backupServerConfig.Name, err.Error())
+		return err
+	}
+	return nil
+}
+
+// ClearMetadata removes extra fields from given metadata.
+// It is required to remove ResourceVersion in order to be able to apply the yaml again.
+func ClearMetadata(objectMeta *metav1.ObjectMeta) {
+	objectMeta.ResourceVersion = ""
+
+	objectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 }

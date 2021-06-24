@@ -13,6 +13,7 @@ package deploy
 
 import (
 	"reflect"
+	"sort"
 	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -27,7 +28,8 @@ import (
 var ingressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "Status"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
-		return reflect.DeepEqual(x.Labels, y.Labels)
+		return reflect.DeepEqual(x.Labels, y.Labels) &&
+			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 
@@ -101,10 +103,28 @@ func GetIngressSpec(
 	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
-
-	// add custom annotations
 	for k, v := range ingressCustomSettings.Annotations {
 		annotations[k] = v
+	}
+
+	// add 'che.eclipse.org/managed-annotations-digest' annotation
+	// to store and compare annotations managed by operator only
+	annotationsKeys := make([]string, 0, len(annotations))
+	for k := range annotations {
+		annotationsKeys = append(annotationsKeys, k)
+	}
+	if len(annotationsKeys) > 0 {
+		sort.Strings(annotationsKeys)
+
+		data := ""
+		for _, k := range annotationsKeys {
+			data += k + ":" + annotations[k] + ","
+		}
+		if util.IsTestMode() {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = "0000"
+		} else {
+			annotations[CheEclipseOrgManagedAnnotationsDigest] = util.ComputeHash256([]byte(data))
+		}
 	}
 
 	ingress := &v1beta1.Ingress{

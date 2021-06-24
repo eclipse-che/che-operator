@@ -79,6 +79,8 @@ spec:
               value: quay.io/che-incubator/devworkspace-che-operator:ci
             - name: RELATED_IMAGE_devworkspace_controller
               value: quay.io/devfile/devworkspace-controller:next
+            - name: RELATED_IMAGE_internal_rest_backup_server
+              value: quay.io/eclipse/che-backup-server-rest:eeacd92
             - name: RELATED_IMAGE_gateway_authentication_sidecar
               value: quay.io/openshift/origin-oauth-proxy:4.7
             - name: RELATED_IMAGE_gateway_authorization_sidecar

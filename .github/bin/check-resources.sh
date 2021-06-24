@@ -53,8 +53,13 @@ checkCRDs() {
     echo "[INFO] Checking CRDs"
 
     # files to check
-    local CRD_V1="deploy/crds/org_v1_che_crd.yaml"
-    local CRD_V1BETA1="deploy/crds/org_v1_che_crd-v1beta1.yaml"
+    local checluster_CRD_V1="deploy/crds/org_v1_che_crd.yaml"
+    local checlusterbackup_CRD_V1="deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
+    local checlusterrestore_CRD_V1="org.eclipse.che_checlusterrestores_crd.yaml"
+
+    local checluster_CRD_V1BETA1="deploy/crds/org_v1_che_crd-v1beta1.yaml"
+    local checlusterbackup_CRD_V1BETA1="deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml"
+    local checlusterrestore_CRD_V1BETA1="deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml"
 
     pushd "${ROOT_PROJECT_DIR}"
     source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
@@ -62,7 +67,10 @@ checkCRDs() {
     changedFiles=($(git diff --name-only))
 
     # Check if there are any difference in the crds. If yes, then fail check.
-    if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
+    if [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1BETA1 ]] || \
+       [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1BETA1 ]] || \
+       [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1BETA1 ]]
+    then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
         echo "[ERROR] Run 'olm/update-resources.sh' to regenerate CRD files."
         exit 1
