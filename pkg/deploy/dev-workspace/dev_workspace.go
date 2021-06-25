@@ -114,6 +114,7 @@ var (
 	}
 
 	syncDwCheItems = []func(*deploy.DeployContext) (bool, error){
+		syncDwCheCRD,
 		syncDwCheCR,
 		syncDwCheMetricsService,
 	}
@@ -125,12 +126,9 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	if !util.IsTestMode() {
-		// sync CRD needed to start DWCO
-		done, err := syncDwCheCRD(deployContext)
-		if !done {
-			return false, err
-		}
+	// do nothing if dev workspace is disabled
+	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+		return true, nil
 	}
 
 	// check if DW exists on the cluster
@@ -143,23 +141,8 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if !devWorkspaceWebhookExists {
-		if !util.IsTestMode() {
-			// if DW does not exists then sync CRD needed to start DWCO
-			done, err := syncDwWorkspaceRoutingCRD(deployContext)
-			if !done {
-				return false, err
-			}
-		}
-	}
-
-	// do nothing if dev workspace is disabled, all CRDs are on the cluster to start DWCO
-	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
-		return true, nil
-	}
-
-	// if DW exists then check if version matches
 	if devWorkspaceWebhookExists {
+		// if DW exists then check if version matches
 		if err := checkWebTerminalSubscription(deployContext); err != nil {
 			return false, err
 		}
