@@ -57,6 +57,7 @@ COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
 COPY --from=builder /tmp/restic /usr/local/bin/restic
+ADD https://raw.githubusercontent.com/restic/restic/master/LICENSE /usr/local/bin/restic-license.txt
 
 # install httpd-tools for /usr/bin/htpasswd
 RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
