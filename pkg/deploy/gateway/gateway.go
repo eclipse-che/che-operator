@@ -15,8 +15,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"strconv"
+
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
