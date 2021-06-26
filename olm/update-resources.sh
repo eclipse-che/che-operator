@@ -206,6 +206,8 @@ updateOperatorYaml() {
   # update env variable
   yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .valueFrom)" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .value) = \"che-operator\"" ${OPERATOR_YAML}
+  yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .value)" ${OPERATOR_YAML}
+  yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .valueFrom.fieldRef.fieldPath) = \"metadata.namespace\"" ${OPERATOR_YAML}
 
   yq -riY ".spec.template.spec.containers[1].args[1] =  \"--metrics-addr\"" ${OPERATOR_YAML}
   yq -riY ".spec.template.spec.containers[1].args[2] =  \"0\"" ${OPERATOR_YAML}
