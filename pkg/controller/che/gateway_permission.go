@@ -1,6 +1,7 @@
 package che
 
 import (
+	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -10,9 +11,7 @@ import (
 
 func (r *ReconcileChe) reconcileGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-		instance := deployContext.CheCluster
-
-		name := instance.Namespace + "-" + gateway.GatewayServiceName
+		name := gatewayPermisisonsName(deployContext.CheCluster)
 		if _, err := deploy.SyncClusterRoleToCluster(deployContext, name, getGatewayClusterRoleRules()); err != nil {
 			return false, err
 		}
@@ -20,15 +19,23 @@ func (r *ReconcileChe) reconcileGatewayPermissions(deployContext *deploy.DeployC
 		if _, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, name, gateway.GatewayServiceName, name); err != nil {
 			return false, err
 		}
+	} else {
+		return deleteGatewayPermissions(deployContext)
 	}
 
 	return true, nil
 }
 
 func (r *ReconcileChe) reconcileGatewayPermissionsFinalizers(deployContext *deploy.DeployContext) (bool, error) {
-	instance := deployContext.CheCluster
-	name := instance.Namespace + "-" + gateway.GatewayServiceName
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return deleteGatewayPermissions(deployContext)
+	}
 
+	return true, nil
+}
+
+func deleteGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
+	name := gatewayPermisisonsName(deployContext.CheCluster)
 	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRole{}); !done {
 		return false, err
 	}
@@ -38,6 +45,10 @@ func (r *ReconcileChe) reconcileGatewayPermissionsFinalizers(deployContext *depl
 	}
 
 	return true, nil
+}
+
+func gatewayPermisisonsName(instance *orgv1.CheCluster) string {
+	return instance.Namespace + "-" + gateway.GatewayServiceName
 }
 
 func getGatewayClusterRoleRules() []rbac.PolicyRule {

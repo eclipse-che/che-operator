@@ -159,7 +159,7 @@ func TestRandomCookieSecret(t *testing.T) {
 		t.Fatalf("lenght of the secret should be 24")
 	}
 
-	_, err := base64.StdEncoding.DecodeString(secret)
+	_, err := base64.StdEncoding.Decode(make([]byte, 24), secret)
 	if err != nil {
 		t.Fatalf("Failed to decode the secret '%s'", err)
 	}

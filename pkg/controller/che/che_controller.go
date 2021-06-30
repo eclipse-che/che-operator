@@ -519,14 +519,12 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
-	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-		if done, err = r.reconcileGatewayPermissions(deployContext); !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			// reconcile after 1 seconds since we deal with cluster objects
-			return reconcile.Result{RequeueAfter: time.Second}, err
+	if done, err = r.reconcileGatewayPermissions(deployContext); !done {
+		if err != nil {
+			logrus.Error(err)
 		}
+		// reconcile after 1 seconds since we deal with cluster objects
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	done, err = r.reconcileWorkspacePermissions(deployContext)

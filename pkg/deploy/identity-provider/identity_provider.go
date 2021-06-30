@@ -170,7 +170,6 @@ func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool,
 	redirectURIs := []string{"https://" + cr.Spec.Server.CheHost + "/oauth/callback"}
 
 	oAuthClient := deploy.GetOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
-	logrus.Infof("oauthclient [%+v]", oAuthClient)
 	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
 	if !provisioned {
 		return false, err

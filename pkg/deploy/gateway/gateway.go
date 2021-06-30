@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
@@ -41,6 +43,7 @@ const (
 
 	gatewayServerConfigName    = "che-gateway-route-server"
 	gatewayConfigComponentName = "che-gateway-config"
+	gatewayOauthSecretName     = "che-gateway-oauth-secret"
 )
 
 var (
@@ -52,6 +55,7 @@ var (
 		cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP"),
 	}
 	configMapDiffOpts = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
+	secretDiffOpts    = cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta")
 )
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
@@ -82,8 +86,15 @@ func syncAll(deployContext *deploy.DeployContext) error {
 	}
 
 	if util.IsNativeUserModeEnabled(instance) {
-		oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance)
-		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+		if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
+			if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
+				return err
+			}
+			oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance, string(oauthSecret.Data["cookie_secret"]))
+			if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 
@@ -114,6 +125,39 @@ func syncAll(deployContext *deploy.DeployContext) error {
 	}
 
 	return nil
+}
+
+func getGatewaySecretSpec(deployContext *deploy.DeployContext) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	exists, err := deploy.GetNamespacedObject(deployContext, gatewayOauthSecretName, secret)
+	if err == nil && exists {
+		if _, ok := secret.Data["cookie_secret"]; !ok {
+			logrus.Info("che-gateway-secret found, but does not contain `cookie_secret` value. Regenerating...")
+			return generateOauthSecretSpec(deployContext), nil
+		}
+		return secret, nil
+	} else if err == nil && !exists {
+		return generateOauthSecretSpec(deployContext), nil
+	} else {
+		return nil, err
+	}
+}
+
+func generateOauthSecretSpec(deployContext *deploy.DeployContext) *corev1.Secret {
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayOauthSecretName,
+			Namespace: deployContext.CheCluster.Namespace,
+			Labels:    deploy.GetLabels(deployContext.CheCluster, GatewayServiceName),
+		},
+		Data: map[string][]byte{
+			"cookie_secret": generateRandomCookieSecret(),
+		},
+	}
 }
 
 func deleteAll(deployContext *deploy.DeployContext) error {
@@ -332,8 +376,7 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 	}
 }
 
-func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	cookieSecret := generateRandomCookieSecret()
+func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster, cookieSecret string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -366,8 +409,8 @@ skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.O
 	}
 }
 
-func generateRandomCookieSecret() string {
-	return base64.StdEncoding.EncodeToString([]byte(util.GeneratePasswd(16)))
+func generateRandomCookieSecret() []byte {
+	return []byte(base64.StdEncoding.EncodeToString([]byte(util.GeneratePasswd(16))))
 }
 
 func getGatewayHeaderRewriteProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
