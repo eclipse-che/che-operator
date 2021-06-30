@@ -141,6 +141,13 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 				return reconcile.Result{}, err
 			}
 
+			if ctx.CheCluster.Spec.ImagePuller.Spec.DeploymentName == "" {
+				ctx.CheCluster.Spec.ImagePuller.Spec.DeploymentName = imagePuller.Spec.DeploymentName
+			}
+			if ctx.CheCluster.Spec.ImagePuller.Spec.ConfigMapName == "" {
+				ctx.CheCluster.Spec.ImagePuller.Spec.ConfigMapName = imagePuller.Spec.ConfigMapName
+			}
+
 			// If ImagePuller specs are different, update the KubernetesImagePuller CR
 			if imagePuller.Spec != ctx.CheCluster.Spec.ImagePuller.Spec {
 				imagePuller.Spec = ctx.CheCluster.Spec.ImagePuller.Spec
