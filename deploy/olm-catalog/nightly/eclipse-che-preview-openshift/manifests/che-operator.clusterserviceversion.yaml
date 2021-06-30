@@ -66,14 +66,14 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools, OpenShift Optional
     certified: "false"
-    containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-06-24T13:43:34Z"
+    containerImage: quay.io/eclipse/che-operator:next
+    createdAt: "2021-06-29T12:30:36Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.33.0-240.nightly
+  name: eclipse-che-preview-openshift.v7.33.0-242.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -979,21 +979,21 @@ spec:
                       - name: OPERATOR_NAME
                         value: che-operator
                       - name: CHE_VERSION
-                        value: nightly
+                        value: next
                       - name: RELATED_IMAGE_che_server
-                        value: quay.io/eclipse/che-server:nightly
+                        value: quay.io/eclipse/che-server:next
                       - name: RELATED_IMAGE_dashboard
                         value: quay.io/eclipse/che-dashboard:next
                       - name: RELATED_IMAGE_plugin_registry
-                        value: quay.io/eclipse/che-plugin-registry:nightly
+                        value: quay.io/eclipse/che-plugin-registry:next
                       - name: RELATED_IMAGE_devfile_registry
-                        value: quay.io/eclipse/che-devfile-registry:nightly
+                        value: quay.io/eclipse/che-devfile-registry:next
                       - name: RELATED_IMAGE_pvc_jobs
                         value: registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_keycloak
-                        value: quay.io/eclipse/che-keycloak:nightly
+                        value: quay.io/eclipse/che-keycloak:next
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
                         value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
@@ -1028,7 +1028,7 @@ spec:
                         value: che-postgres-secret
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
-                    image: quay.io/eclipse/che-operator:nightly
+                    image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
                       failureThreshold: 10
@@ -1219,4 +1219,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.33.0-240.nightly
+  version: 7.33.0-242.nightly
