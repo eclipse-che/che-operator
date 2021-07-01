@@ -9,6 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	CheGatewayClusterPermissionsFinalizerName = "cheGateway.clusterpermissions.finalizers.che.eclipse.org"
+)
+
 func (r *ReconcileChe) reconcileGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
 		name := gatewayPermisisonsName(deployContext.CheCluster)
@@ -16,7 +20,11 @@ func (r *ReconcileChe) reconcileGatewayPermissions(deployContext *deploy.DeployC
 			return false, err
 		}
 
-		if _, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, name, gateway.GatewayServiceName, name); err != nil {
+		if _, err := deploy.SyncClusterRoleBindingToCluster(deployContext, name, gateway.GatewayServiceName, name); err != nil {
+			return false, err
+		}
+
+		if err := deploy.AppendFinalizer(deployContext, CheGatewayClusterPermissionsFinalizerName); err != nil {
 			return false, err
 		}
 	} else {
@@ -41,6 +49,10 @@ func deleteGatewayPermissions(deployContext *deploy.DeployContext) (bool, error)
 	}
 
 	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbac.ClusterRoleBinding{}); !done {
+		return false, err
+	}
+
+	if err := deploy.DeleteFinalizer(deployContext, CheGatewayClusterPermissionsFinalizerName); err != nil {
 		return false, err
 	}
 
