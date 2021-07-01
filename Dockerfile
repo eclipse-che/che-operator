@@ -57,6 +57,7 @@ COPY --from=builder /che-operator/templates/keycloak-update.sh /tmp/keycloak-upd
 COPY --from=builder /che-operator/templates/oauth-provision.sh /tmp/oauth-provision.sh
 COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
+
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic

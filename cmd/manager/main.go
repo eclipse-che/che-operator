@@ -119,6 +119,7 @@ func main() {
 	// Create a new Cmd to provide shared dependencies and start components
 	options := manager.Options{
 		Namespace:              namespace,
+		MetricsBindAddress:     ":8081",
 		HealthProbeBindAddress: ":6789",
 	}
 

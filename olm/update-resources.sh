@@ -10,10 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-# Generated CRDs based on pkg/apis/org/v1/che_types.go:
-# - deploy/crds/org_v1_che_crd.yaml
-# - deploy/crds/org_v1_che_crd-v1beta1.yaml
-
 set -e
 
 unset UBI8_MINIMAL_IMAGE
@@ -45,15 +41,13 @@ checkOperatorSDKVersion() {
 
 generateCRD() {
   version=$1
-  pushd "${ROOT_PROJECT_DIR}" || true
   "${OPERATOR_SDK_BINARY}" generate k8s
   "${OPERATOR_SDK_BINARY}" generate crds --crd-version $version
-  popd
 
-  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
-  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml
-  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml
-  addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml
+  ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
+  ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml
+  ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml
+  ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml
 
   if [[ $version == "v1" ]]; then
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml
@@ -120,13 +114,105 @@ detectImages() {
   echo "[INFO] Plugin broker jwt proxy image: $JWT_PROXY_IMAGE"
 }
 
+updateRoles() {
+  echo "[INFO] Updating roles with DW and DWCO roles"
+
+  CLUSTER_ROLES=(
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-leader-election-role.Role.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-metrics-reader.ClusterRole.yaml
+  )
+
+  # Updates cluster_role.yaml based on DW and DWCO roles
+  ## Removes old cluster roles
+  cat $ROOT_PROJECT_DIR/deploy/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > $ROOT_PROJECT_DIR/deploy/cluster_role.yaml.tmp
+  mv $ROOT_PROJECT_DIR/deploy/cluster_role.yaml.tmp $ROOT_PROJECT_DIR/deploy/cluster_role.yaml
+
+  ## Copy new cluster roles
+  for roles in "${CLUSTER_ROLES[@]}"; do
+    echo "  # "$(basename $roles) >> $ROOT_PROJECT_DIR/deploy/cluster_role.yaml
+
+    CONTENT=$(curl -sL $roles | sed '1,/rules:/d')
+    while IFS= read -r line; do
+      echo "  $line" >> $ROOT_PROJECT_DIR/deploy/cluster_role.yaml
+    done <<< "$CONTENT"
+  done
+
+  ROLES=(
+    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-leader-election-role.Role.yaml
+  )
+
+  # Updates role.yaml
+  ## Removes old roles
+  cat $ROOT_PROJECT_DIR/deploy/role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > $ROOT_PROJECT_DIR/deploy/role.yaml.tmp
+  mv $ROOT_PROJECT_DIR/deploy/role.yaml.tmp $ROOT_PROJECT_DIR/deploy/role.yaml
+
+
+  ## Copy new roles
+  for roles in "${ROLES[@]}"; do
+    echo "# "$(basename $roles) >> $ROOT_PROJECT_DIR/deploy/role.yaml
+
+    CONTENT=$(curl -sL $roles | sed '1,/rules:/d')
+    while IFS= read -r line; do
+      echo "$line" >> $ROOT_PROJECT_DIR/deploy/role.yaml
+    done <<< "$CONTENT"
+  done
+
+  # Updates proxy_cluster_role.yaml based on DWCO
+  ## Remove old roles
+  cat $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml | sed '/rules:/q0' > $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp
+  mv $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
+
+  ## Copy new roles
+  CLUSTER_PROXY_ROLES=https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-proxy-role.ClusterRole.yaml
+  CONTENT=$(curl -sL $CLUSTER_PROXY_ROLES | sed '1,/rules:/d')
+  while IFS= read -r line; do
+    echo "$line" >> $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
+  done <<< "$CONTENT"
+}
+
 updateOperatorYaml() {
   OPERATOR_YAML="${ROOT_PROJECT_DIR}/deploy/operator.yaml"
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"${UBI8_MINIMAL_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE}\"" ${OPERATOR_YAML}
-  addLicenseHeader $OPERATOR_YAML
+
+  # Deletes old DWCO container
+  yq -riY "del(.spec.template.spec.containers[1])" $OPERATOR_YAML
+  yq -riY ".spec.template.spec.containers[1] = \"devworkspace-container\"" $OPERATOR_YAML
+
+  # Extract DWCO container spec from deployment
+  DWCO_CONTAINER=$(curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-manager.Deployment.yaml \
+    | sed '1,/containers:/d' \
+    | sed -n '/serviceAccountName:/q;p' \
+    | sed -e 's/^/  /')
+  echo "$DWCO_CONTAINER" > dwcontainer
+
+  # Add DWCO container to operator.yaml
+  sed -i -e '/- devworkspace-container/{r dwcontainer' -e 'd}' $OPERATOR_YAML
+  rm dwcontainer
+
+  # update securityContext
+  yq -riY ".spec.template.spec.containers[1].securityContext.privileged = false" ${OPERATOR_YAML}
+  yq -riY ".spec.template.spec.containers[1].securityContext.readOnlyRootFilesystem = false" ${OPERATOR_YAML}
+  yq -riY ".spec.template.spec.containers[1].securityContext.capabilities.drop[0] = \"ALL\"" ${OPERATOR_YAML}
+
+  # update env variable
+  yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .valueFrom)" ${OPERATOR_YAML}
+  yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .value) = \"che-operator\"" ${OPERATOR_YAML}
+  yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .value)" ${OPERATOR_YAML}
+  yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .valueFrom.fieldRef.fieldPath) = \"metadata.namespace\"" ${OPERATOR_YAML}
+
+  yq -riY ".spec.template.spec.containers[1].args[1] =  \"--metrics-addr\"" ${OPERATOR_YAML}
+  yq -riY ".spec.template.spec.containers[1].args[2] =  \"0\"" ${OPERATOR_YAML}
+
+  ensureLicense $OPERATOR_YAML
 }
 
 updateDockerfile() {
@@ -146,29 +232,27 @@ updateNighltyBundle() {
 
     echo "[INFO] Updating OperatorHub bundle for platform '${platform}'"
 
-    pushd "${ROOT_PROJECT_DIR}" || true
-
     NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
-    bundleCSVName="che-operator.clusterserviceversion.yaml"
-    NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/${bundleCSVName}
+    NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml
     newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
     echo "[INFO] Creation new nightly bundle version: ${newNightlyBundleVersion}"
 
-    csv_config=${NIGHTLY_BUNDLE_PATH}/csv-config.yaml
     generateFolder=${NIGHTLY_BUNDLE_PATH}/generated
     rm -rf "${generateFolder}"
-    mkdir -p "${generateFolder}"
+    mkdir -p "${generateFolder}/crds"
 
+    # copy roles
     "${NIGHTLY_BUNDLE_PATH}/build-roles.sh"
 
-    operatorYaml=$(yq -r ".\"operator-path\"" "${csv_config}")
-    cp -rf "${operatorYaml}" "${generateFolder}/"
+    # copy operator.yaml
+    operatorYaml=$(yq -r ".\"operator-path\"" "${NIGHTLY_BUNDLE_PATH}/csv-config.yaml")
+    cp -rf "${operatorYaml}" "${generateFolder}"
 
-    crdsDir=${ROOT_PROJECT_DIR}/deploy/crds
-    mkdir -p ${generateFolder}/crds
-    cp -f "${crdsDir}/org_v1_che_cr.yaml" "${generateFolder}/crds"
-    cp -f "${crdsDir}/org_v1_che_crd.yaml" "${generateFolder}/crds"
+    # copy CR/CRD
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_cr.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${generateFolder}/crds"
 
+    # generate a new CSV
     "${OPERATOR_SDK_BINARY}" generate csv \
     --csv-version "${newNightlyBundleVersion}" \
     --deploy-dir "${generateFolder}" \
@@ -191,16 +275,13 @@ updateNighltyBundle() {
       incrementNightlyVersion "${platform}"
     fi
 
-    templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
-    platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-
-    cp -rf $templateCRD $platformCRD
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
+    CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
     if [[ $platform == "openshift" ]]; then
-      yq -riSY  '.spec.preserveUnknownFields = false' $platformCRD
-      eval head -10 $templateCRD | cat - ${platformCRD} > tmp.crd && mv tmp.crd ${platformCRD}
+      yq -riSY  '.spec.preserveUnknownFields = false' $CRD
     fi
 
     echo "Done for ${platform}"
@@ -222,6 +303,9 @@ updateNighltyBundle() {
         index=$((index+1))
       done
     fi
+
+    # Fix account name
+    sed -i 's|serviceAccountName: che-operator-proxy|serviceAccountName: default|g' $NEW_CSV
 
     # Fix sample
     if [ "${platform}" == "openshift" ]; then
@@ -251,17 +335,21 @@ updateNighltyBundle() {
     if [ "${platform}" == "openshift" ]; then
       yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "${NEW_CSV}"
       yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "${NEW_CSV}"
+      yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[1].securityContext."allowPrivilegeEscalation") = false' "${NEW_CSV}"
+      yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[1].securityContext."runAsNonRoot") = true' "${NEW_CSV}"
     fi
 
     # Format code.
     yq -rY "." "${NEW_CSV}" > "${NEW_CSV}.old"
     mv "${NEW_CSV}.old" "${NEW_CSV}"
 
-    popd || true
+    ensureLicense "${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+    ensureLicense "${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   done
 }
 
-addLicenseHeader() {
+ensureLicense() {
+  if [[ $(sed -n '/^#$/p;q' $1) != "#" ]]; then
 echo -e "#
 #  Copyright (c) 2019-2021 Red Hat, Inc.
 #    This program and the accompanying materials are made
@@ -273,12 +361,19 @@ echo -e "#
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 $(cat $1)" > $1
+fi
 }
 
 checkOperatorSDKVersion
 detectImages
+
+pushd "${ROOT_PROJECT_DIR}" || true
+
 generateCRD "v1beta1"
 generateCRD "v1"
+updateRoles
 updateOperatorYaml
 updateDockerfile
 updateNighltyBundle
+
+popd || true

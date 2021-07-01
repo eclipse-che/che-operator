@@ -130,7 +130,12 @@ if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
     echo "[ERROR] Unable to find ubi8_minimal image in the $filename"; exit 1
   fi
 
+  # use ${RELEASE} instead of master
   wget https://raw.githubusercontent.com/eclipse-che/che-server/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+
+  if ! grep -q "value: quay.io/che-incubator/devworkspace-che-operator:$RELEASE" $filename; then
+    echo "[ERROR] Unable to find devworkspace che operator image with version ${RELEASE} in the $filename"; exit 1
+  fi
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)
   if ! grep -q "value: $plugin_broker_meta_image" $filename; then
@@ -202,6 +207,7 @@ replaceImagesTags() {
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_keycloak\") | .value ) = \"${KEYCLOAK_IMAGE_RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_plugin_registry\") | .value ) = \"${PLUGIN_REGISTRY_IMAGE_RELEASE}\"" | \
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
+  yq -ryY "( .spec.template.spec.containers[] | select(.name == \"devworkspace-che-operator\") | .image ) = \"quay.io/che-incubator/devworkspace-che-operator:${RELEASE}\"" | \
   >> "${NEW_OPERATOR_YAML}"
   mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
 }

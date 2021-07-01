@@ -20,6 +20,7 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,56 +32,144 @@ import (
 )
 
 func TestReconcileDevWorkspace(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(true),
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "single-host",
-			},
-		},
+	type testCase struct {
+		name         string
+		IsOpenShift  bool
+		IsOpenShift4 bool
+		cheCluster   *orgv1.CheCluster
 	}
 
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
-	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
-	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+	testCases := []testCase{
 		{
-			APIResources: []metav1.APIResource{
-				{Name: CheManagerResourcename},
+			name: "Reconcile DevWorkspace on OpenShift",
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+						Enable: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(true),
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "single-host",
+					},
+				},
 			},
+			IsOpenShift:  true,
+			IsOpenShift4: true,
+		},
+		{
+			name: "Reconcile DevWorkspace on K8S multi-host",
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+						Enable: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(true),
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "multi-host",
+					},
+					K8s: orgv1.CheClusterSpecK8SOnly{
+						IngressDomain: "che.domain",
+					},
+				},
+			},
+			IsOpenShift:  false,
+			IsOpenShift4: false,
+		},
+		{
+			name: "Reconcile DevWorkspace on K8S single-host",
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+						Enable: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(true),
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "single-host",
+					},
+					K8s: orgv1.CheClusterSpecK8SOnly{
+						IngressDomain: "che.domain",
+					},
+				},
+			},
+			IsOpenShift:  false,
+			IsOpenShift4: false,
 		},
 	}
 
-	util.IsOpenShift4 = true
-	done, err := ReconcileDevWorkspace(deployContext)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+			deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+				{
+					APIResources: []metav1.APIResource{
+						{Name: CheManagerResourcename},
+					},
+				},
+			}
 
-	if err != nil {
-		t.Fatalf("Error: %v", err)
+			util.IsOpenShift = testCase.IsOpenShift
+			util.IsOpenShift4 = testCase.IsOpenShift4
+			done, err := ReconcileDevWorkspace(deployContext)
+			if err != nil {
+				t.Fatalf("Error: %v", err)
+			}
+			if !done {
+				t.Fatalf("Dev Workspace operator has not been provisioned")
+			}
+
+			t.Run("defaultCheManagerDeployed", func(t *testing.T) {
+				obj := &unstructured.Unstructured{}
+				obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+				err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: deployContext.CheCluster.Namespace}, obj)
+
+				if testCase.IsOpenShift {
+					if err != nil {
+						t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
+					}
+
+					if obj.GetName() != "devworkspace-che" {
+						t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
+					}
+				} else {
+					if testCase.cheCluster.Spec.Server.ServerExposureStrategy == "single-host" {
+						if err == nil || !apierrors.IsNotFound(err) {
+							t.Fatalf("Should not have found a CheManager")
+						}
+					} else {
+						if err != nil {
+							t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
+						}
+
+						if obj.GetName() != "devworkspace-che" {
+							t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
+						}
+
+						spec := obj.Object["spec"].(map[string]interface{})
+						gatewayHost := spec["gatewayHost"].(string)
+						if gatewayHost != deployContext.CheCluster.Spec.K8s.IngressDomain {
+							t.Fatalf("gatewayHost wasn't set correctly, expected: %s, actual: %s", deployContext.CheCluster.Spec.K8s.IngressDomain, gatewayHost)
+						}
+					}
+				}
+			})
+		})
 	}
-
-	if !done {
-		t.Fatalf("Dev Workspace operator has not been provisioned")
-	}
-
-	t.Run("defaultCheManagerDeployed", func(t *testing.T) {
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-		err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
-		if err != nil {
-			t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
-		}
-
-		if obj.GetName() != "devworkspace-che" {
-			t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
-		}
-	})
 }
 
 func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t *testing.T) {
@@ -124,6 +213,7 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 		},
 	}
 
+	util.IsOpenShift = true
 	util.IsOpenShift4 = true
 	_, err := ReconcileDevWorkspace(deployContext)
 
@@ -142,7 +232,7 @@ func TestShouldSyncNewObject(t *testing.T) {
 	}
 
 	// tries to sync a new object
-	done, err := syncObject(deployContext, obj2sync)
+	done, err := syncObject(deployContext, obj2sync, "eclipse-che")
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
 	} else if !done {
@@ -194,7 +284,7 @@ func TestShouldSyncObjectIfItWasCreatedByAnotherOriginHashDifferent(t *testing.T
 		obj:     newObject,
 		hash256: "hash",
 	}
-	_, err := syncObject(deployContext, obj2sync)
+	_, err := syncObject(deployContext, obj2sync, "eclipse-che")
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
 	}
@@ -238,7 +328,7 @@ func TestShouldSyncObjectIfItWasCreatedBySameOriginHashDifferent(t *testing.T) {
 	}
 
 	// tries to sync object with a new
-	_, err := syncObject(deployContext, obj2sync)
+	_, err := syncObject(deployContext, obj2sync, "eclipse-che")
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
 	}
@@ -303,7 +393,7 @@ func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
 		obj:     newObject,
 		hash256: "hash-1",
 	}
-	done, err := syncObject(deployContext, obj2sync)
+	done, err := syncObject(deployContext, obj2sync, "eclipse-che")
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
 	} else if !done {
@@ -347,7 +437,7 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 		obj:     newObject,
 		hash256: "hash",
 	}
-	done, err := syncObject(deployContext, obj2sync)
+	done, err := syncObject(deployContext, obj2sync, "eclipse-che")
 	if err != nil {
 		t.Fatalf("Failed to sync object: %v", err)
 	} else if !done {

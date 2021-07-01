@@ -16,6 +16,7 @@ mkdir -p "${BASE_DIR}/generated/roles"
 
 cp "${BASE_DIR}/../../../role.yaml" "${BASE_DIR}/generated/roles/role.yaml"
 cp "${BASE_DIR}/../../../cluster_role.yaml" "${BASE_DIR}/generated/roles/cluster_role.yaml"
+cp "${BASE_DIR}/../../../proxy_cluster_role.yaml" "${BASE_DIR}/generated/roles/proxy_cluster_role.yaml"
 
 for role in ${BASE_DIR}/generated/roles/*.yaml; do
   index=0

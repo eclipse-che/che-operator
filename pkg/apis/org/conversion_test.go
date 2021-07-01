@@ -563,7 +563,7 @@ func TestExposureStrategyConversions(t *testing.T) {
 			if old.Spec.Server.ServerExposureStrategy != "" {
 				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
 			}
-			if old.Spec.K8s.IngressStrategy != "multi-host" {
+			if old.Spec.K8s.IngressStrategy != "single-host" {
 				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
 			}
 		})
