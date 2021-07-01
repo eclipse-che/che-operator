@@ -12,21 +12,15 @@
 package devworkspace
 
 import (
-	"context"
-
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"testing"
 )
@@ -132,42 +126,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			if !done {
 				t.Fatalf("Dev Workspace operator has not been provisioned")
 			}
-
-			t.Run("defaultCheManagerDeployed", func(t *testing.T) {
-				obj := &unstructured.Unstructured{}
-				obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-				err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: deployContext.CheCluster.Namespace}, obj)
-
-				if testCase.IsOpenShift {
-					if err != nil {
-						t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
-					}
-
-					if obj.GetName() != "devworkspace-che" {
-						t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
-					}
-				} else {
-					if testCase.cheCluster.Spec.Server.ServerExposureStrategy == "single-host" {
-						if err == nil || !apierrors.IsNotFound(err) {
-							t.Fatalf("Should not have found a CheManager")
-						}
-					} else {
-						if err != nil {
-							t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
-						}
-
-						if obj.GetName() != "devworkspace-che" {
-							t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
-						}
-
-						spec := obj.Object["spec"].(map[string]interface{})
-						gatewayHost := spec["gatewayHost"].(string)
-						if gatewayHost != deployContext.CheCluster.Spec.K8s.IngressDomain {
-							t.Fatalf("gatewayHost wasn't set correctly, expected: %s, actual: %s", deployContext.CheCluster.Spec.K8s.IngressDomain, gatewayHost)
-						}
-					}
-				}
-			})
 		})
 	}
 }

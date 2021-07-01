@@ -37,7 +37,7 @@ oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfiguration
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml -n $NAMESPACE
 # sometimes the operator cannot get CRD right away
-sleep 2
+sleep 5
 
 cp -f ${BASE_DIR}/deploy/operator.yaml /tmp/operator.yaml
 yq -riyY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"${CHE_OPERATOR_IMAGE}\"" /tmp/operator.yaml

@@ -30,9 +30,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -70,19 +68,6 @@ var (
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
 
-	DevWorkspaceCheServiceAccountFile           = DevWorkspaceCheTemplates + "/devworkspace-che-serviceaccount.ServiceAccount.yaml"
-	DevWorkspaceCheRoleFile                     = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-role.Role.yaml"
-	DevWorkspaceCheClusterRoleFile              = DevWorkspaceCheTemplates + "/devworkspace-che-role.ClusterRole.yaml"
-	DevWorkspaceCheProxyClusterRoleFile         = DevWorkspaceCheTemplates + "/devworkspace-che-proxy-role.ClusterRole.yaml"
-	DevWorkspaceCheMetricsReaderClusterRoleFile = DevWorkspaceCheTemplates + "/devworkspace-che-metrics-reader.ClusterRole.yaml"
-	DevWorkspaceCheRoleBindingFile              = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-rolebinding.RoleBinding.yaml"
-	DevWorkspaceCheClusterRoleBindingFile       = DevWorkspaceCheTemplates + "/devworkspace-che-rolebinding.ClusterRoleBinding.yaml"
-	DevWorkspaceCheProxyClusterRoleBindingFile  = DevWorkspaceCheTemplates + "/devworkspace-che-proxy-rolebinding.ClusterRoleBinding.yaml"
-	DevWorkspaceCheManagersCRDFile              = DevWorkspaceCheTemplates + "/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
-	DevWorkspaceCheConfigMapFile                = DevWorkspaceCheTemplates + "/devworkspace-che-configmap.ConfigMap.yaml"
-	DevWorkspaceCheDeploymentFile               = DevWorkspaceCheTemplates + "/devworkspace-che-manager.Deployment.yaml"
-	DevWorkspaceCheMetricsServiceFile           = DevWorkspaceCheTemplates + "/devworkspace-che-controller-manager-metrics-service.Service.yaml"
-
 	WebTerminalOperatorSubscriptionName = "web-terminal"
 	WebTerminalOperatorNamespace        = "openshift-operators"
 )
@@ -112,12 +97,6 @@ var (
 		syncDwConfigMap,
 		syncDwDeployment,
 	}
-
-	syncDwCheItems = []func(*deploy.DeployContext) (bool, error){
-		syncDwCheCRD,
-		syncDwCheCR,
-		syncDwCheMetricsService,
-	}
 )
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
@@ -128,6 +107,11 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 
 	// do nothing if dev workspace is disabled
 	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+		return true, nil
+	}
+
+	if !util.IsOpenShift && util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
+		logrus.Warn(`DevWorkspace Che operator can't be enabled in 'single-host' mode on a Kubernetes cluster. See https://github.com/eclipse/che/issues/19714 for more details. To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.`)
 		return true, nil
 	}
 
@@ -149,20 +133,6 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	for _, syncItem := range syncItems {
-		done, err := syncItem(deployContext)
-		if !util.IsTestMode() {
-			if !done {
-				return false, err
-			}
-		}
-	}
-
-	if !util.IsOpenShift && util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
-		logrus.Warn(`DevWorkspace Che operator can't be enabled in 'single-host' mode on a Kubernetes cluster. See https://github.com/eclipse/che/issues/19714 for more details. To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.`)
-		return true, nil
-	}
-
-	for _, syncItem := range syncDwCheItems {
 		done, err := syncItem(deployContext)
 		if !util.IsTestMode() {
 			if !done {
@@ -290,65 +260,6 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceControllerImage
 
 	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
-}
-
-func syncDwCheCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceCheManagersCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
-}
-
-func syncDwCheMetricsService(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceCheMetricsServiceFile, &corev1.Service{}, deployContext.CheCluster.Namespace)
-}
-
-func syncDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
-	// We want to create a default CheManager instance to be able to configure the che-specific
-	// parts of the installation, but at the same time we don't want to add a dependency on
-	// devworkspace-che-operator. Note that this way of initializing will probably see changes
-	// once we figure out https://github.com/eclipse/che/issues/19220
-
-	// Wait until CRD for CheManager is created
-	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, CheManagerResourcename) {
-		return false, nil
-	}
-
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: deployContext.CheCluster.Namespace}, obj)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			obj = nil
-		} else {
-			return false, err
-		}
-	}
-
-	if obj == nil {
-		obj := &unstructured.Unstructured{}
-		if !util.IsOpenShift {
-			obj.SetUnstructuredContent(map[string]interface{}{
-				"spec": map[string]interface{}{
-					"gatewayHost": deployContext.CheCluster.Spec.K8s.IngressDomain,
-				},
-			})
-		}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "che.eclipse.org",
-			Version: "v1alpha1",
-			Kind:    "CheManager",
-		})
-		obj.SetName("devworkspace-che")
-		obj.SetNamespace(deployContext.CheCluster.Namespace)
-
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), obj)
-		if err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				return false, nil
-			}
-			return false, err
-		}
-	}
-
-	return true, nil
 }
 
 func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}, namespace string) (bool, error) {
