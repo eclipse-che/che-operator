@@ -13,12 +13,6 @@
 FROM registry.access.redhat.com/ubi8/go-toolset:1.15.7-11 as builder
 ENV GOPATH=/go/
 
-# get restic. Needed for backup / restore capabilities
-ENV RESTIC_VERSION=0.12.0
-RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    curl -sLO https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 && \
-    bzip2 -d restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 && mv restic_* /tmp/restic && chmod +x /tmp/restic
-
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 USER root
@@ -45,6 +39,15 @@ RUN curl -L https://api.github.com/repos/che-incubator/devworkspace-che-operator
     mkdir -p /tmp/devworkspace-che-operator/templates/ && \
     mv /tmp/che-incubator-devworkspace-che-operator-*/deploy /tmp/devworkspace-che-operator/templates/
 
+# Build restic. Needed for backup / restore capabilities
+ENV RESTIC_TAG=v0.12.0
+RUN mkdir -p $GOPATH && cd $GOPATH && \
+    git clone --depth 1 --branch $RESTIC_TAG https://github.com/restic/restic.git && \
+    cd restic && \
+    export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
+    go mod vendor && \
+    GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/restic/restic ./cmd/restic
+
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483
 
@@ -56,7 +59,8 @@ COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/del
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
-COPY --from=builder /tmp/restic /usr/local/bin/restic
+COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
+COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
 
 # install httpd-tools for /usr/bin/htpasswd
 RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
