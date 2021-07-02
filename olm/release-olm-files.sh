@@ -90,6 +90,7 @@ do
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
+  -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${RELEASE}'|' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:nightly"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nightly"|"pluginRegistryImage": ""|' \

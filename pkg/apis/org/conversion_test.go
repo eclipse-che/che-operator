@@ -563,7 +563,7 @@ func TestExposureStrategyConversions(t *testing.T) {
 			if old.Spec.Server.ServerExposureStrategy != "" {
 				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
 			}
-			if old.Spec.K8s.IngressStrategy != "multi-host" {
+			if old.Spec.K8s.IngressStrategy != "single-host" {
 				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
 			}
 		})
@@ -666,6 +666,14 @@ func TestFullCircleV1(t *testing.T) {
 	if !reflect.DeepEqual(&v1Obj, &convertedV1) {
 		t.Errorf("V1 not equal to itself after the conversion through v2alpha1: %v", cmp.Diff(&v1Obj, &convertedV1))
 	}
+
+	if convertedV1.Annotations[v1StorageAnnotation] != "" {
+		t.Errorf("The v1 storage annotations should not be present on the v1 object")
+	}
+
+	if convertedV1.Annotations[v2alpha1StorageAnnotation] == "" {
+		t.Errorf("The v2alpha1 storage annotation should be present on the v1 object")
+	}
 }
 
 func TestFullCircleV2(t *testing.T) {
@@ -710,6 +718,14 @@ func TestFullCircleV2(t *testing.T) {
 
 	if !reflect.DeepEqual(&v2Obj, &convertedV2) {
 		t.Errorf("V2alpha1 not equal to itself after the conversion through v1: %v", cmp.Diff(&v2Obj, &convertedV2))
+	}
+
+	if convertedV2.Annotations[v2alpha1StorageAnnotation] != "" {
+		t.Errorf("The v2alpha1 storage annotations should not be present on the v2alpha1 object")
+	}
+
+	if convertedV2.Annotations[v1StorageAnnotation] == "" {
+		t.Errorf("The v1 storage annotation should be present on the v2alpha1 object")
 	}
 }
 

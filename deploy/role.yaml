@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/name: che
   name: che-operator
 rules:
+### CHE-OPERATOR ROLES ONLY: BEGIN
 - apiGroups:
   - extensions
   resources:
@@ -121,3 +122,31 @@ rules:
   verbs:
   - get
   - list
+### CHE-OPERATOR ROLES ONLY: END
+# devworkspace-che-leader-election-role.Role.yaml
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create

@@ -18,9 +18,11 @@ command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
 ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
+ECLIPSE_CHE_CRD_V1BETA1="./deploy/crds/org_v1_che_crd-v1beta1.yaml"
 ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="./deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
 ECLIPSE_CHE_BACKUP_CRD="./deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
 ECLIPSE_CHE_RESTORE_CRD="./deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
+ECLIPSE_CHE_CRD_V1BETA1="./deploy/crds/org_v1_che_crd-v1beta1.yaml"
 DEV_WORKSPACE_CONTROLLER_VERSION="main"
 DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
@@ -65,8 +67,8 @@ prepareTemplates() {
 
   curl -sL https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip
 
-  unzip /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
-  cp -r /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
+  unzip -q /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
+  cp -rf /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
   echo "[INFO] Downloading Dev Workspace operator templates completed."
 
   # Download Dev Workspace Che operator templates
@@ -78,9 +80,9 @@ prepareTemplates() {
 
   curl -sL https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip
 
-  unzip /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
+  unzip -q /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
   cp -r /tmp/che-incubator-devworkspace-che-operator*/deploy/* /tmp/devworkspace-che-operator/templates
-  echo "[INFO] Downloading Dev Workspace Che operator templates completed."
+  echo "[INFO] Downloading Dev Workspace operator templates completed."
 }
 
 createNamespace() {
@@ -89,7 +91,8 @@ createNamespace() {
   set -e
 }
 
-applyCRandCRD() {
+applyResources() {
+  # kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
   kubectl apply -f ${ECLIPSE_CHE_CRD}
   kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}
   kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD}
@@ -118,5 +121,5 @@ runDebug() {
 
 prepareTemplates
 createNamespace
-applyCRandCRD
+applyResources
 runDebug

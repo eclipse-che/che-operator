@@ -60,6 +60,9 @@ func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 	v1ToV2alpha1_WorkspaceDomainEndpointsTlsSecretName(v1, v2)
 	v1ToV2alpha1_K8sIngressAnnotations(v1, v2)
 
+	// we don't need to store the serialized v2 on a v2 object
+	delete(v2.Annotations, v2alpha1StorageAnnotation)
+
 	return nil
 }
 
@@ -96,6 +99,9 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 	v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1Obj, v2)
 	v2alpha1ToV1_WorkspaceDomainEndpointsTlsSecretName(v1Obj, v2)
 	v2alpha1ToV1_K8sIngressAnnotations(v1Obj, v2)
+
+	// we don't need to store the serialized v1 on a v1 object
+	delete(v1Obj.Annotations, v1StorageAnnotation)
 
 	return nil
 }
