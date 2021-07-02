@@ -85,6 +85,12 @@ spec:
               value: quay.io/devfile/devworkspace-controller:next
             - name: RELATED_IMAGE_internal_rest_backup_server
               value: quay.io/eclipse/che-backup-server-rest:eeacd92
+            - name: RELATED_IMAGE_gateway_authentication_sidecar
+              value: quay.io/openshift/origin-oauth-proxy:4.7
+            - name: RELATED_IMAGE_gateway_authorization_sidecar
+              value: quay.io/openshift/origin-kube-rbac-proxy:4.7
+            - name: RELATED_IMAGE_gateway_header_sidecar
+              value: quay.io/che-incubator/header-rewrite-proxy:latest
             - name: CHE_FLAVOR
               value: che
             - name: CONSOLE_LINK_NAME
@@ -151,7 +157,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: devworkspace-operator
+              value: devworkspace-che-operator
             - name: MAX_CONCURRENT_RECONCILES
               value: "1"
             - name: CONTROLLER_SERVICE_ACCOUNT_NAME

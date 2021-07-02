@@ -161,6 +161,13 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 					FieldPath:  "metadata.namespace"}},
 		})
 
+	if util.IsNativeUserModeEnabled(s.deployContext.CheCluster) {
+		cheEnv = append(cheEnv, corev1.EnvVar{
+			Name:  "CHE_AUTH_NATIVEUSER",
+			Value: "true",
+		})
+	}
+
 	cheImageAndTag := GetFullCheServerImageLink(s.deployContext.CheCluster)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(s.deployContext.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))
 

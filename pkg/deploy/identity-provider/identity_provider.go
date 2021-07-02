@@ -16,13 +16,14 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
-	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,7 +48,9 @@ var (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if cr.Spec.Auth.ExternalIdentityProvider {
+	if util.IsNativeUserModeEnabled(cr) {
+		return syncNativeIdentityProviderItems(deployContext)
+	} else if cr.Spec.Auth.ExternalIdentityProvider {
 		return true, nil
 	}
 
@@ -154,31 +157,41 @@ func syncOpenShiftIdentityProvider(deployContext *deploy.DeployContext) (bool, e
 	return true, nil
 }
 
+func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool, error) {
+	cr := deployContext.CheCluster
+
+	if err := resolveOpenshiftOAuthClientName(deployContext); err != nil {
+		return false, err
+	}
+	if err := resolveOpenshiftOAuthClientSecret(deployContext); err != nil {
+		return false, err
+	}
+
+	redirectURIs := []string{"https://" + cr.Spec.Server.CheHost + "/oauth/callback"}
+
+	oAuthClient := deploy.GetOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
+	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
+	if !provisioned {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 
-	oAuthClientName := cr.Spec.Auth.OAuthClientName
-	if len(oAuthClientName) < 1 {
-		oAuthClientName = cr.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
-		cr.Spec.Auth.OAuthClientName = oAuthClientName
-		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthClient name", oAuthClientName); err != nil {
-			return false, err
-		}
+	if err := resolveOpenshiftOAuthClientName(deployContext); err != nil {
+		return false, err
 	}
-
-	oauthSecret := cr.Spec.Auth.OAuthSecret
-	if len(oauthSecret) < 1 {
-		oauthSecret = util.GeneratePasswd(12)
-		cr.Spec.Auth.OAuthSecret = oauthSecret
-		if err := deploy.UpdateCheCRSpec(deployContext, "oAuth secret name", oauthSecret); err != nil {
-			return false, err
-		}
+	if err := resolveOpenshiftOAuthClientSecret(deployContext); err != nil {
+		return false, err
 	}
 
 	keycloakURL := cr.Spec.Auth.IdentityProviderURL
 	cheFlavor := deploy.DefaultCheFlavor(cr)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := deploy.GetOAuthClientSpec(oAuthClientName, oauthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
+	oAuthClient := deploy.GetKeycloakOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
 	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
 	if !provisioned {
 		return false, err
@@ -192,7 +205,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 				cr,
 				deploy.IdentityProviderName,
 				func(cr *orgv1.CheCluster) (string, error) {
-					return GetOpenShiftIdentityProviderProvisionCommand(cr, oAuthClientName, oauthSecret)
+					return GetOpenShiftIdentityProviderProvisionCommand(cr, cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret)
 				},
 				"Create OpenShift identity provider")
 			if err != nil {
@@ -212,6 +225,32 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 		}
 	}
 	return true, nil
+}
+
+func resolveOpenshiftOAuthClientName(deployContext *deploy.DeployContext) error {
+	cr := deployContext.CheCluster
+	oAuthClientName := cr.Spec.Auth.OAuthClientName
+	if len(oAuthClientName) < 1 {
+		oAuthClientName = cr.Name + "-openshift-identity-provider-" + strings.ToLower(util.GeneratePasswd(6))
+		cr.Spec.Auth.OAuthClientName = oAuthClientName
+		if err := deploy.UpdateCheCRSpec(deployContext, "oAuthClient name", oAuthClientName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resolveOpenshiftOAuthClientSecret(deployContext *deploy.DeployContext) error {
+	cr := deployContext.CheCluster
+	oauthSecret := cr.Spec.Auth.OAuthSecret
+	if len(oauthSecret) < 1 {
+		oauthSecret = util.GeneratePasswd(12)
+		cr.Spec.Auth.OAuthSecret = oauthSecret
+		if err := deploy.UpdateCheCRSpec(deployContext, "oAuth secret name", oauthSecret); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SyncGitHubOAuth provisions GitHub OAuth if secret with annotation

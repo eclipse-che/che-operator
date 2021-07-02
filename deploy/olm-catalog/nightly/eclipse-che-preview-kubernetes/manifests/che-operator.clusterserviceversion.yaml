@@ -86,13 +86,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2021-07-01T21:02:20Z"
+    createdAt: "2021-07-02T08:14:01Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.33.0-246.nightly
+  name: eclipse-che-preview-kubernetes.v7.33.0-248.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -792,31 +792,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - che.eclipse.org
+                - org.eclipse.che
               resources:
-                - '*'
+                - checlusters
+                - checlusters/status
+                - checlusters/finalizers
               verbs:
                 - '*'
-            - apiGroups:
-                - che.eclipse.org
-              resources:
-                - chemanagers
-              verbs:
-                - '*'
-            - apiGroups:
-                - che.eclipse.org
-              resources:
-                - chemanagers/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - che.eclipse.org
-              resources:
-                - chemanagers/finalizers
-              verbs:
-                - update
             - apiGroups:
                 - controller.devfile.io
               resources:
@@ -985,6 +967,12 @@ spec:
                         value: quay.io/devfile/devworkspace-controller:next
                       - name: RELATED_IMAGE_internal_rest_backup_server
                         value: quay.io/eclipse/che-backup-server-rest:eeacd92
+                      - name: RELATED_IMAGE_gateway_authentication_sidecar
+                        value: quay.io/openshift/origin-oauth-proxy:4.7
+                      - name: RELATED_IMAGE_gateway_authorization_sidecar
+                        value: quay.io/openshift/origin-kube-rbac-proxy:4.7
+                      - name: RELATED_IMAGE_gateway_header_sidecar
+                        value: quay.io/che-incubator/header-rewrite-proxy:latest
                       - name: CHE_FLAVOR
                         value: che
                       - name: CONSOLE_LINK_NAME
@@ -1057,7 +1045,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.name
                       - name: OPERATOR_NAME
-                        value: devworkspace-operator
+                        value: devworkspace-che-operator
                       - name: MAX_CONCURRENT_RECONCILES
                         value: "1"
                       - name: CONTROLLER_SERVICE_ACCOUNT_NAME
@@ -1253,4 +1241,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.33.0-246.nightly
+  version: 7.33.0-248.nightly

@@ -139,19 +139,22 @@ func (r *ReconcileChe) GenerateAndSaveFields(deployContext *deploy.DeployContext
 				return err
 			}
 		}
-		keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
-		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
-			deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
-			if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak realm", keycloakRealm); err != nil {
-				return err
-			}
-		}
-		keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
-			deployContext.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
 
-			if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak client ID", keycloakClientId); err != nil {
-				return err
+		if !util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+			keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
+			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
+				deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
+				if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak realm", keycloakRealm); err != nil {
+					return err
+				}
+			}
+			keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
+				deployContext.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
+
+				if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak client ID", keycloakClientId); err != nil {
+					return err
+				}
 			}
 		}
 	}

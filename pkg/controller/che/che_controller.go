@@ -519,6 +519,14 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
+	if done, err = r.reconcileGatewayPermissions(deployContext); !done {
+		if err != nil {
+			logrus.Error(err)
+		}
+		// reconcile after 1 seconds since we deal with cluster objects
+		return reconcile.Result{RequeueAfter: time.Second}, err
+	}
+
 	done, err = r.reconcileWorkspacePermissions(deployContext)
 	if !done {
 		if err != nil {
@@ -843,6 +851,12 @@ func (r *ReconcileChe) reconcileFinalizers(deployContext *deploy.DeployContext) 
 	if util.IsOpenShift4 && util.IsInitialOpenShiftOAuthUserEnabled(deployContext.CheCluster) {
 		if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 			r.userHandler.DeleteOAuthInitialUser(deployContext)
+		}
+	}
+
+	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+		if _, err := r.reconcileGatewayPermissionsFinalizers(deployContext); err != nil {
+			logrus.Error(err)
 		}
 	}
 

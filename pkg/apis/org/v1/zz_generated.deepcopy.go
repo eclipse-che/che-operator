@@ -420,6 +420,11 @@ func (in *CheClusterSpecAuth) DeepCopyInto(out *CheClusterSpecAuth) {
 	in.IdentityProviderIngress.DeepCopyInto(&out.IdentityProviderIngress)
 	in.IdentityProviderRoute.DeepCopyInto(&out.IdentityProviderRoute)
 	out.IdentityProviderContainerResources = in.IdentityProviderContainerResources
+	if in.NativeUserMode != nil {
+		in, out := &in.NativeUserMode, &out.NativeUserMode
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

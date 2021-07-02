@@ -23,7 +23,7 @@ const (
 	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 )
 
-func GetOAuthClientSpec(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
+func GetKeycloakOAuthClientSpec(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
 	providerName := "openshift-v3"
 	if isOpenShift4 {
 		providerName = "openshift-v4"
@@ -41,6 +41,10 @@ func GetOAuthClientSpec(name string, oauthSecret string, keycloakURL string, key
 			"https://" + keycloakURL + redirectURLSuffix,
 		}
 	}
+	return GetOAuthClientSpec(name, oauthSecret, redirectURIs)
+}
+
+func GetOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
 	return &oauth.OAuthClient{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OAuthClient",

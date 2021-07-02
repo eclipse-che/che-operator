@@ -447,6 +447,11 @@ func NewBoolPointer(value bool) *bool {
 	return &variable
 }
 
+func IsNativeUserModeEnabled(c *orgv1.CheCluster) bool {
+	// Native user mode is now available only on openshift
+	return IsOpenShift && c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
+}
+
 // IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
 func IsOAuthEnabled(c *orgv1.CheCluster) bool {
 	return IsOpenShift && c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
