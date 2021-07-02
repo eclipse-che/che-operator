@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -77,10 +76,7 @@ func ensureInternalBackupServerDeploymentExist(bctx *BackupContext) (bool, error
 	}
 
 	// Get default configuration of the backup server deployment
-	backupServerDeployment, err = getBackupServerDeploymentSpec(bctx)
-	if err != nil {
-		return false, err
-	}
+	backupServerDeployment = getBackupServerDeploymentSpec(bctx)
 	// Create backup server deployment
 	err = bctx.r.client.Create(context.TODO(), backupServerDeployment)
 	if err != nil {
@@ -90,7 +86,7 @@ func ensureInternalBackupServerDeploymentExist(bctx *BackupContext) (bool, error
 	return false, nil
 }
 
-func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, error) {
+func getBackupServerDeploymentSpec(bctx *BackupContext) *appsv1.Deployment {
 	labels, labelSelector := deploy.GetLabelsAndSelector(bctx.cheCR, InternalBackupServerComponent)
 	// TODO should we use component label to select backup related resources instead of part-of label ?
 	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
@@ -142,12 +138,7 @@ func getBackupServerDeploymentSpec(bctx *BackupContext) (*appsv1.Deployment, err
 		},
 	}
 
-	// Set CheClusterBackup instance as the owner and controller
-	if err := controllerutil.SetControllerReference(bctx.backupCR, deployment, bctx.r.scheme); err != nil {
-		return nil, err
-	}
-
-	return deployment, nil
+	return deployment
 }
 
 func ensureInternalBackupServerPodReady(bctx *BackupContext) (bool, error) {
@@ -183,10 +174,7 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) (bool, error) 
 	}
 
 	// Backup server service doesn't exists, create it
-	backupServerService, err = getBackupServerServiceSpec(bctx)
-	if err != nil {
-		return false, err
-	}
+	backupServerService = getBackupServerServiceSpec(bctx)
 	// Create backup server service
 	err = bctx.r.client.Create(context.TODO(), backupServerService)
 	if err != nil {
@@ -196,7 +184,7 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) (bool, error) 
 	return false, nil
 }
 
-func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
+func getBackupServerServiceSpec(bctx *BackupContext) *corev1.Service {
 	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
 	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
 
@@ -224,12 +212,7 @@ func getBackupServerServiceSpec(bctx *BackupContext) (*corev1.Service, error) {
 		},
 	}
 
-	// Set CheClusterBackup instance as the owner and controller
-	if err := controllerutil.SetControllerReference(bctx.backupCR, service, bctx.r.scheme); err != nil {
-		return nil, err
-	}
-
-	return service, nil
+	return service
 }
 
 // ensureInternalBackupServerConfigurationExistAndCorrect makes sure that there is CR with correct internal backup server configuration
@@ -327,10 +310,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 	}
 
 	repoPassword := util.GeneratePasswd(12)
-	repoPasswordSecret, err = getRepoPasswordSecretSpec(bctx, repoPassword)
-	if err != nil {
-		return false, err
-	}
+	repoPasswordSecret = getRepoPasswordSecretSpec(bctx, repoPassword)
 	err = bctx.r.client.Create(context.TODO(), repoPasswordSecret)
 	if err != nil {
 		return false, err
@@ -339,7 +319,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 	return false, nil
 }
 
-func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Secret, error) {
+func getRepoPasswordSecretSpec(bctx *BackupContext, password string) *corev1.Secret {
 	labels := deploy.GetLabels(bctx.cheCR, InternalBackupServerComponent)
 	labels[deploy.KubernetesPartOfLabelKey] = BackupCheEclipseOrg
 
@@ -358,9 +338,5 @@ func getRepoPasswordSecretSpec(bctx *BackupContext, password string) (*corev1.Se
 		Data: data,
 	}
 
-	if err := controllerutil.SetControllerReference(bctx.backupCR, secret, bctx.r.scheme); err != nil {
-		return nil, err
-	}
-
-	return secret, nil
+	return secret
 }
