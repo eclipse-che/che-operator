@@ -77,13 +77,13 @@ metadata:
     categories: Developer Tools, OpenShift Optional
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:next
-    createdAt: "2021-07-01T21:02:26Z"
+    createdAt: "2021-07-02T08:14:06Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces in OpenShift.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.33.0-246.nightly
+  name: eclipse-che-preview-openshift.v7.33.0-248.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -861,31 +861,13 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - che.eclipse.org
+                - org.eclipse.che
               resources:
-                - '*'
+                - checlusters
+                - checlusters/status
+                - checlusters/finalizers
               verbs:
                 - '*'
-            - apiGroups:
-                - che.eclipse.org
-              resources:
-                - chemanagers
-              verbs:
-                - '*'
-            - apiGroups:
-                - che.eclipse.org
-              resources:
-                - chemanagers/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - che.eclipse.org
-              resources:
-                - chemanagers/finalizers
-              verbs:
-                - update
             - apiGroups:
                 - controller.devfile.io
               resources:
@@ -1132,7 +1114,7 @@ spec:
                           fieldRef:
                             fieldPath: metadata.name
                       - name: OPERATOR_NAME
-                        value: devworkspace-operator
+                        value: devworkspace-che-operator
                       - name: MAX_CONCURRENT_RECONCILES
                         value: "1"
                       - name: CONTROLLER_SERVICE_ACCOUNT_NAME
@@ -1336,4 +1318,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.33.0-246.nightly
+  version: 7.33.0-248.nightly

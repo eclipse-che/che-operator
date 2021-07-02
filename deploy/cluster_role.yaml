@@ -636,31 +636,13 @@ rules:
     - update
     - watch
   - apiGroups:
-    - che.eclipse.org
+    - org.eclipse.che
     resources:
-    - '*'
+    - checlusters
+    - checlusters/status
+    - checlusters/finalizers
     verbs:
     - '*'
-  - apiGroups:
-    - che.eclipse.org
-    resources:
-    - chemanagers
-    verbs:
-    - '*'
-  - apiGroups:
-    - che.eclipse.org
-    resources:
-    - chemanagers/status
-    verbs:
-    - get
-    - patch
-    - update
-  - apiGroups:
-    - che.eclipse.org
-    resources:
-    - chemanagers/finalizers
-    verbs:
-    - update
   - apiGroups:
     - controller.devfile.io
     resources:
