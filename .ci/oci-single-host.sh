@@ -60,3 +60,4 @@ provisionOpenShiftOAuthUser
 patchEclipseCheOperatorImage
 printOlmCheObjects
 runTests
+############
