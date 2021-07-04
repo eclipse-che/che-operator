@@ -593,7 +593,7 @@ type CheClusterSpecImagePuller struct {
 	// When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
 	// regardless of whether a spec is provided.
 	//
-	// Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
+	// Note that while this Operator and its behavior is community-supported, its payload may be commercially-supported
 	// for pulling commercially-supported images.
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
