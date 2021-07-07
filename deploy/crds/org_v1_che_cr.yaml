@@ -168,3 +168,15 @@ spec:
     # Does nothing when a matching version of the Operator is already installed.
     # Fails when a non-matching version of the Operator is already installed.
     enable: false
+  imagePuller:
+    # Install and configure the Community Supported Kubernetes Image Puller Operator. When set to `true` and no spec is provided,
+    # it will create a default KubernetesImagePuller object to be managed by the Operator.
+    # When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
+    # regardless of whether a spec is provided.
+    # Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
+    # for pulling commercially-supported images.
+    # By default, the `spec.images` field contains a set of recommended workspace images to be prepulled.
+    enable: false
+    spec:
+      # By default, this field contains a set of recommended workspace images to be prepulled
+      images: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker@sha256:df1ea2eadb28dbc97761adf4ea984af5ca941025a67b39c6abe373816a84bba9;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker@sha256:4891a6e19be9eae59372f4b31144653f9bd1284e0301ecfe896a099ca6a12b58;che-theia-plugin-registry-image-ibzwqyjsgu3dumjvgbqtsm3dgeztmmt=quay.io/eclipse/che-theia@sha256:150a93c1362cbc6837e6aeeb644a91a70a5fb63031e23552f01d936a2b312ed7;che-theia-endpoint-runtime-binary-plugin-registry-image-ibzwqyj=quay.io/eclipse/che-theia-endpoint-runtime-binary@sha256:ed0bc2a3b1a9cef67d84b052ed248fd48fdc93b384f80af80446d526be4e4751;che-cpp-rhel7-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-cpp-rhel7@sha256:8182090bbe5f2f0d3d1469dde5e9a6f62d9ba22d297702cc26b88fcf671409b2;che-dotnet-2-2-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-dotnet-2.2@sha256:61ddb07608a1761b119a3a6388a821ab59db94961857e8df141003d1bd618e4e;che-dotnet-3-1-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-dotnet-3.1@sha256:a06b17b761c880bc5cf5fef65028303ff684c9b517593e8c71896cdf78eb4fae;che-golang-1-14-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-golang-1.14@sha256:3d6039fde76a7e09cbc6f4825ed1ad7c2d960eb054b05f7220ecfe55aa75b1e6;che-java11-maven-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-java11-maven@sha256:e4be1573efd37a8b8da4b34d23dbbe82ae29932de83d7c530a46bc2d958a726c;che-java8-maven-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-java8-maven@sha256:bcd1d1af6cec19fae9372e984b1664283eca4517ce7a4dec923e4c49c8b7a5d8;che-php-7-devfile-registry-image-g4xdgmrogi=quay.io/eclipse/che-php-7@sha256:9b4ab7a151283006a983ff20f204d4739e3a9fef7b81bbab7205dbcaac4cab04;"

@@ -367,7 +367,9 @@ spec:
  Note that while this
                     the Operator and its behavior is community-supported, its payload
                     may be commercially-supported for pulling commercially-supported
-                    images."
+                    images. 
+ By default, the `spec.images` field contains a set
+                    of recommended workspace images to be prepulled."
                   type: boolean
                 spec:
                   description: A KubernetesImagePullerSpec to configure the image
@@ -390,6 +392,8 @@ spec:
                     deploymentName:
                       type: string
                     images:
+                      description: By default, this field contains a set of recommended
+                        workspace images to be prepulled
                       type: string
                     nodeSelector:
                       type: string

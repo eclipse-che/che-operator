@@ -255,6 +255,13 @@ releaseOlmFiles() {
   fi
 }
 
+setImagePullerDefaultImages() {
+  echo "[INFO] setImagePullerDefaultImages :: Set default images for the image puller"
+  local CSV=${RELEASE_DIR}/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
+  local CR=${RELEASE_DIR}/deploy/crds/org_v1_che_cr.yaml
+  ${RELEASE_DIR}/olm/setImagePullerDefaultImages.sh $CSV $CR
+}
+
 pushOlmBundlesToQuayIo() {
   echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
@@ -314,6 +321,7 @@ run() {
   checkoutToReleaseBranch
   updateVersionFile
   releaseOperatorCode
+  setImagePullerDefaultImages
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi

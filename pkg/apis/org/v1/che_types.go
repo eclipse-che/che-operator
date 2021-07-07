@@ -595,6 +595,8 @@ type CheClusterSpecImagePuller struct {
 	//
 	// Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
 	// for pulling commercially-supported images.
+	//
+	// By default, the `spec.images` field contains a set of recommended workspace images to be prepulled.
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
 	// +optional
