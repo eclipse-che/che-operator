@@ -9,14 +9,14 @@ Export environment variables:
 1. `QUAY_ECLIPSE_CHE_USERNAME` and `QUAY_ECLIPSE_CHE_PASSWORD` to access https://quay.io/organization/eclipse
 
 ```bash
-./make-release.sh <RELEASE_VERSION> --release --push-olm-files --push-git-changes --pull-requests
+./make-release.sh <RELEASE_VERSION> --release --push-olm-bundles --push-git-changes --pull-requests
 ```
 
 ```
-Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --push-olm-files --push-git-changes --pull-requests
+Usage:   ./make-release.sh [RELEASE_VERSION] --release --release-olm-files --push-olm-bundles --push-git-changes --pull-requests
         --release: to release
         --release-olm-files: to release olm files
-        --push-olm-files: to push OLM files to quay.io. This flag should be omitted
+        --push-olm-bundles: to push OLM bundle images to quay.io. This flag should be omitted
                 if already a greater version released. For instance, we are releasing 7.9.3 version but
                 7.10.0 already exists. Otherwise it breaks the linear update path of the stable channel.
         --push-git-changes: to create release branch and push changes into.
