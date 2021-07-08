@@ -122,7 +122,8 @@ do
 
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
                 -t "${RELEASE}" \
-                -s "${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+                -s "${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml" \
+                -o "${OPERATOR_DIR}/deploy/operator.yaml"
 
   popd || true
 
