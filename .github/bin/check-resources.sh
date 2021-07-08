@@ -60,6 +60,7 @@ checkCRDs() {
     local chebackupserverconfiguration_CRD_V1="deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
     local checlusterbackup_CRD_V1="deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
     local checlusterrestore_CRD_V1="org.eclipse.che_checlusterrestores_crd.yaml"
+    local devworkspacerouting_CRD="devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 
     local checluster_CRD_V1BETA1="deploy/crds/org_v1_che_crd-v1beta1.yaml"
     local chebackupserverconfiguration_CRD_V1BETA1="deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml"
@@ -74,7 +75,8 @@ checkCRDs() {
     if [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1BETA1 ]] || \
        [[ " ${changedFiles[*]} " =~ $chebackupserverconfiguration_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $chebackupserverconfiguration_CRD_V1BETA1 ]] || \
        [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1BETA1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1BETA1 ]]
+       [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1BETA1 ]] || \
+       [[ " ${changedFiles[*]} " =~ $devworkspacerouting_CRD ]]
     then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
         echo "[ERROR] Run 'olm/update-resources.sh' to regenerate CRD files."

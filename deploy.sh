@@ -36,6 +36,8 @@ oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml -n $NAMESPACE
+
 # sometimes the operator cannot get CRD right away
 sleep 5
 

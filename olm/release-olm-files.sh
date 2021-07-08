@@ -39,7 +39,7 @@ downloadLatestReleasedBundleCRCRD() {
   PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
   PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterbackups_crd.yaml"
   PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterrestores_crd.yaml"
-
+  PRE_RELEASE_DEVWORKSPACEROUTING_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
       -q -O "${PRE_RELEASE_CSV}"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
@@ -50,6 +50,8 @@ downloadLatestReleasedBundleCRCRD() {
       -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
   wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
       -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
+  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" \
+      -q -O "${PRE_RELEASE_DEVWORKSPACEROUTING_CRD}"
 }
 
 if [[ "$1" =~ $REGEX ]]
@@ -79,6 +81,7 @@ do
   RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
   RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
   RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
+  RELEASE_DEVWORKSPACEROUTING_CRD="${STABLE_BUNDLE_PATH}/manifests/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 
   setLatestReleasedVersion
   downloadLatestReleasedBundleCRCRD
@@ -138,6 +141,9 @@ do
   fi
   if [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CHE_RESTORE_CRD}" "${RELEASE_CHE_RESTORE_CRD}" > "${RELEASE_CHE_RESTORE_CRD}.diff" || true
+  fi
+  if [[ -n "${PRE_RELEASE_DEVWORKSPACEROUTING_CRD}" ]]; then
+    diff -u "${PRE_RELEASE_DEVWORKSPACEROUTING_CRD}" "${RELEASE_DEVWORKSPACEROUTING_CRD}" > "${RELEASE_DEVWORKSPACEROUTING_CRD}.diff" || true
   fi
 done
 

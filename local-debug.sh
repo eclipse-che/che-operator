@@ -23,6 +23,7 @@ ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="./deploy/crds/org.eclipse.che_cheba
 ECLIPSE_CHE_BACKUP_CRD="./deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
 ECLIPSE_CHE_RESTORE_CRD="./deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
 ECLIPSE_CHE_CRD_V1BETA1="./deploy/crds/org_v1_che_crd-v1beta1.yaml"
+DEV_WORKSPACE_ROUTING_CRD="./deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 DEV_WORKSPACE_CONTROLLER_VERSION="main"
 DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
@@ -97,6 +98,7 @@ applyResources() {
   kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}
   kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD}
   kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD}
+  kubectl apply -f ${DEV_WORKSPACE_ROUTING_CRD}
   kubectl apply -f ${ECLIPSE_CHE_CR} -n $ECLIPSE_CHE_NAMESPACE
 }
 

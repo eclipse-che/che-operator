@@ -127,6 +127,7 @@ do
   cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
   cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml"
   cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml"
+  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
   echo
   echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"

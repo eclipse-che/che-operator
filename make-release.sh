@@ -242,12 +242,14 @@ releaseOlmFiles() {
   test -f $kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml
   test -f $kubernetes/org.eclipse.che_checlusterbackups_crd.yaml
   test -f $kubernetes/org.eclipse.che_checlusterrestores_crd.yaml
+  test -f $kubernetes/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
 
   test -f $openshift/org_v1_che_crd.yaml
   test -f $openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml
   test -f $openshift/org.eclipse.che_checlusterbackups_crd.yaml
   test -f $openshift/org.eclipse.che_checlusterrestores_crd.yaml
-
+  test -f $openshift/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
+  
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder

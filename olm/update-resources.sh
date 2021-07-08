@@ -48,6 +48,7 @@ generateCRD() {
   ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml
   ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml
   ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml
+  ensureLicense ${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
 
   if [[ $version == "v1" ]]; then
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml
@@ -55,6 +56,7 @@ generateCRD() {
     echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
     echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml"
     echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
+    echo "[INFO] Generated CRD v1 ${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
   elif [[ $version == "v1beta1" ]]; then
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd-v1beta1.yaml
     mv ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml
@@ -68,6 +70,7 @@ generateCRD() {
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd-v1beta1.yaml"
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd-v1beta1.yaml"
     echo "[INFO] Generated CRD v1beta1 ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd-v1beta1.yaml"
+    # devworkspacerouting is not supported in v1beta1
   fi
 
   # removes some left overs after operator-sdk
@@ -279,6 +282,7 @@ updateNighltyBundle() {
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
     CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
     if [[ $platform == "openshift" ]]; then
       yq -riSY  '.spec.preserveUnknownFields = false' $CRD
