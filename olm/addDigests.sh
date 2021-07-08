@@ -28,8 +28,8 @@ fi
 command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1; }
 
 usage () {
-	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] -t [IMAGE_TAG] "
-	echo "Example: ./olm/addDigests.sh -w . -s 'deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml' -t 7.21.1"
+	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] [-o OPERATOR_DEPLOYMENT_FILE_PATH] [-t IMAGE_TAG] "
+	echo "Example: ./olm/addDigests.sh -w . -s deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o deploy/operator.yaml -t 7.32.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -38,6 +38,7 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-w') BASE_DIR="$2"; shift 1;;
     '-s') CSV_FILE="$2"; shift 1;;
+    '-o') OPERATOR_FILE="$2"; shift 1;;
     '-t') IMAGE_TAG="$2"; shift 1;;
     '-q') QUIET="-q"; shift 0;;
 	'--help'|'-h') usage; exit;;
@@ -45,27 +46,35 @@ while [[ "$#" -gt 0 ]]; do
   shift 1
 done
 
-if [[ ! ${CSV_FILE} ]] || [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
+if [[ ! $IMAGE_TAG ]]; then usage; exit 1; fi
 
-echo "CSV file: ${CSV_FILE}"
-RELATED_IMAGE_PREFIX="RELATED_IMAGE_"
-
-rm -Rf "${BASE_DIR}/generated/csv"
-mkdir -p "${BASE_DIR}/generated/csv"
-
-if [ -f "${CSV_FILE}" ];then
-  cp -pR "${CSV_FILE}" "${BASE_DIR}/generated/csv"
+if [[ ${CSV_FILE} ]]; then
+  if [ ! -f "${CSV_FILE}" ]; then
+    echo "[ERROR] ${CSV_FILE} was not found"
+    exit 1
+  else
+    echo "[INFO] CSV file: ${CSV_FILE}"
+  fi
 else
-  echo "[ERROR] ${CSV_FILE} was not found"
+  usage
   exit 1
 fi
+
+if [[ ${OPERATOR_FILE} ]]; then
+  if [ ! -f "${OPERATOR_FILE}" ]; then
+    echo "[ERROR] ${OPERATOR_FILE} was not found"
+    exit 1
+  else
+    echo "[INFO] Operator deployment file: ${OPERATOR_FILE}"
+  fi
+fi
+
+RELATED_IMAGE_PREFIX="RELATED_IMAGE_"
 
 # shellcheck source=buildDigestMap.sh
 source "${SCRIPTS_DIR}/buildDigestMap.sh" -w "${BASE_DIR}" -t "${IMAGE_TAG}" -c "${CSV_FILE}" ${QUIET}
 
 if [[ ! "${QUIET}" ]]; then cat "${BASE_DIR}"/generated/digests-mapping.txt; fi
-
-CSV_FILE_COPY=${BASE_DIR}/generated/csv/$(basename ${CSV_FILE})
 
 echo "[INFO] Generate digest update for CSV file ${CSV_FILE}"
 RELATED_IMAGES=""
@@ -107,21 +116,18 @@ do
     RELATED_IMAGES="${RELATED_IMAGES}, ${RELATED_IMAGE}"
   fi
 
-  sed -i -e "s;${source};${dest};" "${CSV_FILE_COPY}"
+  sed -i -e "s;${source};${dest};" "${CSV_FILE}"
 done
 
-mv "${CSV_FILE_COPY}" "${CSV_FILE_COPY}.old"
-yq -rY "
-( .spec.relatedImages ) += [${RELATED_IMAGES}] |
-( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]
-" "${CSV_FILE_COPY}.old" > "${CSV_FILE_COPY}"
-sed -i "${CSV_FILE_COPY}" -r -e "s|tag: |# tag: |"
-rm -f "${CSV_FILE_COPY}.old"
+yq -riY "( .spec.relatedImages ) += [${RELATED_IMAGES}]" ${CSV_FILE}
+yq -riY "( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${CSV_FILE}
+sed -i "${CSV_FILE}" -r -e "s|tag: |# tag: |"
+echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${CSV_FILE})" > ${CSV_FILE}
 
-# update original file with generated changes
-mv "${CSV_FILE_COPY}" "${CSV_FILE}"
 echo "[INFO] CSV updated: ${CSV_FILE}"
 
-
-# cleanup
-rm -fr "${BASE_DIR}/generated"
+if [[ ${OPERATOR_FILE} ]]; then
+  yq -riY "( .spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${OPERATOR_FILE}
+  echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${OPERATOR_FILE})" > ${OPERATOR_FILE}
+  echo "[INFO] Operator deployment file updated: ${OPERATOR_FILE}"
+fi
