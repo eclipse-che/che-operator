@@ -83,9 +83,6 @@ func syncService(deployContext *deploy.DeployContext) (bool, error) {
 func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 
-	protocol := (map[bool]string{
-		true:  "https",
-		false: "http"})[cr.Spec.Server.TlsSupport]
 	endpoint, done, err := expose.Expose(
 		deployContext,
 		deploy.IdentityProviderName,
@@ -95,7 +92,20 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
+	return updateStatus(deployContext, endpoint)
+}
+
+func updateStatus(deployContext *deploy.DeployContext, endpoint string) (bool, error) {
+	cr := deployContext.CheCluster
+	protocol := (map[bool]string{
+		true:  "https",
+		false: "http"})[cr.Spec.Server.TlsSupport]
+
 	keycloakURL := protocol + "://" + endpoint
+	if !strings.HasSuffix(keycloakURL, "/") {
+		keycloakURL += "/"
+	}
+
 	if cr.Spec.Auth.IdentityProviderURL != keycloakURL {
 		cr.Spec.Auth.IdentityProviderURL = keycloakURL
 		if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak URL", keycloakURL); err != nil {

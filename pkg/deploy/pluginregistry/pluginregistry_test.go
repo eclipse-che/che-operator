@@ -22,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -81,5 +82,20 @@ func TestPluginRegistrySyncAll(t *testing.T) {
 
 	if cheCluster.Status.PluginRegistryURL == "" {
 		t.Fatalf("Status wasn't updated")
+	}
+}
+
+func TestUpdateStatus(t *testing.T) {
+	expectedPluginRegistryURL := "http://endpoint/v3/"
+	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
+
+	pluginregistry := NewPluginRegistry(deployContext)
+	done, err := pluginregistry.UpdateStatus("endpoint")
+	if !done {
+		t.Fatalf("Failed to sync Plugin Registry: %v", err)
+	}
+
+	if deployContext.CheCluster.Status.PluginRegistryURL != expectedPluginRegistryURL {
+		t.Fatalf("Expected %s, but found: %s", expectedPluginRegistryURL, deployContext.CheCluster.Status.PluginRegistryURL)
 	}
 }

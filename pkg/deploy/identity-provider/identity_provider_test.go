@@ -196,3 +196,16 @@ func TestSyncGitHubOAuth(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateStatus(t *testing.T) {
+	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
+
+	done, err := updateStatus(deployContext, "endpoint/auth")
+	if !done {
+		t.Fatalf("Failed to sync Identity Provider: %v", err)
+	}
+
+	if deployContext.CheCluster.Status.KeycloakURL != "http://endpoint/auth/" {
+		t.Fatalf("Status wasn't updated properly")
+	}
+}

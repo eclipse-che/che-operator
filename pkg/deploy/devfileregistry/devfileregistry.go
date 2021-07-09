@@ -12,6 +12,8 @@
 package devfileregistry
 
 import (
+	"strings"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 )
@@ -86,6 +88,10 @@ func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
 		devfileRegistryURL = "https://" + endpoint
 	} else {
 		devfileRegistryURL = "http://" + endpoint
+	}
+
+	if !strings.HasSuffix(devfileRegistryURL, "/") {
+		devfileRegistryURL += "/"
 	}
 
 	if devfileRegistryURL != p.deployContext.CheCluster.Status.DevfileRegistryURL {

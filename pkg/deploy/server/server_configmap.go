@@ -95,11 +95,15 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 
 	// Adds `/auth` for external identity providers.
 	// If identity provide is deployed by operator then `/auth` is already added.
-	if s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider && !strings.HasSuffix(keycloakURL, "/auth") {
-		if strings.HasSuffix(keycloakURL, "/") {
-			keycloakURL = keycloakURL + "auth"
-		} else {
-			keycloakURL = keycloakURL + "/auth"
+	if s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+		if strings.HasSuffix(keycloakURL, "/auth") {
+			keycloakURL += "/"
+		} else if !strings.HasSuffix(keycloakURL, "/auth/") {
+			if strings.HasSuffix(keycloakURL, "/") {
+				keycloakURL = keycloakURL + "auth/"
+			} else {
+				keycloakURL = keycloakURL + "/auth/"
+			}
 		}
 	}
 

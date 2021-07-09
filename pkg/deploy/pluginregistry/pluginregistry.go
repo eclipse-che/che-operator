@@ -100,9 +100,9 @@ func (p *PluginRegistry) UpdateStatus(endpoint string) (bool, error) {
 
 	// append the API version to plugin registry
 	if !strings.HasSuffix(pluginRegistryURL, "/") {
-		pluginRegistryURL = pluginRegistryURL + "/v3"
+		pluginRegistryURL = pluginRegistryURL + "/v3/"
 	} else {
-		pluginRegistryURL = pluginRegistryURL + "v3"
+		pluginRegistryURL = pluginRegistryURL + "v3/"
 	}
 
 	if pluginRegistryURL != p.deployContext.CheCluster.Status.PluginRegistryURL {
