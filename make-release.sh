@@ -187,8 +187,8 @@ replaceImagesTags() {
 
   CHE_SERVER_IMAGE_REALEASE=$(replaceTag "${lastDefaultCheServerImage}" "${RELEASE}")
   DASHBOARD_IMAGE_REALEASE=$(replaceTag "${lastDefaultDashboardImage}" "${RELEASE}")
-  DEVWORKSPACE_CONTROLLER_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevWorkspaceControllerImage}" "${RELEASE}")
-  DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevWorkspaceCheOperatorImage}" "${RELEASE}")
+  DEVWORKSPACE_CONTROLLER_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevWorkspaceControllerImage}" "${DEV_WORKSPACE_CONTROLLER_VERSION}")
+  DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevWorkspaceCheOperatorImage}" "${DEV_WORKSPACE_CHE_OPERATOR_VERSION}")
   KEYCLOAK_IMAGE_RELEASE=$(replaceTag "${lastDefaultKeycloakImage}" "${RELEASE}")
   PLUGIN_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultPluginRegistryImage}" "${RELEASE}")
   DEVFILE_REGISTRY_IMAGE_RELEASE=$(replaceTag "${lastDefaultDevfileRegistryImage}" "${RELEASE}")
