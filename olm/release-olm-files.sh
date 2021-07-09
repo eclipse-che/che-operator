@@ -73,7 +73,6 @@ do
 
   NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   LAST_NIGHTLY_CSV="${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-  LAST_NIGHTLY_CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
   lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")
   echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
 
@@ -106,7 +105,10 @@ do
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NIGHTLY_CSV}" > "${RELEASE_CSV}"
 
-  cp "${LAST_NIGHTLY_CRD}" "${RELEASE_CHE_CRD}"
+  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
+  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
+  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" "${RELEASE_CHE_BACKUP_CRD}"
+  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" "${RELEASE_CHE_RESTORE_CRD}"
   cp -rf "${NIGHTLY_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
   cp -rf "${NIGHTLY_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 
