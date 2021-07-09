@@ -592,8 +592,9 @@ type CheClusterSpecImagePuller struct {
 	// it will create a default KubernetesImagePuller object to be managed by the Operator.
 	// When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
 	// regardless of whether a spec is provided.
-	//
-	// Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
+	// If the `spec.images` field is empty, a set of recommended workspace-related images will be automatically detected and
+	// pre-pulled after installation.
+	// Note that while this Operator and its behavior is community-supported, its payload may be commercially-supported
 	// for pulling commercially-supported images.
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
@@ -747,4 +748,8 @@ func (c *CheCluster) IsAirGapMode() bool {
 
 func (c *CheCluster) IsImagePullerSpecEmpty() bool {
 	return c.Spec.ImagePuller.Spec == (chev1alpha1.KubernetesImagePullerSpec{})
+}
+
+func (c *CheCluster) IsImagePullerImagesEmpty() bool {
+	return len(c.Spec.ImagePuller.Spec.Images) == 0
 }
