@@ -12,7 +12,14 @@
 
 set -e
 
-REGEX="^([0-9]+)\\.([0-9]+)\\.([0-9]+)(\\-[0-9a-z-]+(\\.[0-9a-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    '--release-version') RELEASE=$2; shift 1;;
+    '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
+    '--dev-workspace-che-operator-version') DEV_WORKSPACE_CHE_OPERATOR_VERSION=$2; shift 1;;
+  esac
+  shift 1
+done
 
 OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
 BASE_DIR="${OPERATOR_DIR}/olm"
@@ -56,12 +63,11 @@ downloadLatestReleasedBundleCRCRD() {
   set -e
 }
 
-if [[ "$1" =~ $REGEX ]]
-then
-  RELEASE="$1"
-else
-  echo "You should provide the new release as the first parameter"
-  echo "and it should be semver-compatible with optional *lower-case* pre-release part"
+if [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]]; then
+  echo "One of the following required parameters is missing"
+  echo "--release-version $RELEASE"
+  echo "--dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION"
+  echo "--dev-workspace-che-operator-version $DEV_WORKSPACE_CHE_OPERATOR_VERSION"
   exit 1
 fi
 
@@ -93,7 +99,8 @@ do
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
-  -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE}'|' \
+  -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${DEV_WORKSPACE_CHE_OPERATOR_VERSION}'|' \
+  -e 's|quay.io/devfile/devworkspace-controller:next|quay.io/devfile/devworkspace-controller:'${DEV_WORKSPACE_CONTROLLER_VERSION}'|' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
