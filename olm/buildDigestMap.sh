@@ -129,7 +129,7 @@ rm -Rf "${DIGEST_FILE}"
 touch "${DIGEST_FILE}"
 
 writeDigest "${OPERATOR_IMAGE}" "operator-image"
-writeDigest "${DEVWORKSPACE_CHE_OPERATOR_IMAGE}" "devworkspace che operator-image"
+writeDigest "${DEVWORKSPACE_CHE_OPERATOR_IMAGE}" "devworkspace-che-operator-image"
 
 for image in ${REQUIRED_IMAGES}; do
   writeDigest "${image}" "required-image"
