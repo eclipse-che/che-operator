@@ -91,17 +91,17 @@ do
 
   sed \
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
-  -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
+  -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
   -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${RELEASE}'|' \
-  -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
-  -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:nightly"|"devfileRegistryImage": ""|' \
-  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:nightly"|"pluginRegistryImage": ""|' \
+  -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
+  -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
+  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
   -e "/^  replaces: ${packageName}.v.*/d" \
   -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
   -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${LAST_RELEASE_VERSION}" \
-  -e "s/: nightly/: ${RELEASE}/" \
-  -e "s/:nightly/:${RELEASE}/" \
+  -e "s/: next/: ${RELEASE}/" \
+  -e "s/:next/:${RELEASE}/" \
   -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NIGHTLY_CSV}" > "${RELEASE_CSV}"
 
