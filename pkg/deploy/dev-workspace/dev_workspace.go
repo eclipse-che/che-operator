@@ -41,6 +41,7 @@ var (
 	DevWorkspaceCheNamespace   = "devworkspace-che"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
+	DevWorkspaceService        = "devworkspace-controller-manager-service"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 	SubscriptionResourceName   = "subscriptions"
 	CheManagerResourcename     = "chemanagers"
@@ -66,6 +67,7 @@ var (
 	DevWorkspaceTemplatesCRDFile              = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
+	DevWorkspaceServiceFile                   = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
 
 	WebTerminalOperatorSubscriptionName = "web-terminal"
@@ -82,6 +84,7 @@ var (
 	cachedObj = make(map[string]*Object2Sync)
 	syncItems = []func(*deploy.DeployContext) (bool, error){
 		createDwNamespace,
+		syncDwService,
 		syncDwServiceAccount,
 		syncDwClusterRole,
 		syncDwProxyClusterRole,
@@ -185,6 +188,10 @@ func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 
 func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
 	return readAndSyncObject(deployContext, DevWorkspaceServiceAccountFile, &corev1.ServiceAccount{}, DevWorkspaceNamespace)
+}
+
+func syncDwService(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndSyncObject(deployContext, DevWorkspaceServiceFile, &corev1.Service{}, DevWorkspaceNamespace)
 }
 
 func syncDwRole(deployContext *deploy.DeployContext) (bool, error) {
