@@ -228,7 +228,7 @@ releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
   echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
   cd $RELEASE_DIR/olm
-  . release-olm-files.sh $RELEASE
+  . release-olm-files.sh --release-version $RELEASE --dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION --dev-workspace-che-operator-version $DEV_WORKSPACE_CHE_OPERATOR_VERSION
   cd $RELEASE_DIR
 
   local openshift=$RELEASE_DIR/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests
