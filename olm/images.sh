@@ -15,7 +15,11 @@ setImagesFromDeploymentEnv() {
 }
 
 setOperatorImage() {
-    OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].image' "${CSV}")
+    OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[0].image' "${CSV}")
+}
+
+setDevWorkspaceCheOperatorImage() {
+    DEVWORKSPACE_CHE_OPERATOR_IMAGE=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[1].image' "${CSV}")
 }
 
 setPluginRegistryList() {
@@ -29,7 +33,7 @@ setDevfileRegistryList() {
     registry=$(yq -r '.spec.install.spec.deployments[].spec.template.spec.containers[].env[] | select(.name | test("RELATED_IMAGE_.*devfile_registry"; "g")) | .value' "${CSV}")
 
     setRegistryImages "${registry}"
-    DEVFILE_REGISTRY_LIST=${registryImages}   
+    DEVFILE_REGISTRY_LIST=${registryImages}
 }
 
 setRegistryImages() {
