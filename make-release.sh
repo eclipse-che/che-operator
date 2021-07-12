@@ -133,8 +133,8 @@ if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
   # use ${RELEASE} instead of master
   wget https://raw.githubusercontent.com/eclipse-che/che-server/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
-  if ! grep -q "value: quay.io/che-incubator/devworkspace-che-operator:$RELEASE" $filename; then
-    echo "[ERROR] Unable to find devworkspace che operator image with version ${RELEASE} in the $filename"; exit 1
+  if ! grep -q "value: quay.io/che-incubator/devworkspace-che-operator:$DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE" $filename; then
+    echo "[ERROR] Unable to find devworkspace che operator image with version ${DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE} in the $filename"; exit 1
   fi
 
   plugin_broker_meta_image=$(cat /tmp/che.properties | grep  che.workspace.plugin_broker.metadata.image | cut -d '=' -f2)

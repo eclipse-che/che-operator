@@ -93,7 +93,7 @@ do
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
-  -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${RELEASE}'|' \
+  -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${DEVWORKSPACE_CHE_OPERATOR_IMAGE_RELEASE}'|' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
