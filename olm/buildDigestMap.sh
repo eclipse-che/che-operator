@@ -92,7 +92,6 @@ writeDigest() {
     *)
       # for other build methods or for falling back to other registries when not found, can apply transforms here
       orig_image=${image}
-      echo "===========> $image "
       if [[ -x ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh ]]; then
         # shellcheck source=buildDigestMapAlternateURLs.sh
         . ${SCRIPTS_DIR}/buildDigestMapAlternateURLs.sh
@@ -105,7 +104,7 @@ writeDigest() {
       digest="$(skopeo inspect --tls-verify=false docker://${image} 2>/dev/null | jq -r '.Digest')"
       fi
       if [[ -z ${digest} ]]; then
-        echo "Failed to get digest for image: ${image}"
+        echo "[ERROR] Failed to get digest for image: ${image}"
         withoutTag=""
         withDigest=""
       else
