@@ -162,18 +162,6 @@ updateRoles() {
       echo "$line" >> $ROOT_PROJECT_DIR/deploy/role.yaml
     done <<< "$CONTENT"
   done
-
-  # Updates proxy_cluster_role.yaml based on DWCO
-  ## Remove old roles
-  cat $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml | sed '/rules:/q0' > $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp
-  mv $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
-
-  ## Copy new roles
-  CLUSTER_PROXY_ROLES=https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-proxy-role.ClusterRole.yaml
-  CONTENT=$(curl -sL $CLUSTER_PROXY_ROLES | sed '1,/rules:/d')
-  while IFS= read -r line; do
-    echo "$line" >> $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
-  done <<< "$CONTENT"
 }
 
 updateOperatorYaml() {
@@ -303,9 +291,6 @@ updateNighltyBundle() {
         index=$((index+1))
       done
     fi
-
-    # Fix account name
-    sed -i 's|serviceAccountName: che-operator-proxy|serviceAccountName: default|g' $NEW_CSV
 
     # Fix sample
     if [ "${platform}" == "openshift" ]; then

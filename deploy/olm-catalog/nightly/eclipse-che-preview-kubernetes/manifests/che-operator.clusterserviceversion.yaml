@@ -887,20 +887,6 @@ spec:
               verbs:
                 - get
           serviceAccountName: che-operator
-        - rules:
-            - apiGroups:
-                - authentication.k8s.io
-              resources:
-                - tokenreviews
-              verbs:
-                - create
-            - apiGroups:
-                - authorization.k8s.io
-              resources:
-                - subjectaccessreviews
-              verbs:
-                - create
-          serviceAccountName: default
       deployments:
         - name: che-operator
           spec:
