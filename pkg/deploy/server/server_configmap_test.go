@@ -18,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 
 	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -155,8 +156,7 @@ func TestConfigMap(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						CheHost:                    "che-host",
-						UseInternalClusterSVCNames: true,
+						CheHost: "che-host",
 					},
 				},
 			},
@@ -174,8 +174,8 @@ func TestConfigMap(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						CheHost:                    "che-host",
-						UseInternalClusterSVCNames: false,
+						CheHost:                        "che-host",
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
 					},
 				},
 			},
@@ -360,8 +360,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry:    true,
+						ExternalDevfileRegistry: true,
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
 							{Url: "http://devfile-registry.external.1"},
 						},
@@ -385,9 +384,8 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry:    true,
-						DevfileRegistryUrl:         "http://devfile-registry.external.1",
+						ExternalDevfileRegistry: true,
+						DevfileRegistryUrl:      "http://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
 							{Url: "http://devfile-registry.external.2"},
 						},
@@ -411,9 +409,9 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry:    true,
-						DevfileRegistryUrl:         "http://devfile-registry.external.1",
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						ExternalDevfileRegistry:        true,
+						DevfileRegistryUrl:             "http://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
 							{Url: "http://devfile-registry.external.2"},
 						},
@@ -437,8 +435,8 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry:    false,
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						ExternalDevfileRegistry:        false,
 					},
 				},
 				Status: orgv1.CheClusterStatus{
@@ -462,8 +460,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry:    false,
+						ExternalDevfileRegistry: false,
 					},
 				},
 				Status: orgv1.CheClusterStatus{
@@ -487,9 +484,9 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
-						ExternalDevfileRegistry:    false,
-						DevfileRegistryUrl:         "http://devfile-registry.external.1",
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						ExternalDevfileRegistry:        false,
+						DevfileRegistryUrl:             "http://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
 							{Url: "http://devfile-registry.external.2"},
 						},
@@ -516,9 +513,8 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						ExternalDevfileRegistry:    false,
-						DevfileRegistryUrl:         "http://devfile-registry.external.1",
+						ExternalDevfileRegistry: false,
+						DevfileRegistryUrl:      "http://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
 							{Url: "http://devfile-registry.external.2"},
 						},
@@ -575,8 +571,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						ExternalPluginRegistry:     true,
+						ExternalPluginRegistry: true,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -602,8 +597,8 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
-						ExternalPluginRegistry:     true,
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						ExternalPluginRegistry:         true,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -629,8 +624,8 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
-						ExternalPluginRegistry:     false,
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						ExternalPluginRegistry:         false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -656,8 +651,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						ExternalPluginRegistry:     false,
+						ExternalPluginRegistry: false,
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -713,8 +707,8 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
-						CheHost:                    "che-host",
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						CheHost:                        "che-host",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -737,8 +731,7 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-						CheHost:                    "http://che-host",
+						CheHost: "http://che-host",
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth: util.NewBoolPointer(false),
@@ -790,9 +783,6 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
@@ -816,9 +806,6 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: true,
@@ -843,7 +830,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
@@ -869,7 +856,7 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: false,
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
 					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
@@ -894,9 +881,6 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						UseInternalClusterSVCNames: true,
-					},
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:           util.NewBoolPointer(false),
 						ExternalIdentityProvider: false,

@@ -69,7 +69,6 @@ metadata:
               "serverExposureStrategy": "",
               "serverTrustStoreConfigMapName": "",
               "tlsSupport": true,
-              "useInternalClusterSVCNames": true,
               "workspaceNamespaceDefault": "<username>-che"
             },
             "storage": {
