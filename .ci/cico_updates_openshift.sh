@@ -21,7 +21,6 @@ source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
-  export DEV_WORKSPACE_ENABLE="true"
   export CHE_EXPOSURE_STRATEGY="single-host"
 }
 
@@ -33,7 +32,9 @@ runTests() {
   waitWorkspaceStart
 
   # Dev Workspace controller tests
+  enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
+  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   sleep 10s
   createWorkspaceDevWorkspaceController
