@@ -160,6 +160,11 @@ func GetIngressSpec(
 		},
 	}
 
+	if component == cheFlavor {
+		// adds annotation, see details https://github.com/eclipse/che/issues/19434#issuecomment-810325262
+		ingress.ObjectMeta.Annotations["nginx.org/websocket-services"] = serviceName
+	}
+
 	if tlsSupport {
 		ingress.Spec.TLS = []v1beta1.IngressTLS{
 			{
