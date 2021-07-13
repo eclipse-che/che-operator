@@ -20,7 +20,11 @@ import (
 	"runtime"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
+	dwo_api "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
 	"github.com/eclipse-che/che-operator/cmd/manager/signal"
+	"github.com/eclipse-che/che-operator/pkg/controller/devworkspace"
+	"github.com/eclipse-che/che-operator/pkg/controller/devworkspace/solver"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -35,7 +39,9 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/ready"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
+	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -163,6 +169,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := enableDevworkspaceSupport(mgr); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
 	// Setup health checks
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		log.Error(err, "Unable to set up health check")
@@ -178,4 +189,51 @@ func main() {
 		logrus.Error(err, "Manager exited non-zero")
 		os.Exit(1)
 	}
+}
+
+func enableDevworkspaceSupport(mgr manager.Manager) error {
+	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
+	// can write meaningful status messages into the CheCluster CRs.
+	dwChe := devworkspace.CheClusterReconciler{}
+	if err := dwChe.SetupWithManager(mgr); err != nil {
+		return err
+	}
+
+	// we only enable Devworkspace support, if there is the controller.devfile.io resource group in the cluster
+	// we assume that if the group is there, then we have all the expected CRs there, too.
+
+	cl, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		return err
+	}
+
+	groups, err := cl.ServerGroups()
+	if err != nil {
+		return err
+	}
+
+	supported := false
+	for _, g := range groups.Groups {
+		if g.Name == "controller.devfile.io" {
+			supported = true
+		}
+	}
+
+	if supported {
+		if err := dwo_api.AddToScheme(mgr.GetScheme()); err != nil {
+			return err
+		}
+
+		routing := dwr.DevWorkspaceRoutingReconciler{
+			Client:       mgr.GetClient(),
+			Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
+			Scheme:       mgr.GetScheme(),
+			SolverGetter: solver.Getter(mgr.GetScheme()),
+		}
+		if err := routing.SetupWithManager(mgr); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

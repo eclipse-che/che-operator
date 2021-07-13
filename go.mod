@@ -4,27 +4,38 @@ go 1.15
 
 require (
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20200901231735-f852a5a3ea5c
+	github.com/devfile/api/v2 v2.0.0-20210427194344-cd9c30e6aa05
+	github.com/devfile/devworkspace-operator v0.2.1-0.20210518134212-698baff5f249
 	github.com/golang/mock v1.3.1
-	github.com/google/go-cmp v0.4.0
+	github.com/google/go-cmp v0.5.0
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/operator-framework/api v0.3.20
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20191115003340-16619cd27fa5
 	github.com/operator-framework/operator-sdk v0.15.2
 	github.com/prometheus/common v0.7.0
 	github.com/sirupsen/logrus v1.4.2
-	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
-	k8s.io/api v0.18.2
-	k8s.io/apiextensions-apiserver v0.18.2
-	k8s.io/apimachinery v0.18.2
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	k8s.io/api v0.18.8
+	k8s.io/apiextensions-apiserver v0.18.8
+	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/utils v0.0.0-20191010214722-8d271d903fe4
-	sigs.k8s.io/controller-runtime v0.6.0
+	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/yaml v1.2.0
 )
 
-// Pinned to kubernetes-1.16.2
+// Pinned to kubernetes-1.16.2 (apart from k8s.io/api which needs to work with DWO)
 replace (
-	k8s.io/api => k8s.io/api v0.0.0-20191016110408-35e52d86657a
+	// We need to import a k8s.io/api that fulfils two things:
+	// 1) it is close to v0.18.8 (so that it is compatible with devworkspace operator)
+	// 2) is a commit import so that operator-framework doesn't throw up (it itself uses a commit import
+	// so we need to replace it with another commit import)
+	//
+	// So this version is just a commit prior to v0.18.8 (using a commit hash of v0.18.8 itself doesn't work
+	// because go mod "helpfully" replaces it with the tag, which is exactly what we don't want.
+	// 
+	// The joy!
+	k8s.io/api => k8s.io/api v0.0.0-20200812052025-e70c4f3b2093
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20191016113550-5357c4baaf65
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20191004115801-a2eda9f80ab8
 	k8s.io/apiserver => k8s.io/apiserver v0.0.0-20191016112112-5190913f932d
