@@ -41,9 +41,10 @@ RUN curl -L https://api.github.com/repos/che-incubator/devworkspace-che-operator
 
 # Build restic. Needed for backup / restore capabilities
 ENV RESTIC_TAG=v0.12.0
-RUN mkdir -p $GOPATH && cd $GOPATH && \
-    git clone --depth 1 --branch $RESTIC_TAG https://github.com/restic/restic.git && \
-    cd restic && \
+RUN mkdir -p $GOPATH/restic && cd $GOPATH/restic && \
+    curl -L https://api.github.com/repos/restic/restic/zipball/${RESTIC_TAG} > /tmp/restic.zip && \
+    unzip /tmp/restic.zip -d /tmp && \
+    mv /tmp/restic-*/* $GOPATH/restic && \
     export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
     go mod vendor && \
     GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/restic/restic ./cmd/restic
