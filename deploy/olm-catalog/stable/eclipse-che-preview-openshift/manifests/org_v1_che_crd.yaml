@@ -64,6 +64,20 @@ spec:
                         are about to use. See also all the other fields starting with:
                         `identityProvider`.'
                       type: boolean
+                    gatewayAuthenticationSidecarImage:
+                      description: Gateway sidecar responsible for authentication
+                        when NativeUserMode is enabled. See link:https://github.com/oauth2-proxy/oauth2-proxy[oauth2-proxy]
+                        or link:https://github.com/openshift/oauth-proxy[openshift/oauth-proxy].
+                      type: string
+                    gatewayAuthorizationSidecarImage:
+                      description: Gateway sidecar responsible for authorization when
+                        NativeUserMode is enabled. See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy]
+                        or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
+                      type: string
+                    gatewayHeaderRewriteSidecarImage:
+                      description: Header Rewrite Proxy sidecar image is used to properly
+                        set authorization header. See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
+                      type: string
                     identityProviderAdminUserName:
                       description: Overrides the name of the Identity Provider administrator
                         user. Defaults to `admin`.
@@ -214,6 +228,11 @@ spec:
                         secret in 'openshift-config' namespace by Operator. Note that
                         this solution is Openshift 4 platform-specific.
                       type: boolean
+                    nativeUserMode:
+                      description: Enables native user mode. Currently works only
+                        on OpenShift and DevWorkspace engine. Native User mode uses
+                        OpenShift OAuth directly as identity provider, without Keycloak.
+                      type: boolean
                     oAuthClientName:
                       description: Name of the OpenShift `OAuthClient` resource used
                         to setup identity federation on the OpenShift side. Auto-generated
@@ -351,15 +370,17 @@ spec:
                   description: Kubernetes Image Puller configuration
                   properties:
                     enable:
-                      description: "Install and configure the Community Supported\
-                        \ Kubernetes Image Puller Operator. When set to `true` and\
-                        \ no spec is provided, it will create a default KubernetesImagePuller\
-                        \ object to be managed by the Operator. When set to `false`,\
-                        \ the KubernetesImagePuller object will be deleted, and the\
-                        \ Operator will be uninstalled, regardless of whether a spec\
-                        \ is provided. Note that while this the Operator and its behavior\
-                        \ is community-supported, its payload may be commercially-supported\
-                        \ for pulling commercially-supported images."
+                      description: Install and configure the Community Supported Kubernetes
+                        Image Puller Operator. When set to `true` and no spec is provided,
+                        it will create a default KubernetesImagePuller object to be
+                        managed by the Operator. When set to `false`, the KubernetesImagePuller
+                        object will be deleted, and the Operator will be uninstalled,
+                        regardless of whether a spec is provided. If the `spec.images`
+                        field is empty, a set of recommended workspace-related images
+                        will be automatically detected and pre-pulled after installation.
+                        Note that while this Operator and its behavior is community-supported,
+                        its payload may be commercially-supported for pulling commercially-supported
+                        images.
                       type: boolean
                     spec:
                       description: A KubernetesImagePullerSpec to configure the image
@@ -382,6 +403,9 @@ spec:
                         deploymentName:
                           type: string
                         images:
+                          description: If empty, a set of recommended workspace-related
+                            images will be automatically detected and pre-pulled after
+                            installation.
                           type: string
                         nodeSelector:
                           type: string
@@ -951,7 +975,7 @@ spec:
                       type: boolean
                     pvcClaimSize:
                       description: Size of the persistent volume claim for workspaces.
-                        Defaults to `1Gi`.
+                        Defaults to `10Gi`.
                       type: string
                     pvcJobsImage:
                       description: Overrides the container image used to create sub-paths
