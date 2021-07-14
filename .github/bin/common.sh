@@ -477,3 +477,7 @@ waitWorkspaceStartedDevWorkspaceController() {
 createWorkspaceDevWorkspaceCheOperator() {
   oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
 }
+
+enableDevWorkspaceEngine() {
+  kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"devWorkspace":{"enable": true}}}'
+}
