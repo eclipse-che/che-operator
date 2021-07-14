@@ -959,7 +959,7 @@ spec:
                     type: boolean
                   pvcClaimSize:
                     description: Size of the persistent volume claim for workspaces.
-                      Defaults to `1Gi`.
+                      Defaults to `10Gi`.
                     type: string
                   pvcJobsImage:
                     description: Overrides the container image used to create sub-paths

@@ -526,7 +526,7 @@ type CheClusterSpecStorage struct {
 	// `per-workspace` (one PVC per workspace for all declared volumes) and `unique` (one PVC per declared volume). Defaults to `common`.
 	// +optional
 	PvcStrategy string `json:"pvcStrategy,omitempty"`
-	// Size of the persistent volume claim for workspaces. Defaults to `1Gi`.
+	// Size of the persistent volume claim for workspaces. Defaults to `10Gi`.
 	// +optional
 	PvcClaimSize string `json:"pvcClaimSize,omitempty"`
 	// Instructs the Che server to start a special Pod to pre-create a sub-path in the Persistent Volumes.
