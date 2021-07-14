@@ -140,12 +140,11 @@ checkRoles() {
   # files to check
   local RoleYaml="deploy/role.yaml"
   local ClusterRoleYaml="deploy/cluster_role.yaml"
-  local ProxyClusterRoleYaml="deploy/proxy_cluster_role.yaml"
 
   changedFiles=(
     $(git diff --name-only)
   )
-  if [[ " ${changedFiles[*]} " =~ $RoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ClusterRoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ProxyClusterRoleYaml ]]; then
+  if [[ " ${changedFiles[*]} " =~ $RoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ClusterRoleYaml ]]; then
     echo "[ERROR] Roles are not up to date: ${BASH_REMATCH}"
     echo "[ERROR] Run 'olm/update-resources.sh' to update them."
     exit 1

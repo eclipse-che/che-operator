@@ -30,8 +30,6 @@ oc apply -f ${BASE_DIR}/deploy/role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/role_binding.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/cluster_role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/cluster_role_binding.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/proxy_cluster_role.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/proxy_cluster_role_binding.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml -n $NAMESPACE
