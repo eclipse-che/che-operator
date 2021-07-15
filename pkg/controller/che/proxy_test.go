@@ -26,6 +26,7 @@ import (
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -249,9 +250,10 @@ func TestReadProxyConfiguration(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:      "http://proxy",
-						ProxyPort:     "3128",
-						NonProxyHosts: "host1",
+						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						ProxyURL:                       "http://proxy",
+						ProxyPort:                      "3128",
+						NonProxyHosts:                  "host1",
 					},
 				},
 			},
@@ -281,10 +283,9 @@ func TestReadProxyConfiguration(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						ProxyURL:                   "http://proxy",
-						ProxyPort:                  "3128",
-						NonProxyHosts:              "host1",
-						UseInternalClusterSVCNames: true,
+						ProxyURL:      "http://proxy",
+						ProxyPort:     "3128",
+						NonProxyHosts: "host1",
 					},
 				},
 			},
