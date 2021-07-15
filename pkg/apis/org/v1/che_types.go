@@ -142,7 +142,7 @@ type CheClusterSpecServer struct {
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
 	// Disable internal cluster SVC names usage to communicate between components to speed up the traffic and avoid proxy issues.
 	// +optional
-	DisableInternalClusterSVCNames *bool `json:"disableInternalClusterSVCNames"`
+	DisableInternalClusterSVCNames *bool `json:"disableInternalClusterSVCNames,omitempty"`
 	// Overrides the container image used in the dashboard deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
