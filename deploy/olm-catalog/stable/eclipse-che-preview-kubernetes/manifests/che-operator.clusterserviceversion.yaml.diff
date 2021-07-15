@@ -51,9 +51,6 @@
 @@ -938,9 +938,9 @@
                        - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                          value: quay.io/che-incubator/configbump@sha256:175ff2ba1bd74429de192c0a9facf39da5699c6da9f151bd461b3dc8624dd532
-                       - name: RELATED_IMAGE_devworkspace_che_operator
--                        value: quay.io/che-incubator/devworkspace-che-operator@sha256:6685960ae59d88ab36467c13230e417923c048fdf3186a500a4453fbeb727b71
-+                        value: quay.io/che-incubator/devworkspace-che-operator@sha256:697343dd56a9dad2f9a5e4215d7fa820dcfb59cc15cb53a5649b154d3bd8e23a
                        - name: RELATED_IMAGE_devworkspace_controller
 -                        value: quay.io/devfile/devworkspace-controller@sha256:38769edb9bdc410a8db1dbb696871c48053be1765ddfc088d850d7832a65d14e
 +                        value: quay.io/devfile/devworkspace-controller@sha256:077d48c0f5b849a66161610c9ead556b321f7eb5a3a896a2ee58b0db1387ba6f
@@ -173,10 +170,6 @@
      - name: configbump-0.1.4
        image: quay.io/che-incubator/configbump@sha256:175ff2ba1bd74429de192c0a9facf39da5699c6da9f151bd461b3dc8624dd532
        # tag: quay.io/che-incubator/configbump:0.1.4
-     - name: devworkspace-che-operator-ci
--      image: quay.io/che-incubator/devworkspace-che-operator@sha256:6685960ae59d88ab36467c13230e417923c048fdf3186a500a4453fbeb727b71
-+      image: quay.io/che-incubator/devworkspace-che-operator@sha256:697343dd56a9dad2f9a5e4215d7fa820dcfb59cc15cb53a5649b154d3bd8e23a
-       # tag: quay.io/che-incubator/devworkspace-che-operator:ci
      - name: devworkspace-controller-next
 -      image: quay.io/devfile/devworkspace-controller@sha256:38769edb9bdc410a8db1dbb696871c48053be1765ddfc088d850d7832a65d14e
 +      image: quay.io/devfile/devworkspace-controller@sha256:077d48c0f5b849a66161610c9ead556b321f7eb5a3a896a2ee58b0db1387ba6f

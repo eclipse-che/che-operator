@@ -79,8 +79,6 @@ spec:
               value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
               value: quay.io/che-incubator/configbump:0.1.4
-            - name: RELATED_IMAGE_devworkspace_che_operator
-              value: quay.io/che-incubator/devworkspace-che-operator:ci
             - name: RELATED_IMAGE_devworkspace_controller
               value: quay.io/devfile/devworkspace-controller:next
             - name: RELATED_IMAGE_internal_rest_backup_server
@@ -141,47 +139,6 @@ spec:
             limits:
               memory: 256Mi
               cpu: 500m
-        - args:
-            - --enable-leader-election
-            - --metrics-addr
-            - '0'
-          command:
-            - /usr/local/bin/devworkspace-che-operator
-          env:
-            - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: OPERATOR_NAME
-              value: devworkspace-che-operator
-            - name: MAX_CONCURRENT_RECONCILES
-              value: "1"
-            - name: CONTROLLER_SERVICE_ACCOUNT_NAME
-              value: che-operator
-            - name: RELATED_IMAGE_gateway
-              value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
-            - name: RELATED_IMAGE_gateway_configurer
-              value: quay.io/che-incubator/configbump:0.1.4
-          image: quay.io/che-incubator/devworkspace-che-operator:ci
-          imagePullPolicy: Always
-          name: devworkspace-che-operator
-          resources:
-            limits:
-              cpu: 100m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 32Mi
-          securityContext:
-            privileged: false
-            readOnlyRootFilesystem: false
-            capabilities:
-              drop:
-                - ALL
       hostIPC: false
       hostNetwork: false
       hostPID: false

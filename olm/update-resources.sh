@@ -115,7 +115,7 @@ detectImages() {
 }
 
 updateRoles() {
-  echo "[INFO] Updating roles with DW and DWCO roles"
+  echo "[INFO] Updating roles with DW roles"
 
   CLUSTER_ROLES=(
     https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
@@ -124,8 +124,6 @@ updateRoles() {
     https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
     https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
     https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
-    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-role.ClusterRole.yaml
-    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-metrics-reader.ClusterRole.yaml
   )
 
   # Updates cluster_role.yaml based on DW and DWCO roles
@@ -144,7 +142,6 @@ updateRoles() {
   done
 
   ROLES=(
-    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-leader-election-role.Role.yaml
   )
 
   # Updates role.yaml
@@ -162,18 +159,6 @@ updateRoles() {
       echo "$line" >> $ROOT_PROJECT_DIR/deploy/role.yaml
     done <<< "$CONTENT"
   done
-
-  # Updates proxy_cluster_role.yaml based on DWCO
-  ## Remove old roles
-  cat $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml | sed '/rules:/q0' > $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp
-  mv $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
-
-  ## Copy new roles
-  CLUSTER_PROXY_ROLES=https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-proxy-role.ClusterRole.yaml
-  CONTENT=$(curl -sL $CLUSTER_PROXY_ROLES | sed '1,/rules:/d')
-  while IFS= read -r line; do
-    echo "$line" >> $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
-  done <<< "$CONTENT"
 }
 
 updateOperatorYaml() {
@@ -182,35 +167,6 @@ updateOperatorYaml() {
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE}\"" ${OPERATOR_YAML}
-
-  # Deletes old DWCO container
-  yq -riY "del(.spec.template.spec.containers[1])" $OPERATOR_YAML
-  yq -riY ".spec.template.spec.containers[1] = \"devworkspace-container\"" $OPERATOR_YAML
-
-  # Extract DWCO container spec from deployment
-  DWCO_CONTAINER=$(curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-manager.Deployment.yaml \
-    | sed '1,/containers:/d' \
-    | sed -n '/serviceAccountName:/q;p' \
-    | sed -e 's/^/  /')
-  echo "$DWCO_CONTAINER" > dwcontainer
-
-  # Add DWCO container to operator.yaml
-  sed -i -e '/- devworkspace-container/{r dwcontainer' -e 'd}' $OPERATOR_YAML
-  rm dwcontainer
-
-  # update securityContext
-  yq -riY ".spec.template.spec.containers[1].securityContext.privileged = false" ${OPERATOR_YAML}
-  yq -riY ".spec.template.spec.containers[1].securityContext.readOnlyRootFilesystem = false" ${OPERATOR_YAML}
-  yq -riY ".spec.template.spec.containers[1].securityContext.capabilities.drop[0] = \"ALL\"" ${OPERATOR_YAML}
-
-  # update env variable
-  yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .valueFrom)" ${OPERATOR_YAML}
-  yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .value) = \"che-operator\"" ${OPERATOR_YAML}
-  yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .value)" ${OPERATOR_YAML}
-  yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .valueFrom.fieldRef.fieldPath) = \"metadata.namespace\"" ${OPERATOR_YAML}
-
-  yq -riY ".spec.template.spec.containers[1].args[1] =  \"--metrics-addr\"" ${OPERATOR_YAML}
-  yq -riY ".spec.template.spec.containers[1].args[2] =  \"0\"" ${OPERATOR_YAML}
 
   ensureLicense $OPERATOR_YAML
 }

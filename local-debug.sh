@@ -24,7 +24,6 @@ ECLIPSE_CHE_BACKUP_CRD="./deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml
 ECLIPSE_CHE_RESTORE_CRD="./deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml"
 ECLIPSE_CHE_CRD_V1BETA1="./deploy/crds/org_v1_che_crd-v1beta1.yaml"
 DEV_WORKSPACE_CONTROLLER_VERSION="main"
-DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -69,19 +68,6 @@ prepareTemplates() {
 
   unzip -q /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
   cp -rf /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
-  echo "[INFO] Downloading Dev Workspace operator templates completed."
-
-  # Download Dev Workspace Che operator templates
-  echo "[INFO] Downloading Dev Workspace Che operator templates ..."
-  rm -f /tmp/devworkspace-che-operator.zip
-  rm -rf /tmp/che-incubator-devworkspace-che-operator-*
-  rm -rf /tmp/devworkspace-che-operator/
-  mkdir -p /tmp/devworkspace-che-operator/templates
-
-  curl -sL https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip
-
-  unzip -q /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
-  cp -r /tmp/che-incubator-devworkspace-che-operator*/deploy/* /tmp/devworkspace-che-operator/templates
   echo "[INFO] Downloading Dev Workspace operator templates completed."
 }
 

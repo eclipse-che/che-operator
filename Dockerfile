@@ -14,7 +14,6 @@ FROM registry.access.redhat.com/ubi8/go-toolset:1.15.7-11 as builder
 ENV GOPATH=/go/
 
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
-ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 USER root
 ADD . /che-operator
 WORKDIR /che-operator
@@ -31,13 +30,6 @@ RUN curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/$
     unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
     mkdir -p /tmp/devworkspace-operator/templates/ && \
     mv /tmp/devfile-devworkspace-operator-*/deploy /tmp/devworkspace-operator/templates/
-
-# upstream, download devworkspace-che-operator templates for every build
-# downstream, copy prefetched zip into /tmp
-RUN curl -L https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip && \
-    unzip /tmp/devworkspace-che-operator.zip */deploy/deployment/* -d /tmp && \
-    mkdir -p /tmp/devworkspace-che-operator/templates/ && \
-    mv /tmp/che-incubator-devworkspace-che-operator-*/deploy /tmp/devworkspace-che-operator/templates/
 
 # Build restic. Needed for backup / restore capabilities
 ENV RESTIC_TAG=v0.12.0
@@ -59,7 +51,6 @@ COPY --from=builder /che-operator/templates/delete-identity-provider.sh /tmp/del
 COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
-COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
 COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
 

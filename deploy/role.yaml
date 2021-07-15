@@ -122,8 +122,6 @@ rules:
   verbs:
   - get
   - list
-### CHE-OPERATOR ROLES ONLY: END
-# devworkspace-che-leader-election-role.Role.yaml
 - apiGroups:
   - ""
   resources:
@@ -150,3 +148,4 @@ rules:
   - events
   verbs:
   - create
+### CHE-OPERATOR ROLES ONLY: END

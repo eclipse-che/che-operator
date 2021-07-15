@@ -16,7 +16,6 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '--release-version') RELEASE=$2; shift 1;;
     '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
-    '--dev-workspace-che-operator-version') DEV_WORKSPACE_CHE_OPERATOR_VERSION=$2; shift 1;;
   esac
   shift 1
 done
@@ -67,7 +66,6 @@ if [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]]; then
   echo "One of the following required parameters is missing"
   echo "--release-version $RELEASE"
   echo "--dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION"
-  echo "--dev-workspace-che-operator-version $DEV_WORKSPACE_CHE_OPERATOR_VERSION"
   exit 1
 fi
 
@@ -99,7 +97,6 @@ do
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
-  -e 's|quay.io/che-incubator/devworkspace-che-operator:ci|quay.io/che-incubator/devworkspace-che-operator:'${DEV_WORKSPACE_CHE_OPERATOR_VERSION}'|' \
   -e 's|quay.io/devfile/devworkspace-controller:next|quay.io/devfile/devworkspace-controller:'${DEV_WORKSPACE_CONTROLLER_VERSION}'|' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
