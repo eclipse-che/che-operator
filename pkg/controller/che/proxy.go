@@ -61,7 +61,7 @@ func (r *ReconcileChe) getProxyConfiguration(deployContext *deploy.DeployContext
 	if err != nil {
 		return nil, err
 	}
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		cheClusterProxyConf.NoProxy = deploy.MergeNonProxy(cheClusterProxyConf.NoProxy, ".svc")
 	}
 	return cheClusterProxyConf, nil

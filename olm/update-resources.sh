@@ -260,9 +260,6 @@ updateNighltyBundle() {
       done
     fi
 
-    # Fix account name
-    sed -i 's|serviceAccountName: che-operator-proxy|serviceAccountName: default|g' $NEW_CSV
-
     # Fix sample
     if [ "${platform}" == "openshift" ]; then
       echo "[INFO] Fix openshift sample"

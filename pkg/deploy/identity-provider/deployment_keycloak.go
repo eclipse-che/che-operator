@@ -517,7 +517,7 @@ func GetSpecKeycloakDeployment(
 	}
 
 	var enableFixedHostNameProvider string
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		if cheFlavor == "che" {
 			keycloakURL, err := url.Parse(deployContext.CheCluster.Status.KeycloakURL)
 			if err != nil {
@@ -546,6 +546,10 @@ func GetSpecKeycloakDeployment(
 	}
 
 	evaluateKeycloakSystemProperties := "KEYCLOAK_SYS_PROPS=\"-Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled\""
+	if cheFlavor == "codeready" {
+		// We need to export `KEYCLOAK_SYS_PROPS` to pass them to standalone.sh via openshift-launch.sh
+		evaluateKeycloakSystemProperties = "export KEYCLOAK_SYS_PROPS=\"\""
+	}
 
 	// Evaluating keycloak.connectionsHttpClient.default system properties, see details: https://github.com/eclipse/che/issues/19653
 	evaluateExpectContinueEnabled := "if [[ $KEYCLOAK_CONNECTIONS_HTTP_CLIENT_DEFAULT_EXPECT_CONTINUE_ENABLED != false ]]; then KEYCLOAK_SYS_PROPS=$KEYCLOAK_SYS_PROPS\" -Dkeycloak.connectionsHttpClient.default.expect-continue-enabled=true\"; fi"
@@ -575,7 +579,17 @@ func GetSpecKeycloakDeployment(
 			"pattern=\"[a-z]([-a-z0-9]{0,61}[a-z0-9])?\" " +
 			"title=\"Username has to comply with the DNS naming convention. An alphanumeric (a-z, and 0-9) string, with a maximum length of 63 characters, with the '-' character allowed anywhere except the first or last character.\" " +
 			"name=\"username\"|g' ${baseTemplate}"
-		command = bashFunctions + "\n" + addUsernameReadonlyTheme + " && " + addUsernameValidationForKeycloakTheme + " && " + addCertToTrustStoreCommand + addProxyCliCommand + applyProxyCliCommand +
+		patchOpenshiftLaunch := "sed -i 's|standalone.sh -c standalone-openshift.xml|standalone.sh -c standalone-openshift.xml ${KEYCLOAK_SYS_PROPS}|' /opt/eap/bin/openshift-launch.sh"
+		command = bashFunctions + "\n" +
+			addUsernameReadonlyTheme +
+			" && " + addUsernameValidationForKeycloakTheme +
+			" && " + addCertToTrustStoreCommand +
+			addProxyCliCommand +
+			applyProxyCliCommand +
+			" && " + evaluateKeycloakSystemProperties +
+			" && " + evaluateExpectContinueEnabled +
+			" && " + evaluateReuseConnections +
+			" && " + patchOpenshiftLaunch +
 			" && echo \"feature.token_exchange=enabled\nfeature.admin_fine_grained_authz=enabled\" > /opt/eap/standalone/configuration/profile.properties  " +
 			" && sed -i 's/WILDCARD/ANY/g' /opt/eap/bin/launch/keycloak-spi.sh && /opt/eap/bin/openshift-launch.sh -b 0.0.0.0"
 	}

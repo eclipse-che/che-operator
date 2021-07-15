@@ -16,8 +16,6 @@ metadata:
   name: eclipse-che
 spec:
   server:
-    # Use internal cluster SVC names to communicate between components to speed up the traffic and avoid proxy issues.
-    useInternalClusterSVCNames: true
     # Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady Workspaces] installation.
     # Override the default value only on necessary occasions.
     cheFlavor: ''
@@ -161,7 +159,7 @@ spec:
     # All the endpoints whether backed by the ingress or gateway `route` always point to the subpaths on the same domain. Defaults to `native`.
     singleHostExposureType: ''
   metrics:
-    # Enables `metrics` the Che server endpoint. 
+    # Enables `metrics` the Che server endpoint.
     enable: true
   devWorkspace:
     # Deploys the DevWorkspace Operator in the cluster.

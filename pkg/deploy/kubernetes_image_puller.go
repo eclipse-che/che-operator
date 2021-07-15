@@ -13,6 +13,8 @@ package deploy
 
 import (
 	"context"
+	goerror "errors"
+	"strings"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
@@ -22,9 +24,11 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -125,6 +129,13 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 							return reconcile.Result{}, err
 						}
 						return reconcile.Result{Requeue: true}, nil
+					}
+
+					if ctx.CheCluster.IsImagePullerImagesEmpty() {
+						if err = AddDefaultImages(ctx); err != nil {
+							logrus.Error(err)
+							return reconcile.Result{}, err
+						}
 					}
 
 					logrus.Infof("Creating KubernetesImagePuller for CheCluster %v", ctx.CheCluster.Name)
@@ -384,6 +395,83 @@ func UpdateImagePullerSpecIfEmpty(ctx *DeployContext) (orgv1.CheClusterSpecImage
 		return ctx.CheCluster.Spec.ImagePuller, err
 	}
 	return ctx.CheCluster.Spec.ImagePuller, nil
+}
+
+func AddDefaultImages(ctx *DeployContext) error {
+	defaultImageVars := GetDefaultImagesEnvVars()
+	if len(defaultImageVars) == 0 {
+		return nil
+	}
+
+	defaultImages := ""
+	for _, envVar := range defaultImageVars {
+		defaultImages += envVar.Name + "=" + envVar.Value + ";"
+	}
+	ctx.CheCluster.Spec.ImagePuller.Spec.Images = defaultImages
+	return UpdateCheCRSpec(ctx, "Kubernetes Image Puller default images", defaultImages)
+}
+
+func GetDefaultImagesEnvVars() []v1.EnvVar {
+	imagePatterns := [...]string{
+		"^RELATED_IMAGE_.*_plugin_java8$",
+		"^RELATED_IMAGE_.*_plugin_java11$",
+		"^RELATED_IMAGE_.*_plugin_kubernetes$",
+		"^RELATED_IMAGE_.*_plugin_openshift$",
+		"^RELATED_IMAGE_.*_plugin_broker.*",
+		"^RELATED_IMAGE_.*_theia.*",
+		"^RELATED_IMAGE_.*_stacks_cpp$",
+		"^RELATED_IMAGE_.*_stacks_dotnet$",
+		"^RELATED_IMAGE_.*_stacks_golang$",
+		"^RELATED_IMAGE_.*_stacks_php$",
+		"^RELATED_IMAGE_.*_cpp_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_dotnet_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_golang_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_php_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_java.*_maven_devfile_registry_image.*",
+	}
+
+	var err error
+	imageVars := []v1.EnvVar{}
+	for _, pattern := range imagePatterns {
+		matches := util.GetEnvByRegExp(pattern)
+		for _, match := range matches {
+			match.Name = match.Name[len("RELATED_IMAGE_"):]
+			match.Name, err = ConvertToRFC1123(match.Name)
+			if err != nil {
+				logrus.Errorf(err.Error())
+				continue
+			}
+			imageVars = append(imageVars, match)
+		}
+	}
+	return imageVars
+}
+
+// Convert input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
+func ConvertToRFC1123(str string) (string, error) {
+	result := strings.ToLower(str)
+	if len(str) > validation.DNS1123LabelMaxLength {
+		result = result[:validation.DNS1123LabelMaxLength]
+	}
+
+	// Remove illegal trailing characters
+	i := len(result) - 1
+	for i >= 0 && !IsRFC1123Char(result[i]) {
+		i -= 1
+	}
+	result = result[:i+1]
+
+	result = strings.ReplaceAll(result, "_", "-")
+
+	if errs := validation.IsDNS1123Label(result); len(errs) > 0 {
+		return "", goerror.New("Cannot convert the following string to RFC 1123 format: " + str)
+	}
+	return result, nil
+}
+
+func IsRFC1123Char(ch byte) bool {
+	errs := validation.IsDNS1123Label(string(ch))
+	return len(errs) == 0
 }
 
 func CreateKubernetesImagePuller(ctx *DeployContext) (bool, error) {

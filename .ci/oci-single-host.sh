@@ -31,10 +31,12 @@ overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
   export CHE_EXPOSURE_STRATEGY="single-host"
-  export DEV_WORKSPACE_ENABLE="true"
 }
 
 runTests() {
+    # create namespace
+    oc create namespace eclipse-che || true
+
     # Deploy Eclipse Che applying CR
     applyOlmCR
     waitEclipseCheDeployed "next"
@@ -43,7 +45,9 @@ runTests() {
     waitWorkspaceStart
 
     # Dev Workspace controller tests
+    enableDevWorkspaceEngine
     waitDevWorkspaceControllerStarted
+    waitEclipseCheDeployed "next"
 
     sleep 10s
     createWorkspaceDevWorkspaceController

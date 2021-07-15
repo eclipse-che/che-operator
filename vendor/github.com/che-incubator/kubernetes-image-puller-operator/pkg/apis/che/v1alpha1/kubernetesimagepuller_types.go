@@ -8,12 +8,14 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +k8s:openapi-gen=true
 // KubernetesImagePullerSpec defines the desired state of KubernetesImagePuller
 type KubernetesImagePullerSpec struct {
+	// If empty, a set of recommended workspace-related images will be automatically detected and pre-pulled after installation.
+	Images               string `json:"images,omitempty"`
 	ConfigMapName        string `json:"configMapName,omitempty"`
 	DaemonsetName        string `json:"daemonsetName,omitempty"`
 	DeploymentName       string `json:"deploymentName,omitempty"`
-	Images               string `json:"images,omitempty"`
 	CachingIntervalHours string `json:"cachingIntervalHours,omitempty"`
 	CachingMemoryRequest string `json:"cachingMemoryRequest,omitempty"`
 	CachingMemoryLimit   string `json:"cachingMemoryLimit,omitempty"`

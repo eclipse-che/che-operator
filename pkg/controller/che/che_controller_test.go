@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	mocks "github.com/eclipse-che/che-operator/mocks"
 
@@ -27,6 +28,7 @@ import (
 
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -148,6 +150,7 @@ var (
 		Spec: chev1alpha1.KubernetesImagePullerSpec{
 			DeploymentName: "kubernetes-image-puller",
 			ConfigMapName:  "k8s-image-puller",
+			Images:         "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;",
 		},
 	}
 	clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
@@ -732,6 +735,45 @@ func TestImagePullerConfiguration(t *testing.T) {
 			expectedImagePuller: defaultImagePuller,
 		},
 		{
+			name:   "image puller enabled, user images set, subscription exists, should create a KubernetesImagePuller with user images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet(),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+			},
+			expectedImagePuller: &chev1alpha1.KubernetesImagePuller{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "che.eclipse.org/v1alpha1",
+					Kind:       "KubernetesImagePuller",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che-image-puller",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/part-of": name,
+						"app":                       "che",
+						"component":                 "kubernetes-image-puller",
+					},
+					ResourceVersion: "1",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         "org.eclipse.che/v1",
+							Kind:               "CheCluster",
+							Controller:         &valueTrue,
+							BlockOwnerDeletion: &valueTrue,
+							Name:               "eclipse-che",
+						},
+					},
+				},
+				Spec: chev1alpha1.KubernetesImagePullerSpec{
+					DeploymentName: "kubernetes-image-puller",
+					ConfigMapName:  "k8s-image-puller",
+					Images:         "image=image_url",
+				},
+			},
+		},
+		{
 			name:   "image puller enabled, KubernetesImagePuller created and spec in CheCluster is different, should update the KubernetesImagePuller",
 			initCR: InitCheCRWithImagePullerEnabledAndNewValuesSet(),
 			initObjects: []runtime.Object{
@@ -880,8 +922,15 @@ func TestImagePullerConfiguration(t *testing.T) {
 				if err != nil {
 					t.Errorf("Error getting KubernetesImagePuller: %v", err)
 				}
-				if !reflect.DeepEqual(testCase.expectedImagePuller, gotImagePuller) {
-					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedImagePuller, gotImagePuller))
+
+				diff := cmp.Diff(testCase.expectedImagePuller, gotImagePuller, cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePullerSpec{}, "Images"))
+				if diff != "" {
+					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", diff)
+				}
+
+				// check images differently since it might contains extra images
+				if !strings.Contains(gotImagePuller.Spec.Images, testCase.expectedImagePuller.Spec.Images) {
+					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedImagePuller.Spec.Images, gotImagePuller.Spec.Images))
 				}
 			}
 			if testCase.shouldDelete {
@@ -1532,6 +1581,31 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 				Spec: chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName: "kubernetes-image-puller",
 					ConfigMapName:  "k8s-image-puller",
+				},
+			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(false),
+			},
+		},
+	}
+}
+
+func InitCheCRWithImagePullerEnabledAndImagesSet() *orgv1.CheCluster {
+	return &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
+		},
+		Spec: orgv1.CheClusterSpec{
+			ImagePuller: orgv1.CheClusterSpecImagePuller{
+				Enable: true,
+				Spec: chev1alpha1.KubernetesImagePullerSpec{
+					DeploymentName: "kubernetes-image-puller",
+					ConfigMapName:  "k8s-image-puller",
+					Images:         "image=image_url",
 				},
 			},
 			Auth: orgv1.CheClusterSpecAuth{

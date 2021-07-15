@@ -51,10 +51,10 @@ func TestIngressSpec(t *testing.T) {
 		{
 			name:             "Test custom host",
 			ingressName:      "test",
-			ingressComponent: "test-component",
+			ingressComponent: "che",
 			ingressHost:      "test-host",
 			ingressPath:      "",
-			serviceName:      "che",
+			serviceName:      "che-host",
 			servicePort:      8080,
 			ingressCustomSettings: orgv1.IngressCustomSettings{
 				Labels:      "type=default",
@@ -66,7 +66,7 @@ func TestIngressSpec(t *testing.T) {
 					Namespace: "eclipse-che",
 					Labels: map[string]string{
 						"type":                         "default",
-						"app.kubernetes.io/component":  "test-component",
+						"app.kubernetes.io/component":  "che",
 						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
@@ -77,7 +77,8 @@ func TestIngressSpec(t *testing.T) {
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
-						"annotation-key": "annotation-value",
+						"nginx.org/websocket-services":                      "che-host",
+						"annotation-key":                                    "annotation-value",
 					},
 				},
 				TypeMeta: metav1.TypeMeta{
@@ -93,7 +94,7 @@ func TestIngressSpec(t *testing.T) {
 									Paths: []v1beta1.HTTPIngressPath{
 										{
 											Backend: v1beta1.IngressBackend{
-												ServiceName: "che",
+												ServiceName: "che-host",
 												ServicePort: intstr.FromInt(8080),
 											},
 											Path: "/",
