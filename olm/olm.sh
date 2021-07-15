@@ -459,6 +459,7 @@ applyCRCheCluster() {
   CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
   CR=$(echo "$CRs" | yq -r ".[0]")
   CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
+  CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"")
   if [ "${platform}" == "kubernetes" ]
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")

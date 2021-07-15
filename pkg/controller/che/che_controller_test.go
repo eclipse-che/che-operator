@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	mocks "github.com/eclipse-che/che-operator/mocks"
 
@@ -27,6 +28,7 @@ import (
 
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -920,8 +922,15 @@ func TestImagePullerConfiguration(t *testing.T) {
 				if err != nil {
 					t.Errorf("Error getting KubernetesImagePuller: %v", err)
 				}
-				if !reflect.DeepEqual(testCase.expectedImagePuller, gotImagePuller) {
-					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedImagePuller, gotImagePuller))
+
+				diff := cmp.Diff(testCase.expectedImagePuller, gotImagePuller, cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePullerSpec{}, "Images"))
+				if diff != "" {
+					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", diff)
+				}
+
+				// check images differently since it might contains extra images
+				if !strings.Contains(gotImagePuller.Spec.Images, testCase.expectedImagePuller.Spec.Images) {
+					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedImagePuller.Spec.Images, gotImagePuller.Spec.Images))
 				}
 			}
 			if testCase.shouldDelete {
