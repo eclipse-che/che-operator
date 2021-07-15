@@ -27,6 +27,9 @@ import (
 
 var ingressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "Status"),
+	// we're not setting the PathType to remain comaptible with OpenShift 3 so we have to ignore the default value
+	// it is set to by Kubernetes/OpenShift 4 so that we don't enter an infinite reconcile loop+
+	cmpopts.IgnoreFields(v1beta1.HTTPIngressPath{}, "PathType"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
 			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]

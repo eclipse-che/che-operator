@@ -22,6 +22,7 @@ import (
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
 	dwo_api "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/cmd/manager/signal"
 	"github.com/eclipse-che/che-operator/pkg/controller/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/controller/devworkspace/solver"
@@ -192,6 +193,13 @@ func main() {
 }
 
 func enableDevworkspaceSupport(mgr manager.Manager) error {
+	// DWO and DWCO use the infrastructure package for openshift detection. It needs to be initialized
+	// but only supports OpenShift v4 or Kubernetes.
+	if err := infrastructure.Initialize(); err != nil {
+		log.Info(err, "devworkspace cannot run on this infrastructure")
+		return nil
+	}
+
 	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
 	// can write meaningful status messages into the CheCluster CRs.
 	dwChe := devworkspace.CheClusterReconciler{}
