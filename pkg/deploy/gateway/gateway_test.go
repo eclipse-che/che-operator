@@ -99,8 +99,16 @@ func TestNativeUserGateway(t *testing.T) {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
 
-	if len(deployment.Spec.Template.Spec.Containers) != 5 {
-		t.Fatalf("With native user mode, there should be 5 containers in the gateway.. But it has '%d' containers.", len(deployment.Spec.Template.Spec.Containers))
+	if len(deployment.Spec.Template.Spec.Containers) != 4 {
+		t.Fatalf("With native user mode, there should be 4 containers in the gateway.. But it has '%d' containers.", len(deployment.Spec.Template.Spec.Containers))
+	}
+
+	for _, c := range deployment.Spec.Template.Spec.Containers {
+		if c.Name == "gateway" {
+			if len(c.VolumeMounts) != 3 {
+				t.Fatalf("gateway container should have 3 mounts, but it has '%d' ... \n%+v", len(c.VolumeMounts), c.VolumeMounts)
+			}
+		}
 	}
 
 	service := &corev1.Service{}
@@ -151,6 +159,7 @@ func TestNoGatewayForMultiHost(t *testing.T) {
 			t.Fatalf("Wrong error returned.")
 		}
 	}
+
 }
 
 func TestRandomCookieSecret(t *testing.T) {

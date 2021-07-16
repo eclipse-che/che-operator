@@ -15,9 +15,17 @@ ENV GOPATH=/go/
 
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
+ARG DEV_HEADER_REWRITE_PROXY_PLUGIN="traefikPlugin"
 USER root
 ADD . /che-operator
 WORKDIR /che-operator
+
+# upstream, download header-rewrite-proxy traefik plugin for every build
+# downstream, copy prefetched zip into /tmp
+RUN curl -L https://api.github.com/repos/che-incubator/header-rewrite-proxy/zipball/${DEV_HEADER_REWRITE_PROXY_PLUGIN} > /tmp/header-rewrite-proxy.zip && \
+    unzip /tmp/header-rewrite-proxy.zip -d /tmp && \
+    mkdir -p /tmp/header-rewrite-proxy && \
+    mv /tmp/*-header-rewrite-proxy-*/headerRewrite.go /tmp/*-header-rewrite-proxy-*/.traefik.yml /tmp/header-rewrite-proxy
 
 # build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
@@ -61,6 +69,7 @@ COPY --from=builder /che-operator/templates/create-github-identity-provider.sh /
 
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/devworkspace-che-operator/templates/deploy /tmp/devworkspace-che-operator/templates
+COPY --from=builder /tmp/header-rewrite-proxy /tmp/header-rewrite-proxy
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
 COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
 
