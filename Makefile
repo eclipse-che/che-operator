@@ -38,14 +38,14 @@ OPERATOR_SDK_BINARY ?= operator-sdk
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # quay.io/eclipse/che-operator-bundle:$VERSION and quay.io/eclipse/che-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/aandriienko/che-operator
+IMAGE_TAG_BASE ?= quay.io/eclipse/che-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 
 # Image URL to use all building/pushing image targets
-IMG ?= quay.io/aandriienko/che-operator:next
+IMG ?= quay.io/eclipse/che-operator:next
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 CRD_BETA_OPTIONS ?= "crd:trivialVersions=true,crdVersions=v1beta1"
@@ -644,7 +644,7 @@ increment-nightly-version:
 	currentNightlyVersion=$$(yq -r ".spec.version" "$${CSV}")
 	echo  "[INFO] current nightly $(platform) version: $${currentNightlyVersion}"
 
-	incrementPart=$$($(MAKE) get-nightly-version-increment nightlyVersion="$${currentNightlyVersion}" -s) 
+	incrementPart=$$($(MAKE) get-nightly-version-increment nightlyVersion="$${currentNightlyVersion}" -s)
 
 	PACKAGE_NAME="eclipse-che-preview-$(platform)"
 
@@ -726,7 +726,7 @@ check-requirements:
 
 	operatorVersion=$$($${OPERATOR_SDK_BINARY} version)
 	REQUIRED_OPERATOR_SDK=$$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
-	case "$$operatorVersion" in 
+	case "$$operatorVersion" in
 		*$$REQUIRED_OPERATOR_SDK*) ;;
 		*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
 	esac
