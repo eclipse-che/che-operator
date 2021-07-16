@@ -746,42 +746,68 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, user images set, subscription exists, should create a KubernetesImagePuller with user images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet(),
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url"),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
 				subscription,
 			},
-			expectedImagePuller: &chev1alpha1.KubernetesImagePuller{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "che.eclipse.org/v1alpha1",
-					Kind:       "KubernetesImagePuller",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "eclipse-che-image-puller",
-					Namespace: namespace,
-					Labels: map[string]string{
-						"app.kubernetes.io/part-of": name,
-						"app":                       "che",
-						"component":                 "kubernetes-image-puller",
-					},
-					ResourceVersion: "1",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion:         "org.eclipse.che/v1",
-							Kind:               "CheCluster",
-							Controller:         &valueTrue,
-							BlockOwnerDeletion: &valueTrue,
-							Name:               "eclipse-che",
-						},
-					},
-				},
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller",
-					ConfigMapName:  "k8s-image-puller",
-					Images:         "image=image_url",
-				},
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url", ObjectMetaResourceVersion: "1"}),
+		},
+		{
+			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default image",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;", ObjectMetaResourceVersion: "1"}),
 			},
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;", ObjectMetaResourceVersion: "2"}),
+		},
+		{
+			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default images while keeping user image",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;", ObjectMetaResourceVersion: "1"}),
+			},
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;", ObjectMetaResourceVersion: "2"}),
+		},
+		{
+			name:   "image puller enabled, default images set, subscription exists, should update KubernetesImagePuller default images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:old;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:old;", ObjectMetaResourceVersion: "1"}),
+			},
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;", ObjectMetaResourceVersion: "2"}),
+		},
+		{
+			name:   "image puller enabled, latest default images set, subscription exists, should not update KubernetesImagePuller default images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;", ObjectMetaResourceVersion: "1"}),
+			},
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;", ObjectMetaResourceVersion: "1"}),
+		},
+		{
+			name:   "image puller enabled, default images not set, subscription exists, should not set KubernetesImagePuller default images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;", ObjectMetaResourceVersion: "1"}),
+			},
+			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;", ObjectMetaResourceVersion: "1"}),
 		},
 		{
 			name:   "image puller enabled, KubernetesImagePuller created and spec in CheCluster is different, should update the KubernetesImagePuller",
@@ -801,7 +827,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					Labels: map[string]string{
 						"app":                       "che",
 						"component":                 "kubernetes-image-puller",
-						"app.kubernetes.io/part-of": "eclipse-che",
+						"app.kubernetes.io/part-of": name,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -1612,7 +1638,7 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 	}
 }
 
-func InitCheCRWithImagePullerEnabledAndImagesSet() *orgv1.CheCluster {
+func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -1627,7 +1653,7 @@ func InitCheCRWithImagePullerEnabledAndImagesSet() *orgv1.CheCluster {
 				Spec: chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName: "kubernetes-image-puller",
 					ConfigMapName:  "k8s-image-puller",
-					Images:         "image=image_url",
+					Images:         images,
 				},
 			},
 			Auth: orgv1.CheClusterSpecAuth{
@@ -1657,6 +1683,44 @@ func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 			Auth: orgv1.CheClusterSpecAuth{
 				OpenShiftoAuth: util.NewBoolPointer(false),
 			},
+		},
+	}
+}
+
+type ImagePullerOptions struct {
+	SpecImages                string
+	ObjectMetaResourceVersion string
+}
+
+func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePuller {
+	return &chev1alpha1.KubernetesImagePuller{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "che.eclipse.org/v1alpha1",
+			Kind:       "KubernetesImagePuller",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-image-puller",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of": name,
+				"app":                       "che",
+				"component":                 "kubernetes-image-puller",
+			},
+			ResourceVersion: options.ObjectMetaResourceVersion,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         "org.eclipse.che/v1",
+					Kind:               "CheCluster",
+					Controller:         &valueTrue,
+					BlockOwnerDeletion: &valueTrue,
+					Name:               name,
+				},
+			},
+		},
+		Spec: chev1alpha1.KubernetesImagePullerSpec{
+			DeploymentName: "kubernetes-image-puller",
+			ConfigMapName:  "k8s-image-puller",
+			Images:         options.SpecImages,
 		},
 	}
 }
