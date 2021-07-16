@@ -39,8 +39,7 @@ jobs:
           set -e
           OP_SDK_DIR=/opt/operator-sdk
           mkdir -p $OP_SDK_DIR
-          OPERATOR_SDK=$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
-          curl -sSLo $OP_SDK_DIR/operator-sdk  https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK}/operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu && chmod +x $OP_SDK_DIR/operator-sdk
+          make download-operator-sdk OP_SDK_DIR="${OP_SDK_DIR}"
           export PATH="$PATH:$OP_SDK_DIR"
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}

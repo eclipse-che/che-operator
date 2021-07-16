@@ -31,8 +31,7 @@ import (
 	"strings"
 	"time"
 
-	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -229,7 +228,7 @@ func GetOpenShiftAPIUrls() (string, string, error) {
 	// for debug purpose
 	apiUrl := os.Getenv("CLUSTER_API_URL")
 	apiInternalUrl := os.Getenv("CLUSTER_API_INTERNAL_URL")
-	if apiUrl != "" && apiInternalUrl != "" {
+	if apiUrl != "" || apiInternalUrl != "" {
 		return apiUrl, apiInternalUrl, nil
 	}
 
@@ -547,7 +546,7 @@ func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheClu
 	return cheCR, 1, nil
 }
 
-func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *chev1.CheBackupServerConfiguration) error {
+func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *orgv1.CheBackupServerConfiguration) error {
 	err := client.Update(context.TODO(), backupServerConfig)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR: %s", backupServerConfig.Name, err.Error())
@@ -556,7 +555,7 @@ func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *c
 	return nil
 }
 
-func UpdateBackupServerConfigurationStatus(client client.Client, backupServerConfig *chev1.CheBackupServerConfiguration) error {
+func UpdateBackupServerConfigurationStatus(client client.Client, backupServerConfig *orgv1.CheBackupServerConfiguration) error {
 	err := client.Status().Update(context.TODO(), backupServerConfig)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR status: %s", backupServerConfig.Name, err.Error())

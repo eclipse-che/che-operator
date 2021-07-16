@@ -44,7 +44,7 @@ commands:
     actions:
       - workdir: /projects/che-operator
         type: exec
-        command: export MOCK_API=true && go test ./...
+        command: go test -mod vendor ./...
         component: dev
   - name: format
     actions:

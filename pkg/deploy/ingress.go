@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strconv"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -27,6 +27,7 @@ import (
 
 var ingressDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "Status"),
+	cmpopts.IgnoreFields(v1beta1.HTTPIngressPath{}, "PathType"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
 			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]

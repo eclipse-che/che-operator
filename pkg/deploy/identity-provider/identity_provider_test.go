@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,11 +44,13 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should provision GitHub OAuth with legacy secret",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:            "che-cluster",
 					Namespace:       "eclipse-che",
 					ResourceVersion: "1",
 				},
@@ -83,11 +85,13 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should provision GitHub OAuth",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:            "che-cluster",
 					Namespace:       "eclipse-che",
 					ResourceVersion: "1",
 				},
@@ -119,11 +123,13 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should not provision GitHub OAuth",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
@@ -151,6 +157,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should delete GitHub OAuth",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 				Status: orgv1.CheClusterStatus{
@@ -159,6 +166,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			},
 			expectedCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:            "che-cluster",
 					Namespace:       "eclipse-che",
 					ResourceVersion: "1",
 				},

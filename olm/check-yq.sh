@@ -10,7 +10,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-if ! which yq &> /dev/null
+if ! command -v yq >/dev/null 2>&1
 then
   echo
   echo "#### ERROR ####"

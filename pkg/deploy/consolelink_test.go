@@ -15,7 +15,7 @@ import (
 	"context"
 	"time"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	console "github.com/openshift/api/console/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +42,7 @@ func TestReconcileConsoleLink(t *testing.T) {
 	}
 
 	scheme := scheme.Scheme
-	scheme.AddKnownTypes(orgv1.SchemeGroupVersion, &orgv1.CheCluster{})
+	scheme.AddKnownTypes(orgv1.SchemeBuilder.GroupVersion, &orgv1.CheCluster{})
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
 	cli := fake.NewFakeClientWithScheme(scheme, cheCluster)
 	clientSet := fakeclientset.NewSimpleClientset()

@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
 )

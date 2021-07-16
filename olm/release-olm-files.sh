@@ -47,20 +47,33 @@ downloadLatestReleasedBundleCRCRD() {
   PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterbackups_crd.yaml"
   PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterrestores_crd.yaml"
 
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
-      -q -O "${PRE_RELEASE_CSV}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_CRD}"
-
-  # don't exit immediately if some resources are absent
-  set +e
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
-  wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
-      -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
-  set -e
+  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.34.0")
+  if [ "${compareResult}" == "1" ]; then
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
+        -q -O "${PRE_RELEASE_CSV}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
+  else
+    # don't exit immediately if some resources are absent
+    set +e
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
+        -q -O "${PRE_RELEASE_CSV}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
+        -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
+    set -e
+  fi
 }
 
 if [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]]; then

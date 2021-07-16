@@ -16,14 +16,23 @@ ENV GOPATH=/go/
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 USER root
-ADD . /che-operator
-WORKDIR /che-operator
 
-# build operator
+WORKDIR /che-operator
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+
+# Copy the go source
+COPY main.go main.go
+COPY api/ api/
+COPY controllers/ controllers/
+COPY templates/ templates/
+COPY pkg/ pkg/
+COPY vendor/ vendor/
+
+# Build
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    export MOCK_API=true && \
-    go test -mod=vendor -v ./... && \
-    GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o che-operator main.go
 
 # upstream, download devworkspace-operator templates for every build
 # downstream, copy prefetched zip into /tmp
@@ -52,7 +61,7 @@ RUN mkdir -p $GOPATH/restic && cd $GOPATH/restic && \
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.4-200.1622548483
 
-COPY --from=builder /tmp/che-operator/che-operator /usr/local/bin/che-operator
+COPY --from=builder /che-operator/che-operator /manager
 COPY --from=builder /che-operator/templates/keycloak-provision.sh /tmp/keycloak-provision.sh
 COPY --from=builder /che-operator/templates/keycloak-update.sh /tmp/keycloak-update.sh
 COPY --from=builder /che-operator/templates/oauth-provision.sh /tmp/oauth-provision.sh
@@ -67,6 +76,10 @@ COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
 # install httpd-tools for /usr/bin/htpasswd
 RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
     mkdir ~/.ssh && chmod 0766  ~/.ssh
-CMD ["che-operator"]
+
+WORKDIR /
+USER 65532:65532
+
+ENTRYPOINT ["/manager"]
 
 # append Brew metadata here - see https://github.com/redhat-developer/codeready-workspaces-images/blob/crw-2-rhel-8/crw-jenkins/jobs/CRW_CI/crw-operator_2.x.jenkinsfile
