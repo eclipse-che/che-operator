@@ -732,6 +732,11 @@ spec:
                       description: Deprecated in favor of `externalDevfileRegistries`
                         fields.
                       type: string
+                    disableInternalClusterSVCNames:
+                      description: Disable internal cluster SVC names usage to communicate
+                        between components to speed up the traffic and avoid proxy
+                        issues.
+                      type: boolean
                     externalDevfileRegistries:
                       description: External devfile registries, that serves sample,
                         ready-to-use devfiles. Configure this in addition to a dedicated
@@ -947,9 +952,7 @@ spec:
                         cause malfunction of some Che components.
                       type: boolean
                     useInternalClusterSVCNames:
-                      description: Use internal cluster SVC names to communicate between
-                        components to speed up the traffic and avoid proxy issues.
-                        The default value is `true`.
+                      description: Deprecated in favor of `disableInternalClusterSVCNames`.
                       type: boolean
                     workspaceNamespaceDefault:
                       description: Defines Kubernetes default namespace in which user's

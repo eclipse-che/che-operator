@@ -456,6 +456,9 @@ spec:
                   devfileRegistryUrl:
                     description: Deprecated in favor of `externalDevfileRegistries` fields.
                     type: string
+                  disableInternalClusterSVCNames:
+                    description: Disable internal cluster SVC names usage to communicate between components to speed up the traffic and avoid proxy issues.
+                    type: boolean
                   externalDevfileRegistries:
                     description: External devfile registries, that serves sample, ready-to-use devfiles. Configure this in addition to a dedicated devfile registry (when `externalDevfileRegistry` is `false`) or instead of it (when `externalDevfileRegistry` is `true`)
                     items:
@@ -577,7 +580,7 @@ spec:
                     description: Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
                     type: boolean
                   useInternalClusterSVCNames:
-                    description: Use internal cluster SVC names to communicate between components to speed up the traffic and avoid proxy issues. The default value is `true`.
+                    description: Deprecated in favor of `disableInternalClusterSVCNames`.
                     type: boolean
                   workspaceNamespaceDefault:
                     description: Defines Kubernetes default namespace in which user's workspaces are created for a case when a user does not override it. It's possible to use `<username>`, `<userid>` and `<workspaceid>` placeholders, such as che-workspace-<username>. In that case, a new namespace will be created for each user or workspace.
