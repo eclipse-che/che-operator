@@ -250,6 +250,7 @@ func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 // new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
 func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
 	pathRewrite := pathPrefix != "/" && stripPrefix
+	nativeUser := util.IsNativeUserModeEnabled(deployContext.CheCluster)
 
 	data := `---
 http:
@@ -258,8 +259,13 @@ http:
       rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
       service: ` + serviceName + `
       priority: ` + strconv.Itoa(priority) + `
-      middlewares:
+      middlewares: `
+
+	if nativeUser {
+		data += `
       - "` + serviceName + `-header"`
+	}
+
 	if pathRewrite {
 		data += `
       - "` + serviceName + `"`
@@ -271,14 +277,16 @@ http:
       loadBalancer:
         servers:
         - url: '` + internalUrl + `'
-  middlewares:
+  middlewares:`
+	if nativeUser {
+		data += `
     ` + serviceName + `-header:
       plugin:
         header-rewrite-proxy:
           from: X-Forwarded-Access-Token
           to: Authorization
-          prefix: 'Bearer '
-          keepOriginal: true`
+          prefix: 'Bearer '`
+	}
 
 	if pathRewrite {
 		data += `
@@ -456,18 +464,7 @@ func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	if util.IsNativeUserModeEnabled(instance) {
 		traefikPort = 8081
 	}
-	return corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config",
-			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
-		},
-		Data: map[string]string{
-			"traefik.yml": fmt.Sprintf(`
+		data := fmt.Sprintf(`
 entrypoints:
   http:
     address: ":%d"
@@ -485,11 +482,28 @@ providers:
     directory: "/dynamic-config"
     watch: true
 log:
-  level: "INFO"
+  level: "INFO"`, traefikPort)
+
+		if util.IsNativeUserModeEnabled(instance) {
+			data += `
 experimental:
   localPlugins:
     header-rewrite-proxy:
-      moduleName: github.com/che-incubator/header-rewrite-proxy`, traefikPort),
+      moduleName: github.com/che-incubator/header-rewrite-proxy`
+		}
+
+	return corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "che-gateway-config",
+			Namespace: instance.Namespace,
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+		},
+		Data: map[string]string{
+			"traefik.yml": data,
 		},
 	}
 }
