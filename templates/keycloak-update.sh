@@ -15,10 +15,22 @@ connectToKeycloak() {
 }
 
 updateKeycloak() {
+  DEFAULT_WEBORIGINS='"http://{{ .CheHost }}", "https://{{ .CheHost }}"'
+  # ADDITIONAL_WEBORIGINS is an env var in format '"url1", "url2"'
+  # which if specified, is provisioned to keycloak additionally to Che's URLs ones
+  [ ! -z "$ADDITIONAL_WEBORIGINS" ] && ADDITIONAL_WEBORIGINS=", $ADDITIONAL_WEBORIGINS"
+  WEBORIGINS="[$DEFAULT_WEBORIGINS $ADDITIONAL_WEBORIGINS]"
+
+  DEFAULT_REDIRECT_URIS='"http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/factory*", "https://{{ .CheHost }}/factory*", "http://{{ .CheHost }}/f*", "https://{{ .CheHost }}/f*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"'
+  # ADDITIONAL_REDIRECT_URIS is an env var in format '"url1", "url2"'
+  # which if specified, is provisioned to keycloak additionally to Che's URLs ones
+  [ ! -z "$ADDITIONAL_REDIRECT_URIS" ] && ADDITIONAL_REDIRECT_URIS=", $ADDITIONAL_REDIRECT_URIS"
+  REDIRECT_URIS="[$DEFAULT_REDIRECT_URIS $ADDITIONAL_REDIRECT_URIS]"
+
   {{ .Script }} update clients/{{ .KeycloakClientId }} \
     -r '{{ .KeycloakRealm }}' \
-    -s webOrigins='["http://{{ .CheHost }}", "https://{{ .CheHost }}"]' \
-    -s redirectUris='["http://{{ .CheHost }}/dashboard/*", "https://{{ .CheHost }}/dashboard/*", "http://{{ .CheHost }}/factory*", "https://{{ .CheHost }}/factory*", "http://{{ .CheHost }}/f*", "https://{{ .CheHost }}/f*", "http://{{ .CheHost }}/_app/*", "https://{{ .CheHost }}/_app/*", "http://{{ .CheHost }}/swagger/*", "https://{{ .CheHost }}/swagger/*"]'
+    -s webOrigins="$WEBORIGINS" \
+    -s redirectUris="$REDIRECT_URIS"
 }
 
 checkKeycloak() {
