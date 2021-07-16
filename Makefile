@@ -836,7 +836,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.15.1/$${OS}-$${ARCH}-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.15.2/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
@@ -866,7 +866,7 @@ catalog-build: opm ## Build a catalog image.
 	--bundles $(BUNDLE_IMGS) \
 	--tag $(CATALOG_IMG) \
 	--pull-tool $(IMAGE_TOOL) \
-	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
+	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.2 \
 	--mode semver $(FROM_INDEX_OPT)
 
 # Push the catalog image.
