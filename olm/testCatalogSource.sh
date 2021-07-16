@@ -105,7 +105,7 @@ buildOLMImages() {
       popd || true
 
       # Use operator image in the latest CSV
-      sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
+      sed -i "s|image: quay.io/eclipse/che-operator:next|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
       sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|' "${CSV_FILE}"
     fi
 
@@ -125,7 +125,7 @@ buildOLMImages() {
 
     if [ -n "${OPERATOR_IMAGE}" ]; then
       # Use custom operator image, if set, in the latest CSV
-      sed -i "s|image: quay.io/eclipse/che-operator:nightly|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
+      sed -i "s|image: quay.io/eclipse/che-operator:next|image: ${OPERATOR_IMAGE}|" "${CSV_FILE}"
       echo "[INFO]: Using custom operator image: ${OPERATOR_IMAGE}"
     fi
 
