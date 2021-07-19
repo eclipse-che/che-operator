@@ -48,13 +48,4 @@ resources:
   kind: CheCluster
   path: github.com/eclipse-che/che-operator/api/v2alpha1
   version: v2alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: eclipse.che
-  group: org
-  kind: Memcached
-  path: github.com/eclipse-che/che-operator/api/v1alpha1
-  version: v1alpha1
 version: "3"
