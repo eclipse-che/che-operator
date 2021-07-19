@@ -28,6 +28,19 @@ runTest() {
   source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
+
+    # Dev Workspace controller tests
+  enableDevWorkspaceEngine
+  waitDevWorkspaceControllerStarted
+  waitEclipseCheDeployed "next"
+
+  sleep 10s
+  createWorkspaceDevWorkspaceController
+  waitWorkspaceStartedDevWorkspaceController
+
+  sleep 10s
+  createWorkspaceDevWorkspaceCheOperator
+  waitWorkspaceStartedDevWorkspaceController
 }
 
 initDefaults

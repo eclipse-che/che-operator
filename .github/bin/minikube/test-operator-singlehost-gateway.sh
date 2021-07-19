@@ -37,6 +37,19 @@ runTest() {
   deployEclipseCheWithTemplates "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
   startNewWorkspace
   waitWorkspaceStart
+
+    # Dev Workspace controller tests
+  enableDevWorkspaceEngine
+  waitDevWorkspaceControllerStarted
+  waitEclipseCheDeployed "next"
+
+  sleep 10s
+  createWorkspaceDevWorkspaceController
+  waitWorkspaceStartedDevWorkspaceController
+
+  sleep 10s
+  createWorkspaceDevWorkspaceCheOperator
+  waitWorkspaceStartedDevWorkspaceController
 }
 
 initDefaults
