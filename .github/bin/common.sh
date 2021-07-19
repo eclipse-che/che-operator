@@ -508,4 +508,5 @@ createWorkspaceDevWorkspaceCheOperator() {
 
 enableDevWorkspaceEngine() {
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"devWorkspace":{"enable": true}}}'
+  kubectl patch checluster/eclipse-che --patch "{\"spec\":{\"server\":{\"customCheProperties\": {\"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S\": \"true\"}}}}" --type=merge -n ${NAMESPACE}
 }
