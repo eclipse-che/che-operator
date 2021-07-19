@@ -12,7 +12,7 @@
 package deploy
 
 import (
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

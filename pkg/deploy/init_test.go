@@ -12,7 +12,7 @@
 package deploy
 
 func init() {
-	err := InitTestDefaultsFromDeployment("../../deploy/operator.yaml")
+	err := InitTestDefaultsFromDeployment("../../config/manager/manager.yaml")
 	if err != nil {
 		panic(err)
 	}

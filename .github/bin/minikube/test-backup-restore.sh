@@ -76,7 +76,7 @@ waitBackupFinished() {
 }
 
 waitRestoreFinished() {
-  maxAttempts=75
+  maxAttempts=130
   count=0
   while [ $count -le $maxAttempts ]; do
     state=$(kubectl get checlusterrestore eclipse-che-restore -n ${NAMESPACE} -o jsonpath='{.status.state}')
@@ -123,7 +123,7 @@ runTest() {
   waitWorkspaceStart
 }
 
-prepareTemplates() {
+patchTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
@@ -131,7 +131,7 @@ prepareTemplates() {
 
 initDefaults
 initLatestTemplates
-prepareTemplates
+patchTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest

@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"strings"
 
-	chev1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

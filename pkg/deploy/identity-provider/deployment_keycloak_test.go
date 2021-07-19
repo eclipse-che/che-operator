@@ -21,7 +21,7 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +56,7 @@ func TestDeployment(t *testing.T) {
 			cpuRequest:    deploy.DefaultIdentityProviderCpuRequest,
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
@@ -69,6 +70,7 @@ func TestDeployment(t *testing.T) {
 			memoryRequest: "150Mi",
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -161,6 +163,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 			},
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
@@ -257,9 +260,10 @@ func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
 	// create certs configmap
 	err = cli.Create(context.TODO(), &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "ca-certs-merged",
-			Namespace:       "eclipse-che",
-			ResourceVersion: "1",
+			Name:      "ca-certs-merged",
+			Namespace: "eclipse-che",
+			// Go client set up resource version 1 itself on object creation.
+			// ResourceVersion: "1",
 		},
 	})
 	if err != nil {
@@ -269,13 +273,30 @@ func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
 	// create self-signed-certificate secret
 	err = cli.Create(context.TODO(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "self-signed-certificate",
-			Namespace:       "eclipse-che",
-			ResourceVersion: "2",
+			Name:      "self-signed-certificate",
+			Namespace: "eclipse-che",
+			// Go client set up resource version 1 itself on object creation.
+			// ResourceVersion: "1",
 		},
 	})
 	if err != nil {
 		t.Fatalf("Failed to create secret: %v", err)
+	}
+
+	caSecret := &corev1.Secret{}
+	err = cli.Get(context.TODO(), types.NamespacedName{
+		Name:      "self-signed-certificate",
+		Namespace: "eclipse-che",
+	}, caSecret)
+	if err != nil {
+		t.Fatalf("Failed to get secret: %v", err)
+	}
+	// Let's really change something. Go client will increment secret resource version itself(from '1' to '2').
+	caSecret.GenerateName = "test"
+
+	err = cli.Update(context.TODO(), caSecret)
+	if err != nil {
+		t.Fatalf("Failed to update secret: %s", err.Error())
 	}
 
 	// sync a new deployment

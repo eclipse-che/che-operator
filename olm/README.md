@@ -9,14 +9,14 @@ OLM packages scripts are using some required dependencies that need to be instal
  - [Operator SDK v0.17.2](https://github.com/operator-framework/operator-sdk/blob/v0.10.0/doc/user/install-operator-sdk.md)
  - [opm](https://github.com/operator-framework/operator-registry/releases/tag/v1.15.1)
 
-WARNING: Please make sure to use the precise `v0.17.2` version of the `operator-sdk`.
+WARNING: Please make sure to use the precise `v1.7.1` version of the `operator-sdk`.
 
 ## Eclipse Che OLM bundles
 
 OLM (operator lifecycle manager) provides ways of installing operators. One of the convenient way how to achieve it is by using OLM bundles. See more about the format: https://github.com/openshift/enhancements/blob/master/enhancements/olm/operator-bundle.md. There two "nightly" platform-specific OLM bundles for Сhe operator:
 
-- `deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests`
-- `deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests`
+- `bundle/nightly/eclipse-che-preview-kubernetes/manifests`
+- `bundle/nightly/eclipse-che-preview-openshift/manifests`
 
 Each bundle consists of a cluster service version file (CSV) and a custom resource definition file (CRD). CRD file describes `checlusters` Kubernetes api resource object(object fields name, format, description and so on). Kubernetes api needs this information to correctly store a custom resource object "checluster". Custom resource object users could modify to change Eclipse Che configuration. Che operator watches `checlusters` object and re-deploy Che with desired configuration. The CSV file contains all "deploy" and "permission" specific information, which OLM needs to install Eclipse Che operator.
 
@@ -87,7 +87,7 @@ export OPERATOR_IMAGE=registry/account/che-operator:tag
 
 ### Testing custom CatalogSource and bundle images on the Kubernetes
 
-To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry. For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
+To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry. For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
 
 To test the latest custom "nightly" bundle:
 
@@ -141,7 +141,7 @@ apiVersion:  operators.coreos.com/v1alpha1
 kind:         CatalogSource
 metadata:
   name:         eclipse-che-preview-custom
-  namespace:    che-namespace
+  namespace:    <che-namespace>
 spec:
   image:        quay.io/eclipse/eclipse-che-<openshift|kubernetes>-opm-catalog:preview
   sourceType:  grpc

@@ -16,14 +16,13 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	oauth "github.com/openshift/api/oauth/v1"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"

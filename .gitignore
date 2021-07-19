@@ -1,5 +1,8 @@
-# Idea
+# Editor and IDE paraphernalia
 .idea/
+*.swp
+*.swo
+*~
 
 # Temporary Build Files
 tmp
@@ -80,7 +83,9 @@ anaconda-mode/
 *.dll
 *.so
 *.dylib
-cmd/manager/__debug_bin
+__debug_bin
+bin
+testbin/*
 
 # Test binary, build with 'go test -c'
 *.test
@@ -109,9 +114,11 @@ tags
 
 build/
 olm/generated
-deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/generated
-deploy/olm-catalog/nightly/eclipse-che-preview-openshift/generated
-deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/generated
-deploy/olm-catalog/stable/eclipse-che-preview-openshift/generated
+bundle/nightly/eclipse-che-preview-kubernetes/generated
+bundle/nightly/eclipse-che-preview-openshift/generated
+bundle/stable/eclipse-che-preview-kubernetes/generated
+bundle/stable/eclipse-che-preview-openshift/generated
 
-# End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
+testbin/setup-envtest.sh
+
+.DS_Store

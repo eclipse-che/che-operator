@@ -14,7 +14,7 @@ package postgres
 import "github.com/eclipse-che/che-operator/pkg/deploy"
 
 func init() {
-	err := deploy.InitTestDefaultsFromDeployment("../../../deploy/operator.yaml")
+	err := deploy.InitTestDefaultsFromDeployment("../../../config/manager/manager.yaml")
 	if err != nil {
 		panic(err)
 	}
