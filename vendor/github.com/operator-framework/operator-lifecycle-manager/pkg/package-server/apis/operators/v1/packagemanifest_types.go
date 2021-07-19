@@ -3,8 +3,8 @@ package v1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	operatorv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"github.com/operator-framework/operator-lifecycle-manager/pkg/lib/version"
+	"github.com/operator-framework/api/pkg/lib/version"
+	operatorv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 )
 
 // PackageManifestList is a list of PackageManifest objects.
@@ -12,7 +12,7 @@ import (
 type PackageManifestList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
+	// +listType=set
 	Items []PackageManifest `json:"items"`
 }
 
@@ -48,6 +48,7 @@ type PackageManifestStatus struct {
 	PackageName string `json:"packageName"`
 
 	// Channels are the declared channels for the package, ala `stable` or `alpha`.
+	// +listType=set
 	Channels []PackageChannel `json:"channels"`
 
 	// DefaultChannel is, if specified, the name of the default channel for the package. The
@@ -88,29 +89,52 @@ type CSVDescription struct {
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Icon is the CSV's base64 encoded icon
+	// +listType=set
 	Icon []Icon `json:"icon,omitempty"`
 
 	// Version is the CSV's semantic version
 	Version version.OperatorVersion `json:"version,omitempty"`
 
 	// Provider is the CSV's provider
-	Provider    AppLink           `json:"provider,omitempty"`
+	Provider AppLink `json:"provider,omitempty"`
+	// +listType=map
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// +listType=set
+	Keywords []string `json:"keywords,omitempty"`
+	// +listType=set
+	Links []AppLink `json:"links,omitempty"`
+	// +listType=set
+	Maintainers []Maintainer `json:"maintainers,omitempty"`
+	Maturity    string       `json:"maturity,omitempty"`
 
 	// LongDescription is the CSV's description
 	LongDescription string `json:"description,omitempty"`
 
 	// InstallModes specify supported installation types
+	// +listType=set
 	InstallModes []operatorv1alpha1.InstallMode `json:"installModes,omitempty"`
 
 	CustomResourceDefinitions operatorv1alpha1.CustomResourceDefinitions `json:"customresourcedefinitions,omitempty"`
 	APIServiceDefinitions     operatorv1alpha1.APIServiceDefinitions     `json:"apiservicedefinitions,omitempty"`
+	NativeAPIs                []metav1.GroupVersionKind                  `json:"nativeApis,omitempty"`
+
+	// Minimum Kubernetes version for operator installation
+	MinKubeVersion string `json:"minKubeVersion,omitempty"`
+
+	// List of related images
+	RelatedImages []string `json:"relatedImages,omitempty"`
 }
 
 // AppLink defines a link to an application
 type AppLink struct {
 	Name string `json:"name,omitempty"`
 	URL  string `json:"url,omitempty"`
+}
+
+// Maintainer defines a project maintainer
+type Maintainer struct {
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
 }
 
 // Icon defines a base64 encoded icon and media type

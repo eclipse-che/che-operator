@@ -15,7 +15,7 @@ import (
 	"context"
 	"os"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -195,7 +195,7 @@ func TestSyncSecretToCluster(t *testing.T) {
 	}
 
 	actual := &corev1.Secret{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get secret: %v", err)
 	}

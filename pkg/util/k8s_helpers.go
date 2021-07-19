@@ -13,10 +13,11 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
-	v1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/sirupsen/logrus"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -105,7 +106,7 @@ func (cl *k8s) GetDeploymentPod(name string, ns string) (podName string, err err
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
-	podList, _ := api.Pods(ns).List(listOptions)
+	podList, _ := api.Pods(ns).List(context.TODO(), listOptions)
 	podListItems := podList.Items
 	if len(podListItems) == 0 {
 		logrus.Errorf("Failed to find pod for component %s. List of pods: %v", name, podListItems)
@@ -123,7 +124,7 @@ func (cl *k8s) GetPodsByComponent(name string, ns string) []string {
 	listOptions := metav1.ListOptions{
 		LabelSelector: "component=" + name,
 	}
-	podList, _ := api.Pods(ns).List(listOptions)
+	podList, _ := api.Pods(ns).List(context.TODO(), listOptions)
 	for _, pod := range podList.Items {
 		names = append(names, pod.Name)
 	}
@@ -133,7 +134,7 @@ func (cl *k8s) GetPodsByComponent(name string, ns string) []string {
 
 // Reads 'user' and 'password' from the given secret
 func (cl *k8s) ReadSecret(name string, ns string) (user string, password string, err error) {
-	secret, err := cl.clientset.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
+	secret, err := cl.clientset.CoreV1().Secrets(ns).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
@@ -180,7 +181,7 @@ func (cl *k8s) IsResourceOperationPermitted(resourceAttr *authorizationv1.Resour
 		},
 	}
 
-	ssar, err := cl.clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(lsar)
+	ssar, err := cl.clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), lsar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}

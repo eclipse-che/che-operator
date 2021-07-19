@@ -83,15 +83,11 @@ jobs:
           git config --global user.email "mkuznets@redhat.com"
           export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
           set -e
+
           OP_SDK_DIR=/opt/operator-sdk
           mkdir -p $OP_SDK_DIR
-          if [[ ${CHE_VERSION%.*} == 7.21 ]];then
-            wget https://github.com/operator-framework/operator-sdk/releases/download/v0.10.0/operator-sdk-v0.10.0-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk
-          else
-            OPERATOR_SDK=$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
-            wget https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK}/operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu -O $OP_SDK_DIR/operator-sdk
-          fi
-          chmod +x $OP_SDK_DIR/operator-sdk
+          make download-operator-sdk OP_SDK_DIR="${OP_SDK_DIR}"
+
           export PATH="$PATH:$OP_SDK_DIR"
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
@@ -114,9 +110,6 @@ jobs:
           # echo "[DEBUG] QUAY_USERNAME_K8S = ${QUAY_USERNAME_K8S} and"
           # echo "[DEBUG] QUAY_USERNAME_OS = ${QUAY_USERNAME_OS}"
 
-          # publish quay applications to:
-          # https://quay.io/application/eclipse-che-operator-kubernetes/eclipse-che-preview-kubernetes?tab=releases and
-          # https://quay.io/application/eclipse-che-operator-openshift/eclipse-che-preview-openshift?tab=releases
           git checkout ${CHE_VERSION}-release
           ./make-release.sh ${CHE_VERSION} --push-olm-bundles
 

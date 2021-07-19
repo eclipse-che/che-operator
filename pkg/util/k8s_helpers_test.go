@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2012-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -12,6 +12,7 @@
 package util
 
 import (
+	"context"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -34,7 +35,7 @@ func fakeClientSet() *k8s {
 func TestGetDeploymentPod(t *testing.T) {
 
 	// create a fake pod
-	_, err := fakeK8s.clientset.CoreV1().Pods(namespace).Create(&corev1.Pod{
+	_, err := fakeK8s.clientset.CoreV1().Pods(namespace).Create(context.TODO(), &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -46,7 +47,7 @@ func TestGetDeploymentPod(t *testing.T) {
 				"component": "postgres",
 			},
 		},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		panic(err)
 	}

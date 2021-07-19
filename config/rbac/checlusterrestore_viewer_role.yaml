@@ -1,0 +1,20 @@
+# permissions for end users to view checlusterrestores.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: checlusterrestore-viewer-role
+rules:
+- apiGroups:
+  - org.eclipse.che
+  resources:
+  - checlusterrestores
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - org.org.eclipse.che
+  resources:
+  - checlusterrestores/status
+  verbs:
+  - get
