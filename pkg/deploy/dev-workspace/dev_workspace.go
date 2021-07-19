@@ -30,7 +30,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,8 +69,6 @@ var (
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceServiceFile                   = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
-	DevWorkspaceIssuerFile                    = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
-	DevWorkspaceCertificateFile               = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
 
 	WebTerminalOperatorSubscriptionName = "web-terminal"
 	WebTerminalOperatorNamespace        = "openshift-operators"
@@ -97,8 +94,6 @@ var (
 		syncDwRoleBinding,
 		syncDwClusterRoleBinding,
 		syncDwProxyClusterRoleBinding,
-		syncDwIssuer,
-		syncDwCertificate,
 		syncDwCRD,
 		syncDwTemplatesCRD,
 		syncDwWorkspaceRoutingCRD,
@@ -240,33 +235,7 @@ func syncDwTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, 	DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
-}
-
-func syncDwIssuer(deployContext *deploy.DeployContext) (bool, error) {
-	if !util.IsOpenShift {
-		// We're using unstructured to not require a direct dependency on the cert-manager
-		// This will cause a failure if cert-manager is not installed, which we're ok with
-		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
-		// In case of cert-manager objects, we don't want that because we would have to depend
-		// on cert manager, which would require us to also update operator-sdk version because cert-manager
-		// uses extension/v1 objects. So, we have to go the unstructured way here...
-		return readAndSyncUnstructured(deployContext, DevWorkspaceIssuerFile)
-	}
-	return true, nil
-}
-
-func syncDwCertificate(deployContext *deploy.DeployContext) (bool, error) {
-	if !util.IsOpenShift {
-		// We're using unstructured to not require a direct dependency on the cert-manager
-		// This will cause a failure if cert-manager is not installed, which we're ok with
-		// Also, our Sync functionality requires the scheme to have the type we want to persist registered.
-		// In case of cert-manager objects, we don't want that because we would have to depend
-		// on cert manager, which would require us to also update operator-sdk version because cert-manager
-		// uses extension/v1 objects. So, we have to go the unstructured way here...
-		return readAndSyncUnstructured(deployContext, DevWorkspaceCertificateFile)
-	}
-	return true, nil
+	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
@@ -307,42 +276,6 @@ func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj
 	}
 
 	return syncObject(deployContext, obj2sync, namespace)
-}
-
-func readAndSyncUnstructured(deployContext *deploy.DeployContext, yamlFile string) (bool, error) {
-	obj := &unstructured.Unstructured{}
-	obj2sync, err := readK8SObject(yamlFile, obj)
-	if err != nil {
-		return false, err
-	}
-
-	return createUnstructured(deployContext, obj2sync.obj.(*unstructured.Unstructured))
-}
-
-func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.Unstructured) (bool, error) {
-	check := &unstructured.Unstructured{}
-	check.SetGroupVersionKind(obj.GroupVersionKind())
-
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			check = nil
-		} else {
-			return false, err
-		}
-	}
-
-	if check == nil {
-		err = deployContext.ClusterAPI.Client.Create(context.TODO(), obj)
-		if err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				return false, nil
-			}
-			return false, err
-		}
-	}
-
-	return true, nil
 }
 
 func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync, namespace string) (bool, error) {

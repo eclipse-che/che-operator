@@ -739,13 +739,3 @@ rules:
     - /metrics
     verbs:
     - get
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - issuers
-      - certificates
-    verbs:
-      - create
-      - get
-      - list
-      - update
