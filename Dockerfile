@@ -38,7 +38,7 @@ RUN curl -sSLo /tmp/asset-devworkspace-operator.zip https://api.github.com/repos
 
 # build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o che-operator main.go
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 RUN unzip /tmp/asset-devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
     mkdir -p /tmp/devworkspace-operator/templates/ && \
