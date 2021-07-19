@@ -711,14 +711,14 @@ type CheClusterStatus struct {
 	DevworkspaceStatus v2alpha1.CheClusterStatusV2Alpha1 `json:"devworkspaceStatus,omitempty"`
 }
 
+// The `CheCluster` custom resource allows defining and managing a Che server installation
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +k8s:openapi-gen=true
 // +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che Cluster"
 // +kubebuilder:storageversion
-
-// The `CheCluster` custom resource allows defining and managing a Che server installation
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -27,8 +27,6 @@ spec:
     - name: v1
       schema:
         openAPIV3Schema:
-          description: CheClusterRestore is the Schema for the checlusterrestores
-            API
           properties:
             apiVersion:
               description: 'APIVersion defines the versioned schema of this representation

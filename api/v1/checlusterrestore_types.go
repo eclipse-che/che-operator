@@ -40,10 +40,13 @@ type CheClusterRestoreStatus struct {
 	State string `json:"state,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// The `CheClusterRestore` custom resource allows defining and managing Eclipse Che restore
 
-// CheClusterRestore is the Schema for the checlusterrestores API
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +k8s:openapi-gen=true
+// +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che Cluster Restore"
 type CheClusterRestore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -18,18 +18,15 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: CheBackupServerConfiguration is the Schema for the chebackupserverconfigurations API
-      displayName: Che Backup Server Configuration
+    - displayName: Eclipse Che Cluster Backup Server Configuration
       kind: CheBackupServerConfiguration
       name: chebackupserverconfigurations.org.eclipse.che
       version: v1
-    - description: CheClusterBackup is the Schema for the checlusterbackups API
-      displayName: Che Cluster Backup
+    - displayName: Eclipse Che Cluster Backup
       kind: CheClusterBackup
       name: checlusterbackups.org.eclipse.che
       version: v1
-    - description: The `CheCluster` custom resource allows defining and managing a Che server installation
-      displayName: Eclipse Che Cluster
+    - displayName: Eclipse Che Cluster
       kind: CheCluster
       name: checlusters.org.eclipse.che
       specDescriptors:
