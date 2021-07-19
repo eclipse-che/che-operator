@@ -77,6 +77,8 @@ spec:
               value: quay.io/eclipse/che-jwtproxy:0.10.0
             - name: RELATED_IMAGE_single_host_gateway
               value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
+            - name: RELATED_IMAGE_single_host_gateway_native_user_mode
+              value: quay.io/eclipse/che--traefik:v2.5.0-rc2-df90799aaca1ad6fb9e06d311140035d2a0c2295a4f8f508f6b55ee056bb677e
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
               value: quay.io/che-incubator/configbump:0.1.4
             - name: RELATED_IMAGE_devworkspace_che_operator

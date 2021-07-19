@@ -464,7 +464,7 @@ func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	if util.IsNativeUserModeEnabled(instance) {
 		traefikPort = 8081
 	}
-		data := fmt.Sprintf(`
+	data := fmt.Sprintf(`
 entrypoints:
   http:
     address: ":%d"
@@ -484,13 +484,13 @@ providers:
 log:
   level: "INFO"`, traefikPort)
 
-		if util.IsNativeUserModeEnabled(instance) {
-			data += `
+	if util.IsNativeUserModeEnabled(instance) {
+		data += `
 experimental:
   localPlugins:
     header-rewrite-proxy:
       moduleName: github.com/che-incubator/header-rewrite-proxy`
-		}
+	}
 
 	return corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
