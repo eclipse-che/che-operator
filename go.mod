@@ -33,7 +33,7 @@ replace (
 	//
 	// So this version is just a commit prior to v0.18.8 (using a commit hash of v0.18.8 itself doesn't work
 	// because go mod "helpfully" replaces it with the tag, which is exactly what we don't want.
-	// 
+	//
 	// The joy!
 	k8s.io/api => k8s.io/api v0.0.0-20200812052025-e70c4f3b2093
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20191016113550-5357c4baaf65
