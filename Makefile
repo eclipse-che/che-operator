@@ -821,7 +821,7 @@ bundle-build: ## Build the bundle image.
 	fi
 	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
 	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
-	docker build --no-cache -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) .
+	docker build -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
