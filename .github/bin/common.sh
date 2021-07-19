@@ -426,8 +426,6 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  kubectl get service -n eclipse-che
-  kubectl get ingress -n eclipse-che
   local oauth=$(kubectl get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
