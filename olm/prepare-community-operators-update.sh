@@ -14,8 +14,9 @@ set -e
 
 CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
-source "${BASE_DIR}/olm/check-yq.sh"
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+PLATFORMS="kubernetes,openshift"
+source "${BASE_DIR}/check-yq.sh"
 
 base_branch="main"
 GITHUB_USER="che-bot"
@@ -27,6 +28,7 @@ while [[ "$#" -gt 0 ]]; do
     '-u'|'--user') GITHUB_USER="$2"; shift 1;;
     '-t'|'--token') GITHUB_TOKEN="$2"; shift 1;;
     '-f'|'--force') FORCE="-f";;
+    '-p'|'--platform') PLATFORMS="$2";shift 1;;
     '-h'|'--help') usage;;
   esac
   shift 1
@@ -53,7 +55,7 @@ Options:
 . ${BASE_DIR}/olm/olm.sh
 installOPM
 
-for platform in 'openshift'
+for platform in $(echo $PLATFORMS | tr "," " ")
 do
   INDEX_IMAGE="quay.io/eclipse/eclipse-che-${platform}-opm-catalog:preview"
   packageName="eclipse-che-preview-${platform}"
