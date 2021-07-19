@@ -159,7 +159,6 @@ func TestNoGatewayForMultiHost(t *testing.T) {
 			t.Fatalf("Wrong error returned.")
 		}
 	}
-
 }
 
 func TestRandomCookieSecret(t *testing.T) {
