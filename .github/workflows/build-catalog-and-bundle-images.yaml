@@ -18,9 +18,9 @@ on:
         description: 'Reason to trigger a build'
         required: false
   schedule:
-  - cron:  '0 21 * * *'
-    branches:
-      - main
+    - cron:  '0 21 * * *'
+      branches:
+        - main
 jobs:
   build-images:
     name: Build
