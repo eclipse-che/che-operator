@@ -137,10 +137,12 @@ type CheClusterSpecServer struct {
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
 	// +optional
 	TlsSupport bool `json:"tlsSupport"`
-	// Use internal cluster SVC names to communicate between components to speed up the traffic and avoid proxy issues.
-	// The default value is `true`.
+	// Deprecated in favor of `disableInternalClusterSVCNames`.
 	// +optional
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
+	// Disable internal cluster SVC names usage to communicate between components to speed up the traffic and avoid proxy issues.
+	// +optional
+	DisableInternalClusterSVCNames *bool `json:"disableInternalClusterSVCNames,omitempty"`
 	// Overrides the container image used in the dashboard deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
@@ -752,4 +754,8 @@ func (c *CheCluster) IsImagePullerSpecEmpty() bool {
 
 func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 	return len(c.Spec.ImagePuller.Spec.Images) == 0
+}
+
+func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
+	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
 }

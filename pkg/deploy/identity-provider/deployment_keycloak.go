@@ -517,7 +517,7 @@ func GetSpecKeycloakDeployment(
 	}
 
 	var enableFixedHostNameProvider string
-	if deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		if cheFlavor == "che" {
 			keycloakURL, err := url.Parse(deployContext.CheCluster.Status.KeycloakURL)
 			if err != nil {

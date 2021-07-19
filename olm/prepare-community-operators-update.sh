@@ -14,10 +14,11 @@ set -e
 
 CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
-source "${BASE_DIR}/olm/check-yq.sh"
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+PLATFORMS="kubernetes,openshift"
+source "${BASE_DIR}/check-yq.sh"
 
-base_branch="master"
+base_branch="main"
 GITHUB_USER="che-bot"
 fork_org="che-incubator"
 
@@ -27,6 +28,7 @@ while [[ "$#" -gt 0 ]]; do
     '-u'|'--user') GITHUB_USER="$2"; shift 1;;
     '-t'|'--token') GITHUB_TOKEN="$2"; shift 1;;
     '-f'|'--force') FORCE="-f";;
+    '-p'|'--platform') PLATFORMS="$2";shift 1;;
     '-h'|'--help') usage;;
   esac
   shift 1
@@ -53,7 +55,7 @@ Options:
 . ${BASE_DIR}/olm/olm.sh
 installOPM
 
-for platform in 'kubernetes' 'openshift'
+for platform in $(echo $PLATFORMS | tr "," " ")
 do
   INDEX_IMAGE="quay.io/eclipse/eclipse-che-${platform}-opm-catalog:preview"
   packageName="eclipse-che-preview-${platform}"
@@ -72,11 +74,22 @@ do
 
   echo "   - Clone the 'community-operators' GitHub repository to temporary folder: ${communityOperatorsLocalGitFolder}"
 
+  if [ "${platform}" == "openshift" ]
+  then
+    GIT_REMOTE_FORK="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${fork_org}/community-operators-prod.git"
+    GIT_REMOTE_FORK_CLEAN="https://github.com/${fork_org}/community-operators-prod.git"
+  fi
   rm -Rf "${communityOperatorsLocalGitFolder}"
   mkdir -p "${communityOperatorsLocalGitFolder}"
   git clone "${GIT_REMOTE_FORK}" "${communityOperatorsLocalGitFolder}" 2>&1 | sed -e 's/^/      /'
   cd "${communityOperatorsLocalGitFolder}"
-  git remote add upstream https://github.com/operator-framework/community-operators.git
+  git remote add upstream https://github.com/k8s-operatorhub/community-operators
+  if [ "${platform}" == "openshift" ]
+  then
+    git remote remove upstream
+    git remote add upstream https://github.com/redhat-openshift-ecosystem/community-operators-prod
+  fi
+  
   git fetch upstream ${base_branch}:upstream/${base_branch}
 
   branch="update-eclipse-che"
@@ -91,12 +104,7 @@ do
   git checkout -b "${branch}" 2>&1 | sed -e 's/^/      /'
   cd "${packageBaseFolderPath}"
 
-  platformSubFolder="community-operators"
-  if [ "${platform}" == "kubernetes" ]
-  then
-    platformSubFolder="upstream-${platformSubFolder}"
-  fi
-
+  platformSubFolder="operators"
   folderToUpdate="${communityOperatorsLocalGitFolder}/${platformSubFolder}/eclipse-che"
   destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
@@ -134,8 +142,8 @@ do
   echo
 
   # NOTE: if you update this file, you need to submit a PR against these two files:
-  # https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/ci.yaml
-  # https://github.com/operator-framework/community-operators/blob/master/upstream-community-operators/eclipse-che/ci.yaml
+  # https://github.com/redhat-openshift-ecosystem/community-operators-prod/blob/main/operators/eclipse-che/ci.yaml
+  # https://github.com/k8s-operatorhub/community-operators/blob/main/operators/eclipse-che/ci.yaml
   echo "   - Replace ci.yaml file"
   cp ${BASE_DIR}/ci.yaml ${folderToUpdate}/ci.yaml
 
@@ -148,8 +156,18 @@ do
   git push ${FORCE} origin "${branch}"
 
   echo
-  template_file="https://raw.githubusercontent.com/operator-framework/community-operators/${base_branch}/docs/pull_request_template.md"
+  template_file="https://raw.githubusercontent.com/k8s-operatorhub/community-operators/${base_branch}/docs/pull_request_template.md"
+  if [ "${platform}" == "openshift" ]
+  then
+    template_file="https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/${base_branch}/docs/pull_request_template.md"
+  fi
   HUB=$(command -v hub 2>/dev/null)
+
+  upstream_org="k8s-operatorhub"
+  if [ "${platform}" == "openshift" ]
+  then
+    upstream_org="redhat-openshift-ecosystem"
+  fi
   if [[ $HUB ]] && [[ -x $HUB ]]; then
     echo "   - Use $HUB to generate PR from template: ${template_file}"
     PRbody=$(curl -sSLo - ${template_file} | \
@@ -158,7 +176,7 @@ do
     lastCommitComment="$(git log -1 --pretty=%B)"
   $HUB pull-request -f -m "${lastCommitComment}
 
-${PRbody}" -b "operator-framework:${base_branch}" -h "${fork_org}:${branch}"
+${PRbody}" -b "${upstream_org}:${base_branch}" -h "${fork_org}:${branch}"
   else
     echo "hub is not installed. Install it from https://hub.github.com/ or submit PR manually using PR template:
 ${template_file}
@@ -173,5 +191,6 @@ cd "${CURRENT_DIR}"
 echo
 echo "Generated pull requests will be here:
 
-https://github.com/operator-framework/community-operators/pulls?q=is%3Apr+%22Update+eclipse-che+operator+for%22+is%3Aopen
+https://github.com/k8s-operatorhub/community-operators/pulls/che-incubator-bot
+https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls/che-incubator-bot
 "

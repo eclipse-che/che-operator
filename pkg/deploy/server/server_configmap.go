@@ -189,7 +189,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	cheAPI := protocol + "://" + cheHost + "/api"
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketEndpoint, webSocketEndpointMinor string
 
-	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
 		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, s.deployContext.CheCluster.Namespace)
 	} else {
 		keycloakInternalURL = keycloakURL
@@ -197,20 +197,20 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 
 	// If there is a devfile registry deployed by operator
 	if !s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+		if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 			devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, s.deployContext.CheCluster.Namespace)
 		} else {
 			devfileRegistryInternalURL = s.deployContext.CheCluster.Status.DevfileRegistryURL
 		}
 	}
 
-	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames && !s.deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
+	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
 		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, s.deployContext.CheCluster.Namespace)
 	} else {
 		pluginRegistryInternalURL = pluginRegistryURL
 	}
 
-	if s.deployContext.CheCluster.Spec.Server.UseInternalClusterSVCNames {
+	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		cheInternalAPI = fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
 		webSocketEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
 		webSocketEndpointMinor = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket-minor", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
