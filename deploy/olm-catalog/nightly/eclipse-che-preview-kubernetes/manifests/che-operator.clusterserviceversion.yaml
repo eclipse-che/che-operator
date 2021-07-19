@@ -98,6 +98,24 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+      - description: The `CheBackupServerConfiguration` custom resource allows defining
+          and managing Eclipse Che Backup Server Configurations
+        displayName: Eclipse Che Cluster Backup Server Configuration
+        kind: CheBackupServerConfiguration
+        name: chebackupserverconfigurations.org.eclipse.che
+        version: v1
+      - description: The `CheClusterBackup` custom resource allows defining and managing
+          Eclipse Che backup
+        displayName: Eclipse Che Cluster Backup
+        kind: CheClusterBackup
+        name: checlusterbackups.org.eclipse.che
+        version: v1
+      - description: The `CheClusterRestore` custom resource allows defining and managing
+          Eclipse Che restore
+        displayName: Eclipse Che Cluster Restore
+        kind: CheClusterRestore
+        name: checlusterrestores.org.eclipse.che
+        version: v1
       - description: The `CheCluster` custom resource allows defining and managing
           a Che server installation
         displayName: Eclipse Che Cluster

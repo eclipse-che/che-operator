@@ -239,6 +239,9 @@ updateNighltyBundle() {
     # copy CR/CRD
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_cr.yaml" "${generateFolder}/crds"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterbackups_crd.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusterrestores_crd.yaml" "${generateFolder}/crds"
 
     # generate a new CSV
     "${OPERATOR_SDK_BINARY}" generate csv \

@@ -24,7 +24,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: CheClusterRestore is the Schema for the checlusterrestores API
+      description: The `CheClusterRestore` custom resource allows defining and managing
+        Eclipse Che restore
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation

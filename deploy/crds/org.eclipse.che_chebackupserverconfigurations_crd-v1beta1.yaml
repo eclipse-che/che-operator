@@ -24,8 +24,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: CheBackupServerConfiguration is the Schema for the chebackupserverconfigurations
-        API
+      description: The `CheBackupServerConfiguration` custom resource allows defining
+        and managing Eclipse Che Backup Server Configurations
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation

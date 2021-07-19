@@ -45,11 +45,11 @@ type CheClusterBackupStatus struct {
 	SnapshotId string `json:"snapshotId,omitempty"`
 }
 
+// The `CheClusterBackup` custom resource allows defining and managing Eclipse Che backup
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// CheClusterBackup is the Schema for the checlusterbackups API
+// +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=checlusterbackups,scope=Namespaced
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Eclipse Che Cluster Backup"
 type CheClusterBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

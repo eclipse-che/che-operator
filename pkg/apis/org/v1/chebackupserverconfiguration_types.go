@@ -109,11 +109,11 @@ type SftpServerConfing struct {
 type CheBackupServerConfigurationStatus struct {
 }
 
+// The `CheBackupServerConfiguration` custom resource allows defining and managing Eclipse Che Backup Server Configurations
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// CheBackupServerConfiguration is the Schema for the chebackupserverconfigurations API
+// +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=chebackupserverconfigurations,scope=Namespaced
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Eclipse Che Cluster Backup Server Configuration"
 type CheBackupServerConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
