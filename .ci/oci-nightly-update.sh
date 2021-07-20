@@ -40,6 +40,7 @@ runTests() {
   # Update Eclipse Che to next and start workspace
   chectl server:update --yes --templates="${TEMPLATES}" --che-operator-image=${OPERATOR_IMAGE}
   waitEclipseCheDeployed "next"
+  ensureAllChePodsAreRunning
   startExistedWorkspace
   waitWorkspaceStart
 }

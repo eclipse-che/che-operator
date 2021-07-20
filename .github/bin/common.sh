@@ -275,6 +275,25 @@ waitEclipseCheDeployed() {
   fi
 }
 
+# Utility to ensure all pods are running in namespace
+ensureAllChePodsAreRunning() {
+  local n=0
+  while [ $n -le 30 ]
+  do
+      CHE_PODS=($(kubectl get pods -n ${NAMESPACE} -o json  | jq -r '.items[] | select(([ .status.conditions[] | select(.type != "Ready") ] | length ) == 1 ) | .metadata.namespace + "/" + .metadata.name'))
+      echo ${#CHE_PODS[@]}
+      if [[ "${#CHE_PODS[@]}" == 0 ]];
+      then
+        echo -e "All Eclipse Che pods are running"
+        break
+      fi
+
+      echo -e "Che pods are not running: $CHE_PODS"
+      n=$(( n+1 ))
+      sleep 5
+  done
+}
+
 updateEclipseChe() {
   local image=$1
   local templates=$2
