@@ -282,7 +282,7 @@ http:
 		data += `
     ` + serviceName + `-header:
       plugin:
-        header-rewrite-traefik-plugin:
+        header-rewrite:
           from: X-Forwarded-Access-Token
           to: Authorization
           prefix: 'Bearer '`
@@ -492,7 +492,7 @@ log:
 		data += `
 experimental:
   localPlugins:
-    header-rewrite-traefik-plugin:
+    header-rewrite:
       moduleName: github.com/che-incubator/header-rewrite-traefik-plugin`
 	}
 
