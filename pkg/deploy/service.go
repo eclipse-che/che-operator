@@ -13,8 +13,6 @@
 package deploy
 
 import (
-	"reflect"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
@@ -27,10 +25,8 @@ const (
 
 var ServiceDefaultDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta"),
-	cmp.Comparer(func(x, y corev1.ServiceSpec) bool {
-		return cmp.Equal(x.Ports, y.Ports, cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort")) &&
-			reflect.DeepEqual(x.Selector, y.Selector)
-	}),
+	cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP"),
+	cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort", "NodePort"),
 }
 
 func SyncServiceToCluster(
