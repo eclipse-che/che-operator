@@ -118,8 +118,6 @@ bundle/nightly/eclipse-che-preview-kubernetes/generated
 bundle/nightly/eclipse-che-preview-openshift/generated
 bundle/stable/eclipse-che-preview-kubernetes/generated
 bundle/stable/eclipse-che-preview-openshift/generated
-/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/generated/*
-/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/generated/*
 
 testbin/setup-envtest.sh
 
