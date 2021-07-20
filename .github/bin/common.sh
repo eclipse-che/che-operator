@@ -453,7 +453,7 @@ EOL
 
 waitDevWorkspaceControllerStarted() {
   n=0
-  while [ $n -le 500 ]
+  while [ $n -le 24 ]
   do
     webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
     if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
