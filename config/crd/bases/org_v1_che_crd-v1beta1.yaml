@@ -70,6 +70,10 @@ spec:
                     NativeUserMode is enabled. See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy]
                     or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
                   type: string
+                gatewayHeaderRewriteSidecarImage:
+                  description: Deprecated. The value of this flag is ignored. Sidecar
+                    functionality is now implemented in Traefik plugin.
+                  type: string
                 identityProviderAdminUserName:
                   description: Overrides the name of the Identity Provider administrator
                     user. Defaults to `admin`.

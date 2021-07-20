@@ -475,6 +475,8 @@ type CheClusterSpecAuth struct {
 	// See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy] or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
 	// +optional
 	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
+	// Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
+	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
