@@ -23,16 +23,20 @@ source "${OPERATOR_REPO}/olm/olm.sh"
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-runTest() {
+overrideDefaults() {
   export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
+}
+
+runTest() {
   source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
 
-    # Dev Workspace controller tests
+  deployCertManager
+
+  # Dev Workspace controller tests
   enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
-  waitEclipseCheDeployed "next"
 
   sleep 10s
   createWorkspaceDevWorkspaceController
@@ -44,6 +48,7 @@ runTest() {
 }
 
 initDefaults
+overrideDefaults
 installOperatorMarketPlace
 insecurePrivateDockerRegistry
 runTest

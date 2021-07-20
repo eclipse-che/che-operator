@@ -37,10 +37,11 @@ runTest() {
   startNewWorkspace
   waitWorkspaceStart
 
-    # Dev Workspace controller tests
+  deployCertManager
+
+  # Dev Workspace controller tests
   enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
-  waitEclipseCheDeployed "next"
 
   sleep 10s
   createWorkspaceDevWorkspaceController

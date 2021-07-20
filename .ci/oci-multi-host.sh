@@ -47,7 +47,6 @@ runTests() {
     # Dev Workspace controller tests
     enableDevWorkspaceEngine
     waitDevWorkspaceControllerStarted
-    waitEclipseCheDeployed "next"
 
     sleep 10s
     createWorkspaceDevWorkspaceController

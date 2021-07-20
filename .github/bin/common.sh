@@ -513,5 +513,11 @@ createWorkspaceDevWorkspaceCheOperator() {
 enableDevWorkspaceEngine() {
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p "{\"spec\":{\"server\":{\"customCheProperties\": {\"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S\": \"true\"}}}}"
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"devWorkspace":{"enable": true}}}'
+}
 
+deployCertManager() {
+  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/installers/cert-manager.yml
+  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n ${NAMESPACE} --timeout=60s
+  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n ${NAMESPACE} --timeout=60s
+  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n ${NAMESPACE} --timeout=60s
 }
