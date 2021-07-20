@@ -49,7 +49,6 @@ runTest() {
 }
 
 initDefaults
-overrideDefaults
 installOperatorMarketPlace
 insecurePrivateDockerRegistry
 runTest
