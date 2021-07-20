@@ -300,11 +300,13 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
 prepare-templates:
+	echo "[INFO] Copying Che Operator ./templates ..."
 	cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
 	cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
 	cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 	cp templates/oauth-provision.sh /tmp/oauth-provision.sh
 	cp templates/keycloak-update.sh /tmp/keycloak-update.sh
+	echo "[INFO] Copying Che Operator ./templates completed."
 
 	# Download Dev Workspace operator templates
 	echo "[INFO] Downloading Dev Workspace operator templates ..."
@@ -337,7 +339,22 @@ create-namespace:
 	kubectl create namespace ${ECLIPSE_CHE_NAMESPACE} || true
 	set -e
 
+.PHONY: apply-cr-crd
 apply-cr-crd:
+	# before applying resources on K8s check if ingress domain corresponds to the current cluster
+	# no OpenShift ingress domain is ignored, so skip it
+	if [ "$$(oc api-resources --api-group='route.openshift.io'  2>&1 | grep -o routes)" != "routes" ]; then
+	export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
+	export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
+	export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
+	export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
+	if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
+		echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
+		echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
+		echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
+	fi
+	fi
+
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1}
