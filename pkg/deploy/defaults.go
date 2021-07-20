@@ -86,7 +86,6 @@ const (
 
 	DefaultServerExposureStrategy           = "multi-host"
 	DefaultKubernetesSingleHostExposureType = "native"
-	DefaultDevworkspaceKubernetesExposureType = "gateway"
 	DefaultOpenShiftSingleHostExposureType  = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
@@ -394,9 +393,6 @@ func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
 		return DefaultOpenShiftSingleHostExposureType
 	}
 
-	if cr.Spec.DevWorkspace.Enable {
-		return DefaultDevworkspaceKubernetesExposureType
-	}
 	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
 }
 
