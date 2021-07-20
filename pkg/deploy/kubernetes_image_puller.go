@@ -39,36 +39,6 @@ type ImageKeyValue struct {
 	value string
 }
 
-// GetImageRepoName returns the image repo name of the provided image
-// Examples:
-// GetImageRepoName("quay.io/test/test:tag") returns "quay.io/test/test"
-// GetImageRepoName("quay.io/test/test@sha256:abcdef") returns "quay.io/test/test"
-func GetImageRepoName(image string) string {
-	repoName := image
-	colonIndex := strings.Index(image, ":")
-	if colonIndex >= 0 {
-		repoName = repoName[:colonIndex]
-	}
-
-	atIndex := strings.Index(repoName, "@")
-	if atIndex >= 0 {
-		repoName = repoName[:atIndex]
-	}
-	return repoName
-}
-
-// GetImageTag returns the tag of the provided image
-// Examples:
-// GetImageTag("quay.io/test/test:tag") returns "tag"
-// GetImageTag("quay.io/test/test@sha256:abcdef") returns "abcdef"
-func GetImageTag(image string) string {
-	lastIndex := strings.LastIndex(image, ":")
-	if lastIndex >= 0 {
-		return image[lastIndex+1:]
-	}
-	return ""
-}
-
 // Reconcile the imagePuller section of the CheCluster CR.  If imagePuller.enable is set to true, install the Kubernetes Image Puller operator and create
 // a KubernetesImagePuller CR.  Add a finalizer to the CheCluster CR.  If false, remove the KubernetesImagePuller CR, uninstall the operator, and remove the finalizer.
 func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
@@ -477,7 +447,7 @@ func StringToImageSlice(imagesString string) []ImageKeyValue {
 	for _, image := range currentImages {
 		nameAndImage := strings.Split(image, "=")
 		if len(nameAndImage) != 2 {
-			logrus.Printf("Malformed image name/tag: %s. Ignoring.", image)
+			logrus.Warnf("Malformed image name/tag: %s. Ignoring.", image)
 			continue
 		}
 		images = append(images, ImageKeyValue{key: nameAndImage[0], value: nameAndImage[1]})
@@ -486,8 +456,9 @@ func StringToImageSlice(imagesString string) []ImageKeyValue {
 	return images
 }
 
+// GetDefaultImages returns the current default images from the environment variables
 func GetDefaultImages() []ImageKeyValue {
-	imageVars := []ImageKeyValue{}
+	images := []ImageKeyValue{}
 	imagePatterns := [...]string{
 		"^RELATED_IMAGE_.*_plugin_java8$",
 		"^RELATED_IMAGE_.*_plugin_java11$",
@@ -509,10 +480,10 @@ func GetDefaultImages() []ImageKeyValue {
 		matches := util.GetEnvByRegExp(pattern)
 		for _, match := range matches {
 			match.Name = match.Name[len("RELATED_IMAGE_"):]
-			imageVars = append(imageVars, ImageKeyValue{key: match.Name, value: match.Value})
+			images = append(images, ImageKeyValue{key: match.Name, value: match.Value})
 		}
 	}
-	return imageVars
+	return images
 }
 
 // Convert input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
@@ -572,8 +543,8 @@ func GetExpectedKubernetesImagePuller(ctx *DeployContext) *chev1alpha1.Kubernete
 // UpdateDefaultImagesIfNeeded updates the default images from `spec.images` if needed
 func UpdateDefaultImagesIfNeeded(ctx *DeployContext) error {
 	specImages := StringToImageSlice(ctx.CheCluster.Spec.ImagePuller.Spec.Images)
-	csvDefaultImages := GetDefaultImages()
-	if UpdateSpecDefaults(csvDefaultImages, specImages) {
+	defaultImages := GetDefaultImages()
+	if UpdateSpecImages(specImages, defaultImages) {
 		defaultImageString := ImageSliceToString(specImages)
 		ctx.CheCluster.Spec.ImagePuller.Spec.Images = defaultImageString
 		return UpdateCheCRSpec(ctx, "Kubernetes Image Puller default images", defaultImageString)
@@ -581,16 +552,19 @@ func UpdateDefaultImagesIfNeeded(ctx *DeployContext) error {
 	return nil
 }
 
-// UpdateSpecDefaults returns true if the default images from `spec.images` were updated
+// UpdateSpecImages returns true if the default images from `spec.images` were updated
+// with new defaults
 //
-// csvDefaultImages contains the default images defined in the CSV file
 // specImages contains the images in `spec.images`
-func UpdateSpecDefaults(csvDefaultImages []ImageKeyValue, specImages []ImageKeyValue) bool {
+// defaultImages contains the current default images from the environment variables
+func UpdateSpecImages(specImages []ImageKeyValue, defaultImages []ImageKeyValue) bool {
 	match := false
 	for i, specImage := range specImages {
-		for _, defaultImage := range csvDefaultImages {
+		specImageName, specImageTag := util.GetImageNameAndTag(specImage.value)
+		for _, defaultImage := range defaultImages {
+			defaultImageName, defaultImageTag := util.GetImageNameAndTag(defaultImage.value)
 			// if the image tags are different for this image, then update
-			if GetImageRepoName(defaultImage.value) == GetImageRepoName(specImage.value) && GetImageTag(defaultImage.value) != GetImageTag(specImage.value) {
+			if defaultImageName == specImageName && defaultImageTag != specImageTag {
 				match = true
 				specImages[i].value = defaultImage.value
 				break

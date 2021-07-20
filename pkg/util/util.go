@@ -439,6 +439,39 @@ func GetArchitectureDependentEnv(env string) string {
 	return env
 }
 
+// GetImageNameAndTag returns the image repository and tag name from the provided image
+//
+// Referenced from https://github.com/che-incubator/chectl/blob/main/src/util.ts
+func GetImageNameAndTag(image string) (string, string) {
+	var imageName, imageTag string
+	if strings.Contains(image, "@") {
+		// Image is referenced via a digest
+		index := strings.Index(image, "@")
+		imageName = image[:index]
+		imageTag = image[index+1:]
+	} else {
+		// Image is referenced via a tag
+		lastColonIndex := strings.LastIndex(image, ":")
+		if lastColonIndex == -1 {
+			imageName = image
+			imageTag = "latest"
+		} else {
+			beforeLastColon := image[:lastColonIndex]
+			afterLastColon := image[lastColonIndex+1:]
+			if strings.Contains(afterLastColon, "/") {
+				// The colon is for registry port and not for a tag
+				imageName = image
+				imageTag = "latest"
+			} else {
+				// The colon separates image name from the tag
+				imageName = beforeLastColon
+				imageTag = afterLastColon
+			}
+		}
+	}
+	return imageName, imageTag
+}
+
 // NewBoolPointer returns `bool` pointer to value in the memory.
 // Unfortunately golang hasn't got syntax to create `bool` pointer.
 func NewBoolPointer(value bool) *bool {
