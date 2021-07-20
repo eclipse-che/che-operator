@@ -11,6 +11,12 @@
 #
 name: Build catalog and bundle images
 on:
+  # manual trigger if required
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason to trigger a build'
+        required: false
   schedule:
     - cron:  '0 21 * * *'
       branches:
