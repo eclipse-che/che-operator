@@ -240,7 +240,7 @@ func syncDwTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, 	DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
+	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwIssuer(deployContext *deploy.DeployContext) (bool, error) {

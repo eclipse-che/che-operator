@@ -23,11 +23,8 @@ source "${OPERATOR_REPO}/olm/olm.sh"
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-overrideDefaults() {
-  export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
-}
-
 runTest() {
+  export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
   source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
