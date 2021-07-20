@@ -24,7 +24,6 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,12 +50,8 @@ var (
 	serviceAccountDiffOpts = cmpopts.IgnoreFields(corev1.ServiceAccount{}, "TypeMeta", "ObjectMeta", "Secrets", "ImagePullSecrets")
 	roleDiffOpts           = cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta")
 	roleBindingDiffOpts    = cmpopts.IgnoreFields(rbac.RoleBinding{}, "TypeMeta", "ObjectMeta")
-	serviceDiffOpts        = cmp.Options{
-		cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta", "Status"),
-		cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP"),
-	}
-	configMapDiffOpts = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
-	secretDiffOpts    = cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta")
+	configMapDiffOpts      = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
+	secretDiffOpts         = cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta")
 )
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
@@ -119,7 +114,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 	}
 
 	service := getGatewayServiceSpec(instance)
-	if _, err := deploy.Sync(deployContext, &service, serviceDiffOpts); err != nil {
+	if _, err := deploy.Sync(deployContext, &service, deploy.ServiceDefaultDiffOpts); err != nil {
 		return err
 	}
 
