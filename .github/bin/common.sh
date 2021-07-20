@@ -469,7 +469,8 @@ waitDevWorkspaceControllerStarted() {
 
   echo "[ERROR] Failed to deploy Dev Workspace controller"
   OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
-  oc logs ${OPERATOR_POD} -n ${NAMESPACE}
+  oc logs ${OPERATOR_POD} -c che-operator -n ${NAMESPACE}
+  oc logs ${OPERATOR_POD} -c devworkspace-che-operator -n ${NAMESPACE}
 
   exit 1
 }
