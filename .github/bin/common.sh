@@ -493,7 +493,8 @@ waitWorkspaceStartedDevWorkspaceController() {
       echo "[INFO] Workspace started succesfully"
       return
     fi
-
+    echo "[INFO] waitWorkspaceStartedDevWorkspaceController"
+    kubectl get pods -n ${NAMESPACE}
     sleep 5
     n=$(( n+1 ))
   done
