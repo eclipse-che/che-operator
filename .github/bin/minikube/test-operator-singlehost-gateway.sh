@@ -38,6 +38,10 @@ runTest() {
   startNewWorkspace
   waitWorkspaceStart
 
+  # stop workspace to free some resources
+  stopExistedWorkspace
+  waitExistedWorkspaceStop
+
   deployCertManager
 
   # Dev Workspace controller tests
@@ -46,11 +50,11 @@ runTest() {
 
   sleep 10s
   createWorkspaceDevWorkspaceController
-  waitWorkspaceStartedDevWorkspaceController
+  waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 
   sleep 10s
   createWorkspaceDevWorkspaceCheOperator
-  waitWorkspaceStartedDevWorkspaceController
+  waitAllPodsRunning ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
 }
 
 initDefaults
