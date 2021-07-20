@@ -453,13 +453,15 @@ EOL
 
 waitDevWorkspaceControllerStarted() {
   n=0
-  while [ $n -le 24 ]
+  while [ $n -le 40 ]
   do
     webhooks=$(oc get mutatingWebhookConfiguration --all-namespaces)
     if [[ $webhooks =~ .*controller.devfile.io.* ]]; then
       echo "[INFO] Dev Workspace controller has been deployed"
       return
     fi
+    echo "[INFO] waitDevWorkspaceControllerStarted"
+    kubectl get pods -n ${NAMESPACE}
 
     sleep 5
     n=$(( n+1 ))
