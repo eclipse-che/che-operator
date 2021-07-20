@@ -282,7 +282,7 @@ http:
 		data += `
     ` + serviceName + `-header:
       plugin:
-        header-rewrite-proxy:
+        header-rewrite-traefik-plugin:
           from: X-Forwarded-Access-Token
           to: Authorization
           prefix: 'Bearer '`
@@ -433,13 +433,17 @@ func generateRandomCookieSecret() []byte {
 }
 
 func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev1.ConfigMap, error) {
-	headerRewrite, err := ioutil.ReadFile("/tmp/header-rewrite-proxy/headerRewrite.go")
+	headerRewrite, err := ioutil.ReadFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
 	if err != nil {
-		return nil, err
+		if !util.IsTestMode() {
+			return nil, err
+		}
 	}
-	pluginMeta, err := ioutil.ReadFile("/tmp/header-rewrite-proxy/.traefik.yml")
+	pluginMeta, err := ioutil.ReadFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
 	if err != nil {
-		return nil, err
+		if !util.IsTestMode() {
+			return nil, err
+		}
 	}
 
 	return &corev1.ConfigMap{
@@ -448,7 +452,7 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config-header-rewrite-plugin",
+			Name:      "che-gateway-config-header-rewrite-traefik-plugin",
 			Namespace: instance.Namespace,
 			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
@@ -488,8 +492,8 @@ log:
 		data += `
 experimental:
   localPlugins:
-    header-rewrite-proxy:
-      moduleName: github.com/che-incubator/header-rewrite-proxy`
+    header-rewrite-traefik-plugin:
+      moduleName: github.com/che-incubator/header-rewrite-traefik-plugin`
 	}
 
 	return corev1.ConfigMap{
@@ -640,8 +644,8 @@ func getTraefikContainerVolumeMounts(instance *orgv1.CheCluster) []corev1.Volume
 	}
 	if util.IsNativeUserModeEnabled(instance) {
 		mounts = append(mounts, corev1.VolumeMount{
-			Name:      "header-rewrite-plugin",
-			MountPath: "/plugins-local/src/github.com/che-incubator/header-rewrite-proxy",
+			Name:      "header-rewrite-traefik-plugin",
+			MountPath: "/plugins-local/src/github.com/che-incubator/header-rewrite-traefik-plugin",
 		})
 	}
 
@@ -681,11 +685,11 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 		})
 
 		volumes = append(volumes, corev1.Volume{
-			Name: "header-rewrite-plugin",
+			Name: "header-rewrite-traefik-plugin",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config-header-rewrite-plugin",
+						Name: "che-gateway-config-header-rewrite-traefik-plugin",
 					},
 				},
 			},

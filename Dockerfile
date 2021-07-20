@@ -15,7 +15,7 @@ ENV GOPATH=/go/
 ENV RESTIC_TAG=v0.12.0
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
 ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
-ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="traefikPlugin"
+ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 USER root
 
 # upstream, download zips for every build
@@ -25,7 +25,7 @@ RUN mkdir -p $GOPATH/restic && \
     cd $GOPATH/restic && go mod vendor && \
     curl -sSLo /tmp/asset-devworkspace-operator.zip https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} && \
     curl -sSLo /tmp/asset-devworkspace-che-operator.zip https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} && \
-    curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip https://api.github.com/repos/sparkoo/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}
+    curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}
 
 WORKDIR /che-operator
 # Copy the Go Modules manifests

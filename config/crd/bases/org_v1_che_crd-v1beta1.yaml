@@ -70,10 +70,6 @@ spec:
                     NativeUserMode is enabled. See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy]
                     or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
                   type: string
-                gatewayHeaderRewriteSidecarImage:
-                  description: Header Rewrite Proxy sidecar image is used to properly
-                    set authorization header. See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
-                  type: string
                 identityProviderAdminUserName:
                   description: Overrides the name of the Identity Provider administrator
                     user. Defaults to `admin`.
