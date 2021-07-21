@@ -199,7 +199,7 @@ var (
 			Name: "cluster",
 		},
 	}
-	defaultImagePullerImages = ""
+	defaultImagePullerImages string
 )
 
 func init() {
@@ -211,7 +211,8 @@ func init() {
 			os.Setenv(env.Name, env.Value)
 		}
 	}
-	defaultImagePullerImages = "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";che-workspace-plugin-broker-artifacts=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts") + ";"
+	defaultImagePullerImages = "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") +
+		";che-workspace-plugin-broker-artifacts=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts") + ";"
 }
 
 func TestCaseAutoDetectOAuth(t *testing.T) {
