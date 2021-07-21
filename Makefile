@@ -417,7 +417,7 @@ update-roles:
 	https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
 	)
 
-	# Updates cluster_role.yaml based on DW and DWCO roles
+	# Updates cluster_role.yaml based on DW roles
 	## Removes old cluster roles
 	cat config/rbac/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/cluster_role.yaml.tmp
 	mv config/rbac/cluster_role.yaml.tmp config/rbac/cluster_role.yaml
