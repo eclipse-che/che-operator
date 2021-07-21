@@ -300,6 +300,16 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+      - certificates
+    verbs:
+      - create
+      - get
+      - list
+      - update
   ### CHE-OPERATOR ROLES ONLY: END
   # devworkspace-controller-view-workspaces.ClusterRole.yaml
   - apiGroups:
@@ -739,13 +749,3 @@ rules:
     - /metrics
     verbs:
     - get
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - issuers
-      - certificates
-    verbs:
-      - create
-      - get
-      - list
-      - update

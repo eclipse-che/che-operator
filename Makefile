@@ -532,6 +532,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
 	fi
 
+	# Remove roles for kubernetes bundle
 	YAML_CONTENT=$$(cat "$${NEW_CSV}")
 	if [ $${platform} = "kubernetes" ]; then
 		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
@@ -565,6 +566,32 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']')
 					case $${apiGroup} in *openshift.io)
 						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
+						j=$$((j-1))
+						i=$$((i-1))
+						break
+						;;
+					esac;
+					j=$$((i+1))
+				done
+			fi
+			i=$$((i+1))
+		done
+	fi
+	echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
+
+	# Remove roles for openshift bundle
+	YAML_CONTENT=$$(cat "$${NEW_CSV}")
+	if [ $${platform} = "openshift" ]; then
+		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
+		i=0
+		while [ "$${i}" -lt "$${clusterPermLength}" ]; do
+			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
+			if [ "$${apiGroupLength}" -gt 0 ]; then
+				j=0
+				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
+					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
+					case $${apiGroup} in cert-manager.io)
+						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
 						j=$$((j-1))
 						i=$$((i-1))
 						break

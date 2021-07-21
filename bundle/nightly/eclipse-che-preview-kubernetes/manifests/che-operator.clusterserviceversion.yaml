@@ -471,6 +471,16 @@ spec:
                 - list
                 - watch
             - apiGroups:
+                - cert-manager.io
+              resources:
+                - issuers
+                - certificates
+              verbs:
+                - create
+                - get
+                - list
+                - update
+            - apiGroups:
                 - workspace.devfile.io
               resources:
                 - devworkspaces

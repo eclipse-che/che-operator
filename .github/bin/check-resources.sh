@@ -77,16 +77,13 @@ checkCRDs() {
 
 checkNightlyOlmBundle() {
   # files to check
-  local CSV_FILE_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  local CSV_FILE_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-  local CRD_FILE_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
-  local CRD_FILE_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+  local CSV_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests"
+  local CSV_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests"
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
-  if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
-     [[ " ${changedFiles[*]} " =~ $CRD_FILE_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CRD_FILE_OPENSHIFT ]]; then
+  if [[ " ${changedFiles[*]} " =~ $CSV_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update-resources -s' to regenerate CSV/CRD files."
+    echo "[ERROR] Run 'make update-resources -s' to regenerate nightly bundle files."
     exit 1
   else
     echo "[INFO] Nightly bundles are up to date."
@@ -109,22 +106,22 @@ checkDockerfile() {
 
 checkOperatorYaml() {
   # files to check
-  local OperatorYaml="config/manager/manager.yaml"
+  local managerYaml="config/manager/manager.yaml"
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
-  if [[ " ${changedFiles[*]} " =~ $OperatorYaml ]]; then
-    echo "[ERROR] $OperatorYaml is not up to date"
-    echo "[ERROR] Run 'make update-resources -s' to update $OperatorYaml"
+  if [[ " ${changedFiles[*]} " =~ $managerYaml ]]; then
+    echo "[ERROR] $managerYaml is not up to date"
+    echo "[ERROR] Run 'make update-resources -s' to update $managerYaml"
     exit 1
   else
-    echo "[INFO] $OperatorYaml is up to date."
+    echo "[INFO] $managerYaml is up to date."
   fi
 }
 
 checkRoles() {
   # files to check
-  local RoleYaml="deploy/role.yaml"
-  local ClusterRoleYaml="deploy/cluster_role.yaml"
+  local RoleYaml="config/rbac/role.yaml"
+  local ClusterRoleYaml="config/rbac/cluster_role.yaml"
 
   changedFiles=(
     $(git diff --name-only)
