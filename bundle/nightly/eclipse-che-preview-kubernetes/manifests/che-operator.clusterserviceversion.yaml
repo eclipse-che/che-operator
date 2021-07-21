@@ -289,6 +289,18 @@ spec:
               verbs:
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - get
+                - delete
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -422,6 +434,14 @@ spec:
                 - create
                 - delete
                 - list
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - list
+                - create
+                - delete
             - apiGroups:
                 - ""
               resources:
@@ -682,6 +702,19 @@ spec:
                 - create
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -694,6 +727,18 @@ spec:
                 - list
                 - update
                 - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
+                - create
             - apiGroups:
                 - workspace.devfile.io
               resources:
@@ -844,6 +889,19 @@ spec:
                 - create
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -856,6 +914,18 @@ spec:
                 - list
                 - update
                 - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
+                - create
             - nonResourceURLs:
                 - /metrics
               verbs:

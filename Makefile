@@ -544,9 +544,12 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
 					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
 					case $${apiGroup} in *openshift.io)
-						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-						j=$$((j-1))
-						i=$$((i-1))
+						# Permissions needed for DevWorkspace
+						if [ "$${apiGroup}" != "route.openshift.io" ] && [ "$${apiGroup}" != oauth.openshift.io ]; then
+							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
+							j=$$((j-1))
+							i=$$((i-1))
+						fi
 						break
 						;;
 					esac;
