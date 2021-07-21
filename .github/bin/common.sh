@@ -37,6 +37,8 @@ initDefaults() {
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
   export DEV_WORKSPACE_ENABLE="false"
+  export DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE=devworkspace-controller-test
+  export DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE=devworkspace-cheoperator-test
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -282,8 +284,8 @@ updateEclipseChe() {
   chectl server:update --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
 }
 
+# Create and start a workspace
 startNewWorkspace() {
-  # Create and start a workspace
   sleep 5s
   login
   chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
@@ -466,46 +468,66 @@ waitDevWorkspaceControllerStarted() {
   done
 
   echo "[ERROR] Failed to deploy Dev Workspace controller"
+
   OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
-  oc logs ${OPERATOR_POD} -n ${NAMESPACE}
+  oc logs ${OPERATOR_POD} -c che-operator -n ${NAMESPACE}
+  oc logs ${OPERATOR_POD} -c devworkspace-che-operator -n ${NAMESPACE}
 
   exit 1
 }
 
 createWorkspaceDevWorkspaceController () {
+  oc create namespace $DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE
+  sleep 10s
+
   echo -e "[INFO] Waiting for webhook-server to be running"
   CURRENT_TIME=$(date +%s)
   ENDTIME=$(($CURRENT_TIME + 180))
   while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}; then
+      if oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}; then
           break
       fi
       sleep 10
   done
 }
 
-waitWorkspaceStartedDevWorkspaceController() {
+waitAllPodsRunning() {
+  echo "[INFO] Wait for running all pods"
+  local namespace=$1
+
   n=0
   while [ $n -le 24 ]
   do
-    pods=$(oc get pods -n ${NAMESPACE})
+    pods=$(oc get pods -n ${namespace})
     if [[ $pods =~ .*Running.* ]]; then
-      echo "[INFO] Workspace started succesfully"
       return
     fi
 
+    kubectl get pods -n ${namespace}
     sleep 5
     n=$(( n+1 ))
   done
 
-  echo "Failed to start a workspace"
+  echo "Failed to run pods in ${namespace}"
   exit 1
 }
 
 createWorkspaceDevWorkspaceCheOperator() {
-  oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}
+  oc create namespace ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
+  sleep 10s
+  oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
 }
 
 enableDevWorkspaceEngine() {
+  kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p "{\"spec\":{\"server\":{\"customCheProperties\": {\"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S\": \"true\"}}}}"
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"devWorkspace":{"enable": true}}}'
+}
+
+deployCertManager() {
+  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/installers/cert-manager.yml
+  sleep 10s
+
+  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=60s
+  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=60s
+  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=60s
 }

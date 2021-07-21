@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.34.0-266.nightly
+  name: eclipse-che-preview-kubernetes.v7.34.0-267.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -289,6 +289,18 @@ spec:
               verbs:
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - get
+                - delete
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -423,6 +435,14 @@ spec:
                 - delete
                 - list
             - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
                 - ""
               resources:
                 - events
@@ -470,6 +490,16 @@ spec:
                 - get
                 - list
                 - watch
+            - apiGroups:
+                - cert-manager.io
+              resources:
+                - issuers
+                - certificates
+              verbs:
+                - create
+                - get
+                - list
+                - update
             - apiGroups:
                 - workspace.devfile.io
               resources:
@@ -672,6 +702,19 @@ spec:
                 - create
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -684,6 +727,18 @@ spec:
                 - list
                 - update
                 - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
+                - create
             - apiGroups:
                 - workspace.devfile.io
               resources:
@@ -834,6 +889,19 @@ spec:
                 - create
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -846,6 +914,18 @@ spec:
                 - list
                 - update
                 - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
+                - create
             - nonResourceURLs:
                 - /metrics
               verbs:
@@ -1219,4 +1299,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.34.0-266.nightly
+  version: 7.34.0-267.nightly
