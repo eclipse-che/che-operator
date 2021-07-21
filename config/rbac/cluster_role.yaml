@@ -301,6 +301,101 @@ rules:
       - list
       - watch
   - apiGroups:
+      - cert-manager.io
+    resources:
+      - issuers
+      - certificates
+    verbs:
+      - create
+      - get
+      - list
+      - update
+  ### CHE-OPERATOR ROLES ONLY: END
+  # devworkspace-controller-view-workspaces.ClusterRole.yaml
+  - apiGroups:
+    - workspace.devfile.io
+    resources:
+    - devworkspaces
+    - devworkspacetemplates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - controller.devfile.io
+    resources:
+    - devworkspaceroutings
+    - components
+    verbs:
+    - get
+    - list
+    - watch
+  # devworkspace-controller-edit-workspaces.ClusterRole.yaml
+  - apiGroups:
+    - workspace.devfile.io
+    resources:
+    - devworkspaces
+    - devworkspacetemplates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  - apiGroups:
+    - controller.devfile.io
+    resources:
+    - devworkspaceroutings
+    - components
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - patch
+    - update
+  # devworkspace-controller-leader-election-role.Role.yaml
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps/status
+    verbs:
+    - get
+    - update
+    - patch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+  # devworkspace-controller-proxy-role.ClusterRole.yaml
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  # devworkspace-controller-role.ClusterRole.yaml
+  - apiGroups:
     - ""
     resources:
     - configmaps

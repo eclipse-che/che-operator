@@ -34,24 +34,23 @@ overrideDefaults() {
 }
 
 runTests() {
-    # create namespace
-    oc create namespace eclipse-che || true
+  # create namespace
+  oc create namespace eclipse-che || true
 
-    # Deploy Eclipse Che applying CR
-    applyOlmCR
-    waitEclipseCheDeployed "next"
-    provisionOAuth
-    startNewWorkspace
-    waitWorkspaceStart
+  # Deploy Eclipse Che applying CR
+  applyOlmCR
+  waitEclipseCheDeployed "next"
+  provisionOAuth
+  startNewWorkspace
+  waitWorkspaceStart
 
-    # Dev Workspace controller tests
-    enableDevWorkspaceEngine
-    waitDevWorkspaceControllerStarted
-    waitEclipseCheDeployed "next"
+  # Dev Workspace controller tests
+  enableDevWorkspaceEngine
+  waitDevWorkspaceControllerStarted
 
-    sleep 10s
-    createWorkspaceDevWorkspaceController
-    waitWorkspaceStartedDevWorkspaceController
+  sleep 10s
+  createWorkspaceDevWorkspaceController
+  waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 }
 
 initDefaults

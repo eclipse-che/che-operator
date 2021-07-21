@@ -47,11 +47,10 @@ runTests() {
     # Dev Workspace controller tests
     enableDevWorkspaceEngine
     waitDevWorkspaceControllerStarted
-    waitEclipseCheDeployed "next"
 
     sleep 10s
     createWorkspaceDevWorkspaceController
-    waitWorkspaceStartedDevWorkspaceController
+    waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 }
 
 initDefaults

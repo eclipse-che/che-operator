@@ -74,24 +74,32 @@ CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse
 CATALOG_TAG="preview"
 CATALOG_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${platform}-opm-catalog:${CATALOG_TAG}"
 
+# Validate and set up ${fromIndexImage} argument
+if [ -n "${fromIndexImage}" ]; then
+  INDEX_CATALOG_EXISTS=$(skopeo inspect docker://${fromIndexImage} 2>/dev/null | jq -r ".RepoTags[]")
+  if [ -z "${INDEX_CATALOG_EXISTS}" ]; then
+    echo "[ERROR] 'from' index image ${fromIndexImage} is not avaliable in the image registry."
+    exit 1
+  fi
+else
+  CATALOG_EXISTS=$(skopeo inspect docker://${CATALOG_IMAGE} 2>/dev/null | jq -r ".RepoTags[]")
+  if [ -n "${CATALOG_EXISTS}" ]; then
+    echo "[INFO] Set up 'from' index image argument: ${CATALOG_IMAGE} to save previous bundles."
+    fromIndexImage="${CATALOG_IMAGE}"
+  fi
+fi
+
 CHECK_BUNDLE_TAG=$(skopeo inspect docker://${CATALOG_BUNDLE_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${BUNDLE_TAG}\")")
 if [[ -z "$CHECK_BUNDLE_TAG" ]] || [[ "${forceBuildAndPush}" == "true" ]]; then
   buildBundleImage "${platform}" "${CATALOG_BUNDLE_IMAGE}" "${channel}" "docker"
 
   if [ -n "${fromIndexImage}" ]; then
     buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}"  "${fromIndexImage}"
-    echo "[INFO] Done."
-    exit 0
-  fi
-
-  CHECK_CATALOG_TAG=$(skopeo inspect docker://${CATALOG_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${CATALOG_TAG}\")")
-  if [ -z "${CHECK_CATALOG_TAG}" ]; then
-    buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}"
   else
-    buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}" "${CATALOG_IMAGE}"
+    buildCatalogImage "${CATALOG_IMAGE}" "${CATALOG_BUNDLE_IMAGE}" "docker" "${forceBuildAndPush}"
   fi
 else
-    echo "[INFO] Bundle ${CATALOG_BUNDLE_IMAGE} is already pushed to the image registry"
+    echo "[WARN] Bundle ${CATALOG_BUNDLE_IMAGE} is already pushed to the image registry. Rebuild bundle and catalog source images was skipped. Use '-f true' argument to force it."
 fi
 
 echo "[INFO] Done."

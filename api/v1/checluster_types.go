@@ -475,8 +475,7 @@ type CheClusterSpecAuth struct {
 	// See link:https://github.com/brancz/kube-rbac-proxy[kube-rbac-proxy] or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
 	// +optional
 	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
-	// Header Rewrite Proxy sidecar image is used to properly set authorization header.
-	// See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
+	// Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
 	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
 }
 

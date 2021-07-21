@@ -14,7 +14,17 @@ FROM registry.access.redhat.com/ubi8/go-toolset:1.15.13-4 as builder
 ENV GOPATH=/go/
 ENV RESTIC_TAG=v0.12.0
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
+ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 USER root
+
+# upstream, download zips for every build
+# downstream, copy prefetched asset-*.zip into /tmp, and collect vendored sources for restic too
+RUN mkdir -p $GOPATH/restic && \
+    curl -sSLo- https://api.github.com/repos/restic/restic/tarball/${RESTIC_TAG} | tar --strip-components=1 -xz -C $GOPATH/restic && \
+    cd $GOPATH/restic && go mod vendor && \
+    curl -sSLo /tmp/asset-devworkspace-operator.zip https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} && \
+    curl -sSLo /tmp/asset-devworkspace-che-operator.zip https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} && \
+    curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}
 
 WORKDIR /che-operator
 # Copy the Go Modules manifests
@@ -29,26 +39,21 @@ COPY templates/ templates/
 COPY pkg/ pkg/
 COPY vendor/ vendor/
 
-# upstream, download zips for every build
-# downstream, copy prefetched asset-*.zip into /tmp
-RUN curl -sSLo /tmp/asset-devworkspace-operator.zip https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} && \
-    curl -sSLo /tmp/asset-devworkspace-che-operator.zip https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} && \
-    curl -sSLo /tmp/asset-restic.zip https://api.github.com/repos/restic/restic/zipball/${RESTIC_TAG}
-
 # build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o che-operator main.go
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 RUN unzip /tmp/asset-devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
     mkdir -p /tmp/devworkspace-operator/templates/ && \
     mv /tmp/devfile-devworkspace-operator-*/deploy /tmp/devworkspace-operator/templates/
 
+RUN unzip /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp && \
+    mkdir -p /tmp/header-rewrite-traefik-plugin && \
+    mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml /tmp/header-rewrite-traefik-plugin
+
 # Build restic. Needed for backup / restore capabilities
-RUN mkdir -p $GOPATH/restic && cd $GOPATH/restic && \
-    unzip /tmp/asset-restic.zip -d /tmp && \
-    mv /tmp/restic-*/* $GOPATH/restic && \
+RUN cd $GOPATH/restic && \
     export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    go mod vendor && \
     GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/restic/restic ./cmd/restic
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
@@ -57,6 +62,7 @@ FROM registry.access.redhat.com/ubi8-minimal:8.4-205
 COPY --from=builder /che-operator/che-operator /manager
 COPY --from=builder /che-operator/templates/*.sh /tmp/
 COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
+COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
 COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
 

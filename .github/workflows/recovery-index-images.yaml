@@ -9,26 +9,22 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 #
-name: Build catalog and bundle images
+name: Recovery OLM channels in the index images
 on:
   # manual trigger if required
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason to trigger a build'
+        description: 'Reason to trigger index images recovery'
         required: false
-  schedule:
-    - cron:  '0 21 * * *'
-      branches:
-        - main
 jobs:
   build-images:
     name: Build
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - name: Install yq and pysemver
-      run: sudo pip install yq pysemver
+    - name: Install yq
+      run: sudo pip install yq
     - name: Docker login
       uses: azure/docker-login@v1
       with:
@@ -37,8 +33,7 @@ jobs:
         password: ${{ secrets.QUAY_PASSWORD }}
     - name: Build and push images to quay.io
       run: >
-        ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'nightly' -p 'openshift' &&
-        ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'nightly' -p 'kubernetes'
+        ${GITHUB_WORKSPACE}/.github/bin/recovery-olm-channels.sh
       env:
         IMAGE_REGISTRY_HOST: quay.io
         IMAGE_REGISTRY_USER_NAME: eclipse

@@ -234,7 +234,10 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
 	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
-	# remove "required" attributes from v1beta1 crd files 
+	# remove .spec.validation.openAPIV3Schema.type field
+	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
+
+	# remove "required" attributes from v1beta1 crd files
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_CRD_V1BETA1)"
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
@@ -262,7 +265,7 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test -mod=vendor ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -300,11 +303,13 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
 prepare-templates:
+	echo "[INFO] Copying Che Operator ./templates ..."
 	cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
 	cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
 	cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
 	cp templates/oauth-provision.sh /tmp/oauth-provision.sh
 	cp templates/keycloak-update.sh /tmp/keycloak-update.sh
+	echo "[INFO] Copying Che Operator ./templates completed."
 
 	# Download Dev Workspace operator templates
 	echo "[INFO] Downloading Dev Workspace operator templates ..."
@@ -324,18 +329,33 @@ create-namespace:
 	kubectl create namespace ${ECLIPSE_CHE_NAMESPACE} || true
 	set -e
 
+.PHONY: apply-cr-crd
 apply-cr-crd:
+	# before applying resources on K8s check if ingress domain corresponds to the current cluster
+	# no OpenShift ingress domain is ignored, so skip it
+	if [ "$$(oc api-resources --api-group='route.openshift.io'  2>&1 | grep -o routes)" != "routes" ]; then
+		export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
+		export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
+		export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
+		export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
+		if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
+			echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
+			echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
+			echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
+		fi
+	fi
+
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}	
+	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 
 apply-cr-crd-beta:
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1BETA1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1BETA1}	
+	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 
 create-env-file: prepare-templates
@@ -500,6 +520,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
 	fi
 
+	# Remove roles for kubernetes bundle
 	YAML_CONTENT=$$(cat "$${NEW_CSV}")
 	if [ $${platform} = "kubernetes" ]; then
 		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
@@ -511,9 +532,12 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
 					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
 					case $${apiGroup} in *openshift.io)
-						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-						j=$$((j-1))
-						i=$$((i-1))
+						# Permissions needed for DevWorkspace
+						if [ "$${apiGroup}" != "route.openshift.io" ] && [ "$${apiGroup}" != oauth.openshift.io ]; then
+							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
+							j=$$((j-1))
+							i=$$((i-1))
+						fi
 						break
 						;;
 					esac;
@@ -533,6 +557,32 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']')
 					case $${apiGroup} in *openshift.io)
 						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
+						j=$$((j-1))
+						i=$$((i-1))
+						break
+						;;
+					esac;
+					j=$$((i+1))
+				done
+			fi
+			i=$$((i+1))
+		done
+	fi
+	echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
+
+	# Remove roles for openshift bundle
+	YAML_CONTENT=$$(cat "$${NEW_CSV}")
+	if [ $${platform} = "openshift" ]; then
+		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
+		i=0
+		while [ "$${i}" -lt "$${clusterPermLength}" ]; do
+			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
+			if [ "$${apiGroupLength}" -gt 0 ]; then
+				j=0
+				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
+					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
+					case $${apiGroup} in cert-manager.io)
+						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
 						j=$$((j-1))
 						i=$$((i-1))
 						break
@@ -771,7 +821,9 @@ bundle-build: ## Build the bundle image.
 	fi
 	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
 	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
-	docker build -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) .
+	cd $${BUNDLE_DIR}
+	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	cd ../../..
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.

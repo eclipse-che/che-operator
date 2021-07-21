@@ -71,8 +71,8 @@ spec:
                     or link:https://github.com/openshift/kube-rbac-proxy[openshift/kube-rbac-proxy]
                   type: string
                 gatewayHeaderRewriteSidecarImage:
-                  description: Header Rewrite Proxy sidecar image is used to properly
-                    set authorization header. See link:https://github.com/che-incubator/header-rewrite-proxy[header-rewrite-proxy]
+                  description: Deprecated. The value of this flag is ignored. Sidecar
+                    functionality is now implemented in Traefik plugin.
                   type: string
                 identityProviderAdminUserName:
                   description: Overrides the name of the Identity Provider administrator

@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.34.0-262.nightly
+  name: eclipse-che-preview-kubernetes.v7.34.0-267.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -289,6 +289,18 @@ spec:
               verbs:
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - get
+                - delete
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -423,6 +435,14 @@ spec:
                 - delete
                 - list
             - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - list
+                - create
+                - delete
+            - apiGroups:
                 - ""
               resources:
                 - events
@@ -470,6 +490,95 @@ spec:
                 - get
                 - list
                 - watch
+            - apiGroups:
+                - cert-manager.io
+              resources:
+                - issuers
+                - certificates
+              verbs:
+                - create
+                - get
+                - list
+                - update
+            - apiGroups:
+                - workspace.devfile.io
+              resources:
+                - devworkspaces
+                - devworkspacetemplates
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings
+                - components
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - workspace.devfile.io
+              resources:
+                - devworkspaces
+                - devworkspacetemplates
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - patch
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings
+                - components
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
             - apiGroups:
                 - ""
               resources:
@@ -588,6 +697,19 @@ spec:
                 - create
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -600,6 +722,18 @@ spec:
                 - list
                 - update
                 - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
+                - create
             - apiGroups:
                 - workspace.devfile.io
               resources:
@@ -808,6 +942,19 @@ spec:
                 - create
                 - get
             - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
@@ -832,6 +979,8 @@ spec:
                 - routes/custom-host
               verbs:
                 - create
+            - nonResourceURLs:
+                - /metrics
               verbs:
                 - get
                 - list
@@ -897,6 +1046,8 @@ spec:
                         value: quay.io/eclipse/che-jwtproxy:0.10.0
                       - name: RELATED_IMAGE_single_host_gateway
                         value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
+                      - name: RELATED_IMAGE_single_host_gateway_native_user_mode
+                        value: quay.io/eclipse/che--traefik:v2.5.0-rc2-df90799aaca1ad6fb9e06d311140035d2a0c2295a4f8f508f6b55ee056bb677e
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
                       - name: RELATED_IMAGE_devworkspace_controller
@@ -1160,4 +1311,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.34.0-262.nightly
+  version: 7.34.0-267.nightly

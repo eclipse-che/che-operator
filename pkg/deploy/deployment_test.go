@@ -325,6 +325,278 @@ func TestMountSecret(t *testing.T) {
 	}
 }
 
+func TestMountConfigMaps(t *testing.T) {
+	type testCase struct {
+		name               string
+		initDeployment     *appsv1.Deployment
+		expectedDeployment *appsv1.Deployment
+		initObjects        []runtime.Object
+	}
+
+	testCases := []testCase{
+		{
+			name: "Mount configmap as file",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "che",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{{}},
+						},
+					},
+				},
+			},
+			expectedDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "che",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Volumes: []corev1.Volume{
+								{
+									Name: "test-volume",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "test-volume",
+											},
+										},
+									},
+								},
+							},
+							Containers: []corev1.Container{
+								{
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											Name:      "test-volume",
+											MountPath: "/test-path",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ConfigMap",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-volume",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							KubernetesPartOfLabelKey:    CheEclipseOrg,
+							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+						},
+						Annotations: map[string]string{
+							CheEclipseOrgMountAs:   "file",
+							CheEclipseOrgMountPath: "/test-path",
+						},
+					},
+					Data: map[string]string{
+						"key": "key-data",
+					},
+				},
+			},
+		},
+		{
+			name: "Mount env variable",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "che",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{{}},
+						},
+					},
+				},
+			},
+			expectedDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "che",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Env: []corev1.EnvVar{
+										{
+											Name: "ENV_A",
+											ValueFrom: &corev1.EnvVarSource{
+												ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+													Key: "a",
+													LocalObjectReference: corev1.LocalObjectReference{
+														Name: "test-envs",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ConfigMap",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-envs",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							KubernetesPartOfLabelKey:    CheEclipseOrg,
+							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+						},
+						Annotations: map[string]string{
+							CheEclipseOrgMountAs: "env",
+							CheEclipseOrgEnvName: "ENV_A",
+						},
+					},
+					Data: map[string]string{
+						"a": "a-data",
+					},
+				},
+			},
+		},
+		{
+			name: "Mount several env variables",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "che",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{{}},
+						},
+					},
+				},
+			},
+			expectedDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "che",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Env: []corev1.EnvVar{
+										{
+											Name: "ENV_A",
+											ValueFrom: &corev1.EnvVarSource{
+												ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+													Key: "a",
+													LocalObjectReference: corev1.LocalObjectReference{
+														Name: "test-envs",
+													},
+												},
+											},
+										},
+										{
+											Name: "ENV_B",
+											ValueFrom: &corev1.EnvVarSource{
+												ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+													Key: "b",
+													LocalObjectReference: corev1.LocalObjectReference{
+														Name: "test-envs",
+													},
+												},
+											},
+										},
+										{
+											Name: "ENV_C",
+											ValueFrom: &corev1.EnvVarSource{
+												ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+													Key: "c",
+													LocalObjectReference: corev1.LocalObjectReference{
+														Name: "test-envs",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			initObjects: []runtime.Object{
+				&corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ConfigMap",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-envs",
+						Namespace: "eclipse-che",
+						Labels: map[string]string{
+							KubernetesPartOfLabelKey:    CheEclipseOrg,
+							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+						},
+						Annotations: map[string]string{
+							CheEclipseOrgMountAs:          "env",
+							CheEclipseOrg + "/a_env-name": "ENV_A",
+							CheEclipseOrg + "/b_env-name": "ENV_B",
+							CheEclipseOrg + "/c_env-name": "ENV_C",
+						},
+					},
+					Data: map[string]string{
+						"b": "a-data",
+						"a": "b-data",
+						"c": "c-data",
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
+			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+
+			deployContext := &DeployContext{
+				CheCluster: &orgv1.CheCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "eclipse-che",
+					},
+				},
+				ClusterAPI: ClusterAPI{
+					Client:          cli,
+					NonCachedClient: cli,
+					Scheme:          scheme.Scheme,
+				},
+			}
+
+			err := MountConfigMaps(testCase.initDeployment, deployContext)
+			if err != nil {
+				t.Fatalf("Error mounting configmap: %v", err)
+			}
+
+			if !reflect.DeepEqual(testCase.expectedDeployment, testCase.initDeployment) {
+				t.Errorf("Expected deployment and deployment returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedDeployment, testCase.initDeployment))
+			}
+		})
+	}
+}
+
 func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
