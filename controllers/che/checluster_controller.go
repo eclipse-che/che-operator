@@ -145,9 +145,9 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []ctrl.Request{}
 	}
 
-	var toEclipseCheSecretRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []ctrl.Request {
-		isEclipseCheSecret, reconcileRequest := isEclipseCheSecret(mgr, obj)
-		if isEclipseCheSecret {
+	var toEclipseCheRelatedObjRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []ctrl.Request {
+		isEclipseCheRelatedObj, reconcileRequest := isEclipseCheRelatedObj(mgr, obj)
+		if isEclipseCheRelatedObj {
 			return []ctrl.Request{reconcileRequest}
 		}
 		return []ctrl.Request{}
@@ -194,7 +194,11 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		).
 		Watches(&source.Kind{Type: &corev1.Secret{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: toEclipseCheSecretRequestMapper},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: toEclipseCheRelatedObjRequestMapper},
+			builder.WithPredicates(onAllExceptGenericEventsPredicate),
+		).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: toEclipseCheRelatedObjRequestMapper},
 			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		)
 
@@ -727,9 +731,9 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 	return reconcile.Result{}, nil
 }
 
-// isEclipseCheSecret indicates if there is a secret with
+// isEclipseCheRelatedObj indicates if there is a object with
 // the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
-func isEclipseCheSecret(mgr ctrl.Manager, obj handler.MapObject) (bool, ctrl.Request) {
+func isEclipseCheRelatedObj(mgr ctrl.Manager, obj handler.MapObject) (bool, ctrl.Request) {
 	checlusters := &orgv1.CheClusterList{}
 	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
 		return false, ctrl.Request{}
