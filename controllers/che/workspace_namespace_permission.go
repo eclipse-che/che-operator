@@ -311,7 +311,7 @@ func getWorkspacesPolicies() []rbac.PolicyRule {
 		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
 			Resources: []string{"roles"},
-			Verbs:     []string{"get", "create"},
+			Verbs:     []string{"get", "update", "create"},
 		},
 		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
@@ -333,7 +333,7 @@ func getWorkspacesPolicies() []rbac.PolicyRule {
 		{
 			APIGroups: []string{"authorization.openshift.io"},
 			Resources: []string{"roles"},
-			Verbs:     []string{"get", "create"},
+			Verbs:     []string{"get", "update", "create"},
 		},
 		{
 			APIGroups: []string{"authorization.openshift.io"},
