@@ -46,7 +46,9 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.oldCheCleaned = true
-		rctx.UpdateRestoreStatus()
+		if err := rctx.UpdateRestoreStatus(); err != nil {
+			return false, err
+		}
 	}
 
 	// Restore cluster objects from the backup
@@ -57,7 +59,9 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheResourcesRestored = true
-		rctx.UpdateRestoreStatus()
+		if err := rctx.UpdateRestoreStatus(); err != nil {
+			return false, err
+		}
 	}
 
 	// Restore Che CR to start main controller reconcile loop
@@ -68,7 +72,9 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheCRRestored = true
-		rctx.UpdateRestoreStatus()
+		if err := rctx.UpdateRestoreStatus(); err != nil {
+			return false, err
+		}
 	}
 
 	// Wait until Che deployed and ready
@@ -79,7 +85,9 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheAvailable = true
-		rctx.UpdateRestoreStatus()
+		if err := rctx.UpdateRestoreStatus(); err != nil {
+			return false, err
+		}
 	}
 
 	// Restore database from backup dump
@@ -96,7 +104,9 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 		}
 
 		rctx.state.cheDatabaseRestored = true
-		rctx.UpdateRestoreStatus()
+		if err := rctx.UpdateRestoreStatus(); err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil
