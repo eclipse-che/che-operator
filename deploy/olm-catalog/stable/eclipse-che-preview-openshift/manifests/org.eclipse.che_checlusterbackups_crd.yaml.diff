@@ -1,0 +1,12 @@
+--- /home/runner/work/che-operator/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_checlusterbackups_crd.yaml	2021-07-21 11:59:56.084746438 +0000
++++ /home/runner/work/che-operator/che-operator/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml	2021-07-21 11:59:56.276746423 +0000
+@@ -24,7 +24,8 @@
+   - name: v1
+     schema:
+       openAPIV3Schema:
+-        description: CheClusterBackup is the Schema for the checlusterbackups API
++        description: The `CheClusterBackup` custom resource allows defining and managing
++          Eclipse Che backup
+         properties:
+           apiVersion:
+             description: 'APIVersion defines the versioned schema of this representation
