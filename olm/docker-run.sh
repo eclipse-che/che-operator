@@ -46,7 +46,7 @@ build() {
   FROM golang:1.15-alpine
   ARG OPERATOR_SDK_VERSION
   RUN apk add --no-cache --update curl bash py-pip jq skopeo && pip install yq
-  RUN curl -JL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk-${OPERATOR_SDK_VERSION}-x86_64-linux-gnu -o /bin/operator-sdk && chmod u+x /bin/operator-sdk
+  RUN curl -JL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_linux_amd64 -o /bin/operator-sdk && chmod u+x /bin/operator-sdk
   WORKDIR /che-operator/olm
 EOF
 then

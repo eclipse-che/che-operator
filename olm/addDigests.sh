@@ -13,7 +13,8 @@
 set +x
 set -e
 
-SCRIPTS_DIR=$(cd "$(dirname "$0")"; pwd)
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+SCRIPTS_DIR=$(dirname ${SCRIPT})
 BASE_DIR="$(pwd)"
 QUIET=""
 
@@ -29,7 +30,7 @@ command -v yq >/dev/null 2>&1 || { echo "yq is not installed. Aborting."; exit 1
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] [-s CSV_FILE_PATH] [-o OPERATOR_DEPLOYMENT_FILE_PATH] [-t IMAGE_TAG] "
-	echo "Example: ./olm/addDigests.sh -w . -s deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o deploy/operator.yaml -t 7.32.0"
+	echo "Example: ./olm/addDigests.sh -w . -s bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml -o config/manager/manager.yaml -t 7.32.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi

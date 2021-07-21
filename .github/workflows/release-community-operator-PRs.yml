@@ -7,7 +7,10 @@ on:
       forceflag:
         description: 'To update an existing PR, use -f or --force flag here'
         default: ''
-  # trigger on commit to main branch of new CSVs, eg., https://github.com/eclipse-che/che-operator/pull/571/files
+      platforms:
+        description: 'List comma-separated platforms for which to create PRs'
+        default: 'kubernetes,openshift'  
+  # trigger on commit to master branch of new CSVs, eg., https://github.com/eclipse/che-operator/pull/571/files
   push:
     branches:
       - main
@@ -39,8 +42,7 @@ jobs:
           set -e
           OP_SDK_DIR=/opt/operator-sdk
           mkdir -p $OP_SDK_DIR
-          OPERATOR_SDK=$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
-          curl -sSLo $OP_SDK_DIR/operator-sdk  https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK}/operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu && chmod +x $OP_SDK_DIR/operator-sdk
+          make download-operator-sdk OP_SDK_DIR="${OP_SDK_DIR}"
           export PATH="$PATH:$OP_SDK_DIR"
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
@@ -49,4 +51,4 @@ jobs:
           export QUAY_PASSWORD_K8S=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_KUBERNETES_PASSWORD }}
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
           export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
-          ./make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }}
+          ./make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }} -p ${{ github.event.inputs.platforms }}

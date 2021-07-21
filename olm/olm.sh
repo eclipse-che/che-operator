@@ -40,21 +40,7 @@ function getBundlePath() {
     exit 1
   fi
 
-  echo "${ROOT_DIR}/deploy/olm-catalog/${channel}/$(getPackageName "${platform}")"
-}
-
-getCurrentStableVersion() {
-  platform="${1}"
-  if [ -z "${platform}" ]; then
-    echo "[ERROR] Please specify first argument: 'platform'"
-    exit 1
-  fi
-
-  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
-  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-
-  lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
-  echo "${lastStableVersion}"
+  echo "${ROOT_DIR}/bundle/${channel}/$(getPackageName "${platform}")"
 }
 
 createCatalogSource() {
@@ -145,35 +131,11 @@ buildBundleImage() {
     exit 1
   fi
 
-  packageName=$(getPackageName "${platform}")
+  echo "[INFO] build bundle image"
 
-  if [ -z "${OPM_BUNDLE_DIR}" ]; then
-    bundleDir=$(getBundlePath "${platform}" "${channel}")
-  else
-    bundleDir="${OPM_BUNDLE_DIR}"
-  fi
+  pushd "${ROOT_DIR}" || exit
 
-  OPM_BUNDLE_MANIFESTS_DIR="${bundleDir}/manifests"
-  pushd "${bundleDir}" || exit
-  echo "[INFO] build bundle image for dir: ${bundleDir}"
-
-  ${OPM_BINARY} alpha bundle build \
-    -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
-    --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-    --package "${packageName}" \
-    --channels "${channel}" \
-    --default "${channel}" \
-    --image-builder "${imageTool}"
-
-  SKIP_TLS_VERIFY=""
-  if [ "${imageTool}" == "podman" ]; then
-    SKIP_TLS_VERIFY=" --tls-verify=false"
-  fi
-
-  eval "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
-
-  # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
-
+  make bundle-build bundle-push DEFAULT_CHANNEL="${channel}" BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" platform="${platform}" IMAGE_TOOL="${imageTool}"
   popd || exit
 }
 
@@ -217,36 +179,15 @@ buildCatalogImage() {
     SKIP_TLS_VERIFY=" --tls-verify=false"
   fi
 
-  INDEX_ADD_CMD="${OPM_BINARY} index add \
-       --bundles ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL} \
-       --tag ${CATALOG_IMAGENAME} \
-       --pull-tool ${imageTool} \
-       --build-tool ${imageTool} \
-       --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
-       --mode semver ${BUILD_INDEX_IMAGE_ARG} ${SKIP_TLS_ARG}"
+  pushd "${ROOT_DIR}" || exit
 
-  exitCode=0
-  # Execute command and store an error output to the variable for following handling.
-  {
-    error=$(eval "${INDEX_ADD_CMD}" 2>&1 1>&$out) || \
-    {
-      exitCode="$?";
-      echo "[INFO] ${exitCode}";
-      true;
-    }
-  } {out}>&1
-  if [[ "${error}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
-    echo "[INFO] Ignore error 'Bundle already added'"
-    # Catalog bundle image contains bundle reference, continue without unnecessary push operation
-    return
-  else
-    echo "[INFO] ${exitCode}"
-    if [ "${exitCode}" != 0 ]; then
-      exit "${exitCode}"
-    fi
-  fi
+  make catalog-build catalog-push \
+      CATALOG_IMG="${CATALOG_IMAGENAME}" \
+      BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+      IMAGE_TOOL="${imageTool}" \
+      FROM_INDEX_OPT="${FROM_INDEX}"
 
-  eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
+  popd || exit
 }
 
 # HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".

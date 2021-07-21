@@ -12,7 +12,8 @@
 
 set -e
 
-SCRIPTS_DIR=$(cd "$(dirname "$0")" || exit 1; pwd)
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+SCRIPTS_DIR=$(dirname ${SCRIPT})
 BASE_DIR="$1"
 QUIET=""
 
@@ -29,7 +30,7 @@ command -v skopeo > /dev/null 2>&1 || { echo "skopeo is not installed. Aborting.
 
 usage () {
 	echo "Usage:   $0 [-w WORKDIR] -c [/path/to/csv.yaml] -t [IMAGE_TAG]"
-	echo "Example: $0 -w $(pwd) -c $(pwd)/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml -t 7.26.0"
+	echo "Example: $0 -w $(pwd) -c $(pwd)/bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml -t 7.26.0"
 }
 
 if [[ $# -lt 1 ]]; then usage; exit; fi

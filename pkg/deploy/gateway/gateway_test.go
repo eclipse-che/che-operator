@@ -5,8 +5,9 @@ import (
 	"encoding/base64"
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestSyncAllToCluster(t *testing.T) {
+	util.IsOpenShift = true
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
@@ -62,6 +64,7 @@ func TestSyncAllToCluster(t *testing.T) {
 }
 
 func TestNativeUserGateway(t *testing.T) {
+	util.IsOpenShift = true
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)

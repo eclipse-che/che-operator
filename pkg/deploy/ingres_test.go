@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -144,7 +144,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 	}
 
 	actual := &v1beta1.Ingress{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test"}, actual)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get ingress: %v", err)
 	}

@@ -14,7 +14,7 @@ package deploy
 import (
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 )
 
 func TestLabels(t *testing.T) {

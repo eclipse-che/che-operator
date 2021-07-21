@@ -114,7 +114,7 @@ podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_UR
 podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-plugin-registry:"${TAG}"
 
 # Get all containers images used in eclipse-che deployment(postgresql, che-server, che-dashboard, keycloak...)
-curl -sSLo- https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/operator.yaml > /tmp/yam.yaml
+curl -sSLo- https://raw.githubusercontent.com/eclipse-che/che-operator/main/config/manager/manager.yaml > /tmp/yam.yaml
 export ARRAY_OF_IMAGES=$(cat /tmp/yam.yaml | yq '.spec.template.spec.containers[0].env[] | select(.name|test("RELATED_")) | .value' -r)
 
 # Remove from Array of images devfile and plugins because will be builded using build.sh in offline mode.

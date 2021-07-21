@@ -4,11 +4,24 @@
     {
       "type": "bashdb",
       "request": "launch",
+      "name": "Make release",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/make-release.sh",
+      "args": [
+        "7.30.0",
+        "--release",
+        "--check-resources",
+        "--release-olm-files"
+      ]
+    },
+    {
+      "type": "bashdb",
+      "request": "launch",
       "name": "Bash-Debug (release-olm-files.sh)",
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/olm/release-olm-files.sh",
       "args": [
-        "7.13.2"
+        "7.30.0"
       ]
     },
     {
@@ -141,17 +154,6 @@
       "program": "${file}",
     },
     {
-      "name": "Launch Current Test *.go File",
-      "type": "go",
-      "request": "launch",
-      "mode": "test",
-      "program": "${file}",
-      "env": {
-        "MOCK_API": true,
-        "CHE_FLAVOR": "che"
-      },
-    },
-    {
       "name": "Launch Main *.go File",
       "type": "go",
       "request": "launch",
@@ -170,7 +172,7 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "${workspaceFolder}/cmd/manager/main.go",
+      "program": "${workspaceFolder}/main.go",
       "env": {
         "CHE_FLAVOR": "che",
         "CONSOLE_LINK_NAME": "che",
@@ -186,7 +188,7 @@
       "cwd": "${workspaceFolder}",
       "args": [
         "--defaults-path",
-        "deploy/operator.yaml"
+        "config/manager/manager.yaml"
       ]
     }
   ]

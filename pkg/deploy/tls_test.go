@@ -9,13 +9,14 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package deploy
 
 import (
 	"context"
 	"testing"
 
-	orgv1 "github.com/eclipse-che/che-operator/pkg/apis/org/v1"
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,9 +38,10 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	}
 	cert2 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "cert2",
-			Namespace:       "eclipse-che",
-			ResourceVersion: "1",
+			Name:      "cert2",
+			Namespace: "eclipse-che",
+			// Go client set up resource version 1 itself on object creation.
+			// ResourceVersion: "1",
 			Labels: map[string]string{
 				"app.kubernetes.io/component": "ca-bundle",
 				"app.kubernetes.io/part-of":   "che.eclipse.org"},

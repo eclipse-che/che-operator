@@ -3,8 +3,8 @@ package operators
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	operatorv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"github.com/operator-framework/operator-lifecycle-manager/pkg/lib/version"
+	"github.com/operator-framework/api/pkg/lib/version"
+	operatorv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 )
 
 // PackageManifestList is a list of PackageManifest objects.
@@ -12,7 +12,7 @@ import (
 type PackageManifestList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
-
+	// +listType=set
 	Items []PackageManifest
 }
 
@@ -48,6 +48,7 @@ type PackageManifestStatus struct {
 	PackageName string
 
 	// Channels are the declared channels for the package, ala .
+	// +listType=set
 	Channels []PackageChannel
 
 	// DefaultChannel is, if specified, the name of the default channel for the package. The
@@ -88,6 +89,7 @@ type CSVDescription struct {
 	DisplayName string
 
 	// Icon is the CSV's base64 encoded icon
+	// +listType=set
 	Icon []Icon
 
 	// Version is the CSV's semantic version
@@ -96,6 +98,10 @@ type CSVDescription struct {
 	// Provider is the CSV's provider
 	Provider    AppLink
 	Annotations map[string]string
+	Keywords    []string
+	Links       []AppLink
+	Maintainers []Maintainer
+	Maturity    string
 
 	// LongDescription is the CSV's description
 	LongDescription string
@@ -105,12 +111,25 @@ type CSVDescription struct {
 
 	CustomResourceDefinitions operatorv1alpha1.CustomResourceDefinitions
 	APIServiceDefinitions     operatorv1alpha1.APIServiceDefinitions
+	NativeAPIs                []metav1.GroupVersionKind `json:"nativeApis,omitempty"`
+
+	// Minimum Kubernetes version for operator installation
+	MinKubeVersion string `json:"minKubeVersion,omitempty"`
+
+	// List of related images
+	RelatedImages []string `json:"relatedImages,omitempty"`
 }
 
 // AppLink defines a link to an application
 type AppLink struct {
 	Name string
 	URL  string
+}
+
+// Maintainer defines a project maintainer
+type Maintainer struct {
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
 }
 
 // Icon defines a base64 encoded icon and media type
