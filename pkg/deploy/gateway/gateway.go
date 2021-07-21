@@ -15,6 +15,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
@@ -93,8 +94,11 @@ func syncAll(deployContext *deploy.DeployContext) error {
 			return err
 		}
 
-		headerRewriteProxyConfig := getGatewayHeaderRewriteProxyConfigSpec(instance)
-		if _, err := deploy.Sync(deployContext, &headerRewriteProxyConfig, configMapDiffOpts); err != nil {
+		if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
+			if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	}
@@ -241,6 +245,7 @@ func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 // new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
 func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
 	pathRewrite := pathPrefix != "/" && stripPrefix
+	nativeUser := util.IsNativeUserModeEnabled(deployContext.CheCluster)
 
 	data := `---
 http:
@@ -248,11 +253,16 @@ http:
     ` + serviceName + `:
       rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
       service: ` + serviceName + `
-      priority: ` + strconv.Itoa(priority)
+      priority: ` + strconv.Itoa(priority) + `
+      middlewares: `
+
+	if nativeUser {
+		data += `
+      - "` + serviceName + `-header"`
+	}
 
 	if pathRewrite {
 		data += `
-      middlewares:
       - "` + serviceName + `"`
 	}
 
@@ -261,11 +271,20 @@ http:
     ` + serviceName + `:
       loadBalancer:
         servers:
-        - url: '` + internalUrl + `'`
+        - url: '` + internalUrl + `'
+  middlewares:`
+	if nativeUser {
+		data += `
+    ` + serviceName + `-header:
+      plugin:
+        header-rewrite:
+          from: X-Forwarded-Access-Token
+          to: Authorization
+          prefix: 'Bearer '`
+	}
 
 	if pathRewrite {
 		data += `
-  middlewares:
     ` + serviceName + `:
       stripPrefix:
         prefixes:
@@ -408,45 +427,43 @@ func generateRandomCookieSecret() []byte {
 	return []byte(base64.StdEncoding.EncodeToString([]byte(util.GeneratePasswd(16))))
 }
 
-func getGatewayHeaderRewriteProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	return corev1.ConfigMap{
+func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev1.ConfigMap, error) {
+	headerRewrite, err := ioutil.ReadFile("/tmp/header-rewrite-traefik-plugin/headerRewrite.go")
+	if err != nil {
+		if !util.IsTestMode() {
+			return nil, err
+		}
+	}
+	pluginMeta, err := ioutil.ReadFile("/tmp/header-rewrite-traefik-plugin/.traefik.yml")
+	if err != nil {
+		if !util.IsTestMode() {
+			return nil, err
+		}
+	}
+
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config-header-rewrite-proxy",
+			Name:      "che-gateway-config-header-rewrite-traefik-plugin",
 			Namespace: instance.Namespace,
 			Labels:    deploy.GetLabels(instance, GatewayServiceName),
 		},
 		Data: map[string]string{
-			"rules.yaml": `
-rules:
-- from: X-Forwarded-Access-Token
-  to: Authorization
-  prefix: 'Bearer '
-`,
+			"headerRewrite.go": string(headerRewrite),
+			".traefik.yml":     string(pluginMeta),
 		},
-	}
+	}, nil
 }
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	traefikPort := 8080
 	if util.IsNativeUserModeEnabled(instance) {
-		traefikPort = 8088
+		traefikPort = 8081
 	}
-	return corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config",
-			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
-		},
-		Data: map[string]string{
-			"traefik.yml": fmt.Sprintf(`
+	data := fmt.Sprintf(`
 entrypoints:
   http:
     address: ":%d"
@@ -464,7 +481,28 @@ providers:
     directory: "/dynamic-config"
     watch: true
 log:
-  level: "INFO"`, traefikPort),
+  level: "INFO"`, traefikPort)
+
+	if util.IsNativeUserModeEnabled(instance) {
+		data += `
+experimental:
+  localPlugins:
+    header-rewrite:
+      moduleName: github.com/che-incubator/header-rewrite-traefik-plugin`
+	}
+
+	return corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "che-gateway-config",
+			Namespace: instance.Namespace,
+			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+		},
+		Data: map[string]string{
+			"traefik.yml": data,
 		},
 	}
 }
@@ -513,7 +551,6 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 	configSidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
 	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
 	authzImage := util.GetValue(instance.Spec.Auth.GatewayAuthorizationSidecarImage, deploy.DefaultGatewayAuthorizationSidecarImage(instance))
-	headerProxyImage := util.GetValue(instance.Spec.Auth.GatewayHeaderRewriteSidecarImage, deploy.DefaultGatewayHeaderProxySidecarImage(instance))
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
@@ -521,16 +558,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 			Name:            "gateway",
 			Image:           gatewayImage,
 			ImagePullPolicy: corev1.PullAlways,
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "static-config",
-					MountPath: "/etc/traefik",
-				},
-				{
-					Name:      "dynamic-config",
-					MountPath: "/dynamic-config",
-				},
-			},
+			VolumeMounts:    getTraefikContainerVolumeMounts(instance),
 		},
 		{
 			Name:            "configbump",
@@ -584,18 +612,6 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				},
 			},
 			corev1.Container{
-				Name:            "header-rewrite-proxy",
-				Image:           headerProxyImage,
-				ImagePullPolicy: corev1.PullAlways,
-				Args:            []string{"--upstream=http://127.0.0.1:8088", "--bind=127.0.0.1:8081", "--rules=/etc/rules/rules.yaml"},
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      "header-rewrite-proxy-rules",
-						MountPath: "/etc/rules",
-					},
-				},
-			},
-			corev1.Container{
 				Name:            "kube-rbac-proxy",
 				Image:           authzImage,
 				ImagePullPolicy: corev1.PullAlways,
@@ -603,12 +619,32 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 					"--insecure-listen-address=127.0.0.1:8089",
 					"--upstream=http://127.0.0.1:8090/ping",
 					"--logtostderr=true",
-					"--v=10",
 				},
 			})
 	}
 
 	return containers
+}
+
+func getTraefikContainerVolumeMounts(instance *orgv1.CheCluster) []corev1.VolumeMount {
+	mounts := []corev1.VolumeMount{
+		{
+			Name:      "static-config",
+			MountPath: "/etc/traefik",
+		},
+		{
+			Name:      "dynamic-config",
+			MountPath: "/dynamic-config",
+		},
+	}
+	if util.IsNativeUserModeEnabled(instance) {
+		mounts = append(mounts, corev1.VolumeMount{
+			Name:      "header-rewrite-traefik-plugin",
+			MountPath: "/plugins-local/src/github.com/che-incubator/header-rewrite-traefik-plugin",
+		})
+	}
+
+	return mounts
 }
 
 func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
@@ -644,11 +680,11 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 		})
 
 		volumes = append(volumes, corev1.Volume{
-			Name: "header-rewrite-proxy-rules",
+			Name: "header-rewrite-traefik-plugin",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config-header-rewrite-proxy",
+						Name: "che-gateway-config-header-rewrite-traefik-plugin",
 					},
 				},
 			},
