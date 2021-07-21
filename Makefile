@@ -343,27 +343,33 @@ create-namespace:
 	kubectl create namespace ${ECLIPSE_CHE_NAMESPACE} || true
 	set -e
 
-.PHONY: apply-cr-crd
-apply-cr-crd:
-	# before applying resources on K8s check if ingress domain corresponds to the current cluster
-	# no OpenShift ingress domain is ignored, so skip it
-	if [ "$$(oc api-resources --api-group='route.openshift.io'  2>&1 | grep -o routes)" != "routes" ]; then
-		export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
-		export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
-		export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
-		export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
-		if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
-			echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
-			echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
-			echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
-		fi
-	fi
-
+apply-crd:
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
+
+.PHONY: init-cr
+init-cr:
+	if [ "$$(oc get checluster -n ${ECLIPSE_CHE_NAMESPACE} eclipse-che || false )" ]; then
+		echo "Che Cluster already exists. Using it."
+	else
+	echo "Che Cluster is not found. Creating a new one from $(ECLIPSE_CHE_CR)"
+		# before applying resources on K8s check if ingress domain corresponds to the current cluster
+		# no OpenShift ingress domain is ignored, so skip it
+		if [ "$$(oc api-resources --api-group='route.openshift.io' 2>&1 | grep -o routes)" != "routes" ]; then
+			export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
+			export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
+			export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
+			export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
+			if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
+				echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
+				echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
+				echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
+			fi
+		fi
+		kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
+	fi
 
 apply-cr-crd-beta:
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
@@ -389,7 +395,7 @@ create-full-env-file: create-env-file
 	echo "[INFO] Env file: ${ENV_FILE}"
 	source ${ENV_FILE} ; env | grep CHE_VERSION
 
-debug: generate manifests kustomize prepare-templates create-namespace apply-cr-crd create-env-file
+debug: generate manifests kustomize prepare-templates create-namespace apply-crd init-cr create-env-file
 	echo "[WARN] Make sure that your CR contains valid ingress domain!"
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
 	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
