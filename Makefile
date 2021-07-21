@@ -234,7 +234,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
 	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
-	# remove "required" attributes from v1beta1 crd files 
+	# remove "required" attributes from v1beta1 crd files
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_CRD_V1BETA1)"
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
@@ -348,24 +348,24 @@ apply-cr-crd:
 	export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 	export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
 	export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
-	if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
-		echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
-		echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
-		echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
-	fi
+		if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
+			echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
+			echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
+			echo "[WARN] Press y to continue anyway. [y/n] ? " && read ans && [ $${ans:-N} = y ] || exit 1;
+		fi
 	fi
 
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}	
+	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}
 	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 
 apply-cr-crd-beta:
 	kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1BETA1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1BETA1}	
+	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1BETA1}
 	kubectl apply -f ${ECLIPSE_CHE_CR} -n ${ECLIPSE_CHE_NAMESPACE}
 
 create-env-file: prepare-templates
