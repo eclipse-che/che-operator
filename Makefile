@@ -7,6 +7,10 @@ VERSION ?= 1.0.2
 
 CHANNELS = "nightly"
 
+ifndef VERBOSE
+MAKEFLAGS += --silent
+endif
+
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfile_dir := $(dir $(mkfile_path))
 
