@@ -185,7 +185,7 @@ buildCatalogImage() {
       CATALOG_IMG="${CATALOG_IMAGENAME}" \
       BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
       IMAGE_TOOL="${imageTool}" \
-      FROM_INDEX_OPT="${FROM_INDEX}"
+      FROM_INDEX_OPT="${BUILD_INDEX_IMAGE_ARG}"
 
   popd || exit
 }
@@ -497,7 +497,7 @@ getPreviousCSVInfo() {
   previousBundle=$(echo "${LIST_BUNDLES}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
   PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
   if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
-    echo "[ERROR] Catalog source image hasn't go previous bundle."
+    echo "[ERROR] Catalog source image hasn't got previous bundle."
     exit 1
   fi
   export PREVIOUS_CSV_NAME
