@@ -484,7 +484,7 @@ createWorkspaceDevWorkspaceController () {
   CURRENT_TIME=$(date +%s)
   ENDTIME=$(($CURRENT_TIME + 180))
   while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc apply -f ${OPERATOR_REPO}/samples/devworkspace_flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}; then
+      if oc apply -f ${OPERATOR_REPO}/config/samples/devworkspace_flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}; then
           break
       fi
       sleep 10
