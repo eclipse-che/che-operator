@@ -344,10 +344,10 @@ apply-cr-crd:
 	# before applying resources on K8s check if ingress domain corresponds to the current cluster
 	# no OpenShift ingress domain is ignored, so skip it
 	if [ "$$(oc api-resources --api-group='route.openshift.io'  2>&1 | grep -o routes)" != "routes" ]; then
-	export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
-	export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
-	export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
-	export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
+		export CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
+		export CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
+		export CHE_CLUSTER_DOMAIN=$$(yq -r .spec.k8s.ingressDomain $(ECLIPSE_CHE_CR))
+		export CHE_CLUSTER_DOMAIN=$${CHE_CLUSTER_DOMAIN%".nip.io"}
 		if [ $${CLUSTER_DOMAIN} != $${CHE_CLUSTER_DOMAIN} ];then
 			echo "[WARN] Your cluster address is $${CLUSTER_DOMAIN} but CheCluster has $${CHE_CLUSTER_DOMAIN} configured"
 			echo "[WARN] Make sure that .spec.k8s.ingressDomain in $${ECLIPSE_CHE_CR} has the right value and rerun"
