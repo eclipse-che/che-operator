@@ -45,3 +45,21 @@ func TestGetValue(t *testing.T) {
 		t.Errorf("Test failed. Expected '%s', but got '%s'", var2, defaultValue)
 	}
 }
+
+func TestGetImageNameAndTag(t *testing.T) {
+	var tests = []struct {
+		input        string
+		expectedName string
+		expectedTag  string
+	}{
+		{"quay.io/test/test:tag", "quay.io/test/test", "tag"},
+		{"quay.io/test/test@sha256:abcdef", "quay.io/test/test", "sha256:abcdef"},
+		{"quay.io/test/test", "quay.io/test/test", "latest"},
+		{"localhost:5000/test", "localhost:5000/test", "latest"},
+	}
+	for _, test := range tests {
+		if actualName, actualTag := GetImageNameAndTag(test.input); actualName != test.expectedName || actualTag != test.expectedTag {
+			t.Errorf("Test Failed. Expected '%s' and '%s', but got '%s' and '%s'", test.expectedName, test.expectedTag, actualName, actualTag)
+		}
+	}
+}

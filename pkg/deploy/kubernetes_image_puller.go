@@ -24,7 +24,6 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,6 +33,12 @@ import (
 )
 
 var imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
+
+// ImageAndName represents an image coupled with an image name.
+type ImageAndName struct {
+	name  string // image name (ex. my-image)
+	image string // image (ex. quay.io/test/abc)
+}
 
 // Reconcile the imagePuller section of the CheCluster CR.  If imagePuller.enable is set to true, install the Kubernetes Image Puller operator and create
 // a KubernetesImagePuller CR.  Add a finalizer to the CheCluster CR.  If false, remove the KubernetesImagePuller CR, uninstall the operator, and remove the finalizer.
@@ -132,7 +137,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 					}
 
 					if ctx.CheCluster.IsImagePullerImagesEmpty() {
-						if err = AddDefaultImages(ctx); err != nil {
+						if err = SetDefaultImages(ctx); err != nil {
 							logrus.Error(err)
 							return reconcile.Result{}, err
 						}
@@ -149,6 +154,11 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 					}
 				}
 				logrus.Errorf("Error getting KubernetesImagePuller: %v", err)
+				return reconcile.Result{}, err
+			}
+
+			if err = UpdateDefaultImagesIfNeeded(ctx); err != nil {
+				logrus.Error(err)
 				return reconcile.Result{}, err
 			}
 
@@ -397,21 +407,57 @@ func UpdateImagePullerSpecIfEmpty(ctx *DeployContext) (orgv1.CheClusterSpecImage
 	return ctx.CheCluster.Spec.ImagePuller, nil
 }
 
-func AddDefaultImages(ctx *DeployContext) error {
-	defaultImageVars := GetDefaultImagesEnvVars()
-	if len(defaultImageVars) == 0 {
+func SetDefaultImages(ctx *DeployContext) error {
+	defaultImages := GetDefaultImages()
+	if len(defaultImages) == 0 {
 		return nil
 	}
-
-	defaultImages := ""
-	for _, envVar := range defaultImageVars {
-		defaultImages += envVar.Name + "=" + envVar.Value + ";"
-	}
-	ctx.CheCluster.Spec.ImagePuller.Spec.Images = defaultImages
-	return UpdateCheCRSpec(ctx, "Kubernetes Image Puller default images", defaultImages)
+	return SetImages(ctx, defaultImages)
 }
 
-func GetDefaultImagesEnvVars() []v1.EnvVar {
+// ImageSliceToString returns a string representation of the provided image slice, suitable for the
+// imagePuller.spec.images field
+func ImageSliceToString(imageSlice []ImageAndName) string {
+	var err error
+	imagesString := ""
+	for _, image := range imageSlice {
+		image.name, err = ConvertToRFC1123(image.name)
+		if err != nil {
+			continue
+		}
+		imagesString += image.name + "=" + image.image + ";"
+	}
+	return imagesString
+}
+
+// StringToImageSlice returns a slice of ImageAndName structs from the provided semi-colon seperated string
+// of key value pairs
+func StringToImageSlice(imagesString string) []ImageAndName {
+	currentImages := strings.Split(imagesString, ";")
+	for i, image := range currentImages {
+		currentImages[i] = strings.TrimSpace(image)
+	}
+	// Remove the last element, if empty
+	if currentImages[len(currentImages)-1] == "" {
+		currentImages = currentImages[:len(currentImages)-1]
+	}
+
+	images := []ImageAndName{}
+	for _, image := range currentImages {
+		nameAndImage := strings.Split(image, "=")
+		if len(nameAndImage) != 2 {
+			logrus.Warnf("Malformed image name/tag: %s. Ignoring.", image)
+			continue
+		}
+		images = append(images, ImageAndName{name: nameAndImage[0], image: nameAndImage[1]})
+	}
+
+	return images
+}
+
+// GetDefaultImages returns the current default images from the environment variables
+func GetDefaultImages() []ImageAndName {
+	images := []ImageAndName{}
 	imagePatterns := [...]string{
 		"^RELATED_IMAGE_.*_plugin_java8$",
 		"^RELATED_IMAGE_.*_plugin_java11$",
@@ -429,22 +475,14 @@ func GetDefaultImagesEnvVars() []v1.EnvVar {
 		"^RELATED_IMAGE_.*_php_.*_devfile_registry_image.*",
 		"^RELATED_IMAGE_.*_java.*_maven_devfile_registry_image.*",
 	}
-
-	var err error
-	imageVars := []v1.EnvVar{}
 	for _, pattern := range imagePatterns {
 		matches := util.GetEnvByRegExp(pattern)
 		for _, match := range matches {
 			match.Name = match.Name[len("RELATED_IMAGE_"):]
-			match.Name, err = ConvertToRFC1123(match.Name)
-			if err != nil {
-				logrus.Errorf(err.Error())
-				continue
-			}
-			imageVars = append(imageVars, match)
+			images = append(images, ImageAndName{name: match.Name, image: match.Value})
 		}
 	}
-	return imageVars
+	return images
 }
 
 // Convert input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
@@ -501,7 +539,46 @@ func GetExpectedKubernetesImagePuller(ctx *DeployContext) *chev1alpha1.Kubernete
 	}
 }
 
-// Unisntall the CSV, OperatorGroup, Subscription, KubernetesImagePuller, and update the CheCluster to remove
+// UpdateDefaultImagesIfNeeded updates the default images from `spec.images` if needed
+func UpdateDefaultImagesIfNeeded(ctx *DeployContext) error {
+	specImages := StringToImageSlice(ctx.CheCluster.Spec.ImagePuller.Spec.Images)
+	defaultImages := GetDefaultImages()
+	if UpdateSpecImages(specImages, defaultImages) {
+		return SetImages(ctx, specImages)
+	}
+	return nil
+}
+
+// UpdateSpecImages returns true if the default images from `spec.images` were updated
+// with new defaults
+//
+// specImages contains the images in `spec.images`
+// defaultImages contains the current default images from the environment variables
+func UpdateSpecImages(specImages []ImageAndName, defaultImages []ImageAndName) bool {
+	match := false
+	for i, specImage := range specImages {
+		specImageName, specImageTag := util.GetImageNameAndTag(specImage.image)
+		for _, defaultImage := range defaultImages {
+			defaultImageName, defaultImageTag := util.GetImageNameAndTag(defaultImage.image)
+			// if the image tags are different for this image, then update
+			if defaultImageName == specImageName && defaultImageTag != specImageTag {
+				match = true
+				specImages[i].image = defaultImage.image
+				break
+			}
+		}
+	}
+	return match
+}
+
+// SetImages sets the provided images to the imagePuller spec
+func SetImages(ctx *DeployContext, images []ImageAndName) error {
+	imagesStr := ImageSliceToString(images)
+	ctx.CheCluster.Spec.ImagePuller.Spec.Images = imagesStr
+	return UpdateCheCRSpec(ctx, "Kubernetes Image Puller images", imagesStr)
+}
+
+// Uninstall the CSV, OperatorGroup, Subscription, KubernetesImagePuller, and update the CheCluster to remove
 // the image puller spec.  Returns true if the CheCluster was updated
 func UninstallImagePullerOperator(ctx *DeployContext) (bool, error) {
 	updated := false

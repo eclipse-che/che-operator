@@ -24,7 +24,8 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CheClusterBackup is the Schema for the checlusterbackups API
+        description: The `CheClusterBackup` custom resource allows defining and managing
+          Eclipse Che backup
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
