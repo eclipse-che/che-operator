@@ -34,8 +34,6 @@ overrideDefaults() {
 
 runTests() {
   deployEclipseCheStable "operator" "openshift" ${LAST_PACKAGE_VERSION}
-
-  deployImagePuller
   enableImagePuller
 
   provisionOAuth
