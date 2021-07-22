@@ -51,10 +51,6 @@ runTest() {
   sleep 10s
   createWorkspaceDevWorkspaceController
   waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
-
-  sleep 10s
-  createWorkspaceDevWorkspaceCheOperator
-  waitAllPodsRunning ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
 }
 
 initDefaults
