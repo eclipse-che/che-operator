@@ -22,6 +22,7 @@ trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
   export CHE_EXPOSURE_STRATEGY="single-host"
+  export IMAGE_PULLER_ENABLE="true"
 }
 
 runTests() {
