@@ -46,18 +46,18 @@ const (
 )
 
 // Reconcile workspace permissions based on workspace strategy
-func (r *CheClusterReconciler) reconcileWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
-	done, err := r.delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
+func reconcileWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
+	done, err := delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
 	if !done {
 		return false, err
 	}
 
-	done, err = r.delegateNamespaceEditorPermissions(deployContext)
+	done, err = delegateNamespaceEditorPermissions(deployContext)
 	if !done {
 		return false, err
 	}
 
-	done, err = r.delegateDevWorkspacePermissions(deployContext)
+	done, err = delegateDevWorkspacePermissions(deployContext)
 	if !done {
 		return false, err
 	}
@@ -74,7 +74,7 @@ func (r *CheClusterReconciler) reconcileWorkspacePermissions(deployContext *depl
 //    workspace components.
 // Notice: After permission delegation che-server will create service account "che-workspace" ITSELF with
 //         "exec" and "view" roles for each new workspace.
-func (r *CheClusterReconciler) delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (bool, error) {
+func delegateWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (bool, error) {
 	сheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	сheWorkspacesClusterRoleBindingName := сheWorkspacesClusterRoleName
 
@@ -93,7 +93,7 @@ func (r *CheClusterReconciler) delegateWorkspacePermissionsInTheDifferNamespaceT
 	return err == nil, err
 }
 
-func (r *CheClusterReconciler) removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (bool, error) {
+func removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) (bool, error) {
 	cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	cheWorkspacesClusterRoleBindingName := cheWorkspacesClusterRoleName
 
@@ -111,7 +111,7 @@ func (r *CheClusterReconciler) removeWorkspacePermissionsInTheDifferNamespaceTha
 	return err == nil, err
 }
 
-func (r *CheClusterReconciler) delegateNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
+func delegateNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
 	сheNamespaceEditorClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	сheNamespaceEditorClusterRoleBindingName := сheNamespaceEditorClusterRoleName
 
@@ -130,7 +130,7 @@ func (r *CheClusterReconciler) delegateNamespaceEditorPermissions(deployContext 
 	return err == nil, err
 }
 
-func (r *CheClusterReconciler) removeNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
+func removeNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
 	cheNamespaceEditorClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 
 	done, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheNamespaceEditorClusterRoleName}, &rbac.ClusterRole{})
@@ -147,7 +147,7 @@ func (r *CheClusterReconciler) removeNamespaceEditorPermissions(deployContext *d
 	return err == nil, err
 }
 
-func (r *CheClusterReconciler) delegateDevWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
+func delegateDevWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
 	devWorkspaceClusterRoleName := fmt.Sprintf(DevWorkspaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	devWorkspaceClusterRoleBindingName := devWorkspaceClusterRoleName
 
@@ -165,7 +165,7 @@ func (r *CheClusterReconciler) delegateDevWorkspacePermissions(deployContext *de
 	return err == nil, err
 }
 
-func (r *CheClusterReconciler) removeDevWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
+func removeDevWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
 	devWorkspaceClusterRoleName := fmt.Sprintf(DevWorkspaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	devWorkspaceClusterRoleBindingName := devWorkspaceClusterRoleName
 
@@ -183,19 +183,19 @@ func (r *CheClusterReconciler) removeDevWorkspacePermissions(deployContext *depl
 	return err == nil, err
 }
 
-func (r *CheClusterReconciler) reconcileWorkspacePermissionsFinalizers(deployContext *deploy.DeployContext) (bool, error) {
+func reconcileWorkspacePermissionsFinalizers(deployContext *deploy.DeployContext) (bool, error) {
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		done, err := r.removeNamespaceEditorPermissions(deployContext)
+		done, err := removeNamespaceEditorPermissions(deployContext)
 		if !done {
 			return false, err
 		}
 
-		done, err = r.removeDevWorkspacePermissions(deployContext)
+		done, err = removeDevWorkspacePermissions(deployContext)
 		if !done {
 			return false, err
 		}
 
-		return r.removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
+		return removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext)
 	}
 
 	return true, nil

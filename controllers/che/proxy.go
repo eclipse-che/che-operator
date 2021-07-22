@@ -17,7 +17,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-func (r *CheClusterReconciler) getProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
+func getProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
 	// OpenShift 4.x
 	if util.IsOpenShift4 {
 		clusterProxy := &configv1.Proxy{}
@@ -67,7 +67,7 @@ func (r *CheClusterReconciler) getProxyConfiguration(deployContext *deploy.Deplo
 	return cheClusterProxyConf, nil
 }
 
-func (r *CheClusterReconciler) putOpenShiftCertsIntoConfigMap(deployContext *deploy.DeployContext) (bool, error) {
+func putOpenShiftCertsIntoConfigMap(deployContext *deploy.DeployContext) (bool, error) {
 	if deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName == "" {
 		deployContext.CheCluster.Spec.Server.ServerTrustStoreConfigMapName = deploy.DefaultServerTrustStoreConfigMapName()
 		if err := deploy.UpdateCheCRSpec(deployContext, "truststore configmap", deploy.DefaultServerTrustStoreConfigMapName()); err != nil {

@@ -15,6 +15,7 @@ package che
 import (
 	"context"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -36,7 +37,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,6 +58,34 @@ import (
 var (
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
+
+	syncItems = []func(*deploy.DeployContext) (*ctrl.Result, error){
+		validateCheClusterCR,
+		readProxyConfiguration,
+		syncOpenShiftCertificates,
+		syncSelfSignedCertificate,
+		syncAdditionalCertificates,
+		deploy.ReconcileImagePuller,
+		deleteOAuthInitialUserIfNeeded,
+		syncOpenShiftOAuth,
+		syncDevWorkspace,
+		syncServiceAccount,
+		syncGatewayPermissions,
+		syncWorkspacePermissions,
+		syncCheClusterRoles,
+		syncWorkspaceClusterRoles,
+		syncDefaults,
+		syncPostgres,
+		syncServerEndpoint,
+		syncIdentityProvider,
+		syncPluginRegistry,
+		syncDevfileRegistry,
+		syncDashboard,
+		syncGateway,
+		syncServer,
+		syncConsoleLink,
+		reconcileIdentityProvider,
+	}
 )
 
 const (
@@ -77,7 +106,7 @@ const (
 // CheClusterReconciler reconciles a CheCluster object
 type CheClusterReconciler struct {
 	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Scheme *k8sruntime.Scheme
 
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -233,8 +262,8 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		DiscoveryClient: r.discoveryClient,
 		Scheme:          r.Scheme,
 	}
+
 	// Fetch the CheCluster instance
-	tests := r.tests
 	instance, err := r.GetCR(req)
 
 	if err != nil {
@@ -256,367 +285,31 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	// Reconcile finalizers before CR is deleted
 	r.reconcileFinalizers(deployContext)
 
-	// Reconcile the imagePuller section of the CheCluster
-	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
-	if err != nil {
-		return imagePullerResult, err
-	}
-	if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
-		return imagePullerResult, err
-	}
-
-	// Check Che CR correctness
-	if !util.IsTestMode() {
-		if err := ValidateCheCR(instance); err != nil {
-			// Che cannot be deployed with current configuration.
-			// Print error message in logs and wait until the configuration is changed.
-			logrus.Error(err)
-			if err := deploy.SetStatusDetails(deployContext, failedValidationReason, err.Error(), ""); err != nil {
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, nil
-		}
-	}
-
-	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(instance) {
-		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
-			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
-			instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
-			err := deploy.UpdateCheCRSpec(deployContext, "initialOpenShiftOAuthUser", "nil")
-			return reconcile.Result{}, err
-		}
-
-		instance.Spec.Auth.OpenShiftoAuth = nil
-		instance.Spec.Auth.InitialOpenShiftOAuthUser = nil
-		updateFields := map[string]string{
-			"openShiftoAuth":            "nil",
-			"initialOpenShiftOAuthUser": "nil",
-		}
-
-		if err := deploy.UpdateCheCRSpecByFields(deployContext, updateFields); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
-	}
-
-	// Update status if OpenShift initial user is deleted (in the previous step)
-	if instance.Spec.Auth.InitialOpenShiftOAuthUser == nil && instance.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret := &corev1.Secret{}
-		exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
-		if err != nil {
-			// We should `Requeue` since we deal with cluster scope objects
-			return ctrl.Result{RequeueAfter: time.Second}, err
-		} else if !exists {
-			instance.Status.OpenShiftOAuthUserCredentialsSecret = ""
-			if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	if util.IsOpenShift && instance.Spec.Auth.OpenShiftoAuth == nil {
-		if reconcileResult, err := r.autoEnableOAuth(deployContext, req, util.IsOpenShift4); err != nil {
-			return reconcileResult, err
-		}
-	}
-
-	// Reconcile Dev Workspace Operator
-	done, err := devworkspace.ReconcileDevWorkspace(deployContext)
-	if !done {
-		if err != nil {
-			r.Log.Error(err, "")
-		}
-		// We should `Requeue` since we don't watch Dev Workspace controller objects
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	// Read proxy configuration
-	proxy, err := r.getProxyConfiguration(deployContext)
-	if err != nil {
-		r.Log.Error(err, "Error on reading proxy configuration")
-		return ctrl.Result{}, err
-	}
-	// Assign Proxy to the deploy context
-	deployContext.Proxy = proxy
-
-	if proxy.TrustedCAMapName != "" {
-		provisioned, err := r.putOpenShiftCertsIntoConfigMap(deployContext)
-		if !provisioned {
-			configMapName := instance.Spec.Server.ServerTrustStoreConfigMapName
+	for _, syncItem := range syncItems {
+		result, err := syncItem(deployContext)
+		if !util.IsTestMode() {
 			if err != nil {
-				r.Log.Error(err, "Error on provisioning", "config map", configMapName)
+				funcName := runtime.FuncForPC(reflect.ValueOf(syncItem).Pointer()).Name()
+				logrus.Errorf("Failed to sync %s, cause: %v", funcName, err)
+
+				// update the status with the error message'
+				if err := deploy.SetStatusDetails(deployContext, failedValidationReason, err.Error(), ""); err != nil {
+					return ctrl.Result{}, err
+				}
 			} else {
-				r.Log.Error(err, "Waiting on provisioning", "config map", configMapName)
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Detect whether self-signed certificate is used
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
-	if err != nil {
-		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
-		return ctrl.Result{}, err
-	}
-
-	if util.IsOpenShift {
-		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-		if selfSignedCertUsed ||
-			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
-			// and NOT from the Openshift API Master URL (as in v3)
-			// So we also need the self-signed certificate to access them (same as the Che server)
-			(util.IsOpenShift4 && util.IsOAuthEnabled(instance) && !instance.Spec.Server.TlsSupport) {
-			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		if util.IsOAuthEnabled(instance) {
-			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
-			if err != nil {
-				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
-			} else {
-				baseURL := map[bool]string{true: apiInternalUrl, false: apiUrl}[apiInternalUrl != ""]
-				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, baseURL, "openshift-api-crt"); err != nil {
+				// clean up the status
+				if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
-		}
-	} else {
-		// Handle Che TLS certificates on Kubernetes infrastructure
-		if instance.Spec.Server.TlsSupport {
-			if instance.Spec.K8s.TlsSecretName != "" {
-				// Self-signed certificate should be created to secure Che ingresses
-				result, err := deploy.K8sHandleCheTLSSecrets(deployContext)
-				if result.Requeue || result.RequeueAfter > 0 {
-					if err != nil {
-						logrus.Error(err)
-					}
-					if !tests {
-						return result, err
-					}
-				}
-			} else if selfSignedCertUsed {
-				// Use default self-signed ingress certificate
-				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
-					return ctrl.Result{}, err
-				}
+
+			if !isSuccessful(result) {
+				return *result, err
 			}
 		}
 	}
 
-	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
-	done, err = deploy.SyncAdditionalCACertsConfigMapToCluster(deployContext)
-	if err != nil {
-		r.Log.Error(err, "Error updating additional CA config map")
-		return ctrl.Result{}, err
-	}
-	if !done && !tests {
-		// Config map update is in progress
-		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
-		return ctrl.Result{}, err
-	}
-
-	if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Create service account "che" for che-server component.
-	// "che" is the one which token is used to create workspace objects.
-	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
-	done, err = deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
-	if !done {
-		if err != nil {
-			r.Log.Error(err, "")
-		}
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	if done, err = r.reconcileGatewayPermissions(deployContext); !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		// reconcile after 1 seconds since we deal with cluster objects
-		return reconcile.Result{RequeueAfter: time.Second}, err
-	}
-
-	done, err = r.reconcileWorkspacePermissions(deployContext)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		// reconcile after 1 seconds since we deal with cluster objects
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	if len(instance.Spec.Server.CheClusterRoles) > 0 {
-		cheClusterRoles := strings.Split(instance.Spec.Server.CheClusterRoles, ",")
-		for _, cheClusterRole := range cheClusterRoles {
-			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := cheClusterRole
-			done, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, cheClusterRoleBindingName, CheServiceAccountName, cheClusterRole)
-			if !tests {
-				if !done {
-					logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
-					if err != nil {
-						logrus.Error(err)
-					}
-					return ctrl.Result{RequeueAfter: time.Second}, err
-				}
-			}
-		}
-	}
-
-	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
-	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
-	workspaceClusterRole := instance.Spec.Server.CheWorkspaceClusterRole
-	if workspaceClusterRole != "" {
-		done, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
-	if err := r.GenerateAndSaveFields(deployContext, req); err != nil {
-		instance, _ = r.GetCR(req)
-		return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-	}
-
-	if !deployContext.CheCluster.Spec.Database.ExternalDb {
-		postgres := postgres.NewPostgres(deployContext)
-		done, err = postgres.SyncAll()
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
-	// we have to expose che endpoint independently of syncing other server
-	// resources since che host is used for dashboard deployment and che config map
-	server := server.NewServer(deployContext)
-	done, err = server.ExposeCheServiceAndEndpoint()
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return ctrl.Result{}, err
-	}
-
-	// create and provision Keycloak related objects
-	if !instance.Spec.Auth.ExternalIdentityProvider {
-		provisioned, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
-		if !provisioned {
-			if err != nil {
-				logrus.Errorf("Error provisioning the identity provider to cluster: %v", err)
-			}
-			return ctrl.Result{}, err
-		}
-	} else {
-		keycloakURL := instance.Spec.Auth.IdentityProviderURL
-		if instance.Status.KeycloakURL != keycloakURL {
-			instance.Status.KeycloakURL = keycloakURL
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: Keycloak URL", keycloakURL); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	if !instance.Spec.Server.ExternalPluginRegistry {
-		pluginRegistry := pluginregistry.NewPluginRegistry(deployContext)
-		done, err := pluginRegistry.SyncAll()
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{}, err
-		}
-	} else {
-		if instance.Spec.Server.PluginRegistryUrl != instance.Status.PluginRegistryURL {
-			instance.Status.PluginRegistryURL = instance.Spec.Server.PluginRegistryUrl
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: Plugin Registry URL", instance.Spec.Server.PluginRegistryUrl); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
-	if !instance.Spec.Server.ExternalDevfileRegistry {
-		done, err := devfileRegistry.SyncAll()
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
-	d := dashboard.NewDashboard(deployContext)
-	done, err = d.SyncAll()
-	if !done {
-		if err != nil {
-			logrus.Errorf("Error provisioning '%s' to cluster: %v", d.GetComponentName(), err)
-		}
-		return ctrl.Result{}, err
-	}
-
-	err = gateway.SyncGatewayToCluster(deployContext)
-	if err != nil {
-		logrus.Errorf("Failed to create the Server Gateway: %s", err)
-		return ctrl.Result{}, err
-	}
-
-	done, err = server.SyncAll()
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return reconcile.Result{}, err
-	}
-
-	// we can now try to create consolelink, after che instance is available
-	done, err = deploy.ReconcileConsoleLink(deployContext)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		// We should `Requeue` since we created cluster object
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	// Delete OpenShift identity provider if OpenShift oAuth is false in spec
-	// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
-	deleted, err := identity_provider.ReconcileIdentityProvider(deployContext)
-	if deleted {
-		// ignore error
-		deploy.DeleteFinalizer(deployContext, deploy.OAuthFinalizerName)
-		for {
-			instance.Status.OpenShiftoAuthProvisioned = false
-			if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
-				errors.IsConflict(err) {
-				instance, _ = r.GetCR(req)
-				continue
-			}
-			break
-		}
-		for {
-			instance.Spec.Auth.OAuthSecret = ""
-			instance.Spec.Auth.OAuthClientName = ""
-			if err := deploy.UpdateCheCRStatus(deployContext, "clean oAuth secret name and client name", ""); err != nil &&
-				errors.IsConflict(err) {
-				instance, _ = r.GetCR(req)
-				continue
-			}
-			break
-		}
-	}
-
+	r.Log.Info("Successfully reconciled")
 	return ctrl.Result{}, nil
 }
 
@@ -657,41 +350,42 @@ func isTrustedBundleConfigMap(mgr ctrl.Manager, obj handler.MapObject) (bool, ct
 	}
 }
 
-func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployContext, request ctrl.Request, isOpenShift4 bool) (reconcile.Result, error) {
-	var message, reason string
+func syncOpenShiftOAuth(deployContext *deploy.DeployContext) (*reconcile.Result, error) {
+	if !util.IsOpenShift || deployContext.CheCluster.Spec.Auth.OpenShiftoAuth != nil {
+		return nil, nil
+	}
+
 	oauth := false
-	cr := deployContext.CheCluster
-	if isOpenShift4 {
+
+	if util.IsOpenShift4 {
 		openshitOAuth, err := GetOpenshiftOAuth(deployContext.ClusterAPI.NonCachedClient)
 		if err != nil {
-			message = "Unable to get Openshift oAuth. Cause: " + err.Error()
-			logrus.Error(message)
-			reason = failedUnableToGetOAuth
+			logrus.Error("Unable to get Openshift oAuth. Cause: " + err.Error())
 		} else {
 			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
 				oauth = true
-			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
+			} else if util.IsInitialOpenShiftOAuthUserEnabled(deployContext.CheCluster) {
+				userHandler := NewOpenShiftOAuthUserHandler(deployContext.ClusterAPI.NonCachedClient)
+				provisioned, err := userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
 				if err != nil {
-					message = warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error()
-					logrus.Error(message)
+					logrus.Error(warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error())
 					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
-					reason = failedNoIdentityProviders
+
 					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
-					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
+					deployContext.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
 					if err := deploy.UpdateCheCRStatus(deployContext, "initialOpenShiftOAuthUser", ""); err != nil {
-						return reconcile.Result{}, err
+						return &reconcile.Result{}, err
 					}
 					oauth = false
 				} else {
 					if !provisioned {
-						return reconcile.Result{}, err
+						return &reconcile.Result{}, nil
 					}
 					oauth = true
 					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
 						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
 						if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
-							return reconcile.Result{}, err
+							return &reconcile.Result{}, err
 						}
 					}
 				}
@@ -700,35 +394,25 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 	} else { // Openshift 3
 		users := &userv1.UserList{}
 		listOptions := &client.ListOptions{}
-		if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
-			message = failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
-			logrus.Error(message)
-			reason = failedNoOpenshiftUser
+		if err := deployContext.ClusterAPI.NonCachedClient.List(context.TODO(), users, listOptions); err != nil {
+			logrus.Error(failedUnableToGetOpenshiftUsers + " Cause: " + err.Error())
 		} else {
 			oauth = len(users.Items) >= 1
 			if !oauth {
-				message = warningNoRealUsersMessage + " " + howToConfigureOAuthLinkOS3
-				logrus.Warn(message)
-				reason = failedNoOpenshiftUser
+				logrus.Warn(warningNoRealUsersMessage + " " + howToConfigureOAuthLinkOS3)
 			}
 		}
 	}
 
 	newOAuthValue := util.NewBoolPointer(oauth)
-	if !reflect.DeepEqual(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
-		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
+	if !reflect.DeepEqual(newOAuthValue, deployContext.CheCluster.Spec.Auth.OpenShiftoAuth) {
+		deployContext.CheCluster.Spec.Auth.OpenShiftoAuth = newOAuthValue
 		if err := deploy.UpdateCheCRSpec(deployContext, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+			return &reconcile.Result{RequeueAfter: time.Second * 1}, err
 		}
 	}
 
-	if message != "" && reason != "" {
-		if err := deploy.SetStatusDetails(deployContext, message, reason, ""); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	return reconcile.Result{}, nil
+	return nil, nil
 }
 
 // isEclipseCheRelatedObj indicates if there is a object with
@@ -770,12 +454,12 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 	}
 
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-		if _, err := r.reconcileGatewayPermissionsFinalizers(deployContext); err != nil {
+		if _, err := reconcileGatewayPermissionsFinalizers(deployContext); err != nil {
 			logrus.Error(err)
 		}
 	}
 
-	if _, err := r.reconcileWorkspacePermissionsFinalizers(deployContext); err != nil {
+	if _, err := reconcileWorkspacePermissionsFinalizers(deployContext); err != nil {
 		logrus.Error(err)
 	}
 
@@ -809,4 +493,340 @@ func (r *CheClusterReconciler) GetCR(request ctrl.Request) (instance *orgv1.CheC
 		return nil, err
 	}
 	return instance, nil
+}
+
+// Check Che CR correctness
+func validateCheClusterCR(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if !util.IsTestMode() {
+		if err := ValidateCheCR(deployContext.CheCluster); err != nil {
+			return &reconcile.Result{}, err
+		}
+	}
+
+	return nil, nil
+}
+
+// Read proxy configuration
+func readProxyConfiguration(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	proxy, err := getProxyConfiguration(deployContext)
+	if err != nil {
+		return &ctrl.Result{}, err
+	}
+
+	// Assign Proxy to the deploy context
+	deployContext.Proxy = proxy
+	return nil, nil
+}
+
+func syncOpenShiftCertificates(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if deployContext.Proxy.TrustedCAMapName != "" {
+		done, err := putOpenShiftCertsIntoConfigMap(deployContext)
+		return doneToResult(done, false, err)
+	}
+
+	return nil, nil
+}
+
+func syncSelfSignedCertificate(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	// Detect whether self-signed certificate is used
+	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
+	if err != nil {
+		logrus.Error(err, "Failed to detect if self-signed certificate used.")
+		return &ctrl.Result{}, err
+	}
+
+	if util.IsOpenShift {
+		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
+		if selfSignedCertUsed ||
+			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
+			// and NOT from the Openshift API Master URL (as in v3)
+			// So we also need the self-signed certificate to access them (same as the Che server)
+			(util.IsOpenShift4 && util.IsOAuthEnabled(deployContext.CheCluster) && !deployContext.CheCluster.Spec.Server.TlsSupport) {
+			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+				return &ctrl.Result{}, err
+			}
+		}
+
+		if util.IsOAuthEnabled(deployContext.CheCluster) {
+			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
+			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
+			if err != nil {
+				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
+			} else {
+				baseURL := map[bool]string{true: apiInternalUrl, false: apiUrl}[apiInternalUrl != ""]
+				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, baseURL, "openshift-api-crt"); err != nil {
+					return &ctrl.Result{}, err
+				}
+			}
+		}
+	} else {
+		// Handle Che TLS certificates on Kubernetes infrastructure
+		if deployContext.CheCluster.Spec.Server.TlsSupport {
+			if deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {
+				// Self-signed certificate should be created to secure Che ingresses
+				return deploy.K8sHandleCheTLSSecrets(deployContext)
+			} else if selfSignedCertUsed {
+				// Use default self-signed ingress certificate
+				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
+					return &ctrl.Result{}, err
+				}
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
+func syncAdditionalCertificates(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	done, err := deploy.SyncAdditionalCACertsConfigMapToCluster(deployContext)
+	return doneToResult(done, false, err)
+}
+
+// Reconcile Dev Workspace Operator
+func syncDevWorkspace(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	done, err := devworkspace.ReconcileDevWorkspace(deployContext)
+	return doneToResult(done, true, err)
+}
+
+// Create service account "che" for che-server component.
+// "che" is the one which token is used to create workspace objects.
+// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
+func syncServiceAccount(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	done, err := deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
+	return doneToResult(done, false, err)
+}
+
+func syncGatewayPermissions(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	done, err := reconcileGatewayPermissions(deployContext)
+	return doneToResult(done, false, err)
+}
+
+func syncWorkspacePermissions(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	done, err := reconcileWorkspacePermissions(deployContext)
+	return doneToResult(done, true, err)
+}
+
+func syncCheClusterRoles(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if len(deployContext.CheCluster.Spec.Server.CheClusterRoles) > 0 {
+		cheClusterRoles := strings.Split(deployContext.CheCluster.Spec.Server.CheClusterRoles, ",")
+		for _, cheClusterRole := range cheClusterRoles {
+			cheClusterRole := strings.TrimSpace(cheClusterRole)
+			cheClusterRoleBindingName := cheClusterRole
+
+			done, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, cheClusterRoleBindingName, CheServiceAccountName, cheClusterRole)
+			if !done {
+				return &ctrl.Result{RequeueAfter: time.Second}, err
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
+// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
+func syncWorkspaceClusterRoles(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	workspaceClusterRole := deployContext.CheCluster.Spec.Server.CheWorkspaceClusterRole
+	if workspaceClusterRole != "" {
+		done, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
+		return doneToResult(done, true, err)
+	}
+
+	return nil, nil
+}
+
+func syncDefaults(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if err := GenerateAndSaveFields(deployContext); err != nil {
+		return &ctrl.Result{RequeueAfter: time.Second * 1}, err
+	}
+
+	return nil, nil
+}
+
+func syncPostgres(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if !deployContext.CheCluster.Spec.Database.ExternalDb {
+		postgres := postgres.NewPostgres(deployContext)
+		done, err := postgres.SyncAll()
+		return doneToResult(done, false, err)
+	}
+
+	return nil, nil
+}
+
+// we have to expose che endpoint independently of syncing other server
+// resources since che host is used for dashboard deployment and che config map
+func syncServerEndpoint(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	server := server.NewServer(deployContext)
+	done, err := server.ExposeCheServiceAndEndpoint()
+	return doneToResult(done, false, err)
+}
+
+// create and provision Keycloak related objects
+func syncIdentityProvider(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if !deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+		done, err := identity_provider.SyncIdentityProviderToCluster(deployContext)
+		return doneToResult(done, false, err)
+	} else {
+		keycloakURL := deployContext.CheCluster.Spec.Auth.IdentityProviderURL
+		if deployContext.CheCluster.Status.KeycloakURL != keycloakURL {
+			deployContext.CheCluster.Status.KeycloakURL = keycloakURL
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: Keycloak URL", keycloakURL); err != nil {
+				return &reconcile.Result{}, err
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func syncPluginRegistry(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if !deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
+		pluginRegistry := pluginregistry.NewPluginRegistry(deployContext)
+		done, err := pluginRegistry.SyncAll()
+		return doneToResult(done, false, err)
+	} else {
+		if deployContext.CheCluster.Spec.Server.PluginRegistryUrl != deployContext.CheCluster.Status.PluginRegistryURL {
+			deployContext.CheCluster.Status.PluginRegistryURL = deployContext.CheCluster.Spec.Server.PluginRegistryUrl
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: Plugin Registry URL", deployContext.CheCluster.Spec.Server.PluginRegistryUrl); err != nil {
+				return &reconcile.Result{}, err
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func syncDevfileRegistry(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if !deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
+		devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
+		done, err := devfileRegistry.SyncAll()
+		return doneToResult(done, false, err)
+	}
+
+	return nil, nil
+}
+
+func syncDashboard(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	d := dashboard.NewDashboard(deployContext)
+	done, err := d.SyncAll()
+	return doneToResult(done, false, err)
+}
+
+func syncGateway(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if err := gateway.SyncGatewayToCluster(deployContext); err != nil {
+		return &ctrl.Result{}, err
+	}
+
+	return nil, nil
+}
+
+func syncServer(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	server := server.NewServer(deployContext)
+	done, err := server.SyncAll()
+	return doneToResult(done, false, err)
+}
+
+// we can now try to create consolelink, after che instance is available
+func syncConsoleLink(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	done, err := deploy.ReconcileConsoleLink(deployContext)
+	return doneToResult(done, true, err)
+}
+
+// Delete OpenShift identity provider if OpenShift oAuth is false in spec
+// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
+func reconcileIdentityProvider(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	deleted, _ := identity_provider.ReconcileIdentityProvider(deployContext)
+	if deleted {
+		// ignore error
+		deploy.DeleteFinalizer(deployContext, deploy.OAuthFinalizerName)
+		for {
+			deployContext.CheCluster.Status.OpenShiftoAuthProvisioned = false
+			if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
+				errors.IsConflict(err) {
+				deploy.ReloadCheClusterCR(deployContext)
+				continue
+			}
+			break
+		}
+		for {
+			deployContext.CheCluster.Spec.Auth.OAuthSecret = ""
+			deployContext.CheCluster.Spec.Auth.OAuthClientName = ""
+
+			if err := deploy.UpdateCheCRStatus(deployContext, "clean oAuth secret name and client name", ""); err != nil &&
+				errors.IsConflict(err) {
+				deploy.ReloadCheClusterCR(deployContext)
+				continue
+			}
+			break
+		}
+	}
+
+	return nil, nil
+}
+
+func deleteOAuthInitialUserIfNeeded(deployContext *deploy.DeployContext) (*ctrl.Result, error) {
+	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(deployContext.CheCluster) {
+		userHandler := NewOpenShiftOAuthUserHandler(deployContext.ClusterAPI.NonCachedClient)
+		if err := userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
+			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
+
+			// don't try one more time
+			deployContext.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
+			err := deploy.UpdateCheCRSpec(deployContext, "initialOpenShiftOAuthUser", "nil")
+			return &reconcile.Result{}, err
+		}
+
+		deployContext.CheCluster.Spec.Auth.OpenShiftoAuth = nil
+		deployContext.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
+		updateFields := map[string]string{
+			"openShiftoAuth":            "nil",
+			"initialOpenShiftOAuthUser": "nil",
+		}
+
+		if err := deploy.UpdateCheCRSpecByFields(deployContext, updateFields); err != nil {
+			return &reconcile.Result{}, err
+		}
+
+		return nil, nil
+	}
+
+	// Update status if OpenShift initial user is deleted (in the previous step)
+	if deployContext.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser == nil && deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret != "" {
+		secret := &corev1.Secret{}
+		exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
+		if err != nil {
+			// We should `Requeue` since we deal with cluster scope objects
+			return &ctrl.Result{RequeueAfter: time.Second}, err
+		} else if !exists {
+			deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
+			if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+				return &reconcile.Result{}, err
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func doneToResult(done bool, forceRequeueIfNotDone bool, err error) (*ctrl.Result, error) {
+	if done {
+		return nil, nil
+	}
+
+	if forceRequeueIfNotDone {
+		return &ctrl.Result{RequeueAfter: time.Second}, err
+	}
+	return &ctrl.Result{}, err
+}
+
+func errToResult(err error) (*ctrl.Result, error) {
+	if err == nil {
+		return nil, nil
+	}
+	return &ctrl.Result{}, err
+}
+
+func isSuccessful(result *ctrl.Result) bool {
+	return result == nil
 }
