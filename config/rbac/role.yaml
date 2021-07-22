@@ -76,8 +76,10 @@ rules:
   - get
 - apiGroups:
   - apps
+  - extensions
   resources:
   - deployments
+  - replicasets
   verbs:
   - '*'
 - apiGroups:
@@ -136,18 +138,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
   - configmaps/status
   verbs:
   - get
@@ -159,4 +149,46 @@ rules:
   - events
   verbs:
   - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - che-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings
+  verbs:
+  - '*'
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - oauth.openshift.io
+  resources:
+  - oauthclients
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
 ### CHE-OPERATOR ROLES ONLY: END
