@@ -35,6 +35,8 @@ overrideDefaults() {
 }
 
 runTests() {
+  deployImagePuller
+
   # create namespace
   oc create namespace eclipse-che || true
 

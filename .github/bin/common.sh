@@ -532,3 +532,11 @@ deployCertManager() {
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=60s
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=60s
 }
+
+deployImagePuller() {
+  oc new-project k8s-image-puller
+  oc process -f https://raw.githubusercontent.com/che-incubator/kubernetes-image-puller/main/deploy/openshift/serviceaccount.yaml | oc apply -f -
+  oc process -f https://raw.githubusercontent.com/che-incubator/kubernetes-image-puller/main/deploy/openshift/configmap.yaml | oc apply -f -
+  oc process -f https://raw.githubusercontent.com/che-incubator/kubernetes-image-puller/main/deploy/openshift/app.yaml | oc apply -f -
+  oc wait --for=condition=ready pod -l app=kubernetes-image-puller -n k8s-image-puller --timeout=60s
+}
