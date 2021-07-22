@@ -239,6 +239,9 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	yq -rYi ".spec.subresources.status = {}" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
 	# remove .spec.validation.openAPIV3Schema.type field
+	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
+	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
+	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
 	yq -rYi "del(.spec.validation.openAPIV3Schema.type)" "$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
 	# remove "required" attributes from v1beta1 crd files
