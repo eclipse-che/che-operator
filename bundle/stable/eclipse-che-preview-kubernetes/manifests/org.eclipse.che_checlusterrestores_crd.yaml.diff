@@ -1,0 +1,12 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org.eclipse.che_checlusterrestores_crd.yaml	2021-07-21 11:57:09.444760392 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/manifests/org.eclipse.che_checlusterrestores_crd.yaml	2021-07-21 11:57:09.460760391 +0000
+@@ -24,7 +24,8 @@
+   - name: v1
+     schema:
+       openAPIV3Schema:
+-        description: CheClusterRestore is the Schema for the checlusterrestores API
++        description: The `CheClusterRestore` custom resource allows defining and managing
++          Eclipse Che restore
+         properties:
+           apiVersion:
+             description: 'APIVersion defines the versioned schema of this representation
