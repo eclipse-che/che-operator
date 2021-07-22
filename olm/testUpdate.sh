@@ -53,8 +53,15 @@ run() {
   installCatalogSource "${platform}" "${namespace}" "${CATALOG_IMAGENAME}"
 
   getBundleListFromCatalogSource "${platform}" "${namespace}"
-  getPreviousCSVInfo "${channel}"
+  getPreviousCSVInfo "${channel}" 
   getLatestCSVInfo "${channel}"
+
+  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
+
+  if [ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]; then
+    echo "[ERROR] Nothing to update. OLM channel '${channel}' contains only one bundle."
+    exit 1
+  fi
 
   forcePullingOlmImages "${namespace}" "${PREVIOUS_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${namespace}" "${LATEST_CSV_BUNDLE_IMAGE}"
