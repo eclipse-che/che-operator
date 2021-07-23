@@ -14,12 +14,14 @@ package deploy
 import (
 	"context"
 	goerror "errors"
+	"fmt"
 	"strings"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -85,7 +87,22 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			if createdOperatorSubscription {
 				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
-
+			subscriptionsAreEqual, err := CompareExpectedSubscription(ctx, packageManifest)
+			if err != nil {
+				logrus.Infof("Error checking Subscription equality: %v", err)
+				return reconcile.Result{}, nil
+			}
+			// If the Subscription Spec changed for some reason, update it
+			if !subscriptionsAreEqual {
+				updatedOperatorSubscription := GetExpectedSubscription(ctx, packageManifest)
+				logrus.Infof("Updating Subscription")
+				err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), updatedOperatorSubscription, &client.UpdateOptions{})
+				if err != nil {
+					logrus.Errorf("Error updating Subscription: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
 			// Add the image puller finalizer
 			if !HasImagePullerFinalizer(ctx.CheCluster) {
 				if err := ReconcileImagePullerFinalizer(ctx); err != nil {
@@ -373,6 +390,17 @@ func GetActualSubscription(ctx *DeployContext) (*operatorsv1alpha1.Subscription,
 		return nil, err
 	}
 	return actual, nil
+}
+
+func CompareExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.PackageManifest) (bool, error) {
+	expected := GetExpectedSubscription(ctx, packageManifest)
+	actual := &operatorsv1alpha1.Subscription{}
+	err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, actual)
+	if err != nil {
+		return false, err
+	}
+	fmt.Printf("Difference: %s", cmp.Diff(actual, expected))
+	return SubscriptionsAreEqual(expected, actual), nil
 }
 
 // Update the CheCluster ImagePuller spec if the default values are not set
