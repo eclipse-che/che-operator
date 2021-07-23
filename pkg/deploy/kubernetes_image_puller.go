@@ -86,25 +86,6 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
 
-			expectedSubscription := GetExpectedSubscription(ctx, packageManifest)
-			actualSubscription, err := GetActualSubscription(ctx)
-			if err != nil {
-				logrus.Infof("Error getting Subscription: %v", err)
-				return reconcile.Result{}, err
-			}
-
-			// If the Subscription Spec changed for some reason, update it
-			if !SubscriptionsAreEqual(expectedSubscription, actualSubscription) {
-				expectedSubscription.GetObjectMeta().SetResourceVersion(actualSubscription.GetObjectMeta().GetResourceVersion())
-
-				logrus.Infof("Updating Subscription")
-				err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), expectedSubscription, &client.UpdateOptions{})
-				if err != nil {
-					logrus.Errorf("Error updating Subscription: %v", err)
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{RequeueAfter: time.Second}, nil
-			}
 			// Add the image puller finalizer
 			if !HasImagePullerFinalizer(ctx.CheCluster) {
 				if err := ReconcileImagePullerFinalizer(ctx); err != nil {
