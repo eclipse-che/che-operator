@@ -35,7 +35,7 @@ overrideDefaults() {
 }
 
 runTests() {
-    deployCommunityCatalog
+    # deployCommunityCatalog
 
     # create namespace
     oc create namespace eclipse-che || true
