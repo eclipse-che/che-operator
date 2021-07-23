@@ -534,7 +534,6 @@ deployCertManager() {
 }
 
 deployCommunityCatalog() {
-  local SERVER_VERSION=oc version | grep "Server Version" | sed -E 's/Server Version: (...).*/\1/g'
   oc create -f - -o jsonpath='{.metadata.name}' <<EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
@@ -543,7 +542,7 @@ metadata:
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: registry.redhat.io/redhat/community-operator-index:v${SERVER_VERSION}
+  image: registry.redhat.io/redhat/community-operator-index:v4.7
   displayName: Eclipse Che Catalog
   publisher: Eclipse Che
   updateStrategy:
