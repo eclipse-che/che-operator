@@ -549,5 +549,6 @@ spec:
     registryPoll:
       interval: 30m
 EOF
+  sleep 10s
   kubectl wait --for=condition=ready pod -l olm.catalogSource=community-catalog -n openshift-marketplace --timeout=60s
 }
