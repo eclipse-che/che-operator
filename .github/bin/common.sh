@@ -533,10 +533,21 @@ deployCertManager() {
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=60s
 }
 
-deployImagePuller() {
-  oc new-project k8s-image-puller
-  oc process -f https://raw.githubusercontent.com/che-incubator/kubernetes-image-puller/main/deploy/openshift/serviceaccount.yaml | oc apply -f -
-  oc process -f https://raw.githubusercontent.com/che-incubator/kubernetes-image-puller/main/deploy/openshift/configmap.yaml | oc apply -f -
-  oc process -f https://raw.githubusercontent.com/che-incubator/kubernetes-image-puller/main/deploy/openshift/app.yaml | oc apply -f -
-  oc wait --for=condition=ready pod -l app=kubernetes-image-puller -n k8s-image-puller --timeout=60s
+deployCommunityCatalog() {
+  oc create -f - -o jsonpath='{.metadata.name}' <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: community-catalog
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: registry.redhat.io/redhat/community-operator-index:v4.7
+  displayName: Eclipse CHe Catalog
+  publisher: Eclipse Che
+  updateStrategy:
+    registryPoll:
+      interval: 30m
+EOF
+  kubectl wait --for=condition=ready pod -l olm.catalogSource=community-catalog -n openshift-marketplace --timeout=60s
 }

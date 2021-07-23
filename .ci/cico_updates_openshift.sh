@@ -26,6 +26,8 @@ overrideDefaults() {
 }
 
 runTests() {
+  deployCommunityCatalog
+
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   provisionOAuth
