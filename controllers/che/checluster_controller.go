@@ -94,10 +94,12 @@ type CheClusterReconciler struct {
 	tests             bool
 	userHandler       OpenShiftOAuthUserHandler
 	permissionChecker PermissionChecker
+	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
+	namespace string
 }
 
 // NewReconciler returns a new CheClusterReconciler
-func NewReconciler(mgr ctrl.Manager) (*CheClusterReconciler, error) {
+func NewReconciler(mgr ctrl.Manager, namespace string) (*CheClusterReconciler, error) {
 	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
 	if err != nil {
 		return nil, err
@@ -115,6 +117,7 @@ func NewReconciler(mgr ctrl.Manager) (*CheClusterReconciler, error) {
 		discoveryClient:   discoveryClient,
 		userHandler:       NewOpenShiftOAuthUserHandler(noncachedClient),
 		permissionChecker: &K8sApiPermissionChecker{},
+		namespace:         namespace,
 	}, nil
 }
 
@@ -212,6 +215,10 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		})
+	}
+
+	if r.namespace != "" {
+		contollerBuilder.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
 	}
 
 	return contollerBuilder.

@@ -26,6 +26,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 type k8s struct {
@@ -187,4 +189,21 @@ func (cl *k8s) IsResourceOperationPermitted(resourceAttr *authorizationv1.Resour
 	}
 
 	return ssar.Status.Allowed, nil
+}
+
+func InNamespaceEventFilter(namespace string) predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(ce event.CreateEvent) bool {
+			return namespace == ce.Meta.GetNamespace()
+		},
+		DeleteFunc: func(de event.DeleteEvent) bool {
+			return namespace == de.Meta.GetNamespace()
+		},
+		UpdateFunc: func(ue event.UpdateEvent) bool {
+			return namespace == ue.MetaNew.GetNamespace()
+		},
+		GenericFunc: func(ge event.GenericEvent) bool {
+			return namespace == ge.Meta.GetNamespace()
+		},
+	}
 }

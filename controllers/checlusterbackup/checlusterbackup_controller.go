@@ -18,6 +18,7 @@ import (
 	"time"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,11 +45,13 @@ type ReconcileCheClusterBackup struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
+	namespace string
 }
 
 // NewReconciler returns a new reconcile.Reconciler
-func NewReconciler(mgr manager.Manager) *ReconcileCheClusterBackup {
-	return &ReconcileCheClusterBackup{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func NewReconciler(mgr manager.Manager, namespace string) *ReconcileCheClusterBackup {
+	return &ReconcileCheClusterBackup{client: mgr.GetClient(), scheme: mgr.GetScheme(), namespace: namespace}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -69,9 +72,15 @@ func (r *ReconcileCheClusterBackup) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	bldr := ctrl.NewControllerManagedBy(mgr).
 		Named("checlusterbackup-controller").
-		Watches(&source.Kind{Type: &chev1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(backupCRPredicate)).
+		Watches(&source.Kind{Type: &chev1.CheClusterBackup{}}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(backupCRPredicate))
+
+	if r.namespace != "" {
+		bldr.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
+	}
+
+	return bldr.
 		For(&chev1.CheClusterBackup{}).
 		Complete(r)
 }

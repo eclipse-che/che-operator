@@ -197,7 +197,11 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "e79b08a4.org.eclipse.che",
-		Namespace:              watchNamespace,
+		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
+		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
+		// Instead, if some controller wants to limit itself to single namespace, it can do it
+		// for example using an event filter, as checontroller does.
+		// Namespace:              watchNamespace,
 		// TODO try to use it instead of signal handler....
 		// GracefulShutdownTimeout: ,
 	})
@@ -206,13 +210,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	cheReconciler, err := checontroller.NewReconciler(mgr)
+	cheReconciler, err := checontroller.NewReconciler(mgr, watchNamespace)
 	if err != nil {
 		setupLog.Error(err, "unable to create checluster reconciler")
 		os.Exit(1)
 	}
-	backupReconciler := backupcontroller.NewReconciler(mgr)
-	restoreReconciler := restorecontroller.NewReconciler(mgr)
+	backupReconciler := backupcontroller.NewReconciler(mgr, watchNamespace)
+	restoreReconciler := restorecontroller.NewReconciler(mgr, watchNamespace)
 
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
