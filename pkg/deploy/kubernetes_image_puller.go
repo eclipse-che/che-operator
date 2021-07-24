@@ -87,22 +87,22 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			if createdOperatorSubscription {
 				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
-			// subscriptionsAreEqual, err := CompareExpectedSubscription(ctx, packageManifest)
-			// if err != nil {
-			// 	logrus.Infof("Error checking Subscription equality: %v", err)
-			// 	return reconcile.Result{}, nil
-			// }
-			// // If the Subscription Spec changed for some reason, update it
-			// if !subscriptionsAreEqual {
-			// 	updatedOperatorSubscription := GetExpectedSubscription(ctx, packageManifest)
-			// 	logrus.Infof("Updating Subscription")
-			// 	err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), updatedOperatorSubscription, &client.UpdateOptions{})
-			// 	if err != nil {
-			// 		logrus.Errorf("Error updating Subscription: %v", err)
-			// 		return reconcile.Result{}, err
-			// 	}
-			// 	return reconcile.Result{Requeue: true}, nil
-			// }
+			subscriptionsAreEqual, err := CompareExpectedSubscription(ctx, packageManifest)
+			if err != nil {
+				logrus.Infof("Error checking Subscription equality: %v", err)
+				return reconcile.Result{}, err
+			}
+			// If the Subscription Spec changed for some reason, update it
+			if !subscriptionsAreEqual {
+				updatedOperatorSubscription := GetExpectedSubscription(ctx, packageManifest)
+				logrus.Infof("Updating Subscription")
+				err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), updatedOperatorSubscription, &client.UpdateOptions{})
+				if err != nil {
+					logrus.Errorf("Error updating Subscription: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
 			// Add the image puller finalizer
 			if !HasImagePullerFinalizer(ctx.CheCluster) {
 				if err := ReconcileImagePullerFinalizer(ctx); err != nil {

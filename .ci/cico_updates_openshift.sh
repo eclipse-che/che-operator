@@ -22,12 +22,9 @@ trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
   export CHE_EXPOSURE_STRATEGY="single-host"
-  export IMAGE_PULLER_ENABLE="true"
 }
 
 runTests() {
-  deployCommunityCatalog
-
   "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   provisionOAuth
