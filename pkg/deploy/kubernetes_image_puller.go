@@ -85,22 +85,25 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			if createdOperatorSubscription {
 				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
-			// subscriptionsAreEqual, err := CompareExpectedSubscription(ctx, packageManifest)
-			// if err != nil {
-			// 	logrus.Infof("Error checking Subscription equality: %v", err)
-			// 	return reconcile.Result{}, err
-			// }
-			// // If the Subscription Spec changed for some reason, update it
-			// if !subscriptionsAreEqual {
-			// 	updatedOperatorSubscription := GetExpectedSubscription(ctx, packageManifest)
-			// 	logrus.Infof("Updating Subscription")
-			// 	err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), updatedOperatorSubscription, &client.UpdateOptions{})
-			// 	if err != nil {
-			// 		logrus.Errorf("Error updating Subscription: %v", err)
-			// 		return reconcile.Result{}, err
-			// 	}
-			// 	return reconcile.Result{Requeue: true}, nil
-			// }
+
+			actualSubscription, err := GetActualSubscription(ctx)
+			if err != nil {
+				logrus.Infof("Error getting Subscription: %v", err)
+				return reconcile.Result{}, err
+			}
+
+			expectedSubscription := GetExpectedSubscription(ctx, packageManifest)
+			// If the Subscription Spec changed for some reason, update it
+			if !SubscriptionsAreEqual(expectedSubscription, actualSubscription) {
+				logrus.Infof("Updating Subscription")
+				expectedSubscription.ObjectMeta.SetResourceVersion(actualSubscription.ObjectMeta.GetResourceVersion())
+				err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), expectedSubscription, &client.UpdateOptions{})
+				if err != nil {
+					logrus.Errorf("Error updating Subscription: %v", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true}, nil
+			}
 			// Add the image puller finalizer
 			if !HasImagePullerFinalizer(ctx.CheCluster) {
 				if err := ReconcileImagePullerFinalizer(ctx); err != nil {
@@ -388,15 +391,6 @@ func GetActualSubscription(ctx *DeployContext) (*operatorsv1alpha1.Subscription,
 		return nil, err
 	}
 	return actual, nil
-}
-
-func CompareExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.PackageManifest) (bool, error) {
-	expected := GetExpectedSubscription(ctx, packageManifest)
-	actual, err := GetActualSubscription(ctx)
-	if err != nil {
-		return false, err
-	}
-	return SubscriptionsAreEqual(expected, actual), nil
 }
 
 // Update the CheCluster ImagePuller spec if the default values are not set
