@@ -381,15 +381,6 @@ func GetExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.Pac
 	}
 }
 
-func GetActualSubscription(ctx *DeployContext) (*operatorsv1alpha1.Subscription, error) {
-	actual := &operatorsv1alpha1.Subscription{}
-	err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, actual)
-	if err != nil {
-		return nil, err
-	}
-	return actual, nil
-}
-
 func CompareExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.PackageManifest) (bool, error) {
 	expected := GetExpectedSubscription(ctx, packageManifest)
 	actual := &operatorsv1alpha1.Subscription{}
