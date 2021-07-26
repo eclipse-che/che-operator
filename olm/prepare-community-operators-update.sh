@@ -16,7 +16,7 @@ CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 PLATFORMS="kubernetes,openshift"
-STABLE_CHANNELS="stable-all-namespaces,stable"
+STABLE_CHANNELS=("stable-all-namespaces" "stable")
 source "${BASE_DIR}/check-yq.sh"
 
 base_branch="main"
@@ -53,7 +53,7 @@ Options:
 "
 }
 
-. ${BASE_DIR}/olm.sh
+. ${BASE_DIR}/olm/olm.sh
 installOPM
 
 for platform in $(echo $PLATFORMS | tr "," " ")
@@ -109,7 +109,7 @@ do
   folderToUpdate="${communityOperatorsLocalGitFolder}/${platformSubFolder}/eclipse-che"
   destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
-  for channel in $(echo $STABLE_CHANNELS | tr "," " ")
+  for channel in "${STABLE_CHANNELS[@]}"
   do
     if [[ $channel == "stable-all-namespaces" && $platform == "kubernetes" ]];then
       continue

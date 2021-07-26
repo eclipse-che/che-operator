@@ -25,6 +25,10 @@ import (
 	"testing"
 )
 
+const (
+	DevWorkspaceCSVName = "devworkspace-operator.v0.6.0"
+)
+
 func TestReconcileDevWorkspace(t *testing.T) {
 	type testCase struct {
 		name         string
@@ -109,6 +113,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
 			deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
 				{
 					APIResources: []metav1.APIResource{
@@ -177,6 +182,52 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 
 	if err == nil || err.Error() != "A non matching version of the Dev Workspace operator is already installed" {
 		t.Fatalf("Error should be thrown")
+	}
+}
+
+func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(true),
+			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "single-host",
+			},
+		},
+	}
+	devWorkspaceCSV := &operatorsv1alpha1.ClusterServiceVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DevWorkspaceCSVName,
+			Namespace: "openshift-operators",
+		},
+		Spec: operatorsv1alpha1.ClusterServiceVersionSpec{},
+	}
+
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
+	deployContext = deploy.GetTestDeployContext(cheCluster, []runtime.Object{devWorkspaceCSV})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
+	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+		{
+			APIResources: []metav1.APIResource{
+				{Name: ClusterServiceVersionResourceName},
+			},
+		},
+	}
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	reconciled, _ := ReconcileDevWorkspace(deployContext)
+
+	if !reconciled {
+		t.Fatalf("Test Failed... DevWorkspace CSV is expected to be craeted")
 	}
 }
 

@@ -24,6 +24,7 @@ done
 
 OPERATOR_DIR=$(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}")))
 BASE_DIR="${OPERATOR_DIR}/olm"
+
 source ${BASE_DIR}/check-yq.sh
 
 command -v pysemver >/dev/null 2>&1 || { echo "[ERROR] pysemver is not installed. Abort."; exit 1; }

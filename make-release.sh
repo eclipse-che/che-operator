@@ -29,7 +29,7 @@ init() {
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
   DEV_WORKSPACE_CONTROLLER_VERSION="main"
   DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
-  STABLE_CHANNELS="stable-all-namespaces,stable"
+  STABLE_CHANNELS=("stable-all-namespaces" "stable")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -227,7 +227,7 @@ updateVersionFile() {
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
   echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
-  for channel in $(echo $STABLE_CHANNELS | tr "," " ")
+  for channel in "${STABLE_CHANNELS[@]}"
   do
     cd $RELEASE_DIR/olm
     . release-olm-files.sh --release-version $RELEASE --channel $channel --dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION --dev-workspace-che-operator-version $DEV_WORKSPACE_CHE_OPERATOR_VERSION
