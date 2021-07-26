@@ -124,10 +124,22 @@ yq -riY "( .spec.relatedImages ) += [${RELATED_IMAGES}]" ${CSV_FILE}
 yq -riY "( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${CSV_FILE}
 sed -i "${CSV_FILE}" -r -e "s|tag: |# tag: |"
 echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${CSV_FILE})" > ${CSV_FILE}
-
 echo "[INFO] CSV updated: ${CSV_FILE}"
 
 if [[ ${OPERATOR_FILE} ]]; then
+  # delete previous `RELATED_IMAGES`
+  envVarLength=$(cat "${OPERATOR_FILE}" | yq -r ".spec.template.spec.containers[0].env | length")
+  i=0
+  while [ "${i}" -lt "${envVarLength}" ]; do
+    envVarName=$(cat "${OPERATOR_FILE}" | yq -r '.spec.template.spec.containers[0].env['${i}'].name')
+    if [[ ${envVarName} =~ plugin_registry_image ]] || [[ ${envVarName} =~ devfile_registry_image ]]; then
+      yq -riY 'del(.spec.template.spec.containers[0].env['${i}'])' ${OPERATOR_FILE}
+      i=$((i-1))
+    fi
+    i=$((i+1))
+  done
+
+  # add new `RELATED_IMAGES`
   yq -riY "( .spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${OPERATOR_FILE}
   echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${OPERATOR_FILE})" > ${OPERATOR_FILE}
   echo "[INFO] Operator deployment file updated: ${OPERATOR_FILE}"
