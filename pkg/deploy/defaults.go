@@ -219,7 +219,7 @@ func getDefaultsFromFile(defaultsPath string) *v1.Deployment {
 	return nil
 }
 
-func getDefaultFromEnv(envName string) string {
+func GetDefaultFromEnv(envName string) string {
 	value := os.Getenv(envName)
 
 	if len(value) == 0 {
@@ -239,39 +239,39 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 }
 
 func DefaultServerTrustStoreConfigMapName() string {
-	return getDefaultFromEnv("CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME")
+	return GetDefaultFromEnv("CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME")
 }
 
 func DefaultCheFlavor(cr *orgv1.CheCluster) string {
-	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
+	return util.GetValue(cr.Spec.Server.CheFlavor, GetDefaultFromEnv("CHE_FLAVOR"))
 }
 
 func DefaultConsoleLinkName() string {
-	return getDefaultFromEnv("CONSOLE_LINK_NAME")
+	return GetDefaultFromEnv("CONSOLE_LINK_NAME")
 }
 
 func DefaultConsoleLinkDisplayName() string {
-	return getDefaultFromEnv("CONSOLE_LINK_DISPLAY_NAME")
+	return GetDefaultFromEnv("CONSOLE_LINK_DISPLAY_NAME")
 }
 
 func DefaultConsoleLinkSection() string {
-	return getDefaultFromEnv("CONSOLE_LINK_SECTION")
+	return GetDefaultFromEnv("CONSOLE_LINK_SECTION")
 }
 
 func DefaultConsoleLinkImage() string {
-	return getDefaultFromEnv("CONSOLE_LINK_IMAGE")
+	return GetDefaultFromEnv("CONSOLE_LINK_IMAGE")
 }
 
 func DefaultCheIdentitySecret() string {
-	return getDefaultFromEnv("CHE_IDENTITY_SECRET")
+	return GetDefaultFromEnv("CHE_IDENTITY_SECRET")
 }
 
 func DefaultCheIdentityPostgresSecret() string {
-	return getDefaultFromEnv("CHE_IDENTITY_POSTGRES_SECRET")
+	return GetDefaultFromEnv("CHE_IDENTITY_POSTGRES_SECRET")
 }
 
 func DefaultChePostgresSecret() string {
-	return getDefaultFromEnv("CHE_POSTGRES_SECRET")
+	return GetDefaultFromEnv("CHE_POSTGRES_SECRET")
 }
 
 func DefaultCheVersion() string {
@@ -454,34 +454,34 @@ func getOrganizationFromImage(image string) string {
 }
 
 func InitDefaultsFromEnv() {
-	defaultCheVersion = getDefaultFromEnv("CHE_VERSION")
-	defaultCheServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
-	defaultDashboardImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
-	defaultDevworkspaceCheOperatorImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_che_operator"))
-	defaultDevworkspaceControllerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
-	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
-	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
-	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
-	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
-	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
-	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
-	defaultSingleHostGatewayImageNativeUserMode = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_native_user_mode"))
-	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
-	defaultInternalRestBackupServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
-	defaultGatewayAuthenticationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
-	defaultGatewayAuthorizationSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
-	defaultGatewayHeaderProxySidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))
+	defaultCheVersion = GetDefaultFromEnv("CHE_VERSION")
+	defaultCheServerImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server"))
+	defaultDashboardImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_dashboard"))
+	defaultDevworkspaceCheOperatorImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_che_operator"))
+	defaultDevworkspaceControllerImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devworkspace_controller"))
+	defaultPluginRegistryImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
+	defaultDevfileRegistryImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
+	defaultPvcJobsImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
+	defaultPostgresImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultKeycloakImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
+	defaultSingleHostGatewayImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
+	defaultSingleHostGatewayImageNativeUserMode = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_native_user_mode"))
+	defaultSingleHostGatewayConfigSidecarImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
+	defaultInternalRestBackupServerImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))
+	defaultGatewayAuthenticationSidecarImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
+	defaultGatewayAuthorizationSidecarImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authorization_sidecar"))
+	defaultGatewayHeaderProxySidecarImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_header_sidecar"))
 
 	// CRW images for that are mentioned in the Che server che.properties
 	// For CRW these should be synced by hand with images stored in RH registries
 	// instead of being synced by script with the content of the upstream `che.properties` file
-	defaultCheWorkspacePluginBrokerMetadataImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
-	defaultCheWorkspacePluginBrokerArtifactsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
-	defaultCheServerSecureExposerJwtProxyImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
+	defaultCheWorkspacePluginBrokerMetadataImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
+	defaultCheWorkspacePluginBrokerArtifactsImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
+	defaultCheServerSecureExposerJwtProxyImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image"))
 
 	// Don't get some k8s specific env
 	if !util.IsOpenShift {
-		defaultCheTLSSecretsCreationJobImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
+		defaultCheTLSSecretsCreationJobImage = GetDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_tls_secrets_creation_job"))
 	}
 }
 

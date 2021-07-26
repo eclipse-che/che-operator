@@ -37,7 +37,7 @@ func TestSyncService(t *testing.T) {
 		CheCluster: &orgv1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
-				Name:      "eclipse-che",
+				Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
 			},
 			Spec: orgv1.CheClusterSpec{
 				Server: orgv1.CheClusterSpecServer{
@@ -80,7 +80,7 @@ func TestSyncAll(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
+			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
 		},
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
@@ -132,7 +132,7 @@ func TestSyncAll(t *testing.T) {
 
 	// check configmap
 	configMap := &corev1.ConfigMap{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: server.component, Namespace: "eclipse-che"}, configMap)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: CheConfigMapName, Namespace: "eclipse-che"}, configMap)
 	if err != nil {
 		t.Fatalf("ConfigMap not found: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestSyncPVC(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
+			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
 		},
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
@@ -249,7 +249,7 @@ func TestSyncPVC(t *testing.T) {
 func TestUpdateAvailabilityStatus(t *testing.T) {
 	cheDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che",
+			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
 			Namespace: "eclipse-che",
 		},
 		Status: appsv1.DeploymentStatus{
@@ -260,7 +260,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
+			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
 		},
 		Spec:   orgv1.CheClusterSpec{},
 		Status: orgv1.CheClusterStatus{},
