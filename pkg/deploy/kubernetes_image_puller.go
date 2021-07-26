@@ -14,14 +14,12 @@ package deploy
 import (
 	"context"
 	goerror "errors"
-	"fmt"
 	"strings"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"github.com/google/go-cmp/cmp"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -399,7 +397,6 @@ func CompareExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1
 	if err != nil {
 		return false, err
 	}
-	fmt.Printf("Difference: %s", cmp.Diff(actual, expected))
 	return SubscriptionsAreEqual(expected, actual), nil
 }
 
