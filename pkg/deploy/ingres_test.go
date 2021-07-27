@@ -39,11 +39,11 @@ func TestIngressSpec(t *testing.T) {
 		ingressCustomSettings orgv1.IngressCustomSettings
 		expectedIngress       *v1beta1.Ingress
 	}
-
+	cheFlavor := getDefaultFromEnv("CHE_FLAVOR")
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
+			Name:      cheFlavor,
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestIngressSpec(t *testing.T) {
 		{
 			name:             "Test custom host",
 			ingressName:      "test",
-			ingressComponent: "che",
+			ingressComponent: DefaultCheFlavor(cheCluster),
 			ingressHost:      "test-host",
 			ingressPath:      "",
 			serviceName:      "che-host",
@@ -66,7 +66,7 @@ func TestIngressSpec(t *testing.T) {
 					Namespace: "eclipse-che",
 					Labels: map[string]string{
 						"type":                         "default",
-						"app.kubernetes.io/component":  "che",
+						"app.kubernetes.io/component":  DefaultCheFlavor(cheCluster),
 						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
