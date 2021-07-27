@@ -31,7 +31,7 @@ initDefaults() {
   export USER_NAMEPSACE="che-che"
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
-  export OPERATOR_IMAGE="test/che-operator:test"
+  export OPERATOR_IMAGE="docker.io/test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
@@ -172,15 +172,17 @@ collectCheLogWithChectl() {
 
 # Build latest operator image
 buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
 }
 
 copyCheOperatorImageToMinikube() {
-  eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
+  # this works even when docker is just an alias for podman
+  docker save $OPERATOR_IMAGE | ssh -i $(minikube ssh-key) -o StrictHostKeyChecking=no docker@$(minikube ip) "docker load"
 }
 
 copyCheOperatorImageToMinishift() {
-  eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
+  # this works even when docker is just an alias for podman
+  docker save $OPERATOR_IMAGE | minishift ssh "docker load"
 }
 
 # Prepare chectl che-operator templates
