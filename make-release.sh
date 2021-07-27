@@ -235,10 +235,11 @@ releaseOlmFiles() {
     local openshift=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-openshift/manifests
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
-    #grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
+    grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
     if [[ $channel == "stable" ]];then
       local kubernetes=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-kubernetes/manifests
-      #grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
+      grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
+
       test -f $kubernetes/org_v1_che_crd.yaml
       test -f $kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml
       test -f $kubernetes/org.eclipse.che_checlusterbackups_crd.yaml

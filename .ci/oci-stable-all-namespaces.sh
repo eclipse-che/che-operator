@@ -17,6 +17,14 @@ set -o pipefail
 # error on unset variables
 set -u
 
+################################ !!!   IMPORTANT   !!! ################################
+########### THIS JOB USE openshift ci operators workflows to run  #####################
+##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
+######### Script which install the given bundles from stable-all-namespace https://steps.ci.openshift.org/reference/optional-operators-subscribe ##########
+######## !!! Related PR in openshift CI is: https://github.com/openshift/release/pull/20610 ##############################################################
+#######################################################################################################################################################
+
+
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
@@ -26,6 +34,7 @@ trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
   export DEV_WORKSPACE_ENABLE="true"
+  export CHE_EXPOSURE_STRATEGY="single-host"
 }
 
 runTests() {

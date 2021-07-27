@@ -117,7 +117,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	// Check if exists devworkspace operator csv is already installed
-	devWorkspaceOperatorCSVExists := devWorkspaceControllerCSVExists(deployContext)
+	devWorkspaceOperatorCSVExists := isDevWorkspaceControllerCSVExists(deployContext)
 	if devWorkspaceOperatorCSVExists {
 		return true, nil
 	}
@@ -161,14 +161,14 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
-func devWorkspaceControllerCSVExists(deployContext *deploy.DeployContext) bool {
+func isDevWorkspaceControllerCSVExists(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
 		return false
 	}
 
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
-	err := deployContext.ClusterAPI.NonCachedClient.List(context.TODO(), csvList, &client.ListOptions{})
+	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
 	if err != nil {
 		return false
 	}

@@ -126,7 +126,7 @@ do
     if [[ "${lastPackagePreReleaseVersion}" == "${lastPublishedPackageVersion}" ]] && [[ "${FORCE}" == "" ]]; then
       echo "#### ERROR ####"
       echo "Release ${lastPackagePreReleaseVersion} already exists in the '${platformSubFolder}/eclipse-che' package !"
-      #exit 1
+      exit 1
     fi
     echo $lastPackagePreReleaseVersion
     echo $platform
@@ -152,14 +152,17 @@ do
     sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
     echo
 
+    # Append to community operators the stable channel csv version: https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/eclipse-che.package.yaml
     if [[ $channel == "stable" ]]; then
       mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
     fi
 
+    # Append to community operators the stable-all-namespaces channel csv version: https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/eclipse-che.package.yaml
     if [[ $channel == "stable-all-namespaces" ]]; then
       yq -riY ".channels[1] = { \"currentCSV\": \"eclipse-che.v${lastPackagePreReleaseVersion}\", \"name\": \"$channel\"}" $destinationPackageFilePath
     fi
   done
+  # Make by default stable channel in the community operators eclipse-che.package.yaml
   yq -Yi '.defaultChannel |= "stable"' ${destinationPackageFilePath}
 
   # NOTE: if you update this file, you need to submit a PR against these two files:

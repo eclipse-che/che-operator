@@ -12,6 +12,8 @@
 package devworkspace
 
 import (
+	"context"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -21,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"testing"
 )
@@ -212,12 +215,14 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
-	deployContext = deploy.GetTestDeployContext(cheCluster, []runtime.Object{devWorkspaceCSV})
-	deployContext.ClusterAPI.Scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersionList{})
+	deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
 	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
-				{Name: ClusterServiceVersionResourceName},
+				{
+					Name: ClusterServiceVersionResourceName,
+				},
 			},
 		},
 	}
@@ -227,7 +232,13 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 	reconciled, _ := ReconcileDevWorkspace(deployContext)
 
 	if !reconciled {
-		t.Fatalf("Test Failed... DevWorkspace CSV is expected to be craeted")
+		t.Fatalf("Failed to reconcile DevWorkspace")
+	}
+
+	// Get Devworkspace namespace. If error is thrown means devworkspace is not anymore installed if CSV is detected
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
+	if err == nil {
+		t.Fatal("Failed to reconcile DevWorkspace when DWO CSV is exptected to be created")
 	}
 }
 
