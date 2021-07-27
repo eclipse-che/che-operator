@@ -152,7 +152,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		}
 	}
 
-	if !devWorkspaceWebhookExists {
+	if !devWorkspaceWebhookExists && !util.IsTestMode() {
 		// the webhook did not exist in the cluster
 		// this means that we're installing devworkspace and therefore need to restart
 		// so that devworkspace support can initialize during the operator startup
