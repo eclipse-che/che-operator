@@ -375,7 +375,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 					Namespace: namespace,
 				},
 			}
@@ -389,7 +389,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			}
 
 			cheCR := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 				t.Errorf("CR not found")
 			}
 
@@ -472,7 +472,7 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 					Namespace: namespace,
 				},
 			}
@@ -482,7 +482,7 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 				t.Fatalf("Error reconciling: %v", err)
 			}
 			cr := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
 				t.Errorf("CR not found")
 			}
 			if !reflect.DeepEqual(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy) {
@@ -512,7 +512,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -531,7 +531,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -554,7 +554,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -596,7 +596,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 					Namespace: namespace,
 				},
 			}
@@ -610,7 +610,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 			}
 
 			cr := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
 				t.Errorf("CR not found")
 			}
 
@@ -622,6 +622,8 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 }
 
 func TestImagePullerConfiguration(t *testing.T) {
+	oldBrokerMetaDataImage := strings.Split(os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"), ":")[0] + ":old"
+	oldBrokerArtifactsImage := strings.Split(os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"), ":")[0] + ":old"
 	type testCase struct {
 		name                  string
 		initCR                *orgv1.CheCluster
@@ -680,7 +682,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					APIVersion: "org.eclipse.che/v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:            os.Getenv("CHE_FLAVOR"),
 					Namespace:       namespace,
 					ResourceVersion: "1",
 					Finalizers: []string{
@@ -728,34 +730,34 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default image",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;"),
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";"),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
 				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;", ObjectMetaResourceVersion: "1"}),
+				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";", ObjectMetaResourceVersion: "1"}),
 			},
 			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";", ObjectMetaResourceVersion: "2"}),
 		},
 		{
 			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default images while keeping user image",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;"),
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";"),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
 				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;", ObjectMetaResourceVersion: "1"}),
+				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";", ObjectMetaResourceVersion: "1"}),
 			},
 			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";", ObjectMetaResourceVersion: "2"}),
 		},
 		{
 			name:   "image puller enabled, default images set, subscription exists, should update KubernetesImagePuller default images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:old;"),
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";che-workspace-plugin-broker-artifacts=" + oldBrokerArtifactsImage + ";"),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
 				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:old;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:old;", ObjectMetaResourceVersion: "1"}),
+				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";che-workspace-plugin-broker-artifacts=" + oldBrokerArtifactsImage + ";", ObjectMetaResourceVersion: "1"}),
 			},
 			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: defaultImagePullerImages, ObjectMetaResourceVersion: "2"}),
 		},
@@ -794,12 +796,12 @@ func TestImagePullerConfiguration(t *testing.T) {
 				TypeMeta: metav1.TypeMeta{Kind: "KubernetesImagePuller", APIVersion: "che.eclipse.org/v1alpha1"},
 				ObjectMeta: metav1.ObjectMeta{
 					ResourceVersion: "2",
-					Name:            deploy.GetDefaultFromEnv("CHE_FLAVOR") + "-image-puller",
+					Name:            os.Getenv("CHE_FLAVOR") + "-image-puller",
 					Namespace:       namespace,
 					Labels: map[string]string{
 						"app":                       "che",
 						"component":                 "kubernetes-image-puller",
-						"app.kubernetes.io/part-of": deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+						"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -807,7 +809,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 							Kind:               "CheCluster",
 							BlockOwnerDeletion: &valueTrue,
 							Controller:         &valueTrue,
-							Name:               deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+							Name:               os.Getenv("CHE_FLAVOR"),
 						},
 					},
 				},
@@ -885,7 +887,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 					Namespace: namespace,
 				},
 			}
@@ -917,7 +919,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			// if expectedCR is not set, don't check it
 			if testCase.expectedCR != nil && !reflect.DeepEqual(testCase.initCR, testCase.expectedCR) {
 				gotCR := &orgv1.CheCluster{}
-				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: deploy.GetDefaultFromEnv("CHE_FLAVOR")}, gotCR)
+				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
 				if err != nil {
 					t.Errorf("Error getting CheCluster: %v", err)
 				}
@@ -937,15 +939,21 @@ func TestImagePullerConfiguration(t *testing.T) {
 					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", diff)
 				}
 
-				// check images differently since it might contains extra images
-				if !strings.Contains(gotImagePuller.Spec.Images, testCase.expectedImagePuller.Spec.Images) {
-					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", cmp.Diff(testCase.expectedImagePuller.Spec.Images, gotImagePuller.Spec.Images))
+				expectedImages := nonEmptySplit(testCase.expectedImagePuller.Spec.Images, ";")
+				if len(nonEmptySplit(testCase.expectedImagePuller.Spec.Images, ";")) != len(expectedImages) {
+					t.Errorf("Expected KubernetesImagePuller returns %d images", len(expectedImages))
+				}
+
+				for _, expectedImage := range expectedImages {
+					if !strings.Contains(gotImagePuller.Spec.Images, expectedImage) {
+						t.Errorf("Expected KubernetesImagePuller returned image: %s, but it did not", expectedImage)
+					}
 				}
 			}
 			if testCase.shouldDelete {
 
 				imagePuller := &chev1alpha1.KubernetesImagePuller{}
-				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: deploy.GetDefaultFromEnv("CHE_FLAVOR") + "-image-puller"}, imagePuller)
+				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR") + "-image-puller"}, imagePuller)
 				if err == nil || !errors.IsNotFound(err) {
 					t.Fatalf("Should not have found KubernetesImagePuller: %v", err)
 				}
@@ -983,7 +991,7 @@ func TestCheController(t *testing.T) {
 
 	// get CR
 	cheCR := &orgv1.CheCluster{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
 
@@ -991,7 +999,7 @@ func TestCheController(t *testing.T) {
 	// watched resource .
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 		},
 	}
@@ -1020,7 +1028,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// get CR
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
 
@@ -1077,7 +1085,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// get CR
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
 
@@ -1214,7 +1222,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 
 	// get CR
 	cheCR := &orgv1.CheCluster{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
 
@@ -1222,7 +1230,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	// watched resource .
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 		},
 	}
@@ -1233,7 +1241,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 		t.Fatalf("reconcile: (%v)", err)
 	}
 
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.GetDefaultFromEnv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
 
@@ -1357,7 +1365,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:      os.Getenv("CHE_FLAVOR"),
 					Namespace: namespace,
 				},
 			}
@@ -1496,7 +1504,7 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 func InitCheWithSimpleCR() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 		},
 		Spec: orgv1.CheClusterSpec{
@@ -1513,7 +1521,7 @@ func InitCheWithSimpleCR() *orgv1.CheCluster {
 func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 		},
 		Spec: orgv1.CheClusterSpec{
@@ -1530,7 +1538,7 @@ func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
 func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
@@ -1554,7 +1562,7 @@ func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 			APIVersion: "org.eclipse.che/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
@@ -1575,7 +1583,7 @@ func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 		},
 		Spec: orgv1.CheClusterSpec{
@@ -1589,7 +1597,7 @@ func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
 func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
@@ -1613,7 +1621,7 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
@@ -1638,7 +1646,7 @@ func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluste
 func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: namespace,
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
@@ -1671,10 +1679,10 @@ func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePul
 			Kind:       "KubernetesImagePuller",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR") + "-image-puller",
+			Name:      os.Getenv("CHE_FLAVOR") + "-image-puller",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+				"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
 				"app":                       "che",
 				"component":                 "kubernetes-image-puller",
 			},
@@ -1685,7 +1693,7 @@ func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePul
 					Kind:               "CheCluster",
 					Controller:         &valueTrue,
 					BlockOwnerDeletion: &valueTrue,
-					Name:               deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:               os.Getenv("CHE_FLAVOR"),
 				},
 			},
 		},
@@ -1704,10 +1712,10 @@ func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
 			Kind:       "KubernetesImagePuller",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR") + "-image-puller",
+			Name:      os.Getenv("CHE_FLAVOR") + "-image-puller",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+				"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
 				"app":                       "che",
 				"component":                 "kubernetes-image-puller",
 			},
@@ -1718,15 +1726,22 @@ func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
 					Kind:               "CheCluster",
 					Controller:         &valueTrue,
 					BlockOwnerDeletion: &valueTrue,
-					Name:               deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+					Name:               os.Getenv("CHE_FLAVOR"),
 				},
 			},
 		},
 		Spec: chev1alpha1.KubernetesImagePullerSpec{
 			DeploymentName: "kubernetes-image-puller",
 			ConfigMapName:  "k8s-image-puller",
-			Images:         "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;",
+			Images:         defaultImagePullerImages,
 		},
 	}
 }
 
+// Split string by separator without empty elems
+func nonEmptySplit(lineToSplit string, separator string) []string {
+	splitFn := func(c rune) bool {
+		return c == ';'
+	}
+	return strings.FieldsFunc(lineToSplit, splitFn)
+}

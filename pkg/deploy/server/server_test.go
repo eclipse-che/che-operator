@@ -13,6 +13,7 @@ package server
 
 import (
 	"context"
+	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -37,7 +38,7 @@ func TestSyncService(t *testing.T) {
 		CheCluster: &orgv1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
-				Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+				Name:      os.Getenv("CHE_FLAVOR"),
 			},
 			Spec: orgv1.CheClusterSpec{
 				Server: orgv1.CheClusterSpecServer{
@@ -80,7 +81,7 @@ func TestSyncAll(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 		},
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
@@ -210,7 +211,7 @@ func TestSyncPVC(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 		},
 		Spec: orgv1.CheClusterSpec{
 			Server: orgv1.CheClusterSpecServer{
@@ -249,7 +250,7 @@ func TestSyncPVC(t *testing.T) {
 func TestUpdateAvailabilityStatus(t *testing.T) {
 	cheDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 			Namespace: "eclipse-che",
 		},
 		Status: appsv1.DeploymentStatus{
@@ -260,7 +261,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name:      deploy.GetDefaultFromEnv("CHE_FLAVOR"),
+			Name:      os.Getenv("CHE_FLAVOR"),
 		},
 		Spec:   orgv1.CheClusterSpec{},
 		Status: orgv1.CheClusterStatus{},

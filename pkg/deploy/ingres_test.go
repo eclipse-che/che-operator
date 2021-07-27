@@ -39,11 +39,11 @@ func TestIngressSpec(t *testing.T) {
 		ingressCustomSettings orgv1.IngressCustomSettings
 		expectedIngress       *v1beta1.Ingress
 	}
-	cheFlavor := GetDefaultFromEnv("CHE_FLAVOR")
+	cheFlavor := getDefaultFromEnv("CHE_FLAVOR")
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
-			Name: cheFlavor,
+			Name:      cheFlavor,
 		},
 	}
 
