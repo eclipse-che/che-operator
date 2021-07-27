@@ -143,18 +143,19 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		}
 	}
 
-	clusterChanged := false
 	for _, syncItem := range syncItems {
-		created, err := syncItem(deployContext)
-		clusterChanged := clusterChanged || created
+		_, err := syncItem(deployContext)
 		if !util.IsTestMode() {
 			if err != nil {
-				return clusterChanged, err
+				return false, err
 			}
 		}
 	}
 
-	if clusterChanged {
+	if !devWorkspaceWebhookExists {
+		// the webhook did not exist in the cluster
+		// this means that we're installing devworkspace and therefore need to restart
+		// so that devworkspace support can initialize during the operator startup
 		afterInstall()
 	}
 
