@@ -123,7 +123,7 @@ var (
 			Package:                "kubernetes-imagepuller-operator",
 		},
 	}
-	valueTrue          = true
+	valueTrue             = true
 	clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -1707,7 +1707,7 @@ func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePul
 }
 
 func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
-	return &chev1alpha1.KubernetesImagePuller {
+	return &chev1alpha1.KubernetesImagePuller{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "che.eclipse.org/v1alpha1",
 			Kind:       "KubernetesImagePuller",
