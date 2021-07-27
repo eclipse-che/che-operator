@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	mocks "github.com/eclipse-che/che-operator/mocks"
 
@@ -1741,7 +1742,8 @@ func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
 // Split string by separator without empty elems
 func nonEmptySplit(lineToSplit string, separator string) []string {
 	splitFn := func(c rune) bool {
-		return c == ';'
+		runeChar, _ := utf8.DecodeRuneInString(separator)
+		return c == runeChar
 	}
 	return strings.FieldsFunc(lineToSplit, splitFn)
 }
