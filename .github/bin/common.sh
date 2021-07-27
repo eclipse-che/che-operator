@@ -39,6 +39,7 @@ initDefaults() {
   export DEV_WORKSPACE_ENABLE="false"
   export DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE=devworkspace-controller-test
   export DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE=devworkspace-cheoperator-test
+  export IMAGE_PULLER_ENABLE="false"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -350,11 +351,6 @@ setServerExposureStrategy() {
   yq -rSY '.spec.server.serverExposureStrategy = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
-enableDevWorkspace() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.devWorkspace.enable = '${2}'' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-}
-
 setSingleHostExposureType() {
   local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.k8s.singleHostExposureType = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
@@ -369,6 +365,10 @@ setCustomOperatorImage() {
   local file="${1}/che-operator/operator.yaml"
   yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
+}
+
+enableImagePuller() {
+  kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"imagePuller":{"enable": true}}}'
 }
 
 insecurePrivateDockerRegistry() {
@@ -405,6 +405,7 @@ applyOlmCR() {
   CR=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}" | yq -r ".[0]")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
   CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
+  CR=$(echo "$CR" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
 
   echo -e "$CR"
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
@@ -530,4 +531,24 @@ deployCertManager() {
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=60s
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=60s
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=60s
+}
+
+deployCommunityCatalog() {
+  oc create -f - -o jsonpath='{.metadata.name}' <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: community-catalog
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: registry.redhat.io/redhat/community-operator-index:v4.7
+  displayName: Eclipse Che Catalog
+  publisher: Eclipse Che
+  updateStrategy:
+    registryPoll:
+      interval: 30m
+EOF
+  sleep 10s
+  kubectl wait --for=condition=ready pod -l olm.catalogSource=community-catalog -n openshift-marketplace --timeout=120s
 }
