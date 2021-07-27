@@ -401,6 +401,7 @@ applyCRCheCluster() {
   CR=$(echo "$CRs" | yq -r ".[0]")
   CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"")
+  CR=$(echo "$CR" | yq -r ".spec.server.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
   if [ "${platform}" == "kubernetes" ]
   then
     CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")

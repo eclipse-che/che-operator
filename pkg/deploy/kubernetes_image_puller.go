@@ -54,7 +54,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 	// If the image puller should be installed but the APIServer doesn't know about PackageManifests/Subscriptions, log a warning and requeue
 	if ctx.CheCluster.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI) {
 		logrus.Infof("Couldn't find Operator Lifecycle Manager types to install the Kubernetes Image Puller Operator.  Please install Operator Lifecycle Manager to install the operator or disable the image puller by setting spec.imagePuller.enable to false.")
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{RequeueAfter: time.Second}, nil
 	}
 
 	if ctx.CheCluster.Spec.ImagePuller.Enable {
@@ -63,7 +63,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			if err != nil {
 				if errors.IsNotFound(err) {
 					logrus.Infof("There is no PackageManifest for the Kubernetes Image Puller Operator.  Install the Operator Lifecycle Manager and the Community Operators Catalog")
-					return reconcile.Result{Requeue: true}, nil
+					return reconcile.Result{RequeueAfter: time.Second}, nil
 				}
 				logrus.Errorf("Error getting packagemanifest: %v", err)
 				return reconcile.Result{}, err
@@ -75,7 +75,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 				return reconcile.Result{}, err
 			}
 			if createdOperatorGroup {
-				return reconcile.Result{Requeue: true}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
 			createdOperatorSubscription, err := CreateImagePullerSubscription(ctx, packageManifest)
 			if err != nil {
@@ -83,30 +83,15 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 				return reconcile.Result{}, err
 			}
 			if createdOperatorSubscription {
-				return reconcile.Result{Requeue: true}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
-			subscriptionsAreEqual, err := CompareExpectedSubscription(ctx, packageManifest)
-			if err != nil {
-				logrus.Infof("Error checking Subscription equality: %v", err)
-				return reconcile.Result{}, nil
-			}
-			// If the Subscription Spec changed for some reason, update it
-			if !subscriptionsAreEqual {
-				updatedOperatorSubscription := GetExpectedSubscription(ctx, packageManifest)
-				logrus.Infof("Updating Subscription")
-				err = ctx.ClusterAPI.NonCachedClient.Update(context.TODO(), updatedOperatorSubscription, &client.UpdateOptions{})
-				if err != nil {
-					logrus.Errorf("Error updating Subscription: %v", err)
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{Requeue: true}, nil
-			}
+
 			// Add the image puller finalizer
 			if !HasImagePullerFinalizer(ctx.CheCluster) {
 				if err := ReconcileImagePullerFinalizer(ctx); err != nil {
 					return reconcile.Result{}, err
 				}
-				return reconcile.Result{Requeue: true}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
 		}
 
@@ -133,7 +118,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 							logrus.Errorf("Error updating CheCluster: %v", err)
 							return reconcile.Result{}, err
 						}
-						return reconcile.Result{Requeue: true}, nil
+						return reconcile.Result{RequeueAfter: time.Second}, nil
 					}
 
 					if ctx.CheCluster.IsImagePullerImagesEmpty() {
@@ -177,7 +162,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 					logrus.Errorf("Error updating KubernetesImagePuller: %v", err)
 					return reconcile.Result{}, err
 				}
-				return reconcile.Result{Requeue: true}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
 		} else {
 			logrus.Infof("Waiting 15 seconds for kubernetesimagepullers.che.eclipse.org API")
@@ -193,7 +178,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			}
 
 			if removed {
-				return reconcile.Result{Requeue: true}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
 
 			if HasImagePullerFinalizer(ctx.CheCluster) {
@@ -202,7 +187,7 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 					logrus.Errorf("Error deleting finalizer: %v", err)
 					return reconcile.Result{}, err
 				}
-				return reconcile.Result{Requeue: true}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, nil
 			}
 		}
 	}
@@ -381,14 +366,13 @@ func GetExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.Pac
 	}
 }
 
-func CompareExpectedSubscription(ctx *DeployContext, packageManifest *packagesv1.PackageManifest) (bool, error) {
-	expected := GetExpectedSubscription(ctx, packageManifest)
+func GetActualSubscription(ctx *DeployContext) (*operatorsv1alpha1.Subscription, error) {
 	actual := &operatorsv1alpha1.Subscription{}
 	err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, actual)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return SubscriptionsAreEqual(expected, actual), nil
+	return actual, nil
 }
 
 // Update the CheCluster ImagePuller spec if the default values are not set
