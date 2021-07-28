@@ -869,6 +869,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					Namespace: namespace,
 				},
 			}
+
 			_, err := r.Reconcile(req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
@@ -901,8 +902,11 @@ func TestImagePullerConfiguration(t *testing.T) {
 				if err != nil {
 					t.Errorf("Error getting CheCluster: %v", err)
 				}
-				if !reflect.DeepEqual(testCase.expectedCR, gotCR) {
+				if !reflect.DeepEqual(testCase.expectedCR.Spec.ImagePuller, gotCR.Spec.ImagePuller) {
 					t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCR, gotCR))
+				}
+				if testCase.expectedCR.Spec.ImagePuller.Enable && !util.ContainsString(testCase.expectedCR.ObjectMeta.Finalizers, "kubernetesimagepullers.finalizers.che.eclipse.org") {
+					t.Errorf("kubernetesimagepullers.finalizers.che.eclipse.org finalizer was not added.")
 				}
 			}
 			if testCase.expectedImagePuller != nil {

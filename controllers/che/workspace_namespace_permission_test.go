@@ -23,15 +23,7 @@ import (
 
 func TestReconcileWorkspacePermissions(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
-	reconciler := &CheClusterReconciler{
-		client:          deployContext.ClusterAPI.Client,
-		nonCachedClient: deployContext.ClusterAPI.Client,
-		discoveryClient: deployContext.ClusterAPI.DiscoveryClient,
-		Scheme:          deployContext.ClusterAPI.Scheme,
-		tests:           true,
-	}
-
-	done, err := reconciler.reconcileWorkspacePermissions(deployContext)
+	done, err := reconcileWorkspacePermissions(deployContext)
 	if err != nil {
 		t.Fatalf("Failed to reconcile permissions: %v", err)
 	}
