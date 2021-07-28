@@ -25,12 +25,15 @@ var ControllerAppLabels = func() map[string]string {
 const (
 	DefaultProjectsSourcesRoot = "/projects"
 
-	AuthEnabled = "false"
-
 	ServiceAccount = "devworkspace"
 
-	SidecarDefaultMemoryLimit = "128M"
-	PVCStorageSize            = "1Gi"
+	SidecarDefaultMemoryLimit   = "128M"
+	SidecarDefaultMemoryRequest = "64M"
+
+	SidecarDefaultCpuLimit   = "" // do not provide any value
+	SidecarDefaultCpuRequest = "" // do not provide any value
+
+	PVCStorageSize = "1Gi"
 
 	// DevWorkspaceIDLoggerKey is the key used to log workspace ID in the reconcile
 	DevWorkspaceIDLoggerKey = "devworkspace_id"
@@ -51,10 +54,10 @@ const (
 	PVCCleanupPodCPURequest = "5m"
 
 	// Resource limits/requests for project cloner init container
-	ProjectCloneMemoryLimit   = "300Mi"
-	ProjectCloneMemoryRequest = "64Mi"
-	ProjectCloneCPULimit      = "50m"
-	ProjectCloneCPURequest    = "5m"
+	ProjectCloneMemoryLimit   = "1Gi"
+	ProjectCloneMemoryRequest = "128Mi"
+	ProjectCloneCPULimit      = "1000m"
+	ProjectCloneCPURequest    = "100m"
 
 	// Constants describing storage classes supported by the controller
 	// CommonStorageClassType defines the 'common' storage policy -- one PVC is provisioned per namespace and all devworkspace storage
@@ -63,4 +66,7 @@ const (
 	// AsyncStorageClassType defines the 'asynchronous' storage policy. An rsync sidecar is added to devworkspaces that uses SSH to connect
 	// to a storage deployment that mounts a common PVC for the namespace.
 	AsyncStorageClassType = "async"
+	// EphemeralStorageClassType defines the 'ephemeral' storage policy: all volumes are allocated as emptyDir volumes and
+	// so do not require cleanup. When a DevWorkspace is stopped, all local changes are lost.
+	EphemeralStorageClassType = "ephemeral"
 )

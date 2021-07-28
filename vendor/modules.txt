@@ -33,12 +33,12 @@ github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis
 github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/devfile/api/v2 v2.0.0-20210427194344-cd9c30e6aa05
+# github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
 ## explicit
 github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
 github.com/devfile/api/v2/pkg/attributes
 github.com/devfile/api/v2/pkg/devfile
-# github.com/devfile/devworkspace-operator v0.2.1-0.20210518134212-698baff5f249
+# github.com/devfile/devworkspace-operator v0.2.1-0.20210728122525-108b1f1fbe45
 ## explicit
 github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
@@ -61,7 +61,7 @@ github.com/fsnotify/fsnotify
 # github.com/go-logr/logr v0.4.0 => github.com/go-logr/logr v0.3.0
 ## explicit
 github.com/go-logr/logr
-# github.com/go-logr/zapr v0.1.1 => github.com/go-logr/zapr v0.3.0
+# github.com/go-logr/zapr v0.3.0 => github.com/go-logr/zapr v0.3.0
 github.com/go-logr/zapr
 # github.com/gogo/protobuf v1.3.2 => github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
