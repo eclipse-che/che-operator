@@ -12,6 +12,8 @@
 package devworkspace
 
 import (
+	"context"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -21,8 +23,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"testing"
+)
+
+const (
+	DevWorkspaceCSVName = "devworkspace-operator.v0.6.0"
 )
 
 func TestReconcileDevWorkspace(t *testing.T) {
@@ -109,6 +116,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
 			deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
 				{
 					APIResources: []metav1.APIResource{
@@ -177,6 +185,60 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 
 	if err == nil || err.Error() != "A non matching version of the Dev Workspace operator is already installed" {
 		t.Fatalf("Error should be thrown")
+	}
+}
+
+func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+			Auth: orgv1.CheClusterSpecAuth{
+				OpenShiftoAuth: util.NewBoolPointer(true),
+			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "single-host",
+			},
+		},
+	}
+	devWorkspaceCSV := &operatorsv1alpha1.ClusterServiceVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DevWorkspaceCSVName,
+			Namespace: "openshift-operators",
+		},
+		Spec: operatorsv1alpha1.ClusterServiceVersionSpec{},
+	}
+
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersionList{})
+	deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
+	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+		{
+			APIResources: []metav1.APIResource{
+				{
+					Name: ClusterServiceVersionResourceName,
+				},
+			},
+		},
+	}
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	reconciled, _ := ReconcileDevWorkspace(deployContext)
+
+	if !reconciled {
+		t.Fatalf("Failed to reconcile DevWorkspace")
+	}
+
+	// Get Devworkspace namespace. If error is thrown means devworkspace is not anymore installed if CSV is detected
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
+	if err == nil {
+		t.Fatal("Failed to reconcile DevWorkspace when DWO CSV is exptected to be created")
 	}
 }
 
