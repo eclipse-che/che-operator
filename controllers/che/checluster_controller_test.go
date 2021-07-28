@@ -655,16 +655,6 @@ func TestImagePullerConfiguration(t *testing.T) {
 			expectedSubscription: subscription,
 		},
 		{
-			name:   "image puller enabled, subscription created but has changed, should update subscription, this shouldn't happen",
-			initCR: InitCheCRWithImagePullerEnabled(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				wrongSubscription,
-			},
-			expectedSubscription: subscription,
-		},
-		{
 			name:       "image puller enabled, subscription created, should add finalizer",
 			initCR:     InitCheCRWithImagePullerEnabled(),
 			expectedCR: ExpectedCheCRWithImagePullerFinalizer(),
