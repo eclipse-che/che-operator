@@ -128,7 +128,7 @@ jobs:
           echo "{\"text\":\":white_check_mark: Che Operator ${{ github.event.inputs.version }} release PR have been created: https://github.com/eclipse-che/che-operator/pulls/che-bot\"}" > mattermost.json
       - name: Send MM message
         if: ${{ success() }} || ${{ failure() }}
-        uses: mattermost/action-mattermost-notify@1.0.2
+        uses: mattermost/action-mattermost-notify@1.1.0
         env:
           MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
           MATTERMOST_CHANNEL: eclipse-che-releases
