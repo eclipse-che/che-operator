@@ -39,12 +39,12 @@ import (
 )
 
 var (
-	DevWorkspaceNamespace             = "devworkspace-controller"
-	DevWorkspaceCheNamespace          = "devworkspace-che"
-	DevWorkspaceWebhookName           = "controller.devfile.io"
-	DevWorkspaceServiceAccount        = "devworkspace-controller-serviceaccount"
-	DevWorkspaceService               = "devworkspace-controller-manager-service"
-	DevWorkspaceDeploymentName        = "devworkspace-controller-manager"
+	DevWorkspaceNamespace      = "devworkspace-controller"
+	DevWorkspaceWebhookName    = "controller.devfile.io"
+	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
+	DevWorkspaceService        = "devworkspace-controller-manager-service"
+	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
+
 	SubscriptionResourceName          = "subscriptions"
 	CheManagerResourcename            = "chemanagers"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
@@ -117,7 +117,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	// Check if exists devworkspace operator csv is already installed
-	devWorkspaceOperatorCSVExists := isDevWorkspaceControllerCSVExists(deployContext)
+	devWorkspaceOperatorCSVExists := isDevWorkspaceOperatorCSVExists(deployContext)
 	if devWorkspaceOperatorCSVExists {
 		return true, nil
 	}
@@ -161,7 +161,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
-func isDevWorkspaceControllerCSVExists(deployContext *deploy.DeployContext) bool {
+func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
 		return false
