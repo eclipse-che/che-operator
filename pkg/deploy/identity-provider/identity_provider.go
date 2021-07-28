@@ -114,7 +114,8 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 	if !util.IsTestMode() {
 		cr := deployContext.CheCluster
 		if !cr.Status.KeycloakProvisoned {
-			if err := ProvisionKeycloakResources(deployContext); err != nil {
+			done, err := ProvisionKeycloakResources(deployContext)
+			if !done {
 				return false, err
 			}
 

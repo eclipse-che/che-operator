@@ -309,7 +309,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
-	r.Log.Info("Successfully reconciled")
+	logrus.Info("Successfully reconciled.")
 	return ctrl.Result{}, nil
 }
 

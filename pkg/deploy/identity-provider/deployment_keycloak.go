@@ -775,18 +775,16 @@ func updateSslRequiredForMasterRealm(cr *orgv1.CheCluster) error {
 	return err
 }
 
-func ProvisionKeycloakResources(deployContext *deploy.DeployContext) error {
+func ProvisionKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 	if !deployContext.CheCluster.Spec.Database.ExternalDb {
 		value, err := getSslRequiredForMasterRealm(deployContext.CheCluster)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		if value != "NONE" {
 			err := updateSslRequiredForMasterRealm(deployContext.CheCluster)
-			if err != nil {
-				return err
-			}
+			return err == nil, err
 		}
 	}
 
@@ -795,7 +793,7 @@ func ProvisionKeycloakResources(deployContext *deploy.DeployContext) error {
 		deploy.IdentityProviderName,
 		GetKeycloakProvisionCommand,
 		"create realm, client and user")
-	return err
+	return err == nil, err
 }
 
 // getImportCABundleScript returns string which contains bash function that imports ca-bundle into jks
