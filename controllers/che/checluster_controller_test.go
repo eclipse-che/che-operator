@@ -110,19 +110,6 @@ var (
 			Package:                "kubernetes-imagepuller-operator",
 		},
 	}
-	wrongSubscription = &operatorsv1alpha1.Subscription{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes-imagepuller-operator",
-			Namespace: namespace,
-		},
-		Spec: &operatorsv1alpha1.SubscriptionSpec{
-			CatalogSource:          "community-operators",
-			Channel:                "beta",
-			CatalogSourceNamespace: "olm",
-			InstallPlanApproval:    operatorsv1alpha1.ApprovalAutomatic,
-			Package:                "kubernetes-imagepuller-operator",
-		},
-	}
 	valueTrue             = true
 	clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
 		ObjectMeta: metav1.ObjectMeta{
@@ -651,16 +638,6 @@ func TestImagePullerConfiguration(t *testing.T) {
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
-			},
-			expectedSubscription: subscription,
-		},
-		{
-			name:   "image puller enabled, subscription created but has changed, should update subscription, this shouldn't happen",
-			initCR: InitCheCRWithImagePullerEnabled(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				wrongSubscription,
 			},
 			expectedSubscription: subscription,
 		},
