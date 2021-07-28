@@ -28,7 +28,8 @@ init() {
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
   DEV_WORKSPACE_CONTROLLER_VERSION="main"
-  
+  STABLE_CHANNELS=("stable-all-namespaces" "stable")
+
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
   while [[ "$#" -gt 0 ]]; do
@@ -46,7 +47,6 @@ init() {
     esac
     shift 1
   done
-
   [ -z "$QUAY_ECLIPSE_CHE_USERNAME" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_USERNAME is not set" && exit 1
   [ -z "$QUAY_ECLIPSE_CHE_PASSWORD" ] && echo "[ERROR] QUAY_ECLIPSE_CHE_PASSWORD is not set" && exit 1
   command -v operator-courier >/dev/null 2>&1 || { echo "[ERROR] operator-courier is not installed. Abort."; exit 1; }
@@ -217,27 +217,30 @@ updateVersionFile() {
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
   echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
-  cd $RELEASE_DIR/olm
-  . release-olm-files.sh --release-version $RELEASE --dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION
-  cd $RELEASE_DIR
+  for channel in "${STABLE_CHANNELS[@]}"
+  do
+    cd $RELEASE_DIR/olm
+    . release-olm-files.sh --release-version $RELEASE --channel $channel --dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION
+    cd $RELEASE_DIR
+    local openshift=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-openshift/manifests
 
-  local openshift=$RELEASE_DIR/bundle/stable/eclipse-che-preview-openshift/manifests
-  local kubernetes=$RELEASE_DIR/bundle/stable/eclipse-che-preview-kubernetes/manifests
+    echo "[INFO] releaseOlmFiles :: Validate changes"
+    grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
+    if [[ $channel == "stable" ]];then
+      local kubernetes=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-kubernetes/manifests
+      grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
 
-  echo "[INFO] releaseOlmFiles :: Validate changes"
-  grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
-  grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
+      test -f $kubernetes/org_v1_che_crd.yaml
+      test -f $kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml
+      test -f $kubernetes/org.eclipse.che_checlusterbackups_crd.yaml
+      test -f $kubernetes/org.eclipse.che_checlusterrestores_crd.yaml
+    fi
 
-  test -f $kubernetes/org_v1_che_crd.yaml
-  test -f $kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml
-  test -f $kubernetes/org.eclipse.che_checlusterbackups_crd.yaml
-  test -f $kubernetes/org.eclipse.che_checlusterrestores_crd.yaml
-
-  test -f $openshift/org_v1_che_crd.yaml
-  test -f $openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml
-  test -f $openshift/org.eclipse.che_checlusterbackups_crd.yaml
-  test -f $openshift/org.eclipse.che_checlusterrestores_crd.yaml
-
+    test -f $openshift/org_v1_che_crd.yaml
+    test -f $openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml
+    test -f $openshift/org.eclipse.che_checlusterbackups_crd.yaml
+    test -f $openshift/org.eclipse.che_checlusterrestores_crd.yaml
+  done
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
@@ -249,6 +252,7 @@ pushOlmBundlesToQuayIo() {
   echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   echo "[INFO] Push OLM bundles to quay.io"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable-all-namespaces" -p "openshift" -f "true"
   . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "kubernetes" -f "true"
   . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "openshift" -f "true"
 }

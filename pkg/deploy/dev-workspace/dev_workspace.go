@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -44,7 +45,10 @@ var (
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
 	DevWorkspaceService        = "devworkspace-controller-manager-service"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
-	SubscriptionResourceName   = "subscriptions"
+
+	SubscriptionResourceName          = "subscriptions"
+	ClusterServiceVersionResourceName = "clusterserviceversions"
+	DevWorkspaceCSVNameWithouVersion  = "devworkspace-operator"
 
 	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
@@ -116,6 +120,12 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
+	// Check if exists devworkspace operator csv is already installed
+	devWorkspaceOperatorCSVExists := isDevWorkspaceOperatorCSVExists(deployContext)
+	if devWorkspaceOperatorCSVExists {
+		return true, nil
+	}
+
 	// do nothing if dev workspace is disabled
 	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return true, nil
@@ -160,6 +170,27 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
+	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
+	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
+		return false
+	}
+
+	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
+	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, csv := range csvList.Items {
+		if strings.Contains(csv.Name, DevWorkspaceCSVNameWithouVersion) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {

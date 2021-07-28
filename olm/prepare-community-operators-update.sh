@@ -16,6 +16,7 @@ CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 PLATFORMS="kubernetes,openshift"
+STABLE_CHANNELS=("stable-all-namespaces" "stable")
 source "${BASE_DIR}/check-yq.sh"
 
 base_branch="main"
@@ -108,38 +109,61 @@ do
   folderToUpdate="${communityOperatorsLocalGitFolder}/${platformSubFolder}/eclipse-che"
   destinationPackageFilePath="${folderToUpdate}/eclipse-che.package.yaml"
 
-  lastPublishedPackageVersion=$(yq -r '.channels[] | select(.name == "stable") | .currentCSV' "${destinationPackageFilePath}" | sed -e "s/eclipse-che.v//")
-  echo
-  echo "   - Last package pre-release version of local package: ${lastPackagePreReleaseVersion}"
-  echo "   - Last package release version of cloned 'community-operators' repository: ${lastPublishedPackageVersion}"
-  if [[ "${lastPackagePreReleaseVersion}" == "${lastPublishedPackageVersion}" ]] && [[ "${FORCE}" == "" ]]; then
-    echo "#### ERROR ####"
-    echo "Release ${lastPackagePreReleaseVersion} already exists in the '${platformSubFolder}/eclipse-che' package !"
-    exit 1
-  fi
+  for channel in "${STABLE_CHANNELS[@]}"
+  do
+    if [[ $channel == "stable-all-namespaces" && $platform == "kubernetes" ]];then
+      continue
+    fi
+    lastPackagePreReleaseVersion=$(yq -r '.channels[] | select(.name == "'$channel'") | .currentCSV' "${sourcePackageFilePath}" | sed -e "s/${packageName}.v//")
+    lastPublishedPackageVersion=$(yq -r '.channels[] | select(.name == "'$channel'") | .currentCSV' "${destinationPackageFilePath}" | sed -e "s/eclipse-che.v//") 
+    if [[ $channel == "stable-all-namespaces" && -z $lastPublishedPackageVersion ]];then
+      lastPublishedPackageVersion=$lastPackagePreReleaseVersion
+    fi
 
-  echo "     => will create release '${lastPackagePreReleaseVersion}' in the following package folder :'${folderToUpdate}'"
+    echo
+    echo "   - Last package pre-release version of local package: ${lastPackagePreReleaseVersion}"
+    echo "   - Last package release version of cloned 'community-operators' repository: ${lastPublishedPackageVersion}"
+    if [[ "${lastPackagePreReleaseVersion}" == "${lastPublishedPackageVersion}" ]] && [[ "${FORCE}" == "" ]]; then
+      echo "#### ERROR ####"
+      echo "Release ${lastPackagePreReleaseVersion} already exists in the '${platformSubFolder}/eclipse-che' package !"
+      exit 1
+    fi
+    echo $lastPackagePreReleaseVersion
+    echo $platform
+    echo "     => will create release '${lastPackagePreReleaseVersion}' in the following package folder :'${folderToUpdate}'"
 
-  mkdir -p "${folderToUpdate}/${lastPackagePreReleaseVersion}"
-  sed \
-  -e "/^  replaces: ${packageName}.v.*/d" \
-  -e "/^  version: ${lastPackagePreReleaseVersion}/i\ \ replaces: eclipse-che.v${lastPublishedPackageVersion}" \
-  -e "s/${packageName}/eclipse-che/" \
-  "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/che-operator.clusterserviceversion.yaml" \
-  > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
+    mkdir -p "${folderToUpdate}/${lastPackagePreReleaseVersion}"
+    sed \
+    -e "/^  replaces: ${packageName}.v.*/d" \
+    -e "/^  version: ${lastPackagePreReleaseVersion}/i\ \ replaces: eclipse-che.v${lastPublishedPackageVersion}" \
+    -e "s/${packageName}/eclipse-che/" \
+    "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/che-operator.clusterserviceversion.yaml" \
+    > "${folderToUpdate}/${lastPackagePreReleaseVersion}/eclipse-che.v${lastPackagePreReleaseVersion}.clusterserviceversion.yaml"
 
-  echo
-  echo "   - Update the CRD files"
-  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org_v1_che_crd.yaml" \
-  "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
-  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml"
-  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml"
-  echo
-  echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
-  sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
-  mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
-  echo
+    echo
+    echo "   - Update the CRD files"
+    cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org_v1_che_crd.yaml" \
+    "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
+    cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
+    cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterbackups_crd.yaml"
+    cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${lastPackagePreReleaseVersion}/org.eclipse.che_checlusterrestores_crd.yaml"
+    echo
+    echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
+    sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"
+    echo
+
+    # Append to community operators the stable channel csv version: https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/eclipse-che.package.yaml
+    if [[ $channel == "stable" ]]; then
+      mv "${destinationPackageFilePath}.new" "${destinationPackageFilePath}"
+    fi
+
+    # Append to community operators the stable-all-namespaces channel csv version: https://github.com/operator-framework/community-operators/blob/master/community-operators/eclipse-che/eclipse-che.package.yaml
+    if [[ $channel == "stable-all-namespaces" ]]; then
+      yq -riY ".channels[1] = { \"currentCSV\": \"eclipse-che.v${lastPackagePreReleaseVersion}\", \"name\": \"$channel\"}" $destinationPackageFilePath
+    fi
+  done
+  # Make by default stable channel in the community operators eclipse-che.package.yaml
+  yq -Yi '.defaultChannel |= "stable"' ${destinationPackageFilePath}
 
   # NOTE: if you update this file, you need to submit a PR against these two files:
   # https://github.com/redhat-openshift-ecosystem/community-operators-prod/blob/main/operators/eclipse-che/ci.yaml

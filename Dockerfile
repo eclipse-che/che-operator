@@ -38,9 +38,13 @@ COPY controllers/ controllers/
 COPY templates/ templates/
 COPY pkg/ pkg/
 COPY vendor/ vendor/
+COPY mocks/ mocks/
+COPY config/ config/
 
 # build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
+    export MOCK_API=true && \
+    go test -mod=vendor -v ./... && \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 RUN unzip /tmp/asset-devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
@@ -57,7 +61,7 @@ RUN cd $GOPATH/restic && \
     GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/restic/restic ./cmd/restic
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8-minimal:8.4-205
+FROM registry.access.redhat.com/ubi8-minimal:8.4-205.1626828526
 
 COPY --from=builder /che-operator/che-operator /manager
 COPY --from=builder /che-operator/templates/*.sh /tmp/
