@@ -110,19 +110,6 @@ var (
 			Package:                "kubernetes-imagepuller-operator",
 		},
 	}
-	wrongSubscription = &operatorsv1alpha1.Subscription{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes-imagepuller-operator",
-			Namespace: namespace,
-		},
-		Spec: &operatorsv1alpha1.SubscriptionSpec{
-			CatalogSource:          "community-operators",
-			Channel:                "beta",
-			CatalogSourceNamespace: "olm",
-			InstallPlanApproval:    operatorsv1alpha1.ApprovalAutomatic,
-			Package:                "kubernetes-imagepuller-operator",
-		},
-	}
 	valueTrue             = true
 	clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
 		ObjectMeta: metav1.ObjectMeta{
