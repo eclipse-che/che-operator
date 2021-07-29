@@ -8,6 +8,16 @@ metadata:
     app.kubernetes.io/name: che
     app.kubernetes.io/instance: che
     app.kubernetes.io/component: che-operator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: che-operator
+  namespace: system
+  labels:
+    app: che-operator
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/component: che-operator
 spec:
   replicas: 1
   selector:
@@ -25,7 +35,7 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: quay.io/eclipse/che-operator:next
+          image: quay.io/eclipse/che-operator:7.34.0
           command:
             - /manager
           args:
@@ -46,15 +56,15 @@ spec:
             - name: OPERATOR_NAME
               value: che-operator
             - name: CHE_VERSION
-              value: next
+              value: 7.34.0
             - name: RELATED_IMAGE_che_server
-              value: quay.io/eclipse/che-server:next
+              value: quay.io/eclipse/che-server:7.34.0
             - name: RELATED_IMAGE_dashboard
-              value: quay.io/eclipse/che-dashboard:next
+              value: quay.io/eclipse/che-dashboard:7.34.0
             - name: RELATED_IMAGE_plugin_registry
-              value: quay.io/eclipse/che-plugin-registry:next
+              value: quay.io/eclipse/che-plugin-registry:7.34.0
             - name: RELATED_IMAGE_devfile_registry
-              value: quay.io/eclipse/che-devfile-registry:next
+              value: quay.io/eclipse/che-devfile-registry:7.34.0
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
               value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
             - name: RELATED_IMAGE_pvc_jobs
@@ -62,7 +72,7 @@ spec:
             - name: RELATED_IMAGE_postgres
               value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
             - name: RELATED_IMAGE_keycloak
-              value: quay.io/eclipse/che-keycloak:next
+              value: quay.io/eclipse/che-keycloak:7.34.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
               value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
@@ -76,9 +86,9 @@ spec:
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
               value: quay.io/che-incubator/configbump:0.1.4
             - name: RELATED_IMAGE_devworkspace_che_operator
-              value: quay.io/che-incubator/devworkspace-che-operator:next
+              value: quay.io/che-incubator/devworkspace-che-operator:v7.34.0
             - name: RELATED_IMAGE_devworkspace_controller
-              value: quay.io/devfile/devworkspace-controller:next
+              value: quay.io/devfile/devworkspace-controller:v0.7.2
             - name: RELATED_IMAGE_internal_rest_backup_server
               value: quay.io/eclipse/che-backup-server-rest:eeacd92
             - name: RELATED_IMAGE_gateway_authentication_sidecar
@@ -148,14 +158,14 @@ spec:
             - name: OPERATOR_NAME
               value: devworkspace-che-operator
             - name: MAX_CONCURRENT_RECONCILES
-              value: "1"
+              value: '1'
             - name: CONTROLLER_SERVICE_ACCOUNT_NAME
               value: che-operator
             - name: RELATED_IMAGE_gateway
               value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
             - name: RELATED_IMAGE_gateway_configurer
               value: quay.io/che-incubator/configbump:0.1.4
-          image: quay.io/che-incubator/devworkspace-che-operator:ci
+          image: quay.io/che-incubator/devworkspace-che-operator:v7.34.0
           imagePullPolicy: Always
           name: devworkspace-che-operator
           resources:
