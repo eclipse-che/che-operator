@@ -114,8 +114,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 	if !util.IsTestMode() {
 		cr := deployContext.CheCluster
 		if !cr.Status.KeycloakProvisoned {
-			done, err := ProvisionKeycloakResources(deployContext)
-			if !done {
+			if err := ProvisionKeycloakResources(deployContext); err != nil {
 				return false, err
 			}
 
@@ -129,6 +128,9 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 				}
 				break
 			}
+
+			// provision keycloak resources requires to restart keycloak pod
+			return false, nil
 		}
 
 		// Updates keycloak if chehost has been changed

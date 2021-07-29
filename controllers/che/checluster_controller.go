@@ -59,7 +59,8 @@ var (
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
 
-	syncItems = []func(*deploy.DeployContext) (*ctrl.Result, error){
+	failedSyncItemName = ""
+	syncItems          = []func(*deploy.DeployContext) (*ctrl.Result, error){
 		validateCheClusterCR,
 		readProxyConfiguration,
 		syncOpenShiftCertificates,
@@ -288,16 +289,17 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	for _, syncItem := range syncItems {
 		result, err := syncItem(deployContext)
 		if !util.IsTestMode() {
+			syncItemName := runtime.FuncForPC(reflect.ValueOf(syncItem).Pointer()).Name()
 			if err != nil {
-				funcName := runtime.FuncForPC(reflect.ValueOf(syncItem).Pointer()).Name()
-				logrus.Errorf("Failed to sync %s, cause: %v", funcName, err)
+				failedSyncItemName = syncItemName
+				logrus.Errorf("Failed to sync %s, cause: %v", failedSyncItemName, err)
 
 				// update the status with the error message'
 				if err := deploy.SetStatusDetails(deployContext, failedValidationReason, err.Error(), ""); err != nil {
 					return ctrl.Result{}, err
 				}
-			} else {
-				// clean up the status
+			} else if failedSyncItemName == syncItemName { // status must cleaned by the same item
+				failedSyncItemName = ""
 				if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
 					return ctrl.Result{}, err
 				}
