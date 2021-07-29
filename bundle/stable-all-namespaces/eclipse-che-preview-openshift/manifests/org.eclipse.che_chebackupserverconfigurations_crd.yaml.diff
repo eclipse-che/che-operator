@@ -1,5 +1,5 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-07-29 11:09:53.681316269 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-07-29 11:09:53.769320411 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-07-29 11:07:58.567381237 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-07-29 11:08:01.695557266 +0000
 @@ -1,16 +1,9 @@
 -#
 -#  Copyright (c) 2019-2021 Red Hat, Inc.
