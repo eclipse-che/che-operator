@@ -51,11 +51,13 @@ func (p *Postgres) SyncAll() (bool, error) {
 		return false, err
 	}
 
-	if !p.deployContext.CheCluster.Status.DbProvisoned {
-		if !util.IsTestMode() { // ignore in tests
-			done, err = p.ProvisionDB()
-			if !done {
-				return false, err
+	if !util.IsNativeUserModeEnabled(p.deployContext.CheCluster) {
+		if !p.deployContext.CheCluster.Status.DbProvisoned {
+			if !util.IsTestMode() { // ignore in tests
+				done, err = p.ProvisionDB()
+				if !done {
+					return false, err
+				}
 			}
 		}
 	}
