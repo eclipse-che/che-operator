@@ -173,17 +173,15 @@ collectCheLogWithChectl() {
 
 # Build latest operator image
 buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinikube() {
-  # this works even when docker is just an alias for podman
-  docker save $OPERATOR_IMAGE | ssh -i $(minikube ssh-key) -o StrictHostKeyChecking=no docker@$(minikube ip) "docker load"
+  eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinishift() {
-  # this works even when docker is just an alias for podman
-  docker save $OPERATOR_IMAGE | minishift ssh "docker load"
+  eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
 # Prepare chectl che-operator templates
