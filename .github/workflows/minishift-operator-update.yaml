@@ -17,7 +17,7 @@ on:
      - main
 jobs:
   minishift:
-    name: Test Eclipse Che update from stable to nightly
+    name: Test Eclipse Che update from stable to next
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1

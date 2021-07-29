@@ -39,12 +39,12 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testCatalogSource.sh) minikube nightly",
+      "name": "Bash-Debug (testCatalogSource.sh) minikube next",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testCatalogSource.sh",
       "args": [
         "kubernetes",
-        "nightly",
+        "next",
         "che",
         "my_catalog"
       ]
@@ -52,12 +52,12 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testCatalogSource.sh) openshift nightly",
+      "name": "Bash-Debug (testCatalogSource.sh) openshift next",
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/olm/testCatalogSource.sh",
       "args": [
         "openshift",
-        "nightly",
+        "next",
         "che"
       ]
     },
@@ -88,12 +88,12 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testUpdate.sh) minikube nightly",
+      "name": "Bash-Debug (testUpdate.sh) minikube next",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
         "kubernetes",
-        "nightly",
+        "next",
         "che"
       ]
     },
@@ -112,12 +112,12 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testUpdate.sh) openshift nightly",
+      "name": "Bash-Debug (testUpdate.sh) openshift next",
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
         "openshift",
-        "nightly",
+        "next",
         "che"
       ]
     },
@@ -131,7 +131,7 @@
         "-p",
         "kubernetes",
         "-c",
-        "nightly"
+        "next"
       ]
     },
     {
@@ -144,7 +144,7 @@
         "-p",
         "openshift",
         "-c",
-        "nightly"
+        "next"
       ]
     },
     {

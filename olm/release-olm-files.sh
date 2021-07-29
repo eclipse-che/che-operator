@@ -96,10 +96,10 @@ do
     continue
   fi
 
-  NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
-  LAST_NIGHTLY_CSV="${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-  lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")
-  echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
+  NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next")
+  LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+  lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
+  echo "[INFO] Last package next version: ${lastPackageNextVersion}"
 
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" $CHANNEL)
   RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
@@ -112,7 +112,7 @@ do
   downloadLatestReleasedBundleCRCRD
   packageName=$(getPackageName "${platform}")
 
-  echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion}'"
+  echo "[INFO] Will create release '${RELEASE}' from next version ${lastPackageNextVersion}'"
 
   sed \
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
@@ -124,12 +124,12 @@ do
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
   -e "/^  replaces: ${packageName}.v.*/d" \
-  -e "s/^  version: ${lastPackageNightlyVersion}/  version: ${RELEASE}/" \
+  -e "s/^  version: ${lastPackageNextVersion}/  version: ${RELEASE}/" \
   -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${LAST_RELEASE_VERSION}" \
   -e "s/: next/: ${RELEASE}/" \
   -e "s/:next/:${RELEASE}/" \
-  -e "s/${lastPackageNightlyVersion}/${RELEASE}/" \
-  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NIGHTLY_CSV}" > "${RELEASE_CSV}"
+  -e "s/${lastPackageNextVersion}/${RELEASE}/" \
+  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
   if [[ ${CHANNEL} == "stable-all-namespaces" ]];then
     # Set by default devworkspace enabled
@@ -152,24 +152,24 @@ do
     yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' ${RELEASE_CSV}
   fi
 
-  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
-  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups.yaml" "${RELEASE_CHE_BACKUP_CRD}"
-  cp "${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores.yaml" "${RELEASE_CHE_RESTORE_CRD}"
-  cp -rf "${NIGHTLY_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
-  cp -rf "${NIGHTLY_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
-  cp -rf "${NIGHTLY_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
+  cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
+  cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
+  cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups.yaml" "${RELEASE_CHE_BACKUP_CRD}"
+  cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores.yaml" "${RELEASE_CHE_RESTORE_CRD}"
+  cp -rf "${NEXT_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
+  cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
+  cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
 
   ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
   sed \
-  -e 's/operators.operatorframework.io.bundle.channels.v1: *nightly/operators.operatorframework.io.bundle.channels.v1: '$CHANNEL'/' \
-  -e 's/operators.operatorframework.io.bundle.channel.default.v1: *nightly/operators.operatorframework.io.bundle.channel.default.v1: '$CHANNEL'/' \
+  -e 's/operators.operatorframework.io.bundle.channels.v1: *next/operators.operatorframework.io.bundle.channels.v1: '$CHANNEL'/' \
+  -e 's/operators.operatorframework.io.bundle.channel.default.v1: *next/operators.operatorframework.io.bundle.channel.default.v1: '$CHANNEL'/' \
   -i "${ANNOTATION_METADATA_YAML}"
 
   BUNDLE_DOCKERFILE="${STABLE_BUNDLE_PATH}/bundle.Dockerfile"
   sed \
-  -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=nightly/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
-  -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=nightly/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
+  -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=next/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
+  -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=next/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
 
   pushd "${CURRENT_DIR}" || true

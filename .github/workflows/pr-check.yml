@@ -34,4 +34,4 @@ jobs:
       with:
         file: Dockerfile
         platforms: linux/amd64,linux/ppc64le
-        tags: quay.io/eclipse/che-operator:nightly
+        tags: quay.io/eclipse/che-operator:next
