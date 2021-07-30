@@ -622,7 +622,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		done
 	fi
 
-	# Fix sample
+	# Fix CSV
 	if [ "$${platform}" = "openshift" ]; then
 		echo "[INFO] Fix openshift sample"
 		sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
@@ -638,6 +638,10 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		# Update sample in the CSV
 		yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
 		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+
+		# Update annotations
+		echo "[INFO] Update kubernetes annotations"
+		yq -rYi "del(.metadata.annotations.\"operators.openshift.io/infrastructure-features\")" "$${NEW_CSV}"
 	fi
 
 	# set `app.kubernetes.io/managed-by` label

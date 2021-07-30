@@ -181,11 +181,34 @@ buildCatalogImage() {
 
   pushd "${ROOT_DIR}" || exit
 
-  make catalog-build catalog-push \
-      CATALOG_IMG="${CATALOG_IMAGENAME}" \
-      BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-      IMAGE_TOOL="${imageTool}" \
-      FROM_INDEX_OPT="${BUILD_INDEX_IMAGE_ARG}"
+  INDEX_ADD_CMD="make catalog-build \
+    CATALOG_IMG=\"${CATALOG_IMAGENAME}\" \
+    BUNDLE_IMG=\"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\" \
+    IMAGE_TOOL=\"${imageTool}\" \
+    FROM_INDEX_OPT=\"${BUILD_INDEX_IMAGE_ARG}\""
+
+  exitCode=0
+  # Execute command and store an error output to the variable for following handling.
+  {
+    output="$(eval "${INDEX_ADD_CMD}" 2>&1 1>&3 3>&-)"; } 3>&1 || \
+    {
+      exitCode="$?";
+      echo "[INFO] ${exitCode}";
+      true;
+    }
+    echo "${output}"
+  if [[ "${output}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
+    echo "[INFO] Ignore error 'Bundle already added'"
+    # Catalog bundle image contains bundle reference, continue without unnecessary push operation
+    exit 0
+  else
+    echo "[INFO] ${exitCode}"
+    if [ "${exitCode}" != 0 ]; then
+      exit "${exitCode}"
+    fi
+  fi
+
+  make catalog-push CATALOG_IMG="${CATALOG_IMAGENAME}"
 
   popd || exit
 }

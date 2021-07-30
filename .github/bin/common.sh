@@ -93,12 +93,11 @@ initStableTemplates() {
   mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"
   mkdir -p "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
 
-  # todo: set up final version before merge pr...
   compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.34.0")
-  if [ "${compareResult}" == "1" ]; then
-      prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
-    else
-      cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
+  if [ "${compareResult}" == "-1" ]; then
+    cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
+  else
+    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator" 
   fi
 }
 
