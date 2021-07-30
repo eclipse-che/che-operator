@@ -15,19 +15,12 @@
 FROM registry.ci.openshift.org/openshift/release:golang-1.15
 
 SHELL ["/bin/bash", "-c"]
-    - name: Install yq and pysemver
-      run: |
-        pip install operator-courier==2.1.7
-        sudo pip install yq pysemver;
-        echo "[INFO] pysemver version:"
-        pysemver --version;
-        echo "[INFO] yq version:"
-        yq --version;
+
 # Install yq, kubectl, chectl cli used by olm/olm.sh script.
 RUN yum install --assumeyes -d1 python3-pip  httpd-tools && \
     pip3 install --upgrade setuptools && \
     pip3 install yq pysemver && \
-    pip install operator-courier==2.1.7 && \
+    pip3 install operator-courier==2.1.7 && \
     curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin && \
