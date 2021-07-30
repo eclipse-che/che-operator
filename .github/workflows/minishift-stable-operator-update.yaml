@@ -28,8 +28,14 @@ jobs:
         minishift start --memory=5500 --vm-driver=virtualbox --registry-mirror=https://quay.io
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
-    - name: Install jq
-      run: sudo pip install yq
+    - name: Install yq and pysemver
+      run: |
+        pip3 install operator-courier==2.1.7
+        sudo pip install yq pysemver;
+        echo "[INFO] pysemver version:"
+        pysemver --version;
+        echo "[INFO] yq version:"
+        yq --version;
     - name: Replace Minishift default certificates
       run: /bin/bash .github/bin/minishift/certs.sh
     - name: Update minishift deprecated certificates and run e2e
