@@ -1,5 +1,14 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/che-operator.clusterserviceversion.yaml	2021-08-02 09:27:53.277079705 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml	2021-08-02 09:28:24.717992431 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/che-operator.clusterserviceversion.yaml	2021-08-02 09:25:59.404749442 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml	2021-08-02 09:26:49.110175810 +0000
+@@ -41,7 +41,7 @@
+               "externalDb": false
+             },
+             "devWorkspace": {
+-              "enable": false
++              "enable": true
+             },
+             "metrics": {
+               "enable": true
 @@ -60,7 +60,6 @@
                "serverExposureStrategy": "",
                "serverTrustStoreConfigMapName": "",
@@ -18,18 +27,19 @@
 -    containerImage: quay.io/eclipse/che-operator@sha256:4bb9f5859f2094d13c42b27f3aa41daac750725f611690aa083a265b3f760a16
 -    createdAt: "2021-07-21T11:59:56Z"
 +    containerImage: quay.io/eclipse/che-operator@sha256:8923f23280418111d906dc4e4236cffc42b423c62b7b4d2d3dc4b83f1d503045
-+    createdAt: "2021-08-02T09:27:53Z"
++    createdAt: "2021-08-02T09:25:59Z"
      description: A Kube-native development solution that delivers portable and collaborative
 -      developer workspaces in OpenShift.
+-    operatorframework.io/suggested-namespace: eclipse-che
 +      developer workspaces.
-     operatorframework.io/suggested-namespace: eclipse-che
++    operatorframework.io/suggested-namespace: openshift-operators
 +    operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware"]'
 +    operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
 +    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
      repository: https://github.com/eclipse-che/che-operator
      support: Eclipse Foundation
 -  name: eclipse-che-preview-openshift.v7.33.2
-+  name: eclipse-che-preview-openshift.v7.34.0
++  name: eclipse-che-preview-openshift.v7.34.0-all-namespaces
    namespace: placeholder
  spec:
    apiservicedefinitions: {}
@@ -504,7 +514,7 @@
                      imagePullPolicy: IfNotPresent
                      name: devworkspace-che-operator
                      resources:
-@@ -1404,6 +1427,37 @@
+@@ -1404,18 +1427,50 @@
                  - events
                verbs:
                  - create
@@ -542,8 +552,17 @@
            serviceAccountName: che-operator
      strategy: deployment
    installModes:
-@@ -1416,6 +1470,7 @@
+-    - supported: true
++    - supported: false
+       type: OwnNamespace
+-    - supported: true
++    - supported: false
+       type: SingleNamespace
+-    - supported: true
+-      type: MultiNamespace
      - supported: false
++      type: MultiNamespace
++    - supported: true
        type: AllNamespaces
    keywords:
 +    - eclipse che
@@ -556,8 +575,8 @@
      name: Eclipse Foundation
 -  replaces: eclipse-che-preview-openshift.v7.33.1
 -  version: 7.33.2
-+  replaces: eclipse-che-preview-openshift.v7.33.2
-+  version: 7.34.0
++  replaces: eclipse-che-preview-openshift.v7.33.2-all-namespaces
++  version: 7.34.0-all-namespaces
    relatedImages:
 -    - name: che-operator-7.33.2
 -      image: quay.io/eclipse/che-operator@sha256:4bb9f5859f2094d13c42b27f3aa41daac750725f611690aa083a265b3f760a16

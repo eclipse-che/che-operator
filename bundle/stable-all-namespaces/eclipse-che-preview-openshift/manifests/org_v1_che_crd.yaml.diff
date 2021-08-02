@@ -1,5 +1,5 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2021-08-02 09:27:53.293082271 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2021-08-02 09:27:53.349091250 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2021-08-02 09:25:59.524773394 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2021-08-02 09:26:03.033470966 +0000
 @@ -11,6 +11,9 @@
  apiVersion: apiextensions.k8s.io/v1
  kind: CustomResourceDefinition
