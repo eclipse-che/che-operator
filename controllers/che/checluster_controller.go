@@ -315,7 +315,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
-	if util.IsOpenShift4 && instance.Spec.DevWorkspace.Enable && instance.Spec.Auth.NativeUserMode == nil {
+	if util.IsOpenShift && instance.Spec.DevWorkspace.Enable && instance.Spec.Auth.NativeUserMode == nil {
 		newNativeUserModeValue := util.NewBoolPointer(true)
 		if !reflect.DeepEqual(newNativeUserModeValue, instance.Spec.Auth.NativeUserMode) {
 			instance.Spec.Auth.NativeUserMode = newNativeUserModeValue

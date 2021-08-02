@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -171,6 +172,120 @@ func init() {
 	}
 	defaultImagePullerImages = "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") +
 		";che-workspace-plugin-broker-artifacts=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts") + ";"
+}
+
+func TestNativeUserModeEnabled(t *testing.T) {
+	type testCase struct {
+		name                    string
+		initObjects             []runtime.Object
+		isOpenshift             bool
+		devworkspaceEnabled     bool
+		initialNativeUserValue  *bool
+		expectedNativeUserValue *bool
+		mockFunction            func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler
+	}
+
+	testCases := []testCase{
+		{
+			name:                    "che-operator should use nativeUserMode when devworkspaces on openshift and no initial value in CR for nativeUserMode",
+			isOpenshift:             true,
+			devworkspaceEnabled:     true,
+			initialNativeUserValue:  nil,
+			expectedNativeUserValue: util.NewBoolPointer(true),
+		},
+		{
+			name:                    "che-operator should use nativeUserMode value from initial CR",
+			isOpenshift:             true,
+			devworkspaceEnabled:     true,
+			initialNativeUserValue:  util.NewBoolPointer(false),
+			expectedNativeUserValue: util.NewBoolPointer(false),
+		},
+		{
+			name:                    "che-operator should use nativeUserMode value from initial CR",
+			isOpenshift:             true,
+			devworkspaceEnabled:     true,
+			initialNativeUserValue:  util.NewBoolPointer(true),
+			expectedNativeUserValue: util.NewBoolPointer(true),
+		},
+		{
+			name:                    "che-operator should not modify nativeUserMode when not on openshift",
+			isOpenshift:             false,
+			devworkspaceEnabled:     true,
+			initialNativeUserValue:  nil,
+			expectedNativeUserValue: nil,
+		},
+		{
+			name:                    "che-operator not modify nativeUserMode when devworkspace not enabled",
+			isOpenshift:             true,
+			devworkspaceEnabled:     false,
+			initialNativeUserValue:  nil,
+			expectedNativeUserValue: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(routev1.GroupVersion, route)
+			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			initCR := InitCheWithSimpleCR().DeepCopy()
+			testCase.initObjects = append(testCase.initObjects, initCR)
+
+			initCR.Spec.DevWorkspace.Enable = testCase.devworkspaceEnabled
+			initCR.Spec.Auth.NativeUserMode = testCase.initialNativeUserValue
+			util.IsOpenShift = testCase.isOpenshift
+
+			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+
+			if !ok {
+				t.Fatal("Error creating fake discovery client")
+			}
+
+			r := &CheClusterReconciler{
+				client:          cli,
+				nonCachedClient: nonCachedClient,
+				discoveryClient: fakeDiscovery,
+				Scheme:          scheme,
+				tests:           true,
+				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
+			}
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      os.Getenv("CHE_FLAVOR"),
+					Namespace: namespace,
+				},
+			}
+
+			_, err := r.Reconcile(req)
+			if err != nil {
+				t.Fatalf("Error reconciling: %v", err)
+			}
+			cr := &orgv1.CheCluster{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
+				t.Errorf("CR not found")
+			}
+
+			if !reflect.DeepEqual(testCase.expectedNativeUserValue, cr.Spec.Auth.NativeUserMode) {
+				expectedValue, actualValue := "nil", "nil"
+				if testCase.expectedNativeUserValue != nil {
+					expectedValue = strconv.FormatBool(*testCase.expectedNativeUserValue)
+				}
+				if cr.Spec.Auth.NativeUserMode != nil {
+					actualValue = strconv.FormatBool(*cr.Spec.Auth.NativeUserMode)
+				}
+
+				t.Errorf("Expected nativeUserMode '%+v', but found '%+v' for input '%+v'",
+					expectedValue, actualValue, testCase)
+			}
+		})
+	}
 }
 
 func TestCaseAutoDetectOAuth(t *testing.T) {
