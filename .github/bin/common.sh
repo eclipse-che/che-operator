@@ -97,7 +97,7 @@ initStableTemplates() {
   if [ "${compareResult}" == "-1" ]; then
     cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
   else
-    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator" 
+    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
   fi
 }
 

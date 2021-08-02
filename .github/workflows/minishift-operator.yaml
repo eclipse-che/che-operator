@@ -20,7 +20,7 @@ jobs:
     # All docker operations should be done in this step
     - name: Build Che operator image
       run: |
-        export OPERATOR_IMAGE=test/che-operator:test
+        export OPERATOR_IMAGE=docker.io/test/che-operator:test
         # coreutils provides a readlink that supports `-f`
 
         brew install coreutils docker docker-machine
