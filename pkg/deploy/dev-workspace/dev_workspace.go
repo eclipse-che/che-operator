@@ -90,7 +90,7 @@ var (
 	cachedObj = make(map[string]*Object2Sync)
 	syncItems = []func(*deploy.DeployContext) (bool, error){
 		createDwNamespace,
-		syncDwService,
+		// syncDwService,
 		syncDwServiceAccount,
 		syncDwClusterRole,
 		syncDwProxyClusterRole,
