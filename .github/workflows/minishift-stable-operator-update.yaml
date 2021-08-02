@@ -31,7 +31,8 @@ jobs:
     - name: Install yq and pysemver
       run: |
         pip3 install operator-courier==2.1.7
-        sudo pip install yq pysemver;
+        pip3 install yq;
+        sudo pip install pysemver;
         echo "[INFO] pysemver version:"
         pysemver --version;
         echo "[INFO] yq version:"
