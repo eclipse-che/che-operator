@@ -76,8 +76,6 @@ type CheConfigMap struct {
 	PluginRegistryInternalUrl              string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
 	DevfileRegistryUrl                     string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
 	DevfileRegistryInternalUrl             string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL,omitempty"`
-	WebSocketEndpointMinor                 string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
-	WebSocketInternalEndpointMinir         string `json:"CHE_WEBSOCKET_INTERNAL_ENDPOINT__MINOR"`
 	CheWorkspacePluginBrokerMetadataImage  string `json:"CHE_WORKSPACE_PLUGIN__BROKER_METADATA_IMAGE,omitempty"`
 	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
@@ -189,8 +187,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(s.deployContext.CheCluster)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
-	var webSocketEndpoint, webSocketEndpointMinor string
-	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint, webSocketInternalEndpointMinor string
+	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint string
 
 	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
 		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, s.deployContext.CheCluster.Namespace)
@@ -208,15 +205,13 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		cheInternalAPI = fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
 		webSocketInternalEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
-		webSocketInternalEndpointMinor = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket-minor", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
-	} 
-		
+	}
+
 	wsprotocol := "ws"
 	if tlsSupport {
 		wsprotocol = "wss"
 	}
-	webSocketEndpoint = wsprotocol + "://" + cheHost + "/api/websocket"
-	webSocketEndpointMinor = wsprotocol + "://" + cheHost + "/api/websocket-minor"
+	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
 	data := &CheConfigMap{
 		CheMultiUser:                           cheMultiUser,
@@ -226,8 +221,6 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheApiInternal:                         cheInternalAPI,
 		CheWebSocketEndpoint:                   webSocketEndpoint,
 		CheWebSocketInternalEndpoint:           webSocketInternalEndpoint,
-		WebSocketEndpointMinor:                 webSocketEndpointMinor,
-		WebSocketInternalEndpointMinir:         webSocketInternalEndpointMinor,
 		CheDebugServer:                         cheDebug,
 		CheInfrastructureActive:                infra,
 		CheInfraKubernetesServiceAccountName:   "che-workspace",

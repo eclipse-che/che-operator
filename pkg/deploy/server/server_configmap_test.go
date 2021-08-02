@@ -161,8 +161,7 @@ func TestConfigMap(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host/api/websocket",
-				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host/api/websocket-minor",
+				"CHE_WEBSOCKET_ENDPOINT": "ws://che-host/api/websocket",
 			},
 		},
 		{
@@ -179,8 +178,7 @@ func TestConfigMap(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WEBSOCKET_INTERNAL_ENDPOINT":        "ws://che-host.eclipse-che.svc:8080/api/websocket",
-				"CHE_WEBSOCKET_INTERNAL_ENDPOINT__MINOR": "ws://che-host.eclipse-che.svc:8080/api/websocket-minor",
+				"CHE_WEBSOCKET_INTERNAL_ENDPOINT": "ws://che-host.eclipse-che.svc:8080/api/websocket",
 			},
 		},
 		{
@@ -198,8 +196,7 @@ func TestConfigMap(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT":        "ws://che-host/api/websocket",
-				"CHE_WEBSOCKET_ENDPOINT__MINOR": "ws://che-host/api/websocket-minor",
+				"CHE_WEBSOCKET_ENDPOINT": "ws://che-host/api/websocket",
 			},
 		},
 		{
