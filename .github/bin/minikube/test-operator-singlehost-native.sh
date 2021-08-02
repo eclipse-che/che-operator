@@ -50,10 +50,13 @@ runTest() {
   sleep 10s
   createWorkspaceDevWorkspaceController
   waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
+  kubectl delete namespace ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 
-  sleep 10s
+  sleep 60s
+
   createWorkspaceDevWorkspaceCheOperator
   waitAllPodsRunning ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
+  kubectl delete namespace ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
 }
 
 initDefaults
