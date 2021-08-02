@@ -14,7 +14,7 @@ set -x
 catchFinish() {
   result=$?
 
-  collectCheLogWithChectl
+  collectLogs
   if [ "$result" != "0" ]; then
     echo "[ERROR] Job failed."
   else
@@ -165,9 +165,14 @@ installYq() {
 }
 
 # Graps Eclipse Che logs
-collectCheLogWithChectl() {
+collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
   chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
+
+  set +x
+  oc get events -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}.txt
+  oc get events -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}.txt
+  set -x
 }
 
 # Build latest operator image

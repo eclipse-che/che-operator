@@ -52,7 +52,7 @@ function Catch_Finish() {
     bumpPodsInfo "admin-che"
     oc get devworkspaces -n "admin-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml
 
-    collectCheLogWithChectl
+    collectLogs
 }
 
 overrideDefaults() {
