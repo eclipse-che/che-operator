@@ -31,7 +31,7 @@ initDefaults() {
   export USER_NAMEPSACE="che-che"
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
-  export OPERATOR_IMAGE="docker.io/test/che-operator:test"
+  export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
