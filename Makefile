@@ -272,7 +272,7 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test -mod=vendor ./... -coverprofile cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -285,7 +285,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 IMAGE_TOOL=docker
 
 docker-build: ## Build docker image with the manager.
-	${IMAGE_TOOL} build -t ${IMG} .
+	${IMAGE_TOOL} build --no-cache -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
 	${IMAGE_TOOL} push ${IMG}
