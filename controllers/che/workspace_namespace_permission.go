@@ -261,7 +261,7 @@ func getWorkspacesPolicies() []rbac.PolicyRule {
 		{
 			APIGroups: []string{""},
 			Resources: []string{"secrets"},
-			Verbs:     []string{"get", "list", "update", "create", "delete"},
+			Verbs:     []string{"get", "patch", "list", "update", "create", "delete"},
 		},
 		{
 			APIGroups: []string{""},
