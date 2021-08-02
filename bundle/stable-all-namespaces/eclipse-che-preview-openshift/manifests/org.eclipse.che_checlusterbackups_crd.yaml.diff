@@ -1,5 +1,5 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org.eclipse.che_checlusterrestores_crd.yaml	2021-08-02 10:15:34.984712547 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/manifests/org.eclipse.che_checlusterrestores_crd.yaml	2021-08-02 10:15:35.000714611 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_checlusterbackups_crd.yaml	2021-08-02 10:13:40.004633746 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml	2021-08-02 10:13:43.141108107 +0000
 @@ -1,16 +1,9 @@
 -#
 -#  Copyright (c) 2019-2021 Red Hat, Inc.
@@ -17,15 +17,15 @@
 +  annotations:
 +    controller-gen.kubebuilder.io/version: v0.4.1
 +  creationTimestamp: null
-   name: checlusterrestores.org.eclipse.che
+   name: checlusterbackups.org.eclipse.che
  spec:
    group: org.eclipse.che
 @@ -24,18 +17,12 @@
    - name: v1
      schema:
        openAPIV3Schema:
--        description: The `CheClusterRestore` custom resource allows defining and managing
--          Eclipse Che restore
+-        description: The `CheClusterBackup` custom resource allows defining and managing
+-          Eclipse Che backup
          properties:
            apiVersion:
 -            description: 'APIVersion defines the versioned schema of this representation
@@ -41,23 +41,33 @@
              type: string
            metadata:
              type: object
-@@ -43,13 +30,10 @@
-             description: CheClusterRestoreSpec defines the desired state of CheClusterRestore
+@@ -43,22 +30,17 @@
+             description: CheClusterBackupSpec defines the desired state of CheClusterBackup
              properties:
                backupServerConfigRef:
 -                description: Name of custom resource with a backup server configuration
--                  to use for this restore. Can be omitted if only one server configuration
--                  object exists within the namespace.
-+                description: Name of custom resource with a backup server configuration to use for this restore. Can be omitted if only one server configuration object exists within the namespace.
+-                  to use for this backup. Note, UseInternalBackupServer field can
+-                  configure internal backup server automatically.
++                description: Name of custom resource with a backup server configuration to use for this backup. Note, UseInternalBackupServer field can configure internal backup server automatically.
                  type: string
-               snapshotId:
--                description: Snapshot ID to restore from. If omitted, latest snapshot
--                  will be used.
-+                description: If omitted, latest snapshot will be used.
-                 type: string
+               useInternalBackupServer:
+-                description: Automatically setup pod with REST backup server and use
+-                  the server in this configuration. Note, this flag takes precedence
+-                  and will overwrite existing backup server configuration.
++                description: Automatically setup pod with REST backup server and use the server in this configuration. Note, this flag takes precedence and will overwrite existing backup server configuration.
+                 type: boolean
              type: object
            status:
-@@ -70,3 +54,9 @@
+             description: CheClusterBackupStatus defines the observed state of CheClusterBackup
+             properties:
+               message:
+-                description: Message explaining the state of the backup or an error
+-                  message
++                description: Message explaining the state of the backup or an error message
+                 type: string
+               snapshotId:
+                 description: Last backup snapshot ID
+@@ -75,3 +57,9 @@
      storage: true
      subresources:
        status: {}
