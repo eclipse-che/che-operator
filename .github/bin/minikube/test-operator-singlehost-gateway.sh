@@ -38,9 +38,10 @@ runTest() {
   startNewWorkspace
   waitWorkspaceStart
 
-  # stop workspace to free some resources
+  # stop workspace to clean up resources
   stopExistedWorkspace
   waitExistedWorkspaceStop
+  kubectl delete namespace ${USER_NAMEPSACE}
 
   deployCertManager
 
@@ -48,7 +49,11 @@ runTest() {
   enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
 
-  sleep 10s
+  # clean up some resources by unneeded deleting deployments
+  kubectl delete deployment che-operator -n ${NAMESPACE}
+
+  sleep 60s
+
   createWorkspaceDevWorkspaceController
   waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
   kubectl delete namespace ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}

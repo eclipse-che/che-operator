@@ -28,7 +28,7 @@ catchFinish() {
 initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
-  export USER_NAMEPSACE="che-che"
+  export USER_NAMEPSACE="admin-che"
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
@@ -97,7 +97,7 @@ initStableTemplates() {
   if [ "${compareResult}" == "-1" ]; then
     cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
   else
-    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator" 
+    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
   fi
 }
 
