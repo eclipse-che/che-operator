@@ -40,10 +40,7 @@ runTest() {
   enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
 
-  # clean up some resources by unneeded deleting deployments
-  kubectl delete deployment che-operator -n ${NAMESPACE}
-
-  sleep 60s
+  sleep 10s
 
   createWorkspaceDevWorkspaceController
   waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
