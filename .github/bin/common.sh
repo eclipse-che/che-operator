@@ -14,7 +14,7 @@ set -x
 catchFinish() {
   result=$?
 
-  collectCheLogWithChectl
+  collectLogs
   if [ "$result" != "0" ]; then
     echo "[ERROR] Job failed."
   else
@@ -28,7 +28,7 @@ catchFinish() {
 initDefaults() {
   export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
-  export USER_NAMEPSACE="che-che"
+  export USER_NAMEPSACE="admin-che"
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
@@ -97,7 +97,7 @@ initStableTemplates() {
   if [ "${compareResult}" == "-1" ]; then
     cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
   else
-    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator" 
+    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
   fi
 }
 
@@ -165,9 +165,14 @@ installYq() {
 }
 
 # Graps Eclipse Che logs
-collectCheLogWithChectl() {
+collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
   chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
+
+  set +x
+  oc get events -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}.txt
+  oc get events -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}.txt
+  set -x
 }
 
 # Build latest operator image
@@ -221,6 +226,7 @@ deployEclipseCheStable(){
   local version=$3
 
   chectl server:deploy \
+    --batch \
     --platform=${platform} \
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
@@ -281,7 +287,11 @@ updateEclipseChe() {
   local image=$1
   local templates=$2
 
-  chectl server:update --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
+  chectl server:update \
+    --batch \
+    --chenamespace=${NAMESPACE} \
+    --che-operator-image=${image} \
+    --templates=${templates}
 }
 
 # Create and start a workspace
@@ -449,7 +459,13 @@ spec:
     nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
-  chectl server:deploy --installer=operator --platform=openshift --batch --templates=${TEMPLATES} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
+  chectl server:deploy \
+    --batch \
+    --installer=operator \
+    --platform=openshift \
+    --templates=${TEMPLATES} \
+    --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml \
+    --che-operator-image ${OPERATOR_IMAGE}
   oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 

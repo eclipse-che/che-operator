@@ -29,23 +29,16 @@ runTest() {
   startNewWorkspace
   waitWorkspaceStart
 
-  # stop workspace to free some resources
+  # stop workspace to clean up resources
   stopExistedWorkspace
   waitExistedWorkspaceStop
+  kubectl delete namespace ${USER_NAMEPSACE}
 
   deployCertManager
 
   # Dev Workspace controller tests
   enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
-
-  sleep 10s
-  createWorkspaceDevWorkspaceController
-  waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
-
-  sleep 10s
-  createWorkspaceDevWorkspaceCheOperator
-  waitAllPodsRunning ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
 }
 
 initDefaults
