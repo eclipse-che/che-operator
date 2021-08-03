@@ -226,6 +226,7 @@ deployEclipseCheStable(){
   local version=$3
 
   chectl server:deploy \
+    --batch \
     --platform=${platform} \
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
@@ -286,7 +287,11 @@ updateEclipseChe() {
   local image=$1
   local templates=$2
 
-  chectl server:update --chenamespace=${NAMESPACE} -y --che-operator-image=${image} --templates=${templates}
+  chectl server:update \
+    --batch \
+    --chenamespace=${NAMESPACE} \
+    --che-operator-image=${image} \
+    --templates=${templates}
 }
 
 # Create and start a workspace
@@ -454,7 +459,13 @@ spec:
     nonProxyHosts: oauth-openshift.apps.$DOMAIN
 EOL
 
-  chectl server:deploy --installer=operator --platform=openshift --batch --templates=${TEMPLATES} --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image ${OPERATOR_IMAGE}
+  chectl server:deploy \
+    --batch \
+    --installer=operator \
+    --platform=openshift \
+    --templates=${TEMPLATES} \
+    --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml \
+    --che-operator-image ${OPERATOR_IMAGE}
   oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 

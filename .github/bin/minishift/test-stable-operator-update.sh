@@ -30,13 +30,16 @@ EOF
 }
 
 runTest() {
-  chectl server:deploy --platform minishift --installer operator \
+  chectl server:deploy \
+    --batch \
+    --platform minishift \
+    --installer operator \
     --version ${PREVIOUS_PACKAGE_VERSION} \
     --che-operator-cr-patch-yaml ${OPERATOR_REPO}/tmp/patch.yaml
 
   createWorkspace
 
-  chectl server:update -y --templates=$LAST_OPERATOR_TEMPLATE
+  chectl server:update --batch --templates=$LAST_OPERATOR_TEMPLATE
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   startExistedWorkspace
