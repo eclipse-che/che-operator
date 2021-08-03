@@ -272,7 +272,7 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test -mod=vendor ./... -coverprofile cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -637,7 +637,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		done
 	fi
 
-	# Fix sample
+	# Fix CSV
 	if [ "$${platform}" = "openshift" ]; then
 		echo "[INFO] Fix openshift sample"
 		sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
@@ -653,6 +653,10 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		# Update sample in the CSV
 		yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
 		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+
+		# Update annotations
+		echo "[INFO] Update kubernetes annotations"
+		yq -rYi "del(.metadata.annotations.\"operators.openshift.io/infrastructure-features\")" "$${NEW_CSV}"
 	fi
 
 	# set `app.kubernetes.io/managed-by` label

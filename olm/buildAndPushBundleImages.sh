@@ -19,6 +19,8 @@ usage () {
 
 if [[ $# -lt 1 ]]; then usage; exit; fi
 
+unset channel platform forceBuildAndPush fromIndexImage
+
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-c') channel="$2"; shift 1;;

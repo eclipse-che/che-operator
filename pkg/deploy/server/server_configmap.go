@@ -43,6 +43,7 @@ type CheConfigMap struct {
 	CheApi                                 string `json:"CHE_API"`
 	CheApiInternal                         string `json:"CHE_API_INTERNAL"`
 	CheWebSocketEndpoint                   string `json:"CHE_WEBSOCKET_ENDPOINT"`
+	CheWebSocketInternalEndpoint           string `json:"CHE_WEBSOCKET_INTERNAL_ENDPOINT"`
 	CheDebugServer                         string `json:"CHE_DEBUG_SERVER"`
 	CheMetricsEnabled                      string `json:"CHE_METRICS_ENABLED"`
 	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
@@ -75,7 +76,6 @@ type CheConfigMap struct {
 	PluginRegistryInternalUrl              string `json:"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL,omitempty"`
 	DevfileRegistryUrl                     string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__URL,omitempty"`
 	DevfileRegistryInternalUrl             string `json:"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL,omitempty"`
-	WebSocketEndpointMinor                 string `json:"CHE_WEBSOCKET_ENDPOINT__MINOR"`
 	CheWorkspacePluginBrokerMetadataImage  string `json:"CHE_WORKSPACE_PLUGIN__BROKER_METADATA_IMAGE,omitempty"`
 	CheWorkspacePluginBrokerArtifactsImage string `json:"CHE_WORKSPACE_PLUGIN__BROKER_ARTIFACTS_IMAGE,omitempty"`
 	CheServerSecureExposerJwtProxyImage    string `json:"CHE_SERVER_SECURE__EXPOSER_JWTPROXY_IMAGE,omitempty"`
@@ -187,45 +187,31 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(s.deployContext.CheCluster)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
-	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketEndpoint, webSocketEndpointMinor string
+	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint string
 
 	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
 		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, s.deployContext.CheCluster.Namespace)
-	} else {
-		keycloakInternalURL = keycloakURL
 	}
 
 	// If there is a devfile registry deployed by operator
-	if !s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
-		if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
-			devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, s.deployContext.CheCluster.Namespace)
-		} else {
-			devfileRegistryInternalURL = s.deployContext.CheCluster.Status.DevfileRegistryURL
-		}
+	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
+		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, s.deployContext.CheCluster.Namespace)
 	}
 
 	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Server.ExternalPluginRegistry {
 		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, s.deployContext.CheCluster.Namespace)
-	} else {
-		pluginRegistryInternalURL = pluginRegistryURL
 	}
 
 	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		cheInternalAPI = fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
-		webSocketEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
-		webSocketEndpointMinor = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket-minor", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
-	} else {
-		cheInternalAPI = cheAPI
-
-		wsprotocol := "ws"
-
-		if tlsSupport {
-			wsprotocol = "wss"
-		}
-
-		webSocketEndpoint = wsprotocol + "://" + cheHost + "/api/websocket"
-		webSocketEndpointMinor = wsprotocol + "://" + cheHost + "/api/websocket-minor"
+		webSocketInternalEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, s.deployContext.CheCluster.Namespace)
 	}
+
+	wsprotocol := "ws"
+	if tlsSupport {
+		wsprotocol = "wss"
+	}
+	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
 	data := &CheConfigMap{
 		CheMultiUser:                           cheMultiUser,
@@ -234,7 +220,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheApi:                                 cheAPI,
 		CheApiInternal:                         cheInternalAPI,
 		CheWebSocketEndpoint:                   webSocketEndpoint,
-		WebSocketEndpointMinor:                 webSocketEndpointMinor,
+		CheWebSocketInternalEndpoint:           webSocketInternalEndpoint,
 		CheDebugServer:                         cheDebug,
 		CheInfrastructureActive:                infra,
 		CheInfraKubernetesServiceAccountName:   "che-workspace",
