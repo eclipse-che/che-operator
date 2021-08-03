@@ -31,7 +31,7 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
 - [ ] [Code builds without errors](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#code-builds-without-errors)
 - [ ] [Tests are covering the bugfix](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#tests-are-covering-the-bugfix)
 - [ ] [Custom resource definition file is up to date](https://github.com/eclipse-che/che-operator/blob/main/README.md#updating-custom-resource-definition-file)
-- [ ] [OLM bundles is up to date](https://github.com/eclipse-che/che-operator/blob/main/README.md#update-olm-bundle)
+- [ ] [OLM bundles are up to date](https://github.com/eclipse-che/che-operator/blob/main/README.md#update-olm-bundle)
 - [ ] [The repository devfile is up to date and works](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#the-repository-devfile-is-up-to-date-and-works)
 - [ ] [Sections `What issues does this PR fix or reference` and `How to test this PR` completed](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#sections-what-issues-does-this-pr-fix-or-reference-and-how-to-test-this-pr-completed)
 - [ ] [Relevant user documentation updated](https://github.com/eclipse/che/blob/master/CONTRIBUTING.md#relevant-contributing-documentation-updated)
