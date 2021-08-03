@@ -197,6 +197,8 @@ rules:
       - list
       - get
       - create
+      - update
+      - patch
       - delete
   - apiGroups:
       - ''
