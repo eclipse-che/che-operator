@@ -42,7 +42,7 @@ jobs:
           set -e
           # if not run manually, need to compute che docs version from latest released CSV
           if [[ "${{ github.event.inputs.version }}" == "" ]] || [[ "${{ github.event.inputs.version }}" == "7.y.z" ]]; then
-            chedocsVersion=$(chedocsVersion=$(grep Version version/version.go | cut -d \" -f2)
+            chedocsVersion=$(grep Version version/version.go | cut -d \" -f2)
           else
             chedocsVersion="${{ github.event.inputs.version }}"
           fi
