@@ -36,7 +36,7 @@ runTest() {
 
   createWorkspace
 
-  chectl server:update --version ${LAST_PACKAGE_VERSION} -y
+  chectl server:update -y --templates=$LAST_OPERATOR_TEMPLATE
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   startExistedWorkspace
