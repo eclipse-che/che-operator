@@ -66,6 +66,9 @@
             "problemMatcher": [
                 "$go"
             ],
+            "options": {
+                "env": {"MOCK_API": "true"}
+            },
             "presentation": {
                 "reveal": "always"
             },
