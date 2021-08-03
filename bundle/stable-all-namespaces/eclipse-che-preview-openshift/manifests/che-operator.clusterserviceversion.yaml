@@ -1495,7 +1495,6 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  replaces: eclipse-che-preview-openshift.v7.33.2-all-namespaces
   version: 7.34.0-all-namespaces
   relatedImages:
     - name: che-operator-7.34.0
