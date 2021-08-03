@@ -27,7 +27,7 @@ fi
 
 channel=$2
 if [ "${channel}" == "" ]; then
-  channel="nightly"
+  channel="next"
 fi
 
 namespace=$3
@@ -53,7 +53,7 @@ run() {
   installCatalogSource "${platform}" "${namespace}" "${CATALOG_IMAGENAME}"
 
   getBundleListFromCatalogSource "${platform}" "${namespace}"
-  getPreviousCSVInfo "${channel}" 
+  getPreviousCSVInfo "${channel}"
   getLatestCSVInfo "${channel}"
 
   echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"

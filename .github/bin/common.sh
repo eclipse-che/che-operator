@@ -34,7 +34,7 @@ initDefaults() {
   export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
-  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  export OPENSHIFT_NEXT_CSV_FILE="${OPERATOR_REPO}/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
   export DEV_WORKSPACE_ENABLE="false"
   export DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE=devworkspace-controller-test
@@ -411,7 +411,7 @@ patchEclipseCheOperatorImage() {
 applyOlmCR() {
   echo "Creating Custom Resource"
 
-  CR=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}" | yq -r ".[0]")
+  CR=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NEXT_CSV_FILE}" | yq -r ".[0]")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
   CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
   CR=$(echo "$CR" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")

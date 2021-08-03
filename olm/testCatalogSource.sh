@@ -36,7 +36,7 @@ printHelp() {
 	echo '    NAMESPACE                - Namespace where Eclipse Che will be deployed'
 	echo '    CATALOG_SOURCE_IMAGE     - Image name used to create a catalog source in cluster'
   echo ''
-  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift nightly che my_image_name'
+  echo 'EXAMPLE of running: ${OPERATOR_REPO}/olm/testCatalogSource.sh openshift next che my_image_name'
 }
 
 # Check if a platform was defined...
@@ -49,12 +49,12 @@ else
   echo "[INFO]: Successfully validated platform. Starting olm tests in platform: ${PLATFORM}."
 fi
 
-# Check if a channel was defined... The available channels are nightly and stable
+# Check if a channel was defined... The available channels are 'next' and 'stable'
 CHANNEL=$2
-if [ "${CHANNEL}" == "stable" ] || [ "${CHANNEL}" == "nightly" ]; then
+if [ "${CHANNEL}" == "stable" ] || [ "${CHANNEL}" == "next" ]; then
   echo "[INFO]: Successfully validated operator channel. Starting olm tests in channel: ${CHANNEL}."
 else
-  echo "[ERROR]: Please specify a valid channel. The posible channels are stable and nightly.The script will exit with code 1."
+  echo "[ERROR]: Please specify a valid channel. The posible 'channels' are stable and 'next'. The script will exit with code 1."
   printHelp
   exit 1
 fi
