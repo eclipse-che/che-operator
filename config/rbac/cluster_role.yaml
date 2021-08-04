@@ -251,6 +251,14 @@ rules:
     verbs:
       - get
   - apiGroups:
+      - operators.coreos.com
+    resources:
+      - clusterserviceversions
+    verbs:
+      - list
+      - get
+      - watch
+  - apiGroups:
       - metrics.k8s.io
     resources:
       - pods
