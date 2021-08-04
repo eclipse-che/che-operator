@@ -51,7 +51,7 @@ function Catch_Finish() {
     bumpPodsInfo "admin-che"
     oc get devworkspaces -n "admin-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml
 
-    collectCheLogWithChectl
+    collectLogs
 }
 
 overrideDefaults() {
@@ -75,7 +75,14 @@ EOL
 
   cat /tmp/che-cr-patch.yaml
 
-  chectl server:deploy --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml -p openshift --templates=${TEMPLATES} --batch --telemetry=off --installer=operator --che-operator-image=${OPERATOR_IMAGE}
+  chectl server:deploy \
+    --batch \
+    --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml \
+    --platform openshift \
+    --templates=${TEMPLATES} \
+    --telemetry=off \
+    --installer=operator \
+    --che-operator-image=${OPERATOR_IMAGE}
 }
 
 startHappyPathTest() {

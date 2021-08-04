@@ -114,8 +114,8 @@ tags
 
 build/
 olm/generated
-bundle/nightly/eclipse-che-preview-kubernetes/generated
-bundle/nightly/eclipse-che-preview-openshift/generated
+bundle/next/eclipse-che-preview-kubernetes/generated
+bundle/next/eclipse-che-preview-openshift/generated
 bundle/stable/eclipse-che-preview-kubernetes/generated
 bundle/stable/eclipse-che-preview-openshift/generated
 bundle/stable-all-namespaces/eclipse-che-preview-openshift/generated

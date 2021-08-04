@@ -37,9 +37,10 @@ runTest() {
   startNewWorkspace
   waitWorkspaceStart
 
-  # stop workspace to free some resources
+  # stop workspace to clean up resources
   stopExistedWorkspace
   waitExistedWorkspaceStop
+  kubectl delete namespace ${USER_NAMEPSACE}
 
   deployCertManager
 

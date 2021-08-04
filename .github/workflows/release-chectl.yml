@@ -62,8 +62,8 @@ jobs:
               this_repo=$1
               this_action_name=$2
               this_workflow_id=$3
-              this_var=$4
-              this_val=$5
+              this_workflow_ref=$4
+              this_params=$5
 
               # can compute using GH API
               # workflow_id=$(curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" | jq --arg search_field "${this_action_name}" '.workflows[] | select(.name == $search_field).id'); # echo "workflow_id = $workflow_id"
@@ -81,9 +81,9 @@ jobs:
                   inputsJson=$(echo "${inputsJson}" | jq ". + {\"${key}\": \"${value}\"}")
               done
 
-              curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"${workflow_ref}\",\"inputs\": ${inputsJson} }"
+              curl -sSL https://api.github.com/repos/${this_repo}/actions/workflows/${workflow_id}/dispatches -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" -d "{\"ref\":\"${this_workflow_ref}\",\"inputs\": ${inputsJson} }"
               echo "[INFO] Invoked '${this_action_name}' action ($workflow_id) - see https://github.com/${this_repo}/actions?query=workflow%3A%22${this_action_name// /+}%22"
           }
 
           # invoke action from chectl repo
-          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4267607" "version=${chectlVersion},dwoVersion=${dwoVersion}"
+          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4008310" "version=${chectlVersion},dwoVersion=${dwoVersion}"

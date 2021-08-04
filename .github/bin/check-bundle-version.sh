@@ -18,13 +18,13 @@ if [ -z "${ROOT_PROJECT_DIR}" ]; then
   ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
 fi
 
-CSV_KUBERNETES_NEW="bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-CSV_KUBERNETES_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml
+CSV_KUBERNETES_NEW="bundle/next/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+CSV_KUBERNETES_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/next/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml
 
-CSV_OPENSHIFT_NEW="bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
+CSV_OPENSHIFT_NEW="bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
-checkNightlyBundleVersions() {
+checkNextBundleVersions() {
   git remote add operator https://github.com/eclipse-che/che-operator.git
   git fetch operator -q
   git fetch origin -q
@@ -55,17 +55,17 @@ compareVersions() {
   VERSION_NEW_NUMBER=$(convertVersionToNumber $CSV_VERSION_NEW)
 
   if (( $VERSION_NEW_NUMBER <= $VERSION_CURRENT_NUMBER )); then
-    echo "[ERROR] New nightly bundle version is less than the current one."
-    echo "[ERROR] Please update nightly bundle with script 'make update-resources -s'"
+    echo "[ERROR] New next bundle version is less than the current one."
+    echo "[ERROR] Please update next bundle with script 'make update-resources -s'"
     exit 1
   fi
 }
 
 convertVersionToNumber() {
-  version=$1                                    # 7.28.1-130.nightly
-  versionWithoutNightly="${version%.nightly}"   # 7.28.1-130
-  version="${versionWithoutNightly%-*}"         # 7.28.1
-  incrementPart="${versionWithoutNightly#*-}"   # 130
+  version=$1                                    # 7.28.1-130.next
+  versionWithoutNext="${version%.next}"         # 7.28.1-130
+  version="${versionWithoutNext%-*}"            # 7.28.1
+  incrementPart="${versionWithoutNext#*-}"      # 130
   major=$(echo $version | cut  -d '.' -f 1)     # 7
   minor=$(echo $version | cut  -d '.' -f 2)     # 28
   bugfix=$(echo $version | cut  -d '.' -f 3)    # 1
@@ -74,6 +74,6 @@ convertVersionToNumber() {
   echo $((major * 100000000 + minor * 100000 + bugfix * 10000 + incrementPart))
 }
 
-checkNightlyBundleVersions
+checkNextBundleVersions
 
 echo "[INFO] Done."

@@ -90,7 +90,6 @@ jobs:
           export QUAY_ECLIPSE_CHE_USERNAME=${{ secrets.QUAY_USERNAME }}
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
 
-          # we usually do not update nightly files during major releases
           if [[ ${CHE_VERSION} == *".0" ]]; then
             ./make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files --dev-workspace-controller-version ${DWO_VERSION}
           else

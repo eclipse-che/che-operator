@@ -200,7 +200,7 @@ buildCatalogImage() {
   if [[ "${output}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
     echo "[INFO] Ignore error 'Bundle already added'"
     # Catalog bundle image contains bundle reference, continue without unnecessary push operation
-    exit 0
+    return
   else
     echo "[INFO] ${exitCode}"
     if [ "${exitCode}" != 0 ]; then

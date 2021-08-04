@@ -193,7 +193,14 @@ initDefaults
 provisionOpenShiftOAuthUser
 
 # Deploy Eclipse Che and retrieve golang devfile from devfile-registry
-chectl server:deploy --telemetry=off --k8spodwaittimeout=1800000 --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:next --platform=openshift --installer=operator
+chectl server:deploy \
+    --batch \
+    --telemetry=off \
+    --k8spodwaittimeout=1800000  \
+    --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml \
+    --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:next \
+    --platform=openshift \
+    --installer=operator
 
 DEVFILEURL=$(oc get checluster/eclipse-che -n eclipse-che -o "jsonpath={.status.devfileRegistryURL}")
 curl -sSLo- -vk "${DEVFILEURL}/devfiles/go/devfile.yaml" > /tmp/devfile.yaml
