@@ -1,11 +1,11 @@
-{   
+{
     "channel":"devtools-che-deploy",
 	"blocks": [
 		{
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": "Eclipse Che Nightly Deployment in a Restricted Environment",
+				"text": "Eclipse Che Next Deployment in a Restricted Environment",
 				"emoji": true
 			}
 		},
@@ -43,4 +43,4 @@
 			}
 		}
 	]
-} 
+}

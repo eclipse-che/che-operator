@@ -25,7 +25,7 @@ trap "catchFinish" EXIT SIGINT
 
 runTest() {
   export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
-  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "nightly" "${NAMESPACE}"
+  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "next" "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
 

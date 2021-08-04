@@ -87,7 +87,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheImageTag string `json:"cheImageTag,omitempty"`
 	// Overrides the image pull policy used in Che deployment.
-	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
 	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady Workspaces] installation.
@@ -152,7 +152,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	DashboardImage string `json:"dashboardImage,omitempty"`
 	// Overrides the image pull policy used in the dashboard deployment.
-	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	DashboardImagePullPolicy string `json:"dashboardImagePullPolicy,omitempty"`
 	// Overrides the memory limit used in the dashboard deployment. Defaults to 256Mi.
@@ -183,7 +183,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	DevfileRegistryImage string `json:"devfileRegistryImage,omitempty"`
 	// Overrides the image pull policy used in the devfile registry deployment.
-	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	DevfileRegistryPullPolicy corev1.PullPolicy `json:"devfileRegistryPullPolicy,omitempty"`
 	// Overrides the memory limit used in the devfile registry deployment. Defaults to 256Mi.
@@ -227,7 +227,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	PluginRegistryImage string `json:"pluginRegistryImage,omitempty"`
 	// Overrides the image pull policy used in the plugin registry deployment.
-	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PluginRegistryPullPolicy corev1.PullPolicy `json:"pluginRegistryPullPolicy,omitempty"`
 	// Overrides the memory limit used in the plugin registry deployment. Defaults to 256Mi.
@@ -364,7 +364,7 @@ type CheClusterSpecDB struct {
 	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
-	// Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
 	// PostgreSQL container custom settings
@@ -451,7 +451,7 @@ type CheClusterSpecAuth struct {
 	// +optional
 	IdentityProviderImage string `json:"identityProviderImage,omitempty"`
 	// Overrides the image pull policy used in the Identity Provider, Keycloak or RH-SSO, deployment.
-	// Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
+	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
 	// Ingress custom settings.

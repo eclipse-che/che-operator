@@ -59,7 +59,7 @@ $ make docker-build docker-push IMG="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USE
 che-operator MAKE file provides ability to install che-operator(VSCode task `Deploy che-operator`):
 
 ```bash
-$ make deploy IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly\" 
+$ make deploy IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:next\"
 
 $ kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n <NAMESPACE>
 ```
@@ -112,7 +112,7 @@ $ make update-resources -s
 3. Build catalog source and bundle images:
 
 ```bash
-$ olm/buildAndPushBundleImages.sh -p <openshift|kubernetes> -c "nightly"
+$ olm/buildAndPushBundleImages.sh -p <openshift|kubernetes> -c "next"
 ```
 
 4. Create a custom catalog source yaml (update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
@@ -135,7 +135,7 @@ spec:
 
 
 ```bash
-$ chectl server:deploy --installer=olm --platform=<CHECTL_SUPPORTED_PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=nightly --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
+$ chectl server:deploy --installer=olm --platform=<CHECTL_SUPPORTED_PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=next --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
 ```
 
 ### Deploy stable Che operator in Cluster Wide Availability
@@ -146,10 +146,10 @@ More info about DevWorkspace Operator can be found [here](https://github.com/dev
 Before installing Eclipse Che using channel `stable-all-namespaces` we need to consider the following:
 
 * It is not possible to have Eclipse Che installed in single Namespace (currently the default one) and then try to install Che in All Namespace mode using the new channel stable-all-namespaces.
-* To update to stable-all-namespaces channel you need first to remove all subscriptions created for Che installed from nightly or stable
+* To update to stable-all-namespaces channel you need first to remove all subscriptions created for Che installed from next or stable
 channels. IMPORTANT: Removing subscriptions doesn’t mean Eclipse Che operands(che-server, keycloak or roles) will be removed from the cluster.
 * DevWorkspace engine will be by default enabled in the new channel.
-* In case if you have already installed Che with DevWorkspace engine enabled from channels nightly or stable you need to remove all DevWorkspace resources from the cluster following the next [scripts](https://github.com/devfile/devworkspace-operator/blob/main/build/make/deploy.mk#L77).
+* In case if you have already installed Che with DevWorkspace engine enabled from channels next or stable you need to remove all DevWorkspace resources from the cluster following the next [scripts](https://github.com/devfile/devworkspace-operator/blob/main/build/make/deploy.mk#L77).
 * `stable-all-namespaces` channel is supported only in OpenShift.
 
 If the OpenShift Cluster already have all these considerations done you can proceed to install the Eclipse Che using stable-all-namespaces channel from OperatorHub or using the new channel you need to perform the following chectl command:
@@ -175,7 +175,7 @@ Prepare bundle:
 $ export BUNDLE_IMG="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1"
 $ export PLATFORM=<kubernetes|openshift>
 
-$ make bundle IMG="${BUNDLE_IMG}" platform="${PLATFORM}" 
+$ make bundle IMG="${BUNDLE_IMG}" platform="${PLATFORM}"
 
 $ make bundle-build bundle-push BUNDLE_IMG="${BUNDLE_IMG}" platform="${PLATFORM}"
 ```
@@ -185,7 +185,7 @@ Also for this purpose you can use VSCode tast `Build test bundle Kubernetes plat
 Install che-operator and apply custom resource file/files(corresponding VSCode task: `Install che-operator via OLM`):
 
 ```bash
-$ operator-sdk run bundle "${BUNDLE_IMG}" --namespace "${NAMESPACE}"; 
+$ operator-sdk run bundle "${BUNDLE_IMG}" --namespace "${NAMESPACE}";
 
 $ make -s apply-cr-crd ECLIPSE_CHE_NAMESPACE="${NAMESPACE}"
 ```
@@ -413,7 +413,7 @@ This command will update CRD files:
 
 CRD beta yamls should be used for back compatibility with Openshift 3.
 
-### Update nightly OLM bundle
+### Update OLM bundle
 
 Sometimes, during development, you need to modify some YAML definitions in the `config` folder or Che cluster custom resource. There are most frequently changes which should be included to the new OLM bundle:
   - operator deployment `config/manager/manager.yaml`

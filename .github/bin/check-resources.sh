@@ -12,7 +12,7 @@
 
 # Checks if repository resources are up to date:
 # - CRDs
-# - nightly olm bundle
+# - next olm bundle
 # - Dockerfile & operator.yaml
 # - DW resources
 
@@ -75,18 +75,18 @@ checkCRDs() {
     fi
 }
 
-checkNightlyOlmBundle() {
+checkNextOlmBundle() {
   # files to check
-  local CSV_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests"
-  local CSV_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests"
+  local CSV_KUBERNETES="bundle/next/eclipse-che-preview-kubernetes/manifests"
+  local CSV_OPENSHIFT="bundle/next/eclipse-che-preview-openshift/manifests"
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update-resources -s' to regenerate nightly bundle files."
+    echo "[ERROR] Run 'make update-resources -s' to regenerate next bundle files."
     exit 1
   else
-    echo "[INFO] Nightly bundles are up to date."
+    echo "[INFO] Next bundles are up to date."
   fi
 }
 
@@ -142,7 +142,7 @@ pushd "${ROOT_PROJECT_DIR}" || true
 updateResources
 checkCRDs
 checkRoles
-checkNightlyOlmBundle
+checkNextOlmBundle
 checkDockerfile
 checkOperatorYaml
 
