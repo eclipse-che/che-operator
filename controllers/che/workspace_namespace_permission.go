@@ -309,6 +309,11 @@ func getWorkspacesPolicies() []rbac.PolicyRule {
 			Verbs:     []string{"list", "create", "watch", "get", "delete"},
 		},
 		{
+			APIGroups: []string{"networking.k8s.io"},
+			Resources: []string{"ingresses"},
+			Verbs:     []string{"list", "create", "watch", "get", "delete"},
+		},
+		{
 			APIGroups: []string{"rbac.authorization.k8s.io"},
 			Resources: []string{"roles"},
 			Verbs:     []string{"get", "update", "create"},
