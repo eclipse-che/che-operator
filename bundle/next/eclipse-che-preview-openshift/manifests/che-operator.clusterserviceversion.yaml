@@ -538,6 +538,16 @@ spec:
                 - get
                 - delete
             - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - list
+                - create
+                - watch
+                - get
+                - delete
+            - apiGroups:
                 - apiextensions.k8s.io
               resources:
                 - customresourcedefinitions
@@ -1175,6 +1185,12 @@ spec:
         - rules:
             - apiGroups:
                 - extensions
+              resources:
+                - ingresses
+              verbs:
+                - '*'
+            - apiGroups:
+                - networking.k8s.io
               resources:
                 - ingresses
               verbs:
