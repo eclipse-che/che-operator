@@ -317,11 +317,9 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	if util.IsOpenShift && instance.Spec.DevWorkspace.Enable && instance.Spec.Auth.NativeUserMode == nil {
 		newNativeUserModeValue := util.NewBoolPointer(true)
-		if !reflect.DeepEqual(newNativeUserModeValue, instance.Spec.Auth.NativeUserMode) {
-			instance.Spec.Auth.NativeUserMode = newNativeUserModeValue
-			if err := deploy.UpdateCheCRSpec(deployContext, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {
-				return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-			}
+		instance.Spec.Auth.NativeUserMode = newNativeUserModeValue
+		if err := deploy.UpdateCheCRSpec(deployContext, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
 		}
 	}
 
