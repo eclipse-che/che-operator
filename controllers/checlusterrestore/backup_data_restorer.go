@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -178,7 +178,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	if rctx.isOpenShift {
 		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
 	} else {
-		err = rctx.r.client.DeleteAllOf(context.TODO(), &extv1beta1.Ingress{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
+		err = rctx.r.client.DeleteAllOf(context.TODO(), &networking.Ingress{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
 	}
 	if err != nil {
 		return false, err
