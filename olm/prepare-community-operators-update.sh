@@ -28,7 +28,7 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '-u'|'--user') GITHUB_USER="$2"; shift 1;;
     '-t'|'--token') GITHUB_TOKEN="$2"; shift 1;;
-    '-f'|'--force') FORCE="-f";;
+    '-f'|'--force') FORCE="-f"; shift 0;;
     '-p'|'--platform') PLATFORMS="$2";shift 1;;
     '-h'|'--help') usage;;
   esac
