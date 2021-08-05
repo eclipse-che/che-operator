@@ -25,7 +25,7 @@ const (
 	CheGatewayClusterPermissionsFinalizerName = "cheGateway.clusterpermissions.finalizers.che.eclipse.org"
 )
 
-func (r *CheClusterReconciler) reconcileGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
+func reconcileGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
 		name := gatewayPermisisonsName(deployContext.CheCluster)
 		if _, err := deploy.SyncClusterRoleToCluster(deployContext, name, getGatewayClusterRoleRules()); err != nil {
@@ -46,7 +46,7 @@ func (r *CheClusterReconciler) reconcileGatewayPermissions(deployContext *deploy
 	return true, nil
 }
 
-func (r *CheClusterReconciler) reconcileGatewayPermissionsFinalizers(deployContext *deploy.DeployContext) (bool, error) {
+func reconcileGatewayPermissionsFinalizers(deployContext *deploy.DeployContext) (bool, error) {
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return deleteGatewayPermissions(deployContext)
 	}
