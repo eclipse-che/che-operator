@@ -27,7 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -207,7 +207,7 @@ func GetEndpointTLSCrtChain(deployContext *DeployContext, endpointURL string) ([
 			}()
 
 			// Wait till the ingress is ready
-			ingress := &v1beta1.Ingress{}
+			ingress := &networking.Ingress{}
 			for {
 				time.Sleep(time.Duration(1) * time.Second)
 				exists, err := GetNamespacedObject(deployContext, ingressSpec.Name, ingress)

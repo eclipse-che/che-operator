@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 )
 
 const (
@@ -144,7 +144,7 @@ func (s Server) ExposeCheEndpoint() (bool, error) {
 			return false, err
 		}
 
-		ingress := &v1beta1.Ingress{}
+		ingress := &networking.Ingress{}
 		exists, err := deploy.GetNamespacedObject(s.deployContext, s.component, ingress)
 		if !exists {
 			return false, err

@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.35.0-275.next
+  name: eclipse-che-preview-openshift.v7.35.0-276.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -529,6 +529,16 @@ spec:
                 - delete
             - apiGroups:
                 - extensions
+              resources:
+                - ingresses
+              verbs:
+                - list
+                - create
+                - watch
+                - get
+                - delete
+            - apiGroups:
+                - networking.k8s.io
               resources:
                 - ingresses
               verbs:
@@ -1180,6 +1190,12 @@ spec:
               verbs:
                 - '*'
             - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - '*'
+            - apiGroups:
                 - batch
               resources:
                 - jobs
@@ -1374,4 +1390,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.35.0-275.next
+  version: 7.35.0-276.next
