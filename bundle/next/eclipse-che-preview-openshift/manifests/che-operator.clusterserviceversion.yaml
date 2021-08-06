@@ -70,12 +70,13 @@ metadata:
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
-    operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware"]'
+    operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware",
+      "fips"]'
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.35.0-273.next
+  name: eclipse-che-preview-openshift.v7.35.0-276.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -528,6 +529,16 @@ spec:
                 - delete
             - apiGroups:
                 - extensions
+              resources:
+                - ingresses
+              verbs:
+                - list
+                - create
+                - watch
+                - get
+                - delete
+            - apiGroups:
+                - networking.k8s.io
               resources:
                 - ingresses
               verbs:
@@ -1179,6 +1190,12 @@ spec:
               verbs:
                 - '*'
             - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - '*'
+            - apiGroups:
                 - batch
               resources:
                 - jobs
@@ -1373,4 +1390,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.35.0-273.next
+  version: 7.35.0-276.next

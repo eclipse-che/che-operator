@@ -20,14 +20,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var ingressDiffOpts = cmp.Options{
-	cmpopts.IgnoreFields(v1beta1.Ingress{}, "TypeMeta", "Status"),
-	cmpopts.IgnoreFields(v1beta1.HTTPIngressPath{}, "PathType"),
+	cmpopts.IgnoreFields(networking.Ingress{}, "TypeMeta", "Status"),
+	cmpopts.IgnoreFields(networking.HTTPIngressPath{}, "PathType"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
 			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
@@ -61,7 +60,7 @@ func GetIngressSpec(
 	serviceName string,
 	servicePort int,
 	ingressCustomSettings orgv1.IngressCustomSettings,
-	component string) (ingressUrl string, i *v1beta1.Ingress) {
+	component string) (ingressUrl string, i *networking.Ingress) {
 
 	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
@@ -71,6 +70,7 @@ func GetIngressSpec(
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
 	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, ingressCustomSettings.Labels)
+	pathType := networking.PathTypeImplementationSpecific
 
 	if tlsSupport {
 		// for server and dashboard ingresses
@@ -128,10 +128,10 @@ func GetIngressSpec(
 		}
 	}
 
-	ingress := &v1beta1.Ingress{
+	ingress := &networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
-			APIVersion: v1beta1.SchemeGroupVersion.String(),
+			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -139,19 +139,24 @@ func GetIngressSpec(
 			Labels:      labels,
 			Annotations: annotations,
 		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{
+		Spec: networking.IngressSpec{
+			Rules: []networking.IngressRule{
 				{
 					Host: host,
-					IngressRuleValue: v1beta1.IngressRuleValue{
-						HTTP: &v1beta1.HTTPIngressRuleValue{
-							Paths: []v1beta1.HTTPIngressPath{
+					IngressRuleValue: networking.IngressRuleValue{
+						HTTP: &networking.HTTPIngressRuleValue{
+							Paths: []networking.HTTPIngressPath{
 								{
-									Backend: v1beta1.IngressBackend{
-										ServiceName: serviceName,
-										ServicePort: intstr.FromInt(servicePort),
+									Backend: networking.IngressBackend{
+										Service: &networking.IngressServiceBackend{
+											Name: serviceName,
+											Port: networking.ServiceBackendPort{
+												Number: int32(servicePort),
+											},
+										},
 									},
-									Path: ingressPath,
+									Path:     ingressPath,
+									PathType: &pathType,
 								},
 							},
 						},
@@ -167,7 +172,7 @@ func GetIngressSpec(
 	}
 
 	if tlsSupport {
-		ingress.Spec.TLS = []v1beta1.IngressTLS{
+		ingress.Spec.TLS = []networking.IngressTLS{
 			{
 				Hosts:      []string{host},
 				SecretName: tlsSecretName,

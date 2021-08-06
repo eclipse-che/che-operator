@@ -18,11 +18,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 
 	"testing"
 )
@@ -37,7 +37,7 @@ func TestIngressSpec(t *testing.T) {
 		serviceName           string
 		servicePort           int
 		ingressCustomSettings orgv1.IngressCustomSettings
-		expectedIngress       *v1beta1.Ingress
+		expectedIngress       *networking.Ingress
 	}
 	cheFlavor := getDefaultFromEnv("CHE_FLAVOR")
 	cheCluster := &orgv1.CheCluster{
@@ -60,7 +60,7 @@ func TestIngressSpec(t *testing.T) {
 				Labels:      "type=default",
 				Annotations: map[string]string{"annotation-key": "annotation-value"},
 			},
-			expectedIngress: &v1beta1.Ingress{
+			expectedIngress: &networking.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "eclipse-che",
@@ -83,21 +83,26 @@ func TestIngressSpec(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Ingress",
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
+					APIVersion: networking.SchemeGroupVersion.String(),
 				},
-				Spec: v1beta1.IngressSpec{
-					Rules: []v1beta1.IngressRule{
+				Spec: networking.IngressSpec{
+					Rules: []networking.IngressRule{
 						{
 							Host: "test-host",
-							IngressRuleValue: v1beta1.IngressRuleValue{
-								HTTP: &v1beta1.HTTPIngressRuleValue{
-									Paths: []v1beta1.HTTPIngressPath{
+							IngressRuleValue: networking.IngressRuleValue{
+								HTTP: &networking.HTTPIngressRuleValue{
+									Paths: []networking.HTTPIngressPath{
 										{
-											Backend: v1beta1.IngressBackend{
-												ServiceName: "che-host",
-												ServicePort: intstr.FromInt(8080),
+											Backend: networking.IngressBackend{
+												Service: &networking.IngressServiceBackend{
+													Name: "che-host",
+													Port: networking.ServiceBackendPort{
+														Number: 8080,
+													},
+												},
 											},
-											Path: "/",
+											Path:     "/",
+											PathType: (*networking.PathType)(pointer.StringPtr(string(networking.PathTypeImplementationSpecific))),
 										},
 									},
 								},
@@ -143,7 +148,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 		t.Fatalf("Failed to sync ingress: %v", err)
 	}
 
-	actual := &v1beta1.Ingress{}
+	actual := &networking.Ingress{}
 	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "eclipse-che"}, actual)
 	if err != nil {
 		t.Fatalf("Failed to get ingress: %v", err)
@@ -152,7 +157,7 @@ func TestSyncIngressToCluster(t *testing.T) {
 	if actual.Spec.Rules[0].Host != "host-2" {
 		t.Fatalf("Failed to sync ingress")
 	}
-	if actual.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.ServiceName != "service-2" {
+	if actual.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name != "service-2" {
 		t.Fatalf("Failed to sync ingress")
 	}
 }

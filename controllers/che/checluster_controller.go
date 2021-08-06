@@ -50,7 +50,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	userv1 "github.com/openshift/api/user/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -208,7 +208,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			OwnerType:    &orgv1.CheCluster{},
 		})
 	} else {
-		contollerBuilder = contollerBuilder.Watches(&source.Kind{Type: &v1beta1.Ingress{}}, &handler.EnqueueRequestForOwner{
+		contollerBuilder = contollerBuilder.Watches(&source.Kind{Type: &networking.Ingress{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		})
