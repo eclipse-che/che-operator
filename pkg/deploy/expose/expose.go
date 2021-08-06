@@ -21,7 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
-	extentionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 )
 
 //Expose exposes the specified component according to the configured exposure strategy rules
@@ -57,7 +57,7 @@ func ExposeWithHostPath(
 	if !util.IsOpenShift {
 		if useGateway {
 			return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-				if _, err = deploy.DeleteNamespacedObject(deployContext, component, &extentionsv1beta1.Ingress{}); err != nil {
+				if _, err = deploy.DeleteNamespacedObject(deployContext, component, &networking.Ingress{}); err != nil {
 					logrus.Error(err)
 				}
 			})
