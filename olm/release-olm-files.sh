@@ -172,6 +172,12 @@ do
   -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=next/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
 
+  if [[ ${CHANNEL} == "stable-all-namespaces" ]]; then
+    sed \
+    -e 's/# LABEL com.redhat.openshift.versions/LABEL com.redhat.openshift.versions="v4.8"/' \
+    -i "${BUNDLE_DOCKERFILE}"
+  fi
+
   pushd "${CURRENT_DIR}" || true
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
                 -t "${RELEASE}" \
