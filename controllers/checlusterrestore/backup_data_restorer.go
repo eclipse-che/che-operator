@@ -124,6 +124,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
+	logrus.Info("==========================> Deleting CheCluster <==========================")
 	err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
 	if err == nil {
 		// Che CR is marked for deletion, but actually still exists.
@@ -314,6 +315,8 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 		return done, err
 	}
 
+	logrus.Infof("CR %v", cheCR)
+	logrus.Infof("Deletion %s", cheCR.ObjectMeta.DeletionTimestamp.IsZero())
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
 		if errors.IsAlreadyExists(err) {
 			return false, rctx.r.client.Delete(context.TODO(), cheCR)
