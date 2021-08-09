@@ -215,10 +215,9 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 		if err := os.RemoveAll(backupDataDestDir); err != nil {
 			return false, err
 		}
-	}
 
-	rctx.state.cheRestored = true
-	// rctx.UpdateRestoreStatus()
+		rctx.state.cheRestored = true
+	}
 
 	rctx.restoreCR.Status.Message = "Restore successfully finished"
 	rctx.restoreCR.Status.State = chev1.STATE_SUCCEEDED
