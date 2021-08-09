@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
@@ -316,7 +317,7 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 	}
 
 	logrus.Infof("CR %v", cheCR)
-	logrus.Infof("Deletion %s", cheCR.ObjectMeta.DeletionTimestamp.IsZero())
+	logrus.Infof("Deletion %s", strconv.FormatBool(cheCR.ObjectMeta.DeletionTimestamp.IsZero()))
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
 		if errors.IsAlreadyExists(err) {
 			return false, rctx.r.client.Delete(context.TODO(), cheCR)
