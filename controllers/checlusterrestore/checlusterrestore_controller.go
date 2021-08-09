@@ -211,14 +211,14 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 			return done, err
 		}
 
-		rctx.state.cheRestored = true
-		rctx.UpdateRestoreStatus()
-
 		// Clean up backup data after successful restore
 		if err := os.RemoveAll(backupDataDestDir); err != nil {
 			return false, err
 		}
 	}
+
+	rctx.state.cheRestored = true
+	// rctx.UpdateRestoreStatus()
 
 	rctx.restoreCR.Status.Message = "Restore successfully finished"
 	rctx.restoreCR.Status.State = chev1.STATE_SUCCEEDED
@@ -247,5 +247,6 @@ func (r *ReconcileCheClusterRestore) UpdateCRStatus(cr *chev1.CheClusterRestore)
 		logrus.Errorf("Failed to update %s CR status: %s", cr.Name, err.Error())
 		return err
 	}
+	logrus.Infof("Status updated with %v: ", cr.Status)
 	return nil
 }
