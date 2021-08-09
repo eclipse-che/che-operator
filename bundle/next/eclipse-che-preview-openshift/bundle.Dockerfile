@@ -16,7 +16,7 @@ LABEL operators.operatorframework.io.test.mediatype.v1=scorecard+v1
 LABEL operators.operatorframework.io.test.config.v1=tests/scorecard/
 
 # Managing OpenShift versions
-# LABEL com.redhat.openshift.versions
+# LABEL com.redhat.openshift.versions=
 
 # Copy files to locations specified by labels.
 COPY manifests /manifests/
