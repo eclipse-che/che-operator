@@ -609,6 +609,6 @@ func UpdateBackupServerConfigurationStatus(client client.Client, backupServerCon
 // It is required to remove ResourceVersion in order to be able to apply the yaml again.
 func ClearMetadata(objectMeta *metav1.ObjectMeta) {
 	objectMeta.ResourceVersion = ""
-
+	objectMeta.Finalizers = []string{}
 	objectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 }

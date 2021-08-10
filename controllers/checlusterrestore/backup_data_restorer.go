@@ -125,15 +125,22 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	logrus.Info("==========================> Deleting CheCluster <==========================")
-	err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
-	if err == nil {
-		// Che CR is marked for deletion, but actually still exists.
-		// Wait for finalizers and actual resource deletion (not found expected).
-		logrus.Info("Restore: Waiting for old Che CR finalizers to be completed")
-		return false, nil
-	} else if !errors.IsNotFound(err) {
-		return false, err
+	cr, _, _ := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
+	if cr != nil {
+		if cr.GetObjectMeta().GetDeletionTimestamp().IsZero() {
+			logrus.Info("==========================> Deleting CheCluster <==========================")
+			err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
+			if err == nil {
+				// Che CR is marked for deletion, but actually still exists.
+				// Wait for finalizers and actual resource deletion (not found expected).
+				logrus.Info("Restore: Waiting for old Che CR finalizers to be completed")
+				return false, nil
+			} else if !errors.IsNotFound(err) {
+				return false, err
+			}
+		} else {
+			return false, nil
+		}
 	}
 
 	// Define label selector for resources to clean up
@@ -177,6 +184,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete all Che related ingresses / routes
+	var err error
 	if rctx.isOpenShift {
 		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
 	} else {
