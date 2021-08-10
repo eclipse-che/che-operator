@@ -17,6 +17,7 @@ import (
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	backup "github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 type RestoreContext struct {
@@ -158,5 +159,6 @@ func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) 
 		}
 	}
 
+	logrus.Debugf("Restore state: %v", rs)
 	return rs, nil
 }

@@ -124,14 +124,25 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
-	if err == nil {
-		// Che CR is marked for deletion, but actually still exists.
-		// Wait for finalizers and actual resource deletion (not found expected).
-		logrus.Info("Restore: Waiting for old Che CR finalizers to be completed")
-		return false, nil
-	} else if !errors.IsNotFound(err) {
+	actualCheCR, cheCRCount, err := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
+	if cheCRCount == -1 {
+		// error occurred while retreiving CheCluster CR
 		return false, err
+	} else if actualCheCR != nil {
+		if actualCheCR.GetObjectMeta().GetDeletionTimestamp().IsZero() {
+			logrus.Infof("Restore: Deleteing CheCluster custom resource in '%s' namespace", rctx.namespace)
+			err := rctx.r.client.Delete(context.TODO(), actualCheCR)
+			if err == nil {
+				// Che CR is marked for deletion, but actually still exists.
+				// Wait for finalizers and actual resource deletion (not found expected).
+				logrus.Info("Restore: Waiting for old Che CR finalizers to be completed")
+				return false, nil
+			} else if !errors.IsNotFound(err) {
+				return false, err
+			}
+		} else {
+			return false, nil
+		}
 	}
 
 	// Define label selector for resources to clean up
@@ -316,10 +327,15 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
 		if errors.IsAlreadyExists(err) {
-			return false, rctx.r.client.Delete(context.TODO(), cheCR)
+			// We should take into account that every step can be executed several times due to async behavior.
+			// 1. We ensured that CheCluster is removed before restoring.
+			// 2. If it is already created then it is safe to continue (was created here on a previous reconcile loop)
+			return true, nil
 		}
 		return false, err
 	}
+
+	logrus.Info("Restore: CheCluster custom resource created")
 
 	rctx.cheCR = cheCR
 	return true, nil

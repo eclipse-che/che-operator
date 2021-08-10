@@ -571,7 +571,7 @@ func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error 
 func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheCluster, int, error) {
 	cheClusters := &orgv1.CheClusterList{}
 	if err := client.List(context.TODO(), cheClusters); err != nil {
-		return nil, 0, err
+		return nil, -1, err
 	}
 
 	if len(cheClusters.Items) != 1 {
@@ -582,7 +582,7 @@ func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheClu
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
 	err := client.Get(context.TODO(), namespacedName, cheCR)
 	if err != nil {
-		return nil, 0, err
+		return nil, -1, err
 	}
 	return cheCR, 1, nil
 }
@@ -609,6 +609,6 @@ func UpdateBackupServerConfigurationStatus(client client.Client, backupServerCon
 // It is required to remove ResourceVersion in order to be able to apply the yaml again.
 func ClearMetadata(objectMeta *metav1.ObjectMeta) {
 	objectMeta.ResourceVersion = ""
-
+	objectMeta.Finalizers = []string{}
 	objectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 }
