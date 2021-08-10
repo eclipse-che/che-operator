@@ -124,11 +124,14 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	cr, _, _ := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
-	if cr != nil {
-		if cr.GetObjectMeta().GetDeletionTimestamp().IsZero() {
+	actualCheCR, cheCRCount, err := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
+	if cheCRCount == -1 {
+		// error occurred while retreiving CheCluster CR
+		return false, err
+	} else if actualCheCR != nil {
+		if actualCheCR.GetObjectMeta().GetDeletionTimestamp().IsZero() {
 			logrus.Infof("Restore: Deleteing CheCluster custom resource in '%s' namespace", rctx.namespace)
-			err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
+			err := rctx.r.client.Delete(context.TODO(), actualCheCR)
 			if err == nil {
 				// Che CR is marked for deletion, but actually still exists.
 				// Wait for finalizers and actual resource deletion (not found expected).
@@ -324,6 +327,9 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
 		if errors.IsAlreadyExists(err) {
+			// We should take into account that every step can be executed several times due to async behavior.
+			// 1. We ensured that CheCluster is removed before restoring.
+			// 2. If it is already created then it is safe to continue (was created here on a previous reconcile loop)
 			return true, nil
 		}
 		return false, err
