@@ -17,6 +17,7 @@ import (
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	backup "github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 type RestoreContext struct {
@@ -125,6 +126,7 @@ func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) 
 	rs := &RestoreState{}
 
 	phase := restoreCR.Status.Phase
+	logrus.Infof("============== PHASE: %s", phase)
 	if phase != "" {
 		if restoreCR.Status.State == chev1.STATE_SUCCEEDED {
 			phase = chev1.STATE_SUCCEEDED
@@ -157,6 +159,8 @@ func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) 
 			return nil, fmt.Errorf("unrecognized restore phase '%s' in status", phase)
 		}
 	}
+
+	logrus.Infof("============== STATE: %v", rs)
 
 	return rs, nil
 }

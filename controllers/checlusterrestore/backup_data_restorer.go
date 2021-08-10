@@ -324,14 +324,17 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 		return done, err
 	}
 
-	logrus.Infof("CR %v", cheCR)
-	logrus.Infof("Deletion %s", strconv.FormatBool(cheCR.ObjectMeta.DeletionTimestamp.IsZero()))
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
+		logrus.Errorf("ERROR CREATING CR: %v", err)
 		if errors.IsAlreadyExists(err) {
+			logrus.Infof("========= DELETION AGAIN ????")
 			return false, rctx.r.client.Delete(context.TODO(), cheCR)
 		}
 		return false, err
 	}
+
+	logrus.Infof("CR CREATED: %v", cheCR)
+	logrus.Infof("DeletionTimestamp Is Zero: %s", strconv.FormatBool(cheCR.ObjectMeta.DeletionTimestamp.IsZero()))
 
 	rctx.cheCR = cheCR
 	return true, nil
