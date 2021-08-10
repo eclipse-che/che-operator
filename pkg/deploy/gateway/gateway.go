@@ -415,6 +415,7 @@ client_secret = "%s"
 scope = "user:full"
 openshift_service_account = "%s"
 cookie_secret = "%s"
+cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
