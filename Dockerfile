@@ -13,8 +13,6 @@
 FROM registry.access.redhat.com/ubi8/go-toolset:1.15.13-4 as builder
 ENV GOPATH=/go/
 ENV RESTIC_TAG=v0.12.0
-ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
-ARG DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 USER root
 
@@ -23,8 +21,6 @@ USER root
 RUN mkdir -p $GOPATH/restic && \
     curl -sSLo- https://api.github.com/repos/restic/restic/tarball/${RESTIC_TAG} | tar --strip-components=1 -xz -C $GOPATH/restic && \
     cd $GOPATH/restic && go mod vendor && \
-    curl -sSLo /tmp/asset-devworkspace-operator.zip https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} && \
-    curl -sSLo /tmp/asset-devworkspace-che-operator.zip https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} && \
     curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}
 
 WORKDIR /che-operator
@@ -47,14 +43,6 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
     export MOCK_API=true && \
     go test -mod=vendor -v ./... && \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
-
-RUN unzip /tmp/asset-devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
-    mkdir -p /tmp/devworkspace-operator/templates/ && \
-    mv /tmp/devfile-devworkspace-operator-*/deploy /tmp/devworkspace-operator/templates/
-
-RUN unzip /tmp/asset-devworkspace-che-operator.zip */deploy/deployment/* -d /tmp && \
-    mkdir -p /tmp/devworkspace-che-operator/templates/ && \
-    mv /tmp/che-incubator-devworkspace-che-operator-*/deploy /tmp/devworkspace-che-operator/templates/
 
 RUN unzip /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp && \
     mkdir -p /tmp/header-rewrite-traefik-plugin && \
