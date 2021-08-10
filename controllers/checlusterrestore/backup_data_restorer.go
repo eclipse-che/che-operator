@@ -327,8 +327,8 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
 		logrus.Errorf("ERROR CREATING CR: %v", err)
 		if errors.IsAlreadyExists(err) {
-			logrus.Infof("========= DELETION AGAIN ????")
-			return false, rctx.r.client.Delete(context.TODO(), cheCR)
+			logrus.Infof("========= ALREADY CREATED")
+			return true, nil
 		}
 		return false, err
 	}
