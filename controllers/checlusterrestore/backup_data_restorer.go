@@ -18,7 +18,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
@@ -125,10 +124,12 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	cr, _, _ := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
-	if cr != nil {
+	cr, _, err := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
+	if err != nil {
+		return false, err
+	} else if cr != nil {
 		if cr.GetObjectMeta().GetDeletionTimestamp().IsZero() {
-			logrus.Info("==========================> Deleting CheCluster <==========================")
+			logrus.Infof("Restore: Deleteing CheCluster custom resource in '%s' namespace", rctx.namespace)
 			err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
 			if err == nil {
 				// Che CR is marked for deletion, but actually still exists.
@@ -184,7 +185,6 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete all Che related ingresses / routes
-	var err error
 	if rctx.isOpenShift {
 		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
 	} else {
@@ -325,16 +325,13 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 	}
 
 	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
-		logrus.Errorf("ERROR CREATING CR: %v", err)
 		if errors.IsAlreadyExists(err) {
-			logrus.Infof("========= ALREADY CREATED")
 			return true, nil
 		}
 		return false, err
 	}
 
-	logrus.Infof("CR CREATED: %v", cheCR)
-	logrus.Infof("DeletionTimestamp Is Zero: %s", strconv.FormatBool(cheCR.ObjectMeta.DeletionTimestamp.IsZero()))
+	logrus.Info("Restore: CheCluster custom resource created")
 
 	rctx.cheCR = cheCR
 	return true, nil

@@ -126,7 +126,6 @@ func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) 
 	rs := &RestoreState{}
 
 	phase := restoreCR.Status.Phase
-	logrus.Infof("============== PHASE: %s", phase)
 	if phase != "" {
 		if restoreCR.Status.State == chev1.STATE_SUCCEEDED {
 			phase = chev1.STATE_SUCCEEDED
@@ -160,7 +159,6 @@ func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) 
 		}
 	}
 
-	logrus.Infof("============== STATE: %v", rs)
-
+	logrus.Debugf("Restore state: %v", rs)
 	return rs, nil
 }

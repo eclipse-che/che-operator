@@ -153,26 +153,9 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []ctrl.Request{}
 	}
 
-	crPredicate := predicate.Funcs{
-		UpdateFunc: func(evt event.UpdateEvent) bool {
-			return true
-		},
-		CreateFunc: func(evt event.CreateEvent) bool {
-			logrus.Info("+++++++++++ CREATED")
-			return true
-		},
-		DeleteFunc: func(evt event.DeleteEvent) bool {
-			logrus.Info("---------- DELETED")
-			return true
-		},
-		GenericFunc: func(evt event.GenericEvent) bool {
-			return true
-		},
-	}
-
 	contollerBuilder := ctrl.NewControllerManagedBy(mgr).
 		// Watch for changes to primary resource CheCluster
-		Watches(&source.Kind{Type: &orgv1.CheCluster{}}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(crPredicate)).
+		Watches(&source.Kind{Type: &orgv1.CheCluster{}}, &handler.EnqueueRequestForObject{}).
 		// Watch for changes to secondary resources and requeue the owner CheCluster
 		Watches(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
