@@ -124,10 +124,8 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	cr, _, err := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
-	if err != nil {
-		return false, err
-	} else if cr != nil {
+	cr, _, _ := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
+	if cr != nil {
 		if cr.GetObjectMeta().GetDeletionTimestamp().IsZero() {
 			logrus.Infof("Restore: Deleteing CheCluster custom resource in '%s' namespace", rctx.namespace)
 			err := rctx.r.client.Delete(context.TODO(), rctx.cheCR)
