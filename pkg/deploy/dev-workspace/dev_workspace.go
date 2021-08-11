@@ -50,13 +50,10 @@ var (
 	ClusterServiceVersionResourceName = "clusterserviceversions"
 	DevWorkspaceCSVNameWithouVersion  = "devworkspace-operator"
 
-	OpenshiftDevWorkspaceTemplatesPath     = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
-	OpenshiftDevWorkspaceCheTemplatesPath  = "/tmp/devworkspace-che-operator/templates/deployment/openshift/objects"
-	KubernetesDevWorkspaceTemplatesPath    = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
-	KubernetesDevWorkspaceCheTemplatesPath = "/tmp/devworkspace-che-operator/templates/deployment/kubernetes/objects"
+	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
+	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
 
-	DevWorkspaceTemplates    = devWorkspaceTemplatesPath()
-	DevWorkspaceCheTemplates = devWorkspaceCheTemplatesPath()
+	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
 
 	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
 	DevWorkspaceRoleFile                      = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
@@ -463,11 +460,4 @@ func devWorkspaceTemplatesPath() string {
 		return OpenshiftDevWorkspaceTemplatesPath
 	}
 	return KubernetesDevWorkspaceTemplatesPath
-}
-
-func devWorkspaceCheTemplatesPath() string {
-	if util.IsOpenShift {
-		return OpenshiftDevWorkspaceCheTemplatesPath
-	}
-	return KubernetesDevWorkspaceCheTemplatesPath
 }
