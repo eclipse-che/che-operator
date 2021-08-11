@@ -121,12 +121,6 @@ rules:
   - list
   - watch
 - apiGroups:
-  - che.eclipse.org
-  resources:
-  - kubernetesimagepullers
-  verbs:
-  - '*'
-- apiGroups:
   - operators.coreos.com
   resources:
   - subscriptions

@@ -347,6 +347,12 @@ rules:
     - /metrics
     verbs:
     - get
+  - apiGroups:
+    - che.eclipse.org
+    resources:
+    - kubernetesimagepullers
+    verbs:
+    - '*'
   ### CHE-OPERATOR ROLES ONLY: END
   # devworkspace-controller-view-workspaces.ClusterRole.yaml
   - apiGroups:
