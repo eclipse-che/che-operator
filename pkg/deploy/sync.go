@@ -55,7 +55,7 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts ...cmp
 		return false, err
 	}
 
-	// fix GroupVersionKind (it might be empty)
+	// set GroupVersionKind (it might be empty)
 	actual.GetObjectKind().SetGroupVersionKind(runtimeObject.GetObjectKind().GroupVersionKind())
 	if !exists {
 		return Create(deployContext, blueprint)
