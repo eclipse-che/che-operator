@@ -55,6 +55,8 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts ...cmp
 		return false, err
 	}
 
+	// fix GroupVersionKind (it might be empty)
+	actual.GetObjectKind().SetGroupVersionKind(runtimeObject.GetObjectKind().GroupVersionKind())
 	if !exists {
 		return Create(deployContext, blueprint)
 	}
@@ -239,7 +241,7 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 		blueprint.SetLabels(targetLabels)
 
 		client := getClientForObject(actualMeta.GetNamespace(), deployContext)
-		if isUpdateUsingDeleteCreate(blueprint.(runtime.Object).GetObjectKind().GroupVersionKind().Kind) {
+		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
 			logrus.Infof("Recreating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
 			done, err := doDelete(client, actual)
 			if !done {
