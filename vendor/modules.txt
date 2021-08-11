@@ -33,6 +33,22 @@ github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis
 github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
+## explicit
+github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
+github.com/devfile/api/v2/pkg/attributes
+github.com/devfile/api/v2/pkg/devfile
+# github.com/devfile/devworkspace-operator v0.2.1-0.20210805190010-9c55f69c461d
+## explicit
+github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
+github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
+github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers
+github.com/devfile/devworkspace-operator/internal/images
+github.com/devfile/devworkspace-operator/internal/map
+github.com/devfile/devworkspace-operator/pkg/common
+github.com/devfile/devworkspace-operator/pkg/config
+github.com/devfile/devworkspace-operator/pkg/constants
+github.com/devfile/devworkspace-operator/pkg/infrastructure
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible => github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96
@@ -45,7 +61,7 @@ github.com/fsnotify/fsnotify
 # github.com/go-logr/logr v0.4.0 => github.com/go-logr/logr v0.3.0
 ## explicit
 github.com/go-logr/logr
-# github.com/go-logr/zapr v0.1.1 => github.com/go-logr/zapr v0.3.0
+# github.com/go-logr/zapr v0.3.0 => github.com/go-logr/zapr v0.3.0
 github.com/go-logr/zapr
 # github.com/gogo/protobuf v1.3.2 => github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
@@ -69,7 +85,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/gofuzz v1.1.0 => github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
+# github.com/google/gofuzz v1.2.0 => github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
 github.com/google/gofuzz
 # github.com/google/uuid v1.1.2 => github.com/google/uuid v1.1.2
 github.com/google/uuid
@@ -148,7 +164,7 @@ go.uber.org/atomic
 go.uber.org/multierr
 # go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 go.uber.org/tools/update-license
-# go.uber.org/zap v1.13.0 => go.uber.org/zap v1.13.0
+# go.uber.org/zap v1.16.0 => go.uber.org/zap v1.13.0
 ## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer

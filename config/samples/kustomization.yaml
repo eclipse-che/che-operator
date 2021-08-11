@@ -6,4 +6,6 @@ resources:
 # - org_v1_chebackupserverconfiguration.yaml
 # - org_v1_checlusterbackup.yaml
 # - org_v1_checlusterrestore.yaml
+# Uncomment to enable a devworkspace sample
+# - devworkspace_flattened_theia-nodejs.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

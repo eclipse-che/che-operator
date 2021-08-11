@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.35.0-276.next
+  name: eclipse-che-preview-openshift.v7.35.0-279.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -287,8 +287,9 @@ spec:
                 - oauthclients
               verbs:
                 - create
-                - get
                 - delete
+                - deletecollection
+                - get
                 - list
                 - patch
                 - update
@@ -339,16 +340,6 @@ spec:
                 - rbac.authorization.k8s.io
               resources:
                 - clusterrolebindings
-              verbs:
-                - list
-                - create
-                - watch
-                - update
-                - get
-                - delete
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
                 - clusterroles
               verbs:
                 - list
@@ -358,17 +349,9 @@ spec:
                 - get
                 - delete
             - apiGroups:
-                - authorization.openshift.io
+                - rbac.authorization.k8s.io
               resources:
                 - roles
-              verbs:
-                - get
-                - create
-                - update
-                - delete
-            - apiGroups:
-                - authorization.openshift.io
-              resources:
                 - rolebindings
               verbs:
                 - get
@@ -376,17 +359,9 @@ spec:
                 - update
                 - delete
             - apiGroups:
-                - rbac.authorization.k8s.io
+                - authorization.openshift.io
               resources:
                 - roles
-              verbs:
-                - get
-                - create
-                - update
-                - delete
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
                 - rolebindings
               verbs:
                 - get
@@ -400,6 +375,14 @@ spec:
                 - checlusters/status
                 - checlusters/finalizers
                 - checlusters/status
+                - checlusterbackups
+                - checlusterbackups/status
+                - checlusterbackups/finalizers
+                - checlusterrestores
+                - checlusterrestores/status
+                - backupserverconfigurations
+                - backupserverconfigurations/status
+                - chebackupserverconfigurations
               verbs:
                 - '*'
             - apiGroups:
@@ -425,14 +408,6 @@ spec:
                 - list
                 - create
                 - update
-            - apiGroups:
-                - ""
-              resources:
-                - serviceaccounts
-              verbs:
-                - get
-                - create
-                - watch
             - apiGroups:
                 - ""
               resources:
@@ -478,40 +453,24 @@ spec:
                 - delete
             - apiGroups:
                 - apps
+                - extensions
               resources:
                 - deployments
+                - replicasets
               verbs:
-                - get
-                - list
-                - create
-                - patch
-                - watch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - services
-              verbs:
-                - list
-                - create
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - create
-                - delete
-                - list
+                - '*'
             - apiGroups:
                 - route.openshift.io
               resources:
                 - routes
               verbs:
-                - list
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes/custom-host
+              verbs:
                 - create
-                - delete
             - apiGroups:
                 - ""
               resources:
@@ -532,11 +491,7 @@ spec:
               resources:
                 - ingresses
               verbs:
-                - list
-                - create
-                - watch
-                - get
-                - delete
+                - '*'
             - apiGroups:
                 - networking.k8s.io
               resources:
@@ -562,6 +517,14 @@ spec:
               verbs:
                 - get
             - apiGroups:
+                - operators.coreos.com
+              resources:
+                - clusterserviceversions
+              verbs:
+                - list
+                - get
+                - watch
+            - apiGroups:
                 - metrics.k8s.io
               resources:
                 - pods
@@ -570,6 +533,72 @@ spec:
                 - get
                 - list
                 - watch
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - persistentvolumeclaims
+                - pods
+                - secrets
+                - serviceaccounts
+                - services
+              verbs:
+                - '*'
+            - apiGroups:
+                - apps
+              resourceNames:
+                - che-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - create
+                - delete
+                - get
+                - update
+                - watch
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings
+              verbs:
+                - '*'
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - create
+                - get
+            - nonResourceURLs:
+                - /metrics
+              verbs:
+                - get
+            - apiGroups:
+                - che.eclipse.org
+              resources:
+                - kubernetesimagepullers
+              verbs:
+                - '*'
             - apiGroups:
                 - workspace.devfile.io
               resources:
@@ -833,173 +862,6 @@ spec:
                 - get
                 - list
                 - watch
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-                - persistentvolumeclaims
-                - pods
-                - secrets
-                - serviceaccounts
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - namespaces
-              verbs:
-                - get
-            - apiGroups:
-                - ""
-              resources:
-                - pods/exec
-              verbs:
-                - create
-            - apiGroups:
-                - ""
-              resources:
-                - services
-              verbs:
-                - '*'
-            - apiGroups:
-                - apps
-              resourceNames:
-                - devworkspace-che-operator
-              resources:
-                - deployments/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - deployments
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - deployments
-                - replicasets
-              verbs:
-                - '*'
-            - apiGroups:
-                - apps
-                - extensions
-              resources:
-                - replicasets
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - batch
-              resources:
-                - jobs
-              verbs:
-                - create
-                - delete
-                - get
-                - update
-                - watch
-            - apiGroups:
-                - org.eclipse.che
-              resources:
-                - checlusters
-                - checlusters/status
-                - checlusters/finalizers
-              verbs:
-                - '*'
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings
-              verbs:
-                - '*'
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings/status
-              verbs:
-                - get
-                - patch
-                - update
-            - apiGroups:
-                - ""
-              resources:
-                - configmap
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - extensions
-              resources:
-                - ingresses
-              verbs:
-                - '*'
-            - apiGroups:
-                - monitoring.coreos.com
-              resources:
-                - servicemonitors
-              verbs:
-                - create
-                - get
-            - apiGroups:
-                - oauth.openshift.io
-              resources:
-                - oauthclients
-              verbs:
-                - create
-                - delete
-                - deletecollection
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - clusterrolebindings
-                - clusterroles
-                - rolebindings
-                - roles
-              verbs:
-                - create
-                - get
-                - list
-                - update
-                - watch
-            - apiGroups:
-                - route.openshift.io
-              resources:
-                - routes
-              verbs:
-                - '*'
-            - apiGroups:
-                - route.openshift.io
-              resources:
-                - routes/custom-host
-              verbs:
-                - create
-            - nonResourceURLs:
-                - /metrics
-              verbs:
-                - get
           serviceAccountName: che-operator
       deployments:
         - name: che-operator
@@ -1046,7 +908,7 @@ spec:
                       - name: RELATED_IMAGE_devfile_registry
                         value: quay.io/eclipse/che-devfile-registry:next
                       - name: RELATED_IMAGE_pvc_jobs
-                        value: registry.access.redhat.com/ubi8-minimal:8.4-205.1626828526
+                        value: registry.access.redhat.com/ubi8-minimal:8.4-208
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_keycloak
@@ -1093,6 +955,8 @@ spec:
                         value: che-postgres-secret
                       - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
                         value: ca-certs
+                      - name: MAX_CONCURRENT_RECONCILES
+                        value: "1"
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1124,49 +988,6 @@ spec:
                       requests:
                         cpu: 100m
                         memory: 64Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop:
-                          - ALL
-                      privileged: false
-                      readOnlyRootFilesystem: false
-                      runAsNonRoot: true
-                  - args:
-                      - --enable-leader-election
-                      - --metrics-addr
-                      - "0"
-                    command:
-                      - /usr/local/bin/devworkspace-che-operator
-                    env:
-                      - name: WATCH_NAMESPACE
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.annotations['olm.targetNamespaces']
-                      - name: POD_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.name
-                      - name: OPERATOR_NAME
-                        value: devworkspace-che-operator
-                      - name: MAX_CONCURRENT_RECONCILES
-                        value: "1"
-                      - name: CONTROLLER_SERVICE_ACCOUNT_NAME
-                        value: che-operator
-                      - name: RELATED_IMAGE_gateway
-                        value: quay.io/eclipse/che--traefik:v2.3.2-6e6d4dc5a19afe06778ca092cdbbb98e31cb9f9c313edafa23f81a0e6ddf8a23
-                      - name: RELATED_IMAGE_gateway_configurer
-                        value: quay.io/che-incubator/configbump:0.1.4
-                    image: quay.io/che-incubator/devworkspace-che-operator:ci
-                    imagePullPolicy: Always
-                    name: devworkspace-che-operator
-                    resources:
-                      limits:
-                        cpu: 100m
-                        memory: 256Mi
-                      requests:
-                        cpu: 100m
-                        memory: 32Mi
                     securityContext:
                       allowPrivilegeEscalation: false
                       capabilities:
@@ -1245,8 +1066,10 @@ spec:
                 - get
             - apiGroups:
                 - apps
+                - extensions
               resources:
                 - deployments
+                - replicasets
               verbs:
                 - '*'
             - apiGroups:
@@ -1282,12 +1105,6 @@ spec:
                 - list
                 - watch
             - apiGroups:
-                - che.eclipse.org
-              resources:
-                - kubernetesimagepullers
-              verbs:
-                - '*'
-            - apiGroups:
                 - operators.coreos.com
               resources:
                 - subscriptions
@@ -1305,18 +1122,6 @@ spec:
             - apiGroups:
                 - ""
               resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
                 - configmaps/status
               verbs:
                 - get
@@ -1328,6 +1133,47 @@ spec:
                 - events
               verbs:
                 - create
+            - apiGroups:
+                - apps
+              resourceNames:
+                - che-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings
+              verbs:
+                - '*'
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - oauth.openshift.io
+              resources:
+                - oauthclients
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
             - apiGroups:
                 - ""
               resources:
@@ -1390,4 +1236,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.35.0-276.next
+  version: 7.35.0-279.next

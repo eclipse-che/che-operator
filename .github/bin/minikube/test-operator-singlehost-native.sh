@@ -47,6 +47,10 @@ runTest() {
   # Dev Workspace controller tests
   enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
+
+  sleep 10s
+  createWorkspaceDevWorkspaceController
+  waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 }
 
 initDefaults

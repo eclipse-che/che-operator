@@ -116,14 +116,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
-			deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
-				{
-					APIResources: []metav1.APIResource{
-						{Name: CheManagerResourcename},
-					},
-				},
-			}
 
 			util.IsOpenShift = testCase.IsOpenShift
 			util.IsOpenShift4 = testCase.IsOpenShift4
@@ -183,7 +175,7 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 	util.IsOpenShift4 = true
 	_, err := ReconcileDevWorkspace(deployContext)
 
-	if err == nil || err.Error() != "A non matching version of the Dev Workspace operator is already installed" {
+	if err == nil || err.Error() != "a non matching version of the Dev Workspace operator is already installed" {
 		t.Fatalf("Error should be thrown")
 	}
 }

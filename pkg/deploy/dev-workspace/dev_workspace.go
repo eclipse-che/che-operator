@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -46,17 +47,13 @@ var (
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 
 	SubscriptionResourceName          = "subscriptions"
-	CheManagerResourcename            = "chemanagers"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
 	DevWorkspaceCSVNameWithouVersion  = "devworkspace-operator"
 
-	OpenshiftDevWorkspaceTemplatesPath     = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
-	OpenshiftDevWorkspaceCheTemplatesPath  = "/tmp/devworkspace-che-operator/templates/deployment/openshift/objects"
-	KubernetesDevWorkspaceTemplatesPath    = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
-	KubernetesDevWorkspaceCheTemplatesPath = "/tmp/devworkspace-che-operator/templates/deployment/kubernetes/objects"
+	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
+	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
 
-	DevWorkspaceTemplates    = devWorkspaceTemplatesPath()
-	DevWorkspaceCheTemplates = devWorkspaceCheTemplatesPath()
+	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
 
 	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
 	DevWorkspaceRoleFile                      = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
@@ -108,6 +105,13 @@ var (
 		syncDwConfigMap,
 		syncDwDeployment,
 	}
+
+	// Exits the operator after successful fresh installation of the devworkspace.
+	// Can be replaced with something less drastic (especially useful in tests)
+	afterInstall = func() {
+		logrus.Warn("Exitting the operator after DevWorkspace installation. DevWorkspace support will be initialized on the next start.")
+		os.Exit(1)
+	}
 )
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
@@ -150,12 +154,19 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	for _, syncItem := range syncItems {
-		done, err := syncItem(deployContext)
+		_, err := syncItem(deployContext)
 		if !util.IsTestMode() {
-			if !done {
+			if err != nil {
 				return false, err
 			}
 		}
+	}
+
+	if !devWorkspaceWebhookExists && !util.IsTestMode() {
+		// the webhook did not exist in the cluster
+		// this means that we're installing devworkspace and therefore need to restart
+		// so that devworkspace support can initialize during the operator startup
+		afterInstall()
 	}
 
 	return true, nil
@@ -203,7 +214,7 @@ func checkWebTerminalSubscription(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	return errors.New("A non matching version of the Dev Workspace operator is already installed")
+	return errors.New("a non matching version of the Dev Workspace operator is already installed")
 }
 
 func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
@@ -463,11 +474,4 @@ func devWorkspaceTemplatesPath() string {
 		return OpenshiftDevWorkspaceTemplatesPath
 	}
 	return KubernetesDevWorkspaceTemplatesPath
-}
-
-func devWorkspaceCheTemplatesPath() string {
-	if util.IsOpenShift {
-		return OpenshiftDevWorkspaceCheTemplatesPath
-	}
-	return KubernetesDevWorkspaceCheTemplatesPath
 }

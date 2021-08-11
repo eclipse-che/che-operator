@@ -82,8 +82,10 @@ rules:
   - get
 - apiGroups:
   - apps
+  - extensions
   resources:
   - deployments
+  - replicasets
   verbs:
   - '*'
 - apiGroups:
@@ -119,12 +121,6 @@ rules:
   - list
   - watch
 - apiGroups:
-  - che.eclipse.org
-  resources:
-  - kubernetesimagepullers
-  verbs:
-  - '*'
-- apiGroups:
   - operators.coreos.com
   resources:
   - subscriptions
@@ -139,20 +135,6 @@ rules:
   verbs:
   - get
   - list
-### CHE-OPERATOR ROLES ONLY: END
-# devworkspace-che-leader-election-role.Role.yaml
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
 - apiGroups:
   - ""
   resources:
@@ -167,3 +149,46 @@ rules:
   - events
   verbs:
   - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - che-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings
+  verbs:
+  - '*'
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.devfile.io
+  resources:
+  - devworkspaceroutings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - oauth.openshift.io
+  resources:
+  - oauthclients
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+### CHE-OPERATOR ROLES ONLY: END

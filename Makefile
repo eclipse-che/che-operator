@@ -331,19 +331,6 @@ prepare-templates:
 	cp -rf /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
 	echo "[INFO] Downloading Dev Workspace operator templates completed."
 
-	# Download Dev Workspace Che operator templates
-	echo "[INFO] Downloading Dev Workspace Che operator templates ..."
-	rm -f /tmp/devworkspace-che-operator.zip
-	rm -rf /tmp/che-incubator-devworkspace-che-operator-*
-	rm -rf /tmp/devworkspace-che-operator/
-	mkdir -p /tmp/devworkspace-che-operator/templates
-
-	curl -sL https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip
-
-	unzip -q /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
-	cp -r /tmp/che-incubator-devworkspace-che-operator*/deploy/* /tmp/devworkspace-che-operator/templates
-	echo "[INFO] Downloading Dev Workspace operator templates completed."
-
 create-namespace:
 	set +e
 	kubectl create namespace ${ECLIPSE_CHE_NAMESPACE} || true
@@ -432,7 +419,7 @@ rm -rf $$TMP_DIR ;\
 endef
 
 update-roles:
-	echo "[INFO] Updating roles with DW and DWCO roles"
+	echo "[INFO] Updating roles with DW roles"
 
 	CLUSTER_ROLES=(
 	https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
@@ -441,11 +428,9 @@ update-roles:
 	https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
 	https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
 	https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
-	https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-role.ClusterRole.yaml
-	https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-metrics-reader.ClusterRole.yaml
 	)
 
-	# Updates cluster_role.yaml based on DW and DWCO roles
+	# Updates cluster_role.yaml based on DW roles
 	## Removes old cluster roles
 	cat config/rbac/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/cluster_role.yaml.tmp
 	mv config/rbac/cluster_role.yaml.tmp config/rbac/cluster_role.yaml
@@ -461,7 +446,7 @@ update-roles:
 	done
 
 	ROLES=(
-	https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-leader-election-role.Role.yaml
+		# currently, there are no other roles we need to incorporate
 	)
 
 	# Updates role.yaml
@@ -669,8 +654,6 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	if [ "$${platform}" = "openshift" ]; then
 		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
 		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
-		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[1].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
-		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[1].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
 	fi
 
 	# Format code.
@@ -809,39 +792,6 @@ update-deployment-yaml-images:
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"$(JWT_PROXY_IMAGE)\"" $(OPERATOR_YAML)
 	$(MAKE) ensure-license-header FILE="config/manager/manager.yaml"
 
-update-devworkspace-container:
-	echo "[INFO] Update devworkspace container in the che-operator deployment"
-	# Deletes old DWCO container
-	yq -riY "del(.spec.template.spec.containers[1])" $(OPERATOR_YAML)
-	yq -riY ".spec.template.spec.containers[1].name = \"devworkspace-container\"" $(OPERATOR_YAML)
-
-	# Extract DWCO container spec from deployment
-	DWCO_CONTAINER=$$(curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-manager.Deployment.yaml \
-	| sed '1,/containers:/d' \
-	| sed -n '/serviceAccountName:/q;p' \
-	| sed -e 's/^/  /')
-	echo "$${DWCO_CONTAINER}" > dwcontainer
-
-	# Add DWCO container to manager.yaml
-	sed -i -e '/- name: devworkspace-container/{r dwcontainer' -e 'd}' $(OPERATOR_YAML)
-	rm dwcontainer
-
-	# update securityContext
-	yq -riY ".spec.template.spec.containers[1].securityContext.privileged = false" $(OPERATOR_YAML)
-	yq -riY ".spec.template.spec.containers[1].securityContext.readOnlyRootFilesystem = false" $(OPERATOR_YAML)
-	yq -riY ".spec.template.spec.containers[1].securityContext.capabilities.drop[0] = \"ALL\"" $(OPERATOR_YAML)
-
-	# update env variable
-	yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .valueFrom)" $(OPERATOR_YAML)
-	yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"CONTROLLER_SERVICE_ACCOUNT_NAME\") | .value) = \"che-operator\"" $(OPERATOR_YAML)
-	yq -riY "del( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .value)" $(OPERATOR_YAML)
-	yq -riY "( .spec.template.spec.containers[1].env[] | select(.name == \"WATCH_NAMESPACE\") | .valueFrom.fieldRef.fieldPath) = \"metadata.namespace\"" $(OPERATOR_YAML)
-
-	yq -riY ".spec.template.spec.containers[1].args[1] =  \"--metrics-addr\"" $(OPERATOR_YAML)
-	yq -riY ".spec.template.spec.containers[1].args[2] =  \"0\"" $(OPERATOR_YAML)
-
-	# $(MAKE) ensureLicense $(OPERATOR_YAML)
-
 update-dockerfile-image:
 	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
 		echo "[ERROR] Define `UBI8_MINIMAL_IMAGE` argument"
@@ -877,8 +827,6 @@ update-resource-images:
 
 	# Update che-operator Dockerfile
 	$(MAKE) update-dockerfile-image UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}"
-
-	$(MAKE) update-devworkspace-container
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.

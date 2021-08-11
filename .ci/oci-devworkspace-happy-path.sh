@@ -48,7 +48,6 @@ function bumpPodsInfo() {
 function Catch_Finish() {
     # grab devworkspace-controller namespace events after running e2e
     bumpPodsInfo "devworkspace-controller"
-    bumpPodsInfo "devworkspace-che"
     bumpPodsInfo "admin-che"
     oc get devworkspaces -n "admin-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml
 

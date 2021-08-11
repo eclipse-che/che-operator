@@ -487,7 +487,6 @@ waitDevWorkspaceControllerStarted() {
 
   OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
   oc logs ${OPERATOR_POD} -c che-operator -n ${NAMESPACE}
-  oc logs ${OPERATOR_POD} -c devworkspace-che-operator -n ${NAMESPACE}
 
   exit 1
 }
@@ -500,7 +499,7 @@ createWorkspaceDevWorkspaceController () {
   CURRENT_TIME=$(date +%s)
   ENDTIME=$(($CURRENT_TIME + 180))
   while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}; then
+      if oc apply -f ${OPERATOR_REPO}/config/samples/devworkspace_flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}; then
           break
       fi
       sleep 10
@@ -526,12 +525,6 @@ waitAllPodsRunning() {
 
   echo "Failed to run pods in ${namespace}"
   exit 1
-}
-
-createWorkspaceDevWorkspaceCheOperator() {
-  oc create namespace ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
-  sleep 10s
-  oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}
 }
 
 enableDevWorkspaceEngine() {

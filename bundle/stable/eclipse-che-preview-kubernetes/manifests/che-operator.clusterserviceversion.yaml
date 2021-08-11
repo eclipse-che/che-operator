@@ -804,14 +804,6 @@ spec:
                 - '*'
             - apiGroups:
                 - apps
-              resourceNames:
-                - devworkspace-che-operator
-              resources:
-                - deployments/finalizers
-              verbs:
-                - update
-            - apiGroups:
-                - apps
                 - extensions
               resources:
                 - deployments
@@ -1006,8 +998,6 @@ spec:
                         value: quay.io/eclipse/che--traefik@sha256:df90799aaca1ad6fb9e06d311140035d2a0c2295a4f8f508f6b55ee056bb677e
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump@sha256:175ff2ba1bd74429de192c0a9facf39da5699c6da9f151bd461b3dc8624dd532
-                      - name: RELATED_IMAGE_devworkspace_che_operator
-                        value: quay.io/che-incubator/devworkspace-che-operator@sha256:f943ada4d07ae8375f5a93bcc57f7f66335b14940bfe2c5d9565d155588ef514
                       - name: RELATED_IMAGE_devworkspace_controller
                         value: quay.io/devfile/devworkspace-controller@sha256:f17dad6df3f2f0f7b245e05677293bef1d35a17e0349002f9e47816de03c0cdd
                       - name: RELATED_IMAGE_internal_rest_backup_server
