@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.35.0-279.next
+  name: eclipse-che-preview-kubernetes.v7.35.0-280.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -642,6 +642,7 @@ spec:
             - apiGroups:
                 - ""
               resources:
+                - events
                 - namespaces
               verbs:
                 - get
@@ -653,6 +654,16 @@ spec:
                 - pods/exec
               verbs:
                 - create
+            - apiGroups:
+                - ""
+              resourceNames:
+                - workspace-credentials-secret
+              resources:
+                - secrets
+              verbs:
+                - create
+                - delete
+                - get
             - apiGroups:
                 - ""
               resources:
@@ -1167,4 +1178,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.35.0-279.next
+  version: 7.35.0-280.next
