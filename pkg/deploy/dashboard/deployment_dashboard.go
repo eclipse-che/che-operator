@@ -49,6 +49,7 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: DashboardSA,
 					Containers: []corev1.Container{
 						{
 							Name:            d.component,
@@ -120,11 +121,11 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 							},
 							Env: []corev1.EnvVar{
 								{
-									Name: "CHE_HOST",
+									Name:  "CHE_HOST",
 									Value: d.deployContext.CheCluster.Status.CheURL,
 								},
 								{
-									Name: "KEYCLOAK_URL",
+									Name:  "KEYCLOAK_URL",
 									Value: d.deployContext.CheCluster.Status.KeycloakURL,
 								},
 							},
