@@ -128,7 +128,7 @@ checkRoles() {
   )
   if [[ " ${changedFiles[*]} " =~ $RoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ClusterRoleYaml ]]; then
     echo "[ERROR] Roles are not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'olm/update-resources.sh' to update them."
+    echo "[ERROR] Run 'make update-resources -s' to update them."
     exit 1
   else
     echo "[INFO] Roles are up to date."
