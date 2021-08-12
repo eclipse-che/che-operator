@@ -118,6 +118,16 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "CHE_HOST",
+									Value: d.deployContext.CheCluster.Status.CheURL,
+								},
+								{
+									Name: "KEYCLOAK_URL",
+									Value: d.deployContext.CheCluster.Status.KeycloakURL,
+								},
+							},
 						},
 					},
 					RestartPolicy:                 "Always",
