@@ -14,6 +14,7 @@ package dashboard
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
+	"github.com/eclipse-che/che-operator/pkg/util"
 )
 
 type Dashboard struct {
@@ -43,6 +44,25 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 	)
 	if !done {
 		return false, err
+	}
+
+	// we create dashboard SA in any case to keep a track on resources we access withing it
+	done, err = deploy.SyncServiceAccountToCluster(d.deployContext, DashboardSA)
+	if !done {
+		return false, err
+	}
+	// on Kubernetes Dashboard needs privileged SA to work with user's objects
+	// for time being until Kubernetes did not get authentication
+	if !util.IsOpenShift {
+		done, err = deploy.SyncClusterRoleToCluster(d.deployContext, DashboardSAClusterRole, GetPrivilegedPoliciesRulesForKubernetes())
+		if !done {
+			return false, err
+		}
+
+		done, err = deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(d.deployContext, DashboardSAClusterRoleBinding, DashboardSA, DashboardSAClusterRole)
+		if !done {
+			return false, err
+		}
 	}
 
 	// Deploy dashboard
