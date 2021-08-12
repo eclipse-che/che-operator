@@ -292,7 +292,12 @@ createPRToMainBranch() {
   resetChanges main
   local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' | git apply -3
+  set -x
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} \
+    ':(exclude)config/manager/manager.yaml' \
+    ':(exclude)Dockerfile' \
+    ':(exclude)Makefile' \
+    ':(exclude)pkg/deploy/dev-workspace/dev_workspace.go' | git apply -3
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "ci: Copy "$RELEASE" csv to main" --signoff
@@ -300,6 +305,7 @@ createPRToMainBranch() {
   git push origin $tmpBranch -f
   if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
   hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "ci: Copy "$RELEASE" csv to main"
+  set +x
   set -e
 }
 
