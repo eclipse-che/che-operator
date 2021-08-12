@@ -35,38 +35,43 @@ import (
 // the various components of the Che installation.
 // These generated ConfigMaps must NOT be updated manually.
 type CheClusterSpec struct {
-	// General configuration settings related to the Che server
-	// and the plugin and devfile registries
+	// General configuration settings related to the Che server, the plugin and devfile registries
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Che server"
 	Server CheClusterSpecServer `json:"server"`
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Database"
 	Database CheClusterSpecDB `json:"database"`
 	// Configuration settings related to the Authentication used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Authentication"
 	Auth CheClusterSpecAuth `json:"auth"`
 	// Configuration settings related to the persistent storage used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Persistent storage"
 	Storage CheClusterSpecStorage `json:"storage"`
 	// Configuration settings related to the metrics collection used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Metrics"
 	Metrics CheClusterSpecMetrics `json:"metrics"`
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Kubernetes"
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
-
 	// Kubernetes Image Puller configuration
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Kubernetes Image Puller"
 	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
 
 	// DevWorkspace operator configuration
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Dev Workspace operator"
 	DevWorkspace CheClusterSpecDevWorkspace `json:"devWorkspace"`
 }
 
 // +k8s:openapi-gen=true
-// General configuration settings related to the Che server
-// and the plugin and devfile registries.
+// General configuration settings related to the Che server, the plugin and devfile registries.
 type CheClusterSpecServer struct {
 	// Optional host name, or URL, to an alternate container registry to pull images from.
 	// This value overrides the container registry host name defined in all the default container images involved in a Che deployment.
@@ -717,6 +722,7 @@ type CheClusterStatus struct {
 // +k8s:openapi-gen=true
 // +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che instance Specification"
 // +operator-sdk:csv:customresourcedefinitions:order=0
+// +operator-sdk:csv:customresourcedefinitions:resources={{Ingress,v1},{Route,v1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Deployment,apps/v1},{Role,v1},{RoleBinding,v1},{ClusterRole,v1},{ClusterRoleBinding,v1}}
 // +kubebuilder:storageversion
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`

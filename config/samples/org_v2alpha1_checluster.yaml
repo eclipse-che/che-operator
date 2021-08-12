@@ -11,6 +11,6 @@
 apiVersion: org.eclipse.che/v2alpha1
 kind: CheCluster
 metadata:
-  name: checluster-sample
+  name: eclipse-che
 spec:
   # Add fields here

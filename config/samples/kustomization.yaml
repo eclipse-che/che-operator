@@ -1,11 +1,11 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - org.eclipse.che_v1_checluster.yaml
+- org_v1_chebackupserverconfiguration.yaml
+- org_v1_checlusterbackup.yaml
+- org_v1_checlusterrestore.yaml
 # Uncomment it to enable sample for CheCluster with version v2alphav1
 # - org_v2alpha1_checluster.yaml
-# - org_v1_chebackupserverconfiguration.yaml
-# - org_v1_checlusterbackup.yaml
-# - org_v1_checlusterrestore.yaml
 # Uncomment to enable a devworkspace sample
 # - devworkspace_flattened_theia-nodejs.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

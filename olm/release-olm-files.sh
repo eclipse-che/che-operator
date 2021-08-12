@@ -130,9 +130,10 @@ do
 
   if [[ ${CHANNEL} == "stable-all-namespaces" ]];then
     # Set by default devworkspace enabled
-    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | .spec.devWorkspace.enable |= true | [.]" | sed -r 's/"/\\"/g')
-    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
-    mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
+		fixedSample=$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+			fromjson | \
+			( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace.enable) |= true" ${NEW_CSV} |  sed -r 's/"/\\"/g')
+    yq -riY ".metadata.annotations[\"alm-examples\"] = \"${fixedSample}\"" ${RELEASE_CSV}
 
     # Move the suggested namespace to openshift-operators.
     sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"

@@ -23,12 +23,67 @@ spec:
       displayName: Eclipse Che instance Specification
       kind: CheCluster
       name: checlusters.org.eclipse.che
+      resources:
+      - kind: ClusterRole
+        name: ""
+        version: v1
+      - kind: ClusterRoleBinding
+        name: ""
+        version: v1
+      - kind: ConfigMap
+        name: ""
+        version: v1
+      - kind: Deployment
+        name: ""
+        version: apps/v1
+      - kind: Ingress
+        name: ""
+        version: v1
+      - kind: Role
+        name: ""
+        version: v1
+      - kind: RoleBinding
+        name: ""
+        version: v1
+      - kind: Route
+        name: ""
+        version: v1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
       specDescriptors:
+      - description: Configuration settings related to the Authentication used by the Che installation.
+        displayName: Authentication
+        path: auth
+      - description: Configuration settings related to the database used by the Che installation.
+        displayName: Database
+        path: database
+      - description: Dev Workspace operator configuration
+        displayName: Dev Workspace operator
+        path: devWorkspace
       - description: Deploys the DevWorkspace Operator in the cluster. Does nothing when a matching version of the Operator is already installed. Fails when a non-matching version of the Operator is already installed.
         displayName: Enable DevWorkspace operator (Technology Preview)
         path: devWorkspace.enable
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Kubernetes Image Puller configuration
+        displayName: Kubernetes Image Puller
+        path: imagePuller
+      - description: Configuration settings specific to Che installations made on upstream Kubernetes.
+        displayName: Kubernetes
+        path: k8s
+      - description: Configuration settings related to the metrics collection used by the Che installation.
+        displayName: Metrics
+        path: metrics
+      - description: General configuration settings related to the Che server, the plugin and devfile registries
+        displayName: Che server
+        path: server
+      - description: Configuration settings related to the persistent storage used by the Che installation.
+        displayName: Persistent storage
+        path: storage
       statusDescriptors:
       - description: Status of a Che installation. Can be `Available`, `Unavailable`, or `Available, Rolling Update in Progress`.
         displayName: Status
@@ -97,7 +152,7 @@ spec:
       name: checlusterrestores.org.eclipse.che
       version: v1
     - description: CheCluster is the configuration of the CheCluster layer of Devworkspace.
-      displayName: Che Cluster
+      displayName: Eclipse Che Cluster
       kind: CheCluster
       name: checlusters.org.eclipse.che
       version: v2alpha1
