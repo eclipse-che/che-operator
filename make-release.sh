@@ -297,13 +297,14 @@ createPRToMainBranch() {
     ':(exclude)config/manager/manager.yaml' \
     ':(exclude)Dockerfile' \
     ':(exclude)Makefile' \
-    ':(exclude)pkg/deploy/dev-workspace/dev_workspace.go' | git apply -3
+    ':(exclude)pkg/deploy/dev-workspace/dev_workspace.go' | git apply -3 \
+     || git diff || true  # if applying the patch doesn't work, echo the resulting diff to see what happened, and continue
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "ci: Copy "$RELEASE" csv to main" --signoff
   fi
   git push origin $tmpBranch -f
-  if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # don't fail if PR already exists (just force push commits into it)
+  if [[ $FORCE_UPDATE == "--force" ]]; then set +e; fi  # do not fail if PR already exists (just force push commits into it)
   hub pull-request $FORCE_UPDATE --base main --head ${tmpBranch} -m "ci: Copy "$RELEASE" csv to main"
   set +x
   set -e
