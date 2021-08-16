@@ -370,7 +370,7 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 			rtrs[name] = traefikConfigRouter{
 				Rule:        fmt.Sprintf("PathPrefix(`%s`)", prefix),
 				Service:     name,
-				Middlewares: []string{name},
+				Middlewares: []string{name + "-header", name + "-prefix", name + "-auth"},
 				Priority:    100,
 			}
 
@@ -384,11 +384,50 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 				},
 			}
 
-			mdls[name] = traefikConfigMiddleware{
-				StripPrefix: traefikConfigStripPrefix{
+			mdls[name+"-prefix"] = traefikConfigMiddleware{
+				StripPrefix: &traefikConfigStripPrefix{
 					Prefixes: []string{prefix},
 				},
 			}
+
+			mdls[name+"-auth"] = traefikConfigMiddleware{
+				ForwardAuth: &traefikConfigForwardAuth{
+					Address: "http://127.0.0.1:8089/" + namespace,
+				},
+			}
+
+			mdls[name+"-header"] = traefikConfigMiddleware{
+				Plugin: &traefikPlugin{
+					HeaderRewrite: traefikPluginHeaderRewrite{
+						From:   "X-Forwarded-Access-Token",
+						To:     "Authorization",
+						Prefix: "Bearer ",
+					},
+				},
+			}
+
+			// WE NEED THIS CLUSTERROLE/BINDING FOR USER TO HAVE AN ACCESS TO HIS NAMESPACE WORKSPACES
+			//			---
+			//apiVersion: rbac.authorization.k8s.io/v1
+			//kind: ClusterRole
+			//metadata:
+			//  name: user5-che-ws
+			//rules:
+			//- nonResourceURLs: ["/user5-che"]
+			//  verbs: ["get"]
+			//---
+			//apiVersion: rbac.authorization.k8s.io/v1
+			//kind: ClusterRoleBinding
+			//metadata:
+			//  name: user5-che-ws
+			//roleRef:
+			//  apiGroup: rbac.authorization.k8s.io
+			//  kind: ClusterRole
+			//  name: user5-che-ws
+			//subjects:
+			//- kind: User
+			//  name: user5
+
 		}
 	}
 }
