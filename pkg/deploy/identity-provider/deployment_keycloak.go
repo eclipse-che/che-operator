@@ -234,6 +234,26 @@ func GetSpecKeycloakDeployment(
 			Value: "POSTGRES",
 		},
 		{
+			Name:  "DEBUG",
+			Value: "true",
+		},
+		{
+			Name:  "DEBUG_PORT",
+			Value: "*:8787",
+		},
+		{
+			Name:  "DB_USERNAME",
+			Value: "keycloak",
+		},
+		{
+			Name: "DB_ADDR", 
+			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
+		},
+		{
+			Name:  "DB_DATABASE",
+			Value: "keycloak",
+		},
+		{
 			Name:  "POSTGRES_PORT_5432_TCP_ADDR",
 			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
 		},
@@ -244,14 +264,6 @@ func GetSpecKeycloakDeployment(
 		{
 			Name:  "POSTGRES_PORT",
 			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort),
-		},
-		{
-			Name:  "POSTGRES_ADDR",
-			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
-		},
-		{
-			Name:  "POSTGRES_DATABASE",
-			Value: "keycloak",
 		},
 		{
 			Name:  "POSTGRES_USER",
@@ -298,7 +310,7 @@ func GetSpecKeycloakDeployment(
 	identityProviderPostgresSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
 	if len(identityProviderPostgresSecret) > 0 {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-			Name: "POSTGRES_PASSWORD",
+			Name: "DB_PASSWORD",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					Key: "password",
@@ -310,7 +322,7 @@ func GetSpecKeycloakDeployment(
 		})
 	} else {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-			Name:  "POSTGRES_PASSWORD",
+			Name: "DB_PASSWORD",
 			Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword,
 		})
 	}
@@ -563,7 +575,7 @@ func GetSpecKeycloakDeployment(
 		" && " + evaluateExpectContinueEnabled +
 		" && " + evaluateReuseConnections +
 		" && " + changeConfigCommand + enableFixedHostNameProvider +
-		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
+		" && /opt/jboss/tools/docker-entrypoint.sh --debug -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
 
 	if cheFlavor == "codeready" {
 		addUsernameReadonlyTheme := "baseTemplate=/opt/eap/themes/base/login/login-update-profile.ftl" +
@@ -643,6 +655,11 @@ func GetSpecKeycloakDeployment(
 								{
 									Name:          deploy.IdentityProviderName,
 									ContainerPort: 8080,
+									Protocol:      "TCP",
+								},
+								{
+									Name:          "debug",
+									ContainerPort: 8787,
 									Protocol:      "TCP",
 								},
 							},
