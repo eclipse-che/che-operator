@@ -234,14 +234,6 @@ func GetSpecKeycloakDeployment(
 			Value: "POSTGRES",
 		},
 		{
-			Name:  "DEBUG",
-			Value: "true",
-		},
-		{
-			Name:  "DEBUG_PORT",
-			Value: "*:8787",
-		},
-		{
 			Name:  "DB_USERNAME",
 			Value: "keycloak",
 		},
@@ -575,7 +567,7 @@ func GetSpecKeycloakDeployment(
 		" && " + evaluateExpectContinueEnabled +
 		" && " + evaluateReuseConnections +
 		" && " + changeConfigCommand + enableFixedHostNameProvider +
-		" && /opt/jboss/tools/docker-entrypoint.sh --debug -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
+		" && /opt/jboss/tools/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
 
 	if cheFlavor == "codeready" {
 		addUsernameReadonlyTheme := "baseTemplate=/opt/eap/themes/base/login/login-update-profile.ftl" +
@@ -610,6 +602,35 @@ func GetSpecKeycloakDeployment(
 	if sslRequiredUpdatedForMasterRealm {
 		// update command to restart pod
 		command = "echo \"ssl_required WAS UPDATED for master realm.\" && " + command
+	}
+
+	ports := []corev1.ContainerPort{
+		{
+			Name:          deploy.IdentityProviderName,
+			ContainerPort: 8080,
+			Protocol:      "TCP",
+		},
+	}
+
+	if deployContext.CheCluster.Spec.Auth.Debug {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "debug",
+			ContainerPort: 8787,
+			Protocol:      "TCP",
+		})
+
+		keycloakEnv = append(keycloakEnv, []corev1.EnvVar{
+			{
+				Name:  "DEBUG",
+				Value: "true",
+			},
+			{
+				Name:  "DEBUG_PORT",
+				Value: "*:8787",
+			},
+		}...)
+
+		command += " --debug"
 	}
 
 	args := []string{"-c", command}
@@ -651,18 +672,7 @@ func GetSpecKeycloakDeployment(
 								"/bin/sh",
 							},
 							Args: args,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          deploy.IdentityProviderName,
-									ContainerPort: 8080,
-									Protocol:      "TCP",
-								},
-								{
-									Name:          "debug",
-									ContainerPort: 8787,
-									Protocol:      "TCP",
-								},
-							},
+							Ports: ports,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
