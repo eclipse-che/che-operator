@@ -651,7 +651,6 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 					"--upstream=http://127.0.0.1:8090/ping",
 					"--logtostderr=true",
 					"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
-					"--v=10",
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{
