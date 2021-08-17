@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.35.0-280.next
+  name: eclipse-che-preview-kubernetes.v7.35.0-281.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -889,8 +889,6 @@ spec:
                         value: quay.io/eclipse/che--traefik:v2.5.0-rc2-df90799aaca1ad6fb9e06d311140035d2a0c2295a4f8f508f6b55ee056bb677e
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
-                      - name: RELATED_IMAGE_devworkspace_che_operator
-                        value: quay.io/che-incubator/devworkspace-che-operator:next
                       - name: RELATED_IMAGE_devworkspace_controller
                         value: quay.io/devfile/devworkspace-controller:next
                       - name: RELATED_IMAGE_internal_rest_backup_server
@@ -1178,4 +1176,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.35.0-280.next
+  version: 7.35.0-281.next
