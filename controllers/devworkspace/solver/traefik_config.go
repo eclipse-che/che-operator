@@ -45,7 +45,7 @@ type traefikConfigForwardAuth struct {
 }
 
 type traefikPlugin struct {
-	HeaderRewrite traefikPluginHeaderRewrite `json:"header-rewrite"`
+	HeaderRewrite *traefikPluginHeaderRewrite `json:"header-rewrite,omitempty"`
 }
 
 type traefikPluginHeaderRewrite struct {

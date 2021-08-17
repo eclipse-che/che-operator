@@ -398,7 +398,7 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 
 			mdls[name+"-header"] = traefikConfigMiddleware{
 				Plugin: &traefikPlugin{
-					HeaderRewrite: traefikPluginHeaderRewrite{
+					HeaderRewrite: &traefikPluginHeaderRewrite{
 						From:   "X-Forwarded-Access-Token",
 						To:     "Authorization",
 						Prefix: "Bearer ",
