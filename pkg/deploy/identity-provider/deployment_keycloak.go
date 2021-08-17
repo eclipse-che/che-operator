@@ -13,7 +13,6 @@ package identity_provider
 
 import (
 	"context"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -520,33 +519,12 @@ func GetSpecKeycloakDeployment(
 		keycloakEnv = append(keycloakEnv, envvar)
 	}
 
-	var enableFixedHostNameProvider string
-	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
-		if cheFlavor == "che" {
-			keycloakURL, err := url.Parse(deployContext.CheCluster.Status.KeycloakURL)
-			if err != nil {
-				return nil, err
-			}
-			hostname := keycloakURL.Hostname()
-			enableFixedHostNameProvider = " && echo 'Use fixed hostname provider to make working internal network requests' && " +
-				"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
-				"/subsystem=keycloak-server/spi=hostname:write-attribute(name=default-provider, value=\"fixed\") \n" +
-				"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.hostname,value=\"" + hostname + "\") \n"
-			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpsPort,value=\"443\") \n" +
-					"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.alwaysHttps,value=\"true\") \n"
-			} else {
-				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpPort,value=\"80\") \n"
-			}
-			enableFixedHostNameProvider += "stop-embedded-server\" > " + jbossDir + "/use_fixed_hostname_provider.cli && " +
-				jbossCli + " --file=" + jbossDir + "/use_fixed_hostname_provider.cli "
-		}
-		if cheFlavor == "codeready" {
-			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-				Name:  "KEYCLOAK_FRONTEND_URL",
-				Value: deployContext.CheCluster.Status.KeycloakURL,
-			})
-		}
+	// Enable internal network for keycloak
+	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name:  "KEYCLOAK_FRONTEND_URL",
+			Value: deployContext.CheCluster.Status.KeycloakURL,
+		})
 	}
 
 	evaluateKeycloakSystemProperties := "KEYCLOAK_SYS_PROPS=\"-Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled\""
@@ -566,7 +544,7 @@ func GetSpecKeycloakDeployment(
 		" && " + evaluateKeycloakSystemProperties +
 		" && " + evaluateExpectContinueEnabled +
 		" && " + evaluateReuseConnections +
-		" && " + changeConfigCommand + enableFixedHostNameProvider +
+		" && " + changeConfigCommand +
 		" && /opt/jboss/tools/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
 
 	if cheFlavor == "codeready" {
