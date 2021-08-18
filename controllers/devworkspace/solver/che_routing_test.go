@@ -260,9 +260,35 @@ func TestCreateRelocatedObjects(t *testing.T) {
 			t.Fatalf("Expected exactly one traefik router but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		if _, ok := workspaceConfig.HTTP.Routers["wsid-m1-9999"]; !ok {
+		wsid := "wsid-m1-9999"
+		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
+
+		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 3 {
+			t.Fatalf("Expected 3 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
+		}
+
+		if len(workspaceConfig.HTTP.Middlewares) != 3 {
+			t.Fatalf("Expected 3 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
+		}
+
+		mwares := []string{wsid + "-auth", wsid + "-prefix", wsid + "-header"}
+		for _, mware := range mwares {
+			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
+				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
+			}
+			found := false
+			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("traefik config route doesn't set middleware '%s'", mware)
+			}
+		}
+
 	})
 }
 
