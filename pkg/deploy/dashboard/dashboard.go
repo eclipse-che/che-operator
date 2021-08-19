@@ -37,7 +37,7 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 
 	// Expose dashboard service with route or ingress
 	_, done, err = expose.ExposeWithHostPath(d.deployContext, d.component, d.deployContext.CheCluster.Spec.Server.CheHost,
-		"/dashboard",
+		"/dashboard/",
 		d.deployContext.CheCluster.Spec.Server.DashboardRoute,
 		d.deployContext.CheCluster.Spec.Server.DashboardIngress,
 	)
