@@ -237,7 +237,7 @@ func GetSpecKeycloakDeployment(
 			Value: "keycloak",
 		},
 		{
-			Name: "DB_ADDR", 
+			Name:  "DB_ADDR",
 			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
 		},
 		{
@@ -313,7 +313,7 @@ func GetSpecKeycloakDeployment(
 		})
 	} else {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-			Name: "DB_PASSWORD",
+			Name:  "DB_PASSWORD",
 			Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword,
 		})
 	}
@@ -649,7 +649,7 @@ func GetSpecKeycloakDeployment(
 							Command: []string{
 								"/bin/sh",
 							},
-							Args: args,
+							Args:  args,
 							Ports: ports,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
