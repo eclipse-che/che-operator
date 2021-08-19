@@ -1,0 +1,56 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org_v1_che_crd.yaml	2021-08-19 13:11:31.285991224 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml	2021-08-19 13:11:31.901991626 +0000
+@@ -88,7 +88,7 @@
+                     description: Overrides the container image used in the Identity Provider, Keycloak or RH-SSO, deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+                     type: string
+                   identityProviderImagePullPolicy:
+-                    description: Overrides the image pull policy used in the Identity Provider, Keycloak or RH-SSO, deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
++                    description: Overrides the image pull policy used in the Identity Provider, Keycloak or RH-SSO, deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                     type: string
+                   identityProviderIngress:
+                     description: Ingress custom settings.
+@@ -206,7 +206,7 @@
+                     description: Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+                     type: string
+                   postgresImagePullPolicy:
+-                    description: Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
++                    description: Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                     type: string
+                 type: object
+               devWorkspace:
+@@ -319,7 +319,7 @@
+                     description: Overrides the container image used in Che deployment. This does NOT include the container image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+                     type: string
+                   cheImagePullPolicy:
+-                    description: Overrides the image pull policy used in Che deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
++                    description: Overrides the image pull policy used in Che deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                     type: string
+                   cheImageTag:
+                     description: Overrides the tag of the container image used in Che deployment. Omit it or leave it empty to use the default image tag provided by the Operator.
+@@ -372,7 +372,7 @@
+                     description: Overrides the container image used in the dashboard deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+                     type: string
+                   dashboardImagePullPolicy:
+-                    description: Overrides the image pull policy used in the dashboard deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
++                    description: Overrides the image pull policy used in the dashboard deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                     type: string
+                   dashboardIngress:
+                     description: Dashboard ingress custom settings.
+@@ -435,7 +435,7 @@
+                     description: Overrides the memory request used in the devfile registry deployment. Defaults to 16Mi.
+                     type: string
+                   devfileRegistryPullPolicy:
+-                    description: Overrides the image pull policy used in the devfile registry deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
++                    description: Overrides the image pull policy used in the devfile registry deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                     type: string
+                   devfileRegistryRoute:
+                     description: The devfile registry route custom settings.
+@@ -508,7 +508,7 @@
+                     description: Overrides the memory request used in the plugin registry deployment. Defaults to 16Mi.
+                     type: string
+                   pluginRegistryPullPolicy:
+-                    description: Overrides the image pull policy used in the plugin registry deployment. Default value is `Always` for `nightly` or `latest` images, and `IfNotPresent` in other cases.
++                    description: Overrides the image pull policy used in the plugin registry deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
+                     type: string
+                   pluginRegistryRoute:
+                     description: Plugin registry route custom settings.
