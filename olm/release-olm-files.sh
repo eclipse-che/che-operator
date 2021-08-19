@@ -175,8 +175,6 @@ do
     echo -e "\n  com.redhat.openshift.versions: \"v4.8\"" >> "${ANNOTATION_METADATA_YAML}"
   fi
 
-  exit 0
-
   pushd "${CURRENT_DIR}" || true
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
                 -t "${RELEASE}" \
