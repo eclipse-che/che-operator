@@ -9,9 +9,6 @@ on:
       dwoVersion:
         description: 'The version of DevWorkspace Controller. Should be in format v0.y.z'
         required: true
-      dwoCheVersion:
-        description: 'The version of DevWorkspace Che Operator. Should be in format v7.y.z'
-        required: true
       forceRecreateTags:
         description: If true, tags will be recreated. Use with caution
         required: false

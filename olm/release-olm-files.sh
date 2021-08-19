@@ -171,11 +171,9 @@ do
 
   if [[ ${CHANNEL} == "stable-all-namespaces" ]]; then
     # Set specific OpenShift version
-    sed -e 's/# LABEL com.redhat.openshift.versions=/LABEL com.redhat.openshift.versions="v4.8"/' -i "${BUNDLE_DOCKERFILE}"
-    sed -e 's/# com.redhat.openshift.versions:/com.redhat.openshift.versions: "v4.8"/' -i "${ANNOTATION_METADATA_YAML}"
+    echo -e "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> "${BUNDLE_DOCKERFILE}"
+    echo -e "\n  com.redhat.openshift.versions: \"v4.8\"" >> "${ANNOTATION_METADATA_YAML}"
   fi
-
-  exit 0
 
   pushd "${CURRENT_DIR}" || true
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \

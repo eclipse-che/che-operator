@@ -55,9 +55,12 @@ func Sync(deployContext *DeployContext, blueprint metav1.Object, diffOpts ...cmp
 		return false, err
 	}
 
+	// set GroupVersionKind (it might be empty)
+	actual.GetObjectKind().SetGroupVersionKind(runtimeObject.GetObjectKind().GroupVersionKind())
 	if !exists {
 		return Create(deployContext, blueprint)
 	}
+
 	return Update(deployContext, actual, blueprint, diffOpts...)
 }
 
@@ -212,8 +215,6 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 
 	diff := cmp.Diff(actual, blueprint, diffOpts...)
 	if len(diff) > 0 {
-		logrus.Infof("Updating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
-
 		// don't print difference if there are no diffOpts mainly to avoid huge output
 		if len(diffOpts) != 0 {
 			fmt.Printf("Difference:\n%s", diff)
@@ -241,6 +242,7 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 
 		client := getClientForObject(actualMeta.GetNamespace(), deployContext)
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
+			logrus.Infof("Recreating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
 			done, err := doDelete(client, actual)
 			if !done {
 				return false, err
@@ -253,6 +255,7 @@ func Update(deployContext *DeployContext, actual runtime.Object, blueprint metav
 
 			return doCreate(client, blueprint.(runtime.Object), false)
 		} else {
+			logrus.Infof("Updating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
 			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 			if err != nil {
 				return false, err

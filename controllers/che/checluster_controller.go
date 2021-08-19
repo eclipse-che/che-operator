@@ -543,6 +543,17 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
+	devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
+	if !instance.Spec.Server.ExternalDevfileRegistry {
+		done, err := devfileRegistry.SyncAll()
+		if !done {
+			if err != nil {
+				logrus.Error(err)
+			}
+			return ctrl.Result{}, err
+		}
+	}
+
 	if !instance.Spec.Server.ExternalPluginRegistry {
 		pluginRegistry := pluginregistry.NewPluginRegistry(deployContext)
 		done, err := pluginRegistry.SyncAll()
@@ -558,17 +569,6 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 			if err := deploy.UpdateCheCRStatus(deployContext, "status: Plugin Registry URL", instance.Spec.Server.PluginRegistryUrl); err != nil {
 				return reconcile.Result{}, err
 			}
-		}
-	}
-
-	devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
-	if !instance.Spec.Server.ExternalDevfileRegistry {
-		done, err := devfileRegistry.SyncAll()
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{}, err
 		}
 	}
 
