@@ -79,7 +79,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.35.0-281.next
+  name: eclipse-che-preview-openshift.v7.36.0-282.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1248,4 +1248,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.35.0-281.next
+  version: 7.36.0-282.next
