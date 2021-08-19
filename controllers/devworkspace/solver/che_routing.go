@@ -370,7 +370,7 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 			rtrs[name] = traefikConfigRouter{
 				Rule:        fmt.Sprintf("PathPrefix(`%s`)", prefix),
 				Service:     name,
-				Middlewares: []string{name},
+				Middlewares: []string{name + "-header", name + "-prefix", name + "-auth"},
 				Priority:    100,
 			}
 
@@ -384,9 +384,25 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 				},
 			}
 
-			mdls[name] = traefikConfigMiddleware{
-				StripPrefix: traefikConfigStripPrefix{
+			mdls[name+"-prefix"] = traefikConfigMiddleware{
+				StripPrefix: &traefikConfigStripPrefix{
 					Prefixes: []string{prefix},
+				},
+			}
+
+			mdls[name+"-auth"] = traefikConfigMiddleware{
+				ForwardAuth: &traefikConfigForwardAuth{
+					Address: "http://127.0.0.1:8089?namespace=" + namespace,
+				},
+			}
+
+			mdls[name+"-header"] = traefikConfigMiddleware{
+				Plugin: &traefikPlugin{
+					HeaderRewrite: &traefikPluginHeaderRewrite{
+						From:   "X-Forwarded-Access-Token",
+						To:     "Authorization",
+						Prefix: "Bearer ",
+					},
 				},
 			}
 		}
