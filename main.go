@@ -45,6 +45,7 @@ import (
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
 	backupcontroller "github.com/eclipse-che/che-operator/controllers/checlusterbackup"
 	restorecontroller "github.com/eclipse-che/che-operator/controllers/checlusterrestore"
+	"github.com/eclipse-che/che-operator/controllers/cheuser"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -218,6 +219,8 @@ func main() {
 	backupReconciler := backupcontroller.NewReconciler(mgr, watchNamespace)
 	restoreReconciler := restorecontroller.NewReconciler(mgr, watchNamespace)
 
+	cheUserReconciler := cheuser.NewReconciler()
+
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
 		os.Exit(1)
@@ -233,6 +236,11 @@ func main() {
 
 	if err = enableDevworkspaceSupport(mgr); err != nil {
 		setupLog.Error(err, "unable to initialize devworkspace support")
+		os.Exit(1)
+	}
+
+	if err = cheUserReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
 		os.Exit(1)
 	}
 

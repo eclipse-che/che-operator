@@ -148,13 +148,11 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, r.finalize(ctx, current, currentV1)
 	}
 
-	var disabledMessage string
-
-	if !r.scheme.IsGroupRegistered("controller.devfile.io") {
+	disabledMessage := ""
+	switch GetDevworkspaceState(r.scheme, current) {
+	case DevworkspaceStateNotPresent:
 		disabledMessage = "Devworkspace CRDs are not installed"
-	}
-
-	if disabledMessage == "" && !current.Spec.IsEnabled() {
+	case DevworkspaceStateDisabled:
 		disabledMessage = "Devworkspace Che is disabled"
 	}
 
