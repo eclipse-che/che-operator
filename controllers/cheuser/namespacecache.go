@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	ownerUidLabel            string = "org.eclipse.che/workspace-namespace-owner-uid"
-	cheClusterNameLabel      string = "org.eclipse.che/che-name"
-	cheClusterNamespaceLabel string = "org.eclipse.che/che-namespace"
+	ownerUidLabel            string = "che.eclipse.org/workspace-namespace-owner-uid"
+	cheClusterNameLabel      string = "che.eclipse.org/che-name"
+	cheClusterNamespaceLabel string = "che.eclipse.org/che-namespace"
 )
 
 type namespaceCache struct {
