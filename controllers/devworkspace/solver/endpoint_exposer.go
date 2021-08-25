@@ -21,7 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -166,12 +166,11 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route 
 	return route
 }
 
-func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) v1beta1.Ingress {
-	targetEndpoint := intstr.FromInt(int(endpoint.port))
+func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) networkingv1.Ingress {
 	hostname := hostName(endpoint.order, e.devWorkspaceID, e.baseDomain)
-	ingressPathType := v1beta1.PathTypeImplementationSpecific
+	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
-	ingress := v1beta1.Ingress{
+	ingress := networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace: endpoint.service.Namespace,
@@ -181,17 +180,21 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) v1beta1.In
 			Annotations:     finalizeIngressAnnotations(e.ingressAnnotations, endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
 				{
 					Host: hostname,
-					IngressRuleValue: v1beta1.IngressRuleValue{
-						HTTP: &v1beta1.HTTPIngressRuleValue{
-							Paths: []v1beta1.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
-									Backend: v1beta1.IngressBackend{
-										ServiceName: endpoint.service.Name,
-										ServicePort: targetEndpoint,
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: endpoint.service.Name,
+											Port: networkingv1.ServiceBackendPort{
+												Number: endpoint.port,
+											},
+										},
 									},
 									PathType: &ingressPathType,
 									Path:     "/",
@@ -205,7 +208,7 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) v1beta1.In
 	}
 
 	if isSecureScheme(endpoint.scheme) && e.tlsSecretName != "" {
-		ingress.Spec.TLS = []v1beta1.IngressTLS{
+		ingress.Spec.TLS = []networkingv1.IngressTLS{
 			{
 				Hosts:      []string{hostname},
 				SecretName: e.tlsSecretName,

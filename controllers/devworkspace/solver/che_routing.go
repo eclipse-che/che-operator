@@ -30,7 +30,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -422,7 +422,7 @@ func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Servic
 	return nil
 }
 
-func findIngressForEndpoint(machineName string, endpoint dw.Endpoint, objs *solvers.RoutingObjects) *v1beta1.Ingress {
+func findIngressForEndpoint(machineName string, endpoint dw.Endpoint, objs *solvers.RoutingObjects) *networkingv1.Ingress {
 	for i := range objs.Ingresses {
 		ingress := &objs.Ingresses[i]
 
@@ -435,7 +435,7 @@ func findIngressForEndpoint(machineName string, endpoint dw.Endpoint, objs *solv
 			rule := ingress.Spec.Rules[r]
 			for p := range rule.HTTP.Paths {
 				path := rule.HTTP.Paths[p]
-				if path.Backend.ServicePort.IntVal == int32(endpoint.TargetPort) {
+				if path.Backend.Service.Port.Number == int32(endpoint.TargetPort) {
 					return ingress
 				}
 			}
