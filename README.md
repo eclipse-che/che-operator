@@ -197,29 +197,6 @@ $ operator-sdk cleanup eclipse-che-preview-<kubernetes|openshift>
 ```
 ## Deploy Che operator for different usecases
 
-### Single user mode
-
-Che operator deploys Eclipse Che with enabled multi-user mode by default. To start work each user should login/register using form, after that user will be redirected to the user dashboard.
-
-To enable single user mode use the command line:
-
-```bash
-$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"server": {"customCheProperties": {"CHE_MULTIUSER": "false"}}}}'
-```
-
-or create `cr-patch.yaml` and use it with chectl:
-
-```yaml
-spec:
-  server:
-    customCheProperties:
-      CHE_MULTIUSER: "false"
-```
-
-```bash
-$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
-```
-
 ### Workspace namespace strategy
 
 Workspace namespace strategy defines default namespace in which user's workspaces are created.

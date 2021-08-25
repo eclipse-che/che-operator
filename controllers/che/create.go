@@ -29,132 +29,129 @@ func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.Deplo
 		}
 	}
 
-	cheMultiUser := deploy.GetCheMultiUser(deployContext.CheCluster)
-	if cheMultiUser == "true" {
-		if len(deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
-			if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 || len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
-				chePostgresSecret := deploy.DefaultChePostgresSecret()
-				_, err := deploy.SyncSecretToCluster(deployContext, chePostgresSecret, cheNamespace, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))})
-				if err != nil {
-					return err
-				}
-				deployContext.CheCluster.Spec.Database.ChePostgresSecret = chePostgresSecret
-				if err := deploy.UpdateCheCRSpec(deployContext, "Postgres Secret", chePostgresSecret); err != nil {
-					return err
-				}
-			} else {
-				if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 {
-					deployContext.CheCluster.Spec.Database.ChePostgresUser = deploy.DefaultChePostgresUser
-					if err := deploy.UpdateCheCRSpec(deployContext, "Postgres User", deployContext.CheCluster.Spec.Database.ChePostgresUser); err != nil {
-						return err
-					}
-				}
-				if len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
-					deployContext.CheCluster.Spec.Database.ChePostgresPassword = util.GeneratePasswd(12)
-					if err := deploy.UpdateCheCRSpec(deployContext, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
-						return err
-					}
-				}
-			}
-		}
-		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
-			keycloakPostgresPassword := util.GeneratePasswd(12)
-			keycloakDeployment := &appsv1.Deployment{}
-			exists, err := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
+	if len(deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
+		if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 || len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
+			chePostgresSecret := deploy.DefaultChePostgresSecret()
+			_, err := deploy.SyncSecretToCluster(deployContext, chePostgresSecret, cheNamespace, map[string][]byte{"user": []byte(deploy.DefaultChePostgresUser), "password": []byte(util.GeneratePasswd(12))})
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
-			if exists {
-				keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
+			deployContext.CheCluster.Spec.Database.ChePostgresSecret = chePostgresSecret
+			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres Secret", chePostgresSecret); err != nil {
+				return err
 			}
-
-			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
-				identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
-				_, err := deploy.SyncSecretToCluster(deployContext, identityPostgresSecret, cheNamespace, map[string][]byte{"password": []byte(keycloakPostgresPassword)})
-				if err != nil {
+		} else {
+			if len(deployContext.CheCluster.Spec.Database.ChePostgresUser) < 1 {
+				deployContext.CheCluster.Spec.Database.ChePostgresUser = deploy.DefaultChePostgresUser
+				if err := deploy.UpdateCheCRSpec(deployContext, "Postgres User", deployContext.CheCluster.Spec.Database.ChePostgresUser); err != nil {
 					return err
 				}
-				deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
-				if err := deploy.UpdateCheCRSpec(deployContext, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
+			}
+			if len(deployContext.CheCluster.Spec.Database.ChePostgresPassword) < 1 {
+				deployContext.CheCluster.Spec.Database.ChePostgresPassword = util.GeneratePasswd(12)
+				if err := deploy.UpdateCheCRSpec(deployContext, "auto-generated CheCluster DB password", "password-hidden"); err != nil {
 					return err
 				}
 			}
 		}
-
-		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderSecret) < 1 {
-			keycloakAdminUserName := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName, "admin")
-			keycloakAdminPassword := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
-
-			keycloakDeployment := &appsv1.Deployment{}
-			exists, _ := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
-			if exists {
-				keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
-				keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
-			}
-
-			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
-				identityProviderSecret := deploy.DefaultCheIdentitySecret()
-				_, err = deploy.SyncSecretToCluster(deployContext, identityProviderSecret, cheNamespace, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
-				if err != nil {
-					return err
-				}
-				deployContext.CheCluster.Spec.Auth.IdentityProviderSecret = identityProviderSecret
-				if err := deploy.UpdateCheCRSpec(deployContext, "Identity Provider Secret", identityProviderSecret); err != nil {
-					return err
-				}
-			} else {
-				if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
-					deployContext.CheCluster.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
-					if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak admin password", "password hidden"); err != nil {
-						return err
-					}
-				}
-				if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 {
-					deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
-					if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak admin username", keycloakAdminUserName); err != nil {
-						return err
-					}
-				}
-			}
+	}
+	if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
+		keycloakPostgresPassword := util.GeneratePasswd(12)
+		keycloakDeployment := &appsv1.Deployment{}
+		exists, err := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
+		if err != nil {
+			logrus.Error(err)
+		}
+		if exists {
+			keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
 		}
 
-		chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
-		if len(deployContext.CheCluster.Spec.Database.ChePostgresDb) < 1 {
-			deployContext.CheCluster.Spec.Database.ChePostgresDb = chePostgresDb
-			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres DB", chePostgresDb); err != nil {
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
+			identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
+			_, err := deploy.SyncSecretToCluster(deployContext, identityPostgresSecret, cheNamespace, map[string][]byte{"password": []byte(keycloakPostgresPassword)})
+			if err != nil {
+				return err
+			}
+			deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
+			if err := deploy.UpdateCheCRSpec(deployContext, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
 				return err
 			}
 		}
-		chePostgresHostName := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
-		if len(deployContext.CheCluster.Spec.Database.ChePostgresHostName) < 1 {
-			deployContext.CheCluster.Spec.Database.ChePostgresHostName = chePostgresHostName
-			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres hostname", chePostgresHostName); err != nil {
-				return err
-			}
-		}
-		chePostgresPort := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
-		if len(deployContext.CheCluster.Spec.Database.ChePostgresPort) < 1 {
-			deployContext.CheCluster.Spec.Database.ChePostgresPort = chePostgresPort
-			if err := deploy.UpdateCheCRSpec(deployContext, "Postgres port", chePostgresPort); err != nil {
-				return err
-			}
+	}
+
+	if len(deployContext.CheCluster.Spec.Auth.IdentityProviderSecret) < 1 {
+		keycloakAdminUserName := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName, "admin")
+		keycloakAdminPassword := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
+
+		keycloakDeployment := &appsv1.Deployment{}
+		exists, _ := deploy.GetNamespacedObject(deployContext, deploy.IdentityProviderName, keycloakDeployment)
+		if exists {
+			keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
+			keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
 		}
 
-		if !util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-			keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
-			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
-				deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
-				if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak realm", keycloakRealm); err != nil {
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
+			identityProviderSecret := deploy.DefaultCheIdentitySecret()
+			_, err = deploy.SyncSecretToCluster(deployContext, identityProviderSecret, cheNamespace, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
+			if err != nil {
+				return err
+			}
+			deployContext.CheCluster.Spec.Auth.IdentityProviderSecret = identityProviderSecret
+			if err := deploy.UpdateCheCRSpec(deployContext, "Identity Provider Secret", identityProviderSecret); err != nil {
+				return err
+			}
+		} else {
+			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
+				deployContext.CheCluster.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
+				if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak admin password", "password hidden"); err != nil {
 					return err
 				}
 			}
-			keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
-				deployContext.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
-
-				if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak client ID", keycloakClientId); err != nil {
+			if len(deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 {
+				deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
+				if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak admin username", keycloakAdminUserName); err != nil {
 					return err
 				}
+			}
+		}
+	}
+
+	chePostgresDb := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
+	if len(deployContext.CheCluster.Spec.Database.ChePostgresDb) < 1 {
+		deployContext.CheCluster.Spec.Database.ChePostgresDb = chePostgresDb
+		if err := deploy.UpdateCheCRSpec(deployContext, "Postgres DB", chePostgresDb); err != nil {
+			return err
+		}
+	}
+	chePostgresHostName := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
+	if len(deployContext.CheCluster.Spec.Database.ChePostgresHostName) < 1 {
+		deployContext.CheCluster.Spec.Database.ChePostgresHostName = chePostgresHostName
+		if err := deploy.UpdateCheCRSpec(deployContext, "Postgres hostname", chePostgresHostName); err != nil {
+			return err
+		}
+	}
+	chePostgresPort := util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
+	if len(deployContext.CheCluster.Spec.Database.ChePostgresPort) < 1 {
+		deployContext.CheCluster.Spec.Database.ChePostgresPort = chePostgresPort
+		if err := deploy.UpdateCheCRSpec(deployContext, "Postgres port", chePostgresPort); err != nil {
+			return err
+		}
+	}
+
+	if !util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+		keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
+			deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
+			if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak realm", keycloakRealm); err != nil {
+				return err
+			}
+		}
+		keycloakClientId := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
+		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
+			deployContext.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
+
+			if err := deploy.UpdateCheCRSpec(deployContext, "Keycloak client ID", keycloakClientId); err != nil {
+				return err
 			}
 		}
 	}
