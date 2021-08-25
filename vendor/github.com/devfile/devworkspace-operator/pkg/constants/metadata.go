@@ -27,8 +27,8 @@ const (
 	DevWorkspaceMountLabel = "controller.devfile.io/mount-to-devworkspace"
 
 	// DevWorkspaceMountPathAnnotation is the annotation key to store the mount path for the secret or configmap.
-	// If no mount path is provided, configmaps will be mounted at /etc/config/<configmap-name> and secrets will
-	// be mounted at /etc/secret/<secret-name>
+	// If no mount path is provided, configmaps will be mounted at /etc/config/<configmap-name>, secrets will
+	// be mounted at /etc/secret/<secret-name>, and persistent volume claims will be mounted to /tmp/<claim-name>
 	DevWorkspaceMountPathAnnotation = "controller.devfile.io/mount-path"
 
 	// DevWorkspaceMountAsAnnotation is the annotation key to configure the way how configmaps or secrets should be mounted.
@@ -37,6 +37,11 @@ const (
 	// - "file" - mount as a file
 	// If mountAs is not provided, the default behaviour will be to mount as a file.
 	DevWorkspaceMountAsAnnotation = "controller.devfile.io/mount-as"
+
+	// DevWorkspaceMountReadyOnlyAnnotation is an annotation to configure whether a mounted volume is as read-write or
+	// as read-only. If "true", the volume is mounted as read-only. PersistentVolumeClaims are by default mounted
+	// read-write. Automounted configmaps and secrets are always mounted read-only and this annotation is ignored.
+	DevWorkspaceMountReadyOnlyAnnotation = "controller.devfile.io/read-only"
 
 	// DevWorkspaceRestrictedAccessAnnotation marks the intention that devworkspace access is restricted to only the creator; setting this
 	// annotation will cause devworkspace start to fail if webhooks are disabled.
