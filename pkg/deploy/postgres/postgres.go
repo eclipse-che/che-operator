@@ -25,13 +25,11 @@ import (
 
 type Postgres struct {
 	deployContext *deploy.DeployContext
-	isMultiUser   bool
 }
 
 func NewPostgres(deployContext *deploy.DeployContext) *Postgres {
 	return &Postgres{
 		deployContext: deployContext,
-		isMultiUser:   deploy.GetCheMultiUser(deployContext.CheCluster) == "true",
 	}
 }
 
@@ -64,17 +62,10 @@ func (p *Postgres) SyncAll() (bool, error) {
 }
 
 func (p *Postgres) SyncService() (bool, error) {
-	if !p.isMultiUser {
-		return deploy.DeleteNamespacedObject(p.deployContext, deploy.PostgresName, &corev1.Service{})
-	}
 	return deploy.SyncServiceToCluster(p.deployContext, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
 }
 
 func (p *Postgres) SyncPVC() (bool, error) {
-	if !p.isMultiUser {
-		return deploy.DeleteNamespacedObject(p.deployContext, deploy.DefaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
-	}
-
 	done, err := deploy.SyncPVCToCluster(p.deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
 	if !done {
 		if err == nil {
@@ -85,10 +76,6 @@ func (p *Postgres) SyncPVC() (bool, error) {
 }
 
 func (p *Postgres) SyncDeployment() (bool, error) {
-	if !p.isMultiUser {
-		return deploy.DeleteNamespacedObject(p.deployContext, deploy.PostgresName, &appsv1.Deployment{})
-	}
-
 	clusterDeployment := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(p.deployContext, deploy.PostgresName, clusterDeployment)
 	if err != nil {

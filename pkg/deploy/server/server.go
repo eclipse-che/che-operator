@@ -68,11 +68,6 @@ func (s *Server) SyncAll() (bool, error) {
 		return false, err
 	}
 
-	done, err = s.SyncPVC()
-	if !done {
-		return false, err
-	}
-
 	done, err = s.SyncCheConfigMap()
 	if !done {
 		return false, err
@@ -86,7 +81,7 @@ func (s *Server) SyncAll() (bool, error) {
 	}
 
 	done, err = s.SyncDeployment()
-	if !done {
+	if !done {с
 		return false, err
 	}
 
@@ -238,22 +233,6 @@ func (s Server) SyncLegacyConfigMap() (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (s Server) SyncPVC() (bool, error) {
-	cheMultiUser := deploy.GetCheMultiUser(s.deployContext.CheCluster)
-	if cheMultiUser == "false" {
-		claimSize := util.GetValue(s.deployContext.CheCluster.Spec.Storage.PvcClaimSize, deploy.DefaultPvcClaimSize)
-		done, err := deploy.SyncPVCToCluster(s.deployContext, deploy.DefaultCheVolumeClaimName, claimSize, s.component)
-		if !done {
-			if err == nil {
-				logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultCheVolumeClaimName)
-			}
-		}
-		return done, err
-	} else {
-		return deploy.DeleteNamespacedObject(s.deployContext, deploy.DefaultCheVolumeClaimName, &corev1.PersistentVolumeClaim{})
-	}
 }
 
 func (s *Server) UpdateAvailabilityStatus() (bool, error) {
