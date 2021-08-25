@@ -7,7 +7,7 @@ require (
 	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210428110012-14ef54b7dbf4
 	github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
-	github.com/devfile/devworkspace-operator v0.2.1-0.20210805190010-9c55f69c461d
+	github.com/devfile/devworkspace-operator v0.2.1-0.20210825134510-d99fe14255d3
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.2
