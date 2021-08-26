@@ -13,6 +13,7 @@ package dashboard
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -32,10 +33,12 @@ import (
 	"testing"
 )
 
+const Namespace = "eclipse-che"
+
 func TestDashboardOpenShift(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
+			Namespace: Namespace,
 			Name:      "eclipse-che",
 		},
 	}
@@ -56,7 +59,7 @@ func TestDashboardOpenShift(t *testing.T) {
 	util.IsOpenShift = true
 
 	dashboard := NewDashboard(deployContext)
-	done, err := dashboard.SyncAll()
+	done, err := dashboard.Reconcile()
 	if !done || err != nil {
 		t.Fatalf("Failed to sync Dashboard: %v", err)
 	}
@@ -88,12 +91,12 @@ func TestDashboardOpenShift(t *testing.T) {
 		t.Fatalf("Service account not found: %v", err)
 	}
 
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRole}, &rbacv1.ClusterRole{})
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleTemplate, Namespace)}, &rbacv1.ClusterRole{})
 	if err == nil || !errors.IsNotFound(err) {
 		t.Fatalf("ClusterRole is created or failed to check on OpenShift: %v", err)
 	}
 
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRoleBinding}, &rbacv1.ClusterRoleBinding{})
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, Namespace)}, &rbacv1.ClusterRoleBinding{})
 	if err == nil || !errors.IsNotFound(err) {
 		t.Fatalf("ClusterRoleBinding is created or failed to check on OpenShift: %v", err)
 	}
@@ -102,7 +105,7 @@ func TestDashboardOpenShift(t *testing.T) {
 func TestDashboardKubernetes(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
+			Namespace: Namespace,
 			Name:      "eclipse-che",
 		},
 	}
@@ -123,7 +126,7 @@ func TestDashboardKubernetes(t *testing.T) {
 	util.IsOpenShift = false
 
 	dashboard := NewDashboard(deployContext)
-	done, err := dashboard.SyncAll()
+	done, err := dashboard.Reconcile()
 	if !done || err != nil {
 		t.Fatalf("Failed to sync Dashboard: %v", err)
 	}
@@ -156,13 +159,13 @@ func TestDashboardKubernetes(t *testing.T) {
 	}
 
 	clusterRole := &rbacv1.ClusterRole{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRole}, clusterRole)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleTemplate, Namespace)}, clusterRole)
 	if err != nil {
 		t.Fatalf("ClusterRole is not found on K8s: %v", err)
 	}
 
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRoleBinding}, clusterRoleBinding)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, Namespace)}, clusterRoleBinding)
 	if err != nil {
 		t.Fatalf("ClusterRoleBinding is not found on k8s: %v", err)
 	}
