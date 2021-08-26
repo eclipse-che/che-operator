@@ -34,7 +34,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,7 +105,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&checlusterv1.CheCluster{}).
 		Owns(&corev1.Service{}).
-		Owns(&v1beta1.Ingress{}).
+		Owns(&networkingv1.Ingress{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Pod{}).
@@ -403,7 +403,7 @@ func (r *CheClusterReconciler) detectCheHost(ctx context.Context, cluster *checl
 
 			host = list.Items[0].Spec.Host
 		} else {
-			list := v1beta1.IngressList{}
+			list := networkingv1.IngressList{}
 			err := r.client.List(ctx, &list, &client.ListOptions{
 				Namespace:     cluster.Namespace,
 				LabelSelector: lbls,

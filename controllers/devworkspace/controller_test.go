@@ -19,7 +19,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/api/node/v1alpha1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/utils/pointer"
@@ -38,7 +38,7 @@ func createTestScheme() *runtime.Scheme {
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	utilruntime.Must(extensions.AddToScheme(scheme))
+	utilruntime.Must(networkingv1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
@@ -459,14 +459,14 @@ func TestExternalGatewayDetection(t *testing.T) {
 
 		cl := fake.NewFakeClientWithScheme(scheme,
 			v1Cluster,
-			&extensions.Ingress{
+			&networkingv1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "ingress",
 					Namespace: ns,
 					Labels:    deploy.GetLabels(v1Cluster, "test-che"),
 				},
-				Spec: extensions.IngressSpec{
-					Rules: []extensions.IngressRule{
+				Spec: networkingv1.IngressSpec{
+					Rules: []networkingv1.IngressRule{
 						{
 							Host: "ingress.host",
 						},

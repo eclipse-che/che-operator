@@ -23,7 +23,6 @@ RUN mkdir -p $GOPATH/restic && \
     curl -sSLo- https://api.github.com/repos/restic/restic/tarball/${RESTIC_TAG} | tar --strip-components=1 -xz -C $GOPATH/restic && \
     cd $GOPATH/restic && go mod vendor && \
     curl -sSLo /tmp/asset-devworkspace-operator.zip https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} && \
-    curl -sSLo /tmp/asset-devworkspace-che-operator.zip https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} && \
     curl -sSLo /tmp/asset-header-rewrite-traefik-plugin.zip https://api.github.com/repos/che-incubator/header-rewrite-traefik-plugin/zipball/${DEV_HEADER_REWRITE_TRAEFIK_PLUGIN}
 
 WORKDIR /che-operator
@@ -45,7 +44,7 @@ COPY config/ config/
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
     export MOCK_API=true && \
     go test -mod=vendor -v ./... && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 RUN unzip /tmp/asset-devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
     mkdir -p /tmp/devworkspace-operator/templates/ && \

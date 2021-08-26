@@ -794,6 +794,10 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 		logrus.Error(err)
 	}
 
+	if err := deploy.ReconcileClusterRoleBindingFinalizer(deployContext, dashboard.DashboardSAClusterRoleBinding); err != nil {
+		logrus.Error(err)
+	}
+
 	if err := deploy.ReconcileConsoleLinkFinalizer(deployContext); err != nil {
 		logrus.Error(err)
 	}
