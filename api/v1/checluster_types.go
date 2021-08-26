@@ -477,6 +477,9 @@ type CheClusterSpecAuth struct {
 	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
 	// Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
 	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
+
+	// Debug internal identity provider.
+	Debug bool `json:"debug,omitempty"`
 }
 
 // Ingress custom settings, can be extended in the future
