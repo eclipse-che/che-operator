@@ -25,7 +25,7 @@ type CheClusterSpec struct {
 
 	// Configuration of the workspace endpoints that are exposed on separate domains, as opposed to the subpaths
 	// of the gateway.
-	WorkspaceDomainEndpoints `json:"workspaceDomainEndpoints,omitempty"`
+	WorkspaceDomainEndpoints WorkspaceDomainEndpoints `json:"workspaceDomainEndpoints,omitempty"`
 
 	// Gateway contains the configuration of the gateway used for workspace endpoint routing.
 	Gateway CheGatewaySpec `json:"gateway,omitempty"`

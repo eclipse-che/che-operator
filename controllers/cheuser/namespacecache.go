@@ -31,9 +31,8 @@ type namespaceInfo struct {
 	CheCluster *types.NamespacedName
 }
 
-func NewNamespaceCache(cl client.Client) *namespaceCache {
+func NewNamespaceCache() *namespaceCache {
 	return &namespaceCache{
-		client:          cl,
 		knownNamespaces: map[string]namespaceInfo{},
 		lock:            sync.Mutex{},
 	}

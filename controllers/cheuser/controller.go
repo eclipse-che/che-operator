@@ -33,7 +33,7 @@ const (
 
 type CheUserNamespaceReconciler struct {
 	client         client.Client
-	scheme         runtime.Scheme
+	scheme         *runtime.Scheme
 	namespaceCache namespaceCache
 }
 
@@ -49,11 +49,11 @@ var (
 )
 
 func NewReconciler() *CheUserNamespaceReconciler {
-	return &CheUserNamespaceReconciler{namespaceCache: namespaceCache{knownNamespaces: make(map[string]namespaceInfo)}}
+	return &CheUserNamespaceReconciler{namespaceCache: *NewNamespaceCache()}
 }
 
 func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.scheme = *mgr.GetScheme()
+	r.scheme = mgr.GetScheme()
 	r.client = mgr.GetClient()
 	r.namespaceCache.client = r.client
 
@@ -152,7 +152,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	ctx := context.Background()
 
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
-	if err != nil || info == nil {
+	if err != nil || info == nil || info.OwnerUid == "" {
 		return ctrl.Result{}, err
 	}
 
@@ -161,7 +161,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if devworkspace.GetDevworkspaceState(&r.scheme, checluster) != devworkspace.DevworkspaceStateEnabled {
+	if devworkspace.GetDevworkspaceState(r.scheme, checluster) != devworkspace.DevworkspaceStateEnabled {
 		return ctrl.Result{}, nil
 	}
 
@@ -172,7 +172,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 			Client:          r.client,
 			NonCachedClient: r.client,
 			DiscoveryClient: nil,
-			Scheme:          &r.scheme,
+			Scheme:          r.scheme,
 		},
 	}
 
@@ -209,9 +209,13 @@ func findManagingCheCluster(key types.NamespacedName) *v2alpha1.CheCluster {
 		}
 	}
 
-	ret := instances[key]
+	ret, ok := instances[key]
 
-	return &ret
+	if ok {
+		return &ret
+	} else {
+		return nil
+	}
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
@@ -237,6 +241,10 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 	}
 
 	targetCert := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetCertName,
 			Namespace: targetNs,
@@ -306,6 +314,10 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	cfg = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        prefixedName(checluster, "proxy-settings"),
 			Namespace:   targetNs,
