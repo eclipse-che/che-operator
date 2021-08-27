@@ -88,7 +88,7 @@ jobs:
         if [[ $(find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;) != "" ]]
         then
           echo "not well organized imports are found."
-          echo "execute 'find . -not -path \"./vendor/*\" -name \"*.go'\" -exec goimports -w {} \;' to fix the following:"
+          echo "execute 'find . -not -path \"./vendor/*\" -name \"*.go\" -exec goimports -w {} \;' to fix the following:"
           find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
           exit 1
         fi

@@ -573,7 +573,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	d := dashboard.NewDashboard(deployContext)
-	done, err = d.SyncAll()
+	done, err = d.Reconcile()
 	if !done {
 		if err != nil {
 			logrus.Errorf("Error provisioning '%s' to cluster: %v", d.GetComponentName(), err)
@@ -794,12 +794,15 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 		logrus.Error(err)
 	}
 
-	if err := deploy.ReconcileClusterRoleBindingFinalizer(deployContext, dashboard.DashboardSAClusterRoleBinding); err != nil {
+	if err := deploy.ReconcileConsoleLinkFinalizer(deployContext); err != nil {
 		logrus.Error(err)
 	}
 
-	if err := deploy.ReconcileConsoleLinkFinalizer(deployContext); err != nil {
-		logrus.Error(err)
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		done, err := dashboard.NewDashboard(deployContext).Finalize()
+		if !done {
+			logrus.Error(err)
+		}
 	}
 
 	if len(deployContext.CheCluster.Spec.Server.CheClusterRoles) > 0 {

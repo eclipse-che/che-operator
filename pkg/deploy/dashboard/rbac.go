@@ -12,12 +12,16 @@
 package dashboard
 
 import (
+	"fmt"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
+const ClusterPermissionsDashboardFinalizer = "dashboard.clusterpermissions.finalizers.che.eclipse.org"
+
 const DashboardSA = "che-dashboard"
-const DashboardSAClusterRole = "che-dashboard"
-const DashboardSAClusterRoleBinding = "che-dashboard"
+const DashboardSAClusterRoleTemplate = "%s-che-dashboard"
+const DashboardSAClusterRoleBindingTemplate = "%s-che-dashboard"
 
 func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
@@ -37,4 +41,12 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "create", "update", "list"},
 		},
 	}
+}
+
+func (d *Dashboard) getClusterRoleName() string {
+	return fmt.Sprintf(DashboardSAClusterRoleTemplate, d.deployContext.CheCluster.Namespace)
+}
+
+func (d *Dashboard) getClusterRoleBindingName() string {
+	return fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, d.deployContext.CheCluster.Namespace)
 }

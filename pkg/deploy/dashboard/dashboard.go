@@ -15,6 +15,8 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type Dashboard struct {
@@ -29,7 +31,11 @@ func NewDashboard(deployContext *deploy.DeployContext) *Dashboard {
 	}
 }
 
-func (d *Dashboard) SyncAll() (done bool, err error) {
+func (d *Dashboard) GetComponentName() string {
+	return d.component
+}
+
+func (d *Dashboard) Reconcile() (done bool, err error) {
 	// Create a new dashboard service
 	done, err = deploy.SyncServiceToCluster(d.deployContext, d.component, []string{"http"}, []int32{8080}, d.component)
 	if !done {
@@ -54,13 +60,18 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 	// on Kubernetes Dashboard needs privileged SA to work with user's objects
 	// for time being until Kubernetes did not get authentication
 	if !util.IsOpenShift {
-		done, err = deploy.SyncClusterRoleToCluster(d.deployContext, DashboardSAClusterRole, GetPrivilegedPoliciesRulesForKubernetes())
+		done, err = deploy.SyncClusterRoleToCluster(d.deployContext, d.getClusterRoleName(), GetPrivilegedPoliciesRulesForKubernetes())
 		if !done {
 			return false, err
 		}
 
-		done, err = deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(d.deployContext, DashboardSAClusterRoleBinding, DashboardSA, DashboardSAClusterRole)
+		done, err = deploy.SyncClusterRoleBindingToCluster(d.deployContext, d.getClusterRoleBindingName(), DashboardSA, d.getClusterRoleName())
 		if !done {
+			return false, err
+		}
+
+		err = deploy.AppendFinalizer(d.deployContext, ClusterPermissionsDashboardFinalizer)
+		if err != nil {
 			return false, err
 		}
 	}
@@ -73,6 +84,17 @@ func (d *Dashboard) SyncAll() (done bool, err error) {
 	return deploy.SyncDeploymentSpecToCluster(d.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (d *Dashboard) GetComponentName() string {
-	return d.component
+func (d *Dashboard) Finalize() (done bool, err error) {
+	done, err = deploy.Delete(d.deployContext, types.NamespacedName{Name: d.getClusterRoleName()}, &rbacv1.ClusterRole{})
+	if !done {
+		return false, err
+	}
+
+	done, err = deploy.Delete(d.deployContext, types.NamespacedName{Name: d.getClusterRoleBindingName()}, &rbacv1.ClusterRoleBinding{})
+	if !done {
+		return false, err
+	}
+
+	err = deploy.DeleteFinalizer(d.deployContext, ClusterPermissionsDashboardFinalizer)
+	return err == nil, err
 }
