@@ -143,6 +143,7 @@ rules:
     verbs:
       - get
       - list
+      - watch
   - apiGroups:
       - ""
     resources:
@@ -152,6 +153,7 @@ rules:
       - list
       - create
       - update
+      - watch
   - apiGroups:
       - ''
     resources:

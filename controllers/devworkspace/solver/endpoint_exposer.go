@@ -67,7 +67,7 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 
 	if cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName != "" {
 		secret := &corev1.Secret{}
-		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.TlsSecretName, Namespace: cluster.Namespace}, secret)
+		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 		err := cl.Get(ctx, client.ObjectKey{Name: tlsSecretName, Namespace: routing.Namespace}, secret)
 		if errors.IsNotFound(err) {
 			secret = &corev1.Secret{}
-			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.TlsSecretName, Namespace: cluster.Namespace}, secret)
+			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.WorkspaceDomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
 			if err != nil {
 				return err
 			}
