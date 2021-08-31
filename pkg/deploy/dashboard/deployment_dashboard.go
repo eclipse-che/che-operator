@@ -122,7 +122,7 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "CHE_HOST",
-									Value: d.deployContext.CheCluster.Status.CheURL,
+									Value: util.GetCheURL(d.deployContext.CheCluster),
 								},
 								{
 									Name:  "KEYCLOAK_URL",

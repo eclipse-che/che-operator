@@ -1083,7 +1083,13 @@ func TestCheController(t *testing.T) {
 	r := &CheClusterReconciler{client: cl, nonCachedClient: cl, Scheme: &scheme, discoveryClient: dc, tests: true, Log: ctrl.Log.WithName("controllers").WithName("CheCluster")}
 
 	// get CR
-	cheCR := &orgv1.CheCluster{}
+	cheCR := &orgv1.CheCluster{
+		Spec:       orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				CheHost: "eclipse.org",
+			},
+		},
+	}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
 	}
@@ -1281,6 +1287,15 @@ func TestCheController(t *testing.T) {
 	actualStorageClassName := pvc.Spec.StorageClassName
 	if len(*actualStorageClassName) != len(fakeStorageClassName) {
 		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, *actualStorageClassName)
+	}
+
+	// Get CheCR one more time to get it with newer Che url in the status.
+	r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.GetName(), Namespace: cheCR.GetNamespace()}, cheCR)
+	if err != nil {
+		t.Fatalf("Failed to get custom resource Eclipse Che: %s", err.Error())
+	}
+	if cheCR.Status.CheURL != "https://eclipse.org" {
+		t.Fatalf("Expected che host url in the custom resource status: %s, but got %s", "https://eclipse.org", cheCR.Status.CheURL)
 	}
 
 	// check if oAuthClient is deleted after CR is deleted (finalizer logic)
