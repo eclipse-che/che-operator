@@ -621,5 +621,5 @@ func GetCheURL(cheCluster *orgv1.CheCluster) string {
 	} else {
 		cheUrl = "http://" + cheCluster.Spec.Server.CheHost
 	}
-	return cheUrl;
+	return cheUrl
 }
