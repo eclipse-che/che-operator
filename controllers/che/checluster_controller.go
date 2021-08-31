@@ -260,6 +260,29 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		CheCluster: instance,
 	}
 
+	if isPreviousVersionDeployed(instance) {
+		// Current operator is newer than deployed Che
+		backupCR, err := getBackupCR(deployContext)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				// Create a backup before updating current installation
+				if err := requestNewBackup(deployContext); err != nil {
+					return ctrl.Result{}, err
+				}
+				// Backup request is successfully submitted
+				// Give some time for the backup
+				return ctrl.Result{RequeueAfter: time.Second * 15}, nil
+			}
+			return ctrl.Result{}, err
+		}
+		if backupCR.Status.State == orgv1.STATE_IN_PROGRESS {
+			// Backup is still in progress
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+		// Backup is done or failed
+		// Proceed anyway
+	}
+
 	// Reconcile finalizers before CR is deleted
 	r.reconcileFinalizers(deployContext)
 
