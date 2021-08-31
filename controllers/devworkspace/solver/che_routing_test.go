@@ -20,7 +20,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +35,7 @@ import (
 
 func createTestScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(extensions.AddToScheme(scheme))
+	utilruntime.Must(networkingv1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
@@ -260,9 +260,35 @@ func TestCreateRelocatedObjects(t *testing.T) {
 			t.Fatalf("Expected exactly one traefik router but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		if _, ok := workspaceConfig.HTTP.Routers["wsid-m1-9999"]; !ok {
+		wsid := "wsid-m1-9999"
+		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
+
+		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 3 {
+			t.Fatalf("Expected 3 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
+		}
+
+		if len(workspaceConfig.HTTP.Middlewares) != 3 {
+			t.Fatalf("Expected 3 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
+		}
+
+		mwares := []string{wsid + "-auth", wsid + "-prefix", wsid + "-header"}
+		for _, mware := range mwares {
+			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
+				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
+			}
+			found := false
+			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("traefik config route doesn't set middleware '%s'", mware)
+			}
+		}
+
 	})
 }
 

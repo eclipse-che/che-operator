@@ -543,6 +543,17 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
+	devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
+	if !instance.Spec.Server.ExternalDevfileRegistry {
+		done, err := devfileRegistry.SyncAll()
+		if !done {
+			if err != nil {
+				logrus.Error(err)
+			}
+			return ctrl.Result{}, err
+		}
+	}
+
 	if !instance.Spec.Server.ExternalPluginRegistry {
 		pluginRegistry := pluginregistry.NewPluginRegistry(deployContext)
 		done, err := pluginRegistry.SyncAll()
@@ -561,19 +572,8 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
-	devfileRegistry := devfileregistry.NewDevfileRegistry(deployContext)
-	if !instance.Spec.Server.ExternalDevfileRegistry {
-		done, err := devfileRegistry.SyncAll()
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
 	d := dashboard.NewDashboard(deployContext)
-	done, err = d.SyncAll()
+	done, err = d.Reconcile()
 	if !done {
 		if err != nil {
 			logrus.Errorf("Error provisioning '%s' to cluster: %v", d.GetComponentName(), err)
@@ -796,6 +796,13 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 
 	if err := deploy.ReconcileConsoleLinkFinalizer(deployContext); err != nil {
 		logrus.Error(err)
+	}
+
+	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		done, err := dashboard.NewDashboard(deployContext).Finalize()
+		if !done {
+			logrus.Error(err)
+		}
 	}
 
 	if len(deployContext.CheCluster.Spec.Server.CheClusterRoles) > 0 {

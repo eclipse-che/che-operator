@@ -23,7 +23,9 @@ type traefikConfigService struct {
 }
 
 type traefikConfigMiddleware struct {
-	StripPrefix traefikConfigStripPrefix `json:"stripPrefix"`
+	StripPrefix *traefikConfigStripPrefix `json:"stripPrefix,omitempty"`
+	ForwardAuth *traefikConfigForwardAuth `json:"forwardAuth,omitempty"`
+	Plugin      *traefikPlugin            `json:"plugin,omitempty"`
 }
 
 type traefikConfigLoadbalancer struct {
@@ -36,4 +38,18 @@ type traefikConfigLoadbalancerServer struct {
 
 type traefikConfigStripPrefix struct {
 	Prefixes []string `json:"prefixes"`
+}
+
+type traefikConfigForwardAuth struct {
+	Address string `json:"address"`
+}
+
+type traefikPlugin struct {
+	HeaderRewrite *traefikPluginHeaderRewrite `json:"header-rewrite,omitempty"`
+}
+
+type traefikPluginHeaderRewrite struct {
+	From   string `json:"from"`
+	To     string `json:"to"`
+	Prefix string `json:"prefix"`
 }

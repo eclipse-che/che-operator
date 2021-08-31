@@ -148,8 +148,8 @@ github.com/deislabs/oras v0.8.1/go.mod h1:Mx0rMSbBNaNfY9hjpccEnxkOqJL6KGjtxNHPLC
 github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b h1:N00ORHA5iamvPKpDFfSAkAczAaCBvK8l0EzAphsgFSI=
 github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b/go.mod h1:QNzaIVQnCsYfXed+QZOn1uvEQFzyhvpi/uc3g/b2ws0=
-github.com/devfile/devworkspace-operator v0.2.1-0.20210805190010-9c55f69c461d h1:m0AhacO7IrwysBlLWDunITEkxITciGaO5e6uMN0t1XQ=
-github.com/devfile/devworkspace-operator v0.2.1-0.20210805190010-9c55f69c461d/go.mod h1:Rfz7VVnXRpM4dT7UgMwV8zp6qHCggi39mBrN+i69pRo=
+github.com/devfile/devworkspace-operator v0.2.1-0.20210825134510-d99fe14255d3 h1:+KNjBNYdCufOzYEnZvck+GSXoMYr6ChPLHqmQI+TAA8=
+github.com/devfile/devworkspace-operator v0.2.1-0.20210825134510-d99fe14255d3/go.mod h1:Rfz7VVnXRpM4dT7UgMwV8zp6qHCggi39mBrN+i69pRo=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
