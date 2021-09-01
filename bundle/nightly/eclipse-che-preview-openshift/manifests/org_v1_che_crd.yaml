@@ -349,7 +349,7 @@ spec:
                       type: string
                   type: object
                 devWorkspace:
-                  description: Dev Workspace operator configuration
+                  description: DevWorkspace operator configuration
                   properties:
                     controllerImage:
                       description: Overrides the container image used in the DevWorkspace
