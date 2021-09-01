@@ -59,7 +59,7 @@ type CheClusterSpec struct {
 	// +optional
 	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
 
-	// Dev Workspace operator configuration
+	// DevWorkspace operator configuration
 	// +optional
 	DevWorkspace CheClusterSpecDevWorkspace `json:"devWorkspace"`
 }
@@ -608,13 +608,13 @@ type CheClusterSpecImagePuller struct {
 }
 
 // +k8s:openapi-gen=true
-// Settings for installation and configuration of the Dev Workspace operator
+// Settings for installation and configuration of the DevWorkspace operator
 // See https://github.com/devfile/devworkspace-operator
 type CheClusterSpecDevWorkspace struct {
 	// Deploys the DevWorkspace Operator in the cluster.
 	// Does nothing when a matching version of the Operator is already installed.
 	// Fails when a non-matching version of the Operator is already installed.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Dev Workspace operator"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable DevWorkspace operator (Technology Preview)"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	Enable bool `json:"enable"`
 	// Overrides the container image used in the DevWorkspace controller deployment.
