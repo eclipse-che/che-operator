@@ -655,7 +655,10 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
 	fi
 
-	yq -riSY '.spec.customresourcedefinitions.owned = (.spec.customresourcedefinitions.owned | "Eclipse Che instance Specification" as $$displayName | [(.[] | select(.displayName == $$displayName) )] as $$firstElement | del(.[] | select(.displayName == $$displayName)) as $$remainingElements | $$firstElement + $$remainingElements)' "$${NEW_CSV}"
+	BASE_CSV="config/manifests/bases/che-operator.clusterserviceversion.yaml"
+	CRD_API=$$(yq -c '.spec.customresourcedefinitions.owned' $${BASE_CSV})
+	yq -riSY ".spec.customresourcedefinitions.owned = $$CRD_API" "$${NEW_CSV}"
+	yq -riSY "del(.spec.customresourcedefinitions.owned[] | select(.version == \"v2alpha1\"))" "$${NEW_CSV}"
 
 	# Format code.
 	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
