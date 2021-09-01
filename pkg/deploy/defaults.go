@@ -360,7 +360,7 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 }
 
 func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	if util.IsOpenShift {
+	if util.IsOpenShift || cr.Spec.DevWorkspace.Enable {
 		return DefaultOpenShiftSingleHostExposureType
 	}
 

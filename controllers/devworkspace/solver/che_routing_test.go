@@ -202,9 +202,12 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 		}
 	})
 
-	t.Run("noPodAdditions", func(t *testing.T) {
-		if objs.PodAdditions != nil {
-			t.Error()
+	t.Run("testPodAdditions", func(t *testing.T) {
+		if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
+			t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
+		}
+		if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
+			t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
 		}
 	})
 
@@ -229,24 +232,32 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 		cms := &corev1.ConfigMapList{}
 		cl.List(context.TODO(), cms)
 
-		if len(cms.Items) != 1 {
-			t.Errorf("there should be 1 configmap created for the gateway config of the workspace but there were: %d", len(cms.Items))
+		if len(cms.Items) != 2 {
+			t.Errorf("there should be 2 configmaps created for the gateway config of the workspace but there were: %d", len(cms.Items))
 		}
 
+		var workspaceMainCfg *corev1.ConfigMap
 		var workspaceCfg *corev1.ConfigMap
-
 		for _, cfg := range cms.Items {
-			if cfg.Name == "wsid" {
-				workspaceCfg = &cfg
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ns" {
+				workspaceMainCfg = cfg.DeepCopy()
+			}
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ws" {
+				workspaceCfg = cfg.DeepCopy()
 			}
 		}
 
-		if workspaceCfg == nil {
+		if workspaceMainCfg == nil {
 			t.Fatalf("traefik configuration for the workspace not found")
 		}
 
-		traefikWorkspaceConfig := workspaceCfg.Data["wsid.yml"]
+		traefikMainWorkspaceConfig := workspaceMainCfg.Data["wsid.yml"]
 
+		if len(traefikMainWorkspaceConfig) == 0 {
+			t.Fatal("No traefik config file found in the main workspace config configmap")
+		}
+
+		traefikWorkspaceConfig := workspaceCfg.Data["workspace.yml"]
 		if len(traefikWorkspaceConfig) == 0 {
 			t.Fatal("No traefik config file found in the workspace config configmap")
 		}
@@ -256,30 +267,30 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(workspaceConfig.HTTP.Routers) != 1 {
-			t.Fatalf("Expected exactly one traefik router but got %d", len(workspaceConfig.HTTP.Routers))
+		if len(workspaceConfig.HTTP.Routers) != 3 {
+			t.Fatalf("Expected 3 traefik routers but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		wsid := "wsid-m1-9999"
-		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
+		endpointName := "e1"
+		if _, ok := workspaceConfig.HTTP.Routers[endpointName]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
 
-		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 1 {
-			t.Fatalf("Expected 1 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
+		if len(workspaceConfig.HTTP.Routers[endpointName].Middlewares) != 1 {
+			t.Fatalf("Expected 1 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[endpointName].Middlewares))
 		}
 
-		if len(workspaceConfig.HTTP.Middlewares) != 1 {
-			t.Fatalf("Expected 1 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
+		if len(workspaceConfig.HTTP.Middlewares) != 3 {
+			t.Fatalf("Expected 3 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
 		}
 
-		mwares := []string{wsid + "-prefix"}
+		mwares := []string{endpointName + "-prefix"}
 		for _, mware := range mwares {
 			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
 				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
 			}
 			found := false
-			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+			for _, r := range workspaceConfig.HTTP.Routers[endpointName].Middlewares {
 				if r == mware {
 					found = true
 				}
@@ -308,9 +319,12 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 		}
 	})
 
-	t.Run("noPodAdditions", func(t *testing.T) {
-		if objs.PodAdditions != nil {
-			t.Error()
+	t.Run("testPodAdditions", func(t *testing.T) {
+		if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
+			t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
+		}
+		if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
+			t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
 		}
 	})
 
@@ -318,24 +332,32 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 		cms := &corev1.ConfigMapList{}
 		cl.List(context.TODO(), cms)
 
-		if len(cms.Items) != 1 {
-			t.Errorf("there should be 1 configmap created for the gateway config of the workspace but there were: %d", len(cms.Items))
+		if len(cms.Items) != 2 {
+			t.Errorf("there should be 2 configmaps created for the gateway config of the workspace but there were: %d", len(cms.Items))
 		}
 
+		var workspaceMainCfg *corev1.ConfigMap
 		var workspaceCfg *corev1.ConfigMap
-
 		for _, cfg := range cms.Items {
-			if cfg.Name == "wsid" {
-				workspaceCfg = &cfg
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ns" {
+				workspaceMainCfg = cfg.DeepCopy()
+			}
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ws" {
+				workspaceCfg = cfg.DeepCopy()
 			}
 		}
 
-		if workspaceCfg == nil {
+		if workspaceMainCfg == nil {
 			t.Fatalf("traefik configuration for the workspace not found")
 		}
 
-		traefikWorkspaceConfig := workspaceCfg.Data["wsid.yml"]
+		traefikMainWorkspaceConfig := workspaceMainCfg.Data["wsid.yml"]
 
+		if len(traefikMainWorkspaceConfig) == 0 {
+			t.Fatal("No traefik config file found in the main workspace config configmap")
+		}
+
+		traefikWorkspaceConfig := workspaceCfg.Data["workspace.yml"]
 		if len(traefikWorkspaceConfig) == 0 {
 			t.Fatal("No traefik config file found in the workspace config configmap")
 		}
@@ -345,30 +367,40 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(workspaceConfig.HTTP.Routers) != 1 {
-			t.Fatalf("Expected exactly one traefik router but got %d", len(workspaceConfig.HTTP.Routers))
+		if len(workspaceConfig.HTTP.Routers) != 3 {
+			t.Fatalf("Expected 3 traefik routers but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		wsid := "wsid-m1-9999"
-		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
+		endpointName := "e1"
+		if _, ok := workspaceConfig.HTTP.Routers[endpointName]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
 
-		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 3 {
-			t.Fatalf("Expected 3 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
+		if len(workspaceConfig.HTTP.Routers[endpointName].Middlewares) != 2 {
+			t.Fatalf("Expected 2 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[endpointName].Middlewares))
 		}
 
-		if len(workspaceConfig.HTTP.Middlewares) != 3 {
+		workspaceMainConfig := traefikConfig{}
+		if err := yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(workspaceMainConfig.HTTP.Routers) != 1 {
+			t.Fatalf("Expected one route in main route config but got '%d'", len(workspaceMainConfig.HTTP.Routers))
+		}
+
+		if len(workspaceMainConfig.HTTP.Middlewares) != 3 {
 			t.Fatalf("Expected 3 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
 		}
 
-		mwares := []string{wsid + "-auth", wsid + "-prefix", wsid + "-header"}
+		endpointName = "wsid"
+		mwares := []string{endpointName + "-auth", endpointName + "-prefix", endpointName + "-header"}
 		for _, mware := range mwares {
-			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
+			if _, ok := workspaceMainConfig.HTTP.Middlewares[mware]; !ok {
 				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
 			}
 			found := false
-			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+			for _, r := range workspaceMainConfig.HTTP.Routers[endpointName].Middlewares {
 				if r == mware {
 					found = true
 				}
@@ -387,9 +419,12 @@ func TestCreateSubDomainObjects(t *testing.T) {
 
 		cl, _, objs := getSpecObjects(t, subdomainDevWorkspaceRouting())
 
-		t.Run("noPodAdditions", func(t *testing.T) {
-			if objs.PodAdditions != nil {
-				t.Error()
+		t.Run("testPodAdditions", func(t *testing.T) {
+			if len(objs.PodAdditions.Containers) != 1 || objs.PodAdditions.Containers[0].Name != wsGatewayName {
+				t.Error("expected Container pod addition with Workspace Gateway. Got ", objs.PodAdditions)
+			}
+			if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
+				t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
 			}
 		})
 
@@ -414,8 +449,8 @@ func TestCreateSubDomainObjects(t *testing.T) {
 			cms := &corev1.ConfigMapList{}
 			cl.List(context.TODO(), cms)
 
-			if len(cms.Items) != 0 {
-				t.Errorf("there should be 0 configmaps created but there were: %d", len(cms.Items))
+			if len(cms.Items) != 2 {
+				t.Errorf("there should be 2 configmaps create but found: %d", len(cms.Items))
 			}
 		})
 
@@ -424,21 +459,21 @@ func TestCreateSubDomainObjects(t *testing.T) {
 
 	t.Run("expectedIngresses", func(t *testing.T) {
 		objs := testCommon(infrastructure.Kubernetes)
-		if len(objs.Ingresses) != 1 {
-			t.Error()
+		if len(objs.Ingresses) != 3 {
+			t.Error("Expected 3 ingress, found ", len(objs.Ingresses))
 		}
 		if objs.Ingresses[0].Spec.Rules[0].Host != "wsid-1.down.on.earth" {
-			t.Error()
+			t.Error("Expected Ingress host 'wsid-1.down.on.earth', but got ", objs.Ingresses[0].Spec.Rules[0].Host)
 		}
 	})
 
 	t.Run("expectedRoutes", func(t *testing.T) {
 		objs := testCommon(infrastructure.OpenShiftv4)
-		if len(objs.Routes) != 1 {
-			t.Error()
+		if len(objs.Routes) != 3 {
+			t.Error("Expected 3 Routes, found ", len(objs.Routes))
 		}
 		if objs.Routes[0].Spec.Host != "wsid-1.down.on.earth" {
-			t.Error()
+			t.Error("Expected Route host 'wsid-1.down.on.earth', but got ", objs.Routes[0].Spec.Host)
 		}
 	})
 }
@@ -534,16 +569,16 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 	if e2.Name != "e2" {
 		t.Errorf("The second endpoint should have been e2 but is %s", e1.Name)
 	}
-	if e2.Url != "https://wsid-1.down.on.earth/2.js" {
-		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-1.down.on.earth/2.js", e2.Url)
+	if e2.Url != "https://wsid-2.down.on.earth/2.js" {
+		t.Errorf("The e2 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-2.down.on.earth/2.js", e2.Url)
 	}
 
 	e3 := m1[2]
 	if e3.Name != "e3" {
 		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
 	}
-	if e3.Url != "http://wsid-1.down.on.earth/" {
-		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-1.down.on.earth/", e3.Url)
+	if e3.Url != "http://wsid-3.down.on.earth/" {
+		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://wsid-3.down.on.earth/", e3.Url)
 	}
 }
 
@@ -617,7 +652,7 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 
 	_, _, objs := getSpecObjectsForManager(t, mgr, subdomainDevWorkspaceRouting())
 
-	if len(objs.Ingresses) != 1 {
+	if len(objs.Ingresses) != 3 {
 		t.Fatalf("Unexpected number of generated ingresses: %d", len(objs.Ingresses))
 	}
 
@@ -663,7 +698,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 		},
 	})
 
-	if len(objs.Ingresses) != 1 {
+	if len(objs.Ingresses) != 3 {
 		t.Fatalf("Unexpected number of generated ingresses: %d", len(objs.Ingresses))
 	}
 
@@ -683,6 +718,30 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 
 	if ingress.Spec.TLS[0].Hosts[0] != "wsid-1.almost.trivial" {
 		t.Errorf("Unexpected host name of the TLS spec: %s", ingress.Spec.TLS[0].Hosts[0])
+	}
+
+	ingress = objs.Ingresses[1]
+
+	if len(ingress.Spec.TLS) != 1 {
+		t.Fatalf("Unexpected number of TLS records on the ingress: %d", len(ingress.Spec.TLS))
+	}
+
+	if ingress.Spec.TLS[0].SecretName != "wsid-endpoints" {
+		t.Errorf("Unexpected name of the TLS secret on the ingress: %s", ingress.Spec.TLS[0].SecretName)
+	}
+
+	if len(ingress.Spec.TLS[0].Hosts) != 1 {
+		t.Fatalf("Unexpected number of host records on the TLS spec: %d", len(ingress.Spec.TLS[0].Hosts))
+	}
+
+	if ingress.Spec.TLS[0].Hosts[0] != "wsid-2.almost.trivial" {
+		t.Errorf("Unexpected host name of the TLS spec: %s", ingress.Spec.TLS[0].Hosts[0])
+	}
+
+	ingress = objs.Ingresses[2]
+
+	if len(ingress.Spec.TLS) != 0 {
+		t.Fatalf("Unexpected number of TLS records on the ingress: %d", len(ingress.Spec.TLS))
 	}
 }
 
@@ -717,7 +776,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 		},
 	})
 
-	if len(objs.Routes) != 1 {
+	if len(objs.Routes) != 3 {
 		t.Fatalf("Unexpected number of generated routes: %d", len(objs.Routes))
 	}
 
@@ -729,6 +788,22 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 
 	if route.Spec.TLS.Key != "asdf" {
 		t.Errorf("Unexpected key of TLS spec: %s", route.Spec.TLS.Key)
+	}
+
+	route = objs.Routes[1]
+
+	if route.Spec.TLS.Certificate != "qwer" {
+		t.Errorf("Unexpected name of the TLS certificate on the route: %s", route.Spec.TLS.Certificate)
+	}
+
+	if route.Spec.TLS.Key != "asdf" {
+		t.Errorf("Unexpected key of TLS spec: %s", route.Spec.TLS.Key)
+	}
+
+	route = objs.Routes[2]
+
+	if route.Spec.TLS != nil {
+		t.Errorf("Unexpected TLS on the route: %s", route.Spec.TLS)
 	}
 }
 
