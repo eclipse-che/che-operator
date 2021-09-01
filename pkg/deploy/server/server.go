@@ -81,7 +81,7 @@ func (s *Server) SyncAll() (bool, error) {
 	}
 
 	done, err = s.SyncDeployment()
-	if !done {с
+	if !done {
 		return false, err
 	}
 
