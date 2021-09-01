@@ -89,24 +89,6 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: The `CheBackupServerConfiguration` custom resource allows defining
-          and managing Eclipse Che Backup Server Configurations
-        displayName: Eclipse Che Backup Server
-        kind: CheBackupServerConfiguration
-        name: chebackupserverconfigurations.org.eclipse.che
-        version: v1
-      - description: The `CheClusterBackup` custom resource allows defining and managing
-          Eclipse Che backup
-        displayName: Eclipse Che instance Backup Specification
-        kind: CheClusterBackup
-        name: checlusterbackups.org.eclipse.che
-        version: v1
-      - description: The `CheClusterRestore` custom resource allows defining and managing
-          Eclipse Che restore
-        displayName: Eclipse Che instance Restore Specification
-        kind: CheClusterRestore
-        name: checlusterrestores.org.eclipse.che
-        version: v1
       - description: The `CheCluster` custom resource allows defining and managing
           a Che server installation
         displayName: Eclipse Che instance Specification
@@ -177,6 +159,24 @@ spec:
             path: reason
             x-descriptors:
               - urn:alm:descriptor:text
+        version: v1
+      - description: The `CheBackupServerConfiguration` custom resource allows defining
+          and managing Eclipse Che Backup Server Configurations
+        displayName: Eclipse Che Backup Server
+        kind: CheBackupServerConfiguration
+        name: chebackupserverconfigurations.org.eclipse.che
+        version: v1
+      - description: The `CheClusterBackup` custom resource allows defining and managing
+          Eclipse Che backup
+        displayName: Eclipse Che instance Backup Specification
+        kind: CheClusterBackup
+        name: checlusterbackups.org.eclipse.che
+        version: v1
+      - description: The `CheClusterRestore` custom resource allows defining and managing
+          Eclipse Che restore
+        displayName: Eclipse Che instance Restore Specification
+        kind: CheClusterRestore
+        name: checlusterrestores.org.eclipse.che
         version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development.

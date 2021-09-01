@@ -655,6 +655,8 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
 	fi
 
+	yq -riSY '.spec.customresourcedefinitions.owned = (.spec.customresourcedefinitions.owned | "Eclipse Che instance Specification" as $$displayName | [(.[] | select(.displayName == $$displayName) )] as $$firstElement | del(.[] | select(.displayName == $$displayName)) as $$remainingElements | $$firstElement + $$remainingElements)' "$${NEW_CSV}"
+
 	# Format code.
 	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
