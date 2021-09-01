@@ -359,14 +359,6 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-func IsCheMultiUser(cr *orgv1.CheCluster) bool {
-	if cr.Spec.Server.CustomCheProperties != nil {
-		cheMultiUser := cr.Spec.Server.CustomCheProperties["CHE_MULTIUSER"]
-		return cheMultiUser == "true"
-	}
-	return true
-}
-
 func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
 	if util.IsOpenShift {
 		return DefaultOpenShiftSingleHostExposureType
