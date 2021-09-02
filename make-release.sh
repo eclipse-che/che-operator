@@ -200,6 +200,9 @@ replaceImagesTags() {
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
   >> "${NEW_OPERATOR_YAML}"
   mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
+
+  # Update Dockerfile to set correct version for devworkspace controller
+  sed -e 's|DEV_WORKSPACE_CONTROLLER_VERSION=.*|DEV_WORKSPACE_CONTROLLER_VERSION="'${DEV_WORKSPACE_CONTROLLER_VERSION}'"|' -i ${RELEASE_DIR}/Dockerfile
 }
 
 replaceTag() {
