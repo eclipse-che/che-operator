@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Contributors:DEV_WORKSPACE_CONTROLLER_VERSION
+# Contributors:
 #   Red Hat, Inc. - initial API and implementation
 #
 
