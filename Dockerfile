@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Contributors:
+# Contributors:DEV_WORKSPACE_CONTROLLER_VERSION
 #   Red Hat, Inc. - initial API and implementation
 #
 
@@ -13,7 +13,7 @@
 FROM registry.access.redhat.com/ubi8/go-toolset:1.15.14-3 as builder
 ENV GOPATH=/go/
 ENV RESTIC_TAG=v0.12.0
-ARG DEV_WORKSPACE_CONTROLLER_VERSION="main"
+ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.8.0"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 USER root
 
