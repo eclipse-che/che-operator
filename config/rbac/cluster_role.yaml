@@ -410,6 +410,7 @@ rules:
   - apiGroups:
     - ""
     resources:
+    - events
     - namespaces
     verbs:
     - get
@@ -421,6 +422,16 @@ rules:
     - pods/exec
     verbs:
     - create
+  - apiGroups:
+    - ""
+    resourceNames:
+    - workspace-credentials-secret
+    resources:
+    - secrets
+    verbs:
+    - create
+    - delete
+    - get
   - apiGroups:
     - ""
     resources:
@@ -519,6 +530,12 @@ rules:
     verbs:
     - create
     - get
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses
+    verbs:
+    - '*'
   - apiGroups:
     - oauth.openshift.io
     resources:

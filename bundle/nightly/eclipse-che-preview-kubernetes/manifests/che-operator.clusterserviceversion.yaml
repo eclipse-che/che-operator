@@ -593,6 +593,7 @@ spec:
             - apiGroups:
                 - ""
               resources:
+                - events
                 - namespaces
               verbs:
                 - get
@@ -604,6 +605,16 @@ spec:
                 - pods/exec
               verbs:
                 - create
+            - apiGroups:
+                - ""
+              resourceNames:
+                - workspace-credentials-secret
+              resources:
+                - secrets
+              verbs:
+                - create
+                - delete
+                - get
             - apiGroups:
                 - ""
               resources:
@@ -702,6 +713,12 @@ spec:
               verbs:
                 - create
                 - get
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - '*'
             - apiGroups:
                 - oauth.openshift.io
               resources:
