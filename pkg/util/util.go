@@ -612,3 +612,14 @@ func ClearMetadata(objectMeta *metav1.ObjectMeta) {
 	objectMeta.Finalizers = []string{}
 	objectMeta.ManagedFields = []metav1.ManagedFieldsEntry{}
 }
+
+// GetCheURL returns Che url.
+func GetCheURL(cheCluster *orgv1.CheCluster) string {
+	var cheUrl string
+	if cheCluster.Spec.Server.TlsSupport {
+		cheUrl = "https://" + cheCluster.Spec.Server.CheHost
+	} else {
+		cheUrl = "http://" + cheCluster.Spec.Server.CheHost
+	}
+	return cheUrl
+}
