@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	projectv1 "github.com/openshift/api/project/v1"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -152,8 +153,14 @@ func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	ctx := context.Background()
 
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
-	if err != nil || info == nil || info.OwnerUid == "" {
+	if err != nil {
+		logrus.Errorf("Failed to examine namespace %s for presence of Che user info labels: %v", req.Name, err)
 		return ctrl.Result{}, err
+	}
+
+	if info == nil || info.OwnerUid == "" {
+		// we're not handling this namespace
+		return ctrl.Result{}, nil
 	}
 
 	checluster := findManagingCheCluster(*info.CheCluster)
@@ -178,16 +185,19 @@ func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 
 	isSelfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
+		logrus.Errorf("Failed to figure out whether the configured certificate is self-signed: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	if isSelfSignedCertUsed {
 		if err = r.reconcileSelfSignedCert(ctx, deployContext, req.Name, checluster); err != nil {
+			logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err = r.reconcileProxySettings(ctx, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile proxy settings into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
