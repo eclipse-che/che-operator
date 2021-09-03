@@ -59,11 +59,6 @@ func (s *Server) ExposeCheServiceAndEndpoint() (bool, error) {
 		return false, err
 	}
 
-	done, err = s.UpdateCheURL()
-	if !done {
-		return false, err
-	}
-
 	return true, nil
 }
 
@@ -96,6 +91,11 @@ func (s *Server) SyncAll() (bool, error) {
 	}
 
 	done, err = s.UpdateAvailabilityStatus()
+	if !done {
+		return false, err
+	}
+
+	done, err = s.UpdateCheURL()
 	if !done {
 		return false, err
 	}
@@ -193,13 +193,7 @@ func (s Server) ExposeCheEndpoint() (bool, error) {
 }
 
 func (s Server) UpdateCheURL() (bool, error) {
-	var cheUrl string
-	if s.deployContext.CheCluster.Spec.Server.TlsSupport {
-		cheUrl = "https://" + s.deployContext.CheCluster.Spec.Server.CheHost
-	} else {
-		cheUrl = "http://" + s.deployContext.CheCluster.Spec.Server.CheHost
-	}
-
+	var cheUrl = util.GetCheURL(s.deployContext.CheCluster)
 	if s.deployContext.CheCluster.Status.CheURL != cheUrl {
 		s.deployContext.CheCluster.Status.CheURL = cheUrl
 		err := deploy.UpdateCheCRStatus(s.deployContext, s.component+" server URL", cheUrl)

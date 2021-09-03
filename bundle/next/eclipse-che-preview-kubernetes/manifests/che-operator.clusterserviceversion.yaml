@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.36.0-291.next
+  name: eclipse-che-preview-kubernetes.v7.36.0-296.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -107,7 +107,7 @@ spec:
           - description: Deploys the DevWorkspace Operator in the cluster. Does nothing
               when a matching version of the Operator is already installed. Fails
               when a non-matching version of the Operator is already installed.
-            displayName: Enable Dev Workspace operator
+            displayName: Enable DevWorkspace operator (Technology Preview)
             path: devWorkspace.enable
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
@@ -1183,4 +1183,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.36.0-291.next
+  version: 7.36.0-296.next
