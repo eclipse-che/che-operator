@@ -449,15 +449,15 @@ login() {
 
 # Deploy Eclipse Che behind proxy in openshift ci
 deployCheBehindProxy() {
-  # Get the ocp domain for che custom resources
-  export DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
+#   # Get the ocp domain for che custom resources
+#   export DOMAIN=$(oc get dns cluster -o json | jq .spec.baseDomain | sed -e 's/^"//' -e 's/"$//')
 
-  # Related issue:https://github.com/eclipse/che/issues/17681
-    cat >/tmp/che-cr-patch.yaml <<EOL
-spec:
-  server:
-    nonProxyHosts: oauth-openshift.apps.$DOMAIN
-EOL
+#   # Related issue:https://github.com/eclipse/che/issues/17681
+#     cat >/tmp/che-cr-patch.yaml <<EOL
+# spec:
+#   server:
+#     nonProxyHosts: oauth-openshift.apps.$DOMAIN
+# EOL
 
   chectl server:deploy \
     --batch \
