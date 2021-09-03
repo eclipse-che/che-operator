@@ -353,6 +353,22 @@ func TestV2alpha1ToV1(t *testing.T) {
 		})
 	})
 
+	t.Run("WorkspaceDomainEndpointsBaseDomain-openshift-should-not-be-set-empty-value", func(t *testing.T) {
+		onFakeOpenShift(func() {
+			v1 := &v1.CheCluster{}
+			v2apha := v2Obj.DeepCopy()
+			v2apha.Spec.WorkspaceDomainEndpoints.BaseDomain = ""
+			err := V2alpha1ToV1(v2apha, v1)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if _, ok := v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey]; ok {
+				t.Errorf("Unexpected value. We shouldn't set key with empty value for %s custom Che property", routeDomainSuffixPropertyKey)
+			}
+		})
+	})
+
 	t.Run("WorkspaceDomainEndpointsTlsSecretName_k8s", func(t *testing.T) {
 		onFakeKubernetes(func() {
 			v1 := &v1.CheCluster{}

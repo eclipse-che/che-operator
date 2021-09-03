@@ -191,7 +191,9 @@ func v2alpha1ToV1_WorkspaceDomainEndpointsBaseDomain(v1 *v1.CheCluster, v2 *v2al
 		if v1.Spec.Server.CustomCheProperties == nil {
 			v1.Spec.Server.CustomCheProperties = map[string]string{}
 		}
-		v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
+		if len(v2.Spec.WorkspaceDomainEndpoints.BaseDomain) > 0 {
+			v1.Spec.Server.CustomCheProperties[routeDomainSuffixPropertyKey] = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
+		}
 	} else {
 		v1.Spec.K8s.IngressDomain = v2.Spec.WorkspaceDomainEndpoints.BaseDomain
 	}

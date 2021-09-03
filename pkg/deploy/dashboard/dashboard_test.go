@@ -13,12 +13,14 @@ package dashboard
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -32,10 +34,13 @@ import (
 	"testing"
 )
 
+const Namespace = "eclipse-che"
+
 func TestDashboardOpenShift(t *testing.T) {
+	//given
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
+			Namespace: Namespace,
 			Name:      "eclipse-che",
 		},
 	}
@@ -53,117 +58,194 @@ func TestDashboardOpenShift(t *testing.T) {
 		},
 	}
 
+	//when
 	util.IsOpenShift = true
-
 	dashboard := NewDashboard(deployContext)
-	done, err := dashboard.SyncAll()
+	done, err := dashboard.Reconcile()
 	if !done || err != nil {
 		t.Fatalf("Failed to sync Dashboard: %v", err)
 	}
 
-	// check service
-	service := &corev1.Service{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, service)
+	//then
+	verifyDashboardServiceExist(t, cli, dashboard)
+	verifyDashboardRouteExist(t, cli, dashboard)
+	verifyDashboardDeploymentExists(t, cli, dashboard)
+	verifyDashboardServiceAccountExists(t, cli)
+	verifyClusterRoleDoesNotExist(t, cli)
+	verifyClusterRoleBindingDoesNotExist(t, cli)
+	verifyFinalizerIsNotSet(t, cheCluster)
+}
+
+func TestDashboardKubernetes(t *testing.T) {
+	//given
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Namespace,
+			Name:      "eclipse-che",
+		},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	//when
+	util.IsOpenShift = false
+	dashboard := NewDashboard(deployContext)
+	done, err := dashboard.Reconcile()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync Dashboard: %v", err)
+	}
+
+	//then
+	verifyDashboardDeploymentExists(t, cli, dashboard)
+	verifyDashboardServiceExist(t, cli, dashboard)
+	verifyDashboardIngressExist(t, cli, dashboard)
+	verifyDashboardServiceAccountExists(t, cli)
+	verifyDashboardClusterRoleExists(t, cli)
+	verifyDashboardClusterRoleBindingExists(t, cli)
+	verifyFinalizerIsSet(t, cheCluster)
+}
+
+func TestDashboardClusterRBACFinalizerOnKubernetes(t *testing.T) {
+	//given
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Namespace,
+			Name:      "eclipse-che",
+		},
+	}
+
+	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	routev1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
+	deployContext := &deploy.DeployContext{
+		CheCluster: cheCluster,
+		ClusterAPI: deploy.ClusterAPI{
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
+		},
+	}
+
+	//when
+	util.IsOpenShift = false
+	dashboard := NewDashboard(deployContext)
+	done, err := dashboard.Reconcile()
+	if !done || err != nil {
+		t.Fatalf("Failed to sync Dashboard: %v", err)
+	}
+	verifyDashboardClusterRoleExists(t, cli)
+	verifyDashboardClusterRoleBindingExists(t, cli)
+	verifyFinalizerIsSet(t, cheCluster)
+	done, err = dashboard.Finalize()
 	if err != nil {
-		t.Fatalf("Service not found: %v", err)
+		t.Fatalf("Can't finalize dashboard %v", err)
 	}
 
-	// check endpoint
-	route := &routev1.Route{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, route)
+	//then
+	verifyClusterRoleDoesNotExist(t, cli)
+	verifyClusterRoleBindingDoesNotExist(t, cli)
+	verifyFinalizerIsNotSet(t, cheCluster)
+}
+
+func verifyFinalizerIsSet(t *testing.T, cheCluster *orgv1.CheCluster) {
+	if !hasFinalizer(ClusterPermissionsDashboardFinalizer, cheCluster) {
+		t.Fatal("CheCluster did not get Dashboard Cluster Permissions finalizer on Kubernetes")
+	}
+}
+
+func verifyDashboardClusterRoleBindingExists(t *testing.T, cli client.Client) {
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, Namespace)}, clusterRoleBinding)
 	if err != nil {
-		t.Fatalf("Route not found: %v", err)
+		t.Fatalf("ClusterRoleBinding is not found on k8s: %v", err)
 	}
+}
 
-	// check deployment
-	deployment := &appsv1.Deployment{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, deployment)
+func verifyDashboardClusterRoleExists(t *testing.T, cli client.Client) {
+	clusterRole := &rbacv1.ClusterRole{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleTemplate, Namespace)}, clusterRole)
 	if err != nil {
-		t.Fatalf("Deployment not found: %v", err)
+		t.Fatalf("ClusterRole is not found on K8s: %v", err)
 	}
+}
 
-	sa := &corev1.ServiceAccount{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, sa)
+func verifyDashboardIngressExist(t *testing.T, cli client.Client, dashboard *Dashboard) {
+	ingress := &networkingv1.Ingress{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, ingress)
 	if err != nil {
-		t.Fatalf("Service account not found: %v", err)
+		t.Fatalf("Ingress not found: %v", err)
 	}
+}
 
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRole}, &rbacv1.ClusterRole{})
-	if err == nil || !errors.IsNotFound(err) {
-		t.Fatalf("ClusterRole is created or failed to check on OpenShift: %v", err)
+func verifyFinalizerIsNotSet(t *testing.T, cheCluster *orgv1.CheCluster) {
+	if hasFinalizer(ClusterPermissionsDashboardFinalizer, cheCluster) {
+		t.Fatal("CheCluster got Dashboard Cluster Permissions finalizer but not expected")
 	}
+}
 
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRoleBinding}, &rbacv1.ClusterRoleBinding{})
+func verifyClusterRoleBindingDoesNotExist(t *testing.T, cli client.Client) {
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleBindingTemplate, Namespace)}, &rbacv1.ClusterRoleBinding{})
 	if err == nil || !errors.IsNotFound(err) {
 		t.Fatalf("ClusterRoleBinding is created or failed to check on OpenShift: %v", err)
 	}
 }
 
-func TestDashboardKubernetes(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
+func verifyClusterRoleDoesNotExist(t *testing.T, cli client.Client) {
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf(DashboardSAClusterRoleTemplate, Namespace)}, &rbacv1.ClusterRole{})
+	if err == nil || !errors.IsNotFound(err) {
+		t.Fatalf("ClusterRole is created or failed to check on OpenShift: %v", err)
 	}
+}
 
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	routev1.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
-	deployContext := &deploy.DeployContext{
-		CheCluster: cheCluster,
-		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
-		},
-	}
-
-	util.IsOpenShift = false
-
-	dashboard := NewDashboard(deployContext)
-	done, err := dashboard.SyncAll()
-	if !done || err != nil {
-		t.Fatalf("Failed to sync Dashboard: %v", err)
-	}
-
-	// check service
-	service := &corev1.Service{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, service)
-	if err != nil {
-		t.Fatalf("Service not found: %v", err)
-	}
-
-	// check endpoint
-	ingress := &networkingv1.Ingress{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, ingress)
-	if err != nil {
-		t.Fatalf("Ingress not found: %v", err)
-	}
-
-	// check deployment
-	deployment := &appsv1.Deployment{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, deployment)
-	if err != nil {
-		t.Fatalf("Deployment not found: %v", err)
-	}
-
+func verifyDashboardServiceAccountExists(t *testing.T, cli client.Client) {
 	sa := &corev1.ServiceAccount{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, sa)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, sa)
 	if err != nil {
 		t.Fatalf("Service account not found: %v", err)
 	}
+}
 
-	clusterRole := &rbacv1.ClusterRole{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRole}, clusterRole)
+func verifyDashboardDeploymentExists(t *testing.T, cli client.Client, dashboard *Dashboard) {
+	deployment := &appsv1.Deployment{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, deployment)
 	if err != nil {
-		t.Fatalf("ClusterRole is not found on K8s: %v", err)
+		t.Fatalf("Deployment not found: %v", err)
 	}
+}
 
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: DashboardSAClusterRoleBinding}, clusterRoleBinding)
+func verifyDashboardRouteExist(t *testing.T, cli client.Client, dashboard *Dashboard) {
+	route := &routev1.Route{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, route)
 	if err != nil {
-		t.Fatalf("ClusterRoleBinding is not found on k8s: %v", err)
+		t.Fatalf("Route not found: %v", err)
 	}
+}
+
+func verifyDashboardServiceExist(t *testing.T, cli client.Client, dashboard *Dashboard) {
+	service := &corev1.Service{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: dashboard.component, Namespace: "eclipse-che"}, service)
+	if err != nil {
+		t.Fatalf("Service not found: %v", err)
+	}
+}
+
+func hasFinalizer(name string, cheCluster *orgv1.CheCluster) bool {
+	for _, finalizer := range cheCluster.ObjectMeta.Finalizers {
+		if finalizer == name {
+			return true
+		}
+	}
+	return false
 }
