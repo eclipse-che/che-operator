@@ -80,15 +80,13 @@ func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) h
 		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
 			if isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta) {
 				return asReconcileRequestForNamespace(mo.Meta)
-			} else if true {
+			} else {
 				// need to watch for self-signed-certificate in a namespace with some checluster resource
 				if mo.Meta.GetName() == "self-signed-certificate" && r.hasCheCluster(ctx, mo.Meta.GetNamespace()) {
 					return asReconcileRequestForNamespace(mo.Meta)
 				} else {
 					return []reconcile.Request{}
 				}
-			} else {
-				return []reconcile.Request{}
 			}
 		}),
 	}
