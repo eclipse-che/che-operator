@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.36.0-296.next
+  name: eclipse-che-preview-kubernetes.v7.36.0-297.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1183,4 +1183,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.36.0-296.next
+  version: 7.36.0-297.next
