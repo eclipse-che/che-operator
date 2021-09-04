@@ -27,6 +27,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: The `CheClusterBackup` custom resource allows defining and managing
+        Eclipse Che backup
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation

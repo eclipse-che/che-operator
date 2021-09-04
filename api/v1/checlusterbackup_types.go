@@ -45,12 +45,12 @@ type CheClusterBackupStatus struct {
 }
 
 // The `CheClusterBackup` custom resource allows defining and managing Eclipse Che backup
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +k8s:openapi-gen=true
-// +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che Cluster Backup"
+// +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che instance Backup Specification"
+// +operator-sdk:csv:customresourcedefinitions:order=2
 type CheClusterBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
