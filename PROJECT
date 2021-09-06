@@ -35,7 +35,7 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  domain: org.eclipse.che
+  domain: eclipse.che
   group: org
   kind: CheClusterRestore
   path: github.com/eclipse-che/che-operator/api/v1

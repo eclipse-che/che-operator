@@ -27,6 +27,8 @@ spec:
     - name: v1
       schema:
         openAPIV3Schema:
+          description: The `CheCluster` custom resource allows defining and managing
+            a Che server installation
           properties:
             apiVersion:
               description: 'APIVersion defines the versioned schema of this representation

@@ -655,6 +655,15 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
 	fi
 
+	# Base cluster service version file has got correctly sorted CRDs.
+	# They are sorted with help of annotation markers in the api type files ("api/v1" folder).
+	# Example such annotation: +operator-sdk:csv:customresourcedefinitions:order=0
+	# Let's copy this sorted CRDs to the bundle cluster service version file.
+	BASE_CSV="config/manifests/bases/che-operator.clusterserviceversion.yaml"
+	CRD_API=$$(yq -c '.spec.customresourcedefinitions.owned' $${BASE_CSV})
+	yq -riSY ".spec.customresourcedefinitions.owned = $$CRD_API" "$${NEW_CSV}"
+	yq -riSY "del(.spec.customresourcedefinitions.owned[] | select(.version == \"v2alpha1\"))" "$${NEW_CSV}"
+
 	# Format code.
 	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
