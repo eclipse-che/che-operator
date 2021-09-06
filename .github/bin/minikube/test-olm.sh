@@ -23,9 +23,17 @@ source "${OPERATOR_REPO}/olm/olm.sh"
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-runTest() {
+overrideDefaults() {
   export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
-  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "next" "${NAMESPACE}"
+}
+
+runTest() {
+  local channel=next
+  if [[ $(git rev-parse --abbrev-ref HEAD) =~ release$ ]]; then
+    channel=stable
+  fi
+
+  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" ${CHANNEL} "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
 
@@ -46,6 +54,7 @@ runTest() {
 }
 
 initDefaults
+overrideDefaults
 installOperatorMarketPlace
 insecurePrivateDockerRegistry
 runTest
