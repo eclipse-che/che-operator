@@ -21,7 +21,7 @@ CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
 PLATFORMS="kubernetes,openshift"
-STABLE_CHANNELS=("stable-all-namespaces" "stable")
+STABLE_CHANNELS=("tech-preview-stable-all-namespaces" "stable")
 source "${BASE_DIR}/olm/check-yq.sh"
 
 base_branch="main"
@@ -116,13 +116,15 @@ do
 
   for channel in "${STABLE_CHANNELS[@]}"
   do
-    if [[ $channel == "stable-all-namespaces" && $platform == "kubernetes" ]];then
+    getLatestsStableVersions
+    if [[ $channel == "tech-preview-stable-all-namespaces" && $platform == "kubernetes" ]];then
       continue
     fi
 
-    if [[ $channel == "stable-all-namespaces" ]];then
+    if [[ $channel == "tech-preview-stable-all-namespaces" ]];then
       # Add suffix for stable-<all-namespaces> channel
       LAST_PACKAGE_VERSION="$LAST_PACKAGE_VERSION-all-namespaces"
+      PREVIOUS_PACKAGE_VERSION="${PREVIOUS_PACKAGE_VERSION}-all-namespaces"
     fi
 
     echo
