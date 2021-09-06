@@ -33,7 +33,7 @@ runTest() {
     channel=stable
   fi
 
-  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" ${CHANNEL} "${NAMESPACE}"
+  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" ${channel} "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
 
