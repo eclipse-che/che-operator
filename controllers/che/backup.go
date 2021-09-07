@@ -46,7 +46,7 @@ func isPreviousVersionDeployed(cheCR *chev1.CheCluster) bool {
 
 func getBackupCR(deployContext *deploy.DeployContext) (*chev1.CheClusterBackup, error) {
 	backupCR := &chev1.CheClusterBackup{}
-	backupCRName := getBackupCRNameForVersion(deployContext.CheCluster.Status.CheVersion)
+	backupCRName := getBackupCRNameForVersion(deploy.DefaultCheVersion())
 	backupCRNamespacedName := types.NamespacedName{Namespace: deployContext.CheCluster.GetNamespace(), Name: backupCRName}
 	if err := deployContext.ClusterAPI.Client.Get(context.TODO(), backupCRNamespacedName, backupCR); err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func getBackupCRSpec(deployContext *deploy.DeployContext) *chev1.CheClusterBacku
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getBackupCRNameForVersion(deployContext.CheCluster.Status.CheVersion),
+			Name:      getBackupCRNameForVersion(deploy.DefaultCheVersion()),
 			Namespace: deployContext.CheCluster.GetNamespace(),
 			Labels:    labels,
 		},
