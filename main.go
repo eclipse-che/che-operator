@@ -13,9 +13,9 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"os"
+	"time"
 
 	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -25,7 +25,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	// "sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -50,7 +49,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	// "github.com/eclipse-che/che-operator/pkg/signal"
+	"github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -79,6 +78,9 @@ var (
 	metricsAddr          string
 	enableLeaderElection bool
 	probeAddr            string
+
+	leaseDuration = 40 * time.Second
+	renewDeadline = 30 * time.Second
 )
 
 func init() {
@@ -192,10 +194,6 @@ func main() {
 			"the manager will watch and manage resources in all namespaces")
 	}
 
-	// ctrl.GetConfigOrDie().
-	// cluster.New(ctrl.GetConfigOrDie(), )
-
-	// period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -203,13 +201,13 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "e79b08a4.org.eclipse.che",
+		LeaseDuration: &leaseDuration,
+		RenewDeadline: &renewDeadline,
 		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
 		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
 		// Instead, if some controller wants to limit itself to single namespace, it can do it
 		// for example using an event filter, as checontroller does.
 		// Namespace:              watchNamespace,
-		// TODO try to use it instead of signal handler....
-		// GracefulShutdownTimeout: period,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -255,7 +253,8 @@ func main() {
 
 	// Start the Cmd
 	setupLog.Info("starting manager")
-	if err := mgr.Start(context.TODO()); err != nil {
+	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
+	if err := mgr.Start(signal.SetupSignalHandler(period)); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

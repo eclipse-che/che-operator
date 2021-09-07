@@ -25,30 +25,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SetupSignalHandler set up custom signal handler for main process.
-func SetupSignalHandler(terminationPeriod int64) (stopCh <-chan struct{}) {
-	logrus.Info("Set up process signal handler")
-	var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT}
+var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT}
+var onlyOneSignalHandler = make(chan struct{})
 
-	stop := make(chan struct{})
-	c := make(chan os.Signal, 1)
+// SetupSignalHandler set up custom signal handler for main process.
+func SetupSignalHandler(terminationPeriod int64) context.Context {
+	logrus.Info("Set up process signal handler")
+	close(onlyOneSignalHandler) // panics when called twice
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	c := make(chan os.Signal, 2)
 	signal.Notify(c, shutdownSignals...)
 	go func() {
 		sig := <-c
 		printSignal(sig)
 
-		// We need provide more time for Che controller go routing to complete finalizers logic.
+		// We need provide more time for operator controllers go routing to complete finalizers logic.
 		// Otherwise resource won't be clean up gracefully
 		// and Che custom resource will stay with non empty "finalizers" field.
 		time.Sleep(time.Duration(terminationPeriod) * time.Second)
 		logrus.Info("Stop and exit operator.")
 		// Stop Che controller
-		close(stop)
-		// Exit from main process directly.
+		cancel()
+		<-c
+		// Second signal. Exit from main process directly.
 		os.Exit(1)
 	}()
 
-	return stop
+	return ctx
 }
 
 func printSignal(signal os.Signal) {
