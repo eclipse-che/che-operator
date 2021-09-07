@@ -315,6 +315,10 @@ func enableDevworkspaceSupport(mgr manager.Manager) error {
 			setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
 			return err
 		}
+
+		setupLog.Info("Devworkspace support enabled")
+	} else {
+		setupLog.Info("Devworkspace support disabled")
 	}
 
 	return nil

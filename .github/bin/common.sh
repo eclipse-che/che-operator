@@ -177,15 +177,18 @@ collectLogs() {
 
 # Build latest operator image
 buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
+  #docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinikube() {
-  eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
+  docker save "${OPERATOR_IMAGE}" | minikube ssh --native-ssh=false -- docker load
+  #eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinishift() {
-  eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
+  docker save -o "${OPERATOR_IMAGE}" | minishift ssh "docker load"
+  #eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
 # Prepare chectl che-operator templates
@@ -519,7 +522,7 @@ waitAllPodsRunning() {
     fi
 
     kubectl get pods -n ${namespace}
-    sleep 5
+    sleep 10
     n=$(( n+1 ))
   done
 
