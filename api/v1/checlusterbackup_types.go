@@ -42,7 +42,7 @@ type CheClusterBackupStatus struct {
 	// Last backup snapshot ID
 	// +optional
 	SnapshotId string `json:"snapshotId,omitempty"`
-	// Version that was back upped
+	// Version that was backed up
 	// +optional
 	CheVersion string `json:"cheVersion,omitempty"`
 }
