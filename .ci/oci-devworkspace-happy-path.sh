@@ -66,8 +66,6 @@ overrideDefaults() {
 deployChe() {
   cat > /tmp/che-cr-patch.yaml <<EOL
 spec:
-  devWorkspace:
-    enable: true
   server:
     customCheProperties:
       CHE_FACTORY_DEFAULT__PLUGINS: ""
@@ -85,6 +83,7 @@ EOL
     --templates=${TEMPLATES} \
     --telemetry=off \
     --installer=operator \
+    --workspace-engine=dev-workspace \
     --che-operator-image=${OPERATOR_IMAGE}
 }
 
