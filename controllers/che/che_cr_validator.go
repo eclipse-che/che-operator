@@ -36,10 +36,10 @@ func ValidateCheCR(checluster *orgv1.CheCluster) error {
 		return fmt.Errorf(`Namespace strategies other than 'per user' is not supported anymore. Using the <username> or <userid> placeholder is required in the 'spec.server.workspaceNamespaceDefault' field. The current value is: %s`, workspaceNamespaceDefault)
 	}
 
-	isCheMultiUser := util.IsCheMultiUser(checluster)
-	if !isCheMultiUser {
-		return fmt.Errorf(`Single user authentication mode is not supported anymore. \
-To backup your data you can commit workspace configuration to an SCM server and use factories to restore it in multi user mode.`)
+	if !util.IsCheMultiUser(checluster) {
+		fmt.Printf(`Single user authentication mode is not supported anymore. \
+To backup your data you can commit workspace configuration to an SCM server and use factories to restore it in multi user mode.
+To switch to multi user authentication mode set 'spec.server.customCheProperties.CHE_MULTIUSER' to "true" in %s CheCluster custom resource.'`, checluster.Name)
 	}
 
 	return nil
