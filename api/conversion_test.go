@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	// "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -34,11 +34,11 @@ func TestV1ToV2alpha1(t *testing.T) {
 				PostgresImage: "postgres:the-best-version",
 			},
 			DevWorkspace: v1.CheClusterSpecDevWorkspace{},
-			ImagePuller: v1.CheClusterSpecImagePuller{
-				Spec: v1alpha1.KubernetesImagePullerSpec{
-					ConfigMapName: "pulled-kachna",
-				},
-			},
+			// ImagePuller: v1.CheClusterSpecImagePuller{
+			// 	Spec: v1alpha1.KubernetesImagePullerSpec{
+			// 		ConfigMapName: "pulled-kachna",
+			// 	},
+			// },
 			K8s: v1.CheClusterSpecK8SOnly{
 				IngressDomain:   "ingressDomain",
 				IngressClass:    "traefik",
@@ -641,11 +641,11 @@ func TestFullCircleV1(t *testing.T) {
 				PostgresImage: "postgres:the-best-version",
 			},
 			DevWorkspace: v1.CheClusterSpecDevWorkspace{},
-			ImagePuller: v1.CheClusterSpecImagePuller{
-				Spec: v1alpha1.KubernetesImagePullerSpec{
-					ConfigMapName: "pulled-kachna",
-				},
-			},
+			// ImagePuller: v1.CheClusterSpecImagePuller{
+			// 	Spec: v1alpha1.KubernetesImagePullerSpec{
+			// 		ConfigMapName: "pulled-kachna",
+			// 	},
+			// },
 			K8s: v1.CheClusterSpecK8SOnly{
 				IngressDomain:   "ingressDomain",
 				IngressClass:    "traefik",

@@ -194,16 +194,16 @@ func (cl *k8s) IsResourceOperationPermitted(resourceAttr *authorizationv1.Resour
 func InNamespaceEventFilter(namespace string) predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(ce event.CreateEvent) bool {
-			return namespace == ce.Meta.GetNamespace()
+			return namespace == ce.Object.GetNamespace()
 		},
 		DeleteFunc: func(de event.DeleteEvent) bool {
-			return namespace == de.Meta.GetNamespace()
+			return namespace == de.Object.GetNamespace()
 		},
 		UpdateFunc: func(ue event.UpdateEvent) bool {
-			return namespace == ue.MetaNew.GetNamespace()
+			return namespace == ue.ObjectOld.GetNamespace()
 		},
 		GenericFunc: func(ge event.GenericEvent) bool {
-			return namespace == ge.Meta.GetNamespace()
+			return namespace == ge.Object.GetNamespace()
 		},
 	}
 }

@@ -18,6 +18,7 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	console "github.com/openshift/api/console/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
@@ -104,10 +105,7 @@ func TestReconcileConsoleLink(t *testing.T) {
 	// check finalizer
 	c = &orgv1.CheCluster{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "eclipse-che"}, c)
-	if err != nil {
+	if !errors.IsNotFound(err) {
 		t.Fatalf("Failed to get checluster: %v", err)
-	}
-	if util.ContainsString(c.ObjectMeta.Finalizers, ConsoleLinkFinalizerName) {
-		t.Fatalf("Failed to remove finalizer")
 	}
 }

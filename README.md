@@ -459,3 +459,6 @@ $ mockgen -source=pkg/controller/che/oauth_initial_htpasswd_provider.go \
 ```
 
 See more: https://github.com/golang/mock/blob/master/README.md
+
+
+go get sigs.k8s.io/controller-runtime@8348079b5c46

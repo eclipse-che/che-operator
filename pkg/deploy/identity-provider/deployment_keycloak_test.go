@@ -13,7 +13,7 @@ package identity_provider
 
 import (
 	"context"
-	"os"
+	// "os"
 	"reflect"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	// logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -93,7 +93,7 @@ func TestDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
@@ -194,7 +194,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)

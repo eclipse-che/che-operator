@@ -12,15 +12,15 @@
 package deploy
 
 import (
-	"os"
+	// "os"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	// logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -36,7 +36,7 @@ func TestAppendFinalizer(t *testing.T) {
 			Name:      "eclipse-che",
 		},
 	}
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
 
@@ -76,7 +76,7 @@ func TestDeleteFinalizer(t *testing.T) {
 			Finalizers: []string{finalizer},
 		},
 	}
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
 

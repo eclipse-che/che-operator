@@ -5,28 +5,30 @@ go 1.15
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
-	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210428110012-14ef54b7dbf4
+	// github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210428110012-14ef54b7dbf4
 	github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
-	github.com/devfile/devworkspace-operator v0.2.1-0.20210825134510-d99fe14255d3
+	github.com/devfile/devworkspace-operator v0.2.1-0.20210906065716-d0b62f524bef
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
-	github.com/google/go-cmp v0.5.2
-	github.com/onsi/ginkgo v1.16.4 // indirect
-	github.com/onsi/gomega v1.13.0 // indirect
+	github.com/google/go-cmp v0.5.6
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/operator-framework/api v0.10.0
 	github.com/operator-framework/operator-lifecycle-manager v0.18.1
-	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
-	go.uber.org/zap v1.16.0
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	go.uber.org/zap v1.18.1
+	// go.uber.org/zap v1.18.1
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	k8s.io/api v0.21.1
-	k8s.io/apiextensions-apiserver v0.20.6
-	k8s.io/apimachinery v0.21.1
-	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
-	sigs.k8s.io/controller-runtime v0.9.0
+	k8s.io/api v0.21.3
+	k8s.io/apiextensions-apiserver v0.21.3
+	k8s.io/apimachinery v0.21.3
+	// k8s.io/api v0.21.3
+	// k8s.io/apiextensions-apiserver v0.21.3
+	// k8s.io/apimachinery v0.21.3
+	k8s.io/client-go v0.21.3
+	// sigs.k8s.io/controller-runtime v0.9.5
+	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471
+	sigs.k8s.io/controller-runtime v0.9.5
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -123,7 +125,7 @@ replace (
 	github.com/coreos/go-semver => github.com/coreos/go-semver v0.3.0
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
-	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.34.0
+	// github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.34.0
 	github.com/cpuguy83/go-md2man => github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty => github.com/creack/pty v1.1.9
 	github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.2
@@ -169,8 +171,8 @@ replace (
 	github.com/go-ini/ini => github.com/go-ini/ini v1.25.4
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/go-logfmt/logfmt => github.com/go-logfmt/logfmt v0.5.0
-	github.com/go-logr/logr => github.com/go-logr/logr v0.3.0
-	github.com/go-logr/zapr => github.com/go-logr/zapr v0.3.0
+	// github.com/go-logr/logr => github.com/go-logr/logr v0.3.0
+	// github.com/go-logr/zapr => github.com/go-logr/zapr v0.3.0
 	github.com/go-openapi/errors => github.com/go-openapi/errors v0.19.2
 	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.19.3
 	github.com/go-openapi/jsonreference => github.com/go-openapi/jsonreference v0.19.3
@@ -205,7 +207,7 @@ replace (
 	github.com/golangplus/fmt => github.com/golangplus/fmt v0.0.0-20150411045040-2a5d6d7d2995
 	github.com/google/btree => github.com/google/btree v1.0.0
 	github.com/google/cadvisor => github.com/google/cadvisor v0.34.0
-	github.com/google/go-cmp => github.com/google/go-cmp v0.5.2
+	// github.com/google/go-cmp => github.com/google/go-cmp v0.5.2
 	github.com/google/go-github => github.com/google/go-github/v18 v18.0.0-20180920013327-07716bad7a0c
 	github.com/google/go-querystring => github.com/google/go-querystring v1.0.0
 	github.com/google/gofuzz => github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
@@ -351,10 +353,10 @@ replace (
 	github.com/opentracing/basictracer-go => github.com/opentracing/basictracer-go v1.0.0
 	github.com/opentracing/opentracing-go => github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin/zipkin-go => github.com/openzipkin/zipkin-go v0.2.2
-	github.com/operator-framework/api => github.com/operator-framework/api v0.8.0
-	github.com/operator-framework/operator-lifecycle-manager => github.com/operator-framework/operator-lifecycle-manager v0.18.1
-	github.com/operator-framework/operator-registry => github.com/operator-framework/operator-registry v1.13.6
-	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.15.2
+	// github.com/operator-framework/api => github.com/operator-framework/api v0.8.0
+	// github.com/operator-framework/operator-lifecycle-manager => github.com/operator-framework/operator-lifecycle-manager v0.18.1
+	// github.com/operator-framework/operator-registry => github.com/operator-framework/operator-registry v1.13.6
+	// github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.15.2
 	github.com/otiai10/copy => github.com/otiai10/copy v1.2.0
 	github.com/otiai10/curr => github.com/otiai10/curr v1.0.0
 	github.com/otiai10/mint => github.com/otiai10/mint v1.3.1
@@ -371,9 +373,9 @@ replace (
 	github.com/posener/complete => github.com/posener/complete v1.1.1
 	github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
 	github.com/pquerna/ffjson => github.com/pquerna/ffjson v0.0.0-20171002144729-d49c2bc1aa13
-	github.com/prometheus/procfs => github.com/prometheus/procfs v0.2.0
-	github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.0.0-20180315085919-58e2a31db8de
-	github.com/prometheus/tsdb => github.com/prometheus-junkyard/tsdb v0.8.0
+	// github.com/prometheus/procfs => github.com/prometheus/procfs v0.2.0
+	// github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.0.0-20180315085919-58e2a31db8de
+	// github.com/prometheus/tsdb => github.com/prometheus-junkyard/tsdb v0.8.0
 	github.com/quobyte/api => github.com/quobyte/api v0.1.2
 	github.com/remyoudompheng/bigfft => github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 	github.com/robfig/cron => github.com/robfig/cron v1.1.0
@@ -442,7 +444,7 @@ replace (
 	go.opencensus.io => go.opencensus.io v0.22.3
 	go.uber.org/multierr => go.uber.org/multierr v1.3.0
 	go.uber.org/tools => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
-	go.uber.org/zap => go.uber.org/zap v1.13.0
+	// go.uber.org/zap => go.uber.org/zap v1.13.0
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20190426190305-956cc1757749
 	gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.0.1
@@ -477,20 +479,20 @@ replace (
 	grpc-ecosystem/grpc-health-probe => grpc-ecosystem/grpc-health-probe v0.3.2
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.0.0-20200422233323-0a9a9a88e8af
 	honnef.co/go/tools => honnef.co/go/tools v0.0.0-20200822191040-81508471876c
-	k8s.io/api => k8s.io/api v0.20.6
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.6
-	k8s.io/apimachinery => k8s.io/apimachinery v0.20.6
-	k8s.io/apiserver => k8s.io/apiserver v0.20.6
+	// k8s.io/api => k8s.io/api v0.20.6
+	// k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.6
+	// k8s.io/apimachinery => k8s.io/apimachinery v0.20.6
+	// k8s.io/apiserver => k8s.io/apiserver v0.20.6
 	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20201110183641-97acd14b9686
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.20.6
-	k8s.io/client-go => k8s.io/client-go v0.20.6
+	// k8s.io/cli-runtime => k8s.io/cli-runtime v0.20.6
+	k8s.io/client-go => k8s.io/client-go v0.21.0
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.0.0-20190620090043-8301c0bda1f0
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.6
+	// k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.6
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20200708172309-f186a36abf5c
 	k8s.io/component-base => k8s.io/component-base v0.20.2
 	k8s.io/component-helpers => k8s.io/component-helpers v0.20.1
-	k8s.io/cri-api => k8s.io/cri-api v0.20.6
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.20.6
+	// k8s.io/cri-api => k8s.io/cri-api v0.20.6
+	// k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.20.6
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 	k8s.io/heapster => k8s.io/heapster v0.0.0-20180912150135-c78cc312ab39
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
@@ -498,7 +500,7 @@ replace (
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.21.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200923105717-7eba4cbaebdf
 
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.20.6
+	// k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.20.6
 	k8s.io/repo-infra => k8s.io/repo-infra v0.0.0-20180920215123-069c38ebb042
 	k8s.io/utils => k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	kubernetes/klog => kubernetes/klog v1.0.0
@@ -515,7 +517,7 @@ replace (
 	modernc.org/strutil => modernc.org/strutil v1.1.0
 	modernc.org/zappy => modernc.org/zappy v1.0.0
 	rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.3
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.3
+	// sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/controller-tgithub.com/containerd/console v0.0.0-20180822173158-c12b1e7919c1ools => sigs.k8s.io/controller-tools v0.0.0-20200129215414-2bc3f5eb99cc
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.10.0
 	sigs.k8s.io/kustomize/v2 => sigs.k8s.io/kustomize/v3 v3.0.0-20190726175121-95f3303493fd
@@ -525,11 +527,11 @@ replace (
 )
 
 replace (
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.2.1
-	github.com/prometheus/client_model => github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
-	github.com/prometheus/common => github.com/prometheus/common v0.7.0
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.20.6
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.20.6
+	// github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.2.1
+	// github.com/prometheus/client_model => github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
+	// github.com/prometheus/common => github.com/prometheus/common v0.7.0
+	// k8s.io/kube-proxy => k8s.io/kube-proxy v0.20.6
+	// k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.20.6
 	k8s.io/kube-state-metrics => k8s.io/kube-state-metrics v0.0.0-20180918070825-cb9f20b57574
 	k8s.io/kubectl => k8s.io/kubectl v0.0.0-20201218185502-10b66c3fd14b
 	k8s.io/kubelet => k8s.io/kubelet v0.0.0-20180908160459-cf37f0b20133

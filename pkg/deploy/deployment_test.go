@@ -13,7 +13,7 @@ package deploy
 
 import (
 	"context"
-	"os"
+	// "os"
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	// logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -47,7 +47,7 @@ var (
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
-						corev1.Container{},
+						{},
 					},
 				},
 			},
@@ -69,6 +69,7 @@ func TestMountSecret(t *testing.T) {
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -81,6 +82,7 @@ func TestMountSecret(t *testing.T) {
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -138,6 +140,7 @@ func TestMountSecret(t *testing.T) {
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -150,6 +153,7 @@ func TestMountSecret(t *testing.T) {
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -204,6 +208,7 @@ func TestMountSecret(t *testing.T) {
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -216,6 +221,7 @@ func TestMountSecret(t *testing.T) {
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -295,7 +301,7 @@ func TestMountSecret(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
@@ -339,6 +345,7 @@ func TestMountConfigMaps(t *testing.T) {
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -351,6 +358,7 @@ func TestMountConfigMaps(t *testing.T) {
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -410,6 +418,7 @@ func TestMountConfigMaps(t *testing.T) {
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -422,6 +431,7 @@ func TestMountConfigMaps(t *testing.T) {
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -476,6 +486,7 @@ func TestMountConfigMaps(t *testing.T) {
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -488,6 +499,7 @@ func TestMountConfigMaps(t *testing.T) {
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "che",
+					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: corev1.PodTemplateSpec{
@@ -567,7 +579,7 @@ func TestMountConfigMaps(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)

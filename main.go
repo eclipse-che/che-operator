@@ -13,6 +13,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -24,6 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	// "sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -48,7 +50,7 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/signal"
+	// "github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -61,7 +63,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
-	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
+	// image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -118,7 +120,7 @@ func init() {
 
 	// Setup Scheme for all resources
 	utilruntime.Must(orgv1.AddToScheme(scheme))
-	utilruntime.Must(image_puller_api.AddToScheme(scheme))
+	// utilruntime.Must(image_puller_api.AddToScheme(scheme))
 	utilruntime.Must(packagesv1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1.AddToScheme(scheme))
@@ -190,6 +192,10 @@ func main() {
 			"the manager will watch and manage resources in all namespaces")
 	}
 
+	// ctrl.GetConfigOrDie().
+	// cluster.New(ctrl.GetConfigOrDie(), )
+
+	// period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -203,7 +209,7 @@ func main() {
 		// for example using an event filter, as checontroller does.
 		// Namespace:              watchNamespace,
 		// TODO try to use it instead of signal handler....
-		// GracefulShutdownTimeout: ,
+		// GracefulShutdownTimeout: period,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -248,9 +254,8 @@ func main() {
 	}
 
 	// Start the Cmd
-	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	setupLog.Info("starting manager")
-	if err := mgr.Start(signal.SetupSignalHandler(period)); err != nil {
+	if err := mgr.Start(context.TODO()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

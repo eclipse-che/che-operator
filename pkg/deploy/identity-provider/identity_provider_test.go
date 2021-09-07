@@ -12,7 +12,7 @@
 package identity_provider
 
 import (
-	"os"
+	// "os"
 	"reflect"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -25,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	// logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -46,6 +46,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "che-cluster",
 					Namespace: "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
@@ -87,6 +88,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "che-cluster",
 					Namespace: "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
@@ -125,12 +127,14 @@ func TestSyncGitHubOAuth(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "che-cluster",
 					Namespace: "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "che-cluster",
 					Namespace: "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			initObjects: []runtime.Object{
@@ -159,6 +163,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "che-cluster",
 					Namespace: "eclipse-che",
+					ResourceVersion: "0",
 				},
 				Status: orgv1.CheClusterStatus{
 					GitHubOAuthProvisioned: true,
@@ -180,7 +185,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initCR)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
