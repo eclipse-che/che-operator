@@ -639,7 +639,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 					},
 				},
 				Ports: []corev1.ContainerPort{
-					{ContainerPort: 8080},
+					{ContainerPort: 8080, Protocol: "TCP"},
 				},
 			},
 			corev1.Container{
