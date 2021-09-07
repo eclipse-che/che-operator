@@ -46,10 +46,13 @@ function bumpPodsInfo() {
 }
 
 function Catch_Finish() {
-    # grab devworkspace-controller namespace events after running e2e
+    bumpPodsInfo "eclipse-che"
     bumpPodsInfo "devworkspace-controller"
-    bumpPodsInfo "admin-che"
-    oc get devworkspaces -n "admin-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml
+    bumpPodsInfo "user-che"
+    # bump DW related CRs but do not fail when CRDs are not created yet
+    oc get devworkspace -n "user-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml || true
+    oc get devworkspacetemplate -n "user-che" -o=yaml > $ARTIFACTS_DIR/devworkspace-templates.yaml || true
+    oc get devworkspacerouting -n "user-che" -o=yaml > $ARTIFACTS_DIR/devworkspace-routings.yaml || true
 
     collectLogs
 }
