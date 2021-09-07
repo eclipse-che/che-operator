@@ -13,7 +13,7 @@ package deploy
 
 import (
 	"context"
-	// "os"
+	"os"
 	"reflect"
 
 	"github.com/google/go-cmp/cmp"
@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
-	// logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"testing"
 )
@@ -68,7 +68,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount secret as file",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -81,7 +81,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -139,7 +139,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount env variable",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -152,7 +152,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -207,7 +207,7 @@ func TestMountSecret(t *testing.T) {
 			name: "Mount several env variables",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -220,7 +220,7 @@ func TestMountSecret(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -301,7 +301,7 @@ func TestMountSecret(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
@@ -344,7 +344,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount configmap as file",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -357,7 +357,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -417,7 +417,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount env variable",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -430,7 +430,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -485,7 +485,7 @@ func TestMountConfigMaps(t *testing.T) {
 			name: "Mount several env variables",
 			initDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -498,7 +498,7 @@ func TestMountConfigMaps(t *testing.T) {
 			},
 			expectedDeployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che",
+					Name:            "che",
 					ResourceVersion: "0",
 				},
 				Spec: appsv1.DeploymentSpec{
@@ -579,7 +579,7 @@ func TestMountConfigMaps(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)

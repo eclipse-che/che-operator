@@ -64,16 +64,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	configv1 "github.com/openshift/api/config/v1"
-	// "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	// logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/yaml"
 
 	"testing"
 )
 
 var (
-	namespace       = "eclipse-che"
+	namespace = "eclipse-che"
 	// csvName         = "kubernetes-imagepuller-operator.v0.0.4"
 	// packageManifest = &packagesv1.PackageManifest{
 	// 	ObjectMeta: metav1.ObjectMeta{
@@ -111,7 +111,7 @@ var (
 	// 		Package:                "kubernetes-imagepuller-operator",
 	// 	},
 	// }
-	valueTrue             = true
+	valueTrue = true
 	// clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
 	// 	ObjectMeta: metav1.ObjectMeta{
 	// 		Namespace: namespace,
@@ -225,7 +225,7 @@ func TestNativeUserModeEnabled(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -435,7 +435,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -546,7 +546,7 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -675,7 +675,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -1430,7 +1430,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			// logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -1838,11 +1838,11 @@ type ImagePullerOptions struct {
 // 				},
 // 			},
 // 		},
-		// Spec: chev1alpha1.KubernetesImagePullerSpec{
-		// 	DeploymentName: "kubernetes-image-puller",
-		// 	ConfigMapName:  "k8s-image-puller",
-		// 	Images:         defaultImagePullerImages,
-		// },
+// Spec: chev1alpha1.KubernetesImagePullerSpec{
+// 	DeploymentName: "kubernetes-image-puller",
+// 	ConfigMapName:  "k8s-image-puller",
+// 	Images:         defaultImagePullerImages,
+// },
 // 	}
 // }
 
