@@ -87,6 +87,8 @@ func GetCurrentCheClusterInstances() map[client.ObjectKey]v2alpha1.CheCluster {
 	return ret
 }
 
+// CleanCheClusterInstancesForTest is a helper function for test code in other packages that needs
+// to re-initialize the state of the checluster instance cache.
 func CleanCheClusterInstancesForTest() {
 	cheInstancesAccess.Lock()
 	defer cheInstancesAccess.Unlock()
