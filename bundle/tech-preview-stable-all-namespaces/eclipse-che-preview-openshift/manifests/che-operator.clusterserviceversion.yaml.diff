@@ -1,5 +1,5 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/che-operator.clusterserviceversion.yaml	2021-09-01 12:09:22.551607799 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable-all-namespaces/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml	2021-09-01 12:10:19.199632303 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/tech-preview-stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/che-operator.clusterserviceversion.yaml	2021-09-01 12:09:22.551607799 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/tech-preview-stable-all-namespaces/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml	2021-09-01 12:10:19.199632303 +0000
 @@ -41,7 +41,7 @@
                "externalDb": false
              },

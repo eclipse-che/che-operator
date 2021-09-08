@@ -17,7 +17,7 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 export HAPPY_PATH_POD_NAME=happy-path-che
-export HAPPY_PATH_DEVFILE='https://gist.githubusercontent.com/l0rd/71a04dd0d8c8e921b16ba2690f7d5a47/raw/d520086e148c359b18c229328824dfefcf85e5ef/spring-petclinic-devfile-v2.0.0.yaml'
+export HAPPY_PATH_TEST_PROJECT='https://github.com/che-samples/java-spring-petclinic/tree/devfilev2'
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
@@ -46,10 +46,13 @@ function bumpPodsInfo() {
 }
 
 function Catch_Finish() {
-    # grab devworkspace-controller namespace events after running e2e
+    bumpPodsInfo "eclipse-che"
     bumpPodsInfo "devworkspace-controller"
-    bumpPodsInfo "admin-che"
-    oc get devworkspaces -n "admin-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml
+    bumpPodsInfo "user-che"
+    # bump DW related CRs but do not fail when CRDs are not created yet
+    oc get devworkspace -n "user-che" -o=yaml > $ARTIFACTS_DIR/devworkspaces.yaml || true
+    oc get devworkspacetemplate -n "user-che" -o=yaml > $ARTIFACTS_DIR/devworkspace-templates.yaml || true
+    oc get devworkspacerouting -n "user-che" -o=yaml > $ARTIFACTS_DIR/devworkspace-routings.yaml || true
 
     collectLogs
 }
@@ -63,8 +66,6 @@ overrideDefaults() {
 deployChe() {
   cat > /tmp/che-cr-patch.yaml <<EOL
 spec:
-  devWorkspace:
-    enable: true
   server:
     customCheProperties:
       CHE_FACTORY_DEFAULT__PLUGINS: ""
@@ -82,13 +83,14 @@ EOL
     --templates=${TEMPLATES} \
     --telemetry=off \
     --installer=operator \
+    --workspace-engine=dev-workspace \
     --che-operator-image=${OPERATOR_IMAGE}
 }
 
 startHappyPathTest() {
   # patch pod-che-happy-path.yaml
   ECLIPSE_CHE_URL=http://$(oc get route -n "${NAMESPACE}" che -o jsonpath='{.status.ingress[0].host}')
-  TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_DEVFILE}"
+  TS_SELENIUM_DEVWORKSPACE_URL="${ECLIPSE_CHE_URL}/#${HAPPY_PATH_TEST_PROJECT}"
 
   curl https://raw.githubusercontent.com/eclipse/che/main/tests/.infra/openshift-ci/pod-che-happy-path.yaml > /tmp/pod-che-happy-path.yaml
   sed -i "s@CHE_URL@${ECLIPSE_CHE_URL}@g" /tmp/pod-che-happy-path.yaml
