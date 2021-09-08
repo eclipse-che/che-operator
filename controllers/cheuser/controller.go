@@ -12,8 +12,6 @@ import (
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -39,15 +37,6 @@ type CheUserNamespaceReconciler struct {
 }
 
 var _ reconcile.Reconciler = (*CheUserNamespaceReconciler)(nil)
-
-var (
-	configMapDiffOpts cmp.Option = cmp.Options{
-		cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta"),
-	}
-	secretDiffOpts cmp.Option = cmp.Options{
-		cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
-	}
-)
 
 func NewReconciler() *CheUserNamespaceReconciler {
 	return &CheUserNamespaceReconciler{namespaceCache: *NewNamespaceCache()}
@@ -269,7 +258,7 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		},
 	}
 
-	_, err := deploy.DoSync(deployContext, targetCert, secretDiffOpts)
+	_, err := deploy.DoSync(deployContext, targetCert, deploy.SecretDiffOpts)
 	return err
 }
 
@@ -335,7 +324,7 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 		Data: proxySettings,
 	}
 
-	_, err = deploy.DoSync(deployContext, cfg, configMapDiffOpts)
+	_, err = deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
 	return err
 }
 

@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var secretDiffOpts = cmp.Options{
+var SecretDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
 }
 
@@ -39,7 +39,7 @@ func SyncSecretToCluster(
 	data map[string][]byte) (bool, error) {
 
 	secretSpec := GetSecretSpec(deployContext, name, namespace, data)
-	return Sync(deployContext, secretSpec, secretDiffOpts)
+	return Sync(deployContext, secretSpec, SecretDiffOpts)
 }
 
 // Get all secrets by labels and annotations
