@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	ownerUidLabel            string = "che.eclipse.org/workspace-namespace-owner-uid"
-	cheClusterNameLabel      string = "che.eclipse.org/che-name"
-	cheClusterNamespaceLabel string = "che.eclipse.org/che-namespace"
+	workspaceNamespaceOwnerUidLabel string = "che.eclipse.org/workspace-namespace-owner-uid"
+	cheNameLabel                    string = "che.eclipse.org/che-name"
+	cheNamespaceLabel               string = "che.eclipse.org/che-namespace"
 )
 
 type namespaceCache struct {
@@ -103,9 +103,9 @@ func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) 
 		labels = map[string]string{}
 	}
 
-	ownerUid := labels[ownerUidLabel]
-	cheName := labels[cheClusterNameLabel]
-	cheNamespace := labels[cheClusterNamespaceLabel]
+	ownerUid := labels[workspaceNamespaceOwnerUidLabel]
+	cheName := labels[cheNameLabel]
+	cheNamespace := labels[cheNamespaceLabel]
 
 	ret := namespaceInfo{
 		OwnerUid: ownerUid,

@@ -111,7 +111,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 		}
 
 		ns.(metav1.Object).SetLabels(map[string]string{
-			ownerUidLabel: "uid",
+			workspaceNamespaceOwnerUidLabel: "uid",
 		})
 
 		if err := cl.Update(ctx, ns); err != nil {

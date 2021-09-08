@@ -174,7 +174,7 @@ func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 				Labels: map[string]string{
-					ownerUidLabel: "uid",
+					workspaceNamespaceOwnerUidLabel: "uid",
 				},
 			},
 		})
@@ -185,7 +185,7 @@ func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "prj",
 				Labels: map[string]string{
-					ownerUidLabel: "uid",
+					workspaceNamespaceOwnerUidLabel: "uid",
 				},
 			},
 		})
@@ -214,9 +214,9 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 				Labels: map[string]string{
-					ownerUidLabel:            "uid",
-					cheClusterNameLabel:      "che",
-					cheClusterNamespaceLabel: "che1",
+					workspaceNamespaceOwnerUidLabel: "uid",
+					cheNameLabel:                    "che",
+					cheNamespaceLabel:               "che1",
 				},
 			},
 		})
@@ -227,9 +227,9 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "prj",
 				Labels: map[string]string{
-					ownerUidLabel:            "uid",
-					cheClusterNameLabel:      "che",
-					cheClusterNamespaceLabel: "che1",
+					workspaceNamespaceOwnerUidLabel: "uid",
+					cheNameLabel:                    "che",
+					cheNamespaceLabel:               "che1",
 				},
 			},
 		})
@@ -295,7 +295,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ns",
 				Labels: map[string]string{
-					ownerUidLabel: "uid",
+					workspaceNamespaceOwnerUidLabel: "uid",
 				},
 			},
 		})
@@ -306,7 +306,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "prj",
 				Labels: map[string]string{
-					ownerUidLabel: "uid",
+					workspaceNamespaceOwnerUidLabel: "uid",
 				},
 			},
 		}, &configv1.Proxy{
