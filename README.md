@@ -143,19 +143,19 @@ $ chectl server:deploy --installer=olm --platform=<CHECTL_SUPPORTED_PLATFORM> --
 Eclipse Che introduced a new channel which installs Eclipse Che in AllNamespace mode with Devworkspace Operator like an OLM dependency.
 More info about DevWorkspace Operator can be found [here](https://github.com/devfile/devworkspace-operator).
 
-Before installing Eclipse Che using channel `stable-all-namespaces` we need to consider the following:
+Before installing Eclipse Che using channel `tech-preview-stable-all-namespaces` we need to consider the following:
 
-* It is not possible to have Eclipse Che installed in single Namespace (currently the default one) and then try to install Che in All Namespace mode using the new channel stable-all-namespaces.
-* To update to stable-all-namespaces channel you need first to remove all subscriptions created for Che installed from next or stable
+* It is not possible to have Eclipse Che installed in single Namespace (currently the default one) and then try to install Che in All Namespace mode using the new channel tech-preview-stable-all-namespaces.
+* To update to tech-preview-stable-all-namespaces channel you need first to remove all subscriptions created for Che installed from next or stable
 channels. IMPORTANT: Removing subscriptions doesn’t mean Eclipse Che operands(che-server, keycloak or roles) will be removed from the cluster.
 * DevWorkspace engine will be by default enabled in the new channel.
 * In case if you have already installed Che with DevWorkspace engine enabled from channels next or stable you need to remove all DevWorkspace resources from the cluster following the next [scripts](https://github.com/devfile/devworkspace-operator/blob/main/build/make/deploy.mk#L77).
-* `stable-all-namespaces` channel is supported only in OpenShift.
+* `tech-preview-stable-all-namespaces` channel is supported only in OpenShift.
 
-If the OpenShift Cluster already have all these considerations done you can proceed to install the Eclipse Che using stable-all-namespaces channel from OperatorHub or using the new channel you need to perform the following chectl command:
+If the OpenShift Cluster already have all these considerations done you can proceed to install the Eclipse Che using tech-preview-stable-all-namespaces channel from OperatorHub or using the new channel you need to perform the following chectl command:
 
 ```bash
-chectl server:deploy --installer=olm --platform=openshift --olm-channel=stable-all-namespaces
+chectl server:deploy --installer=olm --platform=openshift --olm-channel=tech-preview-stable-all-namespaces
 ```
 
 ### Deploy Che operator using operator-sdk

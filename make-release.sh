@@ -28,7 +28,7 @@ init() {
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
   DEV_WORKSPACE_CONTROLLER_VERSION="main"
-  STABLE_CHANNELS=("stable-all-namespaces" "stable")
+  STABLE_CHANNELS=("tech-preview-stable-all-namespaces" "stable")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
 
@@ -255,7 +255,7 @@ pushOlmBundlesToQuayIo() {
   echo "[INFO] releaseOperatorCode :: Login to quay.io..."
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   echo "[INFO] Push OLM bundles to quay.io"
-  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable-all-namespaces" -p "openshift" -f "true"
+  . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "tech-preview-stable-all-namespaces" -p "openshift" -f "true"
   . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "kubernetes" -f "true"
   . ${RELEASE_DIR}/olm/buildAndPushBundleImages.sh -c "stable" -p "openshift" -f "true"
 }
