@@ -13,6 +13,7 @@ package che
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	semver "github.com/blang/semver/v4"
@@ -24,24 +25,32 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
 
-func isPreviousVersionDeployed(cheCR *chev1.CheCluster) bool {
-	deployedVersion := cheCR.Status.CheVersion
-	currentVersion := deploy.DefaultCheVersion()
-	if deployedVersion == "" || deployedVersion == "next" || deployedVersion == currentVersion {
+const (
+	DefaultBackupServerConfigLabelKey = "che.eclipse.org/default-backup-server-configuration"
+)
+
+func isCheGoingToBeUpdated(cheCR *chev1.CheCluster) bool {
+	deployedCheVersion := cheCR.Status.CheVersion
+	newCheVersion := deploy.DefaultCheVersion()
+	if deployedCheVersion == "" || deployedCheVersion == "next" || deployedCheVersion == newCheVersion {
 		return false
 	}
 
-	deployedSemver, err := semver.Make(deployedVersion)
+	deployedSemver, err := semver.Make(deployedCheVersion)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Warn(getSemverParseErrorMessage(deployedCheVersion, err))
 		return false
 	}
-	currentSemver, err := semver.Make(currentVersion)
+	currentSemver, err := semver.Make(newCheVersion)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Warn(getSemverParseErrorMessage(newCheVersion, err))
 		return false
 	}
 	return currentSemver.GT(deployedSemver)
+}
+
+func getSemverParseErrorMessage(version string, err error) string {
+	return fmt.Sprintf("It is not possible to parse a current version '%s'. Cause: %v", version, err)
 }
 
 func getBackupCR(deployContext *deploy.DeployContext) (*chev1.CheClusterBackup, error) {
@@ -59,13 +68,25 @@ func getBackupCRNameForVersion(version string) string {
 }
 
 func requestNewBackup(deployContext *deploy.DeployContext) error {
-	backupCR := getBackupCRSpec(deployContext)
-	err := deployContext.ClusterAPI.Client.Create(context.TODO(), backupCR)
-	return err
+	backupCR, err := getBackupCRSpec(deployContext)
+	if err != nil {
+		return err
+	}
+	return deployContext.ClusterAPI.Client.Create(context.TODO(), backupCR)
 }
 
-func getBackupCRSpec(deployContext *deploy.DeployContext) *chev1.CheClusterBackup {
-	labels := deploy.GetLabels(deployContext.CheCluster, "backup-on-update")
+func getBackupCRSpec(deployContext *deploy.DeployContext) (*chev1.CheClusterBackup, error) {
+	backupServerConfigName, err := getDefaultBackupServer(deployContext)
+	if err != nil {
+		return nil, err
+	}
+	cheClusterBackupSpec := chev1.CheClusterBackupSpec{}
+	if backupServerConfigName == "" {
+		cheClusterBackupSpec.UseInternalBackupServer = true
+	} else {
+		cheClusterBackupSpec.UseInternalBackupServer = false
+		cheClusterBackupSpec.BackupServerConfigRef = backupServerConfigName
+	}
 
 	return &chev1.CheClusterBackup{
 		TypeMeta: metav1.TypeMeta{
@@ -75,10 +96,24 @@ func getBackupCRSpec(deployContext *deploy.DeployContext) *chev1.CheClusterBacku
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getBackupCRNameForVersion(deploy.DefaultCheVersion()),
 			Namespace: deployContext.CheCluster.GetNamespace(),
-			Labels:    labels,
 		},
-		Spec: chev1.CheClusterBackupSpec{
-			UseInternalBackupServer: true,
-		},
+		Spec: cheClusterBackupSpec,
+	}, nil
+}
+
+// getDefaultBackupServer searches for backup server configuration.
+// If there is only one, then it is used.
+// If there are two or more, then one with 'che.eclipse.org/default-backup-server-configuration' annotation is used.
+// If there is none, then empty string returned (internal backup server should be used).
+func getDefaultBackupServer(deployContext *deploy.DeployContext) (string, error) {
+	backupServerConfigsList := &chev1.CheBackupServerConfigurationList{}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), backupServerConfigsList); err != nil {
+		return "", err
 	}
+	for _, backupServerConfig := range backupServerConfigsList.Items {
+		if _, ok := backupServerConfig.ObjectMeta.Annotations[DefaultBackupServerConfigLabelKey]; ok {
+			return backupServerConfig.GetName(), nil
+		}
+	}
+	return "", nil
 }

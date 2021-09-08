@@ -317,19 +317,13 @@ func (s *Server) DetectDefaultCheHost() (bool, error) {
 }
 
 func (s Server) UpdateCheVersion() (bool, error) {
-	cheVersion := s.evaluateCheServerVersion()
+	cheVersion := deploy.DefaultCheVersion()
 	if s.deployContext.CheCluster.Status.CheVersion != cheVersion {
 		s.deployContext.CheCluster.Status.CheVersion = cheVersion
 		err := deploy.UpdateCheCRStatus(s.deployContext, "version", cheVersion)
 		return err == nil, err
 	}
 	return true, nil
-}
-
-// EvaluateCheServerVersion evaluate che version
-// based on Checluster information and image defaults from env variables
-func (s Server) evaluateCheServerVersion() string {
-	return util.GetValue(s.deployContext.CheCluster.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
 }
 
 func GetServerExposingServiceName(cr *orgv1.CheCluster) string {

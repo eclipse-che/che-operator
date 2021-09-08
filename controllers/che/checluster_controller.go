@@ -260,7 +260,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		CheCluster: instance,
 	}
 
-	if isPreviousVersionDeployed(instance) {
+	if isCheGoingToBeUpdated(instance) {
 		// Current operator is newer than deployed Che
 		backupCR, err := getBackupCR(deployContext)
 		if err != nil {
