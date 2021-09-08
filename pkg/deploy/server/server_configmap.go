@@ -38,6 +38,7 @@ func addMap(a map[string]string, b map[string]string) {
 
 type CheConfigMap struct {
 	CheHost                                string `json:"CHE_HOST"`
+	CheMultiUser                           string `json:"CHE_MULTIUSER"`
 	ChePort                                string `json:"CHE_PORT"`
 	CheApi                                 string `json:"CHE_API"`
 	CheApiInternal                         string `json:"CHE_API_INTERNAL"`
@@ -212,6 +213,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
 	data := &CheConfigMap{
+		CheMultiUser:                           "true",
 		CheHost:                                cheHost,
 		ChePort:                                "8080",
 		CheApi:                                 cheAPI,
