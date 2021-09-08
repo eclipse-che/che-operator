@@ -27,6 +27,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
+        description: The `CheCluster` custom resource allows defining and managing a Che server installation
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -210,7 +211,7 @@ spec:
                     type: string
                 type: object
               devWorkspace:
-                description: Dev Workspace operator configuration
+                description: DevWorkspace operator configuration
                 properties:
                   controllerImage:
                     description: Overrides the container image used in the DevWorkspace controller deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.

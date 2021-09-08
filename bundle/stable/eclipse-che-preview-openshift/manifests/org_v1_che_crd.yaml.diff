@@ -1,0 +1,20 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2021-09-08 12:13:48.862546857 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2021-09-08 12:13:49.518554131 +0000
+@@ -27,6 +27,8 @@
+     - name: v1
+       schema:
+         openAPIV3Schema:
++          description: The `CheCluster` custom resource allows defining and managing
++            a Che server installation
+           properties:
+             apiVersion:
+               description: 'APIVersion defines the versioned schema of this representation
+@@ -349,7 +351,7 @@
+                       type: string
+                   type: object
+                 devWorkspace:
+-                  description: Dev Workspace operator configuration
++                  description: DevWorkspace operator configuration
+                   properties:
+                     controllerImage:
+                       description: Overrides the container image used in the DevWorkspace
