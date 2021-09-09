@@ -24,13 +24,8 @@ source "${OPERATOR_REPO}/olm/olm.sh"
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  local channel=next
-  if [[ $(git rev-parse --abbrev-ref HEAD) =~ release$ ]]; then
-    channel=stable
-  fi
-
   export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
-  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" ${channel} "${NAMESPACE}"
+  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" "stable" "${NAMESPACE}"
   startNewWorkspace
   waitWorkspaceStart
 
