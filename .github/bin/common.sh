@@ -170,12 +170,9 @@ collectLogs() {
 
   set +e
   chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
-
-  set +x
   collectDevworkspaceOperatorLogs
   oc get events -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}.txt
   oc get events -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}.txt
-  set -x
   set -e
 }
 
@@ -185,12 +182,18 @@ collectDevworkspaceOperatorLogs() {
   oc get events -n devworkspace-controller > ${ARTIFACTS_DIR}/events-devworkspace-controller.txt
 
   #determine the name of the devworkspace controller manager pod
-  local POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].metadata.name')
-
+  local CONTROLLER_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].metadata.name')
+  local WEBHOOK_SVR_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-webhook-server -o json | jq -r '.items[0].metadata.name')
+  
   # save the logs of all the containers in the DWO pod
-  for container in $(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].spec.containers[] | .name'); do
-    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${POD_NAME}
-    oc logs -n devworkspace-controller deployment/devworkspace-controller-manager -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${POD_NAME}/${container}.log
+  for container in $(oc get pod -n devworkspace-controller ${CONTROLLER_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
+    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}
+    oc logs -n devworkspace-controller deployment/devworkspace-controller-manager -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}/${container}.log
+  done 
+
+  for container in $(oc get pod -n devworkspace-controller ${WEBHOOK_SVR_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
+    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}
+    oc logs -n devworkspace-controller deployment/devworkspace-webhook-server -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}/${container}.log
   done 
 }
 
