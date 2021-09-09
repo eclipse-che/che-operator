@@ -181,7 +181,6 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	cheDebug := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(s.deployContext.CheCluster.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(deploy.GetLabels(s.deployContext.CheCluster, deploy.DefaultCheFlavor(s.deployContext.CheCluster)))
-	cheMultiUser := deploy.GetCheMultiUser(s.deployContext.CheCluster)
 	workspaceExposure := deploy.GetSingleHostExposureType(s.deployContext.CheCluster)
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(s.deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(s.deployContext.CheCluster)
@@ -214,7 +213,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
 	data := &CheConfigMap{
-		CheMultiUser:                           cheMultiUser,
+		CheMultiUser:                           "true",
 		CheHost:                                cheHost,
 		ChePort:                                "8080",
 		CheApi:                                 cheAPI,
@@ -257,16 +256,14 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheDevWorkspacesEnabled:                strconv.FormatBool(s.deployContext.CheCluster.Spec.DevWorkspace.Enable),
 	}
 
-	if cheMultiUser == "true" {
-		data.KeycloakURL = keycloakURL
-		data.KeycloakInternalURL = keycloakInternalURL
-		data.KeycloakRealm = keycloakRealm
-		data.KeycloakClientId = keycloakClientId
-		data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
-		if len(s.deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
-			data.DbUserName = s.deployContext.CheCluster.Spec.Database.ChePostgresUser
-			data.DbPassword = s.deployContext.CheCluster.Spec.Database.ChePostgresPassword
-		}
+	data.KeycloakURL = keycloakURL
+	data.KeycloakInternalURL = keycloakInternalURL
+	data.KeycloakRealm = keycloakRealm
+	data.KeycloakClientId = keycloakClientId
+	data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
+	if len(s.deployContext.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
+		data.DbUserName = s.deployContext.CheCluster.Spec.Database.ChePostgresUser
+		data.DbPassword = s.deployContext.CheCluster.Spec.Database.ChePostgresPassword
 	}
 
 	out, err := json.Marshal(data)

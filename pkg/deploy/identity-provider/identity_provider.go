@@ -53,11 +53,6 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		return true, nil
 	}
 
-	cheMultiUser := deploy.GetCheMultiUser(cr)
-	if cheMultiUser == "false" {
-		return deploy.DeleteNamespacedObject(deployContext, deploy.IdentityProviderName, &appsv1.Deployment{})
-	}
-
 	for _, syncItem := range syncItems {
 		provisioned, err := syncItem(deployContext)
 		if !util.IsTestMode() {
