@@ -15,7 +15,7 @@ metadata:
               "externalIdentityProvider": false,
               "identityProviderAdminUserName": "",
               "identityProviderClientId": "",
-              "identityProviderImage": "quay.io/aandriienko/che-keycloak:next-k15",
+              "identityProviderImage": "",
               "identityProviderPassword": "",
               "identityProviderRealm": "",
               "identityProviderURL": "",
@@ -84,7 +84,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.36.0-296.next
+  name: eclipse-che-preview-kubernetes.v7.36.0-298.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -885,7 +885,7 @@ spec:
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_keycloak
-                        value: quay.io/aandriienko/che-keycloak:next-k15
+                        value: quay.io/eclipse/che-keycloak:next
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
                         value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
@@ -1183,4 +1183,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.36.0-296.next
+  version: 7.36.0-298.next
