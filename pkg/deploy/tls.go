@@ -569,6 +569,27 @@ func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool
 		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
 	}
 
+	isSelfSignedUsed, err := IsSelfSignedCertificateUsed(deployContext)
+	if err != nil {
+		return false, err
+	}
+	if isSelfSignedUsed {
+		selfSignedSecretName := types.NamespacedName{
+			Namespace: deployContext.CheCluster.Namespace,
+			Name:      CheTLSSelfSignedCertificateSecretName,
+		}
+		cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
+		err = deployContext.ClusterAPI.Client.Get(context.TODO(), selfSignedSecretName, cheTLSSelfSignedCertificateSecret)
+		if err != nil {
+			return false, err
+		}
+		data["che-ca-self-singed.provisioned"] = cheTLSSelfSignedCertificateSecret.StringData["ca.crt"]
+		if revisions != "" {
+			revisions += labelCommaSign
+		}
+		revisions += cheTLSSelfSignedCertificateSecret.ObjectMeta.Name + labelEqualSign + cheTLSSelfSignedCertificateSecret.ObjectMeta.ResourceVersion
+	}
+
 	mergedCAConfigMapSpec := GetConfigMapSpec(deployContext, CheAllCACertsConfigMapName, data, DefaultCheFlavor(cr))
 	mergedCAConfigMapSpec.ObjectMeta.Labels[KubernetesPartOfLabelKey] = CheEclipseOrg
 	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions

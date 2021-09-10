@@ -14,6 +14,7 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -49,6 +50,16 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 		Data: map[string]string{"a2": "b2"},
 	}
 
+	selfSignedSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      CheTLSSelfSignedCertificateSecretName,
+			Namespace: "eclipse-che",
+			// Go client set up resource version 1 itself on object creation.
+			// ResourceVersion: "1",
+		},
+		StringData: map[string]string{"ca.crt": "b2"},
+	}
+
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cert1)
@@ -66,6 +77,12 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 		},
 	}
 
+	// let's create self-signed secret
+	err := cli.Create(context.TODO(), selfSignedSecret)
+	if err != nil {
+		t.Fatalf("Failed to create secret: %v", err)
+	}
+
 	// check ca-cert-merged
 	done, err := SyncAdditionalCACertsConfigMapToCluster(deployContext)
 	if !done || err != nil {
@@ -77,8 +94,12 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get config map: %v", err)
 	}
-	if cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"] != "cert1-1" {
-		t.Fatalf("Failed to sync config map")
+
+	includedConfigMaps := cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"]
+	if includedConfigMaps != "cert1-1.self-signed-certificate-1" {
+		t.Fatalf(fmt.Sprintf("included-configmaps annotation mismatch. Expected: '%s', got: '%s'",
+			"cert1-1.self-signed-certificate-1",
+			includedConfigMaps))
 	}
 
 	// let's create another configmap
@@ -103,7 +124,10 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get config map: %v", err)
 	}
-	if cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"] != "cert1-1.cert2-1" {
-		t.Fatalf("Failed to sync config map")
+	includedConfigMaps = cacertMerged.ObjectMeta.Annotations["che.eclipse.org/included-configmaps"]
+	if includedConfigMaps != "cert1-1.cert2-1.self-signed-certificate-1" {
+		t.Fatalf(fmt.Sprintf("included-configmaps annotation mismatch. Expected: '%s', got: '%s'",
+			"cert1-1.cert2-1.self-signed-certificate-1",
+			includedConfigMaps))
 	}
 }
