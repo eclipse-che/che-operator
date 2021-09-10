@@ -133,8 +133,6 @@ spec:
     oAuthClientName: ''
     # Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
     oAuthSecret: ''
-
-    identityProviderImage: ''
   k8s:
     # Global ingress domain for a Kubernetes cluster.
     ingressDomain: '192.168.99.101.nip.io'
