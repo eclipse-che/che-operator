@@ -25,7 +25,7 @@ trap "catchFinish" EXIT SIGINT
 
 runTest() {
   local channel=next
-  if [[ $(git rev-parse --abbrev-ref HEAD) =~ release$ ]]; then
+  if [[ $GITHUB_HEAD_REF =~ release$ ]]; then
     channel=stable
   fi
 

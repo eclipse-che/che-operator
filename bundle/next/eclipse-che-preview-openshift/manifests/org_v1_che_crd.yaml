@@ -54,6 +54,9 @@ spec:
                   description: Configuration settings related to the Authentication
                     used by the Che installation.
                   properties:
+                    debug:
+                      description: Debug internal identity provider.
+                      type: boolean
                     externalIdentityProvider:
                       description: 'Instructs the Operator on whether or not to deploy
                         a dedicated Identity Provider (Keycloak or RH SSO instance).

@@ -370,7 +370,7 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 			rtrs[name] = traefikConfigRouter{
 				Rule:        fmt.Sprintf("PathPrefix(`%s`)", prefix),
 				Service:     name,
-				Middlewares: []string{name + "-header", name + "-prefix", name + "-auth"},
+				Middlewares: calculateMiddlewares(name),
 				Priority:    100,
 			}
 
@@ -390,22 +390,32 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 				},
 			}
 
-			mdls[name+"-auth"] = traefikConfigMiddleware{
-				ForwardAuth: &traefikConfigForwardAuth{
-					Address: "http://127.0.0.1:8089?namespace=" + namespace,
-				},
-			}
-
-			mdls[name+"-header"] = traefikConfigMiddleware{
-				Plugin: &traefikPlugin{
-					HeaderRewrite: &traefikPluginHeaderRewrite{
-						From:   "X-Forwarded-Access-Token",
-						To:     "Authorization",
-						Prefix: "Bearer ",
+			if infrastructure.IsOpenShift() {
+				mdls[name+"-auth"] = traefikConfigMiddleware{
+					ForwardAuth: &traefikConfigForwardAuth{
+						Address: "http://127.0.0.1:8089?namespace=" + namespace,
 					},
-				},
+				}
+
+				mdls[name+"-header"] = traefikConfigMiddleware{
+					Plugin: &traefikPlugin{
+						HeaderRewrite: &traefikPluginHeaderRewrite{
+							From:   "X-Forwarded-Access-Token",
+							To:     "Authorization",
+							Prefix: "Bearer ",
+						},
+					},
+				}
 			}
 		}
+	}
+}
+
+func calculateMiddlewares(name string) []string {
+	if infrastructure.IsOpenShift() {
+		return []string{name + "-header", name + "-prefix", name + "-auth"}
+	} else {
+		return []string{name + "-prefix"}
 	}
 }
 
