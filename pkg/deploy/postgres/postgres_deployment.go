@@ -37,6 +37,10 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 		if env != nil {
 			postgresAdminPassword = env.Value
 		}
+
+		// use PostgreSQL image from existed deployment
+		// not to update automatically to PostgreSQL 13 since it is incompatible with PostgreSQL 9
+		postgresImage = clusterContainer.Image
 	}
 
 	deployment := &appsv1.Deployment{
