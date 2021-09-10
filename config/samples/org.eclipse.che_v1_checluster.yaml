@@ -137,7 +137,7 @@ spec:
     identityProviderImage: ''
   k8s:
     # Global ingress domain for a Kubernetes cluster.
-    ingressDomain: '192.168.99.111.nip.io'
+    ingressDomain: '192.168.99.101.nip.io'
     # Ingress class that will define the which controller will manage ingresses. Defaults to `nginx`.
     # NB: This drives the `kubernetes.io/ingress.class` annotation on Che-related ingresses.
     ingressClass: ''

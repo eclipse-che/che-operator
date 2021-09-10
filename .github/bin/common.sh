@@ -465,6 +465,7 @@ deployCheBehindProxy() {
     --platform=openshift \
     --templates=${TEMPLATES} \
     --che-operator-image ${OPERATOR_IMAGE}
+    # --che-operator-cr-patch-yaml=/tmp/che-cr-patch.yaml
   oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 
