@@ -90,7 +90,7 @@ do
   source ${BASE_DIR}/olm.sh
   echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
 
-  if [[ ${CHANNEL} == "stable-all-namespaces" ]] && [[ ${platform} == "kubernetes" ]];then
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]] && [[ ${platform} == "kubernetes" ]];then
     continue
   fi
 
@@ -128,7 +128,7 @@ do
   -e "s/${lastPackageNextVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
-  if [[ ${CHANNEL} == "stable-all-namespaces" ]];then
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
     # Set by default devworkspace enabled
     CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | .spec.devWorkspace.enable |= true | [.]" | sed -r 's/"/\\"/g')
     yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
@@ -137,7 +137,7 @@ do
     # Move the suggested namespace to openshift-operators.
     sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"
 
-    # Set stable-all-namespaces versions
+    # Set tech-preview-stable-all-namespaces versions
     yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.metadata.name |= "eclipse-che-preview-openshift.v'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
@@ -147,6 +147,14 @@ do
     yq -Yi '.spec.installModes[] |= if .type=="SingleNamespace" then .supported |= false else . end' ${RELEASE_CSV}
     yq -Yi '.spec.installModes[] |= if .type=="MultiNamespace" then .supported |= false else . end' ${RELEASE_CSV}
     yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' ${RELEASE_CSV}
+  fi
+
+  # Remove from devWorkspace in stable channel and hide the value from UI
+  if [[ ${CHANNEL} == "stable" ]];then
+    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | del(.spec.devWorkspace) | [.]"  | sed -r 's/"/\\"/g')
+    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
+    yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
+    mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
   fi
 
   cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
@@ -169,7 +177,7 @@ do
   -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=next/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
 
-  if [[ ${CHANNEL} == "stable-all-namespaces" ]]; then
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
     # Set specific OpenShift version
     echo -e "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> "${BUNDLE_DOCKERFILE}"
     echo -e "\n  com.redhat.openshift.versions: \"v4.8\"" >> "${ANNOTATION_METADATA_YAML}"

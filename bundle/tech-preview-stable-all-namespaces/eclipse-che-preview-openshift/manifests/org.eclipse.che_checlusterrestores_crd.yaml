@@ -4,19 +4,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: checlusterbackups.org.eclipse.che
+  name: checlusterrestores.org.eclipse.che
 spec:
   group: org.eclipse.che
   names:
-    kind: CheClusterBackup
-    listKind: CheClusterBackupList
-    plural: checlusterbackups
-    singular: checlusterbackup
+    kind: CheClusterRestore
+    listKind: CheClusterRestoreList
+    plural: checlusterrestores
+    singular: checlusterrestore
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
+        description: The `CheClusterRestore` custom resource allows defining and managing Eclipse Che restore
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -27,29 +28,26 @@ spec:
           metadata:
             type: object
           spec:
-            description: CheClusterBackupSpec defines the desired state of CheClusterBackup
+            description: CheClusterRestoreSpec defines the desired state of CheClusterRestore
             properties:
               backupServerConfigRef:
-                description: Name of custom resource with a backup server configuration to use for this backup. Note, UseInternalBackupServer field can configure internal backup server automatically.
-                type: string
-              useInternalBackupServer:
-                description: Automatically setup pod with REST backup server and use the server in this configuration. Note, this flag takes precedence and will overwrite existing backup server configuration.
-                type: boolean
-            type: object
-          status:
-            description: CheClusterBackupStatus defines the observed state of CheClusterBackup
-            properties:
-              message:
-                description: Message explaining the state of the backup or an error message
+                description: Name of custom resource with a backup server configuration to use for this restore. Can be omitted if only one server configuration object exists within the namespace.
                 type: string
               snapshotId:
-                description: Last backup snapshot ID
+                description: If omitted, latest snapshot will be used.
+                type: string
+            type: object
+          status:
+            description: CheClusterRestoreStatus defines the observed state of CheClusterRestore
+            properties:
+              message:
+                description: Restore result or error message
                 type: string
               stage:
-                description: Describes backup progress
+                description: Describes phase of restore progress
                 type: string
               state:
-                description: 'Backup progress state: InProgress, Failed, Succeeded'
+                description: 'Restore progress state: InProgress, Failed, Succeeded'
                 type: string
             type: object
         type: object

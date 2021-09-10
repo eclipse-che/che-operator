@@ -1,5 +1,5 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2021-09-08 12:13:48.862546857 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2021-09-08 12:13:49.518554131 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/tech-preview-stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/org_v1_che_crd.yaml	2021-09-08 12:08:24.982954802 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/tech-preview-stable-all-namespaces/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml	2021-09-08 12:08:28.678995806 +0000
 @@ -27,6 +27,8 @@
      - name: v1
        schema:

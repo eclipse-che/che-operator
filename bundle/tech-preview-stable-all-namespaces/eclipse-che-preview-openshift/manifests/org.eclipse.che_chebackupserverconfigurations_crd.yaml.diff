@@ -1,5 +1,5 @@
---- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-09-08 12:11:09.804783039 +0000
-+++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-09-08 12:11:10.216787608 +0000
+--- /home/runner/work/che-operator/che-operator/bundle/tech-preview-stable-all-namespaces/eclipse-che-preview-openshift/generated/openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-09-08 12:08:25.158956755 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/tech-preview-stable-all-namespaces/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml	2021-09-08 12:08:28.678995806 +0000
 @@ -17,6 +17,7 @@
    - name: v1
      schema:

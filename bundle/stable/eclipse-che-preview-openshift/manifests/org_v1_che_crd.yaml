@@ -27,6 +27,8 @@ spec:
     - name: v1
       schema:
         openAPIV3Schema:
+          description: The `CheCluster` custom resource allows defining and managing
+            a Che server installation
           properties:
             apiVersion:
               description: 'APIVersion defines the versioned schema of this representation
@@ -349,7 +351,7 @@ spec:
                       type: string
                   type: object
                 devWorkspace:
-                  description: Dev Workspace operator configuration
+                  description: DevWorkspace operator configuration
                   properties:
                     controllerImage:
                       description: Overrides the container image used in the DevWorkspace
