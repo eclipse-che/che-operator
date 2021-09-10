@@ -292,7 +292,6 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 	})
 }
 
-
 func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
