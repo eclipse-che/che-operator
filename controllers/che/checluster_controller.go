@@ -262,7 +262,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	if isCheGoingToBeUpdated(instance) {
 		// Current operator is newer than deployed Che
-		backupCR, err := getBackupCR(deployContext)
+		backupCR, err := getBackupCRForUpdate(deployContext)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				// Create a backup before updating current installation

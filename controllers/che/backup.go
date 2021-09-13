@@ -50,10 +50,11 @@ func isCheGoingToBeUpdated(cheCR *chev1.CheCluster) bool {
 }
 
 func getSemverParseErrorMessage(version string, err error) string {
-	return fmt.Sprintf("It is not possible to parse a current version '%s'. Cause: %v", version, err)
+	return fmt.Sprintf("It is not possible to parse a version '%s'. Cause: %v", version, err)
 }
 
-func getBackupCR(deployContext *deploy.DeployContext) (*chev1.CheClusterBackup, error) {
+// getBackupCRForUpdate returns backup CR that corresponds to the backup made before updating to a new Che version.
+func getBackupCRForUpdate(deployContext *deploy.DeployContext) (*chev1.CheClusterBackup, error) {
 	backupCR := &chev1.CheClusterBackup{}
 	backupCRName := getBackupCRNameForVersion(deploy.DefaultCheVersion())
 	backupCRNamespacedName := types.NamespacedName{Namespace: deployContext.CheCluster.GetNamespace(), Name: backupCRName}
@@ -109,6 +110,9 @@ func getDefaultBackupServer(deployContext *deploy.DeployContext) (string, error)
 	backupServerConfigsList := &chev1.CheBackupServerConfigurationList{}
 	if err := deployContext.ClusterAPI.Client.List(context.TODO(), backupServerConfigsList); err != nil {
 		return "", err
+	}
+	if len(backupServerConfigsList.Items) == 1 {
+		return backupServerConfigsList.Items[0].GetName(), nil
 	}
 	for _, backupServerConfig := range backupServerConfigsList.Items {
 		if _, ok := backupServerConfig.ObjectMeta.Annotations[DefaultBackupServerConfigLabelKey]; ok {
