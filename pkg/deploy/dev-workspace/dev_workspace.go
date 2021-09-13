@@ -192,7 +192,7 @@ func checkIfCheIsInstalledInSingleNamespacesMode(deployContext *deploy.DeployCon
 	}
 
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, "eclipse-che") || strings.Contains(csv.Name, "crwoperator") {
+		if strings.Contains(csv.Name, EclipseCheCSVNamePrefix) || strings.Contains(csv.Name, CodeReadyWorkspacesCSVPrefix) {
 			for _, installMode := range csv.Spec.InstallModes {
 				if installMode.Type == operatorsv1alpha1.InstallModeTypeSingleNamespace {
 					return installMode.Supported
