@@ -12,12 +12,20 @@
 package postgres
 
 import (
+	"fmt"
+
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+const (
+	PostgresVersion9_6  = "9.6"
+	PostgresVersion13_3 = "13.3"
 )
 
 var (
@@ -28,7 +36,10 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelSelector := deploy.GetLabelsAndSelector(p.deployContext.CheCluster, deploy.PostgresName)
 	chePostgresDb := util.GetValue(p.deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
-	postgresImage := util.GetValue(p.deployContext.CheCluster.Spec.Database.PostgresImage, deploy.DefaultPostgresImage(p.deployContext.CheCluster))
+	postgresImage, err := getPostgresImage(p.deployContext.CheCluster)
+	if err != nil {
+		return nil, err
+	}
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(p.deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	if clusterDeployment != nil {
@@ -37,10 +48,6 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 		if env != nil {
 			postgresAdminPassword = env.Value
 		}
-
-		// use PostgreSQL image from existed deployment
-		// not to update automatically to PostgreSQL 13 since it is incompatible with PostgreSQL 9
-		postgresImage = clusterContainer.Image
 	}
 
 	deployment := &appsv1.Deployment{
@@ -207,4 +214,16 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 	}
 
 	return deployment, nil
+}
+
+func getPostgresImage(cheCluster *orgv1.CheCluster) (string, error) {
+	if cheCluster.Spec.Database.PostgresImage != "" {
+		return cheCluster.Spec.Database.PostgresImage, nil
+	} else if cheCluster.Spec.Database.PostgresVersion == "" || cheCluster.Spec.Database.PostgresVersion == PostgresVersion9_6 {
+		return deploy.DefaultPostgres9Image(cheCluster), nil
+	} else if cheCluster.Spec.Database.PostgresVersion == PostgresVersion13_3 {
+		return deploy.DefaultPostgres13Image(cheCluster), nil
+	}
+
+	return "", fmt.Errorf("PostgreSQL image for %s version not found", cheCluster.Spec.Database.PostgresVersion)
 }

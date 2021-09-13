@@ -13,6 +13,7 @@ package postgres
 
 import (
 	"fmt"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -55,6 +56,13 @@ func (p *Postgres) SyncAll() (bool, error) {
 			if !done {
 				return false, err
 			}
+		}
+	}
+
+	if p.deployContext.CheCluster.Spec.Database.PostgresVersion == "" {
+		done, err := p.setDbVersion()
+		if !done {
+			return false, err
 		}
 	}
 
@@ -121,6 +129,29 @@ func (p *Postgres) ProvisionDB() (bool, error) {
 
 	p.deployContext.CheCluster.Status.DbProvisoned = true
 	err = deploy.UpdateCheCRStatus(p.deployContext, "status: provisioned with DB and user", "true")
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (p *Postgres) setDbVersion() (bool, error) {
+	postgresVersion, err := util.K8sclient.ExecIntoPod(
+		p.deployContext.CheCluster,
+		deploy.PostgresName,
+		func(cr *orgv1.CheCluster) (string, error) {
+			// don't take into account bugfix version
+			return "postgres -V | awk '{print $NF}' | cut -d '.' -f1-2", nil
+		},
+		"get PostgreSQL version")
+	if err != nil {
+		return false, err
+	}
+
+	postgresVersion = strings.TrimSpace(postgresVersion)
+	p.deployContext.CheCluster.Spec.Database.PostgresVersion = postgresVersion
+	err = deploy.UpdateCheCRSpec(p.deployContext, "database.postgresVersion", postgresVersion)
 	if err != nil {
 		return false, err
 	}
