@@ -12,6 +12,7 @@
 package dashboard
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -22,7 +23,43 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const CHE_SELF_SIGNED_MOUNT_PATH = "/public-certs/che-self-signed"
+const CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
+
 func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
+	var volumes []corev1.Volume
+	var volumeMounts []corev1.VolumeMount
+	var envVars []corev1.EnvVar
+
+	volumes, volumeMounts = d.provisionCustomPublicCA(volumes, volumeMounts)
+
+	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(d.deployContext)
+	if err != nil {
+		return nil, err
+	}
+	if selfSignedCertUsed {
+		volumes, volumeMounts = d.provisionCheSelfSignedCA(volumes, volumeMounts)
+	}
+
+	envVars = append(envVars,
+		// todo handle HTTP_PROXY related env vars
+		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
+		corev1.EnvVar{
+			Name:  "CHE_HOST",
+			Value: util.GetCheURL(d.deployContext.CheCluster)},
+		corev1.EnvVar{
+			Name:  "CHE_URL",
+			Value: util.GetCheURL(d.deployContext.CheCluster)},
+	)
+
+	if d.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name:  "CHE_INTERNAL_URL",
+				Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, d.deployContext.CheCluster.Namespace)},
+		)
+	}
+
 	terminationGracePeriodSeconds := int64(30)
 	labels, labelsSelector := deploy.GetLabelsAndSelector(d.deployContext.CheCluster, d.component)
 
@@ -119,18 +156,11 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 								SuccessThreshold:    1,
 								PeriodSeconds:       10,
 							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "CHE_HOST",
-									Value: util.GetCheURL(d.deployContext.CheCluster),
-								},
-								{
-									Name:  "KEYCLOAK_URL",
-									Value: d.deployContext.CheCluster.Status.KeycloakURL,
-								},
-							},
+							Env:          envVars,
+							VolumeMounts: volumeMounts,
 						},
 					},
+					Volumes:                       volumes,
 					RestartPolicy:                 "Always",
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 				},
@@ -154,4 +184,46 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	return deployment, nil
+}
+
+func (d *Dashboard) provisionCheSelfSignedCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
+	cheSelfSigned := corev1.Volume{
+		Name: "che-self-signed-ca",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: deploy.CheTLSSelfSignedCertificateSecretName,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  "ca.crt",
+						Path: "ca.crt",
+					},
+				},
+			},
+		},
+	}
+	volumes = append(volumes, cheSelfSigned)
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      cheSelfSigned.Name,
+		MountPath: CHE_SELF_SIGNED_MOUNT_PATH,
+	})
+	return volumes, volumeMounts
+}
+
+func (d *Dashboard) provisionCustomPublicCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
+	customPublicCertsVolume := corev1.Volume{
+		Name: "che-custom-ca",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: deploy.CheAllCACertsConfigMapName,
+				},
+			},
+		},
+	}
+	volumes = append(volumes, customPublicCertsVolume)
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      customPublicCertsVolume.Name,
+		MountPath: CHE_CUSTOM_CERTS_MOUNT_PATH,
+	})
+	return volumes, volumeMounts
 }
