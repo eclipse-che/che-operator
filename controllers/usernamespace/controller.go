@@ -67,16 +67,10 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) handler.EventHandler {
 	return &handler.EnqueueRequestsFromMapFunc{
 		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
-			if isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta) {
-				return asReconcileRequestForNamespace(mo.Meta)
-			} else {
-				// need to watch for self-signed-certificate in a namespace with some checluster resource
-				if mo.Meta.GetName() == "self-signed-certificate" && r.hasCheCluster(ctx, mo.Meta.GetNamespace()) {
-					return asReconcileRequestForNamespace(mo.Meta)
-				} else {
-					return []reconcile.Request{}
-				}
-			}
+			return asReconcileRequestForNamespaceIf(mo.Meta, func() bool {
+				return (isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta)) ||
+					r.hasNameAndIsColocatedWithCheCluster(ctx, mo.Meta, deploy.CheTLSSelfSignedCertificateSecretName)
+			})
 		}),
 	}
 }
@@ -84,13 +78,22 @@ func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) h
 func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) handler.EventHandler {
 	return &handler.EnqueueRequestsFromMapFunc{
 		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
-			if isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta) {
-				return asReconcileRequestForNamespace(mo.Meta)
-			} else {
-				return []reconcile.Request{}
-			}
+			return asReconcileRequestForNamespaceIf(mo.Meta, func() bool {
+				return (isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta)) ||
+					r.hasNameAndIsColocatedWithCheCluster(ctx, mo.Meta, deploy.CheAllCACertsConfigMapName)
+			})
 		}),
 	}
+}
+
+func (r *CheUserNamespaceReconciler) hasNameAndIsColocatedWithCheCluster(ctx context.Context, obj metav1.Object, names ...string) bool {
+	for _, n := range names {
+		if obj.GetName() == n && r.hasCheCluster(ctx, obj.GetNamespace()) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func isLabeledAsUserSettings(obj metav1.Object) bool {
@@ -133,6 +136,14 @@ func asReconcileRequestForNamespace(obj metav1.Object) []reconcile.Request {
 		{
 			NamespacedName: types.NamespacedName{Name: obj.GetNamespace()},
 		},
+	}
+}
+
+func asReconcileRequestForNamespaceIf(obj metav1.Object, predicate func() bool) []reconcile.Request {
+	if predicate() {
+		return asReconcileRequestForNamespace(obj)
+	} else {
+		return []reconcile.Request{}
 	}
 }
 
@@ -213,7 +224,7 @@ func findManagingCheCluster(key types.NamespacedName) *v2alpha1.CheCluster {
 }
 
 func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
-	targetCertName := prefixedName(checluster, "cert")
+	targetCertName := prefixedName(checluster, "server-cert")
 
 	delSecret := func() error {
 		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetCertName, Namespace: targetNs}, &corev1.Secret{})
@@ -257,6 +268,58 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 
 	_, err := deploy.DoSync(deployContext, targetCert, deploy.SecretDiffOpts)
 	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, deployContext *deploy.DeployContext, targetNs string, checluster *v2alpha1.CheCluster) error {
+	targetConfigMapName := prefixedName(checluster, "trusted-ca-certs")
+
+	delConfigMap := func() error {
+		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetConfigMapName, Namespace: targetNs}, &corev1.Secret{})
+		return err
+	}
+
+	sourceMap := &corev1.ConfigMap{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: deploy.CheAllCACertsConfigMapName, Namespace: checluster.Namespace}, sourceMap); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+
+		return delConfigMap()
+	}
+
+	targetMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetConfigMapName,
+			Namespace: targetNs,
+			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+				constants.DevWorkspaceMountLabel:              "true",
+				"config.openshift.io/inject-trusted-cabundle": "true",
+			}),
+			Annotations: addToFirst(sourceMap.Annotations, map[string]string{
+				constants.DevWorkspaceMountAsAnnotation:   "file",
+				constants.DevWorkspaceMountPathAnnotation: "/public-certs",
+			}),
+		},
+		Data: sourceMap.Data,
+	}
+
+	_, err := deploy.DoSync(deployContext, targetMap, deploy.ConfigMapDiffOpts)
+	return err
+}
+
+func addToFirst(first map[string]string, second map[string]string) map[string]string {
+	if first == nil {
+		first = map[string]string{}
+	}
+	for k, v := range second {
+		first[k] = v
+	}
+
+	return first
 }
 
 func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {

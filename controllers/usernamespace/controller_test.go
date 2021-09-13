@@ -74,6 +74,20 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 		t.Fatal(err)
 	}
 
+	caCerts := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploy.CheAllCACertsConfigMapName,
+			Namespace: cheNamespaceName,
+		},
+		Data: map[string]string{
+			"trusted1": "trusted cert 1",
+			"trusted2": "trusted cert 2",
+		},
+	}
+	if err := cl.Create(ctx, caCerts); err != nil {
+		t.Fatal(err)
+	}
+
 	r := devworkspace.New(cl, scheme)
 	// the reconciliation needs to run twice for it to be trully finished - we're setting up finalizers etc...
 	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
@@ -260,7 +274,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 			t.Errorf("proxy settings should be annotated as mount as 'env' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
 		}
 		if proxySettings.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
-			t.Errorf("proxy settings should be labeled as mounted was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+			t.Errorf("proxy settings should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
 		}
 		if len(proxySettings.Data) != 1 {
 			t.Errorf("Expecting just 1 element in the default proxy settings")
@@ -270,23 +284,49 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		}
 
 		cert := corev1.Secret{}
-		if err := cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-cert", Namespace: namespace.GetName()}, &cert); err != nil {
+		if err := cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-server-cert", Namespace: namespace.GetName()}, &cert); err != nil {
 			t.Fatal(err)
 		}
 		if cert.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation] != "file" {
-			t.Errorf("proxy settings should be annotated as mount as 'env' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+			t.Errorf("server cert should be annotated as mount as 'file' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
 		}
 		if cert.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation] != "/tmp/che/secret/" {
-			t.Errorf("proxy settings should be annotated as mount as 'env' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+			t.Errorf("server cert annotated as mounted to an unexpected path '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
 		}
 		if cert.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
-			t.Errorf("proxy settings should be labeled as mounted was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+			t.Errorf("server cert should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
 		}
 		if len(cert.Data) != 1 {
 			t.Errorf("Expecting just 1 element in the self-signed cert")
 		}
 		if string(cert.Data["ca.crt"]) != "my certificate" {
 			t.Errorf("Unexpected self-signed certificate")
+		}
+
+		caCerts := corev1.ConfigMap{}
+		if err := cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts); err != nil {
+			t.Fatal(err)
+		}
+		if caCerts.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation] != "file" {
+			t.Errorf("trusted certs should be annotated as mount as 'file' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+		}
+		if caCerts.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation] != "/public-certs" {
+			t.Errorf("trusted certs annotated as mounted to an unexpected path '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+		}
+		if caCerts.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
+			t.Errorf("trusted certs should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
+		}
+		if caCerts.GetLabels()["config.openshift.io/inject-trusted-cabundle"] != "true" {
+			t.Errorf("trusted certs should be labeled for openshift to inject trusted certs")
+		}
+		if len(caCerts.Data) != 2 {
+			t.Errorf("Expecting exactly 2 data entries in the trusted cert config map but was %d", len(caCerts.Data))
+		}
+		if string(caCerts.Data["trusted1"]) != "trusted cert 1" {
+			t.Errorf("Unexpected trusted cert 1 value")
+		}
+		if string(caCerts.Data["trusted2"]) != "trusted cert 2" {
+			t.Errorf("Unexpected trusted cert 2 value")
 		}
 	}
 
