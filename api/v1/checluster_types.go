@@ -21,7 +21,7 @@ package v1
 // IMPORTANT These 2 last steps are important to ensure backward compatibility with already existing `CheCluster` CRs that were created when no schema was provided.
 
 import (
-	// chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	v2alpha1 "github.com/eclipse-che/che-operator/api/v2alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,7 +57,7 @@ type CheClusterSpec struct {
 
 	// Kubernetes Image Puller configuration
 	// +optional
-	// ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
+	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
 
 	// DevWorkspace operator configuration
 	// +optional
@@ -604,7 +604,7 @@ type CheClusterSpecImagePuller struct {
 	Enable bool `json:"enable"`
 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
 	// +optional
-	// Spec chev1alpha1.KubernetesImagePullerSpec `json:"spec"`
+	Spec chev1alpha1.KubernetesImagePullerSpec `json:"spec"`
 }
 
 // +k8s:openapi-gen=true
@@ -750,13 +750,13 @@ func (c *CheCluster) IsAirGapMode() bool {
 		c.Spec.Server.AirGapContainerRegistryOrganization != ""
 }
 
-// func (c *CheCluster) IsImagePullerSpecEmpty() bool {
-// 	return c.Spec.ImagePuller.Spec == (chev1alpha1.KubernetesImagePullerSpec{})
-// }
+func (c *CheCluster) IsImagePullerSpecEmpty() bool {
+	return c.Spec.ImagePuller.Spec == (chev1alpha1.KubernetesImagePullerSpec{})
+}
 
-// func (c *CheCluster) IsImagePullerImagesEmpty() bool {
-// 	return len(c.Spec.ImagePuller.Spec.Images) == 0
-// }
+func (c *CheCluster) IsImagePullerImagesEmpty() bool {
+	return len(c.Spec.ImagePuller.Spec.Images) == 0
+}
 
 func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
 	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames

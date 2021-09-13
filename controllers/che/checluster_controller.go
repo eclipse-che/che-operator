@@ -230,7 +230,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // move the current state of the cluster closer to the desired state.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.3/pkg/reconcile
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.5/pkg/reconcile
 func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
@@ -264,13 +264,13 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	r.reconcileFinalizers(deployContext)
 
 	// Reconcile the imagePuller section of the CheCluster
-	// imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
-	// if err != nil {
-	// 	return imagePullerResult, err
-	// }
-	// if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
-	// 	return imagePullerResult, err
-	// }
+	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
+	if err != nil {
+		return imagePullerResult, err
+	}
+	if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
+		return imagePullerResult, err
+	}
 
 	// Check Che CR correctness
 	if !util.IsTestMode() {
