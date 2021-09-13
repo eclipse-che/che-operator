@@ -43,20 +43,18 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
-	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	customPublicCertsVolumeSource = corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: deploy.CheAllCACertsConfigMapName,
+	customPublicCertsVolume := corev1.Volume{
+		Name: "che-public-certs",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: deploy.CheAllCACertsConfigMapName,
+				},
 			},
 		},
 	}
-	customPublicCertsVolume := corev1.Volume{
-		Name:         "che-public-certs",
-		VolumeSource: customPublicCertsVolumeSource,
-	}
 	customPublicCertsVolumeMount := corev1.VolumeMount{
-		Name:      "che-public-certs",
+		Name:      customPublicCertsVolume.Name,
 		MountPath: "/public-certs",
 	}
 	gitSelfSignedCertEnv := corev1.EnvVar{
