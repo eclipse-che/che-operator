@@ -1,4 +1,4 @@
-package cheuser
+package usernamespace
 
 import (
 	"context"
