@@ -60,9 +60,11 @@ func (p *Postgres) SyncAll() (bool, error) {
 	}
 
 	if p.deployContext.CheCluster.Spec.Database.PostgresVersion == "" {
-		done, err := p.setDbVersion()
-		if !done {
-			return false, err
+		if !util.IsTestMode() { // ignore in tests
+			done, err := p.setDbVersion()
+			if !done {
+				return false, err
+			}
 		}
 	}
 
