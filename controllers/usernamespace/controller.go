@@ -170,17 +170,14 @@ func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		},
 	}
 
-	isSelfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
-	if err != nil {
-		logrus.Errorf("Failed to figure out whether the configured certificate is self-signed: %v", err)
+	if err = r.reconcileSelfSignedCert(ctx, deployContext, req.Name, checluster); err != nil {
+		logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
 	}
 
-	if isSelfSignedCertUsed {
-		if err = r.reconcileSelfSignedCert(ctx, deployContext, req.Name, checluster); err != nil {
-			logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
-			return ctrl.Result{}, err
-		}
+	if err = r.reconcileTrustedCerts(ctx, deployContext, req.Name, checluster); err != nil {
+		logrus.Errorf("Failed to reconcile self-signed certificate into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
 	}
 
 	if err = r.reconcileProxySettings(ctx, req.Name, checluster, deployContext); err != nil {
