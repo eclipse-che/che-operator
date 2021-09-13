@@ -48,7 +48,9 @@ var (
 
 	SubscriptionResourceName          = "subscriptions"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
-	DevWorkspaceCSVNameWithouVersion  = "devworkspace-operator"
+	DevWorkspaceCSVNamePrefix         = "devworkspace-operator"
+	EclipseCheCSVNamePrefix           = "eclipse-che"
+	CodeReadyWorkspacesCSVPrefix      = "crwoperator"
 
 	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
@@ -120,14 +122,19 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
+	// do nothing if dev workspace is disabled
+	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+		return true, nil
+	}
+
 	// Check if exists devworkspace operator csv is already installed
 	devWorkspaceOperatorCSVExists := isDevWorkspaceOperatorCSVExists(deployContext)
 	if devWorkspaceOperatorCSVExists {
 		return true, nil
 	}
 
-	// do nothing if dev workspace is disabled
-	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+	if checkIfCheIsInstalledInSingleNamespacesMode(deployContext) && util.IsOpenShift {
+		logrus.Warnf(`DevWorkspace Operator can't be enabled because the operator was installed in Single Namespace mode.`)
 		return true, nil
 	}
 
@@ -172,6 +179,31 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
+func checkIfCheIsInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) bool {
+	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
+	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
+		return false
+	}
+
+	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
+	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, csv := range csvList.Items {
+		if strings.Contains(csv.Name, "eclipse-che") || strings.Contains(csv.Name, "crwoperator") {
+			for _, installMode := range csv.Spec.InstallModes {
+				if installMode.Type == operatorsv1alpha1.InstallModeTypeSingleNamespace {
+					return installMode.Supported
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
@@ -185,7 +217,7 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	}
 
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, DevWorkspaceCSVNameWithouVersion) {
+		if strings.Contains(csv.Name, DevWorkspaceCSVNamePrefix) {
 			return true
 		}
 	}

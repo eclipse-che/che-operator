@@ -14,6 +14,8 @@ package devworkspace
 import (
 	"context"
 
+	"testing"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -24,8 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"testing"
 )
 
 const (
@@ -231,6 +231,111 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
 	if err == nil {
 		t.Fatal("Failed to reconcile DevWorkspace when DWO CSV is exptected to be created")
+	}
+}
+
+func TestReconcileInDifferentInstallModes(t *testing.T) {
+	type testCase struct {
+		name         string
+		IsOpenShift  bool
+		IsOpenShift4 bool
+		cheCluster   *orgv1.CheCluster
+		csv          *operatorsv1alpha1.ClusterServiceVersion
+	}
+	testCases := []testCase{
+		{
+			name: "Reconcile DevWorkspace on OpenShift when Che is installed on single mode",
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+						Enable: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(true),
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "single-host",
+					},
+				},
+			},
+			csv: &operatorsv1alpha1.ClusterServiceVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: operatorsv1alpha1.ClusterServiceVersionSpec{
+					InstallModes: []operatorsv1alpha1.InstallMode{
+						{
+							Type: operatorsv1alpha1.InstallModeTypeSingleNamespace,
+						},
+					},
+				},
+			},
+			IsOpenShift:  true,
+			IsOpenShift4: true,
+		},
+		{
+			name: "Reconcile DevWorkspace on OpenShift when Che is installed on allNamespace mode",
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+						Enable: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(true),
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "single-host",
+					},
+				},
+			},
+			csv: &operatorsv1alpha1.ClusterServiceVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "openshift-operators",
+				},
+				Spec: operatorsv1alpha1.ClusterServiceVersionSpec{
+					InstallModes: []operatorsv1alpha1.InstallMode{
+						{
+							Type: operatorsv1alpha1.InstallModeTypeAllNamespaces,
+						},
+					},
+				},
+			},
+			IsOpenShift:  true,
+			IsOpenShift4: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
+			deployContext.ClusterAPI.Client.Create(context.TODO(), testCase.csv)
+			deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
+				{
+					APIResources: []metav1.APIResource{
+						{
+							Name: ClusterServiceVersionResourceName,
+						},
+					},
+				},
+			}
+
+			util.IsOpenShift = testCase.IsOpenShift
+			util.IsOpenShift4 = testCase.IsOpenShift4
+			done, err := ReconcileDevWorkspace(deployContext)
+			if err != nil {
+				t.Fatalf("Error: %v", err)
+			}
+			if !done {
+				t.Fatalf("Dev Workspace operator has not been provisioned")
+			}
+		})
 	}
 }
 
