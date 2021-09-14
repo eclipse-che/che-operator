@@ -606,16 +606,6 @@ https://github.com/kubernetes/kube-state-metrics/tree/cb9f20b575749f66a7ac2e6d94
 RATE 75
 https://clearlydefined.io/definitions/git/github/kubernetes/kube-state-metrics/cb9f20b575749f66a7ac2e6d947fb5ee4af58bba
 
-k8s.io/kube-scheduler
-https://github.com/kubernetes/kube-scheduler/tree/d05eb4d901ffd0213f4ef82de7e4dea0092f9921
-RATE 80
-https://clearlydefined.io/definitions/git/github/kubernetes/kube-scheduler/d05eb4d901ffd0213f4ef82de7e4dea0092f9921
-
-k8s.io/kube-proxy
-https://github.com/kubernetes/kube-proxy/tree/f96f9c23df02c4946cdd4cedeb7bfe1169935a7e
-RATE 81
-https://clearlydefined.io/definitions/git/github/kubernetes/kube-proxy/f96f9c23df02c4946cdd4cedeb7bfe1169935a7e
-
 k8s.io/kube-controller-manager
 https://github.com/kubernetes/kube-controller-manager/releases/tag/v0.21.0
 http://github.com/kubernetes/kube-controller-manager/tree/d72e7d98723194b89c30eab04ce96f83bc1afdd1
@@ -905,11 +895,6 @@ https://github.com/robfig/cron/tree/v1.1.0
 https://github.com/robfig/cron/tree/b41be1df696709bb6395fe435af20370037c0b4c
 RATE 77
 https://clearlydefined.io/definitions/git/github/robfig/cron/b41be1df696709bb6395fe435af20370037c0b4c
-
-github.com/prometheus/prometheus
-https://github.com/prometheus/prometheus/tree/58e2a31db8de12da60783d91d748008daed95159
-RATE 75
-https://clearlydefined.io/definitions/git/github/prometheus/prometheus/58e2a31db8de12da60783d91d748008daed95159
 
 github.com/prometheus/procfs
 https://github.com/prometheus/procfs/tree/v0.2.0
@@ -2075,11 +2060,6 @@ RATE 60
 https://clearlydefined.io/definitions/git/github/coreos/etcd/94745a4eed0425653b3b4275a208d38babceeaec
 https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23378
 
-github.com/coreos/prometheus-operator
-https://github.com/prometheus-operator/prometheus-operator/tree/v0.34.0
-https://github.com/prometheus-operator/prometheus-operator/tree/8d44e0990230144177f97cf62ae4f43b1c4e3168
-https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23381
-
 github.com/docker/go-units
 https://github.com/docker/go-units/tree/v0.4.0
 https://github.com/docker/go-units/tree/519db1ee28dcc9fd2474ae59fca29a810482bfb1
@@ -2231,6 +2211,7 @@ RATE 46
 https://clearlydefined.io/definitions/git/github/clickhouse/clickhouse-go/6b1ba590788873fd6993f50f823bb90274a23ba5
 https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23516
 
+//
 github.com/prometheus/tsdb
 https://github.com/prometheus-junkyard/tsdb/tree/v0.8.0
 https://github.com/prometheus-junkyard/tsdb/tree/d48a5e2d5c34116dfcbc7b935c66157847b2d8b5
@@ -2550,6 +2531,7 @@ https://github.com/kubernetes/apiextensions-apiserver/tree/df15c4cbb9004e93a53e7
 RATE 89
 https://clearlydefined.io/definitions/git/github/kubernetes/apiextensions-apiserver/df15c4cbb9004e93a53e7c7b0701934f070a09bd
 
+///
 k8s.io/cli-runtime
 https://github.com/kubernetes/cli-runtime/tree/v0.20.6
 https://github.com/kubernetes/cli-runtime/tree/cff917553a6a27a3b3d9af0369ccfdf8b70099eb
@@ -2646,6 +2628,7 @@ RATE 0
 https://clearlydefined.io/definitions/git/github/operator-framework/operator-registry/19378f26062a39c92e7ab118a530fd80f45229aa
 https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23590
 
+//
 github.com/operator-framework/api
 https://github.com/operator-framework/api/tree/v0.8.0
 https://github.com/operator-framework/api/tree/01e8bf8bd934a18aef1d22e9e4c523f293b2a633
