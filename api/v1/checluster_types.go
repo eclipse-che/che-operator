@@ -364,7 +364,8 @@ type CheClusterSpecDB struct {
 	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
-	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
+	// Indicates a PostgreSQL version image to use. Allowed values are: `9.6` and `13.3`.
+	// Migrate your PostgreSQL database to switch from one version to another.
 	// +optional
 	PostgresVersion string `json:"postgresVersion,omitempty"`
 	// Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
