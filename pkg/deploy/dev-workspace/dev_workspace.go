@@ -133,8 +133,9 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	if checkIfCheIsInstalledInSingleNamespacesMode(deployContext) && util.IsOpenShift {
-		logrus.Warnf(`DevWorkspace Operator can't be enabled because the operator was installed in Single Namespace mode.`)
+	if isCheInstalledInSingleNamespacesMode(deployContext) && util.IsOpenShift {
+		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
+		logrus.Warnf(`DevWorkspace engine cannot be enabled. In order to enable DevWorkspace engine please install the operator from the tech-preview channel`)
 		return true, nil
 	}
 
@@ -179,15 +180,15 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
-func checkIfCheIsInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) bool {
+func isCheInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
 		return false
 	}
-
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
 	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
 	if err != nil {
+		logrus.Errorf("Failed to read CSV from cluster %v", err)
 		return false
 	}
 
