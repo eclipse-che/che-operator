@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	DefaultBackupServerConfigLabelKey = "che.eclipse.org/default-backup-server-configuration"
+	DefaultBackupServerConfigLabelKey = "che.eclipse.org/backup-before-update"
 )
 
 func isCheGoingToBeUpdated(cheCR *chev1.CheCluster) bool {
@@ -68,7 +68,7 @@ func getBackupCRNameForVersion(version string) string {
 	return "backup-before-update-to-" + strings.Replace(version, ".", "-", -1)
 }
 
-func requestNewBackup(deployContext *deploy.DeployContext) error {
+func requestBackup(deployContext *deploy.DeployContext) error {
 	backupCR, err := getBackupCRSpec(deployContext)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func requestNewBackup(deployContext *deploy.DeployContext) error {
 }
 
 func getBackupCRSpec(deployContext *deploy.DeployContext) (*chev1.CheClusterBackup, error) {
-	backupServerConfigName, err := getDefaultBackupServer(deployContext)
+	backupServerConfigName, err := getBackupServerConfigurationNameForBackupBeforeUpdate(deployContext)
 	if err != nil {
 		return nil, err
 	}
@@ -102,11 +102,11 @@ func getBackupCRSpec(deployContext *deploy.DeployContext) (*chev1.CheClusterBack
 	}, nil
 }
 
-// getDefaultBackupServer searches for backup server configuration.
+// getBackupServerConfigurationNameForBackupBeforeUpdate searches for backup server configuration.
 // If there is only one, then it is used.
 // If there are two or more, then one with 'che.eclipse.org/default-backup-server-configuration' annotation is used.
 // If there is none, then empty string returned (internal backup server should be used).
-func getDefaultBackupServer(deployContext *deploy.DeployContext) (string, error) {
+func getBackupServerConfigurationNameForBackupBeforeUpdate(deployContext *deploy.DeployContext) (string, error) {
 	backupServerConfigsList := &chev1.CheBackupServerConfigurationList{}
 	if err := deployContext.ClusterAPI.Client.List(context.TODO(), backupServerConfigsList); err != nil {
 		return "", err
@@ -115,7 +115,7 @@ func getDefaultBackupServer(deployContext *deploy.DeployContext) (string, error)
 		return backupServerConfigsList.Items[0].GetName(), nil
 	}
 	for _, backupServerConfig := range backupServerConfigsList.Items {
-		if _, ok := backupServerConfig.ObjectMeta.Annotations[DefaultBackupServerConfigLabelKey]; ok {
+		if value, exists := backupServerConfig.ObjectMeta.Annotations[DefaultBackupServerConfigLabelKey]; exists && value == "true" {
 			return backupServerConfig.GetName(), nil
 		}
 	}

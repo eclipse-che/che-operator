@@ -266,7 +266,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		if err != nil {
 			if errors.IsNotFound(err) {
 				// Create a backup before updating current installation
-				if err := requestNewBackup(deployContext); err != nil {
+				if err := requestBackup(deployContext); err != nil {
 					return ctrl.Result{}, err
 				}
 				// Backup request is successfully submitted
