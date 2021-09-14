@@ -35,7 +35,7 @@ var (
 	defaultDevfileRegistryImage                string
 	defaultCheTLSSecretsCreationJobImage       string
 	defaultPvcJobsImage                        string
-	defaultPostgres9Image                      string
+	defaultPostgresImage                       string
 	defaultPostgres13Image                     string
 	defaultKeycloakImage                       string
 	defaultSingleHostGatewayImage              string
@@ -176,7 +176,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultPluginRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
-	defaultPostgres9Image = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_9_6"))
+	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultPostgres13Image = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
@@ -289,8 +289,8 @@ func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultPvcJobsImage)
 }
 
-func DefaultPostgres9Image(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultPostgres9Image)
+func DefaultPostgresImage(cr *orgv1.CheCluster) string {
+	return patchDefaultImageName(cr, defaultPostgresImage)
 }
 
 func DefaultPostgres13Image(cr *orgv1.CheCluster) string {
@@ -442,8 +442,12 @@ func InitDefaultsFromEnv() {
 	defaultPluginRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
-	defaultPostgres9Image = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_9_6"))
-	defaultPostgres13Image = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
+	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+
+	// allow not to set env variable into a container
+	// while downstream is not migrated to PostgreSQL 13.3 yet
+	defaultPostgres13Image = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
+
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))

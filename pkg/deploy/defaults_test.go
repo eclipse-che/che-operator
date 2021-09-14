@@ -30,7 +30,7 @@ func TestDefaultFromEnv(t *testing.T) {
 	pluginRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_plugin_registry"))
 	devfileRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	pvcJobsImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
-	postgres9ImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_9_6"))
+	postgresImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	postgres13ImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
 	keycloakImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	brokerMetadataTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
@@ -67,8 +67,8 @@ func TestDefaultFromEnv(t *testing.T) {
 		t.Errorf("Expected %s but was %s", pvcJobsImageTest, DefaultPvcJobsImage(cheCluster))
 	}
 
-	if DefaultPostgres9Image(cheCluster) != postgres9ImageTest {
-		t.Errorf("Expected %s but was %s", postgres9ImageTest, DefaultPostgres9Image(cheCluster))
+	if DefaultPostgresImage(cheCluster) != postgresImageTest {
+		t.Errorf("Expected %s but was %s", postgresImageTest, DefaultPostgresImage(cheCluster))
 	}
 
 	if DefaultPostgres13Image(cheCluster) != postgres13ImageTest {
@@ -118,10 +118,10 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	var (
 		airGapRegistryHostname                                   = "myregistry.org"
 		airGapRegistryOrganization                               = "myorg"
-		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgres13Image))
-		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgres13Image), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgres13Image))
+		expectedAirGapPostgresUpstreamImage                      = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
+		expectedAirGapPostgresUpstreamImageOnlyOrgChanged        = makeAirGapImagePath(getHostnameFromImage(defaultPostgresImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
 		expectedAirGapCRWPluginRegistryOnlyOrgChanged            = makeAirGapImagePath(getHostnameFromImage(defaultPluginRegistryImage), airGapRegistryOrganization, getImageNameFromFullImage(defaultPluginRegistryImage))
-		expectedAirGapCRWPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgres13Image))
+		expectedAirGapCRWPostgresImage                           = makeAirGapImagePath(airGapRegistryHostname, airGapRegistryOrganization, getImageNameFromFullImage(defaultPostgresImage))
 		expectedAirGapKeyCloakImageOnlyHostnameChanged           = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultKeycloakImage), getImageNameFromFullImage(defaultKeycloakImage))
 		expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged = makeAirGapImagePath(airGapRegistryHostname, getOrganizationFromImage(defaultDevfileRegistryImage), getImageNameFromFullImage(defaultDevfileRegistryImage))
 	)
@@ -187,12 +187,12 @@ func TestCorrectAirGapPatchedImage(t *testing.T) {
 	}
 
 	testCases := map[string]testcase{
-		"default postgres":          {image: defaultPostgres13Image, expected: defaultPostgres13Image, cr: upstream},
-		"airgap postgres":           {image: defaultPostgres13Image, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
-		"with only the org changed": {image: defaultPostgres13Image, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
+		"default postgres":          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: upstream},
+		"airgap postgres":           {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImage, cr: airGapUpstream},
+		"with only the org changed": {image: defaultPostgresImage, expected: expectedAirGapPostgresUpstreamImageOnlyOrgChanged, cr: upstreamOnlyOrg},
 		"codeready plugin registry with only the org changed": {image: defaultPluginRegistryImage, expected: expectedAirGapCRWPluginRegistryOnlyOrgChanged, cr: crwOnlyOrg},
-		"CRW postgres":                          {image: defaultPostgres13Image, expected: defaultPostgres13Image, cr: crw},
-		"CRW airgap postgres":                   {image: defaultPostgres13Image, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
+		"CRW postgres":                          {image: defaultPostgresImage, expected: defaultPostgresImage, cr: crw},
+		"CRW airgap postgres":                   {image: defaultPostgresImage, expected: expectedAirGapCRWPostgresImage, cr: airGapCRW},
 		"airgap with only hostname defined":     {image: defaultKeycloakImage, expected: expectedAirGapKeyCloakImageOnlyHostnameChanged, cr: upstreamOnlyHostname},
 		"crw airgap with only hostname defined": {image: defaultDevfileRegistryImage, expected: expectedAirGapCRWDevfileRegistryImageOnlyHostnameChanged, cr: crwOnlyHostname},
 	}

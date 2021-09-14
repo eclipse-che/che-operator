@@ -218,9 +218,10 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 
 func getPostgresImage(cheCluster *orgv1.CheCluster) (string, error) {
 	if cheCluster.Spec.Database.PostgresImage != "" {
+		// use image explicitly set in a CR
 		return cheCluster.Spec.Database.PostgresImage, nil
 	} else if cheCluster.Spec.Database.PostgresVersion == "" || cheCluster.Spec.Database.PostgresVersion == PostgresVersion9_6 {
-		return deploy.DefaultPostgres9Image(cheCluster), nil
+		return deploy.DefaultPostgresImage(cheCluster), nil
 	} else if cheCluster.Spec.Database.PostgresVersion == PostgresVersion13_3 {
 		return deploy.DefaultPostgres13Image(cheCluster), nil
 	}
