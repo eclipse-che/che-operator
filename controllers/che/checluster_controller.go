@@ -685,6 +685,10 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 		} else {
 			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
 				oauth = true
+			} else if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+				// enable OpenShift OAuth without adding initial OpenShift OAuth user
+				// since kubeadmin is a valid user for native user mode
+				oauth = true
 			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
 				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
 				if err != nil {
