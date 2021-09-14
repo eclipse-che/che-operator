@@ -41,8 +41,6 @@ github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/adal
 github.com/Azure/go-autorest/autorest/date
 github.com/Azure/go-autorest/autorest/mocks
-github.com/Azure/go-autorest/autorest/to
-github.com/Azure/go-autorest/autorest/validation
 github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/tracing
 
@@ -1710,12 +1708,6 @@ https://github.com/Azure/go-ansiterm/tree/d6e3b3328b783f23731bc4d058875b0371ff81
 RATE 100
 https://clearlydefined.io/definitions/git/github/azure/go-ansiterm/d6e3b3328b783f23731bc4d058875b0371ff8109
 
-github.com/Azure/azure-sdk-for-go
-https://github.com/Azure/azure-sdk-for-go/tree/v43.0.0
-https://github.com/Azure/azure-sdk-for-go/tree/4f14e3d53fba12172734d383af647730d06412d2
-RATE 75
-https://clearlydefined.io/definitions/git/github/azure/azure-sdk-for-go/4f14e3d53fba12172734d383af647730d06412d2
-
 github.com/Masterminds/goutils
 https://github.com/Masterminds/goutils/tree/v1.1.0
 https://github.com/Masterminds/goutils/tree/41ac8693c5c10a92ea1ff5ac3a7f95646f6123b0
@@ -1773,11 +1765,6 @@ modernc.org/file
 https://gitlab.com/cznic/file/-/tags/v1.0.0
 https://gitlab.com/cznic/file/-/tree/77fb6ddb93ef6c79fe90759839bf2e605d082bbe
 https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23412
-
-bitbucket.org/bertimus9/systemstat
-https://bitbucket.org/bertimus9/systemstat/commits/0eeff89b0690611fc32e21f0cd2e4434abf8fe53
-https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23406
-github.com/google/cadvisor
 
 https://github.com/google/cadvisor/tree/v0.34.0
 https://github.com/google/cadvisor/tree/24a6a52fceb2e1c5a319b97bfc6bebf8f5b816cf
@@ -1952,13 +1939,6 @@ https://github.com/prometheus/common/tree/287d3e634a1e550c9e463dd7e5a75a422c6145
 RATE 56
 https://clearlydefined.io/definitions/git/github/prometheus/common/287d3e634a1e550c9e463dd7e5a75a422c614505
 https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23399
-
-github.com/DATA-DOG/go-sqlmock
-https://github.com/DATA-DOG/go-sqlmock/tree/v1.3.3
-https://github.com/DATA-DOG/go-sqlmock/tree/3f9954f6f6697845b082ca57995849ddf614f450
-RATE 1
-https://clearlydefined.io/definitions/git/github/data-dog/go-sqlmock/3f9954f6f6697845b082ca57995849ddf614f450
-https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23369
 
 github.com/GoogleCloudPlatform/k8s-cloud-provider
 https://github.com/GoogleCloudPlatform/k8s-cloud-provider/tree/7901bc822317c56ff20e5189878966a70d52321e

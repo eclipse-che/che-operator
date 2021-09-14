@@ -29,7 +29,6 @@ require (
 
 replace (
 	bazil.org/fuse => bazil.org/fuse v0.0.0-20160811212531-371fbbdaa898
-	bitbucket.org/bertimus9/systemstat => bitbucket.org/bertimus9/systemstat v0.0.0-20180207000608-0eeff89b0690
 	cloud.google.com/go => cloud.google.com/go v0.54.0
 	cloud.google.com/go/bigquery => cloud.google.com/go/bigquery v1.4.0
 	cloud.google.com/go/datastore => cloud.google.com/go/datastore v1.2.0
@@ -38,20 +37,16 @@ replace (
 	cloud.google.com/go/spanner => cloud.google.com/go/spanner v1.2.0
 	cloud.google.com/go/storage => cloud.google.com/go/storage v1.5.0
 	git/github/microsoft/go-winio => github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
-	github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v43.0.0+incompatible
 	github.com/Azure/go-ansiterm => github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v0.0.0-20200908233159-fafe600ec8bd
 	github.com/Azure/go-autorest/autorest => github.com/Azure/go-autorest/autorest v0.0.0-20200908233159-fafe600ec8bd
 	github.com/Azure/go-autorest/autorest/adal => github.com/Azure/go-autorest/autorest/adal v0.0.0-20200908233159-fafe600ec8bd
 	github.com/Azure/go-autorest/autorest/date => github.com/Azure/go-autorest/autorest/date v0.0.0-20200908233159-fafe600ec8bd
 	github.com/Azure/go-autorest/autorest/mocks => github.com/Azure/go-autorest/autorest/mocks v0.0.0-20200908233159-fafe600ec8bd
-	github.com/Azure/go-autorest/autorest/to => github.com/Azure/go-autorest/autorest/to v0.0.0-20200908233159-fafe600ec8bd
-	github.com/Azure/go-autorest/autorest/validation => github.com/Azure/go-autorest/autorest/validation v0.0.0-20200908233159-fafe600ec8bd
 	github.com/Azure/go-autorest/logger => github.com/Azure/go-autorest/logger v0.0.0-20200908233159-fafe600ec8bd
 	github.com/Azure/go-autorest/tracing => github.com/Azure/go-autorest/tracing v0.0.0-20200908233159-fafe600ec8bd
 	github.com/BurntSushi/toml => github.com/BurntSushi/toml v0.3.1
 	github.com/BurntSushi/xgb => github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802
-	github.com/DATA-DOG/go-sqlmock => github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/GoogleCloudPlatform/k8s-cloud-provider => github.com/GoogleCloudPlatform/k8s-cloud-provider v0.0.0-20200415212048-7901bc822317
 	github.com/MakeNowJust/heredoc => github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e
 	github.com/Masterminds/goutils => github.com/Masterminds/goutils v1.1.0
@@ -164,8 +159,6 @@ replace (
 	github.com/go-ini/ini => github.com/go-ini/ini v1.25.4
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/go-logfmt/logfmt => github.com/go-logfmt/logfmt v0.5.0
-	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
-	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
 	github.com/go-openapi/errors => github.com/go-openapi/errors v0.19.2
 	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.19.3
 	github.com/go-openapi/jsonreference => github.com/go-openapi/jsonreference v0.19.3
@@ -200,7 +193,6 @@ replace (
 	github.com/golangplus/fmt => github.com/golangplus/fmt v0.0.0-20150411045040-2a5d6d7d2995
 	github.com/google/btree => github.com/google/btree v1.0.0
 	github.com/google/cadvisor => github.com/google/cadvisor v0.34.0
-	github.com/google/go-cmp => github.com/google/go-cmp v0.5.6
 	github.com/google/go-github => github.com/google/go-github/v18 v18.0.0-20180920013327-07716bad7a0c
 	github.com/google/go-querystring => github.com/google/go-querystring v1.0.0
 	github.com/google/gofuzz => github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
@@ -346,7 +338,6 @@ replace (
 	github.com/opentracing/basictracer-go => github.com/opentracing/basictracer-go v1.0.0
 	github.com/opentracing/opentracing-go => github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin/zipkin-go => github.com/openzipkin/zipkin-go v0.2.2
-	github.com/operator-framework/api => github.com/operator-framework/api v0.10.0
 	github.com/operator-framework/operator-lifecycle-manager => github.com/operator-framework/operator-lifecycle-manager v0.18.1
 	github.com/operator-framework/operator-registry => github.com/operator-framework/operator-registry v1.13.6
 	github.com/otiai10/copy => github.com/otiai10/copy v1.2.0
@@ -365,7 +356,6 @@ replace (
 	github.com/posener/complete => github.com/posener/complete v1.1.1
 	github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
 	github.com/pquerna/ffjson => github.com/pquerna/ffjson v0.0.0-20171002144729-d49c2bc1aa13
-	github.com/prometheus/procfs => github.com/prometheus/procfs v0.6.0
 	github.com/prometheus/tsdb => github.com/prometheus-junkyard/tsdb v0.7.1
 	github.com/quobyte/api => github.com/quobyte/api v0.1.2
 	github.com/remyoudompheng/bigfft => github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
@@ -433,7 +423,6 @@ replace (
 	go.opencensus.io => go.opencensus.io v0.22.3
 	go.uber.org/multierr => go.uber.org/multierr v1.3.0
 	go.uber.org/tools => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
-	go.uber.org/zap => go.uber.org/zap v1.18.1
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20190426190305-956cc1757749
 	gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.0.1
@@ -468,16 +457,9 @@ replace (
 	grpc-ecosystem/grpc-health-probe => grpc-ecosystem/grpc-health-probe v0.3.2
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.0.0-20200422233323-0a9a9a88e8af
 	honnef.co/go/tools => honnef.co/go/tools v0.0.0-20200822191040-81508471876c
-	k8s.io/api => k8s.io/api v0.21.3
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.3
-	k8s.io/apimachinery => k8s.io/apimachinery v0.21.3
-	k8s.io/apiserver => k8s.io/apiserver v0.21.3
 	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20201110183641-97acd14b9686
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.21.3
-	k8s.io/client-go => k8s.io/client-go v0.21.3
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.0.0-20190620090043-8301c0bda1f0
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20200708172309-f186a36abf5c
-	k8s.io/component-base => k8s.io/component-base v0.20.2
 	k8s.io/component-helpers => k8s.io/component-helpers v0.20.1
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 	k8s.io/heapster => k8s.io/heapster v0.0.0-20180912150135-c78cc312ab39
@@ -501,7 +483,6 @@ replace (
 	modernc.org/strutil => modernc.org/strutil v1.1.0
 	modernc.org/zappy => modernc.org/zappy v1.0.0
 	rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.3
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.5
 	sigs.k8s.io/controller-tgithub.com/containerd/console v0.0.0-20180822173158-c12b1e7919c1ools => sigs.k8s.io/controller-tools v0.0.0-20200129215414-2bc3f5eb99cc
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.10.0
 	sigs.k8s.io/kustomize/v2 => sigs.k8s.io/kustomize/v3 v3.0.0-20190726175121-95f3303493fd
@@ -511,15 +492,56 @@ replace (
 )
 
 replace (
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
-	github.com/prometheus/client_model => github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common => github.com/prometheus/common v0.26.0
 	k8s.io/kube-state-metrics => k8s.io/kube-state-metrics v0.0.0-20180918070825-cb9f20b57574
 	k8s.io/kubectl => k8s.io/kubectl v0.0.0-20201218185502-10b66c3fd14b
 	k8s.io/kubelet => k8s.io/kubelet v0.0.0-20180908160459-cf37f0b20133
 	k8s.io/kubernetes => k8s.io/kubernetes v1.16.2
 	k8s.io/metrics => k8s.io/metrics v0.20.2
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20180913000251-1110eaa81bb3
+)
+
+replace (
+	github.com/benbjohnson/clock => github.com/benbjohnson/clock v1.1.0
+	github.com/chzyer/logex => github.com/chzyer/logex v1.1.10
+	github.com/chzyer/readline => github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+	github.com/chzyer/test => github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
+	github.com/evanphx/json-patch => github.com/evanphx/json-patch v4.11.0+incompatible
+	github.com/fatih/set => github.com/fatih/set v0.2.1
+	github.com/go-errors/errors => github.com/go-errors/errors v1.0.1
+	github.com/go-kit/log => github.com/go-kit/log v0.1.0
+	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
+	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
+	github.com/gobuffalo/here => github.com/gobuffalo/here v0.6.0
+	github.com/google/go-cmp => github.com/google/go-cmp v0.5.6
+	github.com/hashicorp/go-multierror => github.com/hashicorp/go-multierror v1.1.1
+	github.com/jpillora/backoff => github.com/jpillora/backoff v1.0.0
+	github.com/markbates/pkger => github.com/markbates/pkger v0.17.1
+	github.com/moby/spdystream => github.com/moby/spdystream v0.2.0
+	github.com/monochromegane/go-gitignore => github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
+	github.com/operator-framework/api => github.com/operator-framework/api v0.10.0
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_model => github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/common => github.com/prometheus/common v0.26.0
+	github.com/prometheus/procfs => github.com/prometheus/procfs v0.6.0
+	github.com/redhat-cop/operator-utils => github.com/redhat-cop/operator-utils v1.1.4
+	github.com/scylladb/go-set => github.com/scylladb/go-set v1.0.2
+	github.com/xlab/treeprint => github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
+	go.starlark.net => go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5
+	go.uber.org/atomic => go.uber.org/atomic v1.7.0
+	go.uber.org/goleak => go.uber.org/goleak v1.1.10
+	go.uber.org/zap => go.uber.org/zap v1.18.1
+	k8s.io/api => k8s.io/api v0.21.3
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.3
+	k8s.io/apimachinery => k8s.io/apimachinery v0.21.3
+	k8s.io/apiserver => k8s.io/apiserver v0.21.3
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.21.3
+	k8s.io/client-go => k8s.io/client-go v0.21.3
+	k8s.io/component-base => k8s.io/component-base v0.20.2
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.5
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.6.0
+	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.8.8
+	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
 )
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
