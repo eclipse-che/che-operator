@@ -271,26 +271,26 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatalf("Expected 1 traefik router but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		endpointName := "wsid-m1-9999"
-		if _, ok := workspaceConfig.HTTP.Routers[endpointName]; !ok {
+		wsid := "wsid-m1-9999"
+		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
 
-		if len(workspaceConfig.HTTP.Routers[endpointName].Middlewares) != 1 {
-			t.Fatalf("Expected 1 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[endpointName].Middlewares))
+		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 1 {
+			t.Fatalf("Expected 1 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
 		}
 
 		if len(workspaceConfig.HTTP.Middlewares) != 1 {
 			t.Fatalf("Expected 1 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
 		}
 
-		mwares := []string{endpointName + "-prefix"}
+		mwares := []string{wsid + "-prefix"}
 		for _, mware := range mwares {
 			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
 				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
 			}
 			found := false
-			for _, r := range workspaceConfig.HTTP.Routers[endpointName].Middlewares {
+			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
 				if r == mware {
 					found = true
 				}
@@ -371,13 +371,13 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatalf("Expected 1 traefik routers but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		endpointName := "wsid-m1-9999"
-		if _, ok := workspaceConfig.HTTP.Routers[endpointName]; !ok {
+		wsid := "wsid-m1-9999"
+		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
 
-		if len(workspaceConfig.HTTP.Routers[endpointName].Middlewares) != 2 {
-			t.Fatalf("Expected 2 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[endpointName].Middlewares))
+		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 2 {
+			t.Fatalf("Expected 2 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
 		}
 
 		workspaceMainConfig := traefikConfig{}
@@ -393,14 +393,14 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatalf("Expected 3 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
 		}
 
-		endpointName = "wsid"
-		mwares := []string{endpointName + "-auth", endpointName + "-prefix", endpointName + "-header"}
+		wsid = "wsid"
+		mwares := []string{wsid + "-auth", wsid + "-prefix", wsid + "-header"}
 		for _, mware := range mwares {
 			if _, ok := workspaceMainConfig.HTTP.Middlewares[mware]; !ok {
 				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
 			}
 			found := false
-			for _, r := range workspaceMainConfig.HTTP.Routers[endpointName].Middlewares {
+			for _, r := range workspaceMainConfig.HTTP.Routers[wsid].Middlewares {
 				if r == mware {
 					found = true
 				}
@@ -464,6 +464,12 @@ func TestCreateSubDomainObjects(t *testing.T) {
 		}
 		if objs.Ingresses[0].Spec.Rules[0].Host != "wsid-1.down.on.earth" {
 			t.Error("Expected Ingress host 'wsid-1.down.on.earth', but got ", objs.Ingresses[0].Spec.Rules[0].Host)
+		}
+		if objs.Ingresses[1].Spec.Rules[0].Host != "wsid-2.down.on.earth" {
+			t.Error("Expected Ingress host 'wsid-2.down.on.earth', but got ", objs.Ingresses[1].Spec.Rules[0].Host)
+		}
+		if objs.Ingresses[2].Spec.Rules[0].Host != "wsid-3.down.on.earth" {
+			t.Error("Expected Ingress host 'wsid-3.down.on.earth', but got ", objs.Ingresses[2].Spec.Rules[0].Host)
 		}
 	})
 

@@ -571,11 +571,11 @@ func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Servic
 	return nil
 }
 
-func findIngressForEndpoint(machineName string, endpoint dw.Endpoint, objs *solvers.RoutingObjects) *networkingv1.Ingress {
+func findIngressForEndpoint(componentName string, endpoint dw.Endpoint, objs *solvers.RoutingObjects) *networkingv1.Ingress {
 	for i := range objs.Ingresses {
 		ingress := &objs.Ingresses[i]
 
-		if ingress.Annotations[defaults.ConfigAnnotationComponentName] != machineName ||
+		if ingress.Annotations[defaults.ConfigAnnotationComponentName] != componentName ||
 			ingress.Annotations[defaults.ConfigAnnotationEndpointName] != endpoint.Name {
 			continue
 		}
