@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
@@ -501,17 +502,26 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 	return nil
 }
 
-func addEndpointToTraefikConfig(component string, e dw.Endpoint, cfg *traefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
-	prefix := getLocalURLPrefix(component, e)
+func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *traefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
+	prefix := getLocalURLPrefix(componentName, e)
+	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
 
-	cfg.HTTP.Routers[e.Name] = traefikConfigRouter{
-		Rule:        fmt.Sprintf("PathPrefix(`%s`)", prefix),
+	// skip if exact same route is already exposed
+	for _, r := range cfg.HTTP.Routers {
+		if r.Rule == rulePrefix {
+			return
+		}
+	}
+
+	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, strconv.Itoa(e.TargetPort))
+	cfg.HTTP.Routers[name] = traefikConfigRouter{
+		Rule:        rulePrefix,
 		Service:     e.Name,
-		Middlewares: calculateMiddlewares(e.Name, false),
+		Middlewares: calculateMiddlewares(name, false),
 		Priority:    100,
 	}
 
-	cfg.HTTP.Services[e.Name] = traefikConfigService{
+	cfg.HTTP.Services[name] = traefikConfigService{
 		LoadBalancer: traefikConfigLoadbalancer{
 			Servers: []traefikConfigLoadbalancerServer{
 				{
@@ -521,14 +531,14 @@ func addEndpointToTraefikConfig(component string, e dw.Endpoint, cfg *traefikCon
 		},
 	}
 
-	cfg.HTTP.Middlewares[e.Name+"-prefix"] = traefikConfigMiddleware{
+	cfg.HTTP.Middlewares[name+"-prefix"] = traefikConfigMiddleware{
 		StripPrefix: &traefikConfigStripPrefix{
 			Prefixes: []string{prefix},
 		},
 	}
 
 	if infrastructure.IsOpenShift() {
-		cfg.HTTP.Middlewares[e.Name+"-auth"] = traefikConfigMiddleware{
+		cfg.HTTP.Middlewares[name+"-auth"] = traefikConfigMiddleware{
 			ForwardAuth: &traefikConfigForwardAuth{
 				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
 			},

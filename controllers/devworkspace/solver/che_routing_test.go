@@ -267,11 +267,11 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(workspaceConfig.HTTP.Routers) != 3 {
-			t.Fatalf("Expected 3 traefik routers but got %d", len(workspaceConfig.HTTP.Routers))
+		if len(workspaceConfig.HTTP.Routers) != 1 {
+			t.Fatalf("Expected 1 traefik router but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		endpointName := "e1"
+		endpointName := "wsid-m1-9999"
 		if _, ok := workspaceConfig.HTTP.Routers[endpointName]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
@@ -280,8 +280,8 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatalf("Expected 1 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[endpointName].Middlewares))
 		}
 
-		if len(workspaceConfig.HTTP.Middlewares) != 3 {
-			t.Fatalf("Expected 3 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
+		if len(workspaceConfig.HTTP.Middlewares) != 1 {
+			t.Fatalf("Expected 1 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
 		}
 
 		mwares := []string{endpointName + "-prefix"}
@@ -367,11 +367,11 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(workspaceConfig.HTTP.Routers) != 3 {
-			t.Fatalf("Expected 3 traefik routers but got %d", len(workspaceConfig.HTTP.Routers))
+		if len(workspaceConfig.HTTP.Routers) != 1 {
+			t.Fatalf("Expected 1 traefik routers but got %d", len(workspaceConfig.HTTP.Routers))
 		}
 
-		endpointName := "e1"
+		endpointName := "wsid-m1-9999"
 		if _, ok := workspaceConfig.HTTP.Routers[endpointName]; !ok {
 			t.Fatal("traefik config doesn't contain expected workspace configuration")
 		}
