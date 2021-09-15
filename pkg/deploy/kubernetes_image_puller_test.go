@@ -13,7 +13,11 @@ package deploy
 
 import (
 	"os"
+	"sort"
 	"testing"
+
+	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestEnvVars(t *testing.T) {
@@ -21,6 +25,16 @@ func TestEnvVars(t *testing.T) {
 		name     string
 		env      map[string]string
 		expected []ImageAndName
+	}
+
+	// unset RELATED_IMAGE environment variables, set them back
+	// after tests complete
+	matches := util.GetEnvByRegExp("^RELATED_IMAGE_.*")
+	for _, match := range matches {
+		if originalValue, exists := os.LookupEnv(match.Name); exists {
+			os.Unsetenv(match.Name)
+			defer os.Setenv(match.Name, originalValue)
+		}
 	}
 
 	cases := []testcase{
@@ -110,23 +124,18 @@ func TestEnvVars(t *testing.T) {
 				defer os.Unsetenv(k)
 			}
 			actual := GetDefaultImages()
-			assertContains(t, actual, c.expected)
+			if d := cmp.Diff(sortImages(c.expected), sortImages(actual)); d != "" {
+				t.Errorf("Error, collected images differ (-want, +got): %v", d)
+			}
 		})
 	}
 }
 
-// assertContains asserts that a contains b
-func assertContains(t *testing.T, a []ImageAndName, b []ImageAndName) {
-	for _, bImage := range b {
-		found := false
-		for _, aImage := range a {
-			if aImage == bImage {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Error, expected the slice to contain ImageAndName struct '%+v'", bImage)
-		}
-	}
+func sortImages(images []ImageAndName) []ImageAndName {
+	imagesCopy := make([]ImageAndName, len(images))
+	copy(imagesCopy, images)
+	sort.Slice(imagesCopy, func(i, j int) bool {
+		return imagesCopy[i].Name < imagesCopy[j].Name
+	})
+	return imagesCopy
 }
