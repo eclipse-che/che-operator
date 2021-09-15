@@ -115,7 +115,7 @@ func getBackupServerConfigurationNameForBackupBeforeUpdate(deployContext *deploy
 		return backupServerConfigsList.Items[0].GetName(), nil
 	}
 	for _, backupServerConfig := range backupServerConfigsList.Items {
-		if value, exists := backupServerConfig.ObjectMeta.Annotations[DefaultBackupServerConfigLabelKey]; exists && value == "true" {
+		if backupServerConfig.ObjectMeta.Annotations != nil && backupServerConfig.ObjectMeta.Annotations[DefaultBackupServerConfigLabelKey] == "true" {
 			return backupServerConfig.GetName(), nil
 		}
 	}
