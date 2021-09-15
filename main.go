@@ -63,6 +63,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
+	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -131,6 +132,7 @@ func init() {
 		utilruntime.Must(configv1.AddToScheme(scheme))
 		utilruntime.Must(corev1.AddToScheme(scheme))
 		utilruntime.Must(consolev1.AddToScheme(scheme))
+		utilruntime.Must(projectv1.AddToScheme(scheme))
 	}
 }
 
