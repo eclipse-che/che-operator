@@ -503,7 +503,15 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 }
 
 func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *traefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
-	prefix := getLocalURLPrefix(componentName, e)
+	var routeName string
+	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
+		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
+		routeName = e.Name
+	} else {
+		// if endpoint is NOT unique, we're exposing on /componentName/<port-number>
+		routeName = strconv.Itoa(e.TargetPort)
+	}
+	prefix := fmt.Sprintf("/%s/%s", componentName, routeName)
 	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
 
 	// skip if exact same route is already exposed
@@ -513,10 +521,10 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *traefi
 		}
 	}
 
-	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, strconv.Itoa(e.TargetPort))
+	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, routeName)
 	cfg.HTTP.Routers[name] = traefikConfigRouter{
 		Rule:        rulePrefix,
-		Service:     e.Name,
+		Service:     name,
 		Middlewares: calculateMiddlewares(name, false),
 		Priority:    100,
 	}
@@ -678,14 +686,6 @@ func getPublicURLPrefix(workspaceID string, machineName string, port int32, uniq
 		return fmt.Sprintf(endpointURLPrefixPattern, workspaceID, machineName, port)
 	}
 	return fmt.Sprintf(uniqueEndpointURLPrefixPattern, workspaceID, machineName, uniqueEndpointName)
-}
-
-func getLocalURLPrefix(componentName string, e dw.Endpoint) string {
-	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
-		return fmt.Sprintf("/%s/%s", componentName, e.Name)
-	} else {
-		return fmt.Sprintf("/%s/%d", componentName, e.TargetPort)
-	}
 }
 
 func determineEndpointScheme(e dw.Endpoint) string {
