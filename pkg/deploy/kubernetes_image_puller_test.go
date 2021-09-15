@@ -13,14 +13,10 @@ package deploy
 
 import (
 	"os"
-	"sort"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestEnvVars(t *testing.T) {
-
 	type testcase struct {
 		name     string
 		env      map[string]string
@@ -53,31 +49,41 @@ func TestEnvVars(t *testing.T) {
 		{
 			name: "detect machine exec image",
 			env: map[string]string{
-				"RELATED_IMAGE_che_machine_exec_plugin_registry_image_IBZWQYJ": "quay.io/eclipse/che-machine-exec",
+				"RELATED_IMAGE_che_machine_exec_plugin_registry_image_IBZWQYJ":                  "quay.io/eclipse/che-machine-exec",
+				"RELATED_IMAGE_codeready_workspaces_machineexec_plugin_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/machineexec-rhel8",
 			},
 			expected: []ImageAndName{
 				{Name: "che_machine_exec_plugin_registry_image_IBZWQYJ", Image: "quay.io/eclipse/che-machine-exec"},
+				{Name: "codeready_workspaces_machineexec_plugin_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/machineexec-rhel8"},
 			},
 		},
 		{
 			name: "detect plugin registry images",
 			env: map[string]string{
-				"RELATED_IMAGE_che_openshift_plugin_registry_image_IBZWQYJ": "index.docker.io/dirigiblelabs/dirigible-openshift",
+				"RELATED_IMAGE_che_openshift_plugin_registry_image_IBZWQYJ":                          "index.docker.io/dirigiblelabs/dirigible-openshift",
+				"RELATED_IMAGE_codeready_workspaces_plugin_openshift_plugin_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/plugin-openshift-rhel8",
 			},
 			expected: []ImageAndName{
 				{Name: "che_openshift_plugin_registry_image_IBZWQYJ", Image: "index.docker.io/dirigiblelabs/dirigible-openshift"},
+				{Name: "codeready_workspaces_plugin_openshift_plugin_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/plugin-openshift-rhel8"},
 			},
 		},
 		{
 			name: "detect devfile registry images",
 			env: map[string]string{
-				"RELATED_IMAGE_che_cpp_rhel7_devfile_registry_image_G4XDGNR":    "quay.io/eclipse/che-cpp-rhel7",
-				"RELATED_IMAGE_che_dotnet_2_2_devfile_registry_image_G4XDGNR":   "quay.io/eclipse/che-dotnet-2.2",
-				"RELATED_IMAGE_che_dotnet_3_1_devfile_registry_image_G4XDGNR":   "quay.io/eclipse/che-dotnet-3.1",
-				"RELATED_IMAGE_che_golang_1_14_devfile_registry_image_G4XDGNR":  "quay.io/eclipse/che-golang-1.14",
-				"RELATED_IMAGE_che_php_7_devfile_registry_image_G4XDGNR":        "quay.io/eclipse/che-php-7",
-				"RELATED_IMAGE_che_java11_maven_devfile_registry_image_G4XDGNR": "quay.io/eclipse/che-java11-maven",
-				"RELATED_IMAGE_che_java8_maven_devfile_registry_image_G4XDGNR":  "quay.io/eclipse/che-java8-maven",
+				"RELATED_IMAGE_che_cpp_rhel7_devfile_registry_image_G4XDGNR":                       "quay.io/eclipse/che-cpp-rhel7",
+				"RELATED_IMAGE_che_dotnet_2_2_devfile_registry_image_G4XDGNR":                      "quay.io/eclipse/che-dotnet-2.2",
+				"RELATED_IMAGE_che_dotnet_3_1_devfile_registry_image_G4XDGNR":                      "quay.io/eclipse/che-dotnet-3.1",
+				"RELATED_IMAGE_che_golang_1_14_devfile_registry_image_G4XDGNR":                     "quay.io/eclipse/che-golang-1.14",
+				"RELATED_IMAGE_che_php_7_devfile_registry_image_G4XDGNR":                           "quay.io/eclipse/che-php-7",
+				"RELATED_IMAGE_che_java11_maven_devfile_registry_image_G4XDGNR":                    "quay.io/eclipse/che-java11-maven",
+				"RELATED_IMAGE_che_java8_maven_devfile_registry_image_G4XDGNR":                     "quay.io/eclipse/che-java8-maven",
+				"RELATED_IMAGE_codeready_workspaces_stacks_cpp_devfile_registry_image_GIXDCMQK":    "registry.redhat.io/codeready-workspaces/stacks-cpp-rhel8",
+				"RELATED_IMAGE_codeready_workspaces_stacks_dotnet_devfile_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/stacks-dotnet-rhel8",
+				"RELATED_IMAGE_codeready_workspaces_stacks_golang_devfile_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/stacks-golang-rhel8",
+				"RELATED_IMAGE_codeready_workspaces_stacks_php_devfile_registry_image_GIXDCMQK":    "registry.redhat.io/codeready-workspaces/stacks-php-rhel8",
+				"RELATED_IMAGE_codeready_workspaces_plugin_java11_devfile_registry_image_GIXDCMQK": "registry.redhat.io/codeready-workspaces/plugin-java11-rhel8",
+				"RELATED_IMAGE_codeready_workspaces_plugin_java8_devfile_registry_image_GIXDCMQK":  "registry.redhat.io/codeready-workspaces/plugin-java8-rhel8",
 			},
 			expected: []ImageAndName{
 				{Name: "che_cpp_rhel7_devfile_registry_image_G4XDGNR", Image: "quay.io/eclipse/che-cpp-rhel7"},
@@ -87,6 +93,12 @@ func TestEnvVars(t *testing.T) {
 				{Name: "che_php_7_devfile_registry_image_G4XDGNR", Image: "quay.io/eclipse/che-php-7"},
 				{Name: "che_java11_maven_devfile_registry_image_G4XDGNR", Image: "quay.io/eclipse/che-java11-maven"},
 				{Name: "che_java8_maven_devfile_registry_image_G4XDGNR", Image: "quay.io/eclipse/che-java8-maven"},
+				{Name: "codeready_workspaces_stacks_cpp_devfile_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/stacks-cpp-rhel8"},
+				{Name: "codeready_workspaces_stacks_dotnet_devfile_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/stacks-dotnet-rhel8"},
+				{Name: "codeready_workspaces_stacks_golang_devfile_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/stacks-golang-rhel8"},
+				{Name: "codeready_workspaces_stacks_php_devfile_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/stacks-php-rhel8"},
+				{Name: "codeready_workspaces_plugin_java11_devfile_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/plugin-java11-rhel8"},
+				{Name: "codeready_workspaces_plugin_java8_devfile_registry_image_GIXDCMQK", Image: "registry.redhat.io/codeready-workspaces/plugin-java8-rhel8"},
 			},
 		},
 	}
@@ -95,25 +107,26 @@ func TestEnvVars(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			for k, v := range c.env {
 				os.Setenv(k, v)
+				defer os.Unsetenv(k)
 			}
-
 			actual := GetDefaultImages()
-
-			if d := cmp.Diff(sortImages(c.expected), sortImages(actual)); d != "" {
-				t.Errorf("Error, collected images differ (-want, +got): %v", d)
-			}
-			for k := range c.env {
-				os.Unsetenv(k)
-			}
+			assertContains(t, actual, c.expected)
 		})
 	}
 }
 
-func sortImages(images []ImageAndName) []ImageAndName {
-	imagesCopy := make([]ImageAndName, len(images))
-	copy(imagesCopy, images)
-	sort.Slice(imagesCopy, func(i, j int) bool {
-		return imagesCopy[i].Name < imagesCopy[j].Name
-	})
-	return imagesCopy
+// assertContains asserts that a contains b
+func assertContains(t *testing.T, a []ImageAndName, b []ImageAndName) {
+	for _, bImage := range b {
+		found := false
+		for _, aImage := range a {
+			if aImage == bImage {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Error, expected the slice to contain ImageAndName struct '%+v'", bImage)
+		}
+	}
 }
