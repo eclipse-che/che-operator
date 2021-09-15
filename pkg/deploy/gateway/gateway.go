@@ -268,6 +268,11 @@ http:
 	if nativeUser {
 		data += `
       - "` + serviceName + `-header"`
+
+		if util.IsOpenShift {
+			data += `
+      - "` + serviceName + `-token-check"`
+		}
 	}
 
 	if pathRewrite {
@@ -290,6 +295,18 @@ http:
           from: X-Forwarded-Access-Token
           to: Authorization
           prefix: 'Bearer '`
+
+		if util.IsOpenShift {
+			// on openshift, we can use an early check to confirm validity of the token
+			// (which should be an openshift user token in the nativeUser mode)
+			data += `
+    ` + serviceName + `-token-check:
+      forwardAuth:
+        address: "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~"
+        trustForwardHeader: true
+        tls:
+          insecureSkipVerify: true`
+		}
 	}
 
 	if pathRewrite {
