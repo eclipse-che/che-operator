@@ -104,6 +104,10 @@ func GetIngressSpec(
 	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
+	// Set bigger proxy buffer size to prevent 502 auth error.
+	if component == IdentityProviderName {
+		annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
+	}
 	for k, v := range ingressCustomSettings.Annotations {
 		annotations[k] = v
 	}

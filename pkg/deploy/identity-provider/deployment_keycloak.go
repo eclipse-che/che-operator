@@ -13,7 +13,6 @@ package identity_provider
 
 import (
 	"context"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -234,6 +233,18 @@ func GetSpecKeycloakDeployment(
 			Value: "POSTGRES",
 		},
 		{
+			Name:  "DB_USERNAME",
+			Value: "keycloak",
+		},
+		{
+			Name:  "DB_ADDR",
+			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
+		},
+		{
+			Name:  "DB_DATABASE",
+			Value: "keycloak",
+		},
+		{
 			Name:  "POSTGRES_PORT_5432_TCP_ADDR",
 			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
 		},
@@ -244,14 +255,6 @@ func GetSpecKeycloakDeployment(
 		{
 			Name:  "POSTGRES_PORT",
 			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort),
-		},
-		{
-			Name:  "POSTGRES_ADDR",
-			Value: util.GetValue(deployContext.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName),
-		},
-		{
-			Name:  "POSTGRES_DATABASE",
-			Value: "keycloak",
 		},
 		{
 			Name:  "POSTGRES_USER",
@@ -298,7 +301,7 @@ func GetSpecKeycloakDeployment(
 	identityProviderPostgresSecret := deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
 	if len(identityProviderPostgresSecret) > 0 {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-			Name: "POSTGRES_PASSWORD",
+			Name: "DB_PASSWORD",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					Key: "password",
@@ -310,7 +313,7 @@ func GetSpecKeycloakDeployment(
 		})
 	} else {
 		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-			Name:  "POSTGRES_PASSWORD",
+			Name:  "DB_PASSWORD",
 			Value: deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword,
 		})
 	}
@@ -516,33 +519,12 @@ func GetSpecKeycloakDeployment(
 		keycloakEnv = append(keycloakEnv, envvar)
 	}
 
-	var enableFixedHostNameProvider string
-	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
-		if cheFlavor == "che" {
-			keycloakURL, err := url.Parse(deployContext.CheCluster.Status.KeycloakURL)
-			if err != nil {
-				return nil, err
-			}
-			hostname := keycloakURL.Hostname()
-			enableFixedHostNameProvider = " && echo 'Use fixed hostname provider to make working internal network requests' && " +
-				"echo -e \"embed-server --server-config=standalone.xml --std-out=echo \n" +
-				"/subsystem=keycloak-server/spi=hostname:write-attribute(name=default-provider, value=\"fixed\") \n" +
-				"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.hostname,value=\"" + hostname + "\") \n"
-			if deployContext.CheCluster.Spec.Server.TlsSupport {
-				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpsPort,value=\"443\") \n" +
-					"/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.alwaysHttps,value=\"true\") \n"
-			} else {
-				enableFixedHostNameProvider += "/subsystem=keycloak-server/spi=hostname/provider=fixed:write-attribute(name=properties.httpPort,value=\"80\") \n"
-			}
-			enableFixedHostNameProvider += "stop-embedded-server\" > " + jbossDir + "/use_fixed_hostname_provider.cli && " +
-				jbossCli + " --file=" + jbossDir + "/use_fixed_hostname_provider.cli "
-		}
-		if cheFlavor == "codeready" {
-			keycloakEnv = append(keycloakEnv, corev1.EnvVar{
-				Name:  "KEYCLOAK_FRONTEND_URL",
-				Value: deployContext.CheCluster.Status.KeycloakURL,
-			})
-		}
+	// Enable internal network for keycloak
+	if deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+		keycloakEnv = append(keycloakEnv, corev1.EnvVar{
+			Name:  "KEYCLOAK_FRONTEND_URL",
+			Value: deployContext.CheCluster.Status.KeycloakURL,
+		})
 	}
 
 	evaluateKeycloakSystemProperties := "KEYCLOAK_SYS_PROPS=\"-Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled\""
@@ -562,8 +544,8 @@ func GetSpecKeycloakDeployment(
 		" && " + evaluateKeycloakSystemProperties +
 		" && " + evaluateExpectContinueEnabled +
 		" && " + evaluateReuseConnections +
-		" && " + changeConfigCommand + enableFixedHostNameProvider +
-		" && /opt/jboss/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
+		" && " + changeConfigCommand +
+		" && /opt/jboss/tools/docker-entrypoint.sh -b 0.0.0.0 -c standalone.xml $KEYCLOAK_SYS_PROPS"
 
 	if cheFlavor == "codeready" {
 		addUsernameReadonlyTheme := "baseTemplate=/opt/eap/themes/base/login/login-update-profile.ftl" +
@@ -598,6 +580,35 @@ func GetSpecKeycloakDeployment(
 	if sslRequiredUpdatedForMasterRealm {
 		// update command to restart pod
 		command = "echo \"ssl_required WAS UPDATED for master realm.\" && " + command
+	}
+
+	ports := []corev1.ContainerPort{
+		{
+			Name:          deploy.IdentityProviderName,
+			ContainerPort: 8080,
+			Protocol:      "TCP",
+		},
+	}
+
+	if deployContext.CheCluster.Spec.Auth.Debug {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          "debug",
+			ContainerPort: 8787,
+			Protocol:      "TCP",
+		})
+
+		keycloakEnv = append(keycloakEnv, []corev1.EnvVar{
+			{
+				Name:  "DEBUG",
+				Value: "true",
+			},
+			{
+				Name:  "DEBUG_PORT",
+				Value: "*:8787",
+			},
+		}...)
+
+		command += " --debug"
 	}
 
 	args := []string{"-c", command}
@@ -638,14 +649,8 @@ func GetSpecKeycloakDeployment(
 							Command: []string{
 								"/bin/sh",
 							},
-							Args: args,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          deploy.IdentityProviderName,
-									ContainerPort: 8080,
-									Protocol:      "TCP",
-								},
-							},
+							Args:  args,
+							Ports: ports,
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
