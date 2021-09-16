@@ -49,8 +49,6 @@ var (
 	SubscriptionResourceName          = "subscriptions"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
 	DevWorkspaceCSVNamePrefix         = "devworkspace-operator"
-	EclipseCheCSVNamePrefix           = "eclipse-che"
-	CodeReadyWorkspacesCSVPrefix      = "crwoperator"
 
 	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
@@ -193,7 +191,7 @@ func isCheInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) b
 	}
 
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, EclipseCheCSVNamePrefix) || strings.Contains(csv.Name, CodeReadyWorkspacesCSVPrefix) {
+		if strings.Contains(csv.Name, deploy.DefaultOperatorCSVPrefix()) {
 			for _, installMode := range csv.Spec.InstallModes {
 				if installMode.Type == operatorsv1alpha1.InstallModeTypeSingleNamespace {
 					return installMode.Supported

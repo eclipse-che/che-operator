@@ -113,6 +113,8 @@ spec:
               value: ca-certs
             - name: MAX_CONCURRENT_RECONCILES
               value: "1"
+            - name: OPERATOR_CSV_PREFIX
+              value: eclipse-che
           livenessProbe:
             httpGet:
               path: /healthz
