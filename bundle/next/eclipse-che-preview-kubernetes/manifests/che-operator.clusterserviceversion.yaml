@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.37.0-303.next
+  name: eclipse-che-preview-kubernetes.v7.37.0-305.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -181,20 +181,9 @@ spec:
   description: |
     A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development.
     This operator installs PostgreSQL, Keycloak, Registries and the Eclipse Che server, as well as configures all these services.
+
     ## Prerequisites
     - Operator Lifecycle Manager (OLM) needs to be installed.
-    - Kubernetes Platform. For OpenShift, the installation is directly made from OperatorHub UI in the admin console.
-
-    OLM installation can be checked by running the command:
-    ```
-    $ kubectl get pods --all-namespaces | grep olm
-    olm             catalog-operator-7b8cd7f8bf-2v7zj                       1/1     Running   0          10m
-    olm             olm-operator-5c5c798cd5-s6ll5                           1/1     Running   0          10m
-    olm             olm-operators-fm5wc                                     1/1     Running   0          10m
-    olm             operatorhubio-catalog-d78km                             1/1     Running   0          10m
-    olm             packageserver-5c5f64947b-trghp                          1/1     Running   0          9m56s
-    olm             packageserver-5c5f64947b-zqvxg                          1/1     Running   0          9m56s
-    ```
 
     ## How to Install
     Install `Eclipse Che Operator` by following instructions in top right button `Install`.
@@ -247,18 +236,21 @@ spec:
     ```
 
     By opening this URL in a web browser, Eclipse Che is ready to use.
+
     ## Defaults
     By default, the operator deploys Eclipse Che with:
     * Bundled PostgreSQL and Keycloak
     * Common PVC strategy
     * Auto-generated passwords
     * TLS mode (secure ingresses)
+
     ## Installation Options
     Eclipse Che operator installation options include:
     * Connection to external database and Keycloak
     * Configuration of default passwords and object names
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
+
     ### External Database and Keycloak
     To instruct the operator to skip deploying PostgreSQL and Keycloak and connect to an existing DB and Keycloak instead:
     * set respective fields to `true` in a custom resource spec
@@ -1191,4 +1183,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-303.next
+  version: 7.37.0-305.next
