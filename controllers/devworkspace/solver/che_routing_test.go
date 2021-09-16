@@ -186,7 +186,7 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 	}
 }
 
-func TestCreateRelocatedObjects(t *testing.T) {
+func TestCreateRelocatedObjectsK8S(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
@@ -224,6 +224,95 @@ func TestCreateRelocatedObjects(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("traefikConfig", func(t *testing.T) {
+		cms := &corev1.ConfigMapList{}
+		cl.List(context.TODO(), cms)
+
+		if len(cms.Items) != 1 {
+			t.Errorf("there should be 1 configmap created for the gateway config of the workspace but there were: %d", len(cms.Items))
+		}
+
+		var workspaceCfg *corev1.ConfigMap
+
+		for _, cfg := range cms.Items {
+			if cfg.Name == "wsid" {
+				workspaceCfg = &cfg
+			}
+		}
+
+		if workspaceCfg == nil {
+			t.Fatalf("traefik configuration for the workspace not found")
+		}
+
+		traefikWorkspaceConfig := workspaceCfg.Data["wsid.yml"]
+
+		if len(traefikWorkspaceConfig) == 0 {
+			t.Fatal("No traefik config file found in the workspace config configmap")
+		}
+
+		workspaceConfig := traefikConfig{}
+		if err := yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(workspaceConfig.HTTP.Routers) != 1 {
+			t.Fatalf("Expected exactly one traefik router but got %d", len(workspaceConfig.HTTP.Routers))
+		}
+
+		wsid := "wsid-m1-9999"
+		if _, ok := workspaceConfig.HTTP.Routers[wsid]; !ok {
+			t.Fatal("traefik config doesn't contain expected workspace configuration")
+		}
+
+		if len(workspaceConfig.HTTP.Routers[wsid].Middlewares) != 1 {
+			t.Fatalf("Expected 1 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
+		}
+
+		if len(workspaceConfig.HTTP.Middlewares) != 1 {
+			t.Fatalf("Expected 1 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
+		}
+
+		mwares := []string{wsid + "-prefix"}
+		for _, mware := range mwares {
+			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
+				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
+			}
+			found := false
+			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("traefik config route doesn't set middleware '%s'", mware)
+			}
+		}
+
+	})
+}
+
+func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
+
+	t.Run("noIngresses", func(t *testing.T) {
+		if len(objs.Ingresses) != 0 {
+			t.Error()
+		}
+	})
+
+	t.Run("noRoutes", func(t *testing.T) {
+		if len(objs.Routes) != 0 {
+			t.Error()
+		}
+	})
+
+	t.Run("noPodAdditions", func(t *testing.T) {
+		if objs.PodAdditions != nil {
+			t.Error()
+		}
+	})
 
 	t.Run("traefikConfig", func(t *testing.T) {
 		cms := &corev1.ConfigMapList{}

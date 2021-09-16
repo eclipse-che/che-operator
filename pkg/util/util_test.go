@@ -14,6 +14,8 @@ package util
 import (
 	"reflect"
 	"testing"
+
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 )
 
 func TestGeneratePasswd(t *testing.T) {
@@ -60,6 +62,51 @@ func TestGetImageNameAndTag(t *testing.T) {
 	for _, test := range tests {
 		if actualName, actualTag := GetImageNameAndTag(test.input); actualName != test.expectedName || actualTag != test.expectedTag {
 			t.Errorf("Test Failed. Expected '%s' and '%s', but got '%s' and '%s'", test.expectedName, test.expectedTag, actualName, actualTag)
+		}
+	}
+}
+
+func TestIsCheMultiUser(t *testing.T) {
+	var tests = []struct {
+		checluster             *orgv1.CheCluster
+		expectedIsCheMultiUser bool
+	}{
+		{&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{},
+			},
+		}, true},
+		{&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					CustomCheProperties: map[string]string{},
+				},
+			},
+		}, true},
+		{&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					CustomCheProperties: map[string]string{
+						"CHE_MULTIUSER": "true",
+					},
+				},
+			},
+		}, true},
+		{&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					CustomCheProperties: map[string]string{
+						"CHE_MULTIUSER": "false",
+					},
+				},
+			},
+		}, false},
+	}
+
+	for _, test := range tests {
+		actualIsCheMultiUser := IsCheMultiUser(test.checluster)
+		if actualIsCheMultiUser != test.expectedIsCheMultiUser {
+			t.Errorf("Test Failed. Expected '%t', but got '%t'", test.expectedIsCheMultiUser, actualIsCheMultiUser)
 		}
 	}
 }

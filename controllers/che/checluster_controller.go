@@ -260,6 +260,29 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		CheCluster: instance,
 	}
 
+	if isCheGoingToBeUpdated(instance) {
+		// Current operator is newer than deployed Che
+		backupCR, err := getBackupCRForUpdate(deployContext)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				// Create a backup before updating current installation
+				if err := requestBackup(deployContext); err != nil {
+					return ctrl.Result{}, err
+				}
+				// Backup request is successfully submitted
+				// Give some time for the backup
+				return ctrl.Result{RequeueAfter: time.Second * 15}, nil
+			}
+			return ctrl.Result{}, err
+		}
+		if backupCR.Status.State == orgv1.STATE_IN_PROGRESS {
+			// Backup is still in progress
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+		// Backup is done or failed
+		// Proceed anyway
+	}
+
 	// Reconcile finalizers before CR is deleted
 	r.reconcileFinalizers(deployContext)
 
@@ -684,6 +707,10 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 			reason = failedUnableToGetOAuth
 		} else {
 			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
+				oauth = true
+			} else if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+				// enable OpenShift OAuth without adding initial OpenShift OAuth user
+				// since kubeadmin is a valid user for native user mode
 				oauth = true
 			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
 				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
