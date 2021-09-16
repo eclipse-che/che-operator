@@ -201,8 +201,8 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "e79b08a4.org.eclipse.che",
-		LeaseDuration: &leaseDuration,
-		RenewDeadline: &renewDeadline,
+		LeaseDuration:          &leaseDuration,
+		RenewDeadline:          &renewDeadline,
 		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
 		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
 		// Instead, if some controller wants to limit itself to single namespace, it can do it

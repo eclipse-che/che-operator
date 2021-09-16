@@ -24,6 +24,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/utils/pointer"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func createTestScheme() *runtime.Scheme {

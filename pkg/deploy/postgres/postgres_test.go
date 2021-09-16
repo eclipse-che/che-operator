@@ -14,6 +14,7 @@ package postgres
 import (
 	"context"
 	"os"
+
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"

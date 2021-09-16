@@ -1321,7 +1321,7 @@ func TestCheController(t *testing.T) {
 func TestConfiguringLabelsForRoutes(t *testing.T) {
 	util.IsOpenShift = true
 	// Set the logger to development mode for verbose logs.
-	// logf.SetLogger(logf.ZapLogger(true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 	cl, dc, scheme := Init()
 
@@ -1593,7 +1593,7 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 	scheme.AddKnownTypes(orgv1.GroupVersion, cheCR)
 	scheme.AddKnownTypes(routev1.SchemeGroupVersion, route)
 	scheme.AddKnownTypes(console.GroupVersion, &console.ConsoleLink{})
-	// chev1alpha1.AddToScheme(scheme)
+	chev1alpha1.AddToScheme(scheme)
 	packagesv1.AddToScheme(scheme)
 	operatorsv1.AddToScheme(scheme)
 	operatorsv1alpha1.AddToScheme(scheme)
