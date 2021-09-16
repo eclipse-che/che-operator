@@ -258,7 +258,7 @@ func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string
 
 	var rule string
 	if component == "che-gateway-route-server" {
-		rule = "Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`)"
+		rule = "Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)"
 	} else {
 		rule = fmt.Sprintf("PathPrefix(`%s`)", pathPrefix)
 	}
