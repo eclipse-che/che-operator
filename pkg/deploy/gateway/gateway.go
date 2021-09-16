@@ -256,11 +256,18 @@ func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string
 	pathRewrite := pathPrefix != "/" && stripPrefix
 	nativeUser := util.IsNativeUserModeEnabled(deployContext.CheCluster)
 
+	var rule string
+	if component == "che-gateway-route-server" {
+		rule = "Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`)"
+	} else {
+		rule = fmt.Sprintf("PathPrefix(`%s`)", pathPrefix)
+	}
+
 	data := `---
 http:
   routers:
     ` + serviceName + `:
-      rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
+      rule: ` + rule + `
       service: ` + serviceName + `
       priority: ` + strconv.Itoa(priority) + `
       middlewares: `
