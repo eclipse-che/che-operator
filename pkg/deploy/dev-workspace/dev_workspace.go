@@ -133,7 +133,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 
 	if isCheInstalledInSingleNamespacesMode(deployContext) && util.IsOpenShift {
 		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
-		logrus.Warnf(`DevWorkspace engine cannot be enabled. In order to enable DevWorkspace engine please install the operator from the tech-preview channel`)
+		logrus.Warnf(`In order to enable DevWorkspace engine deploy Eclipse Che from the channel that supports AllNamespaces mode.`)
 		return true, nil
 	}
 
@@ -179,10 +179,6 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func isCheInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) bool {
-	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
-	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
-		return false
-	}
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
 	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
 	if err != nil {
@@ -191,7 +187,7 @@ func isCheInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) b
 	}
 
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, deploy.DefaultOperatorCSVPrefix()) {
+		if strings.HasPrefix(csv.Name, deploy.DefaultOperatorCSVPrefix()) {
 			for _, installMode := range csv.Spec.InstallModes {
 				if installMode.Type == operatorsv1alpha1.InstallModeTypeSingleNamespace {
 					return installMode.Supported
@@ -216,7 +212,7 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	}
 
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, DevWorkspaceCSVNamePrefix) {
+		if strings.HasPrefix(csv.Name, DevWorkspaceCSVNamePrefix) {
 			return true
 		}
 	}
