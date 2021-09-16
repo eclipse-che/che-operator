@@ -59,7 +59,7 @@ var (
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
 	if (util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" &&
-		deploy.GetSingleHostExposureType(deployContext.CheCluster) == "gateway") ||
+		deploy.GetSingleHostExposureType(deployContext.CheCluster) == deploy.GatewaySingleHostExposureType) ||
 		deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return syncAll(deployContext)
 	}
