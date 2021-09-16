@@ -471,7 +471,7 @@ replace (
 	k8s.io/apiserver => k8s.io/apiserver v0.21.3
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.21.3
 	k8s.io/client-go => k8s.io/client-go v0.21.3
-	k8s.io/component-base => k8s.io/component-base v0.20.2
+	k8s.io/component-base => k8s.io/component-base v0.21.3
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.5
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.6.0

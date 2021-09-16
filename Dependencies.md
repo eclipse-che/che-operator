@@ -2456,6 +2456,86 @@ https://github.com/gotestyourself/gotest.tools/tree/7c797b5133e5460410dbb22ba779
 RATE 61
 https://clearlydefined.io/definitions/git/github/gotestyourself/gotest.tools/7c797b5133e5460410dbb22ba779bf35e6975dea
 
+github.com/chzyer/readline
+https://github.com/chzyer/readline/tree/2972be24d48e78746da79ba8e24e8b488c9880de
+RATE 75
+https://clearlydefined.io/definitions/git/github/chzyer/readline/2972be24d48e78746da79ba8e24e8b488c9880de
+
+github.com/chzyer/test
+https://github.com/chzyer/test/tree/a1ea475d72b168a29f44221e0ad031a842642302
+RATE 75
+https://clearlydefined.io/definitions/git/github/chzyer/test/a1ea475d72b168a29f44221e0ad031a842642302
+
+github.com/fatih/set
+https://github.com/fatih/set/tree/v0.2.1
+https://github.com/fatih/set/tree/2c768e3c5489976167bfc42b5c7c92ca783f4389
+RATE 77
+https://clearlydefined.io/definitions/git/github/fatih/set/2c768e3c5489976167bfc42b5c7c92ca783f4389
+
+github.com/go-errors/errors
+https://github.com/go-errors/errors/tree/v1.0.1
+https://github.com/go-errors/errors/tree/a6af135bd4e28680facf08a3d206b454abc877a4
+RATE 78
+https://clearlydefined.io/definitions/git/github/go-errors/errors/a6af135bd4e28680facf08a3d206b454abc877a4
+
+github.com/go-logr/zapr
+https://github.com/go-logr/zapr/tree/v0.4.0
+https://github.com/go-logr/zapr/tree/11b4afb74c50cb13b2800a1042e6dd5e4b82aa80
+RATE 82
+https://clearlydefined.io/definitions/git/github/go-logr/zapr/11b4afb74c50cb13b2800a1042e6dd5e4b82aa80
+
+github.com/google/go-cmp
+https://github.com/google/go-cmp/tree/v0.5.6
+https://github.com/google/go-cmp/tree/d103655696d8ae43c4125ee61454dbf03d8e8324
+RATE 94
+https://clearlydefined.io/definitions/git/github/google/go-cmp/d103655696d8ae43c4125ee61454dbf03d8e8324
+
+github.com/prometheus/client_model
+https://github.com/prometheus/client_model/tree/v0.2.0
+https://github.com/prometheus/client_model/tree/7bc5445566f0fe75b15de23e6b93886e982d7bf9
+RATE 80
+https://clearlydefined.io/definitions/git/github/prometheus/client_model/7bc5445566f0fe75b15de23e6b93886e982d7bf9
+
+github.com/prometheus/common
+https://github.com/prometheus/common/tree/v0.26.0
+https://github.com/prometheus/common/tree/0ec6a33fff8b8a6950b82f03c4bfabaf61ac4813
+RATE 75
+https://clearlydefined.io/definitions/git/github/prometheus/common/0ec6a33fff8b8a6950b82f03c4bfabaf61ac4813
+
+github.com/prometheus/procfs
+https://github.com/prometheus/procfs/tree/v0.6.0
+https://github.com/prometheus/procfs/tree/e971af51d579a49db14657a96eebec39cefb4755
+RATE 94
+https://clearlydefined.io/definitions/git/github/prometheus/procfs/e971af51d579a49db14657a96eebec39cefb4755
+
+github.com/xlab/treeprint
+https://github.com/xlab/treeprint/tree/a009c3971eca89777614839eb7f69abed3ea3959
+RATE 79
+https://clearlydefined.io/definitions/git/github/xlab/treeprint/a009c3971eca89777614839eb7f69abed3ea3959
+
+go.uber.org/atomic
+https://github.com/uber-go/atomic/tree/v1.7.0
+https://github.com/uber-go/atomic/tree/12f27ba2637fa0e13772a4f05fa46a5d18d53182
+RATE 75
+https://clearlydefined.io/definitions/git/github/uber-go/atomic/12f27ba2637fa0e13772a4f05fa46a5d18d53182
+
+go.uber.org/zap
+https://github.com/uber-go/zap/tree/v1.18.1
+https://github.com/uber-go/zap/tree/120b08c8fae5be92bc7323ca78b25cd790e8c37a
+RATE 75
+https://clearlydefined.io/definitions/git/github/uber-go/zap/120b08c8fae5be92bc7323ca78b25cd790e8c37a
+
+k8s.io/api
+https://github.com/kubernetes/api/tree/v0.21.3
+https://github.com/kubernetes/api/tree/b82f5c5b78f22c022611b5413297acafb79ede04
+RATE 77
+https://clearlydefined.io/definitions/git/github/kubernetes/api/b82f5c5b78f22c022611b5413297acafb79ede04
+
+k8s.io/apimachinery
+https://github.com/kubernetes/apimachinery/tree/v0.21.3
+https://github.com/kubernetes/apimachinery/tree/f916759cb6b8547418dc7708876ecab5c1961448
+RATE 75
+https://clearlydefined.io/definitions/git/github/kubernetes/apimachinery/f916759cb6b8547418dc7708876ecab5c1961448
 
 === Golang dependencies(We can skip their license rate)
 
