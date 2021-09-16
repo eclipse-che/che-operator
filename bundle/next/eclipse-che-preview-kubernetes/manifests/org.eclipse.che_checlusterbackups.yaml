@@ -40,6 +40,9 @@ spec:
           status:
             description: CheClusterBackupStatus defines the observed state of CheClusterBackup
             properties:
+              cheVersion:
+                description: Version that was backed up
+                type: string
               message:
                 description: Message explaining the state of the backup or an error message
                 type: string

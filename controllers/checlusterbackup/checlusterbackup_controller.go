@@ -250,6 +250,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup
 	bctx.backupCR.Status.Message = "Backup successfully finished at " + time.Now().String()
 	bctx.backupCR.Status.State = chev1.STATE_SUCCEEDED
 	bctx.backupCR.Status.SnapshotId = snapshotStat.Id
+	bctx.backupCR.Status.CheVersion = bctx.cheCR.Status.CheVersion
 	if err := bctx.r.UpdateCRStatus(bctx.backupCR); err != nil {
 		logrus.Errorf("Failed to update status after successful backup: %v", err)
 		return true, err
