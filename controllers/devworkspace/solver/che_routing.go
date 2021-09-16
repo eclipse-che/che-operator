@@ -171,6 +171,8 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 		},
 	})
 
+	// Even though DefaultMode is optional in Kubernetes, DevWorkspace Controller needs it to be explicitly defined.
+	// 420 = 0644 = '-rw-r--r--'
 	defaultMode := int32(420)
 	objs.PodAdditions.Volumes = append(objs.PodAdditions.Volumes, corev1.Volume{
 		Name: wsGatewayName,
@@ -321,8 +323,9 @@ func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *v2alpha1.CheClust
 }
 
 func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service {
+	commonServiceName := common.ServiceName(dwId)
 	for i, svc := range objs.Services {
-		if svc.Name == common.ServiceName(dwId) {
+		if svc.Name == commonServiceName {
 			return &objs.Services[i]
 		}
 	}
