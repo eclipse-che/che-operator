@@ -40,8 +40,10 @@ import (
 const (
 	// GatewayServiceName is the name of the service which through which the gateway can be accessed
 	GatewayServiceName = "che-gateway"
+	GatewayServicePort = 8080
 
 	gatewayServerConfigName    = "che-gateway-route-server"
+	gatewayKubeAuthConfigName  = "che-gateway-route-kube-auth"
 	gatewayConfigComponentName = "che-gateway-config"
 	gatewayOauthSecretName     = "che-gateway-oauth-secret"
 )
@@ -56,8 +58,9 @@ var (
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
-	if util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" &&
-		(deploy.GetSingleHostExposureType(deployContext.CheCluster) == "gateway") {
+	if (util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" &&
+		deploy.GetSingleHostExposureType(deployContext.CheCluster) == deploy.GatewaySingleHostExposureType) ||
+		deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return syncAll(deployContext)
 	}
 
@@ -408,7 +411,7 @@ func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster, cookieSecret str
 		},
 		Data: map[string]string{
 			"oauth-proxy.cfg": fmt.Sprintf(`
-http_address = ":8080"
+http_address = ":%d"
 https_address = ""
 provider = "openshift"
 redirect_url = "https://%s/oauth/callback"
@@ -424,7 +427,7 @@ cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
-skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName, cookieSecret),
+skip_provider_button = true`, GatewayServicePort, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName, cookieSecret),
 		},
 	}
 }
@@ -490,7 +493,7 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev
 }
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	traefikPort := 8080
+	traefikPort := GatewayServicePort
 	if util.IsNativeUserModeEnabled(instance) {
 		traefikPort = 8081
 	}
@@ -639,7 +642,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 					},
 				},
 				Ports: []corev1.ContainerPort{
-					{ContainerPort: 8080, Protocol: "TCP"},
+					{ContainerPort: GatewayServicePort, Protocol: "TCP"},
 				},
 			},
 			corev1.Container{
@@ -647,7 +650,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				Image:           authzImage,
 				ImagePullPolicy: corev1.PullAlways,
 				Args: []string{
-					"--insecure-listen-address=127.0.0.1:8089",
+					"--insecure-listen-address=0.0.0.0:8089",
 					"--upstream=http://127.0.0.1:8090/ping",
 					"--logtostderr=true",
 					"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
@@ -761,9 +764,15 @@ func getGatewayServiceSpec(instance *orgv1.CheCluster) corev1.Service {
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "gateway-http",
-					Port:       8080,
+					Port:       GatewayServicePort,
 					Protocol:   corev1.ProtocolTCP,
-					TargetPort: intstr.FromInt(8080),
+					TargetPort: intstr.FromInt(GatewayServicePort),
+				},
+				{
+					Name:       "gateway-kube-authz",
+					Port:       8089,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt(8089),
 				},
 			},
 		},
