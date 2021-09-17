@@ -255,8 +255,40 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	}
 	testCases := []resourcesTestCase{
 		{
-			name:        "Test provisioning CAs",
-			initObjects: []runtime.Object{},
+			name:        "Test provisioning Custom CAs only",
+			initObjects: []runtime.Object{
+				// no deploy.CheTLSSelfSignedCertificateSecretName is created
+			},
+			volumes: []corev1.Volume{
+				{
+					Name: "che-custom-ca",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "ca-certs-merged",
+							},
+						},
+					}},
+			},
+			volumeMounts: []corev1.VolumeMount{
+				{Name: "che-custom-ca", MountPath: "/public-certs/custom"},
+			},
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+			},
+		},
+		{
+			name: "Test provisioning Che and Custom CAs",
+			initObjects: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      deploy.CheTLSSelfSignedCertificateSecretName,
+						Namespace: "eclipse-che",
+					},
+				},
+			},
 			volumes: []corev1.Volume{
 				{
 					Name: "che-custom-ca",

@@ -33,11 +33,11 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 
 	volumes, volumeMounts = d.provisionCustomPublicCA(volumes, volumeMounts)
 
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(d.deployContext)
+	selfSignedCertSecretExist, err := deploy.IsSelfSignedCASecretExists(d.deployContext)
 	if err != nil {
 		return nil, err
 	}
-	if selfSignedCertUsed {
+	if selfSignedCertSecretExist {
 		volumes, volumeMounts = d.provisionCheSelfSignedCA(volumes, volumeMounts)
 	}
 

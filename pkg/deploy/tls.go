@@ -63,21 +63,32 @@ const (
 	labelCommaSign = "."
 )
 
+// IsSelfSignedCASecretExists checks if CheTLSSelfSignedCertificateSecretName exists so depending components can mount it
+func IsSelfSignedCASecretExists(deployContext *DeployContext) (bool, error) {
+	cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheTLSSelfSignedCertificateSecretName}, cheTLSSelfSignedCertificateSecret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // IsSelfSignedCertificateUsed detects whether endpoints are/should be secured by self-signed certificate.
 func IsSelfSignedCertificateUsed(deployContext *DeployContext) (bool, error) {
 	if util.IsTestMode() {
 		return true, nil
 	}
 
-	cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheTLSSelfSignedCertificateSecretName}, cheTLSSelfSignedCertificateSecret)
-	if err == nil {
-		// "self signed-certificate" secret found
-		return true, nil
-	}
-	if !errors.IsNotFound(err) {
-		// Failed to get secret, return error to restart reconcile loop.
+	cheCASecretExist, err := IsSelfSignedCASecretExists(deployContext)
+	if err != nil {
 		return false, err
+	}
+
+	if cheCASecretExist {
+		return true, nil
 	}
 
 	if !util.IsOpenShift {
