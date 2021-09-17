@@ -27,10 +27,10 @@ cat EOF << > /tmp/patch.yaml
 EOF
 
 chectl server:deploy \
-     --installer operator \
-     --platform <PLATFORM_TO_DEPLOY> \
-     --che-operator-image <CUSTOM_OPERATOR_IMAGE> \
-     --che-operator-cr-patch-yaml /tmp/patch.yaml
+     --installer=operator \
+     --platform=<PLATFORM_TO_DEPLOY> \
+     --che-operator-image=<CUSTOM_OPERATOR_IMAGE> \
+     --che-operator-cr-patch-yaml=/tmp/patch.yaml
 ```
 
 ### PR Checklist
