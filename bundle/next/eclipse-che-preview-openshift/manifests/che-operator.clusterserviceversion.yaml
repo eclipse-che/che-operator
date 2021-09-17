@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.37.0-317.next
+  name: eclipse-che-preview-openshift.v7.37.0-318.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -196,11 +196,12 @@ spec:
     * Configuration of default passwords and object names
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
+
     Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
     See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
 
     ### External Database and Keycloak
-    Follow the guide to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
+    Follow the guides to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
     and [Database](https://www.eclipse.org/che/docs/che-7/administration-guide/external-database-setup/) setup.
 
     ### Certificates
@@ -1195,4 +1196,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-317.next
+  version: 7.37.0-318.next

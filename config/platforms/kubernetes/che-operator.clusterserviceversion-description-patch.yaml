@@ -83,11 +83,12 @@
     * Configuration of default passwords and object names
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
+
     Use `kubectl edit checluster/eclipse-che -n my-eclipse-che` to update Eclipse Che configuration.
     See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
 
     ### External Database and Keycloak
-    Follow the guide to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
+    Follow the guides to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
     and [Database](https://www.eclipse.org/che/docs/che-7/administration-guide/external-database-setup/) setup.
 
     ### Certificates and TLS Secrets
