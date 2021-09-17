@@ -13,7 +13,7 @@
   path: /spec/description
   value: |
     A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.
-    This operator installs PostgreSQL, Keycloak, and the Eclipse Che server, as well as configures all three services.
+    This operator installs PostgreSQL, Keycloak, Plugin registry, Devfile registry and the Eclipse Che server, as well as configures all three services.
 
     ## How to Install
     Press the **Install** button, choose the channel and the upgrade strategy, and wait for the **Installed** Operator status.
@@ -36,6 +36,8 @@
     * Configuration of default passwords and object names
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
+    Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
+    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/advanced-configuration/).
 
     ### External Database and Keycloak
     To instruct the operator to skip deploying PostgreSQL and Keycloak and connect to an existing DB and Keycloak instead:
@@ -53,12 +55,11 @@
       identityProviderRealm: 'myrealm'
       identityProviderClientId: 'myClient'
       ```
+
     #### Self-signed Certificates
-    Eclipse Che uses self-signed certificates by default.
-    You can also manually create a secret:
-    ```
-    oc create secret generic self-signed-certificate  --from-file=ca.crt=<PATH_TO_CERTIFICATE> -n <ECLIPSE_CHE_NAMESPACE>
-    ```
+    Operator uses a default router certificate to secure Eclipse Che routes.
+    Follow the [doc](https://www.eclipse.org/che/docs/che-7/installation-guide/importing-untrusted-tls-certificates/)
+    to import additional certificates into Eclipse Che.
 
     ## Devworkspace engine
     To enable [Devworkspace engine](https://github.com/devfile/devworkspace-operator) deploy Eclipse Che from `tech-preview-stable-all-namespaces` channel.
