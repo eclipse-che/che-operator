@@ -14,11 +14,12 @@ package checlusterbackup
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -45,9 +46,10 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	taskList := []func(*BackupContext) (bool, error){
 		ensureInternalBackupServerDeploymentExist,
 		ensureInternalBackupServerServiceExists,
-		ensureInternalBackupServerPodReady,
+		ensureInternalBackupServerServiceExposed,
 		ensureInternalBackupServerConfigurationExistAndCorrect,
 		ensureInternalBackupServerConfigurationCurrent,
+		ensureInternalBackupServerPodReady,
 		ensureInternalBackupServerSecretExists,
 	}
 
@@ -145,8 +147,12 @@ func ensureInternalBackupServerPodReady(bctx *BackupContext) (bool, error) {
 	// It is not possible to implement the check via StartupProbe of the pod,
 	// because the probe requires 2xx status, but a fresh REST server responds with 404 only.
 
-	restServerBaseUrl := getInternalRestBackupServerUrl(bctx)
-	_, err := http.Head(restServerBaseUrl)
+	backupServer, err := backup_servers.NewBackupServer(bctx.backupServerConfigCR.Spec)
+	if err != nil {
+		return true, err
+	}
+	// Try to reach internal backup server: if it responds, then the server is ready.
+	_, _, err = backupServer.IsRepositoryExist()
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
 			// Internal REST server is not ready yet. Reconcile.
@@ -215,6 +221,33 @@ func getBackupServerServiceSpec(bctx *BackupContext) *corev1.Service {
 	return service
 }
 
+func ensureInternalBackupServerServiceExposed(bctx *BackupContext) (bool, error) {
+	if bctx.cheCR.IsInternalClusterSVCNamesEnabled() {
+		// Do nothing if internal communication is used
+		return true, nil
+	}
+
+	// Internal communication is disabled, need to use public routes.
+	// Reusing exposure code from main controller.
+	fakeDeplyContext := &deploy.DeployContext{
+		ClusterAPI: deploy.ClusterAPI{
+			Client: bctx.r.client,
+			Scheme: bctx.r.scheme,
+		},
+		CheCluster: bctx.cheCR,
+	}
+	endpoint, done, err := expose.Expose(
+		fakeDeplyContext,
+		backupServerServiceName,
+		chev1.RouteCustomSettings{},
+		chev1.IngressCustomSettings{})
+	if !done || err != nil {
+		return done, err
+	}
+	bctx.internalBackupServerExposedHostname = endpoint
+	return true, nil
+}
+
 // ensureInternalBackupServerConfigurationExistAndCorrect makes sure that there is CR with correct internal backup server configuration
 func ensureInternalBackupServerConfigurationExistAndCorrect(bctx *BackupContext) (bool, error) {
 	// Check if the internal backup server configuration exists
@@ -270,19 +303,23 @@ func getInternalBackupServerConfigurationSpec(bctx *BackupContext) *chev1.CheBac
 }
 
 func getExpectedInternalRestServerConfiguration(bctx *BackupContext) *chev1.RestServerConfig {
+	if bctx.cheCR.IsInternalClusterSVCNamesEnabled() {
+		// Use service to communicate with internal backup server
+		return &chev1.RestServerConfig{
+			Protocol:                    "http",
+			Hostname:                    fmt.Sprintf("%s.%s.svc", backupServerServiceName, bctx.namespace),
+			Port:                        backupServerPort,
+			RepositoryPath:              "che",
+			RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
+		}
+	}
+	// Use external route to communicate with internal backup server
 	return &chev1.RestServerConfig{
-		Protocol:                    "http",
-		Hostname:                    getInternalRestBackupServerUrl(bctx),
-		Port:                        backupServerPort,
+		Protocol:                    "https",
+		Hostname:                    bctx.internalBackupServerExposedHostname,
 		RepositoryPath:              "che",
 		RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
 	}
-}
-
-// getInternalRestBackupServerUrl returns full service URL to be able to access it even from a different namespace.
-// This is needed for all namespaces operator mode.
-func getInternalRestBackupServerUrl(bctx *BackupContext) string {
-	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", backupServerServiceName, bctx.namespace, backupServerPort)
 }
 
 // ensureInternalBackupServerConfigurationCurrent makes sure that current backup configuration is internal backup server

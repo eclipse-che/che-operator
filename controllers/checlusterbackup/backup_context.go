@@ -20,13 +20,14 @@ import (
 )
 
 type BackupContext struct {
-	namespace            string
-	r                    *ReconcileCheClusterBackup
-	backupCR             *chev1.CheClusterBackup
-	cheCR                *chev1.CheCluster
-	backupServerConfigCR *chev1.CheBackupServerConfiguration
-	backupServer         backup.BackupServer
-	state                *BackupState
+	namespace                           string
+	r                                   *ReconcileCheClusterBackup
+	backupCR                            *chev1.CheClusterBackup
+	cheCR                               *chev1.CheCluster
+	backupServerConfigCR                *chev1.CheBackupServerConfiguration
+	backupServer                        backup.BackupServer
+	state                               *BackupState
+	internalBackupServerExposedHostname string
 }
 
 func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *chev1.CheClusterBackup, backupServerConfig *chev1.CheBackupServerConfiguration) (backupContext *BackupContext, err error) {
