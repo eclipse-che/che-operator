@@ -13,6 +13,7 @@ package devworkspace
 
 import (
 	"context"
+	"os"
 
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -130,6 +132,56 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	}
 }
 
+func TestReconcileDevWorkspaceShouldThrowErrorIfAllowWorkspaceEngineIsFalse(t *testing.T) {
+	type testCase struct {
+		Name                    string
+		AllowDevWorkspaceEngine string
+		CheCluster              *orgv1.CheCluster
+		IsOpenShift             bool
+		IsOpenShift4            bool
+		DODeployment            *appsv1.Deployment
+	}
+	testCases := []testCase{
+		{
+			Name:                    "Reconcile DevWorkspace when ALLO_DEVWORKSPACE_ENGINE is set to false",
+			AllowDevWorkspaceEngine: "false",
+			CheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+						Enable: true,
+					},
+					Auth: orgv1.CheClusterSpecAuth{
+						OpenShiftoAuth: util.NewBoolPointer(true),
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "single-host",
+					},
+				},
+			},
+			IsOpenShift:  true,
+			IsOpenShift4: true,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
+			os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", testCase.AllowDevWorkspaceEngine)
+
+			deployContext := deploy.GetTestDeployContext(testCase.CheCluster, []runtime.Object{})
+
+			util.IsOpenShift = testCase.IsOpenShift
+			util.IsOpenShift4 = testCase.IsOpenShift4
+			done, err := ReconcileDevWorkspace(deployContext)
+
+			if done {
+				t.Fatalf("DevWorkspace was enabled with AllowDevWorkspaceEngine %s %v", testCase.AllowDevWorkspaceEngine, err)
+			}
+		})
+	}
+}
+
 func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -170,7 +222,7 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 			},
 		},
 	}
-
+	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
 	_, err := ReconcileDevWorkspace(deployContext)
