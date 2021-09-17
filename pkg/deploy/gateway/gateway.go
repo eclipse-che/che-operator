@@ -15,10 +15,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strconv"
-
-	"github.com/sirupsen/logrus"
+	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
@@ -427,9 +427,31 @@ cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
-skip_provider_button = true`, GatewayServicePort, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName, cookieSecret),
+skip_provider_button = true
+%s
+`, GatewayServicePort,
+				instance.Spec.Server.CheHost,
+				instance.Spec.Auth.OAuthClientName,
+				instance.Spec.Auth.OAuthSecret,
+				GatewayServiceName,
+				cookieSecret,
+				skipAuthConfig(instance)),
 		},
 	}
+}
+
+func skipAuthConfig(instance *orgv1.CheCluster) string {
+	var skipAuthPaths []string
+	if !instance.Spec.Server.ExternalPluginRegistry {
+		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.PluginRegistryName)
+	}
+	if !instance.Spec.Server.ExternalDevfileRegistry {
+		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
+	}
+	if len(skipAuthPaths) > 0 {
+		return fmt.Sprintf("skip_auth_regex = \"%s\"", strings.Join(skipAuthPaths, "|"))
+	}
+	return ""
 }
 
 func getGatewayKubeRbacProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
