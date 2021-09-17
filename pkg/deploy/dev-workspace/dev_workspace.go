@@ -120,25 +120,27 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	// do nothing if dev workspace is disabled
 	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+		// Do nothing if Devworkspace is disabled
+		return true, nil
+	}
+
+	if isDevWorkspaceOperatorCSVExists(deployContext) {
+		// Do nothing if Devworkspace has been already deployed via OLM
 		return true, nil
 	}
 
 	if !deploy.IsDevWorkspaceEngineAllowed() {
 		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
-		logrus.Warnf(`In order to enable DevWorkspace engine deploy Eclipse Che from the channel that supports AllNamespaces mode.`)
+		logrus.Warnf(`To install DevWorkspace engine deploy Eclipse Che from tech-preview channel.`)
 
-		// Allow existed DWO deployments to work
-		if !isDevWorkspaceDeploymentExists(deployContext) && util.IsOpenShift {
-			return true, nil
+		if exists, err := isDevWorkspaceDeploymentExists(deployContext); !exists {
+			// Don't allow to deploy a new Devworkspace operator, warning is printed above
+			return false, err
 		}
-	}
 
-	// Check if exists devworkspace operator csv is already installed
-	devWorkspaceOperatorCSVExists := isDevWorkspaceOperatorCSVExists(deployContext)
-	if devWorkspaceOperatorCSVExists {
-		return true, nil
+		// Allow existed Eclipse Che and Devworkspace deployments to work
+		// event though is not allowed (for backward compatibility)
 	}
 
 	if !util.IsOpenShift && util.GetCheServerCustomCheProperty(deployContext.CheCluster, "CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S") != "true" {
@@ -182,22 +184,11 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
-func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) bool {
-	var DevWorkspaceNamespaces = []string{DevWorkspaceNamespace, "openshift-operators"}
-
-	for _, namespace := range DevWorkspaceNamespaces {
-		namespacedName := types.NamespacedName{
-			Namespace: namespace,
-			Name:      DevWorkspaceDeploymentName,
-		}
-		err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &appsv1.Deployment{})
-		if err == nil {
-			return true
-		} else {
-			return false
-		}
-	}
-	return false
+func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) (bool, error) {
+	return deploy.Get(deployContext, types.NamespacedName{
+		Namespace: DevWorkspaceNamespace,
+		Name:      DevWorkspaceDeploymentName,
+	}, &appsv1.Deployment{})
 }
 
 func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
