@@ -79,9 +79,9 @@ const (
 
 	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
 
-	DefaultServerExposureStrategy           = "multi-host"
-	DefaultKubernetesSingleHostExposureType = "native"
-	DefaultOpenShiftSingleHostExposureType  = "gateway"
+	DefaultServerExposureStrategy = "multi-host"
+	NativeSingleHostExposureType  = "native"
+	GatewaySingleHostExposureType = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
@@ -360,11 +360,11 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 }
 
 func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	if util.IsOpenShift {
-		return DefaultOpenShiftSingleHostExposureType
+	if util.IsOpenShift || cr.Spec.DevWorkspace.Enable {
+		return GatewaySingleHostExposureType
 	}
 
-	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
+	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, NativeSingleHostExposureType)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {

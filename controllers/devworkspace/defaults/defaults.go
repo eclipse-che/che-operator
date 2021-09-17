@@ -43,8 +43,8 @@ var (
 	}
 )
 
-func GetGatewayWorkpaceConfigMapName(workspaceID string) string {
-	return workspaceID
+func GetGatewayWorkspaceConfigMapName(workspaceID string) string {
+	return workspaceID + "-route"
 }
 
 func GetLabelsForComponent(cluster *v2alpha1.CheCluster, component string) map[string]string {
