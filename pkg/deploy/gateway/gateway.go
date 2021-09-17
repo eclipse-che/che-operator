@@ -15,10 +15,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 
