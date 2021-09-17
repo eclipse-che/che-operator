@@ -125,15 +125,19 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
+	if !deploy.IsDevWorkspaceEngineAllowed() {
+		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
+		logrus.Warnf(`In order to enable DevWorkspace engine deploy Eclipse Che from the channel that supports AllNamespaces mode.`)
+
+		// Allow existed DWO deployments to work
+		if !isDevWorkspaceDeploymentExists(deployContext) && util.IsOpenShift {
+			return true, nil
+		}
+	}
+
 	// Check if exists devworkspace operator csv is already installed
 	devWorkspaceOperatorCSVExists := isDevWorkspaceOperatorCSVExists(deployContext)
 	if devWorkspaceOperatorCSVExists {
-		return true, nil
-	}
-
-	if isCheInstalledInSingleNamespacesMode(deployContext) && util.IsOpenShift {
-		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
-		logrus.Warnf(`In order to enable DevWorkspace engine deploy Eclipse Che from the channel that supports AllNamespaces mode.`)
 		return true, nil
 	}
 
@@ -178,24 +182,21 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
-func isCheInstalledInSingleNamespacesMode(deployContext *deploy.DeployContext) bool {
-	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
-	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
-	if err != nil {
-		logrus.Errorf("Failed to read CSV from cluster %v", err)
-		return false
-	}
+func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) bool {
+	var DevWorkspaceNamespaces = []string{DevWorkspaceNamespace, "openshift-operators"}
 
-	for _, csv := range csvList.Items {
-		if strings.HasPrefix(csv.Name, deploy.DefaultOperatorCSVPrefix()) {
-			for _, installMode := range csv.Spec.InstallModes {
-				if installMode.Type == operatorsv1alpha1.InstallModeTypeSingleNamespace {
-					return installMode.Supported
-				}
-			}
+	for _, namespace := range DevWorkspaceNamespaces {
+		namespacedName := types.NamespacedName{
+			Namespace: namespace,
+			Name:      DevWorkspaceDeploymentName,
+		}
+		err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, &appsv1.Deployment{})
+		if err == nil {
+			return true
+		} else {
+			return false
 		}
 	}
-
 	return false
 }
 

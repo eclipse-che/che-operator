@@ -243,8 +243,8 @@ func DefaultConsoleLinkName() string {
 	return getDefaultFromEnv("CONSOLE_LINK_NAME")
 }
 
-func DefaultOperatorCSVPrefix() string {
-	return getDefaultFromEnv("OPERATOR_CSV_PREFIX")
+func IsDevWorkspaceEngineAllowed() bool {
+	return getDefaultFromEnv("ALLOW_DEVWORKSPACE_ENGINE") == "true"
 }
 
 func DefaultConsoleLinkDisplayName() string {

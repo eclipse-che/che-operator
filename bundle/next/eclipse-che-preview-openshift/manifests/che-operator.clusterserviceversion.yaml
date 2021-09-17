@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.37.0-314.next
+  name: eclipse-che-preview-openshift.v7.37.0-315.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -981,8 +981,8 @@ spec:
                         value: ca-certs
                       - name: MAX_CONCURRENT_RECONCILES
                         value: "1"
-                      - name: OPERATOR_CSV_PREFIX
-                        value: eclipse-che
+                      - name: ALLOW_DEVWORKSPACE_ENGINE
+                        value: "true"
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1262,4 +1262,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-314.next
+  version: 7.37.0-315.next
