@@ -49,8 +49,8 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 		ensureInternalBackupServerServiceExposed,
 		ensureInternalBackupServerConfigurationExistAndCorrect,
 		ensureInternalBackupServerConfigurationCurrent,
-		ensureInternalBackupServerPodReady,
 		ensureInternalBackupServerSecretExists,
+		ensureInternalBackupServerPodReady,
 	}
 
 	for _, task := range taskList {
@@ -148,6 +148,10 @@ func ensureInternalBackupServerPodReady(bctx *BackupContext) (bool, error) {
 	// because the probe requires 2xx status, but a fresh REST server responds with 404 only.
 
 	backupServer, err := backup_servers.NewBackupServer(bctx.backupServerConfigCR.Spec)
+	if err != nil {
+		return true, err
+	}
+	_, err = backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
 	if err != nil {
 		return true, err
 	}
