@@ -27,7 +27,7 @@ import (
 )
 
 func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(s.deployContext)
+	selfSignedCASecretExists, err := deploy.IsSelfSignedCASecretExists(s.deployContext)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
 		Value: "",
 	}
-	if selfSignedCertUsed {
+	if selfSignedCASecretExists {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
