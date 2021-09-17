@@ -76,7 +76,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.37.0-316.next
+  name: eclipse-che-preview-openshift.v7.37.0-317.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -197,29 +197,16 @@ spec:
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
     Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
-    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/advanced-configuration/).
+    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
 
     ### External Database and Keycloak
-    To instruct the operator to skip deploying PostgreSQL and Keycloak and connect to an existing DB and Keycloak instead:
-    * set respective fields to `true` in a custom resource spec
-    * provide the operator with connection and authentication details:
-      ```
-      externalDb: true
-      chePostgresHostname: 'yourPostgresHost'
-      chePostgresPort: '5432'
-      chePostgresUser: 'myuser'
-      chePostgresPassword: 'mypass'
-      chePostgresDb: 'mydb'
-      externalIdentityProvider: true
-      identityProviderURL: 'https://my-keycloak.com'
-      identityProviderRealm: 'myrealm'
-      identityProviderClientId: 'myClient'
-      ```
+    Follow the guide to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
+    and [Database](https://www.eclipse.org/che/docs/che-7/administration-guide/external-database-setup/) setup.
 
-    #### Self-signed Certificates
+    ### Certificates
     Operator uses a default router certificate to secure Eclipse Che routes.
-    Follow the [doc](https://www.eclipse.org/che/docs/che-7/installation-guide/importing-untrusted-tls-certificates/)
-    to import additional certificates into Eclipse Che.
+    Follow the [guide](https://www.eclipse.org/che/docs/che-7/installation-guide/importing-untrusted-tls-certificates/)
+    to import certificates into Eclipse Che.
 
     ## Devworkspace engine
     To enable [Devworkspace engine](https://github.com/devfile/devworkspace-operator) deploy Eclipse Che from `tech-preview-stable-all-namespaces` channel.
@@ -1208,4 +1195,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-316.next
+  version: 7.37.0-317.next

@@ -83,7 +83,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.37.0-306.next
+  name: eclipse-che-preview-kubernetes.v7.37.0-307.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -251,33 +251,15 @@ spec:
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
     Use `kubectl edit checluster/eclipse-che -n my-eclipse-che` to update Eclipse Che configuration.
-    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/advanced-configuration/).
+    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
 
     ### External Database and Keycloak
-    To instruct the operator to skip deploying PostgreSQL and Keycloak and connect to an existing DB and Keycloak instead:
-    * set respective fields to `true` in a custom resource spec
-    * provide the operator with connection and authentication details:
-      ```
-      externalDb: true
-      chePostgresHostname: 'yourPostgresHost'
-      chePostgresPort: '5432'
-      chePostgresUser: 'myuser'
-      chePostgresPassword: 'mypass'
-      chePostgresDb: 'mydb'
-      externalIdentityProvider: true
-      identityProviderURL: 'https://my-keycloak.com'
-      identityProviderRealm: 'myrealm'
-      identityProviderClientId: 'myClient'
-      ```
+    Follow the guide to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
+    and [Database](https://www.eclipse.org/che/docs/che-7/administration-guide/external-database-setup/) setup.
 
-    #### Self-signed Certificates and TLS Secrets
+    ### Certificates and TLS Secrets
     Eclipse Che uses auto-generated self-signed certificates by default and TLS mode is on.
-    If it is needed to use your own certificates, create a new secret:
-    ```
-    kubectl create secret tls my-tls-secret --key <PATH_TO_PRIVATE_KEY_CERTIFICATE> --cert <PATH_PUBLIC_KEY_CERTIFICATE> -n my-eclipse-che
-    kubectl patch checluster/eclipse-che --type=json -p '[{"op": "replace", "path": "/spec/k8s/tlsSecretName", "value": "my-tls-secret"}]' -n my-eclipse-che
-    ```
-    It is possible to use default certificate of Kubernetes cluster by setting empty string of `tlsSecretName` field:
+    To use a default certificate of a Kubernetes cluster set empty value in `spec.k8s.tlsSecretName` field:
     ```
     kubectl patch checluster/eclipse-che --type=json -p '[{"op": "replace", "path": "/spec/k8s/tlsSecretName", "value": ""}]' -n my-eclipse-che
     ```
@@ -1189,4 +1171,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-306.next
+  version: 7.37.0-307.next
