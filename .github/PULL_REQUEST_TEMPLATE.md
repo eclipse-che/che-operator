@@ -21,6 +21,17 @@ che-operator Development Guide: https://github.com/eclipse-che/che-operator/#dev
   - steps to reproduce
  -->
 
+```bash
+cat EOF << > /tmp/patch.yaml
+<PATCH_CONTENT>
+EOF
+
+chectl server:deploy \
+     --installer operator \
+     --platform <PLATFORM_TO_DEPLOY> \
+     --che-operator-image <CUSTOM_OPERATOR_IMAGE> \
+     --che-operator-cr-patch-yaml /tmp/patch.yaml
+```
 
 ### PR Checklist
 
