@@ -34,7 +34,7 @@ import (
 )
 
 func TestDashboardDeploymentSecurityContext(t *testing.T) {
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
@@ -213,7 +213,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
@@ -329,7 +329,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
