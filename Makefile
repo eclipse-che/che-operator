@@ -470,6 +470,11 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		exit 1
 	fi
 
+	if [ -z "$(channel)" ]; then
+		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		exit 1
+	fi
+
 	if [ -z "$(NO_INCREMENT)" ]; then
 		$(MAKE) increment-next-version platform="$${platform}"
 	fi
@@ -661,7 +666,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		yq -Yi '.spec.installModes[] |= if .type=="SingleNamespace" then .supported |= false else . end' "$${NEW_CSV}"
 		yq -Yi '.spec.installModes[] |= if .type=="MultiNamespace" then .supported |= false else . end' "$${NEW_CSV}"
 		yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' "$${NEW_CSV}"
-		sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "$${NEW_CSV}"
+		yq -rYi '.metadata.annotations["operatorframework.io/suggested-namespace"] |= "openshift-operators"' "$${NEW_CSV}"
 
 		# Enable by default devWorkspace engine in `next-all-namespaces` channel
 		CSV_CR_SAMPLES=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
@@ -719,6 +724,12 @@ increment-next-version:
 		echo "[ERROR] please specify first argument 'platform'"
 		exit 1
 	fi
+
+	if [ -z "$(channel)" ]; then
+		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		exit 1
+	fi
+
 
 	NEXT_BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$(platform)" channel="$(channel)" -s)
 	OPM_BUNDLE_MANIFESTS_DIR="$${NEXT_BUNDLE_PATH}/manifests"
