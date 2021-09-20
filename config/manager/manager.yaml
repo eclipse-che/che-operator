@@ -113,6 +113,8 @@ spec:
               value: ca-certs
             - name: MAX_CONCURRENT_RECONCILES
               value: "1"
+            - name: ALLOW_DEVWORKSPACE_ENGINE
+              value: "true"
           livenessProbe:
             httpGet:
               path: /healthz
