@@ -194,6 +194,11 @@ func main() {
 			"the manager will watch and manage resources in all namespaces")
 	}
 
+	if util.IsOpenShift {
+		setupLog.Info("Leader election was disabled", "Cause:", "Openshift 3 doesn't have coordination.k8s.io/v1 api.")
+		enableLeaderElection = false
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
