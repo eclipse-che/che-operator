@@ -234,5 +234,5 @@ func getPostgresImage(clusterDeployment *appsv1.Deployment, cheCluster *orgv1.Ch
 		}
 	}
 
-	return "", fmt.Errorf("PostgreSQL image for %s version not found", cheCluster.Spec.Database.PostgresVersion)
+	return "", fmt.Errorf("PostgreSQL image for '%s' version not found", cheCluster.Spec.Database.PostgresVersion)
 }

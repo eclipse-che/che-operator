@@ -13,9 +13,11 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	appsv1 "k8s.io/api/apps/v1"
@@ -163,5 +165,144 @@ func TestSyncAllToCluster(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: "eclipse-che"}, deployment)
 	if err != nil {
 		t.Fatalf("Failed to get deployment: %v", err)
+	}
+}
+
+func TestGetPostgresImage(t *testing.T) {
+	type testCase struct {
+		name               string
+		cheCluster         *orgv1.CheCluster
+		postgresDeployment *appsv1.Deployment
+
+		expectedPostgresImage string
+		expectedError         bool
+	}
+
+	testCases := []testCase{
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+			},
+			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+		},
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{
+						PostgresVersion: "13.3",
+					},
+				},
+			},
+			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+		},
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{
+						PostgresVersion: "9.6",
+					},
+				},
+			},
+			expectedPostgresImage: deploy.DefaultPostgresImage(&orgv1.CheCluster{}),
+		},
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{
+						PostgresImage:   "custom_postgre_image",
+						PostgresVersion: "<some_version>",
+					},
+				},
+			},
+			expectedPostgresImage: "custom_postgre_image",
+		},
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{
+						PostgresVersion: "unrecognized_version",
+					},
+				},
+			},
+			expectedError: true,
+		},
+
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{},
+				},
+			},
+			postgresDeployment: &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image: "current_postgres_image",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPostgresImage: "current_postgres_image",
+		},
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{
+						PostgresVersion: "13.3",
+					},
+				},
+			},
+			postgresDeployment: &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image: "current_postgres_image",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+		},
+	}
+
+	for i, testCase := range testCases {
+		actualPostgreImage, err := getPostgresImage(testCase.postgresDeployment, testCase.cheCluster)
+
+		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
+			if testCase.expectedError {
+				assert.NotNil(t, err, "Error expected")
+			} else {
+				assert.Nil(t, err, "Unexpected error occurred %v", err)
+				assert.Equal(t, testCase.expectedPostgresImage, actualPostgreImage, "A wrong PostgreSQL image")
+			}
+		})
 	}
 }
