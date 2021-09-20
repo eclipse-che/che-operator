@@ -132,15 +132,15 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 
 	if !deploy.IsDevWorkspaceEngineAllowed() {
 		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
-		logrus.Warnf(`To install DevWorkspace engine deploy Eclipse Che from tech-preview channel.`)
 
-		if exists, err := isDevWorkspaceDeploymentExists(deployContext); !exists {
-			// Don't allow to deploy a new Devworkspace operator, warning is printed above
-			return false, err
+		if exists, _ := isDevWorkspaceDeploymentExists(deployContext); !exists {
+			// Don't allow to deploy a new Devworkspace operator
+			return false, fmt.Errorf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
 		}
 
 		// Allow existed Eclipse Che and Devworkspace deployments to work
 		// event though is not allowed (for backward compatibility)
+		logrus.Warnf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
 	}
 
 	if !util.IsOpenShift && util.GetCheServerCustomCheProperty(deployContext.CheCluster, "CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S") != "true" {

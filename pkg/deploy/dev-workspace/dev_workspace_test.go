@@ -14,6 +14,7 @@ package devworkspace
 import (
 	"context"
 	"os"
+	"strings"
 
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/stretchr/testify/assert"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -121,6 +123,8 @@ func TestReconcileDevWorkspace(t *testing.T) {
 
 			util.IsOpenShift = testCase.IsOpenShift
 			util.IsOpenShift4 = testCase.IsOpenShift4
+			os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+
 			done, err := ReconcileDevWorkspace(deployContext)
 			if err != nil {
 				t.Fatalf("Error: %v", err)
@@ -132,54 +136,66 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	}
 }
 
-func TestReconcileDevWorkspaceShouldThrowErrorIfAllowWorkspaceEngineIsFalse(t *testing.T) {
-	type testCase struct {
-		Name                    string
-		AllowDevWorkspaceEngine string
-		CheCluster              *orgv1.CheCluster
-		IsOpenShift             bool
-		IsOpenShift4            bool
-		DODeployment            *appsv1.Deployment
-	}
-	testCases := []testCase{
-		{
-			Name:                    "Reconcile DevWorkspace when ALLO_DEVWORKSPACE_ENGINE is set to false",
-			AllowDevWorkspaceEngine: "false",
-			CheCluster: &orgv1.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-						Enable: true,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
-					},
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "single-host",
-					},
-				},
+func TestShouldNotReconcileDevWorkspaceIfForbiden(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
 			},
-			IsOpenShift:  true,
-			IsOpenShift4: true,
 		},
 	}
-	for _, testCase := range testCases {
-		t.Run(testCase.Name, func(t *testing.T) {
-			os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", testCase.AllowDevWorkspaceEngine)
 
-			deployContext := deploy.GetTestDeployContext(testCase.CheCluster, []runtime.Object{})
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 
-			util.IsOpenShift = testCase.IsOpenShift
-			util.IsOpenShift4 = testCase.IsOpenShift4
-			done, err := ReconcileDevWorkspace(deployContext)
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
 
-			if done {
-				t.Fatalf("DevWorkspace was enabled with AllowDevWorkspaceEngine %s %v", testCase.AllowDevWorkspaceEngine, err)
-			}
-		})
+	reconciled, err := ReconcileDevWorkspace(deployContext)
+
+	assert.False(t, reconciled, "Devworkspace should not be reconciled")
+	assert.NotNil(t, err, "Error expected")
+	assert.True(t, strings.Contains(err.Error(), "deploy Eclipse Che from tech-preview channel"), "Unrecognized error occurred %v", err)
+}
+
+func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
 	}
+
+	devworkspaceDeployment := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DevWorkspaceDeploymentName,
+			Namespace: DevWorkspaceNamespace,
+		},
+	}
+
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{devworkspaceDeployment})
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+
+	reconciled, err := ReconcileDevWorkspace(deployContext)
+
+	assert.Nil(t, err, "Reconciliation error occurred %v", err)
+	assert.True(t, reconciled, "Devworkspace should be reconciled.")
 }
 
 func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t *testing.T) {
@@ -222,9 +238,9 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 			},
 		},
 	}
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
+	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	_, err := ReconcileDevWorkspace(deployContext)
 
 	if err == nil || err.Error() != "a non matching version of the Dev Workspace operator is already installed" {
@@ -273,6 +289,7 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
+	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 	reconciled, _ := ReconcileDevWorkspace(deployContext)
 
 	if !reconciled {
