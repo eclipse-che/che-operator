@@ -316,9 +316,6 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		if caCerts.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
 			t.Errorf("trusted certs should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
 		}
-		if caCerts.GetLabels()["config.openshift.io/inject-trusted-cabundle"] != "true" {
-			t.Errorf("trusted certs should be labeled for openshift to inject trusted certs")
-		}
 		if len(caCerts.Data) != 2 {
 			t.Errorf("Expecting exactly 2 data entries in the trusted cert config map but was %d", len(caCerts.Data))
 		}

@@ -296,8 +296,7 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 			Name:      targetConfigMapName,
 			Namespace: targetNs,
 			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				constants.DevWorkspaceMountLabel:              "true",
-				"config.openshift.io/inject-trusted-cabundle": "true",
+				constants.DevWorkspaceMountLabel: "true",
 			}),
 			Annotations: addToFirst(sourceMap.Annotations, map[string]string{
 				constants.DevWorkspaceMountAsAnnotation:   "file",
