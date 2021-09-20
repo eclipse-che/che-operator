@@ -52,7 +52,7 @@ func ExposeWithHostPath(
 	}
 
 	singleHostExposureType := deploy.GetSingleHostExposureType(deployContext.CheCluster)
-	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == "gateway")
+	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == deploy.GatewaySingleHostExposureType)
 	gatewayConfig := "che-gateway-route-" + component
 	if !util.IsOpenShift {
 		if useGateway {

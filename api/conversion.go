@@ -3,6 +3,7 @@ package org
 import (
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"sigs.k8s.io/yaml"
 )
@@ -145,7 +146,7 @@ func v1ToV2alpha1_GatewayEnabled(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
 }
 
 func v1ToV2alpha1_GatewayImage(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {
-	v2.Spec.Gateway.Image = v1.Spec.Server.SingleHostGatewayImage
+	v2.Spec.Gateway.Image = util.GetValue(v1.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(v1))
 }
 
 func v1ToV2alpha1_GatewayConfigurerImage(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) {

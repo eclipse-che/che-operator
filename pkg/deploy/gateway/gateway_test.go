@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -174,4 +175,58 @@ func TestRandomCookieSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to decode the secret '%s'", err)
 	}
+}
+
+func TestOauthProxyConfigUnauthorizedRegistries(t *testing.T) {
+	t.Run("no skip auth", func(t *testing.T) {
+		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: true,
+					ExternalPluginRegistry:  true,
+				}}}, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		if strings.Contains(config, "skip_auth_regex") {
+			t.Errorf("oauth config shold not contain any skip auth when both registries are external")
+		}
+	})
+
+	t.Run("no devfile-registry auth", func(t *testing.T) {
+		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: false,
+					ExternalPluginRegistry:  true,
+				}}}, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		if !strings.Contains(config, "skip_auth_regex = \"^/devfile-registry\"") {
+			t.Error("oauth config should skip auth for devfile registry", config)
+		}
+	})
+
+	t.Run("skip plugin-registry auth", func(t *testing.T) {
+		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: true,
+					ExternalPluginRegistry:  false,
+				}}}, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry\"") {
+			t.Error("oauth config should skip auth for plugin registry", config)
+		}
+	})
+
+	t.Run("skip both registries auth", func(t *testing.T) {
+		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Server: orgv1.CheClusterSpecServer{
+					ExternalDevfileRegistry: false,
+					ExternalPluginRegistry:  false,
+				}}}, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry\"") {
+			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
+		}
+	})
 }

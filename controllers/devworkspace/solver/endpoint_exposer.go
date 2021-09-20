@@ -220,7 +220,7 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) networking
 }
 
 func hostName(order int, workspaceID string, baseDomain string) string {
-	return fmt.Sprintf("%s-%d.%s", workspaceID, order+1, baseDomain)
+	return fmt.Sprintf("%s-%d.%s", workspaceID, order, baseDomain)
 }
 
 func routeAnnotations(machineName string, endpointName string) map[string]string {

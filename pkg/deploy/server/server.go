@@ -317,7 +317,7 @@ func (s *Server) DetectDefaultCheHost() (bool, error) {
 }
 
 func (s Server) UpdateCheVersion() (bool, error) {
-	cheVersion := s.evaluateCheServerVersion()
+	cheVersion := deploy.DefaultCheVersion()
 	if s.deployContext.CheCluster.Status.CheVersion != cheVersion {
 		s.deployContext.CheCluster.Status.CheVersion = cheVersion
 		err := deploy.UpdateCheCRStatus(s.deployContext, "version", cheVersion)
@@ -326,14 +326,8 @@ func (s Server) UpdateCheVersion() (bool, error) {
 	return true, nil
 }
 
-// EvaluateCheServerVersion evaluate che version
-// based on Checluster information and image defaults from env variables
-func (s Server) evaluateCheServerVersion() string {
-	return util.GetValue(s.deployContext.CheCluster.Spec.Server.CheImageTag, deploy.DefaultCheVersion())
-}
-
 func GetServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if util.GetServerExposureStrategy(cr) == "single-host" && deploy.GetSingleHostExposureType(cr) == "gateway" {
+	if util.GetServerExposureStrategy(cr) == "single-host" && deploy.GetSingleHostExposureType(cr) == deploy.GatewaySingleHostExposureType {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName
