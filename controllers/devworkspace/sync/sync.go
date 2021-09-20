@@ -69,13 +69,13 @@ func (s *Syncer) Sync(ctx context.Context, owner client.Object, blueprint client
 func (s *Syncer) Delete(ctx context.Context, object client.Object) error {
 	key := client.ObjectKey{Name: object.GetName(), Namespace: object.GetNamespace()}
 
-	if err := s.client.Get(ctx, key, object); err == nil {
-		if err != nil && !errors.IsNotFound(err) {
-			return err
-		}
-		if err = s.client.Delete(ctx, object); err != nil {
-			return err
-		}
+	var err error
+	if err = s.client.Get(ctx, key, object); err == nil {
+		err = s.client.Delete(ctx, object)
+	}
+
+	if err != nil && !errors.IsNotFound(err) {
+		return err
 	}
 
 	return nil
