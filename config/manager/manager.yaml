@@ -227,6 +227,8 @@ spec:
               value: registry.access.redhat.com/ubi8-minimal@sha256:2f6b88c037c0503da7704bccd3fc73cb76324101af39ad28f16460e7bce98324
             - name: RELATED_IMAGE_ubi_minimal_devfile_registry_image_
               value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:31ccb79b1b2c2d6eff1bee0db23d5b8ab598eafd6238417d9813f1346f717c11
+            - name: ALLOW_DEVWORKSPACE_ENGINE
+              value: "true"
           livenessProbe:
             httpGet:
               path: /healthz
