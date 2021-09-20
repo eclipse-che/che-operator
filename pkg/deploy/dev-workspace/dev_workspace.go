@@ -67,7 +67,6 @@ var (
 	DevWorkspaceWorkspaceRoutingCRDFile       = DevWorkspaceTemplates + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceTemplatesCRDFile              = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceServiceFile                   = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
 	DevWorkspaceIssuerFile                    = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
@@ -102,7 +101,6 @@ var (
 		syncDwCRD,
 		syncDwTemplatesCRD,
 		syncDwWorkspaceRoutingCRD,
-		syncDwConfigMap,
 		syncDwDeployment,
 	}
 
@@ -327,24 +325,6 @@ func syncDwCertificate(deployContext *deploy.DeployContext) (bool, error) {
 		return readAndSyncUnstructured(deployContext, DevWorkspaceCertificateFile)
 	}
 	return true, nil
-}
-
-func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	obj2sync, err := readK8SObject(DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
-	if err != nil {
-		return false, err
-	}
-
-	configMap := obj2sync.obj.(*corev1.ConfigMap)
-	// Remove when DevWorkspace controller should not care about DWR base host #373 https://github.com/devfile/devworkspace-operator/issues/373
-	if !util.IsOpenShift {
-		if configMap.Data == nil {
-			configMap.Data = make(map[string]string, 1)
-		}
-		configMap.Data["devworkspace.routing.cluster_host_suffix"] = deployContext.CheCluster.Spec.K8s.IngressDomain
-	}
-
-	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
