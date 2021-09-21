@@ -94,7 +94,12 @@ do
     continue
   fi
 
-  NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next")
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
+    NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next-all-namespaces")
+  else
+    NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next")
+  fi
+
   LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
   echo "[INFO] Last package next version: ${lastPackageNextVersion}"
@@ -129,24 +134,10 @@ do
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
   if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
-    # Set by default devworkspace enabled
-    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | .spec.devWorkspace.enable |= true | [.]" | sed -r 's/"/\\"/g')
-    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
-    mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
-
-    # Move the suggested namespace to openshift-operators.
-    sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"
-
     # Set tech-preview-stable-all-namespaces versions
     yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.metadata.name |= "eclipse-che-preview-openshift.v'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
-
-    # Change the install Mode to AllNamespaces by default
-    yq -Yi '.spec.installModes[] |= if .type=="OwnNamespace" then .supported |= false else . end' ${RELEASE_CSV}
-    yq -Yi '.spec.installModes[] |= if .type=="SingleNamespace" then .supported |= false else . end' ${RELEASE_CSV}
-    yq -Yi '.spec.installModes[] |= if .type=="MultiNamespace" then .supported |= false else . end' ${RELEASE_CSV}
-    yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' ${RELEASE_CSV}
   fi
 
   # Remove from devWorkspace in stable channel and hide the value from UI
@@ -180,12 +171,6 @@ do
   -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=next/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
   -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=next/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
-
-  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
-    # Set specific OpenShift version
-    echo -e "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> "${BUNDLE_DOCKERFILE}"
-    echo -e "\n  com.redhat.openshift.versions: \"v4.8\"" >> "${ANNOTATION_METADATA_YAML}"
-  fi
 
   pushd "${CURRENT_DIR}" || true
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \

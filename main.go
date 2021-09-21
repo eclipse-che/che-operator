@@ -48,6 +48,7 @@ import (
 	restorecontroller "github.com/eclipse-che/che-operator/controllers/checlusterrestore"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
+	"github.com/eclipse-che/che-operator/controllers/usernamespace"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -63,6 +64,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
+	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -138,6 +140,7 @@ func init() {
 		utilruntime.Must(configv1.AddToScheme(scheme))
 		utilruntime.Must(corev1.AddToScheme(scheme))
 		utilruntime.Must(consolev1.AddToScheme(scheme))
+		utilruntime.Must(projectv1.AddToScheme(scheme))
 	}
 }
 
@@ -327,8 +330,20 @@ func enableDevworkspaceSupport(mgr manager.Manager) error {
 			SolverGetter: solver.Getter(mgr.GetScheme()),
 		}
 		if err := routing.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
 			return err
 		}
+
+		userNamespaceReconciler := usernamespace.NewReconciler()
+
+		if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
+			return err
+		}
+
+		setupLog.Info("Devworkspace support enabled")
+	} else {
+		setupLog.Info("Devworkspace support disabled")
 	}
 
 	return nil

@@ -135,7 +135,7 @@ buildBundleImage() {
 
   pushd "${ROOT_DIR}" || exit
 
-  make bundle-build bundle-push DEFAULT_CHANNEL="${channel}" BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" platform="${platform}" IMAGE_TOOL="${imageTool}"
+  make bundle-build bundle-push channel="${channel}" BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" platform="${platform}" IMAGE_TOOL="${imageTool}"
   popd || exit
 }
 

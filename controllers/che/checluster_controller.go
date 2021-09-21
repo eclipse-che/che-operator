@@ -366,7 +366,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Read proxy configuration
-	proxy, err := r.getProxyConfiguration(deployContext)
+	proxy, err := GetProxyConfiguration(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Error on reading proxy configuration")
 		return ctrl.Result{}, err

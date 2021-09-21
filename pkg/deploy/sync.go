@@ -28,6 +28,10 @@ import (
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if object is up to date otherwiser returns false
+//
+// WARNING: For legacy reasons, this method bails out quickly without doing anything if the CheCluster resource
+// is being deleted (it does this by examining the deployContext, not the cluster). If you don't want
+// this behavior, use the DoSync method.
 func Sync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
@@ -35,6 +39,12 @@ func Sync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp
 		return true, nil
 	}
 
+	return DoSync(deployContext, blueprint, diffOpts...)
+}
+
+// Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
+// Returns true if object is up to date otherwiser returns false
+func DoSync(deployContext *DeployContext, blueprint metav1.Object, diffOpts ...cmp.Option) (bool, error) {
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)

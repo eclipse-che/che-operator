@@ -344,6 +344,7 @@ spec:
               verbs:
                 - get
                 - list
+                - watch
             - apiGroups:
                 - ""
               resources:
@@ -353,6 +354,7 @@ spec:
                 - list
                 - create
                 - update
+                - watch
             - apiGroups:
                 - ""
               resources:
