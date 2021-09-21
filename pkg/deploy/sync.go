@@ -44,7 +44,7 @@ func Sync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if object is up to date otherwiser returns false
-func DoSync(deployContext *DeployContext, blueprint metav1.Object, diffOpts ...cmp.Option) (bool, error) {
+func DoSync(deployContext *DeployContext, blueprint client.Object, diffOpts ...cmp.Option) (bool, error) {
 	runtimeObject, ok := blueprint.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
