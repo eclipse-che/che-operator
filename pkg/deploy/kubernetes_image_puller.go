@@ -199,7 +199,6 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			}
 		}
 	}
-	logrus.Info("======>Good!!!", "Finally", "Good")
 	return reconcile.Result{}, nil
 }
 

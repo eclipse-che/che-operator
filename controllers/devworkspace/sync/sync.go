@@ -83,9 +83,9 @@ func (s *Syncer) Delete(ctx context.Context, object client.Object) error {
 
 func (s *Syncer) create(ctx context.Context, owner client.Object, key client.ObjectKey, blueprint client.Object) (client.Object, error) {
 	actual := blueprint.DeepCopyObject().(client.Object)
-	kind := blueprint.GetObjectKind()
+	kind := blueprint.GetObjectKind().GroupVersionKind().Kind
 	log.Info("Creating a new object", "kind", kind, "name", blueprint.GetName(), "namespace", blueprint.GetNamespace())
-	obj, err := s.setOwnerReferenceAndConvertToRuntime(owner, blueprint)
+	obj, err := s.setOwnerReference(owner, blueprint)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (s *Syncer) update(ctx context.Context, owner client.Object, actual client.
 			obj, err := s.create(ctx, owner, key, blueprint)
 			return false, obj, err
 		} else {
-			obj, err := s.setOwnerReferenceAndConvertToRuntime(owner, blueprint)
+			obj, err := s.setOwnerReference(owner, blueprint)
 			if err != nil {
 				return false, actual, err
 			}
@@ -173,13 +173,12 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func (s *Syncer) setOwnerReferenceAndConvertToRuntime(owner client.Object, obj client.Object) (client.Object, error) {
+func (s *Syncer) setOwnerReference(owner client.Object, obj client.Object) (client.Object, error) {
 	if owner == nil {
 		return obj, nil
 	}
 
-	err := controllerutil.SetControllerReference(owner, obj, s.scheme)
-	if err != nil {
+	if err := controllerutil.SetControllerReference(owner, obj, s.scheme); err != nil {
 		return nil, err
 	}
 
