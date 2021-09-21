@@ -44,7 +44,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 	}
 
 	cheNamespace.SetName(cheNamespaceName)
-	if err := cl.Create(ctx, cheNamespace.(runtime.Object)); err != nil {
+	if err := cl.Create(ctx, cheNamespace.(client.Object)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -103,10 +103,10 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 
 	r := devworkspace.New(cl, scheme)
 	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
-	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
+	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
+	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -140,7 +140,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 		scheme, cl, r := setup(infraType, namespace.(runtime.Object))
 		setupCheCluster(t, ctx, cl, scheme, "che", "che")
 
-		if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
+		if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -183,7 +183,7 @@ func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
-		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation should have succeeded.")
 
 		assert.True(t, res.Requeue, "The reconciliation request should have been requeued.")
@@ -219,7 +219,7 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
-		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation shouldn't have failed")
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but is requesting a requeue.")
@@ -259,7 +259,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		scheme, cl, r := setup(infraType, allObjs...)
 		setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
 
-		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation should have succeeded")
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")

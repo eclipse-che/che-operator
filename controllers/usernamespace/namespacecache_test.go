@@ -107,7 +107,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 
 		assert.Contains(t, nsc.knownNamespaces, nsName, "The namespace info should have been cached")
 
-		ns := namespace.(runtime.Object).DeepCopyObject()
+		ns := namespace.(client.Object)
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: nsName}, ns))
 
 		ns.(metav1.Object).SetLabels(map[string]string{
