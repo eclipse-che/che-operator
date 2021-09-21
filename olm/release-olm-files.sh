@@ -149,6 +149,18 @@ do
     yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' ${RELEASE_CSV}
   fi
 
+  # Remove from devWorkspace in stable channel and hide the value from UI
+  if [[ ${CHANNEL} == "stable" ]];then
+    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | del(.spec.devWorkspace) | [.]"  | sed -r 's/"/\\"/g')
+    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
+    yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
+    mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
+
+    if [[ ${platform} == "openshift" ]];then
+      yq -rYi "(.spec.install.spec.deployments [] | select(.name == \"che-operator\") | .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"ALLOW_DEVWORKSPACE_ENGINE\") | .value ) = \"false\"" ${RELEASE_CSV}
+    fi
+  fi
+
   cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
   cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
   cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups.yaml" "${RELEASE_CHE_BACKUP_CRD}"
