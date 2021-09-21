@@ -207,7 +207,7 @@ func main() {
 	}
 
 	if !util.HasK8SResourceObject(discoveryClient, leasesApiResourceName) {
-		setupLog.Info("Leader election was disabled", "Cause:", leasesApiResourceName + "k8s api resource is an absent.")
+		setupLog.Info("Leader election was disabled", "Cause:", leasesApiResourceName+"k8s api resource is an absent.")
 		enableLeaderElection = false
 	}
 
