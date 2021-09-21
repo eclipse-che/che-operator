@@ -8,7 +8,9 @@ import (
 type DevworkspaceState int
 
 const (
-	DevworkspaceStateNotPresent = 0
+	DevworkspaceStateNotPresent DevworkspaceState = 0
+	DevworkspaceStateDisabled   DevworkspaceState = 1
+	DevworkspaceStateEnabled    DevworkspaceState = 2
 	DevworkspaceStateDisabled   = 1
 	DevworkspaceStateEnabled    = 2
 )
