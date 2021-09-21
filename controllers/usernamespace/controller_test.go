@@ -101,7 +101,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 	}
 
 	r := devworkspace.New(cl, scheme)
-	// the reconciliation needs to run twice for it to be trully finished - we're setting up finalizers etc...
+	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
 	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
 		t.Fatal(err)
 	}

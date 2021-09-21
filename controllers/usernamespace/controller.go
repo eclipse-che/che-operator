@@ -81,7 +81,7 @@ func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) h
 		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
 			return asReconcileRequestForNamespaceIf(mo.Meta, func() bool {
 				return (isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta)) ||
-					r.hasNameAndIsColocatedWithCheCluster(ctx, mo.Meta, deploy.CheTLSSelfSignedCertificateSecretName)
+					r.hasNameAndIsCollocatedWithCheCluster(ctx, mo.Meta, deploy.CheTLSSelfSignedCertificateSecretName)
 			})
 		}),
 	}
@@ -92,13 +92,13 @@ func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context
 		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
 			return asReconcileRequestForNamespaceIf(mo.Meta, func() bool {
 				return (isLabeledAsUserSettings(mo.Meta) && r.isInManagedNamespace(ctx, mo.Meta)) ||
-					r.hasNameAndIsColocatedWithCheCluster(ctx, mo.Meta, deploy.CheAllCACertsConfigMapName)
+					r.hasNameAndIsCollocatedWithCheCluster(ctx, mo.Meta, deploy.CheAllCACertsConfigMapName)
 			})
 		}),
 	}
 }
 
-func (r *CheUserNamespaceReconciler) hasNameAndIsColocatedWithCheCluster(ctx context.Context, obj metav1.Object, names ...string) bool {
+func (r *CheUserNamespaceReconciler) hasNameAndIsCollocatedWithCheCluster(ctx context.Context, obj metav1.Object, names ...string) bool {
 	for _, n := range names {
 		if obj.GetName() == n && r.hasCheCluster(ctx, obj.GetNamespace()) {
 			return true
