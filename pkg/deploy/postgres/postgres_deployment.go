@@ -226,8 +226,14 @@ func getPostgresImage(clusterDeployment *appsv1.Deployment, cheCluster *orgv1.Ch
 		return deploy.DefaultPostgres13Image(cheCluster), nil
 	} else if cheCluster.Spec.Database.PostgresVersion == "" {
 		if clusterDeployment == nil {
-			// use PostgreSQL 13.3 for a new deployment
-			return deploy.DefaultPostgres13Image(cheCluster), nil
+			// Use PostgreSQL 13.3 for a new deployment if there is so.
+			// It allows to work in downstream until a new image is ready for production.
+			postgres13Image := deploy.DefaultPostgres13Image(cheCluster)
+			if postgres13Image != "" {
+				return postgres13Image, nil
+			} else {
+				return deploy.DefaultPostgresImage(cheCluster), nil
+			}
 		} else {
 			// Keep using current image
 			return clusterDeployment.Spec.Template.Spec.Containers[0].Image, nil

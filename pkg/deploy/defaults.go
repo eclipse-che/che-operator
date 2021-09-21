@@ -294,6 +294,10 @@ func DefaultPostgresImage(cr *orgv1.CheCluster) string {
 }
 
 func DefaultPostgres13Image(cr *orgv1.CheCluster) string {
+	// it might be empty value until it propertly downstreamed
+	if defaultPostgres13Image == "" {
+		return defaultPostgres13Image
+	}
 	return patchDefaultImageName(cr, defaultPostgres13Image)
 }
 
