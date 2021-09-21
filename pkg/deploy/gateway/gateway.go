@@ -16,8 +16,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 	"strings"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/sirupsen/logrus"
 
@@ -47,6 +48,7 @@ const (
 	gatewayKubeAuthConfigName  = "che-gateway-route-kube-auth"
 	gatewayConfigComponentName = "che-gateway-config"
 	gatewayOauthSecretName     = "che-gateway-oauth-secret"
+	gatewayConfigMapNamePrefix = "che-gateway-route-"
 )
 
 var (
@@ -127,9 +129,10 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	serverConfig := getGatewayServerConfigSpec(deployContext)
-	if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
-		return err
+	if serverConfig, cfgErr := getGatewayServerConfigSpec(deployContext); cfgErr == nil {
+		if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -249,62 +252,66 @@ func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 	return nil
 }
 
-// GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
-// `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
-// new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
-func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
-	pathRewrite := pathPrefix != "/" && stripPrefix
-	nativeUser := util.IsNativeUserModeEnabled(deployContext.CheCluster)
-
-	var rule string
-	if component == "che-gateway-route-server" {
-		rule = "Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)"
-	} else {
-		rule = fmt.Sprintf("PathPrefix(`%s`)", pathPrefix)
+func DeleteGatewayRouteConfig(componentName string, deployContext *deploy.DeployContext) error {
+	obj := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayConfigMapNamePrefix + componentName,
+			Namespace: deployContext.CheCluster.Namespace,
+		},
 	}
 
-	data := `---
-http:
-  routers:
-    ` + serviceName + `:
-      rule: ` + rule + `
-      service: ` + serviceName + `
-      priority: ` + strconv.Itoa(priority) + `
-      middlewares: `
+	return delete(deployContext.ClusterAPI, obj)
+}
 
-	if nativeUser {
-		data += `
-      - "` + serviceName + `-header"`
+// below functions declare the desired states of the various objects required for the gateway
+
+func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.ConfigMap, error) {
+	cfg := &TraefikConfig{
+		HTTP: TraefikConfigHTTP{
+			Routers: map[string]TraefikConfigRouter{
+				deploy.IdentityProviderName: {
+					Rule:        "Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)",
+					Service:     gatewayServerConfigName,
+					Middlewares: []string{gatewayServerConfigName + "-header"},
+					Priority:    1,
+				},
+			},
+			Services: map[string]TraefikConfigService{
+				gatewayServerConfigName: {
+					LoadBalancer: TraefikConfigLoadbalancer{
+						Servers: []TraefikConfigLoadbalancerServer{
+							{
+								URL: "http://" + deploy.CheServiceName + ":8080",
+							},
+						},
+					},
+				},
+			},
+			Middlewares: map[string]TraefikConfigMiddleware{
+				gatewayServerConfigName + "-header": {
+					Plugin: &TraefikPlugin{
+						HeaderRewrite: &TraefikPluginHeaderRewrite{
+							From:   "X-Forwarded-Access-Token",
+							To:     "Authorization",
+							Prefix: "Bearer ",
+						},
+					},
+				},
+			},
+		},
 	}
 
-	if pathRewrite {
-		data += `
-      - "` + serviceName + `"`
-	}
+	return getConfigmapForGatewayConfig(deployContext, gatewayServerConfigName, cfg)
+}
 
-	data += `
-  services:
-    ` + serviceName + `:
-      loadBalancer:
-        servers:
-        - url: '` + internalUrl + `'
-  middlewares:`
-	if nativeUser {
-		data += `
-    ` + serviceName + `-header:
-      plugin:
-        header-rewrite:
-          from: X-Forwarded-Access-Token
-          to: Authorization
-          prefix: 'Bearer '`
-	}
+func getConfigmapForGatewayConfig(
+	deployContext *deploy.DeployContext,
+	component string,
+	gatewayConfig *TraefikConfig) (corev1.ConfigMap, error) {
 
-	if pathRewrite {
-		data += `
-    ` + serviceName + `:
-      stripPrefix:
-        prefixes:
-        - "` + pathPrefix + `"`
+	gatewayConfigContent, err := yaml.Marshal(gatewayConfig)
+	if err != nil {
+		logrus.Error(err, "can't serialize traefik config")
 	}
 
 	ret := corev1.ConfigMap{
@@ -320,30 +327,13 @@ http:
 				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
-			component + ".yml": data,
+			component + ".yml": string(gatewayConfigContent),
 		},
 	}
 
 	controllerutil.SetControllerReference(deployContext.CheCluster, &ret, deployContext.ClusterAPI.Scheme)
 
-	return ret
-}
-
-func DeleteGatewayRouteConfig(serviceName string, deployContext *deploy.DeployContext) error {
-	obj := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: deployContext.CheCluster.Namespace,
-		},
-	}
-
-	return delete(deployContext.ClusterAPI, obj)
-}
-
-// below functions declare the desired states of the various objects required for the gateway
-
-func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) corev1.ConfigMap {
-	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, gatewayServerConfigName, "/", 1, "http://"+deploy.CheServiceName+":8080", false)
+	return ret, nil
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {

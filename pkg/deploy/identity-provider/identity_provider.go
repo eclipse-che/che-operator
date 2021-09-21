@@ -16,6 +16,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
@@ -84,7 +86,8 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 		deployContext,
 		deploy.IdentityProviderName,
 		cr.Spec.Auth.IdentityProviderRoute,
-		cr.Spec.Auth.IdentityProviderIngress)
+		cr.Spec.Auth.IdentityProviderIngress,
+		createGatewayConfig())
 	if !done {
 		return false, err
 	}
@@ -355,4 +358,41 @@ func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted boo
 		return false, err
 	}
 	return false, nil
+}
+
+func createGatewayConfig() *gateway.TraefikConfig {
+	return &gateway.TraefikConfig{
+		HTTP: gateway.TraefikConfigHTTP{
+			Routers: map[string]gateway.TraefikConfigRouter{
+				deploy.IdentityProviderName: {
+					Rule:        "PathPrefix(`/auth`)",
+					Service:     deploy.IdentityProviderName,
+					Middlewares: []string{deploy.IdentityProviderName + "-header"},
+					Priority:    10,
+				},
+			},
+			Services: map[string]gateway.TraefikConfigService{
+				deploy.IdentityProviderName: {
+					LoadBalancer: gateway.TraefikConfigLoadbalancer{
+						Servers: []gateway.TraefikConfigLoadbalancerServer{
+							{
+								URL: "http://" + deploy.IdentityProviderName + ":8080",
+							},
+						},
+					},
+				},
+			},
+			Middlewares: map[string]gateway.TraefikConfigMiddleware{
+				deploy.IdentityProviderName + "-header": {
+					Plugin: &gateway.TraefikPlugin{
+						HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
+							From:   "X-Forwarded-Access-Token",
+							To:     "Authorization",
+							Prefix: "Bearer ",
+						},
+					},
+				},
+			},
+		},
+	}
 }

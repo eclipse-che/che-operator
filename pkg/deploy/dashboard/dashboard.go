@@ -12,11 +12,18 @@
 package dashboard
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	exposePath = "/dashboard/"
 )
 
 type Dashboard struct {
@@ -44,9 +51,10 @@ func (d *Dashboard) Reconcile() (done bool, err error) {
 
 	// Expose dashboard service with route or ingress
 	_, done, err = expose.ExposeWithHostPath(d.deployContext, d.component, d.deployContext.CheCluster.Spec.Server.CheHost,
-		"/dashboard/",
+		exposePath,
 		d.deployContext.CheCluster.Spec.Server.DashboardRoute,
 		d.deployContext.CheCluster.Spec.Server.DashboardIngress,
+		d.createGatewayConfig(),
 	)
 	if !done {
 		return false, err
@@ -97,4 +105,42 @@ func (d *Dashboard) Finalize() (done bool, err error) {
 
 	err = deploy.DeleteFinalizer(d.deployContext, ClusterPermissionsDashboardFinalizer)
 	return err == nil, err
+}
+
+func (d *Dashboard) createGatewayConfig() *gateway.TraefikConfig {
+	headerMiddlewareName := d.component + "-header"
+	return &gateway.TraefikConfig{
+		HTTP: gateway.TraefikConfigHTTP{
+			Routers: map[string]gateway.TraefikConfigRouter{
+				d.component: {
+					Rule:        fmt.Sprintf("PathPrefix(`%s`)", exposePath),
+					Service:     d.component,
+					Middlewares: []string{headerMiddlewareName},
+					Priority:    10,
+				},
+			},
+			Services: map[string]gateway.TraefikConfigService{
+				d.component: {
+					LoadBalancer: gateway.TraefikConfigLoadbalancer{
+						Servers: []gateway.TraefikConfigLoadbalancerServer{
+							{
+								URL: "http://" + d.component + ":8080",
+							},
+						},
+					},
+				},
+			},
+			Middlewares: map[string]gateway.TraefikConfigMiddleware{
+				headerMiddlewareName: {
+					Plugin: &gateway.TraefikPlugin{
+						HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
+							From:   "X-Forwarded-Access-Token",
+							To:     "Authorization",
+							Prefix: "Bearer ",
+						},
+					},
+				},
+			},
+		},
+	}
 }

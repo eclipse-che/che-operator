@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/api/v2/pkg/attributes"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -262,7 +264,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatal("No traefik config file found in the workspace config configmap")
 		}
 
-		workspaceConfig := traefikConfig{}
+		workspaceConfig := gateway.TraefikConfig{}
 		if err := yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig); err != nil {
 			t.Fatal(err)
 		}
@@ -362,7 +364,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatal("No traefik config file found in the workspace config configmap")
 		}
 
-		workspaceConfig := traefikConfig{}
+		workspaceConfig := gateway.TraefikConfig{}
 		if err := yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig); err != nil {
 			t.Fatal(err)
 		}
@@ -380,7 +382,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatalf("Expected 2 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
 		}
 
-		workspaceMainConfig := traefikConfig{}
+		workspaceMainConfig := gateway.TraefikConfig{}
 		if err := yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig); err != nil {
 			t.Fatal(err)
 		}

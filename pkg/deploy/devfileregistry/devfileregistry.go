@@ -12,8 +12,11 @@
 package devfileregistry
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 )
 
 type DevfileRegistry struct {
@@ -77,7 +80,8 @@ func (p *DevfileRegistry) ExposeEndpoint() (string, bool, error) {
 		p.deployContext,
 		deploy.DevfileRegistryName,
 		p.deployContext.CheCluster.Spec.Server.DevfileRegistryRoute,
-		p.deployContext.CheCluster.Spec.Server.DevfileRegistryIngress)
+		p.deployContext.CheCluster.Spec.Server.DevfileRegistryIngress,
+		p.createGatewayConfig())
 }
 
 func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
@@ -101,4 +105,38 @@ func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
 func (p *DevfileRegistry) SyncDeployment() (bool, error) {
 	spec := p.GetDevfileRegistryDeploymentSpec()
 	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
+}
+
+func (p *DevfileRegistry) createGatewayConfig() *gateway.TraefikConfig {
+	pathPrefix := "/" + deploy.DevfileRegistryName
+	return &gateway.TraefikConfig{
+		HTTP: gateway.TraefikConfigHTTP{
+			Routers: map[string]gateway.TraefikConfigRouter{
+				deploy.DevfileRegistryName: {
+					Rule:        fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
+					Service:     deploy.DevfileRegistryName,
+					Middlewares: []string{deploy.DevfileRegistryName + "-prefix"},
+					Priority:    10,
+				},
+			},
+			Services: map[string]gateway.TraefikConfigService{
+				deploy.DevfileRegistryName: {
+					LoadBalancer: gateway.TraefikConfigLoadbalancer{
+						Servers: []gateway.TraefikConfigLoadbalancerServer{
+							{
+								URL: "http://" + deploy.DevfileRegistryName + ":8080",
+							},
+						},
+					},
+				},
+			},
+			Middlewares: map[string]gateway.TraefikConfigMiddleware{
+				deploy.DevfileRegistryName + "-prefix": {
+					StripPrefix: &gateway.TraefikConfigStripPrefix{
+						Prefixes: []string{pathPrefix},
+					},
+				},
+			},
+		},
+	}
 }
