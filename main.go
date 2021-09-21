@@ -212,15 +212,15 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "e79b08a4.org.eclipse.che",
-		// LeaseDuration:          &leaseDuration,
-		// RenewDeadline:          &renewDeadline,
-		
+		Scheme:                        scheme,
+		MetricsBindAddress:            metricsAddr,
+		Port:                          9443,
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "e79b08a4.org.eclipse.che",
+		LeaderElectionReleaseOnCancel: true,
+		LeaseDuration:                 &leaseDuration,
+		RenewDeadline:                 &renewDeadline,
 
 		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
 		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
