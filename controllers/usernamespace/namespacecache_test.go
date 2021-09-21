@@ -20,6 +20,7 @@ import (
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	v1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/stretchr/testify/assert"
 
 	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -68,13 +69,8 @@ func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 		}
 
 		_, err := nsc.GetNamespaceInfo(ctx, ns)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if _, ok := nsc.knownNamespaces[ns]; !ok {
-			t.Fatal("The namespace info should have been cached")
-		}
+		assert.NoError(t, err)
+		assert.Contains(t, nsc.knownNamespaces, ns, "The namespace info should have been cached")
 	}
 
 	test(infrastructure.Kubernetes, &corev1.Namespace{
@@ -105,39 +101,25 @@ func TestExamineUpdatesCache(t *testing.T) {
 		}
 
 		nsi, err := nsc.GetNamespaceInfo(ctx, nsName)
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 
-		if nsi.OwnerUid != "" {
-			t.Fatalf("Detected owner UID should be empty but was %s", nsi.OwnerUid)
-		}
+		assert.Empty(t, nsi.OwnerUid, "Detected owner UID should be empty")
 
-		if _, ok := nsc.knownNamespaces[nsName]; !ok {
-			t.Fatal("The namespace info should have been cached")
-		}
+		assert.Contains(t, nsc.knownNamespaces, nsName, "The namespace info should have been cached")
 
 		ns := namespace.(runtime.Object).DeepCopyObject()
-		if err := cl.Get(ctx, client.ObjectKey{Name: nsName}, ns); err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: nsName}, ns))
 
 		ns.(metav1.Object).SetLabels(map[string]string{
 			workspaceNamespaceOwnerUidLabel: "uid",
 		})
 
-		if err := cl.Update(ctx, ns); err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, cl.Update(ctx, ns))
 
 		nsi, err = nsc.ExamineNamespace(ctx, nsName)
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err)
 
-		if nsi.OwnerUid != "uid" {
-			t.Fatalf("Detected owner UID should be 'uid' but was '%s'", nsi.OwnerUid)
-		}
+		assert.Equal(t, "uid", nsi.OwnerUid, "unexpected detected owner UID")
 	}
 
 	test(infrastructure.Kubernetes, &corev1.Namespace{

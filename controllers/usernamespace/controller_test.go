@@ -25,6 +25,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -148,17 +149,14 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 		if err := cl.List(ctx, ss, client.InNamespace(namespace.GetName())); err != nil {
 			t.Fatal(err)
 		}
-		if len(ss.Items) > 0 {
-			t.Errorf("No secrets expected in the tested namespace but found %d", len(ss.Items))
-		}
+
+		assert.True(t, len(ss.Items) == 0, "No secrets expected in the tested namespace but found %d", len(ss.Items))
 
 		cs := &corev1.ConfigMapList{}
 		if err := cl.List(ctx, cs, client.InNamespace(namespace.GetName())); err != nil {
 			t.Fatal(err)
 		}
-		if len(cs.Items) > 0 {
-			t.Errorf("No configmaps expected in the tested namespace but found %d", len(cs.Items))
-		}
+		assert.True(t, len(cs.Items) == 0, "No configmaps expected in the tested namespace but found %d", len(cs.Items))
 	}
 
 	t.Run("k8s", func(t *testing.T) {
@@ -186,13 +184,9 @@ func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
 		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err, "Reconciliation should have succeeded.")
 
-		if !res.Requeue {
-			t.Error("The reconciliation request should have been requeued.")
-		}
+		assert.True(t, res.Requeue, "The reconciliation request should have been requeued.")
 	}
 
 	t.Run("k8s", func(t *testing.T) {
@@ -226,13 +220,9 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
 		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err, "Reconciliation shouldn't have failed")
 
-		if res.Requeue {
-			t.Error("The reconciliation request should have succeeded but is requesting a requeue.")
-		}
+		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but is requesting a requeue.")
 	}
 
 	t.Run("k8s", func(t *testing.T) {
@@ -270,73 +260,40 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
 
 		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(t, err, "Reconciliation should have succeeded")
 
-		if res.Requeue {
-			t.Error("The reconciliation request should have succeeded.")
-		}
+		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")
 
 		proxySettings := corev1.ConfigMap{}
-		if err := cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-proxy-settings", Namespace: namespace.GetName()}, &proxySettings); err != nil {
-			t.Fatal(err)
-		}
-		if proxySettings.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation] != "env" {
-			t.Errorf("proxy settings should be annotated as mount as 'env' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if proxySettings.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
-			t.Errorf("proxy settings should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if len(proxySettings.Data) != 1 {
-			t.Errorf("Expecting just 1 element in the default proxy settings")
-		}
-		if proxySettings.Data["NO_PROXY"] != ".svc" {
-			t.Errorf("Unexpected proxy settings")
-		}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-proxy-settings", Namespace: namespace.GetName()}, &proxySettings))
+
+		assert.Equal(t, "env", proxySettings.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation],
+			"proxy settings should be annotated as mount as 'env'")
+
+		assert.Equal(t, "true", proxySettings.GetLabels()[constants.DevWorkspaceMountLabel],
+			"proxy settings should be labeled as mounted")
+
+		assert.Equal(t, 1, len(proxySettings.Data), "Expecting just 1 element in the default proxy settings")
+
+		assert.Equal(t, ".svc", proxySettings.Data["NO_PROXY"], "Unexpected proxy settings")
 
 		cert := corev1.Secret{}
-		if err := cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-server-cert", Namespace: namespace.GetName()}, &cert); err != nil {
-			t.Fatal(err)
-		}
-		if cert.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation] != "file" {
-			t.Errorf("server cert should be annotated as mount as 'file' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if cert.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation] != "/tmp/che/secret/" {
-			t.Errorf("server cert annotated as mounted to an unexpected path '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if cert.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
-			t.Errorf("server cert should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if len(cert.Data) != 1 {
-			t.Errorf("Expecting just 1 element in the self-signed cert")
-		}
-		if string(cert.Data["ca.crt"]) != "my certificate" {
-			t.Errorf("Unexpected self-signed certificate")
-		}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-server-cert", Namespace: namespace.GetName()}, &cert))
+
+		assert.Equal(t, "file", cert.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation], "server cert should be annotated as mount as 'file'")
+		assert.Equal(t, "/tmp/che/secret/", cert.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation], "server cert annotated as mounted to an unexpected path")
+		assert.Equal(t, "true", cert.GetLabels()[constants.DevWorkspaceMountLabel], "server cert should be labeled as mounted")
+		assert.Equal(t, 1, len(cert.Data), "Expecting just 1 element in the self-signed cert")
+		assert.Equal(t, "my certificate", string(cert.Data["ca.crt"]), "Unexpected self-signed certificate")
 
 		caCerts := corev1.ConfigMap{}
-		if err := cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts); err != nil {
-			t.Fatal(err)
-		}
-		if caCerts.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation] != "file" {
-			t.Errorf("trusted certs should be annotated as mount as 'file' but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if caCerts.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation] != "/public-certs" {
-			t.Errorf("trusted certs annotated as mounted to an unexpected path '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if caCerts.GetLabels()[constants.DevWorkspaceMountLabel] != "true" {
-			t.Errorf("trusted certs should be labeled as mounted but was '%s'", proxySettings.GetLabels()[constants.DevWorkspaceMountAsAnnotation])
-		}
-		if len(caCerts.Data) != 2 {
-			t.Errorf("Expecting exactly 2 data entries in the trusted cert config map but was %d", len(caCerts.Data))
-		}
-		if string(caCerts.Data["trusted1"]) != "trusted cert 1" {
-			t.Errorf("Unexpected trusted cert 1 value")
-		}
-		if string(caCerts.Data["trusted2"]) != "trusted cert 2" {
-			t.Errorf("Unexpected trusted cert 2 value")
-		}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts))
+		assert.Equal(t, "file", caCerts.GetAnnotations()[constants.DevWorkspaceMountAsAnnotation], "trusted certs should be annotated as mount as 'file'")
+		assert.Equal(t, "/public-certs", caCerts.GetAnnotations()[constants.DevWorkspaceMountPathAnnotation], "trusted certs annotated as mounted to an unexpected path")
+		assert.Equal(t, "true", caCerts.GetLabels()[constants.DevWorkspaceMountLabel], "trusted certs should be labeled as mounted")
+		assert.Equal(t, 2, len(caCerts.Data), "Expecting exactly 2 data entries in the trusted cert config map")
+		assert.Equal(t, "trusted cert 1", string(caCerts.Data["trusted1"]), "Unexpected trusted cert 1 value")
+		assert.Equal(t, "trusted cert 2", string(caCerts.Data["trusted2"]), "Unexpected trusted cert 2 value")
 	}
 
 	t.Run("k8s", func(t *testing.T) {
