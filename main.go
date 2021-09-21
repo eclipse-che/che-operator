@@ -83,6 +83,10 @@ var (
 	renewDeadline = 30 * time.Second
 )
 
+const (
+	leasesApiResourceName = "leases"
+)
+
 func init() {
 	flag.StringVar(&defaultsPath, "defaults-path", "", "Path to file with operator deployment defaults. This option is useful for local development.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":60000", "The address the metric endpoint binds to.")
@@ -194,12 +198,20 @@ func main() {
 			"the manager will watch and manage resources in all namespaces")
 	}
 
-	if util.IsOpenShift {
-		setupLog.Info("Leader election was disabled", "Cause:", "Openshift 3 doesn't have coordination.k8s.io/v1 api.")
+	config := ctrl.GetConfigOrDie()
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		setupLog.Error(err, "failed to create discovery client")
+		os.Exit(1)
+	}
+
+	if !util.HasK8SResourceObject(discoveryClient, leasesApiResourceName) {
+		setupLog.Info("Leader election was disabled", "Cause:", leasesApiResourceName + "k8s api resource is an absent.")
 		enableLeaderElection = false
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
@@ -219,7 +231,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cheReconciler, err := checontroller.NewReconciler(mgr, watchNamespace)
+	cheReconciler, err := checontroller.NewReconciler(mgr, watchNamespace, discoveryClient)
 	if err != nil {
 		setupLog.Error(err, "unable to create checluster reconciler")
 		os.Exit(1)

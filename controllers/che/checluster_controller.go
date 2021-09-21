@@ -99,12 +99,8 @@ type CheClusterReconciler struct {
 }
 
 // NewReconciler returns a new CheClusterReconciler
-func NewReconciler(mgr ctrl.Manager, namespace string) (*CheClusterReconciler, error) {
+func NewReconciler(mgr ctrl.Manager, namespace string, discoveryClient *discovery.DiscoveryClient) (*CheClusterReconciler, error) {
 	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
-	if err != nil {
-		return nil, err
-	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		return nil, err
 	}
