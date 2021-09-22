@@ -266,39 +266,14 @@ func DeleteGatewayRouteConfig(componentName string, deployContext *deploy.Deploy
 // below functions declare the desired states of the various objects required for the gateway
 
 func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.ConfigMap, error) {
-	cfg := &TraefikConfig{
-		HTTP: TraefikConfigHTTP{
-			Routers: map[string]TraefikConfigRouter{
-				deploy.IdentityProviderName: {
-					Rule:        "Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)",
-					Service:     gatewayServerConfigName,
-					Middlewares: []string{gatewayServerConfigName + "-header"},
-					Priority:    1,
-				},
-			},
-			Services: map[string]TraefikConfigService{
-				gatewayServerConfigName: {
-					LoadBalancer: TraefikConfigLoadbalancer{
-						Servers: []TraefikConfigLoadbalancerServer{
-							{
-								URL: "http://" + deploy.CheServiceName + ":8080",
-							},
-						},
-					},
-				},
-			},
-			Middlewares: map[string]TraefikConfigMiddleware{
-				gatewayServerConfigName + "-header": {
-					Plugin: &TraefikPlugin{
-						HeaderRewrite: &TraefikPluginHeaderRewrite{
-							From:   "X-Forwarded-Access-Token",
-							To:     "Authorization",
-							Prefix: "Bearer ",
-						},
-					},
-				},
-			},
-		},
+	cfg := CreateCommonTraefikConfig(
+		gatewayServerConfigName,
+		"Path(`/`) || PathPrefix(`/api`) || PathPrefix(`/swagger`) || PathPrefix(`/_app`)",
+		1,
+		"http://"+deploy.CheServiceName+":8080")
+
+	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+		AddAuthHeaderRewrite(cfg, gatewayServerConfigName)
 	}
 
 	return getConfigmapForGatewayConfig(deployContext, gatewayServerConfigName, cfg)

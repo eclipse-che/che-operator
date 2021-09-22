@@ -40,7 +40,7 @@ func Expose(
 	routeCustomSettings orgv1.RouteCustomSettings,
 	ingressCustomSettings orgv1.IngressCustomSettings,
 	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
-	//the host and path are empty and will be evaluated for the specified component
+	//the host and path are empty and will be evaluated for the specified component + path
 	return ExposeWithHostPath(deployContext, componentName, "", "", routeCustomSettings, ingressCustomSettings, gatewayConfig)
 }
 
@@ -54,7 +54,7 @@ func ExposeWithHostPath(
 	path string,
 	routeCustomSettings orgv1.RouteCustomSettings,
 	ingressCustomSettings orgv1.IngressCustomSettings,
-	gatewayConfigT *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
+	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
 
 	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 
@@ -66,7 +66,7 @@ func ExposeWithHostPath(
 	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == deploy.GatewaySingleHostExposureType)
 	if !util.IsOpenShift {
 		if useGateway {
-			return exposeWithGateway(deployContext, gatewayConfigT, component, path, func() {
+			return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
 				if _, err = deploy.DeleteNamespacedObject(deployContext, component, &networking.Ingress{}); err != nil {
 					logrus.Error(err)
 				}
@@ -88,7 +88,7 @@ func ExposeWithHostPath(
 		}
 	} else {
 		if useGateway {
-			return exposeWithGateway(deployContext, gatewayConfigT, component, path, func() {
+			return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
 				if _, err := deploy.DeleteNamespacedObject(deployContext, component, &routev1.Route{}); !util.IsTestMode() && err != nil {
 					logrus.Error(err)
 				}
@@ -149,9 +149,9 @@ func exposeWithGateway(deployContext *deploy.DeployContext,
 
 	if path == "" {
 		if component == deploy.IdentityProviderName {
-			path = "/auth" + path
+			path = "/auth"
 		} else {
-			path = "/" + component + path
+			path = "/" + component
 		}
 	}
 	return deployContext.CheCluster.Spec.Server.CheHost + path, true, err

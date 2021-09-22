@@ -126,35 +126,12 @@ func (p *PluginRegistry) SyncDeployment() (bool, error) {
 
 func (p *PluginRegistry) createGatewayConfig() *gateway.TraefikConfig {
 	pathPrefix := "/" + deploy.PluginRegistryName
-	prefixMiddlewareName := deploy.PluginRegistryName + "-prefix"
-	return &gateway.TraefikConfig{
-		HTTP: gateway.TraefikConfigHTTP{
-			Routers: map[string]gateway.TraefikConfigRouter{
-				deploy.PluginRegistryName: {
-					Rule:        fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
-					Service:     deploy.PluginRegistryName,
-					Middlewares: []string{prefixMiddlewareName},
-					Priority:    10,
-				},
-			},
-			Services: map[string]gateway.TraefikConfigService{
-				deploy.PluginRegistryName: {
-					LoadBalancer: gateway.TraefikConfigLoadbalancer{
-						Servers: []gateway.TraefikConfigLoadbalancerServer{
-							{
-								URL: "http://" + deploy.PluginRegistryName + ":8080",
-							},
-						},
-					},
-				},
-			},
-			Middlewares: map[string]gateway.TraefikConfigMiddleware{
-				prefixMiddlewareName: {
-					StripPrefix: &gateway.TraefikConfigStripPrefix{
-						Prefixes: []string{pathPrefix},
-					},
-				},
-			},
-		},
-	}
+	cfg := gateway.CreateCommonTraefikConfig(
+		deploy.PluginRegistryName,
+		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
+		10,
+		"http://"+deploy.PluginRegistryName+":8080")
+	gateway.AddStripPrefix(cfg, deploy.PluginRegistryName, []string{pathPrefix})
+
+	return cfg
 }

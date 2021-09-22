@@ -335,9 +335,9 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo)) *corev1.ConfigMap {
 	wsRouteConfig := gateway.TraefikConfig{
 		HTTP: gateway.TraefikConfigHTTP{
-			Routers:     map[string]gateway.TraefikConfigRouter{},
-			Services:    map[string]gateway.TraefikConfigService{},
-			Middlewares: map[string]gateway.TraefikConfigMiddleware{},
+			Routers:     map[string]*gateway.TraefikConfigRouter{},
+			Services:    map[string]*gateway.TraefikConfigService{},
+			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
 		},
 	}
 
@@ -426,9 +426,9 @@ func containPort(service *corev1.Service, port int32) bool {
 func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string) *corev1.ConfigMap {
 	cfg := &gateway.TraefikConfig{
 		HTTP: gateway.TraefikConfigHTTP{
-			Routers:     map[string]gateway.TraefikConfigRouter{},
-			Services:    map[string]gateway.TraefikConfigService{},
-			Middlewares: map[string]gateway.TraefikConfigMiddleware{},
+			Routers:     map[string]*gateway.TraefikConfigRouter{},
+			Services:    map[string]*gateway.TraefikConfigService{},
+			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
 		},
 	}
 
@@ -439,14 +439,14 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
 
-	rtrs[dwId] = gateway.TraefikConfigRouter{
+	rtrs[dwId] = &gateway.TraefikConfigRouter{
 		Rule:        fmt.Sprintf("PathPrefix(`/%s`)", dwId),
 		Service:     dwId,
 		Middlewares: calculateMiddlewares(dwId, true),
 		Priority:    100,
 	}
 
-	srvcs[dwId] = gateway.TraefikConfigService{
+	srvcs[dwId] = &gateway.TraefikConfigService{
 		LoadBalancer: gateway.TraefikConfigLoadbalancer{
 			Servers: []gateway.TraefikConfigLoadbalancerServer{
 				{
@@ -456,20 +456,20 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 		},
 	}
 
-	mdls[dwId+"-prefix"] = gateway.TraefikConfigMiddleware{
+	mdls[dwId+"-prefix"] = &gateway.TraefikConfigMiddleware{
 		StripPrefix: &gateway.TraefikConfigStripPrefix{
 			Prefixes: []string{"/" + dwId},
 		},
 	}
 
 	if infrastructure.IsOpenShift() {
-		mdls[dwId+"-auth"] = gateway.TraefikConfigMiddleware{
+		mdls[dwId+"-auth"] = &gateway.TraefikConfigMiddleware{
 			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: "http://127.0.0.1:8089?namespace=" + dwNamespace,
 			},
 		}
 
-		mdls[dwId+"-header"] = gateway.TraefikConfigMiddleware{
+		mdls[dwId+"-header"] = &gateway.TraefikConfigMiddleware{
 			Plugin: &gateway.TraefikPlugin{
 				HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
 					From:   "X-Forwarded-Access-Token",
@@ -525,14 +525,14 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 	}
 
 	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, routeName)
-	cfg.HTTP.Routers[name] = gateway.TraefikConfigRouter{
+	cfg.HTTP.Routers[name] = &gateway.TraefikConfigRouter{
 		Rule:        rulePrefix,
 		Service:     name,
 		Middlewares: calculateMiddlewares(name, false),
 		Priority:    100,
 	}
 
-	cfg.HTTP.Services[name] = gateway.TraefikConfigService{
+	cfg.HTTP.Services[name] = &gateway.TraefikConfigService{
 		LoadBalancer: gateway.TraefikConfigLoadbalancer{
 			Servers: []gateway.TraefikConfigLoadbalancerServer{
 				{
@@ -542,14 +542,14 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 		},
 	}
 
-	cfg.HTTP.Middlewares[name+"-prefix"] = gateway.TraefikConfigMiddleware{
+	cfg.HTTP.Middlewares[name+"-prefix"] = &gateway.TraefikConfigMiddleware{
 		StripPrefix: &gateway.TraefikConfigStripPrefix{
 			Prefixes: []string{prefix},
 		},
 	}
 
 	if infrastructure.IsOpenShift() {
-		cfg.HTTP.Middlewares[name+"-auth"] = gateway.TraefikConfigMiddleware{
+		cfg.HTTP.Middlewares[name+"-auth"] = &gateway.TraefikConfigMiddleware{
 			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
 			},

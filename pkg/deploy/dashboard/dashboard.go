@@ -108,39 +108,13 @@ func (d *Dashboard) Finalize() (done bool, err error) {
 }
 
 func (d *Dashboard) createGatewayConfig() *gateway.TraefikConfig {
-	headerMiddlewareName := d.component + "-header"
-	return &gateway.TraefikConfig{
-		HTTP: gateway.TraefikConfigHTTP{
-			Routers: map[string]gateway.TraefikConfigRouter{
-				d.component: {
-					Rule:        fmt.Sprintf("PathPrefix(`%s`)", exposePath),
-					Service:     d.component,
-					Middlewares: []string{headerMiddlewareName},
-					Priority:    10,
-				},
-			},
-			Services: map[string]gateway.TraefikConfigService{
-				d.component: {
-					LoadBalancer: gateway.TraefikConfigLoadbalancer{
-						Servers: []gateway.TraefikConfigLoadbalancerServer{
-							{
-								URL: "http://" + d.component + ":8080",
-							},
-						},
-					},
-				},
-			},
-			Middlewares: map[string]gateway.TraefikConfigMiddleware{
-				headerMiddlewareName: {
-					Plugin: &gateway.TraefikPlugin{
-						HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
-							From:   "X-Forwarded-Access-Token",
-							To:     "Authorization",
-							Prefix: "Bearer ",
-						},
-					},
-				},
-			},
-		},
+	cfg := gateway.CreateCommonTraefikConfig(
+		d.component,
+		fmt.Sprintf("PathPrefix(`%s`)", exposePath),
+		10,
+		"http://"+d.component+":8080")
+	if util.IsNativeUserModeEnabled(d.deployContext.CheCluster) {
+		gateway.AddAuthHeaderRewrite(cfg, d.component)
 	}
+	return cfg
 }

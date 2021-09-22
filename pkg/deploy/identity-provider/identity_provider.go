@@ -87,7 +87,7 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 		deploy.IdentityProviderName,
 		cr.Spec.Auth.IdentityProviderRoute,
 		cr.Spec.Auth.IdentityProviderIngress,
-		createGatewayConfig())
+		createGatewayConfig(deployContext.CheCluster))
 	if !done {
 		return false, err
 	}
@@ -360,39 +360,16 @@ func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted boo
 	return false, nil
 }
 
-func createGatewayConfig() *gateway.TraefikConfig {
-	return &gateway.TraefikConfig{
-		HTTP: gateway.TraefikConfigHTTP{
-			Routers: map[string]gateway.TraefikConfigRouter{
-				deploy.IdentityProviderName: {
-					Rule:        "PathPrefix(`/auth`)",
-					Service:     deploy.IdentityProviderName,
-					Middlewares: []string{deploy.IdentityProviderName + "-header"},
-					Priority:    10,
-				},
-			},
-			Services: map[string]gateway.TraefikConfigService{
-				deploy.IdentityProviderName: {
-					LoadBalancer: gateway.TraefikConfigLoadbalancer{
-						Servers: []gateway.TraefikConfigLoadbalancerServer{
-							{
-								URL: "http://" + deploy.IdentityProviderName + ":8080",
-							},
-						},
-					},
-				},
-			},
-			Middlewares: map[string]gateway.TraefikConfigMiddleware{
-				deploy.IdentityProviderName + "-header": {
-					Plugin: &gateway.TraefikPlugin{
-						HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
-							From:   "X-Forwarded-Access-Token",
-							To:     "Authorization",
-							Prefix: "Bearer ",
-						},
-					},
-				},
-			},
-		},
+func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {
+	cfg := gateway.CreateCommonTraefikConfig(
+		deploy.IdentityProviderName,
+		"PathPrefix(`/auth`)",
+		10,
+		"http://"+deploy.IdentityProviderName+":8080")
+
+	if util.IsNativeUserModeEnabled(cheCluster) {
+		gateway.AddAuthHeaderRewrite(cfg, deploy.IdentityProviderName)
 	}
+
+	return cfg
 }
