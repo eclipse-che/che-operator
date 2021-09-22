@@ -318,20 +318,12 @@ func TestReadProxyConfiguration(t *testing.T) {
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 
 			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
 			clientSet := fakeclientset.NewSimpleClientset()
 			fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
 			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
 
 			os.Setenv("OPENSHIFT_VERSION", testCase.openShiftVersion)
 			util.IsOpenShift, util.IsOpenShift4, _ = util.DetectOpenShift()
-
-			r := &CheClusterReconciler{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				Scheme:          scheme,
-			}
 
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
@@ -342,7 +334,7 @@ func TestReadProxyConfiguration(t *testing.T) {
 				},
 			}
 
-			actualProxyConf, err := r.getProxyConfiguration(deployContext)
+			actualProxyConf, err := GetProxyConfiguration(deployContext)
 			if err != nil {
 				t.Fatalf("Error reading proxy configuration: %v", err)
 			}

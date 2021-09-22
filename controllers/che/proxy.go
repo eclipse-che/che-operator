@@ -17,7 +17,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-func (r *CheClusterReconciler) getProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
+func GetProxyConfiguration(deployContext *deploy.DeployContext) (*deploy.Proxy, error) {
 	// OpenShift 4.x
 	if util.IsOpenShift4 {
 		clusterProxy := &configv1.Proxy{}
