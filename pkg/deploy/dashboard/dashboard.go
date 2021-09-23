@@ -114,7 +114,7 @@ func (d *Dashboard) createGatewayConfig() *gateway.TraefikConfig {
 		10,
 		"http://"+d.component+":8080")
 	if util.IsNativeUserModeEnabled(d.deployContext.CheCluster) {
-		gateway.AddAuthHeaderRewrite(cfg, d.component)
+		cfg.AddAuthHeaderRewrite(d.component)
 	}
 	return cfg
 }

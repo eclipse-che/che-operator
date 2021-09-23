@@ -27,7 +27,7 @@ func CreateCommonTraefikConfig(componentName string, rule string, priority int, 
 	}
 }
 
-func AddStripPrefix(cfg *TraefikConfig, componentName string, prefixes []string) {
+func (cfg *TraefikConfig) AddStripPrefix(componentName string, prefixes []string) {
 	middlewareName := componentName + "-strip-prefix"
 	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
@@ -37,7 +37,7 @@ func AddStripPrefix(cfg *TraefikConfig, componentName string, prefixes []string)
 	}
 }
 
-func AddAuthHeaderRewrite(cfg *TraefikConfig, componentName string) {
+func (cfg *TraefikConfig) AddAuthHeaderRewrite(componentName string) {
 	middlewareName := componentName + "-header-rewrite"
 	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{

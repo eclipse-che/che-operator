@@ -273,7 +273,7 @@ func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.Con
 		"http://"+deploy.CheServiceName+":8080")
 
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-		AddAuthHeaderRewrite(cfg, gatewayServerConfigName)
+		cfg.AddAuthHeaderRewrite(gatewayServerConfigName)
 	}
 
 	return getConfigmapForGatewayConfig(deployContext, gatewayServerConfigName, cfg)

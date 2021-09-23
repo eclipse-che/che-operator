@@ -9,7 +9,7 @@ const (
 
 func TestAddStripPrefix(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
-	AddStripPrefix(cfg, testComponentName, []string{"/test"})
+	cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
 	if len(cfg.HTTP.Routers[testComponentName].Middlewares) != 1 {
 		t.Errorf("Expected 1 middleware in router but got '%d'. %+v", len(cfg.HTTP.Routers[testComponentName].Middlewares), cfg)
@@ -26,7 +26,7 @@ func TestAddStripPrefix(t *testing.T) {
 
 func TestAddAuthHeaderRewrite(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
-	AddAuthHeaderRewrite(cfg, testComponentName)
+	cfg.AddAuthHeaderRewrite(testComponentName)
 
 	if len(cfg.HTTP.Routers[testComponentName].Middlewares) != 1 {
 		t.Errorf("Expected 1 middleware in router but got '%d'. %+v", len(cfg.HTTP.Routers[testComponentName].Middlewares), cfg)
@@ -44,8 +44,8 @@ func TestAddAuthHeaderRewrite(t *testing.T) {
 func TestMiddlewaresPreserveOrder(t *testing.T) {
 	t.Run("strip-header", func(t *testing.T) {
 		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
-		AddStripPrefix(cfg, testComponentName, []string{"/test"})
-		AddAuthHeaderRewrite(cfg, testComponentName)
+		cfg.AddStripPrefix(testComponentName, []string{"/test"})
+		cfg.AddAuthHeaderRewrite(testComponentName)
 
 		if cfg.HTTP.Routers[testComponentName].Middlewares[0] != testComponentName+"-strip-prefix" {
 			t.Errorf("first middleware should be strip-prefix")
@@ -58,8 +58,8 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 
 	t.Run("header-strip", func(t *testing.T) {
 		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
-		AddAuthHeaderRewrite(cfg, testComponentName)
-		AddStripPrefix(cfg, testComponentName, []string{"/test"})
+		cfg.AddAuthHeaderRewrite(testComponentName)
+		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
 		if cfg.HTTP.Routers[testComponentName].Middlewares[0] != testComponentName+"-header-rewrite" {
 			t.Errorf("first middleware should be header-rewrite")

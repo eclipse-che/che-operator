@@ -131,7 +131,7 @@ func (p *PluginRegistry) createGatewayConfig() *gateway.TraefikConfig {
 		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
 		10,
 		"http://"+deploy.PluginRegistryName+":8080")
-	gateway.AddStripPrefix(cfg, deploy.PluginRegistryName, []string{pathPrefix})
+	cfg.AddStripPrefix(deploy.PluginRegistryName, []string{pathPrefix})
 
 	return cfg
 }
