@@ -355,7 +355,14 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 
 	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
 	deploymentObject := obj2sync.obj.(*appsv1.Deployment)
-	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceControllerImage
+	devWorkspaceController := deploymentObject.Spec.Template.Spec.Containers[0]
+	devWorkspaceController.Image = devworkspaceControllerImage
+	for _, env := range devWorkspaceController.Env {
+		if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
+			env.Value = devworkspaceControllerImage
+			break
+		}
+	}
 
 	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
 }
