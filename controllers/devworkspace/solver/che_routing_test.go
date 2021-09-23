@@ -209,6 +209,21 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 		if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
 			t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
 		}
+
+		if objs.PodAdditions.Containers[0].Resources.Requests.Memory() == nil {
+			t.Error("expected addition pod Container Memory request to be set")
+		}
+		if objs.PodAdditions.Containers[0].Resources.Requests.Cpu() == nil {
+			t.Error("expected addition po Container CPU request to be set")
+		}
+
+		if objs.PodAdditions.Containers[0].Resources.Limits.Memory() == nil {
+			t.Error("expected addition po Container Memory limit to be set")
+		}
+
+		if objs.PodAdditions.Containers[0].Resources.Limits.Cpu() == nil {
+			t.Error("expected addition po Container CPU limit to be set")
+		}
 	})
 
 	for i := range objs.Services {
