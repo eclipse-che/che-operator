@@ -8,7 +8,7 @@ type TraefikConfig struct {
 type TraefikConfigHTTP struct {
 	Routers     map[string]*TraefikConfigRouter     `json:"routers"`
 	Services    map[string]*TraefikConfigService    `json:"services"`
-	Middlewares map[string]*TraefikConfigMiddleware `json:"middlewares"`
+	Middlewares map[string]*TraefikConfigMiddleware `json:"middlewares,omitempty"`
 }
 
 type TraefikConfigRouter struct {
