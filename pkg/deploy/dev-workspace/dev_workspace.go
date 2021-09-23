@@ -432,11 +432,19 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync, name
 		return false, err
 	}
 
+	cheNamespaceOwnership := actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgNamespace]
+
+	// don't sync when object exists but it's not managed by Che
+	if exists && cheNamespaceOwnership == "" {
+		return true, nil
+	}
+
 	// sync objects if it has been created by same operator
 	// or it is the only operator with the `spec.devWorkspace.enable: true`
 	if !exists ||
-		(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256 &&
-			(actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgNamespace] == deployContext.CheCluster.Namespace || isOnlyOneOperatorManagesDWResources)) {
+		isOnlyOneOperatorManagesDWResources ||
+		(cheNamespaceOwnership == deployContext.CheCluster.Namespace &&
+			actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256) {
 
 		setAnnotations(deployContext, obj2sync)
 		return deploy.Sync(deployContext, obj2sync.obj)

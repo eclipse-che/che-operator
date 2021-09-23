@@ -401,6 +401,47 @@ func TestShouldSyncObjectIfItWasCreatedBySameOriginHashDifferent(t *testing.T) {
 	assert.Equal(t, "c", actual.Data["a"], "data mismatch")
 }
 
+func TestShouldNotSyncObjectIfItIsNotMangedByChe(t *testing.T) {
+	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
+
+	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
+	initialObject.SetAnnotations(map[string]string{})
+	deploy.Create(deployContext, initialObject)
+
+	// creates initial object
+	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
+	obj2sync := &Object2Sync{
+		obj:     newObject,
+		hash256: "newHash",
+	}
+
+	// tries to sync object with a new
+	_, err := syncObject(deployContext, obj2sync, "eclipse-che")
+	if err != nil {
+		t.Fatalf("Failed to sync object: %v", err)
+	}
+
+	// reads object and check content, object supposed to be updated
+	// it was created by the same origin
+	actual := &corev1.ConfigMap{}
+	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
+	if err != nil {
+		t.Fatalf("Failed to get object: %v", err)
+	} else if !exists {
+		t.Fatalf("Object not found")
+	}
+
+	if actual.GetAnnotations()[deploy.CheEclipseOrgHash256] != "" {
+		t.Fatalf("Invalid hash")
+	}
+	if actual.GetAnnotations()[deploy.CheEclipseOrgNamespace] != "" {
+		t.Fatalf("Invalid namespace")
+	}
+	if actual.Data["a"] != "b" {
+		t.Fatalf("Invalid data")
+	}
+}
+
 func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
