@@ -170,10 +170,6 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		if err != nil {
 			return res, err
 		}
-
-		currentV1 = &checlusterv1.CheCluster{}
-		_ = r.client.Get(ctx, req.NamespacedName, currentV1)
-
 		return res, nil
 	}
 
