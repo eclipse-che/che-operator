@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
@@ -31,6 +32,7 @@ import (
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -162,11 +164,21 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, corev1.Container{
 		Name:            wsGatewayName,
 		Image:           cheCluster.Spec.Gateway.Image,
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(cheCluster.Spec.Gateway.Image)),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      wsGatewayName,
 				MountPath: "/etc/traefik",
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+				corev1.ResourceCPU:    resource.MustParse("0.5"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("64Mi"),
+				corev1.ResourceCPU:    resource.MustParse("0.05"),
 			},
 		},
 	})
