@@ -1,6 +1,20 @@
+//
+// Copyright (c) 2020-2020 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package gateway
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 const (
 	testComponentName = "testComponentName"
@@ -11,34 +25,18 @@ func TestAddStripPrefix(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
 	cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
-	if len(cfg.HTTP.Routers[testComponentName].Middlewares) != 1 {
-		t.Errorf("Expected 1 middleware in router but got '%d'. %+v", len(cfg.HTTP.Routers[testComponentName].Middlewares), cfg)
-	}
-
-	if len(cfg.HTTP.Middlewares) != 1 {
-		t.Errorf("Expected 1 middlewares but got '%d'. %+v", len(cfg.HTTP.Middlewares), cfg)
-	}
-
-	if _, ok := cfg.HTTP.Middlewares[cfg.HTTP.Routers[testComponentName].Middlewares[0]]; !ok {
-		t.Errorf("Middleware in router does not match middleware definition. %+v", cfg)
-	}
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 1, *cfg)
+	assert.Contains(t, cfg.HTTP.Middlewares, cfg.HTTP.Routers[testComponentName].Middlewares[0], *cfg)
 }
 
 func TestAddAuthHeaderRewrite(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
 	cfg.AddAuthHeaderRewrite(testComponentName)
 
-	if len(cfg.HTTP.Routers[testComponentName].Middlewares) != 1 {
-		t.Errorf("Expected 1 middleware in router but got '%d'. %+v", len(cfg.HTTP.Routers[testComponentName].Middlewares), cfg)
-	}
-
-	if len(cfg.HTTP.Middlewares) != 1 {
-		t.Errorf("Expected 1 middlewares but got '%d'. %+v", len(cfg.HTTP.Middlewares), cfg)
-	}
-
-	if _, ok := cfg.HTTP.Middlewares[cfg.HTTP.Routers[testComponentName].Middlewares[0]]; !ok {
-		t.Errorf("Middleware in router does not match middleware definition. %+v", cfg)
-	}
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 1, *cfg)
+	assert.Contains(t, cfg.HTTP.Middlewares, cfg.HTTP.Routers[testComponentName].Middlewares[0], *cfg)
 }
 
 func TestMiddlewaresPreserveOrder(t *testing.T) {
@@ -47,13 +45,10 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 		cfg.AddAuthHeaderRewrite(testComponentName)
 
-		if cfg.HTTP.Routers[testComponentName].Middlewares[0] != testComponentName+"-strip-prefix" {
-			t.Errorf("first middleware should be strip-prefix")
-		}
-
-		if cfg.HTTP.Routers[testComponentName].Middlewares[1] != testComponentName+"-header-rewrite" {
-			t.Errorf("first middleware should be header-rewrite")
-		}
+		assert.Equal(t, testComponentName+"-strip-prefix", cfg.HTTP.Routers[testComponentName].Middlewares[0],
+			"first middleware should be strip-prefix")
+		assert.Equal(t, testComponentName+"-header-rewrite", cfg.HTTP.Routers[testComponentName].Middlewares[1],
+			"second middleware should be header-rewrite")
 	})
 
 	t.Run("header-strip", func(t *testing.T) {
@@ -61,24 +56,16 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 		cfg.AddAuthHeaderRewrite(testComponentName)
 		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
-		if cfg.HTTP.Routers[testComponentName].Middlewares[0] != testComponentName+"-header-rewrite" {
-			t.Errorf("first middleware should be header-rewrite")
-		}
-
-		if cfg.HTTP.Routers[testComponentName].Middlewares[1] != testComponentName+"-strip-prefix" {
-			t.Errorf("first middleware should be strip-prefix")
-		}
+		assert.Equal(t, testComponentName+"-header-rewrite", cfg.HTTP.Routers[testComponentName].Middlewares[0],
+			"first middleware should be header-rewrite")
+		assert.Equal(t, testComponentName+"-strip-prefix", cfg.HTTP.Routers[testComponentName].Middlewares[1],
+			"second middleware should be strip-prefix")
 	})
 }
 
 func TestCreateCommonTraefikConfig(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
 
-	if len(cfg.HTTP.Routers[testComponentName].Middlewares) != 0 {
-		t.Errorf("Expected no middlewares in router but got '%d'. %+v", len(cfg.HTTP.Routers[testComponentName].Middlewares), cfg)
-	}
-
-	if len(cfg.HTTP.Middlewares) != 0 {
-		t.Errorf("Expected no middlewares but got '%d'. %+v", len(cfg.HTTP.Middlewares), cfg)
-	}
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 0, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 0, *cfg)
 }

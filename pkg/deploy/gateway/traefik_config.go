@@ -1,3 +1,14 @@
+// Package gateway
+// Copyright (c) 2020-2020 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package gateway
 
 // A representation of the Traefik config as we need it. This is in no way complete but can be used for the purposes we need it for.
