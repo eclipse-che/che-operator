@@ -160,9 +160,9 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	disabledMessage := ""
 	switch GetDevworkspaceState(r.scheme, current) {
 	case DevworkspaceStateNotPresent:
-		disabledMessage = "Devworkspace CRDs are not installed"
+		disabledMessage = "DevWorkspace CRDs are not installed"
 	case DevworkspaceStateDisabled:
-		disabledMessage = "Devworkspace Che is disabled"
+		disabledMessage = "DevWorkspace Che is disabled"
 	}
 
 	if disabledMessage != "" {
