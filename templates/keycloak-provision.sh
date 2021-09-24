@@ -68,7 +68,8 @@ provisionKeycloak() {
   {{ .Script }} set-password \
     -r '{{ .KeycloakRealm }}' \
     --username admin \
-    --new-password admin
+    --new-password admin \
+    --temporary
 
   {{ .Script }} add-roles \
     -r '{{ .KeycloakRealm }}' \
