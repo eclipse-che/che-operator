@@ -32,6 +32,7 @@ import (
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -163,7 +164,7 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, corev1.Container{
 		Name:            wsGatewayName,
 		Image:           cheCluster.Spec.Gateway.Image,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(cheCluster.Spec.Gateway.Image)),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      wsGatewayName,
