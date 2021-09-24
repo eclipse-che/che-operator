@@ -14,11 +14,6 @@ package expose
 import (
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
-
 	routev1 "github.com/openshift/api/route/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -133,7 +128,7 @@ func exposeWithGateway(deployContext *deploy.DeployContext,
 	path string,
 	cleanUpRouting func()) (endpointUrl string, done bool, err error) {
 
-	cfg, err := getConfigmapForGatewayConfig(deployContext, component, gatewayConfig)
+	cfg, err := gateway.GetConfigmapForGatewayConfig(deployContext, component, gatewayConfig)
 	if err != nil {
 		return "", false, err
 	}
@@ -155,36 +150,4 @@ func exposeWithGateway(deployContext *deploy.DeployContext,
 		}
 	}
 	return deployContext.CheCluster.Spec.Server.CheHost + path, true, err
-}
-
-func getConfigmapForGatewayConfig(
-	deployContext *deploy.DeployContext,
-	component string,
-	gatewayConfig *gateway.TraefikConfig) (v1.ConfigMap, error) {
-
-	gatewayConfigContent, err := yaml.Marshal(gatewayConfig)
-	if err != nil {
-		logrus.Error(err, "can't serialize traefik config")
-	}
-
-	ret := v1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      component + "-route",
-			Namespace: deployContext.CheCluster.Namespace,
-			Labels: util.MergeMaps(
-				deploy.GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
-				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
-		},
-		Data: map[string]string{
-			component + ".yml": string(gatewayConfigContent),
-		},
-	}
-
-	controllerutil.SetControllerReference(deployContext.CheCluster, &ret, deployContext.ClusterAPI.Scheme)
-
-	return ret, nil
 }

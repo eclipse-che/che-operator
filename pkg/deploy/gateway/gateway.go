@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2020-2020 Red Hat, Inc.
+// Copyright (c) 2020-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -44,11 +44,11 @@ const (
 	GatewayServiceName = "che-gateway"
 	GatewayServicePort = 8080
 
-	gatewayServerConfigName    = "che-gateway-route-server"
+	serverComponentName        = "server"
 	gatewayKubeAuthConfigName  = "che-gateway-route-kube-auth"
 	gatewayConfigComponentName = "che-gateway-config"
 	gatewayOauthSecretName     = "che-gateway-oauth-secret"
-	gatewayConfigMapNamePrefix = "che-gateway-route-"
+	GatewayConfigMapNamePrefix = "che-gateway-route-"
 )
 
 var (
@@ -187,7 +187,7 @@ func deleteAll(deployContext *deploy.DeployContext) error {
 
 	serverConfig := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      gatewayServerConfigName,
+			Name:      GatewayConfigMapNamePrefix + serverComponentName,
 			Namespace: instance.Namespace,
 		},
 	}
@@ -255,7 +255,7 @@ func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 func DeleteGatewayRouteConfig(componentName string, deployContext *deploy.DeployContext) error {
 	obj := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      gatewayConfigMapNamePrefix + componentName,
+			Name:      GatewayConfigMapNamePrefix + componentName,
 			Namespace: deployContext.CheCluster.Namespace,
 		},
 	}
@@ -267,21 +267,21 @@ func DeleteGatewayRouteConfig(componentName string, deployContext *deploy.Deploy
 
 func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.ConfigMap, error) {
 	cfg := CreateCommonTraefikConfig(
-		gatewayServerConfigName,
+		serverComponentName,
 		"Path(`/`, `/f`) || PathPrefix(`/api`, `/swagger`, `/_app`)",
 		1,
 		"http://"+deploy.CheServiceName+":8080")
 
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-		cfg.AddAuthHeaderRewrite(gatewayServerConfigName)
+		cfg.AddAuthHeaderRewrite(serverComponentName)
 	}
 
-	return getConfigmapForGatewayConfig(deployContext, gatewayServerConfigName, cfg)
+	return GetConfigmapForGatewayConfig(deployContext, serverComponentName, cfg)
 }
 
-func getConfigmapForGatewayConfig(
+func GetConfigmapForGatewayConfig(
 	deployContext *deploy.DeployContext,
-	component string,
+	componentName string,
 	gatewayConfig *TraefikConfig) (corev1.ConfigMap, error) {
 
 	gatewayConfigContent, err := yaml.Marshal(gatewayConfig)
@@ -295,14 +295,14 @@ func getConfigmapForGatewayConfig(
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      component,
+			Name:      GatewayConfigMapNamePrefix + componentName,
 			Namespace: deployContext.CheCluster.Namespace,
 			Labels: util.MergeMaps(
 				deploy.GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
 				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
 		},
 		Data: map[string]string{
-			component + ".yml": string(gatewayConfigContent),
+			componentName + ".yml": string(gatewayConfigContent),
 		},
 	}
 
