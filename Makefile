@@ -239,6 +239,14 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+compile:
+	binary="$(BINARY)"
+	if [ -z "$${binary}" ]; then
+		binary="/tmp/che-operator/che-operator"
+	fi
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -a -o "$${binary}" main.go
+	echo "che-operator binary compiled to $${binary}"
+
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
