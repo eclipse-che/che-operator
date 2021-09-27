@@ -121,7 +121,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.36.0-297.next
+  name: eclipse-che-preview-kubernetes.v7.37.0-312.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -343,21 +343,10 @@ spec:
         version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development.
-    This operator installs PostgreSQL, Keycloak, Registries and the Eclipse Che server, as well as configures all these services.
-    ## Prerequisites
-    - Operator Lifecycle Manager (OLM) needs to be installed.
-    - Kubernetes Platform. For OpenShift, the installation is directly made from OperatorHub UI in the admin console.
+    This operator installs PostgreSQL, Keycloak, Plugin registry, Devfile registry and the Eclipse Che server, as well as configures all these services.
 
-    OLM installation can be checked by running the command:
-    ```
-    $ kubectl get pods --all-namespaces | grep olm
-    olm             catalog-operator-7b8cd7f8bf-2v7zj                       1/1     Running   0          10m
-    olm             olm-operator-5c5c798cd5-s6ll5                           1/1     Running   0          10m
-    olm             olm-operators-fm5wc                                     1/1     Running   0          10m
-    olm             operatorhubio-catalog-d78km                             1/1     Running   0          10m
-    olm             packageserver-5c5f64947b-trghp                          1/1     Running   0          9m56s
-    olm             packageserver-5c5f64947b-zqvxg                          1/1     Running   0          9m56s
-    ```
+    ## Prerequisites
+    - Operator Lifecycle Manager (OLM) greater than or equal to v0.17.0 needs to be installed.
 
     ## How to Install
     Install `Eclipse Che Operator` by following instructions in top right button `Install`.
@@ -388,8 +377,7 @@ spec:
     ```
     ***important:*** pod name is different on each installation
 
-    When all Eclipse Che containers are running, the Eclipse Che URL is printed
-
+    When all Eclipse Che containers are running, the Eclipse Che URL is printed in the logs.
 
     Eclipse Che URL can be tracked by searching for available trace:
     ```
@@ -410,41 +398,34 @@ spec:
     ```
 
     By opening this URL in a web browser, Eclipse Che is ready to use.
+
     ## Defaults
     By default, the operator deploys Eclipse Che with:
     * Bundled PostgreSQL and Keycloak
     * Common PVC strategy
     * Auto-generated passwords
     * TLS mode (secure ingresses)
+    * Communicate between components using internal cluster SVC names
+
     ## Installation Options
     Eclipse Che operator installation options include:
     * Connection to external database and Keycloak
     * Configuration of default passwords and object names
     * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
     * Authentication options
+
+    Use `kubectl edit checluster/eclipse-che -n my-eclipse-che` to update Eclipse Che configuration.
+    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
+
     ### External Database and Keycloak
-    To instruct the operator to skip deploying PostgreSQL and Keycloak and connect to an existing DB and Keycloak instead:
-    * set respective fields to `true` in a custom resource spec
-    * provide the operator with connection and authentication details:
-      ```
-      externalDb: true
-      chePostgresHostname: 'yourPostgresHost'
-      chePostgresPort: '5432'
-      chePostgresUser: 'myuser'
-      chePostgresPassword: 'mypass'
-      chePostgresDb: 'mydb'
-      externalIdentityProvider: true
-      identityProviderURL: 'https://my-keycloak.com'
-      identityProviderRealm: 'myrealm'
-      identityProviderClientId: 'myClient'
-      ```
-    #### Self-signed Certificates and TLS Secrets
+    Follow the guides to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
+    and [Database](https://www.eclipse.org/che/docs/che-7/administration-guide/external-database-setup/) setup.
 
-    Eclipse Che uses self-signed certificates by default, as TLS mode is on by default.
-
-    To provide the name of the tls secret that will be used for Eclipse Che and workspaces ingresses:
+    ### Certificates and TLS Secrets
+    Eclipse Che uses auto-generated self-signed certificates by default and TLS mode is on.
+    To use a default certificate of a Kubernetes cluster set empty value in `spec.k8s.tlsSecretName` field:
     ```
-    tlsSecretName: 'my-ingress-tls-secret'
+    kubectl patch checluster/eclipse-che --type=json -p '[{"op": "replace", "path": "/spec/k8s/tlsSecretName", "value": ""}]' -n my-eclipse-che
     ```
   displayName: Eclipse Che
   icon:
@@ -521,6 +502,7 @@ spec:
                 - list
                 - create
                 - update
+                - watch
             - apiGroups:
                 - ""
               resources:
@@ -1052,9 +1034,11 @@ spec:
                       - name: RELATED_IMAGE_che_tls_secrets_creation_job
                         value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
                       - name: RELATED_IMAGE_pvc_jobs
-                        value: registry.access.redhat.com/ubi8-minimal:8.4-208
+                        value: registry.access.redhat.com/ubi8-minimal:8.4-210
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
+                      - name: RELATED_IMAGE_postgres_13_3
+                        value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
                       - name: RELATED_IMAGE_keycloak
                         value: quay.io/eclipse/che-keycloak:next
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
@@ -1068,7 +1052,7 @@ spec:
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
                       - name: RELATED_IMAGE_devworkspace_controller
-                        value: quay.io/devfile/devworkspace-controller:next
+                        value: quay.io/devfile/devworkspace-controller:v0.9.0
                       - name: RELATED_IMAGE_internal_rest_backup_server
                         value: quay.io/eclipse/che-backup-server-rest:eeacd92
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
@@ -1097,6 +1081,8 @@ spec:
                         value: ca-certs
                       - name: MAX_CONCURRENT_RECONCILES
                         value: "1"
+                      - name: ALLOW_DEVWORKSPACE_ENGINE
+                        value: "true"
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1354,4 +1340,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.36.0-297.next
+  version: 7.37.0-312.next

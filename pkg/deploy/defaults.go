@@ -36,6 +36,7 @@ var (
 	defaultCheTLSSecretsCreationJobImage       string
 	defaultPvcJobsImage                        string
 	defaultPostgresImage                       string
+	defaultPostgres13Image                     string
 	defaultKeycloakImage                       string
 	defaultSingleHostGatewayImage              string
 	defaultSingleHostGatewayConfigSidecarImage string
@@ -65,11 +66,8 @@ const (
 	DefaultKeycloakAdminUserName   = "admin"
 	DefaultCheLogLevel             = "INFO"
 	DefaultCheDebug                = "false"
-	DefaultCheMultiUser            = "true"
 	DefaultCheMetricsPort          = int32(8087)
 	DefaultCheDebugPort            = int32(8000)
-	DefaultCheVolumeMountPath      = "/data"
-	DefaultCheVolumeClaimName      = "che-data-volume"
 	DefaultPostgresVolumeClaimName = "postgres-data"
 
 	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
@@ -82,9 +80,9 @@ const (
 
 	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
 
-	DefaultServerExposureStrategy           = "multi-host"
-	DefaultKubernetesSingleHostExposureType = "native"
-	DefaultOpenShiftSingleHostExposureType  = "gateway"
+	DefaultServerExposureStrategy = "multi-host"
+	NativeSingleHostExposureType  = "native"
+	GatewaySingleHostExposureType = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
 	// from Upstream 7.0.0 GA to the next version
@@ -179,6 +177,7 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultDevfileRegistryImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	defaultPostgres13Image = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
 	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
@@ -246,6 +245,10 @@ func DefaultConsoleLinkName() string {
 	return getDefaultFromEnv("CONSOLE_LINK_NAME")
 }
 
+func IsDevWorkspaceEngineAllowed() bool {
+	return getDefaultFromEnv("ALLOW_DEVWORKSPACE_ENGINE") == "true"
+}
+
 func DefaultConsoleLinkDisplayName() string {
 	return getDefaultFromEnv("CONSOLE_LINK_DISPLAY_NAME")
 }
@@ -288,6 +291,14 @@ func DefaultPvcJobsImage(cr *orgv1.CheCluster) string {
 
 func DefaultPostgresImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultPostgresImage)
+}
+
+func DefaultPostgres13Image(cr *orgv1.CheCluster) string {
+	// it might be empty value until it propertly downstreamed
+	if defaultPostgres13Image == "" {
+		return defaultPostgres13Image
+	}
+	return patchDefaultImageName(cr, defaultPostgres13Image)
 }
 
 func DefaultDashboardImage(cr *orgv1.CheCluster) string {
@@ -362,22 +373,12 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-func GetCheMultiUser(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.CustomCheProperties != nil {
-		cheMultiUser := cr.Spec.Server.CustomCheProperties["CHE_MULTIUSER"]
-		if cheMultiUser == "false" {
-			return "false"
-		}
-	}
-	return DefaultCheMultiUser
-}
-
 func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	if util.IsOpenShift {
-		return DefaultOpenShiftSingleHostExposureType
+	if util.IsOpenShift || cr.Spec.DevWorkspace.Enable {
+		return GatewaySingleHostExposureType
 	}
 
-	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, DefaultKubernetesSingleHostExposureType)
+	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, NativeSingleHostExposureType)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
@@ -446,6 +447,11 @@ func InitDefaultsFromEnv() {
 	defaultDevfileRegistryImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	defaultPvcJobsImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+
+	// allow not to set env variable into a container
+	// while downstream is not migrated to PostgreSQL 13.3 yet
+	defaultPostgres13Image = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
+
 	defaultKeycloakImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))

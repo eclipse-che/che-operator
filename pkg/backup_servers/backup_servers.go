@@ -29,7 +29,8 @@ type BackupServer interface {
 	// InitRepository creates backup repository on the backup server side.
 	InitRepository() (bool, error)
 
-	// IsRepositoryExist check whether the repository alredy innitialized.
+	// IsRepositoryExist check whether the repository alredy initialized.
+	// Returns: exists, done, error
 	IsRepositoryExist() (bool, bool, error)
 
 	// CheckRepository verifies ability to connect to the remote backup server.

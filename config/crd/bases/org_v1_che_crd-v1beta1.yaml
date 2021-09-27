@@ -51,6 +51,9 @@ spec:
               description: Configuration settings related to the Authentication used
                 by the Che installation.
               properties:
+                debug:
+                  description: Debug internal identity provider.
+                  type: boolean
                 externalIdentityProvider:
                   description: 'Instructs the Operator on whether or not to deploy
                     a dedicated Identity Provider (Keycloak or RH SSO instance). Instructs
@@ -338,6 +341,11 @@ spec:
                   description: Overrides the image pull policy used in the PostgreSQL
                     database deployment. Default value is `Always` for `nightly`,
                     `next` or `latest` images, and `IfNotPresent` in other cases.
+                  type: string
+                postgresVersion:
+                  description: 'Indicates a PostgreSQL version image to use. Allowed
+                    values are: `9.6` and `13.3`. Migrate your PostgreSQL database
+                    to switch from one version to another.'
                   type: string
               type: object
             devWorkspace:

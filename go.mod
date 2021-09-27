@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
+	github.com/blang/semver/v4 v4.0.0
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210428110012-14ef54b7dbf4
 	github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
 	github.com/devfile/devworkspace-operator v0.2.1-0.20210825134510-d99fe14255d3
@@ -18,6 +19,7 @@ require (
 	github.com/operator-framework/operator-lifecycle-manager v0.18.1
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
+	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect

@@ -36,8 +36,8 @@ var imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.or
 
 // ImageAndName represents an image coupled with an image name.
 type ImageAndName struct {
-	name  string // image name (ex. my-image)
-	image string // image (ex. quay.io/test/abc)
+	Name  string // image name (ex. my-image)
+	Image string // image (ex. quay.io/test/abc)
 }
 
 // Reconcile the imagePuller section of the CheCluster CR.  If imagePuller.enable is set to true, install the Kubernetes Image Puller operator and create
@@ -405,11 +405,11 @@ func ImageSliceToString(imageSlice []ImageAndName) string {
 	var err error
 	imagesString := ""
 	for _, image := range imageSlice {
-		image.name, err = ConvertToRFC1123(image.name)
+		image.Name, err = ConvertToRFC1123(image.Name)
 		if err != nil {
 			continue
 		}
-		imagesString += image.name + "=" + image.image + ";"
+		imagesString += image.Name + "=" + image.Image + ";"
 	}
 	return imagesString
 }
@@ -433,7 +433,7 @@ func StringToImageSlice(imagesString string) []ImageAndName {
 			logrus.Warnf("Malformed image name/tag: %s. Ignoring.", image)
 			continue
 		}
-		images = append(images, ImageAndName{name: nameAndImage[0], image: nameAndImage[1]})
+		images = append(images, ImageAndName{Name: nameAndImage[0], Image: nameAndImage[1]})
 	}
 
 	return images
@@ -443,27 +443,22 @@ func StringToImageSlice(imagesString string) []ImageAndName {
 func GetDefaultImages() []ImageAndName {
 	images := []ImageAndName{}
 	imagePatterns := [...]string{
-		"^RELATED_IMAGE_.*_plugin_java8$",
-		"^RELATED_IMAGE_.*_plugin_java11$",
-		"^RELATED_IMAGE_.*_plugin_kubernetes$",
-		"^RELATED_IMAGE_.*_plugin_openshift$",
 		"^RELATED_IMAGE_.*_plugin_broker.*",
 		"^RELATED_IMAGE_.*_theia.*",
-		"^RELATED_IMAGE_.*_stacks_cpp$",
-		"^RELATED_IMAGE_.*_stacks_dotnet$",
-		"^RELATED_IMAGE_.*_stacks_golang$",
-		"^RELATED_IMAGE_.*_stacks_php$",
-		"^RELATED_IMAGE_.*_cpp_.*_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_dotnet_.*_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_golang_.*_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_php_.*_devfile_registry_image.*",
-		"^RELATED_IMAGE_.*_java.*_maven_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_machine(_)?exec(_.*)?_plugin_registry_image.*",
+		"^RELATED_IMAGE_.*_kubernetes(_.*)?_plugin_registry_image.*",
+		"^RELATED_IMAGE_.*_openshift(_.*)?_plugin_registry_image.*",
+		"^RELATED_IMAGE_.*_cpp(_.*)?_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_dotnet(_.*)?_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_golang(_.*)?_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_php(_.*)?_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_java.{1,2}(_maven)?_devfile_registry_image.*",
 	}
 	for _, pattern := range imagePatterns {
 		matches := util.GetEnvByRegExp(pattern)
 		for _, match := range matches {
 			match.Name = match.Name[len("RELATED_IMAGE_"):]
-			images = append(images, ImageAndName{name: match.Name, image: match.Value})
+			images = append(images, ImageAndName{Name: match.Name, Image: match.Value})
 		}
 	}
 	return images
@@ -541,13 +536,13 @@ func UpdateDefaultImagesIfNeeded(ctx *DeployContext) error {
 func UpdateSpecImages(specImages []ImageAndName, defaultImages []ImageAndName) bool {
 	match := false
 	for i, specImage := range specImages {
-		specImageName, specImageTag := util.GetImageNameAndTag(specImage.image)
+		specImageName, specImageTag := util.GetImageNameAndTag(specImage.Image)
 		for _, defaultImage := range defaultImages {
-			defaultImageName, defaultImageTag := util.GetImageNameAndTag(defaultImage.image)
+			defaultImageName, defaultImageTag := util.GetImageNameAndTag(defaultImage.Image)
 			// if the image tags are different for this image, then update
 			if defaultImageName == specImageName && defaultImageTag != specImageTag {
 				match = true
-				specImages[i].image = defaultImage.image
+				specImages[i].Image = defaultImage.Image
 				break
 			}
 		}

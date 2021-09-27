@@ -90,11 +90,16 @@ do
   source ${BASE_DIR}/olm.sh
   echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
 
-  if [[ ${CHANNEL} == "stable-all-namespaces" ]] && [[ ${platform} == "kubernetes" ]];then
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]] && [[ ${platform} == "kubernetes" ]];then
     continue
   fi
 
-  NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next")
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
+    NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next-all-namespaces")
+  else
+    NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next")
+  fi
+
   LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
   echo "[INFO] Last package next version: ${lastPackageNextVersion}"
@@ -128,7 +133,7 @@ do
   -e "s/${lastPackageNextVersion}/${RELEASE}/" \
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
-  if [[ ${CHANNEL} == "stable-all-namespaces" ]];then
+  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
     # Set by default devworkspace enabled
 		fixedSample=$(yq -r ".metadata.annotations[\"alm-examples\"] | \
 			fromjson | \
@@ -138,16 +143,22 @@ do
     # Move the suggested namespace to openshift-operators.
     sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"
 
-    # Set stable-all-namespaces versions
+    # Set tech-preview-stable-all-namespaces versions
     yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.metadata.name |= "eclipse-che-preview-openshift.v'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
+  fi
 
-    # Change the install Mode to AllNamespaces by default
-    yq -Yi '.spec.installModes[] |= if .type=="OwnNamespace" then .supported |= false else . end' ${RELEASE_CSV}
-    yq -Yi '.spec.installModes[] |= if .type=="SingleNamespace" then .supported |= false else . end' ${RELEASE_CSV}
-    yq -Yi '.spec.installModes[] |= if .type=="MultiNamespace" then .supported |= false else . end' ${RELEASE_CSV}
-    yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' ${RELEASE_CSV}
+  # Remove from devWorkspace in stable channel and hide the value from UI
+  if [[ ${CHANNEL} == "stable" ]];then
+    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | del(.spec.devWorkspace) | [.]"  | sed -r 's/"/\\"/g')
+    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
+    yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
+    mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
+
+    if [[ ${platform} == "openshift" ]];then
+      yq -rYi "(.spec.install.spec.deployments [] | select(.name == \"che-operator\") | .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"ALLOW_DEVWORKSPACE_ENGINE\") | .value ) = \"false\"" ${RELEASE_CSV}
+    fi
   fi
 
   cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
@@ -169,12 +180,6 @@ do
   -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=next/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
   -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=next/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
-
-  if [[ ${CHANNEL} == "stable-all-namespaces" ]]; then
-    # Set specific OpenShift version
-    echo -e "\nLABEL com.redhat.openshift.versions=\"v4.8\"" >> "${BUNDLE_DOCKERFILE}"
-    echo -e "\n  com.redhat.openshift.versions: \"v4.8\"" >> "${ANNOTATION_METADATA_YAML}"
-  fi
 
   pushd "${CURRENT_DIR}" || true
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \

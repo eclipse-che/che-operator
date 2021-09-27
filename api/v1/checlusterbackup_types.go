@@ -58,6 +58,9 @@ type CheClusterBackupStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:displayName="Backup snapshot Id"
 	// +operator-sdk:csv:customresourcedefinitions:xDescriptors="urn:alm:descriptor:text"
 	SnapshotId string `json:"snapshotId,omitempty"`
+	// Version that was backed up
+	// +optional
+	CheVersion string `json:"cheVersion,omitempty"`
 }
 
 // The `CheClusterBackup` custom resource allows defining and managing Eclipse Che backup

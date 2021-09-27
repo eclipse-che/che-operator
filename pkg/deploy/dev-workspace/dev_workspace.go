@@ -48,7 +48,7 @@ var (
 
 	SubscriptionResourceName          = "subscriptions"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
-	DevWorkspaceCSVNameWithouVersion  = "devworkspace-operator"
+	DevWorkspaceCSVNamePrefix         = "devworkspace-operator"
 
 	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
@@ -120,15 +120,27 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		return true, nil
 	}
 
-	// Check if exists devworkspace operator csv is already installed
-	devWorkspaceOperatorCSVExists := isDevWorkspaceOperatorCSVExists(deployContext)
-	if devWorkspaceOperatorCSVExists {
+	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+		// Do nothing if Devworkspace is disabled
 		return true, nil
 	}
 
-	// do nothing if dev workspace is disabled
-	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
+	if isDevWorkspaceOperatorCSVExists(deployContext) {
+		// Do nothing if Devworkspace has been already deployed via OLM
 		return true, nil
+	}
+
+	if !deploy.IsDevWorkspaceEngineAllowed() {
+		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
+
+		if exists, _ := isDevWorkspaceDeploymentExists(deployContext); !exists {
+			// Don't allow to deploy a new Devworkspace operator
+			return false, fmt.Errorf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
+		}
+
+		// Allow existed Eclipse Che and Devworkspace deployments to work
+		// event though is not allowed (for backward compatibility)
+		logrus.Warnf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
 	}
 
 	if !util.IsOpenShift && util.GetCheServerCustomCheProperty(deployContext.CheCluster, "CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S") != "true" {
@@ -172,6 +184,13 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
+func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) (bool, error) {
+	return deploy.Get(deployContext, types.NamespacedName{
+		Namespace: DevWorkspaceNamespace,
+		Name:      DevWorkspaceDeploymentName,
+	}, &appsv1.Deployment{})
+}
+
 func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
@@ -185,7 +204,7 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	}
 
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, DevWorkspaceCSVNameWithouVersion) {
+		if strings.HasPrefix(csv.Name, DevWorkspaceCSVNamePrefix) {
 			return true
 		}
 	}
@@ -336,7 +355,14 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 
 	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
 	deploymentObject := obj2sync.obj.(*appsv1.Deployment)
-	deploymentObject.Spec.Template.Spec.Containers[0].Image = devworkspaceControllerImage
+	devWorkspaceController := deploymentObject.Spec.Template.Spec.Containers[0]
+	devWorkspaceController.Image = devworkspaceControllerImage
+	for _, env := range devWorkspaceController.Env {
+		if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
+			env.Value = devworkspaceControllerImage
+			break
+		}
+	}
 
 	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
 }

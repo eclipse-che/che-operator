@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2020-2020 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -16,7 +16,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"strconv"
+	"strings"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/sirupsen/logrus"
 
@@ -40,10 +42,13 @@ import (
 const (
 	// GatewayServiceName is the name of the service which through which the gateway can be accessed
 	GatewayServiceName = "che-gateway"
+	GatewayServicePort = 8080
 
-	gatewayServerConfigName    = "che-gateway-route-server"
+	serverComponentName        = "server"
+	gatewayKubeAuthConfigName  = "che-gateway-route-kube-auth"
 	gatewayConfigComponentName = "che-gateway-config"
 	gatewayOauthSecretName     = "che-gateway-oauth-secret"
+	GatewayConfigMapNamePrefix = "che-gateway-route-"
 )
 
 var (
@@ -56,8 +61,9 @@ var (
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
-	if util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" &&
-		(deploy.GetSingleHostExposureType(deployContext.CheCluster) == "gateway") {
+	if (util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" &&
+		deploy.GetSingleHostExposureType(deployContext.CheCluster) == deploy.GatewaySingleHostExposureType) ||
+		deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return syncAll(deployContext)
 	}
 
@@ -123,9 +129,10 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	serverConfig := getGatewayServerConfigSpec(deployContext)
-	if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
-		return err
+	if serverConfig, cfgErr := getGatewayServerConfigSpec(deployContext); cfgErr == nil {
+		if _, err := deploy.Sync(deployContext, &serverConfig, configMapDiffOpts); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -180,7 +187,7 @@ func deleteAll(deployContext *deploy.DeployContext) error {
 
 	serverConfig := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      gatewayServerConfigName,
+			Name:      GatewayConfigMapNamePrefix + serverComponentName,
 			Namespace: instance.Namespace,
 		},
 	}
@@ -245,83 +252,10 @@ func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 	return nil
 }
 
-// GetGatewayRouteConfig creates a config map with traefik configuration for a single new route.
-// `serviceName` is an arbitrary name identifying the configuration. This should be unique within operator. Che server only creates
-// new configuration for workspaces, so the name should not resemble any of the names created by the Che server.
-func GetGatewayRouteConfig(deployContext *deploy.DeployContext, component string, serviceName string, pathPrefix string, priority int, internalUrl string, stripPrefix bool) corev1.ConfigMap {
-	pathRewrite := pathPrefix != "/" && stripPrefix
-	nativeUser := util.IsNativeUserModeEnabled(deployContext.CheCluster)
-
-	data := `---
-http:
-  routers:
-    ` + serviceName + `:
-      rule: "PathPrefix(` + "`" + pathPrefix + "`" + `)"
-      service: ` + serviceName + `
-      priority: ` + strconv.Itoa(priority) + `
-      middlewares: `
-
-	if nativeUser {
-		data += `
-      - "` + serviceName + `-header"`
-	}
-
-	if pathRewrite {
-		data += `
-      - "` + serviceName + `"`
-	}
-
-	data += `
-  services:
-    ` + serviceName + `:
-      loadBalancer:
-        servers:
-        - url: '` + internalUrl + `'
-  middlewares:`
-	if nativeUser {
-		data += `
-    ` + serviceName + `-header:
-      plugin:
-        header-rewrite:
-          from: X-Forwarded-Access-Token
-          to: Authorization
-          prefix: 'Bearer '`
-	}
-
-	if pathRewrite {
-		data += `
-    ` + serviceName + `:
-      stripPrefix:
-        prefixes:
-        - "` + pathPrefix + `"`
-	}
-
-	ret := corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      component,
-			Namespace: deployContext.CheCluster.Namespace,
-			Labels: util.MergeMaps(
-				deploy.GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
-				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
-		},
-		Data: map[string]string{
-			component + ".yml": data,
-		},
-	}
-
-	controllerutil.SetControllerReference(deployContext.CheCluster, &ret, deployContext.ClusterAPI.Scheme)
-
-	return ret
-}
-
-func DeleteGatewayRouteConfig(serviceName string, deployContext *deploy.DeployContext) error {
+func DeleteGatewayRouteConfig(componentName string, deployContext *deploy.DeployContext) error {
 	obj := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      GatewayConfigMapNamePrefix + componentName,
 			Namespace: deployContext.CheCluster.Namespace,
 		},
 	}
@@ -331,8 +265,50 @@ func DeleteGatewayRouteConfig(serviceName string, deployContext *deploy.DeployCo
 
 // below functions declare the desired states of the various objects required for the gateway
 
-func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) corev1.ConfigMap {
-	return GetGatewayRouteConfig(deployContext, gatewayServerConfigName, gatewayServerConfigName, "/", 1, "http://"+deploy.CheServiceName+":8080", false)
+func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.ConfigMap, error) {
+	cfg := CreateCommonTraefikConfig(
+		serverComponentName,
+		"Path(`/`, `/f`) || PathPrefix(`/api`, `/swagger`, `/_app`)",
+		1,
+		"http://"+deploy.CheServiceName+":8080")
+
+	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+		cfg.AddAuthHeaderRewrite(serverComponentName)
+	}
+
+	return GetConfigmapForGatewayConfig(deployContext, serverComponentName, cfg)
+}
+
+func GetConfigmapForGatewayConfig(
+	deployContext *deploy.DeployContext,
+	componentName string,
+	gatewayConfig *TraefikConfig) (corev1.ConfigMap, error) {
+
+	gatewayConfigContent, err := yaml.Marshal(gatewayConfig)
+	if err != nil {
+		logrus.Error(err, "can't serialize traefik config")
+	}
+
+	ret := corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      GatewayConfigMapNamePrefix + componentName,
+			Namespace: deployContext.CheCluster.Namespace,
+			Labels: util.MergeMaps(
+				deploy.GetLabels(deployContext.CheCluster, gatewayConfigComponentName),
+				util.GetMapValue(deployContext.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)),
+		},
+		Data: map[string]string{
+			componentName + ".yml": string(gatewayConfigContent),
+		},
+	}
+
+	controllerutil.SetControllerReference(deployContext.CheCluster, &ret, deployContext.ClusterAPI.Scheme)
+
+	return ret, nil
 }
 
 func getGatewayServiceAccountSpec(instance *orgv1.CheCluster) corev1.ServiceAccount {
@@ -408,7 +384,7 @@ func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster, cookieSecret str
 		},
 		Data: map[string]string{
 			"oauth-proxy.cfg": fmt.Sprintf(`
-http_address = ":8080"
+http_address = ":%d"
 https_address = ""
 provider = "openshift"
 redirect_url = "https://%s/oauth/callback"
@@ -424,9 +400,31 @@ cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
 pass_access_token = true
-skip_provider_button = true`, instance.Spec.Server.CheHost, instance.Spec.Auth.OAuthClientName, instance.Spec.Auth.OAuthSecret, GatewayServiceName, cookieSecret),
+skip_provider_button = true
+%s
+`, GatewayServicePort,
+				instance.Spec.Server.CheHost,
+				instance.Spec.Auth.OAuthClientName,
+				instance.Spec.Auth.OAuthSecret,
+				GatewayServiceName,
+				cookieSecret,
+				skipAuthConfig(instance)),
 		},
 	}
+}
+
+func skipAuthConfig(instance *orgv1.CheCluster) string {
+	var skipAuthPaths []string
+	if !instance.Spec.Server.ExternalPluginRegistry {
+		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.PluginRegistryName)
+	}
+	if !instance.Spec.Server.ExternalDevfileRegistry {
+		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
+	}
+	if len(skipAuthPaths) > 0 {
+		return fmt.Sprintf("skip_auth_regex = \"%s\"", strings.Join(skipAuthPaths, "|"))
+	}
+	return ""
 }
 
 func getGatewayKubeRbacProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
@@ -490,7 +488,7 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev
 }
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	traefikPort := 8080
+	traefikPort := GatewayServicePort
 	if util.IsNativeUserModeEnabled(instance) {
 		traefikPort = 8081
 	}
@@ -639,7 +637,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 					},
 				},
 				Ports: []corev1.ContainerPort{
-					{ContainerPort: 8080},
+					{ContainerPort: GatewayServicePort, Protocol: "TCP"},
 				},
 			},
 			corev1.Container{
@@ -647,7 +645,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 				Image:           authzImage,
 				ImagePullPolicy: corev1.PullAlways,
 				Args: []string{
-					"--insecure-listen-address=127.0.0.1:8089",
+					"--insecure-listen-address=0.0.0.0:8089",
 					"--upstream=http://127.0.0.1:8090/ping",
 					"--logtostderr=true",
 					"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
@@ -761,9 +759,15 @@ func getGatewayServiceSpec(instance *orgv1.CheCluster) corev1.Service {
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "gateway-http",
-					Port:       8080,
+					Port:       GatewayServicePort,
 					Protocol:   corev1.ProtocolTCP,
-					TargetPort: intstr.FromInt(8080),
+					TargetPort: intstr.FromInt(GatewayServicePort),
+				},
+				{
+					Name:       "gateway-kube-authz",
+					Port:       8089,
+					Protocol:   corev1.ProtocolTCP,
+					TargetPort: intstr.FromInt(8089),
 				},
 			},
 		},

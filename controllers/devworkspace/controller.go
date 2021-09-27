@@ -87,6 +87,15 @@ func GetCurrentCheClusterInstances() map[client.ObjectKey]v2alpha1.CheCluster {
 	return ret
 }
 
+// CleanCheClusterInstancesForTest is a helper function for test code in other packages that needs
+// to re-initialize the state of the checluster instance cache.
+func CleanCheClusterInstancesForTest() {
+	cheInstancesAccess.Lock()
+	defer cheInstancesAccess.Unlock()
+
+	currentCheInstances = map[client.ObjectKey]v2alpha1.CheCluster{}
+}
+
 // New returns a new instance of the Che manager reconciler. This is mainly useful for
 // testing because it doesn't set up any watches in the cluster, etc. For that use SetupWithManager.
 func New(cl client.Client, scheme *runtime.Scheme) CheClusterReconciler {
@@ -148,13 +157,11 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, r.finalize(ctx, current, currentV1)
 	}
 
-	var disabledMessage string
-
-	if !r.scheme.IsGroupRegistered("controller.devfile.io") {
+	disabledMessage := ""
+	switch GetDevworkspaceState(r.scheme, current) {
+	case DevworkspaceStateNotPresent:
 		disabledMessage = "Devworkspace CRDs are not installed"
-	}
-
-	if disabledMessage == "" && !current.Spec.IsEnabled() {
+	case DevworkspaceStateDisabled:
 		disabledMessage = "Devworkspace Che is disabled"
 	}
 

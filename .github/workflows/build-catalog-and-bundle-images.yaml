@@ -38,6 +38,7 @@ jobs:
     - name: Build and push images to quay.io
       run: >
         ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'next' -p 'openshift' &&
+        ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'next-all-namespaces' -p 'openshift' &&
         ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'next' -p 'kubernetes'
       env:
         IMAGE_REGISTRY_HOST: quay.io

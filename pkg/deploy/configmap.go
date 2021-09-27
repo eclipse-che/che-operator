@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var configMapDiffOpts = cmp.Options{
+var ConfigMapDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels)
@@ -34,14 +34,14 @@ func SyncConfigMapDataToCluster(
 	component string) (bool, error) {
 
 	configMapSpec := GetConfigMapSpec(deployContext, name, data, component)
-	return Sync(deployContext, configMapSpec, configMapDiffOpts)
+	return Sync(deployContext, configMapSpec, ConfigMapDiffOpts)
 }
 
 func SyncConfigMapSpecToCluster(
 	deployContext *DeployContext,
 	configMapSpec *corev1.ConfigMap) (bool, error) {
 
-	return Sync(deployContext, configMapSpec, configMapDiffOpts)
+	return Sync(deployContext, configMapSpec, ConfigMapDiffOpts)
 }
 
 func GetConfigMapSpec(

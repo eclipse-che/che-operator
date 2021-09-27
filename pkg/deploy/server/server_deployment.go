@@ -27,7 +27,7 @@ import (
 )
 
 func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(s.deployContext)
+	selfSignedCASecretExists, err := deploy.IsSelfSignedCASecretExists(s.deployContext)
 	if err != nil {
 		return nil, err
 	}
@@ -43,20 +43,18 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		Name:  "CHE_SELF__SIGNED__CERT",
 		Value: "",
 	}
-	customPublicCertsVolumeSource := corev1.VolumeSource{}
-	customPublicCertsVolumeSource = corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: deploy.CheAllCACertsConfigMapName,
+	customPublicCertsVolume := corev1.Volume{
+		Name: "che-public-certs",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: deploy.CheAllCACertsConfigMapName,
+				},
 			},
 		},
 	}
-	customPublicCertsVolume := corev1.Volume{
-		Name:         "che-public-certs",
-		VolumeSource: customPublicCertsVolumeSource,
-	}
 	customPublicCertsVolumeMount := corev1.VolumeMount{
-		Name:      "che-public-certs",
+		Name:      customPublicCertsVolume.Name,
 		MountPath: "/public-certs",
 	}
 	gitSelfSignedCertEnv := corev1.EnvVar{
@@ -67,7 +65,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		Name:  "CHE_GIT_SELF__SIGNED__CERT__HOST",
 		Value: "",
 	}
-	if selfSignedCertUsed {
+	if selfSignedCASecretExists {
 		selfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
@@ -267,49 +265,30 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
-	cheMultiUser := deploy.GetCheMultiUser(s.deployContext.CheCluster)
-	if cheMultiUser == "true" {
-		chePostgresSecret := s.deployContext.CheCluster.Spec.Database.ChePostgresSecret
-		if len(chePostgresSecret) > 0 {
-			container.Env = append(container.Env,
-				corev1.EnvVar{
-					Name: "CHE_JDBC_USERNAME",
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							Key: "user",
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: chePostgresSecret,
-							},
+	chePostgresSecret := s.deployContext.CheCluster.Spec.Database.ChePostgresSecret
+	if len(chePostgresSecret) > 0 {
+		container.Env = append(container.Env,
+			corev1.EnvVar{
+				Name: "CHE_JDBC_USERNAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "user",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: chePostgresSecret,
 						},
-					},
-				}, corev1.EnvVar{
-					Name: "CHE_JDBC_PASSWORD",
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							Key: "password",
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: chePostgresSecret,
-							},
-						},
-					},
-				})
-		}
-	} else {
-		deployment.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
-		deployment.Spec.Template.Spec.Volumes = []corev1.Volume{
-			{
-				Name: deploy.DefaultCheVolumeClaimName,
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: deploy.DefaultCheVolumeClaimName,
 					},
 				},
-			}}
-		container.VolumeMounts = []corev1.VolumeMount{
-			{
-				MountPath: deploy.DefaultCheVolumeMountPath,
-				Name:      deploy.DefaultCheVolumeClaimName,
-			}}
+			}, corev1.EnvVar{
+				Name: "CHE_JDBC_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						Key: "password",
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: chePostgresSecret,
+						},
+					},
+				},
+			})
 	}
 
 	// configure probes if debug isn't set

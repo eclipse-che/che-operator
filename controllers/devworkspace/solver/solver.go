@@ -101,7 +101,7 @@ func isGatewayWorkspaceConfig(obj metav1.Object) (bool, types.NamespacedName) {
 	objectName := obj.GetName()
 
 	// bail out quickly if we're not dealing with a configmap with an expected name
-	if objectName != defaults.GetGatewayWorkpaceConfigMapName(workspaceID) {
+	if objectName != defaults.GetGatewayWorkspaceConfigMapName(workspaceID) {
 		return false, types.NamespacedName{}
 	}
 

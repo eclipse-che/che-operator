@@ -12,7 +12,13 @@
 bases:
   - ../../manifests
 patchesJson6902:
-- path: che-operator.clusterserviceversion-patch.yaml
+- path: che-operator.clusterserviceversion-description-patch.yaml
+  target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: ClusterServiceVersion
+    name: eclipse-che-preview-.v0.0.0
+- path: che-operator.clusterserviceversion-name-patch.yaml
   target:
     group: operators.coreos.com
     version: v1alpha1

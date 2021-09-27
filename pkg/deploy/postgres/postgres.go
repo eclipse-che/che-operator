@@ -13,6 +13,7 @@ package postgres
 
 import (
 	"fmt"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -25,13 +26,11 @@ import (
 
 type Postgres struct {
 	deployContext *deploy.DeployContext
-	isMultiUser   bool
 }
 
 func NewPostgres(deployContext *deploy.DeployContext) *Postgres {
 	return &Postgres{
 		deployContext: deployContext,
-		isMultiUser:   deploy.GetCheMultiUser(deployContext.CheCluster) == "true",
 	}
 }
 
@@ -60,21 +59,23 @@ func (p *Postgres) SyncAll() (bool, error) {
 		}
 	}
 
+	if p.deployContext.CheCluster.Spec.Database.PostgresVersion == "" {
+		if !util.IsTestMode() { // ignore in tests
+			done, err := p.setDbVersion()
+			if !done {
+				return false, err
+			}
+		}
+	}
+
 	return true, nil
 }
 
 func (p *Postgres) SyncService() (bool, error) {
-	if !p.isMultiUser {
-		return deploy.DeleteNamespacedObject(p.deployContext, deploy.PostgresName, &corev1.Service{})
-	}
 	return deploy.SyncServiceToCluster(p.deployContext, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
 }
 
 func (p *Postgres) SyncPVC() (bool, error) {
-	if !p.isMultiUser {
-		return deploy.DeleteNamespacedObject(p.deployContext, deploy.DefaultPostgresVolumeClaimName, &corev1.PersistentVolumeClaim{})
-	}
-
 	done, err := deploy.SyncPVCToCluster(p.deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
 	if !done {
 		if err == nil {
@@ -85,10 +86,6 @@ func (p *Postgres) SyncPVC() (bool, error) {
 }
 
 func (p *Postgres) SyncDeployment() (bool, error) {
-	if !p.isMultiUser {
-		return deploy.DeleteNamespacedObject(p.deployContext, deploy.PostgresName, &appsv1.Deployment{})
-	}
-
 	clusterDeployment := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(p.deployContext, deploy.PostgresName, clusterDeployment)
 	if err != nil {
@@ -134,6 +131,29 @@ func (p *Postgres) ProvisionDB() (bool, error) {
 
 	p.deployContext.CheCluster.Status.DbProvisoned = true
 	err = deploy.UpdateCheCRStatus(p.deployContext, "status: provisioned with DB and user", "true")
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (p *Postgres) setDbVersion() (bool, error) {
+	postgresVersion, err := util.K8sclient.ExecIntoPod(
+		p.deployContext.CheCluster,
+		deploy.PostgresName,
+		func(cr *orgv1.CheCluster) (string, error) {
+			// don't take into account bugfix version
+			return "postgres -V | awk '{print $NF}' | cut -d '.' -f1-2", nil
+		},
+		"get PostgreSQL version")
+	if err != nil {
+		return false, err
+	}
+
+	postgresVersion = strings.TrimSpace(postgresVersion)
+	p.deployContext.CheCluster.Spec.Database.PostgresVersion = postgresVersion
+	err = deploy.UpdateCheCRSpec(p.deployContext, "database.postgresVersion", postgresVersion)
 	if err != nil {
 		return false, err
 	}

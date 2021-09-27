@@ -207,46 +207,6 @@ func TestSyncLegacyConfigMap(t *testing.T) {
 	}
 }
 
-func TestSyncPVC(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      os.Getenv("CHE_FLAVOR"),
-		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CustomCheProperties: map[string]string{
-					"CHE_MULTIUSER": "false",
-				},
-			},
-		},
-	}
-
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	routev1.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
-	deployContext := &deploy.DeployContext{
-		CheCluster: cheCluster,
-		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
-		},
-	}
-
-	server := NewServer(deployContext)
-	done, err := server.SyncPVC()
-	if !done || err != nil {
-		t.Fatalf("Failed to sync PVC: %v", err)
-	}
-
-	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: "eclipse-che", Name: "custom"}, &corev1.PersistentVolumeClaim{})
-	if err == nil {
-		t.Fatalf("PVC not found")
-	}
-}
-
 func TestUpdateAvailabilityStatus(t *testing.T) {
 	cheDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

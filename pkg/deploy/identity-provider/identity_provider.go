@@ -16,6 +16,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
@@ -53,11 +55,6 @@ func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, e
 		return true, nil
 	}
 
-	cheMultiUser := deploy.GetCheMultiUser(cr)
-	if cheMultiUser == "false" {
-		return deploy.DeleteNamespacedObject(deployContext, deploy.IdentityProviderName, &appsv1.Deployment{})
-	}
-
 	for _, syncItem := range syncItems {
 		provisioned, err := syncItem(deployContext)
 		if !util.IsTestMode() {
@@ -89,7 +86,8 @@ func syncExposure(deployContext *deploy.DeployContext) (bool, error) {
 		deployContext,
 		deploy.IdentityProviderName,
 		cr.Spec.Auth.IdentityProviderRoute,
-		cr.Spec.Auth.IdentityProviderIngress)
+		cr.Spec.Auth.IdentityProviderIngress,
+		createGatewayConfig(deployContext.CheCluster))
 	if !done {
 		return false, err
 	}
@@ -360,4 +358,18 @@ func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted boo
 		return false, err
 	}
 	return false, nil
+}
+
+func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {
+	cfg := gateway.CreateCommonTraefikConfig(
+		deploy.IdentityProviderName,
+		"PathPrefix(`/auth`)",
+		10,
+		"http://"+deploy.IdentityProviderName+":8080")
+
+	if util.IsNativeUserModeEnabled(cheCluster) {
+		cfg.AddAuthHeaderRewrite(deploy.IdentityProviderName)
+	}
+
+	return cfg
 }
