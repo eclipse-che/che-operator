@@ -82,6 +82,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 			"ca.crt":     []byte("my certificate"),
 			"other.data": []byte("should not be copied to target ns"),
 		},
+		Type:      "Opaque",
+		Immutable: util.NewBoolPointer(true),
 	}
 	if err := cl.Create(ctx, cert); err != nil {
 		t.Fatal(err)
@@ -285,6 +287,8 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, "true", cert.GetLabels()[constants.DevWorkspaceMountLabel], "server cert should be labeled as mounted")
 		assert.Equal(t, 1, len(cert.Data), "Expecting just 1 element in the self-signed cert")
 		assert.Equal(t, "my certificate", string(cert.Data["ca.crt"]), "Unexpected self-signed certificate")
+		assert.Equal(t, corev1.SecretTypeOpaque, cert.Type, "Unexpected secret type")
+		assert.Equal(t, true, *cert.Immutable, "Unexpected mutability of the secret")
 
 		caCerts := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts))

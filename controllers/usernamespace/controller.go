@@ -276,6 +276,8 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 		Data: map[string][]byte{
 			"ca.crt": cheCert.Data["ca.crt"],
 		},
+		Type:      cheCert.Type,
+		Immutable: cheCert.Immutable,
 	}
 
 	_, err := deploy.DoSync(deployContext, targetCert, deploy.SecretDiffOpts)
