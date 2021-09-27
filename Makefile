@@ -59,7 +59,7 @@ ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="$(CRD_FOLDER)/org.eclipse.che_cheba
 ECLIPSE_CHE_BACKUP_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterbackups.yaml"
 ECLIPSE_CHE_RESTORE_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterrestores.yaml"
 
-DEV_WORKSPACE_CONTROLLER_VERSION="main"
+DEV_WORKSPACE_CONTROLLER_VERSION="v0.9.0"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -362,6 +362,7 @@ create-env-file: prepare-templates
 	CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 	if [ -n $${CLUSTER_API_URL} ]; then
 		echo "CLUSTER_API_URL='$${CLUSTER_API_URL}'" >> "${ENV_FILE}"
+		echo "ALLOW_DEVWORKSPACE_ENGINE='true'" >> "${ENV_FILE}"
 		echo "[INFO] Set up cluster api url: $${CLUSTER_API_URL}"
 	fi;
 	echo "WATCH_NAMESPACE='${ECLIPSE_CHE_NAMESPACE}'" >> "${ENV_FILE}"
