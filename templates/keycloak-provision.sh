@@ -70,6 +70,9 @@ provisionKeycloak() {
     --username admin \
     --new-password admin
 
+  user_id=$( {{ .Script }} get users  -r '{{ .KeycloakRealm }}' -q username=admin  --fields 'id' --format csv --noquotes )
+  {{ .Script }} update users/${user_id} -r '{{ .KeycloakRealm }}' -s requiredActions='[{{ .RequiredActions }}]'
+
   {{ .Script }} add-roles \
     -r '{{ .KeycloakRealm }}' \
     --uusername admin \
