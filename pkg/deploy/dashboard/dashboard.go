@@ -12,11 +12,18 @@
 package dashboard
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	exposePath = "/dashboard/"
 )
 
 type Dashboard struct {
@@ -44,9 +51,10 @@ func (d *Dashboard) Reconcile() (done bool, err error) {
 
 	// Expose dashboard service with route or ingress
 	_, done, err = expose.ExposeWithHostPath(d.deployContext, d.component, d.deployContext.CheCluster.Spec.Server.CheHost,
-		"/dashboard/",
+		exposePath,
 		d.deployContext.CheCluster.Spec.Server.DashboardRoute,
 		d.deployContext.CheCluster.Spec.Server.DashboardIngress,
+		d.createGatewayConfig(),
 	)
 	if !done {
 		return false, err
@@ -97,4 +105,16 @@ func (d *Dashboard) Finalize() (done bool, err error) {
 
 	err = deploy.DeleteFinalizer(d.deployContext, ClusterPermissionsDashboardFinalizer)
 	return err == nil, err
+}
+
+func (d *Dashboard) createGatewayConfig() *gateway.TraefikConfig {
+	cfg := gateway.CreateCommonTraefikConfig(
+		d.component,
+		fmt.Sprintf("PathPrefix(`%s`)", exposePath),
+		10,
+		"http://"+d.component+":8080")
+	if util.IsNativeUserModeEnabled(d.deployContext.CheCluster) {
+		cfg.AddAuthHeaderRewrite(d.component)
+	}
+	return cfg
 }

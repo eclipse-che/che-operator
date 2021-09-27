@@ -24,14 +24,19 @@ import (
 	networking "k8s.io/api/networking/v1"
 )
 
+const (
+	gatewayConfigComponentName = "che-gateway-config"
+)
+
 //Expose exposes the specified component according to the configured exposure strategy rules
 func Expose(
 	deployContext *deploy.DeployContext,
 	componentName string,
 	routeCustomSettings orgv1.RouteCustomSettings,
-	ingressCustomSettings orgv1.IngressCustomSettings) (endpointUrl string, done bool, err error) {
-	//the host and path are empty and will be evaluated for the specified component
-	return ExposeWithHostPath(deployContext, componentName, "", "", routeCustomSettings, ingressCustomSettings)
+	ingressCustomSettings orgv1.IngressCustomSettings,
+	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
+	//the host and path are empty and will be evaluated for the specified component + path
+	return ExposeWithHostPath(deployContext, componentName, "", "", routeCustomSettings, ingressCustomSettings, gatewayConfig)
 }
 
 //Expose exposes the specified component on the specified host and domain.
@@ -43,7 +48,8 @@ func ExposeWithHostPath(
 	host string,
 	path string,
 	routeCustomSettings orgv1.RouteCustomSettings,
-	ingressCustomSettings orgv1.IngressCustomSettings) (endpointUrl string, done bool, err error) {
+	ingressCustomSettings orgv1.IngressCustomSettings,
+	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
 
 	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 
@@ -53,7 +59,6 @@ func ExposeWithHostPath(
 
 	singleHostExposureType := deploy.GetSingleHostExposureType(deployContext.CheCluster)
 	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == deploy.GatewaySingleHostExposureType)
-	gatewayConfig := "che-gateway-route-" + component
 	if !util.IsOpenShift {
 		if useGateway {
 			return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
@@ -70,7 +75,7 @@ func ExposeWithHostPath(
 				}
 				return "", false, err
 			}
-			if err := gateway.DeleteGatewayRouteConfig(gatewayConfig, deployContext); !util.IsTestMode() && err != nil {
+			if err := gateway.DeleteGatewayRouteConfig(component, deployContext); !util.IsTestMode() && err != nil {
 				logrus.Error(err)
 			}
 
@@ -103,7 +108,7 @@ func ExposeWithHostPath(
 				return "", false, err
 			}
 
-			if err := gateway.DeleteGatewayRouteConfig(gatewayConfig, deployContext); !util.IsTestMode() && err != nil {
+			if err := gateway.DeleteGatewayRouteConfig(component, deployContext); !util.IsTestMode() && err != nil {
 				logrus.Error(err)
 			}
 
@@ -118,22 +123,15 @@ func ExposeWithHostPath(
 }
 
 func exposeWithGateway(deployContext *deploy.DeployContext,
-	gatewayConfig string,
+	gatewayConfig *gateway.TraefikConfig,
 	component string,
 	path string,
 	cleanUpRouting func()) (endpointUrl string, done bool, err error) {
-	var stripPrefix bool
-	if path == "" {
-		if component == deploy.IdentityProviderName {
-			path = "/auth" + path
-			stripPrefix = false
-		} else {
-			path = "/" + component + path
-			stripPrefix = true
-		}
-	}
 
-	cfg := gateway.GetGatewayRouteConfig(deployContext, gatewayConfig, component, path, 10, "http://"+component+":8080", stripPrefix)
+	cfg, err := gateway.GetConfigmapForGatewayConfig(deployContext, component, gatewayConfig)
+	if err != nil {
+		return "", false, err
+	}
 	done, err = deploy.SyncConfigMapSpecToCluster(deployContext, &cfg)
 	if !done {
 		if err != nil {
@@ -144,5 +142,12 @@ func exposeWithGateway(deployContext *deploy.DeployContext,
 
 	cleanUpRouting()
 
+	if path == "" {
+		if component == deploy.IdentityProviderName {
+			path = "/auth"
+		} else {
+			path = "/" + component
+		}
+	}
 	return deployContext.CheCluster.Spec.Server.CheHost + path, true, err
 }
