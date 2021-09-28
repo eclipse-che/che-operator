@@ -6,9 +6,6 @@ on:
       version:
         description: 'The version that is going to be released. Should be in format 7.yy.z'
         required: true
-      dwoVersion:
-        description: 'The version of DevWorkspace Controller. Should be in format v0.y.z'
-        required: true
       forceRecreateTags:
         description: If true, tags will be recreated. Use with caution
         required: false
@@ -68,8 +65,6 @@ jobs:
           IMAGE_REGISTRY_USER_NAME: eclipse
         run: |
           CHE_VERSION=${{ github.event.inputs.version }}
-          DWO_VERSION=${{ github.event.inputs.dwoVersion }}
-          if [[ ${DWO_VERSION} != "v"* ]]; then DWO_VERSION="v${DWO_VERSION}"; fi
           echo "CHE_VERSION=${CHE_VERSION}"
           BRANCH=${CHE_VERSION%.*}.x
           echo "BRANCH=${BRANCH}"
@@ -88,10 +83,10 @@ jobs:
           export QUAY_ECLIPSE_CHE_PASSWORD=${{ secrets.QUAY_PASSWORD }}
 
           if [[ ${CHE_VERSION} == *".0" ]]; then
-            ./make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files --dev-workspace-controller-version ${DWO_VERSION}
+            ./make-release.sh ${CHE_VERSION} --release --check-resources --release-olm-files
           else
             git checkout ${BRANCH}
-            ./make-release.sh ${CHE_VERSION} --release --release-olm-files --dev-workspace-controller-version ${DWO_VERSION}
+            ./make-release.sh ${CHE_VERSION} --release --release-olm-files
           fi
 
           # default robot account on quay does not have permissions for application repos
