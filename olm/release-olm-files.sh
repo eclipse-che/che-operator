@@ -151,7 +151,7 @@ do
 
   # Remove from devWorkspace in stable channel and hide the value from UI
   if [[ ${CHANNEL} == "stable" ]];then
-    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | del(.spec.devWorkspace) | [.]"  | sed -r 's/"/\\"/g')
+    CR_SAMPLE=$(yq ".metadata.annotations.\"alm-examples\" | fromjson | del( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace)" "${RELEASE_CSV}" | sed -r 's/"/\\"/g')
     yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
     yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
     mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
