@@ -74,7 +74,7 @@ import (
 
 var (
 	namespace       = "eclipse-che"
-	csvName         = "kubernetes-imagepuller-operator.v0.0.4"
+	csvName         = "kubernetes-imagepuller-operator.v0.0.9"
 	packageManifest = &packagesv1.PackageManifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes-imagepuller-operator",
@@ -924,6 +924,38 @@ func TestImagePullerConfiguration(t *testing.T) {
 			},
 			shouldDelete: true,
 		},
+		{
+			name:   "image puller already created, finalizer deleted",
+			initCR: InitCheCRWithImagePullerFinalizerAndDeletionTimestamp(),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				clusterServiceVersion,
+				getDefaultImagePuller(),
+			},
+			expectedCR: &orgv1.CheCluster{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "CheCluster",
+					APIVersion: "org.eclipse.che/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              os.Getenv("CHE_FLAVOR"),
+					Namespace:         namespace,
+					ResourceVersion:   "1",
+					DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
+				},
+				Spec: orgv1.CheClusterSpec{
+					ImagePuller: orgv1.CheClusterSpecImagePuller{
+						Enable: true,
+					},
+					Server: orgv1.CheClusterSpecServer{
+						ServerExposureStrategy: "multi-host",
+					},
+				},
+			},
+			shouldDelete: true,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -1060,13 +1092,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 				subscription := &operatorsv1alpha1.Subscription{}
 				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
 				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found subscription: %v", err)
+					t.Fatalf("Should not have found Subscription: %v", err)
 				}
 
 				operatorGroup := &operatorsv1.OperatorGroup{}
 				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
 				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found subscription: %v", err)
+					t.Fatalf("Should not have found OperatorGroup: %v", err)
 				}
 			}
 		})
@@ -1651,6 +1683,27 @@ func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
+		},
+		Spec: orgv1.CheClusterSpec{
+			ImagePuller: orgv1.CheClusterSpecImagePuller{
+				Enable: true,
+			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "multi-host",
+			},
+		},
+	}
+}
+
+func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *orgv1.CheCluster {
+	return &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      os.Getenv("CHE_FLAVOR"),
+			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
+			DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{

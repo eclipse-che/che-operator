@@ -78,7 +78,7 @@ const (
 	DefaultSecurityContextFsGroup   = "1724"
 	DefaultSecurityContextRunAsUser = "1724"
 
-	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.4"
+	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.9"
 
 	DefaultServerExposureStrategy = "multi-host"
 	NativeSingleHostExposureType  = "native"
