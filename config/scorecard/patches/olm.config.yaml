@@ -18,16 +18,17 @@
     labels:
       suite: olm
       test: olm-crds-have-validation-test
-- op: add
-  path: /stages/0/tests/-
-  value:
-    entrypoint:
-    - scorecard-test
-    - olm-crds-have-resources
-    image: quay.io/operator-framework/scorecard-test:v1.7.1
-    labels:
-      suite: olm
-      test: olm-crds-have-resources-test
+## Test was disabled. Related issue is: https://github.com/operator-framework/operator-sdk/issues/5254
+# - op: add
+#   path: /stages/0/tests/-
+#   value:
+#     entrypoint:
+#     - scorecard-test
+#     - olm-crds-have-resources
+#     image: quay.io/operator-framework/scorecard-test:v1.7.1
+#     labels:
+#       suite: olm
+#       test: olm-crds-have-resources-test
 - op: add
   path: /stages/0/tests/-
   value:
@@ -38,13 +39,14 @@
     labels:
       suite: olm
       test: olm-spec-descriptors-test
-- op: add
-  path: /stages/0/tests/-
-  value:
-    entrypoint:
-    - scorecard-test
-    - olm-status-descriptors
-    image: quay.io/operator-framework/scorecard-test:v1.7.1
-    labels:
-      suite: olm
-      test: olm-status-descriptors-test
+## Test was disabled. Related issue is: https://github.com/operator-framework/operator-sdk/issues/5253
+# - op: add
+#   path: /stages/0/tests/-
+#   value:
+#     entrypoint:
+#     - scorecard-test
+#     - olm-status-descriptors
+#     image: quay.io/operator-framework/scorecard-test:v1.7.1
+#     labels:
+#       suite: olm
+#       test: olm-status-descriptors-test

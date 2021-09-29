@@ -11,7 +11,7 @@
 apiVersion: org.eclipse.che/v1
 kind: CheClusterRestore
 metadata:
-  name: example-checlusterrestore
+  name: eclipse-che-restore
 spec:
   # Reference to an object of backup server configuration.
-  backupServerConfigRef: example-chebackupserverconfiguration
+  backupServerConfigRef: eclipse-che-backup-server-configuration

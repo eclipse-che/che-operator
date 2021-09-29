@@ -615,24 +615,21 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	fi
 
 	# Fix CSV
+	echo "[INFO] Fix $${platform} CSV"
 	if [ "$${platform}" = "openshift" ]; then
-		echo "[INFO] Fix openshift sample"
-		sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
-		fixedSample=$$(echo "$${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
-		# Update sample in the CSV
-		yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+			fromjson | \
+			del( .[] | select(.kind == \"CheCluster\") | .spec.k8s)" $${NEW_CSV} |  sed -r 's/"/\\"/g')
+
+		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
 	fi
 	if [ "$${platform}" = "kubernetes" ]; then
-		echo "[INFO] Fix kubernetes sample"
-		sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
-		fixedSample=$$(echo "$${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
-		# Update sample in the CSV
-		yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+			fromjson | \
+			del( .[] | select(.kind == \"CheCluster\") | .spec.auth.openShiftoAuth) | \
+			( .[] | select(.kind == \"CheCluster\") | .spec.k8s.ingressDomain) |= \"\" " $${NEW_CSV} |  sed -r 's/"/\\"/g')
 
-		# Update annotations
-		echo "[INFO] Update kubernetes annotations"
+		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
 		yq -rYi "del(.metadata.annotations.\"operators.openshift.io/infrastructure-features\")" "$${NEW_CSV}"
 	fi
 

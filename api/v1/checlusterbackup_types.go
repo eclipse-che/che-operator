@@ -21,10 +21,14 @@ type CheClusterBackupSpec struct {
 	// Automatically setup pod with REST backup server and use the server in this configuration.
 	// Note, this flag takes precedence and will overwrite existing backup server configuration.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use internal backup server"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	UseInternalBackupServer bool `json:"useInternalBackupServer,omitempty"`
 	// Name of custom resource with a backup server configuration to use for this backup.
 	// Note, UseInternalBackupServer field can configure internal backup server automatically.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Backup server configuration"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	BackupServerConfigRef string `json:"backupServerConfigRef,omitempty"`
 }
 
@@ -32,15 +36,27 @@ type CheClusterBackupSpec struct {
 type CheClusterBackupStatus struct {
 	// Message explaining the state of the backup or an error message
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Message"
+	// +operator-sdk:csv:customresourcedefinitions:xDescriptors="urn:alm:descriptor:io.kubernetes.phase:reason"
 	Message string `json:"message,omitempty"`
 	// Backup progress state: InProgress, Failed, Succeeded
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Backup state"
+	// +operator-sdk:csv:customresourcedefinitions:xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	State string `json:"state,omitempty"`
 	// Describes backup progress
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Backup progress"
+	// +operator-sdk:csv:customresourcedefinitions:xDescriptors="urn:alm:descriptor:text"
 	Phase string `json:"stage,omitempty"`
 	// Last backup snapshot ID
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	// +operator-sdk:csv:customresourcedefinitions:displayName="Backup snapshot Id"
+	// +operator-sdk:csv:customresourcedefinitions:xDescriptors="urn:alm:descriptor:text"
 	SnapshotId string `json:"snapshotId,omitempty"`
 	// Version that was backed up
 	// +optional
@@ -54,6 +70,7 @@ type CheClusterBackupStatus struct {
 // +k8s:openapi-gen=true
 // +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che instance Backup Specification"
 // +operator-sdk:csv:customresourcedefinitions:order=2
+// +operator-sdk:csv:customresourcedefinitions:resources={{Service,v1,backup-rest-server-service},{Deployment,apps/v1,backup-rest-server-deployment}}
 type CheClusterBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

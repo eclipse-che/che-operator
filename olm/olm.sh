@@ -420,8 +420,8 @@ applyCRCheCluster() {
   fi
 
   echo "[INFO] Creating Custom Resource"
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${CSV_FILE}")
-  CR=$(echo "$CRs" | yq -r ".[0]")
+
+  CR=$(yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" "${CSV_FILE}")
   CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"")
   CR=$(echo "$CR" | yq -r ".spec.server.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")

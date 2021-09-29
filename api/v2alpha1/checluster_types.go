@@ -168,6 +168,7 @@ type CheClusterStatusV2Alpha1 struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=checlusters,scope=Namespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che Cluster"
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

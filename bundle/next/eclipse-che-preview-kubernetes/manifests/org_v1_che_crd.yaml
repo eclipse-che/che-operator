@@ -296,7 +296,7 @@ spec:
                     type: boolean
                 type: object
               server:
-                description: General configuration settings related to the Che server and the plugin and devfile registries
+                description: General configuration settings related to the Che server, the plugin and devfile registries
                 properties:
                   airGapContainerRegistryHostname:
                     description: Optional host name, or URL, to an alternate container registry to pull images from. This value overrides the container registry host name defined in all the default container images involved in a Che deployment. This is particularly useful to install Che in a restricted environment.
