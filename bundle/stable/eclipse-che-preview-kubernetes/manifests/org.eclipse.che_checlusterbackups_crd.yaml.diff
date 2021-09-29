@@ -1,0 +1,12 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org.eclipse.che_checlusterbackups_crd.yaml	2021-09-29 14:58:05.327876417 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/manifests/org.eclipse.che_checlusterbackups_crd.yaml	2021-09-29 14:58:06.371877242 +0000
+@@ -40,6 +40,9 @@
+           status:
+             description: CheClusterBackupStatus defines the observed state of CheClusterBackup
+             properties:
++              cheVersion:
++                description: Version that was backed up
++                type: string
+               message:
+                 description: Message explaining the state of the backup or an error message
+                 type: string
