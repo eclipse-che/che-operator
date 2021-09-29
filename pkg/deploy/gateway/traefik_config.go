@@ -53,8 +53,8 @@ type TraefikConfigStripPrefix struct {
 
 type TraefikConfigForwardAuth struct {
 	Address            string           `json:"address"`
-	TrustForwardHeader bool             `json:trustForwardHeader`
-	TLS                TraefikConfigTLS `json:tls`
+	TrustForwardHeader bool             `json:"trustForwardHeader,omitempty"`
+	TLS                TraefikConfigTLS `json:"tls,omitempty"`
 }
 
 type TraefikPlugin struct {
@@ -68,5 +68,5 @@ type TraefikPluginHeaderRewrite struct {
 }
 
 type TraefikConfigTLS struct {
-	InsecureSkipVerify bool `json:insecureSkipVerify`
+	InsecureSkipVerify bool `json:"insecureSkipVerify"`
 }
