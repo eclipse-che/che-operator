@@ -8,10 +8,6 @@ on:
         description: 'The version that is going to be released. Should be in format 7.y.z'
         required: true
         default: '7.y.z'
-      dwoVersion:
-        description: 'The version of DevWorkspace Operator used in the release. Should be in format v0.y.z'
-        required: true
-        default: 'v0.y.z'
       forceflag:
         description: 'To force creation of .x branch, use --force flag here'
         default: ''
@@ -51,21 +47,6 @@ jobs:
             chectlVersion="${{ github.event.inputs.version }}"
           fi
 
-          if [[ "${{ github.event.inputs.dwoVersion }}" == "" ]] || [[ "${{ github.event.inputs.dwoVersion }}" == "v0.y.z" ]]; then
-            # TODO using a fixed version of latest DWO release, until new DWO release workflow will be implemented
-            dwoVersion=v0.7.2
-
-            # the following block of code can be uncommented to automatically use the latest available version of DWO
-            # versions=$(curl \
-            #   -H "Authorization: bearer ${GITHUB_TOKEN}" \
-            #   -X POST -H "Content-Type: application/json" --data \
-            #   '{"query": "{ repository(owner: \"devfile\", name: \"devworkspace-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
-            #   https://api.github.com/graphql)
-            # dwoVersion=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
-          else
-            dwoVersion="${{ github.event.inputs.dwoVersion }}"
-          fi
-
           # generic method to call a GH action and pass in a single var=val parameter
           invokeAction() {
               this_repo=$1
@@ -95,4 +76,4 @@ jobs:
           }
 
           # invoke action from chectl repo
-          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4008310" "main" "version=${chectlVersion},dwoVersion=${dwoVersion}"
+          invokeAction che-incubator/chectl "Release - create pull request for upcoming release" "4008310" "main" "version=${chectlVersion}"
