@@ -13,6 +13,7 @@ package devworkspace
 
 import (
 	"context"
+	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
@@ -36,7 +37,7 @@ import (
 )
 
 const (
-	DevWorkspaceCSVName = "devworkspace-operator.v0.6.0"
+	DevWorkspaceCSVName = "devworkspace-operator.v0.9.0"
 )
 
 func TestReconcileDevWorkspace(t *testing.T) {
@@ -122,11 +123,13 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 
 			util.IsOpenShift = testCase.IsOpenShift
 			util.IsOpenShift4 = testCase.IsOpenShift4
-			os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+			assert.NoError(t, err)
 
 			done, err := ReconcileDevWorkspace(deployContext)
 			assert.NoError(t, err, "Reconcile failed")
@@ -152,7 +155,8 @@ func TestShouldNotReconcileDevWorkspaceIfForbidden(t *testing.T) {
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	assert.NoError(t, err)
 
 	reconciled, err := ReconcileDevWorkspace(deployContext)
 
@@ -189,15 +193,16 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	assert.NoError(t, err)
 
 	reconciled, err := ReconcileDevWorkspace(deployContext)
 
 	assert.Nil(t, err, "Reconciliation error occurred %v", err)
-	assert.True(t, reconciled, "Devworkspace should be reconciled.")
+	assert.True(t, reconciled, "DevWorkspace should be reconciled.")
 }
 
-func TestReconcileDevWorkspaceShouldNotInstallDWOIfWebTerminalSubscriptionExists(t *testing.T) {
+func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -205,12 +210,6 @@ func TestReconcileDevWorkspaceShouldNotInstallDWOIfWebTerminalSubscriptionExists
 		Spec: orgv1.CheClusterSpec{
 			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 				Enable: true,
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(true),
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "single-host",
 			},
 		},
 	}
@@ -234,7 +233,8 @@ func TestReconcileDevWorkspaceShouldNotInstallDWOIfWebTerminalSubscriptionExists
 	}
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
 
 	isDone, err := ReconcileDevWorkspace(deployContext)
 	assert.NoError(t, err)
@@ -255,12 +255,6 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 				Enable: true,
 			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(true),
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "single-host",
-			},
 		},
 	}
 	devWorkspaceCSV := &operatorsv1alpha1.ClusterServiceVersion{
@@ -274,7 +268,8 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersionList{})
-	deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
+	err := deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
+	assert.NoError(t, err)
 	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
@@ -287,12 +282,14 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
+
 	reconciled, _ := ReconcileDevWorkspace(deployContext)
 
 	assert.True(t, reconciled, "Reconcile is not triggered")
 
 	// Get Devworkspace namespace. If error is thrown means devworkspace is not anymore installed if CSV is detected
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
 	assert.True(t, k8sErrors.IsNotFound(err), "DevWorkspace namespace is created when instead DWO CSV is expected to be created")
 }

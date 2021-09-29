@@ -35,69 +35,22 @@ import (
 
 var (
 	DevWorkspaceNamespace      = "devworkspace-controller"
-	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
-	DevWorkspaceService        = "devworkspace-controller-manager-service"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
 
 	SubscriptionResourceName          = "subscriptions"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
 	DevWorkspaceCSVNamePrefix         = "devworkspace-operator"
 
-	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
-	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
-
-	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
-
-	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
-	DevWorkspaceRoleFile                      = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
-	DevWorkspaceClusterRoleFile               = DevWorkspaceTemplates + "/devworkspace-controller-role.ClusterRole.yaml"
-	DevWorkspaceProxyClusterRoleFile          = DevWorkspaceTemplates + "/devworkspace-controller-proxy-role.ClusterRole.yaml"
-	DevWorkspaceViewWorkspacesClusterRoleFile = DevWorkspaceTemplates + "/devworkspace-controller-view-workspaces.ClusterRole.yaml"
-	DevWorkspaceEditWorkspacesClusterRoleFile = DevWorkspaceTemplates + "/devworkspace-controller-edit-workspaces.ClusterRole.yaml"
-	DevWorkspaceRoleBindingFile               = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
-	DevWorkspaceClusterRoleBindingFile        = DevWorkspaceTemplates + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
-	DevWorkspaceProxyClusterRoleBindingFile   = DevWorkspaceTemplates + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
-	DevWorkspaceWorkspaceRoutingCRDFile       = DevWorkspaceTemplates + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceTemplatesCRDFile              = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
-	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
-	DevWorkspaceServiceFile                   = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
-	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
-	DevWorkspaceIssuerFile                    = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
-	DevWorkspaceCertificateFile               = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
-
 	WebTerminalOperatorSubscriptionName = "web-terminal"
 	WebTerminalOperatorNamespace        = "openshift-operators"
 )
 
-type Object2Sync struct {
-	obj     metav1.Object
+type CachedObjFile struct {
+	data    []byte
 	hash256 string
 }
 
 var (
-	// cachedObjects
-	cachedObj = make(map[string]*Object2Sync)
-	syncItems = []func(*deploy.DeployContext) (bool, error){
-		syncDwService,
-		syncDwServiceAccount,
-		syncDwClusterRole,
-		syncDwProxyClusterRole,
-		syncDwEditWorkspacesClusterRole,
-		syncDwViewWorkspacesClusterRole,
-		syncDwRole,
-		syncDwRoleBinding,
-		syncDwClusterRoleBinding,
-		syncDwProxyClusterRoleBinding,
-		syncDwIssuer,
-		syncDwCertificate,
-		syncDwCRD,
-		syncDwTemplatesCRD,
-		syncDwWorkspaceRoutingCRD,
-		syncDwConfigMap,
-		syncDwDeployment,
-	}
-
 	// Exits the operator after successful fresh installation of the devworkspace.
 	// Can be replaced with something less drastic (especially useful in tests)
 	restartCheOperator = func() {
@@ -106,7 +59,7 @@ var (
 	}
 )
 
-func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
+func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (done bool, err error) {
 	if util.IsOpenShift && !util.IsOpenShift4 {
 		// OpenShift 3.x is not supported
 		return true, nil
@@ -169,7 +122,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 		namespaceOwnershipAnnotation := namespace.GetAnnotations()[deploy.CheEclipseOrgNamespace]
 		if namespaceOwnershipAnnotation == "" {
 			// don't manage DWO if namespace is create by someone else not but not Che Operator
-			return false, err
+			return true, err
 		}
 
 		// if DWO is managed by another Che, check if we should take control under it after possible removal
@@ -180,7 +133,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 			}
 			if !isOnlyOneOperatorManagesDWResources {
 				// Don't take a control over DWO if CheCluster in another CR is handling it
-				return false, nil
+				return true, nil
 			}
 		}
 	}
@@ -189,10 +142,8 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 
 	for _, syncItem := range syncItems {
 		_, err := syncItem(deployContext)
-		if !util.IsTestMode() {
-			if err != nil {
-				return false, err
-			}
+		if err != nil {
+			return false, err
 		}
 	}
 
@@ -263,10 +214,6 @@ func doesWebTerminalSubscriptionExist(deployContext *deploy.DeployContext) (bool
 
 func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 	namespace := &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: corev1.SchemeGroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DevWorkspaceNamespace,
 			Annotations: map[string]string{

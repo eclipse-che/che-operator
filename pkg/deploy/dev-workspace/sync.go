@@ -20,6 +20,53 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var (
+	// cachedObjects
+	cachedObjFiles = make(map[string]*CachedObjFile)
+	syncItems      = []func(*deploy.DeployContext) (bool, error){
+		syncDwService,
+		syncDwServiceAccount,
+		syncDwClusterRole,
+		syncDwProxyClusterRole,
+		syncDwEditWorkspacesClusterRole,
+		syncDwViewWorkspacesClusterRole,
+		syncDwRole,
+		syncDwRoleBinding,
+		syncDwClusterRoleBinding,
+		syncDwProxyClusterRoleBinding,
+		syncDwIssuer,
+		syncDwCertificate,
+		syncDwCRD,
+		syncDwTemplatesCRD,
+		syncDwWorkspaceRoutingCRD,
+		syncDwConfigMap,
+		syncDwDeployment,
+	}
+
+	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
+
+	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
+	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
+
+	DevWorkspaceServiceAccountFile            = DevWorkspaceTemplates + "/devworkspace-controller-serviceaccount.ServiceAccount.yaml"
+	DevWorkspaceRoleFile                      = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-role.Role.yaml"
+	DevWorkspaceClusterRoleFile               = DevWorkspaceTemplates + "/devworkspace-controller-role.ClusterRole.yaml"
+	DevWorkspaceProxyClusterRoleFile          = DevWorkspaceTemplates + "/devworkspace-controller-proxy-role.ClusterRole.yaml"
+	DevWorkspaceViewWorkspacesClusterRoleFile = DevWorkspaceTemplates + "/devworkspace-controller-view-workspaces.ClusterRole.yaml"
+	DevWorkspaceEditWorkspacesClusterRoleFile = DevWorkspaceTemplates + "/devworkspace-controller-edit-workspaces.ClusterRole.yaml"
+	DevWorkspaceRoleBindingFile               = DevWorkspaceTemplates + "/devworkspace-controller-leader-election-rolebinding.RoleBinding.yaml"
+	DevWorkspaceClusterRoleBindingFile        = DevWorkspaceTemplates + "/devworkspace-controller-rolebinding.ClusterRoleBinding.yaml"
+	DevWorkspaceProxyClusterRoleBindingFile   = DevWorkspaceTemplates + "/devworkspace-controller-proxy-rolebinding.ClusterRoleBinding.yaml"
+	DevWorkspaceWorkspaceRoutingCRDFile       = DevWorkspaceTemplates + "/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
+	DevWorkspaceTemplatesCRDFile              = DevWorkspaceTemplates + "/devworkspacetemplates.workspace.devfile.io.CustomResourceDefinition.yaml"
+	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
+	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
+	DevWorkspaceServiceFile                   = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
+	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
+	DevWorkspaceIssuerFile                    = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
+	DevWorkspaceCertificateFile               = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
+)
+
 func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
 	return readAndSyncObject(deployContext, DevWorkspaceServiceAccountFile, &corev1.ServiceAccount{}, DevWorkspaceNamespace)
 }
@@ -99,32 +146,23 @@ func syncDwCertificate(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
-	obj2sync, err := readK8SObject(DevWorkspaceConfigMapFile, &corev1.ConfigMap{})
+	configMap := &corev1.ConfigMap{}
+	err := readK8SObject(DevWorkspaceConfigMapFile, configMap)
 	if err != nil {
 		return false, err
 	}
-
-	configMap := obj2sync.obj.(*corev1.ConfigMap)
-	// Remove when DevWorkspace controller should not care about DWR base host #373 https://github.com/devfile/devworkspace-operator/issues/373
-	if !util.IsOpenShift {
-		if configMap.Data == nil {
-			configMap.Data = make(map[string]string, 1)
-		}
-		configMap.Data["devworkspace.routing.cluster_host_suffix"] = deployContext.CheCluster.Spec.K8s.IngressDomain
-	}
-
-	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
+	return syncObject(deployContext, configMap, DevWorkspaceNamespace)
 }
 
 func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
-	obj2sync, err := readK8SObject(DevWorkspaceDeploymentFile, &appsv1.Deployment{})
+	deployment := &appsv1.Deployment{}
+	err := readK8SObject(DevWorkspaceDeploymentFile, deployment)
 	if err != nil {
 		return false, err
 	}
 
 	devworkspaceControllerImage := util.GetValue(deployContext.CheCluster.Spec.DevWorkspace.ControllerImage, deploy.DefaultDevworkspaceControllerImage(deployContext.CheCluster))
-	deploymentObject := obj2sync.obj.(*appsv1.Deployment)
-	devWorkspaceController := deploymentObject.Spec.Template.Spec.Containers[0]
+	devWorkspaceController := deployment.Spec.Template.Spec.Containers[0]
 	devWorkspaceController.Image = devworkspaceControllerImage
 	for _, env := range devWorkspaceController.Env {
 		if env.Name == "RELATED_IMAGE_devworkspace_webhook_server" {
@@ -133,26 +171,26 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 		}
 	}
 
-	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
+	return syncObject(deployContext, deployment, DevWorkspaceNamespace)
 }
 
-func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}, namespace string) (bool, error) {
-	obj2sync, err := readK8SObject(yamlFile, obj)
+func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj metav1.Object, namespace string) (bool, error) {
+	err := readK8SObject(yamlFile, obj)
 	if err != nil {
 		return false, err
 	}
 
-	return syncObject(deployContext, obj2sync, namespace)
+	return syncObject(deployContext, obj, namespace)
 }
 
 func readAndSyncUnstructured(deployContext *deploy.DeployContext, yamlFile string) (bool, error) {
 	obj := &unstructured.Unstructured{}
-	obj2sync, err := readK8SObject(yamlFile, obj)
+	err := readK8SUnstructured(yamlFile, obj)
 	if err != nil {
 		return false, err
 	}
 
-	return createUnstructured(deployContext, obj2sync.obj.(*unstructured.Unstructured))
+	return createUnstructured(deployContext, obj)
 }
 
 func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.Unstructured) (bool, error) {
@@ -181,61 +219,84 @@ func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.U
 	return true, nil
 }
 
-func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync, namespace string) (bool, error) {
-	obj2sync.obj.SetNamespace(namespace)
+func syncObject(deployContext *deploy.DeployContext, obj2sync metav1.Object, namespace string) (bool, error) {
+	obj2sync.SetNamespace(namespace)
 
-	runtimeObject, ok := obj2sync.obj.(runtime.Object)
+	runtimeObject, ok := obj2sync.(runtime.Object)
 	if !ok {
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
 	actual := runtimeObject.DeepCopyObject()
-	key := types.NamespacedName{Namespace: obj2sync.obj.GetNamespace(), Name: obj2sync.obj.GetName()}
+	key := types.NamespacedName{Namespace: obj2sync.GetNamespace(), Name: obj2sync.GetName()}
 	exists, err := deploy.Get(deployContext, key, actual.(metav1.Object))
 	if err != nil {
 		return false, err
 	}
 
 	// sync objects if it does not exists or has outdated hash
-	if !exists || actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.hash256 {
-		setAnnotations(deployContext, obj2sync)
-		return deploy.Sync(deployContext, obj2sync.obj)
+	if !exists || actual.(metav1.Object).GetAnnotations()[deploy.CheEclipseOrgHash256] != obj2sync.GetAnnotations()[deploy.CheEclipseOrgHash256] {
+		obj2sync.GetAnnotations()[deploy.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
+		return deploy.Sync(deployContext, obj2sync)
 	}
 
 	return true, nil
 }
 
-func setAnnotations(deployContext *deploy.DeployContext, obj2sync *Object2Sync) {
-	annotations := obj2sync.obj.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
+// readK8SObject reads DWO related object from file system and cache value to avoid read later
+// returned object already has provisioned annotation with object hash
+func readK8SUnstructured(yamlFile string, into *unstructured.Unstructured) error {
+	hash, err := readObj(yamlFile, into)
+	if err != nil {
+		return err
 	}
 
-	annotations[deploy.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
-	annotations[deploy.CheEclipseOrgHash256] = obj2sync.hash256
-	obj2sync.obj.SetAnnotations(annotations)
+	if into.GetAnnotations() == nil {
+		annotations := map[string]string{}
+		into.SetAnnotations(annotations)
+	}
+
+	into.GetAnnotations()[deploy.CheEclipseOrgHash256] = hash
+	return nil
 }
 
-func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
-	_, exists := cachedObj[yamlFile]
+// readK8SObject reads DWO related object from file system and cache value to avoid read later
+// returned object already has provisioned annotation with object hash
+func readK8SObject(yamlFile string, into metav1.Object) error {
+	hash, err := readObj(yamlFile, into)
+	if err != nil {
+		return err
+	}
+
+	if into.GetAnnotations() == nil {
+		annotations := map[string]string{}
+		into.SetAnnotations(annotations)
+	}
+
+	into.GetAnnotations()[deploy.CheEclipseOrgHash256] = hash
+	return nil
+}
+
+func readObj(yamlFile string, into interface{}) (string, error) {
+	cachedFile, exists := cachedObjFiles[yamlFile]
 	if !exists {
 		data, err := ioutil.ReadFile(yamlFile)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
-		err = yaml.Unmarshal(data, obj)
-		if err != nil {
-			return nil, err
-		}
-
-		cachedObj[yamlFile] = &Object2Sync{
-			obj.(metav1.Object),
+		cachedFile = &CachedObjFile{
+			data,
 			util.ComputeHash256(data),
 		}
+		cachedObjFiles[yamlFile] = cachedFile
 	}
 
-	return cachedObj[yamlFile], nil
+	err := yaml.Unmarshal(cachedFile.data, into)
+	if err != nil {
+		return "", err
+	}
+	return cachedFile.hash256, nil
 }
 
 func devWorkspaceTemplatesPath() string {

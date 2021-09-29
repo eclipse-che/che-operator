@@ -1,3 +1,14 @@
+//
+// Copyright (c) 2021 Red Hat, Inc.
+// This program and the accompanying materials are made
+// available under the terms of the Eclipse Public License 2.0
+// which is available at https://www.eclipse.org/legal/epl-2.0/
+//
+// SPDX-License-Identifier: EPL-2.0
+//
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
+//
 package devworkspace
 
 import (
@@ -14,13 +25,10 @@ func TestShouldSyncNewObject(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
 	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash",
-	}
+	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "hash"
 
 	// tries to sync a new object
-	isDone, err := syncObject(deployContext, obj2sync, "eclipse-che")
+	isDone, err := syncObject(deployContext, newObject, "eclipse-che")
 	assert.NoError(t, err, "Failed to sync object")
 	assert.True(t, isDone, "Failed to sync object")
 
@@ -48,13 +56,10 @@ func TestShouldSyncObjectIfItWasCreatedBySameOriginHashDifferent(t *testing.T) {
 
 	// creates initial object
 	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "newHash",
-	}
+	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "newHash"
 
 	// tries to sync object with a new
-	_, err = syncObject(deployContext, obj2sync, "eclipse-che")
+	_, err = syncObject(deployContext, newObject, "eclipse-che")
 	assert.NoError(t, err, "Failed to sync object")
 
 	// reads object and check content, object supposed to be updated
@@ -106,11 +111,8 @@ func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
 
 	// tries to sync object with a new hash but different origin
 	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash-1",
-	}
-	isDone, err := syncObject(deployContext, obj2sync, "eclipse-che")
+	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "newHash"
+	isDone, err := syncObject(deployContext, newObject, "eclipse-che")
 	assert.NoError(t, err, "Failed to sync object")
 	assert.True(t, isDone, "Failed to sync object")
 
@@ -140,11 +142,9 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 
 	// tries to sync object with the same hash
 	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash",
-	}
-	isDone, err := syncObject(deployContext, obj2sync, "eclipse-che")
+	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "hash"
+
+	isDone, err := syncObject(deployContext, newObject, "eclipse-che")
 	assert.NoError(t, err, "Failed to sync object")
 	assert.True(t, isDone, "Failed to sync object")
 
@@ -187,13 +187,10 @@ func TestShouldNotSyncObjectIfNamespaceIsNotManagedByChe(t *testing.T) {
 
 	// creates initial object
 	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "newHash",
-	}
+	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "newHash"
 
 	// tries to sync object with a new
-	_, err = syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
+	_, err = syncObject(deployContext, newObject, DevWorkspaceNamespace)
 	assert.NoError(t, err)
 
 	// reads object and check content, object supposed to be updated
@@ -234,12 +231,9 @@ func TestShouldSyncObjectIfItWasCreatedByAnotherOriginHashDifferent(t *testing.T
 
 	// tries to sync object with a new hash but different origin
 	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash",
-	}
+	newObject.GetAnnotations()[deploy.CheEclipseOrgHash256] = "hash"
 
-	_, err = syncObject(deployContext, obj2sync, "eclipse-che")
+	_, err = syncObject(deployContext, newObject, "eclipse-che")
 	assert.NoError(t, err, "Failed to sync object")
 
 	// reads object and check content, object supposed to be updated
