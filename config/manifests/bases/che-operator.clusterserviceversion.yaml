@@ -58,6 +58,11 @@ spec:
       - description: Configuration settings related to the Authentication used by the Che installation.
         displayName: Authentication
         path: auth
+      - description: Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
+        displayName: Gateway Header Rewrite Sidecar Image
+        path: auth.gatewayHeaderRewriteSidecarImage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - description: Configuration settings related to the database used by the Che installation.
         displayName: Database
         path: database
@@ -81,6 +86,31 @@ spec:
       - description: General configuration settings related to the Che server, the plugin and devfile registries
         displayName: Che server
         path: server
+      - description: Deprecated. The value of this flag is ignored. Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
+        displayName: Allow User Defined Workspace Namespaces
+        path: server.allowUserDefinedWorkspaceNamespaces
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Deprecated in favor of `externalDevfileRegistries` fields.
+        displayName: Devfile Registry Url
+        path: server.devfileRegistryUrl
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Deprecated. The value of this flag is ignored. The Che Operator will automatically detect whether the router certificate is self-signed and propagate it to other components, such as the Che server.
+        displayName: Self Signed Cert
+        path: server.selfSignedCert
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
+        displayName: Tls Support
+        path: server.tlsSupport
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Deprecated in favor of `disableInternalClusterSVCNames`.
+        displayName: Use Internal Cluster SVCNames
+        path: server.useInternalClusterSVCNames
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - description: Configuration settings related to the persistent storage used by the Che installation.
         displayName: Persistent storage
         path: storage

@@ -130,10 +130,12 @@ type CheClusterSpecServer struct {
 	// Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default.
 	// It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
 	// Deprecated. The value of this flag is ignored.
 	// The Che Operator will automatically detect whether the router certificate is self-signed and propagate it to other components, such as the Che server.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// Name of the ConfigMap with public certificates to add to Java trust store of the Che server.
 	// This is often required when adding the OpenShift OAuth provider, which has HTTPS endpoint signed with self-signed cert.
@@ -145,9 +147,11 @@ type CheClusterSpecServer struct {
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	TlsSupport bool `json:"tlsSupport"`
 	// Deprecated in favor of `disableInternalClusterSVCNames`.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
 	// Disable internal cluster SVC names usage to communicate between components to speed up the traffic and avoid proxy issues.
 	// +optional
@@ -182,6 +186,7 @@ type CheClusterSpecServer struct {
 	DashboardRoute RouteCustomSettings `json:"dashboardRoute,omitempty"`
 	// Deprecated in favor of `externalDevfileRegistries` fields.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	DevfileRegistryUrl string `json:"devfileRegistryUrl,omitempty"`
 	// Overrides the container image used in the devfile registry deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
@@ -485,6 +490,8 @@ type CheClusterSpecAuth struct {
 	// +optional
 	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
 	// Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
 
 	// Debug internal identity provider.
