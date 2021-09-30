@@ -27,7 +27,6 @@ init() {
   RELEASE_DIR=$(cd "$(dirname "$0")"; pwd)
   FORCE_UPDATE=""
   BUILDX_PLATFORMS="linux/amd64,linux/ppc64le"
-  DEV_WORKSPACE_CONTROLLER_VERSION="main"
   STABLE_CHANNELS=("tech-preview-stable-all-namespaces" "stable")
 
   if [[ $# -lt 1 ]]; then usage; exit; fi
@@ -41,7 +40,6 @@ init() {
       '--release-olm-files') RELEASE_OLM_FILES=true; shift 0;;
       '--check-resources') CHECK_RESOURCES=true; shift 0;;
       '--prepare-community-operators-update') PREPARE_COMMUNITY_OPERATORS_UPDATE=true; shift 0;;
-      '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
       '--force') FORCE_UPDATE="--force"; shift 0;;
     '--help'|'-h') usage; exit;;
     esac
@@ -165,7 +163,7 @@ releaseOperatorCode() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
   echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
-  docker buildx build --build-arg DEV_WORKSPACE_CONTROLLER_VERSION=${DEV_WORKSPACE_CONTROLLER_VERSION} --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
+  docker buildx build --build-arg --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
 }
 
 replaceImagesTags() {
@@ -200,9 +198,6 @@ replaceImagesTags() {
   yq -ryY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_devfile_registry\") | .value ) = \"${DEVFILE_REGISTRY_IMAGE_RELEASE}\"" \
   >> "${NEW_OPERATOR_YAML}"
   mv "${NEW_OPERATOR_YAML}" "${OPERATOR_YAML}"
-
-  # Update Dockerfile to set correct version for devworkspace controller
-  sed -e 's|DEV_WORKSPACE_CONTROLLER_VERSION=.*|DEV_WORKSPACE_CONTROLLER_VERSION="'${DEV_WORKSPACE_CONTROLLER_VERSION}'"|' -i ${RELEASE_DIR}/Dockerfile
 }
 
 replaceTag() {
@@ -223,7 +218,7 @@ releaseOlmFiles() {
   for channel in "${STABLE_CHANNELS[@]}"
   do
     cd $RELEASE_DIR/olm
-    . release-olm-files.sh --release-version $RELEASE --channel $channel --dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION
+    . release-olm-files.sh --release-version $RELEASE --channel $channel
     cd $RELEASE_DIR
     local openshift=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-openshift/manifests
 
