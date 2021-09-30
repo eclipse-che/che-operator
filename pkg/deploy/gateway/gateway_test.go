@@ -21,7 +21,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
 )
 
 func TestSyncAllToCluster(t *testing.T) {
@@ -264,6 +264,7 @@ func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
 		assert.NoError(t, err)
 
 		cfg := &TraefikConfig{}
+
 		assert.NoError(t, yaml.Unmarshal([]byte(cm.Data["server.yml"]), cfg))
 
 		if assert.Contains(t, cfg.HTTP.Routers, "server") {
