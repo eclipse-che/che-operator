@@ -45,11 +45,6 @@ var (
 	WebTerminalOperatorNamespace        = "openshift-operators"
 )
 
-type CachedObjFile struct {
-	data    []byte
-	hash256 string
-}
-
 var (
 	// Exits the operator after successful fresh installation of the devworkspace.
 	// Can be replaced with something less drastic (especially useful in tests)

@@ -16,8 +16,6 @@ import (
 	"fmt"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"io/ioutil"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -28,13 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 var (
-	// cachedObjects
-	cachedObjFiles = make(map[string]*CachedObjFile)
-	syncItems      = []func(*deploy.DeployContext) (bool, error){
+	syncItems = []func(*deploy.DeployContext) (bool, error){
 		syncDwService,
 		syncDwServiceAccount,
 		syncDwClusterRole,
@@ -252,62 +247,6 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync metav1.Object, nam
 	}
 
 	return true, nil
-}
-
-// readK8SObject reads DWO related object from file system and cache value to avoid read later
-// returned object already has provisioned annotation with object hash
-func readK8SUnstructured(yamlFile string, into *unstructured.Unstructured) error {
-	hash, err := readObj(yamlFile, into)
-	if err != nil {
-		return err
-	}
-
-	if into.GetAnnotations() == nil {
-		annotations := map[string]string{}
-		into.SetAnnotations(annotations)
-	}
-
-	into.GetAnnotations()[deploy.CheEclipseOrgHash256] = hash
-	return nil
-}
-
-// readK8SObject reads DWO related object from file system and cache value to avoid read later
-// returned object already has provisioned annotation with object hash
-func readK8SObject(yamlFile string, into metav1.Object) error {
-	hash, err := readObj(yamlFile, into)
-	if err != nil {
-		return err
-	}
-
-	if into.GetAnnotations() == nil {
-		annotations := map[string]string{}
-		into.SetAnnotations(annotations)
-	}
-
-	into.GetAnnotations()[deploy.CheEclipseOrgHash256] = hash
-	return nil
-}
-
-func readObj(yamlFile string, into interface{}) (string, error) {
-	cachedFile, exists := cachedObjFiles[yamlFile]
-	if !exists {
-		data, err := ioutil.ReadFile(yamlFile)
-		if err != nil {
-			return "", err
-		}
-
-		cachedFile = &CachedObjFile{
-			data,
-			util.ComputeHash256(data),
-		}
-		cachedObjFiles[yamlFile] = cachedFile
-	}
-
-	err := yaml.Unmarshal(cachedFile.data, into)
-	if err != nil {
-		return "", err
-	}
-	return cachedFile.hash256, nil
 }
 
 func devWorkspaceTemplatesPath() string {
