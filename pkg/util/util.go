@@ -568,9 +568,10 @@ func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error 
 		cheCluster)
 }
 
-func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheCluster, int, error) {
+func FindCheCRinNamespace(cl client.Client, namespace string) (*orgv1.CheCluster, int, error) {
 	cheClusters := &orgv1.CheClusterList{}
-	if err := client.List(context.TODO(), cheClusters); err != nil {
+	listOptions := &client.ListOptions{Namespace: namespace}
+	if err := cl.List(context.TODO(), cheClusters, listOptions); err != nil {
 		return nil, -1, err
 	}
 
@@ -580,7 +581,7 @@ func FindCheCRinNamespace(client client.Client, namespace string) (*orgv1.CheClu
 
 	cheCR := &orgv1.CheCluster{}
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
-	err := client.Get(context.TODO(), namespacedName, cheCR)
+	err := cl.Get(context.TODO(), namespacedName, cheCR)
 	if err != nil {
 		return nil, -1, err
 	}
