@@ -28,7 +28,7 @@ github.com/blang/semver
 github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.1.1 => github.com/cespare/xxhash/v2 v2.1.0
 github.com/cespare/xxhash/v2
-# github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210914145929-4e48d7a1fc8a
+# github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
 ## explicit
 github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
