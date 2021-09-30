@@ -15,10 +15,11 @@ package devworkspace
 import (
 	"context"
 	"fmt"
-	org "github.com/eclipse-che/che-operator/api"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"os"
 	"strings"
+
+	org "github.com/eclipse-che/che-operator/api"
+	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"

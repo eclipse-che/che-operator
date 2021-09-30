@@ -13,10 +13,11 @@ package devworkspace
 
 import (
 	"context"
-	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
+
+	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 

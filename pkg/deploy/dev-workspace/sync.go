@@ -14,6 +14,7 @@ package devworkspace
 import (
 	"context"
 	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
