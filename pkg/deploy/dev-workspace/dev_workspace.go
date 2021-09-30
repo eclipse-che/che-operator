@@ -135,6 +135,11 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (done bool, err 
 				// Don't take a control over DWO if CheCluster in another CR is handling it
 				return true, nil
 			}
+			namespace.GetAnnotations()[deploy.CheEclipseOrgNamespace] = deployContext.CheCluster.Namespace
+			_, err = deploy.Sync(deployContext, namespace)
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 
