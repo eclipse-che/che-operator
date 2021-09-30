@@ -59,7 +59,7 @@ ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="$(CRD_FOLDER)/org.eclipse.che_cheba
 ECLIPSE_CHE_BACKUP_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterbackups.yaml"
 ECLIPSE_CHE_RESTORE_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterrestores.yaml"
 
-DEV_WORKSPACE_CONTROLLER_VERSION="main"
+DEV_WORKSPACE_CONTROLLER_VERSION="v0.9.0"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -239,6 +239,14 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+compile:
+	binary="$(BINARY)"
+	if [ -z "$${binary}" ]; then
+		binary="/tmp/che-operator/che-operator"
+	fi
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -a -o "$${binary}" main.go
+	echo "che-operator binary compiled to $${binary}"
+
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
@@ -354,6 +362,7 @@ create-env-file: prepare-templates
 	CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 	if [ -n $${CLUSTER_API_URL} ]; then
 		echo "CLUSTER_API_URL='$${CLUSTER_API_URL}'" >> "${ENV_FILE}"
+		echo "ALLOW_DEVWORKSPACE_ENGINE='true'" >> "${ENV_FILE}"
 		echo "[INFO] Set up cluster api url: $${CLUSTER_API_URL}"
 	fi;
 	echo "WATCH_NAMESPACE='${ECLIPSE_CHE_NAMESPACE}'" >> "${ENV_FILE}"
@@ -606,24 +615,21 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	fi
 
 	# Fix CSV
+	echo "[INFO] Fix $${platform} CSV"
 	if [ "$${platform}" = "openshift" ]; then
-		echo "[INFO] Fix openshift sample"
-		sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
-		fixedSample=$$(echo "$${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
-		# Update sample in the CSV
-		yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+			fromjson | \
+			del( .[] | select(.kind == \"CheCluster\") | .spec.k8s)" $${NEW_CSV} |  sed -r 's/"/\\"/g')
+
+		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
 	fi
 	if [ "$${platform}" = "kubernetes" ]; then
-		echo "[INFO] Fix kubernetes sample"
-		sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
-		fixedSample=$$(echo "$${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
-		# Update sample in the CSV
-		yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+			fromjson | \
+			del( .[] | select(.kind == \"CheCluster\") | .spec.auth.openShiftoAuth) | \
+			( .[] | select(.kind == \"CheCluster\") | .spec.k8s.ingressDomain) |= \"\" " $${NEW_CSV} |  sed -r 's/"/\\"/g')
 
-		# Update annotations
-		echo "[INFO] Update kubernetes annotations"
+		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
 		yq -rYi "del(.metadata.annotations.\"operators.openshift.io/infrastructure-features\")" "$${NEW_CSV}"
 	fi
 

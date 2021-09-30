@@ -31,6 +31,7 @@ func TestDefaultFromEnv(t *testing.T) {
 	devfileRegistryImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_devfile_registry"))
 	pvcJobsImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	postgresImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
+	postgres13ImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
 	keycloakImageTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	brokerMetadataTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"))
 	brokerArtifactsTest := os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"))
@@ -68,6 +69,10 @@ func TestDefaultFromEnv(t *testing.T) {
 
 	if DefaultPostgresImage(cheCluster) != postgresImageTest {
 		t.Errorf("Expected %s but was %s", postgresImageTest, DefaultPostgresImage(cheCluster))
+	}
+
+	if DefaultPostgres13Image(cheCluster) != postgres13ImageTest {
+		t.Errorf("Expected %s but was %s", postgres13ImageTest, DefaultPostgres13Image(cheCluster))
 	}
 
 	if DefaultKeycloakImage(cheCluster) != keycloakImageTest {

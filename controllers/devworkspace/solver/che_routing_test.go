@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	"github.com/devfile/api/v2/pkg/attributes"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
@@ -209,6 +211,21 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 		if len(objs.PodAdditions.Volumes) != 1 || objs.PodAdditions.Volumes[0].Name != wsGatewayName {
 			t.Error("expected Volume pod addition for workspace gateway. Got ", objs.PodAdditions)
 		}
+
+		if objs.PodAdditions.Containers[0].Resources.Requests.Memory() == nil {
+			t.Error("expected addition pod Container Memory request to be set")
+		}
+		if objs.PodAdditions.Containers[0].Resources.Requests.Cpu() == nil {
+			t.Error("expected addition po Container CPU request to be set")
+		}
+
+		if objs.PodAdditions.Containers[0].Resources.Limits.Memory() == nil {
+			t.Error("expected addition po Container Memory limit to be set")
+		}
+
+		if objs.PodAdditions.Containers[0].Resources.Limits.Cpu() == nil {
+			t.Error("expected addition po Container CPU limit to be set")
+		}
 	})
 
 	for i := range objs.Services {
@@ -262,7 +279,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatal("No traefik config file found in the workspace config configmap")
 		}
 
-		workspaceConfig := traefikConfig{}
+		workspaceConfig := gateway.TraefikConfig{}
 		if err := yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig); err != nil {
 			t.Fatal(err)
 		}
@@ -362,7 +379,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatal("No traefik config file found in the workspace config configmap")
 		}
 
-		workspaceConfig := traefikConfig{}
+		workspaceConfig := gateway.TraefikConfig{}
 		if err := yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig); err != nil {
 			t.Fatal(err)
 		}
@@ -380,7 +397,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 			t.Fatalf("Expected 2 middlewares in router but got '%d'", len(workspaceConfig.HTTP.Routers[wsid].Middlewares))
 		}
 
-		workspaceMainConfig := traefikConfig{}
+		workspaceMainConfig := gateway.TraefikConfig{}
 		if err := yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig); err != nil {
 			t.Fatal(err)
 		}

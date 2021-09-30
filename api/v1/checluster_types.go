@@ -35,38 +35,43 @@ import (
 // the various components of the Che installation.
 // These generated ConfigMaps must NOT be updated manually.
 type CheClusterSpec struct {
-	// General configuration settings related to the Che server
-	// and the plugin and devfile registries
+	// General configuration settings related to the Che server, the plugin and devfile registries
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Che server"
 	Server CheClusterSpecServer `json:"server"`
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Database"
 	Database CheClusterSpecDB `json:"database"`
 	// Configuration settings related to the Authentication used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Authentication"
 	Auth CheClusterSpecAuth `json:"auth"`
 	// Configuration settings related to the persistent storage used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Persistent storage"
 	Storage CheClusterSpecStorage `json:"storage"`
 	// Configuration settings related to the metrics collection used by the Che installation.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Metrics"
 	Metrics CheClusterSpecMetrics `json:"metrics"`
 	// Configuration settings specific to Che installations made on upstream Kubernetes.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Kubernetes"
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
-
 	// Kubernetes Image Puller configuration
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Kubernetes Image Puller"
 	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
 
 	// DevWorkspace operator configuration
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Dev Workspace operator"
 	DevWorkspace CheClusterSpecDevWorkspace `json:"devWorkspace"`
 }
 
 // +k8s:openapi-gen=true
-// General configuration settings related to the Che server
-// and the plugin and devfile registries.
+// General configuration settings related to the Che server, the plugin and devfile registries.
 type CheClusterSpecServer struct {
 	// Optional host name, or URL, to an alternate container registry to pull images from.
 	// This value overrides the container registry host name defined in all the default container images involved in a Che deployment.
@@ -125,10 +130,12 @@ type CheClusterSpecServer struct {
 	// Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default.
 	// It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	AllowUserDefinedWorkspaceNamespaces bool `json:"allowUserDefinedWorkspaceNamespaces"`
 	// Deprecated. The value of this flag is ignored.
 	// The Che Operator will automatically detect whether the router certificate is self-signed and propagate it to other components, such as the Che server.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	SelfSignedCert bool `json:"selfSignedCert"`
 	// Name of the ConfigMap with public certificates to add to Java trust store of the Che server.
 	// This is often required when adding the OpenShift OAuth provider, which has HTTPS endpoint signed with self-signed cert.
@@ -140,9 +147,11 @@ type CheClusterSpecServer struct {
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	TlsSupport bool `json:"tlsSupport"`
 	// Deprecated in favor of `disableInternalClusterSVCNames`.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
 	// Disable internal cluster SVC names usage to communicate between components to speed up the traffic and avoid proxy issues.
 	// +optional
@@ -177,6 +186,7 @@ type CheClusterSpecServer struct {
 	DashboardRoute RouteCustomSettings `json:"dashboardRoute,omitempty"`
 	// Deprecated in favor of `externalDevfileRegistries` fields.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	DevfileRegistryUrl string `json:"devfileRegistryUrl,omitempty"`
 	// Overrides the container image used in the devfile registry deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
@@ -364,6 +374,10 @@ type CheClusterSpecDB struct {
 	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	PostgresImage string `json:"postgresImage,omitempty"`
+	// Indicates a PostgreSQL version image to use. Allowed values are: `9.6` and `13.3`.
+	// Migrate your PostgreSQL database to switch from one version to another.
+	// +optional
+	PostgresVersion string `json:"postgresVersion,omitempty"`
 	// Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	PostgresImagePullPolicy corev1.PullPolicy `json:"postgresImagePullPolicy,omitempty"`
@@ -476,6 +490,8 @@ type CheClusterSpecAuth struct {
 	// +optional
 	GatewayAuthorizationSidecarImage string `json:"gatewayAuthorizationSidecarImage,omitempty"`
 	// Deprecated. The value of this flag is ignored. Sidecar functionality is now implemented in Traefik plugin.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
 
 	// Debug internal identity provider.
@@ -720,6 +736,7 @@ type CheClusterStatus struct {
 // +k8s:openapi-gen=true
 // +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che instance Specification"
 // +operator-sdk:csv:customresourcedefinitions:order=0
+// +operator-sdk:csv:customresourcedefinitions:resources={{Ingress,v1},{Route,v1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Deployment,apps/v1},{Role,v1},{RoleBinding,v1},{ClusterRole,v1},{ClusterRoleBinding,v1}}
 // +kubebuilder:storageversion
 type CheCluster struct {
 	metav1.TypeMeta   `json:",inline"`

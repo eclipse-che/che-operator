@@ -74,7 +74,7 @@ import (
 
 var (
 	namespace       = "eclipse-che"
-	csvName         = "kubernetes-imagepuller-operator.v0.0.4"
+	csvName         = "kubernetes-imagepuller-operator.v0.0.9"
 	packageManifest = &packagesv1.PackageManifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes-imagepuller-operator",
@@ -922,7 +922,21 @@ func TestImagePullerConfiguration(t *testing.T) {
 				clusterServiceVersion,
 				getDefaultImagePuller(),
 			},
+			expectedCR:   InitCheCRWithImagePullerDisabled(),
 			shouldDelete: true,
+		},
+		{
+			name:   "image puller already created, finalizer deleted",
+			initCR: InitCheCRWithImagePullerFinalizerAndDeletionTimestamp(),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				clusterServiceVersion,
+				getDefaultImagePuller(),
+			},
+			shouldDelete: true,
+			expectedCR:   nil,
 		},
 	}
 
@@ -1044,6 +1058,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 				}
 			}
 			if testCase.shouldDelete {
+				if testCase.expectedCR == nil {
+					gotCR := &orgv1.CheCluster{}
+					err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
+					if !errors.IsNotFound(err) {
+						t.Fatal("CR CheCluster should be removed")
+					}
+				}
 
 				imagePuller := &chev1alpha1.KubernetesImagePuller{}
 				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR") + "-image-puller"}, imagePuller)
@@ -1060,13 +1081,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 				subscription := &operatorsv1alpha1.Subscription{}
 				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
 				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found subscription: %v", err)
+					t.Fatalf("Should not have found Subscription: %v", err)
 				}
 
 				operatorGroup := &operatorsv1.OperatorGroup{}
 				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
 				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found subscription: %v", err)
+					t.Fatalf("Should not have found OperatorGroup: %v", err)
 				}
 			}
 		})
@@ -1665,6 +1686,28 @@ func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 	}
 }
 
+func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *orgv1.CheCluster {
+	return &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      os.Getenv("CHE_FLAVOR"),
+			Namespace: namespace,
+			Finalizers: []string{
+				"kubernetesimagepullers.finalizers.che.eclipse.org",
+			},
+			DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
+			ResourceVersion:   "1",
+		},
+		Spec: orgv1.CheClusterSpec{
+			ImagePuller: orgv1.CheClusterSpecImagePuller{
+				Enable: true,
+			},
+			Server: orgv1.CheClusterSpecServer{
+				ServerExposureStrategy: "multi-host",
+			},
+		},
+	}
+}
+
 func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -1692,9 +1735,14 @@ func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 
 func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CheCluster",
+			APIVersion: "org.eclipse.che/v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
+			Name:            os.Getenv("CHE_FLAVOR"),
+			Namespace:       namespace,
+			ResourceVersion: "1",
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{

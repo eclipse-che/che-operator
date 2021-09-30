@@ -52,3 +52,17 @@ jobs:
           export QUAY_USERNAME_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_USERNAME }}
           export QUAY_PASSWORD_OS=${{ secrets.QUAY_ECLIPSE_CHE_OPERATOR_OPENSHIFT_PASSWORD }}
           ./make-release.sh --prepare-community-operators-update ${{ github.event.inputs.forceflag }} -p ${{ github.event.inputs.platforms }}
+      - name: Create failure MM message
+        if: ${{ failure() }}
+        run: |
+          echo "{\"text\":\":no_entry_sign: Che Community Operator ${{ github.event.inputs.version }} release has failed: https://github.com/eclipse-che/che-operator/actions/workflows/release-community-operator-PRs.yml\"}" > mattermost.json
+      - name: Create success MM message
+        run: |
+          echo "{\"text\":\":white_check_mark: Che Community Operator ${{ github.event.inputs.version }} release PR have been created: Kubernetes -> https://github.com/k8s-operatorhub/community-operators/pulls ; Openshift -> https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls\"}" > mattermost.json
+      - name: Send MM message
+        if: ${{ success() }} || ${{ failure() }}
+        uses: mattermost/action-mattermost-notify@1.1.0
+        env:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: eclipse-che-releases
+          MATTERMOST_USERNAME: che-bot

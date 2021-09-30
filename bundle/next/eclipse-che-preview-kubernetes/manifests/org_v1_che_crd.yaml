@@ -212,6 +212,9 @@ spec:
                   postgresImagePullPolicy:
                     description: Overrides the image pull policy used in the PostgreSQL database deployment. Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
                     type: string
+                  postgresVersion:
+                    description: 'Indicates a PostgreSQL version image to use. Allowed values are: `9.6` and `13.3`. Migrate your PostgreSQL database to switch from one version to another.'
+                    type: string
                 type: object
               devWorkspace:
                 description: DevWorkspace operator configuration
@@ -297,7 +300,7 @@ spec:
                     type: boolean
                 type: object
               server:
-                description: General configuration settings related to the Che server and the plugin and devfile registries
+                description: General configuration settings related to the Che server, the plugin and devfile registries
                 properties:
                   airGapContainerRegistryHostname:
                     description: Optional host name, or URL, to an alternate container registry to pull images from. This value overrides the container registry host name defined in all the default container images involved in a Che deployment. This is particularly useful to install Che in a restricted environment.

@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
@@ -31,6 +32,7 @@ import (
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -162,11 +164,21 @@ func (c *CheRoutingSolver) provisionPodAdditions(objs *solvers.RoutingObjects, c
 	objs.PodAdditions.Containers = append(objs.PodAdditions.Containers, corev1.Container{
 		Name:            wsGatewayName,
 		Image:           cheCluster.Spec.Gateway.Image,
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(cheCluster.Spec.Gateway.Image)),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      wsGatewayName,
 				MountPath: "/etc/traefik",
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+				corev1.ResourceCPU:    resource.MustParse("0.5"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("64Mi"),
+				corev1.ResourceCPU:    resource.MustParse("0.05"),
 			},
 		},
 	})
@@ -333,11 +345,11 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 }
 
 func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo)) *corev1.ConfigMap {
-	wsRouteConfig := traefikConfig{
-		HTTP: traefikConfigHTTP{
-			Routers:     map[string]traefikConfigRouter{},
-			Services:    map[string]traefikConfigService{},
-			Middlewares: map[string]traefikConfigMiddleware{},
+	wsRouteConfig := gateway.TraefikConfig{
+		HTTP: gateway.TraefikConfigHTTP{
+			Routers:     map[string]*gateway.TraefikConfigRouter{},
+			Services:    map[string]*gateway.TraefikConfigService{},
+			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
 		},
 	}
 
@@ -424,11 +436,11 @@ func containPort(service *corev1.Service, port int32) bool {
 }
 
 func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string) *corev1.ConfigMap {
-	cfg := &traefikConfig{
-		HTTP: traefikConfigHTTP{
-			Routers:     map[string]traefikConfigRouter{},
-			Services:    map[string]traefikConfigService{},
-			Middlewares: map[string]traefikConfigMiddleware{},
+	cfg := &gateway.TraefikConfig{
+		HTTP: gateway.TraefikConfigHTTP{
+			Routers:     map[string]*gateway.TraefikConfigRouter{},
+			Services:    map[string]*gateway.TraefikConfigService{},
+			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
 		},
 	}
 
@@ -439,16 +451,16 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
 
-	rtrs[dwId] = traefikConfigRouter{
+	rtrs[dwId] = &gateway.TraefikConfigRouter{
 		Rule:        fmt.Sprintf("PathPrefix(`/%s`)", dwId),
 		Service:     dwId,
 		Middlewares: calculateMiddlewares(dwId, true),
 		Priority:    100,
 	}
 
-	srvcs[dwId] = traefikConfigService{
-		LoadBalancer: traefikConfigLoadbalancer{
-			Servers: []traefikConfigLoadbalancerServer{
+	srvcs[dwId] = &gateway.TraefikConfigService{
+		LoadBalancer: gateway.TraefikConfigLoadbalancer{
+			Servers: []gateway.TraefikConfigLoadbalancerServer{
 				{
 					URL: getServiceURL(wsGatewayPort, dwId, dwNamespace),
 				},
@@ -456,22 +468,22 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 		},
 	}
 
-	mdls[dwId+"-prefix"] = traefikConfigMiddleware{
-		StripPrefix: &traefikConfigStripPrefix{
+	mdls[dwId+"-prefix"] = &gateway.TraefikConfigMiddleware{
+		StripPrefix: &gateway.TraefikConfigStripPrefix{
 			Prefixes: []string{"/" + dwId},
 		},
 	}
 
 	if infrastructure.IsOpenShift() {
-		mdls[dwId+"-auth"] = traefikConfigMiddleware{
-			ForwardAuth: &traefikConfigForwardAuth{
+		mdls[dwId+"-auth"] = &gateway.TraefikConfigMiddleware{
+			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: "http://127.0.0.1:8089?namespace=" + dwNamespace,
 			},
 		}
 
-		mdls[dwId+"-header"] = traefikConfigMiddleware{
-			Plugin: &traefikPlugin{
-				HeaderRewrite: &traefikPluginHeaderRewrite{
+		mdls[dwId+"-header"] = &gateway.TraefikConfigMiddleware{
+			Plugin: &gateway.TraefikPlugin{
+				HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
 					From:   "X-Forwarded-Access-Token",
 					To:     "Authorization",
 					Prefix: "Bearer ",
@@ -505,7 +517,7 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 	return nil
 }
 
-func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *traefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
+func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gateway.TraefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
 	var routeName string
 	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
 		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
@@ -525,16 +537,16 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *traefi
 	}
 
 	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, routeName)
-	cfg.HTTP.Routers[name] = traefikConfigRouter{
+	cfg.HTTP.Routers[name] = &gateway.TraefikConfigRouter{
 		Rule:        rulePrefix,
 		Service:     name,
 		Middlewares: calculateMiddlewares(name, false),
 		Priority:    100,
 	}
 
-	cfg.HTTP.Services[name] = traefikConfigService{
-		LoadBalancer: traefikConfigLoadbalancer{
-			Servers: []traefikConfigLoadbalancerServer{
+	cfg.HTTP.Services[name] = &gateway.TraefikConfigService{
+		LoadBalancer: gateway.TraefikConfigLoadbalancer{
+			Servers: []gateway.TraefikConfigLoadbalancerServer{
 				{
 					URL: fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
 				},
@@ -542,15 +554,15 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *traefi
 		},
 	}
 
-	cfg.HTTP.Middlewares[name+"-prefix"] = traefikConfigMiddleware{
-		StripPrefix: &traefikConfigStripPrefix{
+	cfg.HTTP.Middlewares[name+"-prefix"] = &gateway.TraefikConfigMiddleware{
+		StripPrefix: &gateway.TraefikConfigStripPrefix{
 			Prefixes: []string{prefix},
 		},
 	}
 
 	if infrastructure.IsOpenShift() {
-		cfg.HTTP.Middlewares[name+"-auth"] = traefikConfigMiddleware{
-			ForwardAuth: &traefikConfigForwardAuth{
+		cfg.HTTP.Middlewares[name+"-auth"] = &gateway.TraefikConfigMiddleware{
+			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
 			},
 		}

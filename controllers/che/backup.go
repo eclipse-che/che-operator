@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -105,10 +106,13 @@ func getBackupCRSpec(deployContext *deploy.DeployContext) (*chev1.CheClusterBack
 // getBackupServerConfigurationNameForBackupBeforeUpdate searches for backup server configuration.
 // If there is only one, then it is used.
 // If there are two or more, then one with 'che.eclipse.org/default-backup-server-configuration' annotation is used.
-// If there is none, then empty string returned (internal backup server should be used).
+// If there is none, then empty string is returned.
 func getBackupServerConfigurationNameForBackupBeforeUpdate(deployContext *deploy.DeployContext) (string, error) {
 	backupServerConfigsList := &chev1.CheBackupServerConfigurationList{}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), backupServerConfigsList); err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: deployContext.CheCluster.GetNamespace(),
+	}
+	if err := deployContext.ClusterAPI.Client.List(context.TODO(), backupServerConfigsList, listOptions); err != nil {
 		return "", err
 	}
 	if len(backupServerConfigsList.Items) == 1 {

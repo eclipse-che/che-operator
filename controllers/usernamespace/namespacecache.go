@@ -79,8 +79,10 @@ func (c *namespaceCache) GetAllKnownNamespaces() []string {
 	defer c.lock.Unlock()
 
 	ret := make([]string, len(c.knownNamespaces))
-	for k, _ := range c.knownNamespaces {
-		ret = append(ret, k)
+	i := 0
+	for k := range c.knownNamespaces {
+		ret[i] = k
+		i = i + 1
 	}
 
 	return ret

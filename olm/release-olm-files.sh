@@ -134,6 +134,15 @@ do
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
   if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
+    # Set by default devworkspace enabled
+		fixedSample=$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+			fromjson | \
+			( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace.enable) |= true" ${NEW_CSV} |  sed -r 's/"/\\"/g')
+    yq -riY ".metadata.annotations[\"alm-examples\"] = \"${fixedSample}\"" ${RELEASE_CSV}
+
+    # Move the suggested namespace to openshift-operators.
+    sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"
+
     # Set tech-preview-stable-all-namespaces versions
     yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
@@ -142,7 +151,7 @@ do
 
   # Remove from devWorkspace in stable channel and hide the value from UI
   if [[ ${CHANNEL} == "stable" ]];then
-    CR_SAMPLE=$(yq -r ".metadata.annotations.\"alm-examples\"" "${RELEASE_CSV}" | yq -r ".[0] | del(.spec.devWorkspace) | [.]"  | sed -r 's/"/\\"/g')
+    CR_SAMPLE=$(yq ".metadata.annotations.\"alm-examples\" | fromjson | del( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace)" "${RELEASE_CSV}" | sed -r 's/"/\\"/g')
     yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
     yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
     mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"

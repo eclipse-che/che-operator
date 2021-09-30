@@ -12,8 +12,11 @@
 package devfileregistry
 
 import (
+	"fmt"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 )
 
 type DevfileRegistry struct {
@@ -77,7 +80,8 @@ func (p *DevfileRegistry) ExposeEndpoint() (string, bool, error) {
 		p.deployContext,
 		deploy.DevfileRegistryName,
 		p.deployContext.CheCluster.Spec.Server.DevfileRegistryRoute,
-		p.deployContext.CheCluster.Spec.Server.DevfileRegistryIngress)
+		p.deployContext.CheCluster.Spec.Server.DevfileRegistryIngress,
+		p.createGatewayConfig())
 }
 
 func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
@@ -101,4 +105,16 @@ func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
 func (p *DevfileRegistry) SyncDeployment() (bool, error) {
 	spec := p.GetDevfileRegistryDeploymentSpec()
 	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
+}
+
+func (p *DevfileRegistry) createGatewayConfig() *gateway.TraefikConfig {
+	pathPrefix := "/" + deploy.DevfileRegistryName
+	cfg := gateway.CreateCommonTraefikConfig(
+		deploy.DevfileRegistryName,
+		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
+		10,
+		"http://"+deploy.DevfileRegistryName+":8080")
+	cfg.AddStripPrefix(deploy.DevfileRegistryName, []string{pathPrefix})
+
+	return cfg
 }

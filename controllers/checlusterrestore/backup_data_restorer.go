@@ -207,7 +207,8 @@ func deleteKeycloakPod(rctx *RestoreContext) (bool, error) {
 	k8sClient := util.GetK8Client()
 	keycloakPodName, err := k8sClient.GetDeploymentPod(deploy.IdentityProviderName, rctx.namespace)
 	if err != nil {
-		return false, err
+		// Keycloak pod is already deleted, just skip it
+		return true, nil
 	}
 	keycloakPodNsN := types.NamespacedName{Name: keycloakPodName, Namespace: rctx.namespace}
 	keycloakPod := &corev1.Pod{}

@@ -71,6 +71,8 @@ spec:
               value: registry.access.redhat.com/ubi8-minimal:8.4-210
             - name: RELATED_IMAGE_postgres
               value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
+            - name: RELATED_IMAGE_postgres_13_3
+              value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
             - name: RELATED_IMAGE_keycloak
               value: quay.io/eclipse/che-keycloak:next
             - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
@@ -84,7 +86,7 @@ spec:
             - name: RELATED_IMAGE_single_host_gateway_config_sidecar
               value: quay.io/che-incubator/configbump:0.1.4
             - name: RELATED_IMAGE_devworkspace_controller
-              value: quay.io/devfile/devworkspace-controller:next
+              value: quay.io/devfile/devworkspace-controller:v0.9.0
             - name: RELATED_IMAGE_internal_rest_backup_server
               value: quay.io/eclipse/che-backup-server-rest:eeacd92
             - name: RELATED_IMAGE_gateway_authentication_sidecar

@@ -352,6 +352,11 @@ spec:
                         database deployment. Default value is `Always` for `nightly`,
                         `next` or `latest` images, and `IfNotPresent` in other cases.
                       type: string
+                    postgresVersion:
+                      description: 'Indicates a PostgreSQL version image to use. Allowed
+                        values are: `9.6` and `13.3`. Migrate your PostgreSQL database
+                        to switch from one version to another.'
+                      type: string
                   type: object
                 devWorkspace:
                   description: DevWorkspace operator configuration
@@ -480,8 +485,8 @@ spec:
                       type: boolean
                   type: object
                 server:
-                  description: General configuration settings related to the Che server
-                    and the plugin and devfile registries
+                  description: General configuration settings related to the Che server,
+                    the plugin and devfile registries
                   properties:
                     airGapContainerRegistryHostname:
                       description: Optional host name, or URL, to an alternate container

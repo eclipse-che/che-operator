@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "Compile che-operator code",
-            "command": "GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -a -o /tmp/che-operator/che-operator main.go",
+            "command": "make compile",
             "options": {
                 "env": {
                     "ARCH": "amd64"
@@ -67,7 +67,9 @@
                 "$go"
             ],
             "options": {
-                "env": {"MOCK_API": "true"}
+                "env": {
+                    "MOCK_API": "true"
+                }
             },
             "presentation": {
                 "reveal": "always"
@@ -127,7 +129,7 @@
             "group": "build"
         },
         {
-            "label": "Build and push test bundle Kubernetes platform",
+            "label": "Build and push development bundle Kubernetes platform",
             "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"kubernetes\" -s; make bundle-build bundle-push -s BUNDLE_IMG=${BUNDLE_IMG} platform=\"kubernetes\"",
             "type": "shell",
             "args": [],
@@ -140,7 +142,7 @@
             "group": "build"
         },
         {
-            "label": "Build and push test bundle Openshift platform",
+            "label": "Build and push development bundle Openshift platform",
             "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"openshift\" -s; make bundle-build bundle-push -s BUNDLE_IMG=${BUNDLE_IMG} platform=\"openshift\"",
             "type": "shell",
             "args": [],
@@ -154,7 +156,7 @@
         },
         {
             "label": "Install che-operator via OLM",
-            "command": "operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1 --namespace ${NAMESPACE}; kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n ${NAMESPACE}",
+            "command": "kubectl apply -f config/manager/controller-namespace.yaml; operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1 --namespace ${NAMESPACE}; kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n ${NAMESPACE}",
             "type": "shell",
             "args": [],
             "problemMatcher": [

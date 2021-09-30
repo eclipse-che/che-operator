@@ -11,22 +11,22 @@
 apiVersion: org.eclipse.che/v1
 kind: CheBackupServerConfiguration
 metadata:
-  name: example-chebackupserverconfiguration
+  name: eclipse-che-backup-server-configuration
 spec:
   # Contains backup server configuration.
   # Only one configuration is allowed.
   # Here different kinds are given as examples, but configuring several subsection will cause an error.
-  rest:
-    hostname: rest-host.net
-    repositoryPath: che
-    repositoryPasswordSecretRef: secret-name
-  sftp:
-    hostname: sftp-host.net
-    username: user
-    port: 2222
-    sshKeySecretRef: backup-server-ssh-key-secret
-    repositoryPath: che-backups
-    repositoryPasswordSecretRef: secret-name
+  # rest:
+  #   hostname: rest-host.net
+  #   repositoryPath: che
+  #   repositoryPasswordSecretRef: secret-name
+  # sftp:
+  #   hostname: sftp-host.net
+  #   username: user
+  #   port: 2222
+  #   sshKeySecretRef: backup-server-ssh-key-secret
+  #   repositoryPath: che-backups
+  #   repositoryPasswordSecretRef: secret-name
   awss3:
     awsAccessKeySecretRef: minio-credentials-secret
     hostname: minio.mydomain.net

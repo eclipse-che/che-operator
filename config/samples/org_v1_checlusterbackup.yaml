@@ -17,4 +17,4 @@ spec:
   # Note, it will overwrite backupServerConfigRef section.
   useInternalBackupServer: false
   # Reference to an object of backup server configuration.
-  backupServerConfigRef: example-chebackupserverconfiguration
+  backupServerConfigRef: eclipse-che-backup-server-configuration

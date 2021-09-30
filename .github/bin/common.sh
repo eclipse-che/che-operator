@@ -436,7 +436,7 @@ patchEclipseCheOperatorImage() {
 applyOlmCR() {
   echo "Creating Custom Resource"
 
-  CR=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NEXT_CSV_FILE}" | yq -r ".[0]")
+  CR=$(yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" "${OPENSHIFT_NEXT_CSV_FILE}")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
   CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
   CR=$(echo "$CR" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")

@@ -30,8 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -82,6 +84,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 			"ca.crt":     []byte("my certificate"),
 			"other.data": []byte("should not be copied to target ns"),
 		},
+		Type:      "Opaque",
+		Immutable: util.NewBoolPointer(true),
 	}
 	if err := cl.Create(ctx, cert); err != nil {
 		t.Fatal(err)
@@ -285,6 +289,8 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, "true", cert.GetLabels()[constants.DevWorkspaceMountLabel], "server cert should be labeled as mounted")
 		assert.Equal(t, 1, len(cert.Data), "Expecting just 1 element in the self-signed cert")
 		assert.Equal(t, "my certificate", string(cert.Data["ca.crt"]), "Unexpected self-signed certificate")
+		assert.Equal(t, corev1.SecretTypeOpaque, cert.Type, "Unexpected secret type")
+		assert.Equal(t, true, *cert.Immutable, "Unexpected mutability of the secret")
 
 		caCerts := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-trusted-ca-certs", Namespace: namespace.GetName()}, &caCerts))
@@ -327,4 +333,222 @@ func TestCreatesDataInNamespace(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "sec",
+			Namespace: "ns",
+			Labels:    map[string]string{"app.kubernetes.io/component": "user-settings"},
+		},
+	}
+
+	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns",
+			Labels: map[string]string{
+				workspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}, secret)
+
+	ctx := context.TODO()
+
+	h := r.watchRulesForSecrets(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new secret creation.
+	h.Create(event.CreateEvent{Object: secret}, rlq)
+
+	amountReconcileRequests := rlq.Len()
+	rs, _ := rlq.Get()
+
+	assert.Equal(t, 1, amountReconcileRequests)
+	assert.Equal(t, "ns", rs.(reconcile.Request).Name)
+}
+
+func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cm",
+			Namespace: "ns",
+			Labels:    map[string]string{"app.kubernetes.io/component": "user-settings"},
+		},
+	}
+
+	_, _, r := setup(infrastructure.Kubernetes, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns",
+			Labels: map[string]string{
+				workspaceNamespaceOwnerUidLabel: "uid",
+			},
+		},
+	}, cm)
+
+	ctx := context.TODO()
+
+	h := r.watchRulesForSecrets(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new config map creation.
+	h.Create(event.CreateEvent{Object: cm}, rlq)
+
+	amountReconcileRequests := rlq.Len()
+	rs, _ := rlq.Get()
+
+	assert.Equal(t, 1, amountReconcileRequests)
+	assert.Equal(t, "ns", rs.(reconcile.Request).Name)
+}
+
+func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
+	secret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploy.CheTLSSelfSignedCertificateSecretName,
+			Namespace: "eclipse-che",
+		},
+	}
+
+	_, _, r := setup(infrastructure.Kubernetes,
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ns1",
+				Labels: map[string]string{
+					workspaceNamespaceOwnerUidLabel: "uid1",
+				},
+			},
+		},
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ns2",
+				Labels: map[string]string{
+					workspaceNamespaceOwnerUidLabel: "uid2",
+				},
+			},
+		},
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "eclipse-che",
+			},
+		},
+		&v1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "che",
+				Namespace: "eclipse-che",
+			},
+		},
+		secret)
+
+	ctx := context.TODO()
+
+	r.namespaceCache.ExamineNamespace(ctx, "ns1")
+	r.namespaceCache.ExamineNamespace(ctx, "ns2")
+	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
+
+	h := r.watchRulesForSecrets(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new secret creation.
+	h.Create(event.CreateEvent{Object: secret}, rlq)
+
+	amountReconcileRequests := rlq.Len()
+	rs1, _ := rlq.Get()
+	rs2, _ := rlq.Get()
+	rs3, _ := rlq.Get()
+	reconciles := []reconcile.Request{rs1.(reconcile.Request), rs2.(reconcile.Request), rs3.(reconcile.Request)}
+
+	assert.Equal(t, 3, amountReconcileRequests)
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
+}
+
+func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploy.CheAllCACertsConfigMapName,
+			Namespace: "eclipse-che",
+		},
+	}
+
+	_, _, r := setup(infrastructure.Kubernetes,
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ns1",
+				Labels: map[string]string{
+					workspaceNamespaceOwnerUidLabel: "uid1",
+				},
+			},
+		},
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ns2",
+				Labels: map[string]string{
+					workspaceNamespaceOwnerUidLabel: "uid2",
+				},
+			},
+		},
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "eclipse-che",
+			},
+		},
+		&v1.CheCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "che",
+				Namespace: "eclipse-che",
+			},
+		},
+		cm)
+
+	ctx := context.TODO()
+
+	r.namespaceCache.ExamineNamespace(ctx, "ns1")
+	r.namespaceCache.ExamineNamespace(ctx, "ns2")
+	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
+
+	h := r.watchRulesForConfigMaps(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new config map creation.
+	h.Create(event.CreateEvent{Object: cm}, rlq)
+
+	amountReconcileRequests := rlq.Len()
+	rs1, _ := rlq.Get()
+	rs2, _ := rlq.Get()
+	rs3, _ := rlq.Get()
+	reconciles := []reconcile.Request{rs1.(reconcile.Request), rs2.(reconcile.Request), rs3.(reconcile.Request)}
+
+	assert.Equal(t, 3, amountReconcileRequests)
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
 }

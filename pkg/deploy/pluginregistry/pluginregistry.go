@@ -12,7 +12,10 @@
 package pluginregistry
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
@@ -87,7 +90,8 @@ func (p *PluginRegistry) ExposeEndpoint() (string, bool, error) {
 		p.deployContext,
 		deploy.PluginRegistryName,
 		p.deployContext.CheCluster.Spec.Server.PluginRegistryRoute,
-		p.deployContext.CheCluster.Spec.Server.PluginRegistryIngress)
+		p.deployContext.CheCluster.Spec.Server.PluginRegistryIngress,
+		p.createGatewayConfig())
 }
 
 func (p *PluginRegistry) UpdateStatus(endpoint string) (bool, error) {
@@ -118,4 +122,16 @@ func (p *PluginRegistry) UpdateStatus(endpoint string) (bool, error) {
 func (p *PluginRegistry) SyncDeployment() (bool, error) {
 	spec := p.GetPluginRegistryDeploymentSpec()
 	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
+}
+
+func (p *PluginRegistry) createGatewayConfig() *gateway.TraefikConfig {
+	pathPrefix := "/" + deploy.PluginRegistryName
+	cfg := gateway.CreateCommonTraefikConfig(
+		deploy.PluginRegistryName,
+		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
+		10,
+		"http://"+deploy.PluginRegistryName+":8080")
+	cfg.AddStripPrefix(deploy.PluginRegistryName, []string{pathPrefix})
+
+	return cfg
 }

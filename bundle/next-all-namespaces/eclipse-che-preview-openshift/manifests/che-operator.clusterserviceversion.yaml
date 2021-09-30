@@ -6,6 +6,23 @@ metadata:
       [
         {
           "apiVersion": "org.eclipse.che/v1",
+          "kind": "CheBackupServerConfiguration",
+          "metadata": {
+            "name": "eclipse-che-backup-server-configuration"
+          },
+          "spec": {
+            "awss3": {
+              "awsAccessKeySecretRef": "minio-credentials-secret",
+              "hostname": "minio.mydomain.net",
+              "port": 9000,
+              "protocol": "http",
+              "repositoryPasswordSecretRef": "secret-name",
+              "repositoryPath": "che-backups-bucket"
+            }
+          }
+        },
+        {
+          "apiVersion": "org.eclipse.che/v1",
           "kind": "CheCluster",
           "metadata": {
             "name": "eclipse-che"
@@ -60,6 +77,27 @@ metadata:
               "workspacePVCStorageClassName": ""
             }
           }
+        },
+        {
+          "apiVersion": "org.eclipse.che/v1",
+          "kind": "CheClusterBackup",
+          "metadata": {
+            "name": "eclipse-che-backup"
+          },
+          "spec": {
+            "backupServerConfigRef": "eclipse-che-backup-server-configuration",
+            "useInternalBackupServer": false
+          }
+        },
+        {
+          "apiVersion": "org.eclipse.che/v1",
+          "kind": "CheClusterRestore",
+          "metadata": {
+            "name": "eclipse-che-restore"
+          },
+          "spec": {
+            "backupServerConfigRef": "eclipse-che-backup-server-configuration"
+          }
         }
       ]
     capabilities: Seamless Upgrades
@@ -76,7 +114,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.37.0-349.next
+  name: eclipse-che-preview-openshift.v7.37.0-356.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -87,7 +125,55 @@ spec:
         displayName: Eclipse Che instance Specification
         kind: CheCluster
         name: checlusters.org.eclipse.che
+        resources:
+          - kind: ClusterRole
+            name: ''
+            version: v1
+          - kind: ClusterRoleBinding
+            name: ''
+            version: v1
+          - kind: ConfigMap
+            name: ''
+            version: v1
+          - kind: Deployment
+            name: ''
+            version: apps/v1
+          - kind: Ingress
+            name: ''
+            version: v1
+          - kind: Role
+            name: ''
+            version: v1
+          - kind: RoleBinding
+            name: ''
+            version: v1
+          - kind: Route
+            name: ''
+            version: v1
+          - kind: Secret
+            name: ''
+            version: v1
+          - kind: Service
+            name: ''
+            version: v1
         specDescriptors:
+          - description: Configuration settings related to the Authentication used
+              by the Che installation.
+            displayName: Authentication
+            path: auth
+          - description: Deprecated. The value of this flag is ignored. Sidecar functionality
+              is now implemented in Traefik plugin.
+            displayName: Gateway Header Rewrite Sidecar Image
+            path: auth.gatewayHeaderRewriteSidecarImage
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Configuration settings related to the database used by the
+              Che installation.
+            displayName: Database
+            path: database
+          - description: DevWorkspace operator configuration
+            displayName: Dev Workspace operator
+            path: devWorkspace
           - description: Deploys the DevWorkspace Operator in the cluster. Does nothing
               when a matching version of the Operator is already installed. Fails
               when a non-matching version of the Operator is already installed.
@@ -95,6 +181,58 @@ spec:
             path: devWorkspace.enable
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Kubernetes Image Puller configuration
+            displayName: Kubernetes Image Puller
+            path: imagePuller
+          - description: Configuration settings specific to Che installations made
+              on upstream Kubernetes.
+            displayName: Kubernetes
+            path: k8s
+          - description: Configuration settings related to the metrics collection
+              used by the Che installation.
+            displayName: Metrics
+            path: metrics
+          - description: General configuration settings related to the Che server,
+              the plugin and devfile registries
+            displayName: Che server
+            path: server
+          - description: Deprecated. The value of this flag is ignored. Defines that
+              a user is allowed to specify a Kubernetes namespace, or an OpenShift
+              project, which differs from the default. It's NOT RECOMMENDED to set
+              to `true` without OpenShift OAuth configured. The OpenShift infrastructure
+              also uses this property.
+            displayName: Allow User Defined Workspace Namespaces
+            path: server.allowUserDefinedWorkspaceNamespaces
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Deprecated in favor of `externalDevfileRegistries` fields.
+            displayName: Devfile Registry Url
+            path: server.devfileRegistryUrl
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Deprecated. The value of this flag is ignored. The Che Operator
+              will automatically detect whether the router certificate is self-signed
+              and propagate it to other components, such as the Che server.
+            displayName: Self Signed Cert
+            path: server.selfSignedCert
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Deprecated. Instructs the Operator to deploy Che in TLS mode.
+              This is enabled by default. Disabling TLS sometimes cause malfunction
+              of some Che components.
+            displayName: Tls Support
+            path: server.tlsSupport
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Deprecated in favor of `disableInternalClusterSVCNames`.
+            displayName: Use Internal Cluster SVCNames
+            path: server.useInternalClusterSVCNames
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Configuration settings related to the persistent storage
+              used by the Che installation.
+            displayName: Persistent storage
+            path: storage
         statusDescriptors:
           - description: Status of a Che installation. Can be `Available`, `Unavailable`,
               or `Available, Rolling Update in Progress`.
@@ -158,18 +296,82 @@ spec:
         displayName: Eclipse Che Backup Server
         kind: CheBackupServerConfiguration
         name: chebackupserverconfigurations.org.eclipse.che
+        specDescriptors:
+          - description: Amazon S3 or compatible alternatives.
+            displayName: AwsS3 server
+            path: awss3
+          - description: Rest backup server configuration.
+            displayName: Rest server
+            path: rest
+          - description: Sftp backup server configuration.
+            displayName: Sftp server
+            path: sftp
         version: v1
       - description: The `CheClusterBackup` custom resource allows defining and managing
           Eclipse Che backup
         displayName: Eclipse Che instance Backup Specification
         kind: CheClusterBackup
         name: checlusterbackups.org.eclipse.che
+        resources:
+          - kind: Deployment
+            name: backup-rest-server-deployment
+            version: apps/v1
+          - kind: Service
+            name: backup-rest-server-service
+            version: v1
+        specDescriptors:
+          - description: Name of custom resource with a backup server configuration
+              to use for this backup. Note, UseInternalBackupServer field can configure
+              internal backup server automatically.
+            displayName: Backup server configuration
+            path: backupServerConfigRef
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Automatically setup pod with REST backup server and use the
+              server in this configuration. Note, this flag takes precedence and will
+              overwrite existing backup server configuration.
+            displayName: Use internal backup server
+            path: useInternalBackupServer
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        statusDescriptors:
+          - description: Message explaining the state of the backup or an error message
+            displayName: Message
+            path: message
+          - description: Last backup snapshot ID
+            displayName: Snapshot Id
+            path: snapshotId
+          - description: Describes backup progress
+            displayName: Phase
+            path: stage
+          - description: 'Backup progress state: InProgress, Failed, Succeeded'
+            displayName: State
+            path: state
         version: v1
       - description: The `CheClusterRestore` custom resource allows defining and managing
           Eclipse Che restore
         displayName: Eclipse Che instance Restore Specification
         kind: CheClusterRestore
         name: checlusterrestores.org.eclipse.che
+        specDescriptors:
+          - description: Name of custom resource with a backup server configuration
+              to use for this restore. Can be omitted if only one server configuration
+              object exists within the namespace.
+            displayName: Backup Server Config Ref
+            path: backupServerConfigRef
+          - description: If omitted, latest snapshot will be used.
+            displayName: Snapshot Id
+            path: snapshotId
+        statusDescriptors:
+          - description: Restore result or error message
+            displayName: Message
+            path: message
+          - description: Describes phase of restore progress
+            displayName: Phase
+            path: stage
+          - description: 'Restore progress state: InProgress, Failed, Succeeded'
+            displayName: State
+            path: state
         version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.
@@ -877,6 +1079,8 @@ spec:
                         value: registry.access.redhat.com/ubi8-minimal:8.4-210
                       - name: RELATED_IMAGE_postgres
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
+                      - name: RELATED_IMAGE_postgres_13_3
+                        value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
                       - name: RELATED_IMAGE_keycloak
                         value: quay.io/eclipse/che-keycloak:next
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
@@ -890,7 +1094,7 @@ spec:
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
                       - name: RELATED_IMAGE_devworkspace_controller
-                        value: quay.io/devfile/devworkspace-controller:next
+                        value: quay.io/devfile/devworkspace-controller:v0.9.0
                       - name: RELATED_IMAGE_internal_rest_backup_server
                         value: quay.io/eclipse/che-backup-server-rest:eeacd92
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
@@ -1200,4 +1404,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-349.next
+  version: 7.37.0-356.next

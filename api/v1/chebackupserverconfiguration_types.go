@@ -30,12 +30,15 @@ const (
 type CheBackupServerConfigurationSpec struct {
 	// Rest backup server configuration.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Rest server"
 	Rest *RestServerConfig `json:"rest,omitempty"`
 	// Amazon S3 or compatible alternatives.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AwsS3 server"
 	AwsS3 *AwsS3ServerConfig `json:"awss3,omitempty"`
 	// Sftp backup server configuration.
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Sftp server"
 	Sftp *SftpServerConfing `json:"sftp,omitempty"`
 }
 
@@ -117,6 +120,7 @@ type CheBackupServerConfigurationStatus struct {
 // +k8s:openapi-gen=true
 // +operator-sdk:csv:customresourcedefinitions:displayName="Eclipse Che Backup Server"
 // +operator-sdk:csv:customresourcedefinitions:order=1
+// +operator-sdk:csv:customresourcedefinitions:resources={}
 type CheBackupServerConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

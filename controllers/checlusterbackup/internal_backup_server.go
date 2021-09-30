@@ -14,10 +14,10 @@ package checlusterbackup
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	chev1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/eclipse-che/che-operator/pkg/backup_servers"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -45,10 +45,10 @@ func ConfigureInternalBackupServer(bctx *BackupContext) (bool, error) {
 	taskList := []func(*BackupContext) (bool, error){
 		ensureInternalBackupServerDeploymentExist,
 		ensureInternalBackupServerServiceExists,
-		ensureInternalBackupServerPodReady,
 		ensureInternalBackupServerConfigurationExistAndCorrect,
 		ensureInternalBackupServerConfigurationCurrent,
 		ensureInternalBackupServerSecretExists,
+		ensureInternalBackupServerPodReady,
 	}
 
 	for _, task := range taskList {
@@ -145,8 +145,16 @@ func ensureInternalBackupServerPodReady(bctx *BackupContext) (bool, error) {
 	// It is not possible to implement the check via StartupProbe of the pod,
 	// because the probe requires 2xx status, but a fresh REST server responds with 404 only.
 
-	restServerBaseUrl := fmt.Sprintf("http://%s:%d", backupServerServiceName, backupServerPort)
-	_, err := http.Head(restServerBaseUrl)
+	backupServer, err := backup_servers.NewBackupServer(bctx.backupServerConfigCR.Spec)
+	if err != nil {
+		return true, err
+	}
+	_, err = backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
+	if err != nil {
+		return true, err
+	}
+	// Try to reach internal backup server: if it responds, then the server is ready.
+	_, _, err = backupServer.IsRepositoryExist()
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
 			// Internal REST server is not ready yet. Reconcile.
@@ -223,7 +231,7 @@ func ensureInternalBackupServerConfigurationExistAndCorrect(bctx *BackupContext)
 	err := bctx.r.client.Get(context.TODO(), namespacedName, internalBackupServerConfiguration)
 	if err == nil {
 		// Configuration exist, check if it is correct
-		expectedInternalRestServerConfig := getExpectedInternalRestServerConfiguration()
+		expectedInternalRestServerConfig := getExpectedInternalRestServerConfiguration(bctx)
 		if *internalBackupServerConfiguration.Spec.Rest != *expectedInternalRestServerConfig {
 			// Something is wrong in the configuration
 			if err := bctx.r.client.Delete(context.TODO(), internalBackupServerConfiguration); err != nil {
@@ -264,15 +272,16 @@ func getInternalBackupServerConfigurationSpec(bctx *BackupContext) *chev1.CheBac
 			Labels:    labels,
 		},
 		Spec: chev1.CheBackupServerConfigurationSpec{
-			Rest: getExpectedInternalRestServerConfiguration(),
+			Rest: getExpectedInternalRestServerConfiguration(bctx),
 		},
 	}
 }
 
-func getExpectedInternalRestServerConfiguration() *chev1.RestServerConfig {
+func getExpectedInternalRestServerConfiguration(bctx *BackupContext) *chev1.RestServerConfig {
+	// Use service to communicate with internal backup server
 	return &chev1.RestServerConfig{
 		Protocol:                    "http",
-		Hostname:                    backupServerServiceName,
+		Hostname:                    fmt.Sprintf("%s.%s.svc", backupServerServiceName, bctx.namespace),
 		Port:                        backupServerPort,
 		RepositoryPath:              "che",
 		RepositoryPasswordSecretRef: BackupServerRepoPasswordSecretName,
