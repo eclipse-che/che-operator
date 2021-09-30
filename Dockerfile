@@ -29,7 +29,7 @@ WORKDIR /che-operator
 
 RUN unzip /tmp/asset-devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
     mkdir -p /tmp/devworkspace-operator/templates/ && \
-    mv /tmp/devfile-devworkspace-operator-*/deploy /tmp/devworkspace-operator/templates/
+    mv /tmp/devfile-devworkspace-operator-*/deploy/* /tmp/devworkspace-operator/templates/
 
 RUN unzip /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp && \
     mkdir -p /tmp/header-rewrite-traefik-plugin && \
@@ -67,7 +67,7 @@ FROM registry.access.redhat.com/ubi8-minimal:8.4-208
 RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
     mkdir ~/.ssh && chmod 0766  ~/.ssh
 
-COPY --from=builder /tmp/devworkspace-operator/templates/deploy /tmp/devworkspace-operator/templates
+COPY --from=builder /tmp/devworkspace-operator/templates /tmp/devworkspace-operator/templates
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
 COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
