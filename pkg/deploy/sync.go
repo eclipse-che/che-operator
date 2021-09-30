@@ -133,7 +133,7 @@ func GetClusterObject(deployContext *DeployContext, name string, actual metav1.O
 
 // Creates object.
 // Return true if a new object is created, false if it has been already created or error occurred.
-func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (bool, error) {
+func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (isCreated bool, err error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {

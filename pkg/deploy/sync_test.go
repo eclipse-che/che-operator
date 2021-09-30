@@ -119,7 +119,7 @@ func TestCreateIfNotExistsShouldReturnTrueIfObjectCreated(t *testing.T) {
 	}
 }
 
-func TestCreateIfNotExistsShouldReturnTrueIfObjectExist(t *testing.T) {
+func TestCreateIfNotExistsShouldReturnFalseIfObjectExist(t *testing.T) {
 	cli, deployContext := initDeployContext()
 
 	err := cli.Create(context.TODO(), testObj.DeepCopy())
@@ -127,13 +127,13 @@ func TestCreateIfNotExistsShouldReturnTrueIfObjectExist(t *testing.T) {
 		t.Fatalf("Failed to create object: %v", err)
 	}
 
-	done, err := CreateIfNotExists(deployContext, testObj.DeepCopy())
+	isCreated, err := CreateIfNotExists(deployContext, testObj.DeepCopy())
 	if err != nil {
 		t.Fatalf("Failed to create object: %v", err)
 	}
 
-	if !done {
-		t.Fatalf("Object has not been created")
+	if isCreated {
+		t.Fatalf("Object has been created")
 	}
 }
 

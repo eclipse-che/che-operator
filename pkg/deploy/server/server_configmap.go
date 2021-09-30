@@ -103,9 +103,6 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		}
 	}
 
-	if err != nil {
-		logrus.Errorf("Failed to get current infra: %s", err)
-	}
 	cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
 	infra := "kubernetes"
 	if util.IsOpenShift {

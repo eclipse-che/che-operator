@@ -335,12 +335,12 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		}
 
 		// Prepare permissions for the certificate generation job
-		done, err := SyncServiceAccountToCluster(deployContext, CheTLSJobServiceAccountName)
-		if !done {
+		_, err := SyncServiceAccountToCluster(deployContext, CheTLSJobServiceAccountName)
+		if err != nil {
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		done, err = SyncTLSRoleToCluster(deployContext)
+		done, err := SyncTLSRoleToCluster(deployContext)
 		if !done {
 			return reconcile.Result{}, err
 		}

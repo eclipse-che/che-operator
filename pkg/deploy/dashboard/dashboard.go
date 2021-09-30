@@ -61,8 +61,8 @@ func (d *Dashboard) Reconcile() (done bool, err error) {
 	}
 
 	// we create dashboard SA in any case to keep a track on resources we access withing it
-	done, err = deploy.SyncServiceAccountToCluster(d.deployContext, DashboardSA)
-	if !done {
+	_, err = deploy.SyncServiceAccountToCluster(d.deployContext, DashboardSA)
+	if err != nil {
 		return false, err
 	}
 	// on Kubernetes Dashboard needs privileged SA to work with user's objects
