@@ -40,6 +40,18 @@ func TestAddAuthHeaderRewrite(t *testing.T) {
 	assert.Contains(t, cfg.HTTP.Middlewares, cfg.HTTP.Routers[testComponentName].Middlewares[0], *cfg)
 }
 
+func TestAddOpenShiftTokenCheck(t *testing.T) {
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+	cfg.AddOpenShiftTokenCheck(testComponentName)
+
+	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
+	assert.Len(t, cfg.HTTP.Middlewares, 1, *cfg)
+	middlewareName := cfg.HTTP.Routers[testComponentName].Middlewares[0]
+	if assert.Contains(t, cfg.HTTP.Middlewares, middlewareName, *cfg) && assert.NotNil(t, cfg.HTTP.Middlewares[middlewareName].ForwardAuth) {
+		assert.Equal(t, "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~", cfg.HTTP.Middlewares[middlewareName].ForwardAuth.Address)
+	}
+}
+
 func TestMiddlewaresPreserveOrder(t *testing.T) {
 	t.Run("strip-header", func(t *testing.T) {
 		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")

@@ -69,7 +69,7 @@ func (cfg *TraefikConfig) AddOpenShiftTokenCheck(componentName string) {
 		ForwardAuth: &TraefikConfigForwardAuth{
 			Address:            "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~",
 			TrustForwardHeader: true,
-			TLS: TraefikConfigTLS{
+			TLS: &TraefikConfigTLS{
 				InsecureSkipVerify: true,
 			},
 		},
