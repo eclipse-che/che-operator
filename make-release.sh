@@ -163,7 +163,7 @@ releaseOperatorCode() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
 
   echo "[INFO] releaseOperatorCode :: Build operator image in platforms: $BUILDX_PLATFORMS"
-  docker buildx build --build-arg --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
+  docker buildx build --platform "$BUILDX_PLATFORMS" --push -t "quay.io/eclipse/che-operator:${RELEASE}" .
 }
 
 replaceImagesTags() {
