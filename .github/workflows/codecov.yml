@@ -22,5 +22,6 @@ jobs:
       - name: Submit code coverage results
         run: |
          echo "" > coverage.txt
+         make prepare-templates
          export MOCK_API=true && go test -mod=vendor -v ./... -coverprofile coverage.txt
          bash <(curl -s https://codecov.io/bash)
