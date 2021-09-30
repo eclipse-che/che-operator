@@ -2537,6 +2537,193 @@ https://github.com/kubernetes/apimachinery/tree/f916759cb6b8547418dc7708876ecab5
 RATE 75
 https://clearlydefined.io/definitions/git/github/kubernetes/apimachinery/f916759cb6b8547418dc7708876ecab5c1961448
 
+github.com/benbjohnson/clock
+https://github.com/benbjohnson/clock/tree/v1.1.0
+https://github.com/benbjohnson/clock/tree/307483a2173c76d3ded778bd68214865fcf05ec8
+RATE 0
+https://clearlydefined.io/definitions/git/github/benbjohnson/clock/307483a2173c76d3ded778bd68214865fcf05ec8
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23738
+
+github.com/chzyer/logex
+https://github.com/chzyer/logex/tree/v1.1.10
+https://github.com/chzyer/logex/tree/cd112f618178aaaf4ea8592c8839f5276145d9cf
+RATE 0
+https://clearlydefined.io/definitions/git/github/chzyer/logex/cd112f618178aaaf4ea8592c8839f5276145d9cf
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23728
+
+github.com/evanphx/json-patch
+https://github.com/evanphx/json-patch/tree/v4.11.0
+https://github.com/evanphx/json-patch/tree/3c3c85ec60c9921ef01901c824e95a6b0a4e45d1
+RATE 61
+https://clearlydefined.io/definitions/git/github/evanphx/json-patch/3c3c85ec60c9921ef01901c824e95a6b0a4e45d1
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23729
+
+github.com/go-kit/log
+https://github.com/go-kit/log/tree/v0.1.0
+https://github.com/go-kit/log/tree/63376a29a92260f7b256eedf2fae39e28161114d
+RATE 0
+https://clearlydefined.io/definitions/git/github/go-kit/log/63376a29a92260f7b256eedf2fae39e28161114d
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23739
+
+github.com/go-logr/logr
+https://github.com/go-logr/logr/tree/v0.4.0
+https://github.com/go-logr/logr/tree/8fc6c73f3911f11de3d0c18ade9880f1114ae72f
+RATE 71
+https://clearlydefined.io/definitions/git/github/go-logr/logr/8fc6c73f3911f11de3d0c18ade9880f1114ae72f
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23305
+
+github.com/gobuffalo/here
+https://github.com/gobuffalo/here/tree/v0.6.0
+https://github.com/gobuffalo/here/tree/3546a4df46e5292e9b982a7d8ea6f2c0791d676c
+RATE 0
+https://clearlydefined.io/definitions/git/github/gobuffalo/here/3546a4df46e5292e9b982a7d8ea6f2c0791d676c
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23740
+
+github.com/hashicorp/go-multierror
+https://github.com/hashicorp/go-multierror/tree/v1.1.1
+https://github.com/hashicorp/go-multierror/tree/9974e9ec57696378079ecc3accd3d6f29401b3a0
+RATE 0
+https://clearlydefined.io/definitions/git/github/hashicorp/go-multierror/9974e9ec57696378079ecc3accd3d6f29401b3a0
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23730
+
+github.com/jpillora/backoff
+https://github.com/jpillora/backoff/tree/v1.0.0
+https://github.com/jpillora/backoff/tree/d80867952dff4e2fbfb4280ded4ff94d67790457
+RATE 65
+https://clearlydefined.io/definitions/git/github/jpillora/backoff/d80867952dff4e2fbfb4280ded4ff94d67790457
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23731
+
+github.com/markbates/pkger
+https://github.com/markbates/pkger/tree/v0.17.1
+https://github.com/markbates/pkger/tree/0273362499c78b8d8ac7047eadd4f38454bc609a
+RATE 0
+https://clearlydefined.io/definitions/git/github/markbates/pkger/0273362499c78b8d8ac7047eadd4f38454bc609a
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23752
+
+github.com/moby/spdystream
+https://github.com/moby/spdystream/tree/v0.2.0
+https://github.com/moby/spdystream/tree/dbc715126c0e3fa07721879c6d265b2b82c71e5b
+RATE 0
+https://clearlydefined.io/definitions/git/github/moby/spdystream/dbc715126c0e3fa07721879c6d265b2b82c71e5b
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23294
+
+github.com/monochromegane/go-gitignore
+https://github.com/monochromegane/go-gitignore/tree/205db1a8cc001de79230472da52edde4974df734
+RATE 0
+https://clearlydefined.io/definitions/git/github/monochromegane/go-gitignore/205db1a8cc001de79230472da52edde4974df734
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23753
+
+github.com/operator-framework/api
+https://github.com/operator-framework/api/tree/v0.10.0
+https://github.com/operator-framework/api/tree/392ae3918731dbd1f8732823048b2b3ec56401b0
+RATE 0
+https://clearlydefined.io/definitions/git/github/operator-framework/api/392ae3918731dbd1f8732823048b2b3ec56401b0
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23754
+
+github.com/prometheus/client_golang
+https://github.com/prometheus/client_golang/tree/v1.11.0
+https://github.com/prometheus/client_golang/tree/8184d76b3b0bd3b01ed903690431ccb6826bf3e0
+RATE 62
+https://clearlydefined.io/definitions/git/github/prometheus/client_golang/8184d76b3b0bd3b01ed903690431ccb6826bf3e0
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23732
+
+github.com/redhat-cop/operator-utils
+https://github.com/redhat-cop/operator-utils/tree/v1.1.4
+https://github.com/redhat-cop/operator-utils/tree/26a9d4efe6c40ed22f302342196ea6afc8b63170
+RATE 0
+https://clearlydefined.io/definitions/git/github/redhat-cop/operator-utils/26a9d4efe6c40ed22f302342196ea6afc8b63170
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23755
+
+github.com/scylladb/go-set
+https://github.com/scylladb/go-set/tree/v1.0.2
+https://github.com/scylladb/go-set/tree/e560bb8f49bb7f34d4f59b7e771f6e1307c329da
+RATE 0
+https://clearlydefined.io/definitions/git/github/scylladb/go-set/e560bb8f49bb7f34d4f59b7e771f6e1307c329da
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23757
+
+go.starlark.net
+https://github.com/google/starlark-go/tree/8dd3e2ee1dd5d034baada4c7b4fcf231294a1013
+RATE 0
+https://clearlydefined.io/definitions/git/github/google/starlark-go/8dd3e2ee1dd5d034baada4c7b4fcf231294a1013
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23741
+
+go.uber.org/goleak
+https://github.com/uber-go/goleak/tree/v1.1.10
+https://github.com/uber-go/goleak/tree/8186b793a375782d05df2748849e26b541b19ace
+RATE 0
+https://clearlydefined.io/definitions/git/github/uber-go/goleak/8186b793a375782d05df2748849e26b541b19ace
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23758
+
+k8s.io/apiextensions-apiserver
+https://github.com/kubernetes/apiextensions-apiserver/tree/v0.21.3
+https://github.com/kubernetes/apiextensions-apiserver/tree/bbca0d3a19e3908bf6b7175119b8e00366e9c5f2
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes/apiextensions-apiserver/bbca0d3a19e3908bf6b7175119b8e00366e9c5f2
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23759
+
+k8s.io/apiserver
+https://github.com/kubernetes/apiserver/tree/v0.21.3
+https://github.com/kubernetes/apiserver/tree/daceb0555c6d712391d40486d0af231b2d9df6df
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes/apiserver/daceb0555c6d712391d40486d0af231b2d9df6df
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23733
+
+k8s.io/cli-runtime
+https://github.com/kubernetes/cli-runtime/tree/v0.21.3
+https://github.com/kubernetes/cli-runtime/tree/e3a6a56284e239650fab0fd1aaea2d4236e1831a
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes/cli-runtime/e3a6a56284e239650fab0fd1aaea2d4236e1831a
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23751
+
+k8s.io/client-go
+https://github.com/kubernetes/client-go/tree/v0.21.3
+https://github.com/kubernetes/client-go/tree/e337077829155da74648d511bfa560a148fd965d
+RATE 65
+https://clearlydefined.io/definitions/git/github/kubernetes/client-go/e337077829155da74648d511bfa560a148fd965d
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23734
+
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client
+https://github.com/kubernetes-sigs/apiserver-network-proxy/tree/konnectivity-client/v0.0.19
+https://github.com/kubernetes-sigs/apiserver-network-proxy/tree/603aa670ea3d1e8449dfc7ddd9a303a07a53b904
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes-sigs/apiserver-network-proxy/603aa670ea3d1e8449dfc7ddd9a303a07a53b904
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23744
+
+sigs.k8s.io/controller-runtime
+https://github.com/kubernetes-sigs/controller-runtime/tree/v0.9.5
+https://github.com/kubernetes-sigs/controller-runtime/tree/8348079b5c466abd1eabac09d01cd194fe6602af
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes-sigs/controller-runtime/8348079b5c466abd1eabac09d01cd194fe6602af
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23742
+
+sigs.k8s.io/controller-tools
+https://github.com/kubernetes-sigs/controller-tools/tree/v0.6.0
+https://github.com/kubernetes-sigs/controller-tools/tree/62b96d93404e1a297aa02d08fd564a430bd24420
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes-sigs/controller-tools/62b96d93404e1a297aa02d08fd564a430bd24420
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23743
+
+sigs.k8s.io/kustomize/api
+https://github.com/kubernetes-sigs/kustomize/tree/api/v0.8.8
+https://github.com/kubernetes-sigs/kustomize/tree/aa1dd9ddc28df4800d4262715c5a925fc5e0b1cf
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes-sigs/kustomize/aa1dd9ddc28df4800d4262715c5a925fc5e0b1cf
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23760
+
+sigs.k8s.io/kustomize/kyaml
+https://github.com/kubernetes-sigs/kustomize/tree/kyaml/v0.10.17
+https://github.com/kubernetes-sigs/kustomize/tree/01c477570a7686062e4b7e79de968ed649e00fc0
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes-sigs/kustomize/01c477570a7686062e4b7e79de968ed649e00fc0
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23761
+
+k8s.io/component-base
+https://github.com/kubernetes/component-base/tree/v0.21.3
+https://github.com/kubernetes/component-base/tree/4902ee6603292d29c9ee763aaf41327497536a82
+RATE 0
+https://clearlydefined.io/definitions/git/github/kubernetes/component-base/4902ee6603292d29c9ee763aaf41327497536a82
+https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23750
+
 === Golang dependencies(We can skip their license rate)
 
 golang.org/x/crypto
