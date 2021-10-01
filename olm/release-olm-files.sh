@@ -131,15 +131,6 @@ do
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
   if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
-    # Set by default devworkspace enabled
-		fixedSample=$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-			fromjson | \
-			( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace.enable) |= true" ${NEW_CSV} |  sed -r 's/"/\\"/g')
-    yq -riY ".metadata.annotations[\"alm-examples\"] = \"${fixedSample}\"" ${RELEASE_CSV}
-
-    # Move the suggested namespace to openshift-operators.
-    sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"
-
     # Set tech-preview-stable-all-namespaces versions
     yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
