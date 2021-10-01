@@ -153,7 +153,10 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	skipBackupObjectsRequirement, _ := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{checlusterbackup.BackupCheEclipseOrg})
 
 	cheResourcesLabelSelector := labels.NewSelector().Add(*cheInstanceRequirement).Add(*cheNameRequirement).Add(*skipBackupObjectsRequirement)
-	cheResourcesListOptions := &client.ListOptions{LabelSelector: cheResourcesLabelSelector}
+	cheResourcesListOptions := &client.ListOptions{
+		LabelSelector: cheResourcesLabelSelector,
+		Namespace:     rctx.namespace,
+	}
 	cheResourcesMatchingLabelsSelector := client.MatchingLabelsSelector{Selector: cheResourcesLabelSelector}
 
 	// Delete all Che related deployments, but keep operator (excluded by name) and internal backup server (excluded by label)

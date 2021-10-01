@@ -148,7 +148,8 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 	if backupServerConfigName == "" {
 		// Try to find backup server configuration in the same namespace
 		cheBackupServersConfigurationList := &chev1.CheBackupServerConfigurationList{}
-		if err := r.client.List(context.TODO(), cheBackupServersConfigurationList); err != nil {
+		listOptions := &client.ListOptions{Namespace: restoreCR.GetNamespace()}
+		if err := r.client.List(context.TODO(), cheBackupServersConfigurationList, listOptions); err != nil {
 			return false, err
 		}
 		if len(cheBackupServersConfigurationList.Items) != 1 {
