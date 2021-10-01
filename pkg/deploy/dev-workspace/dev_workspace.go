@@ -78,7 +78,7 @@ var (
 )
 
 type Object2Sync struct {
-	obj     metav1.Object
+	obj     client.Object
 	hash256 string
 }
 
@@ -420,9 +420,9 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync, name
 		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
 	}
 
-	actual := runtimeObject.DeepCopyObject()
+	actual := runtimeObject.DeepCopyObject().(client.Object)
 	key := types.NamespacedName{Namespace: obj2sync.obj.GetNamespace(), Name: obj2sync.obj.GetName()}
-	exists, err := deploy.Get(deployContext, key, actual.(metav1.Object))
+	exists, err := deploy.Get(deployContext, key, actual)
 	if err != nil {
 		return false, err
 	}
@@ -487,7 +487,7 @@ func readK8SObject(yamlFile string, obj interface{}) (*Object2Sync, error) {
 		}
 
 		cachedObj[yamlFile] = &Object2Sync{
-			obj.(metav1.Object),
+			obj.(client.Object),
 			util.ComputeHash256(data),
 		}
 	}

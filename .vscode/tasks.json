@@ -46,7 +46,7 @@
             "group": "build"
         },
         {
-            "label": "Update che-operator dependencies",
+            "label": "Update golang dependencies",
             "command": "go mod tidy; go mod vendor",
             "type": "shell",
             "args": [],
@@ -67,7 +67,9 @@
                 "$go"
             ],
             "options": {
-                "env": {"MOCK_API": "true"}
+                "env": {
+                    "MOCK_API": "true"
+                }
             },
             "presentation": {
                 "reveal": "always"

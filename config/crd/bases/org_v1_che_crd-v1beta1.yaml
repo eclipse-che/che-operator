@@ -383,6 +383,8 @@ spec:
                   description: A KubernetesImagePullerSpec to configure the image
                     puller in the CheCluster
                   properties:
+                    affinity:
+                      type: string
                     cachingCPULimit:
                       type: string
                     cachingCPURequest:
@@ -400,6 +402,8 @@ spec:
                     deploymentName:
                       type: string
                     imagePullSecrets:
+                      type: string
+                    imagePullerImage:
                       type: string
                     images:
                       type: string

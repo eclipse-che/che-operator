@@ -24,7 +24,6 @@ import (
 	controller "github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -78,8 +77,8 @@ func (g *CheRouterGetter) SetupControllerManager(mgr *builder.Builder) error {
 	// This way we can react on changes of the gateway configmap changes by re-reconciling the corresponding
 	// devworkspace routing and thus keeping the devworkspace routing in a functional state
 	// TODO is this going to be performant enough in a big cluster with very many configmaps?
-	mgr.Watches(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
-		applicable, key := isGatewayWorkspaceConfig(mo.Meta)
+	mgr.Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(func(mo client.Object) []reconcile.Request {
+		applicable, key := isGatewayWorkspaceConfig(mo)
 
 		if applicable {
 			// cool, we can trigger the reconcile of the routing so that we can update the configmap that has just changed under our hands
@@ -91,12 +90,12 @@ func (g *CheRouterGetter) SetupControllerManager(mgr *builder.Builder) error {
 		} else {
 			return []reconcile.Request{}
 		}
-	})})
+	}))
 
 	return nil
 }
 
-func isGatewayWorkspaceConfig(obj metav1.Object) (bool, types.NamespacedName) {
+func isGatewayWorkspaceConfig(obj client.Object) (bool, types.NamespacedName) {
 	workspaceID := obj.GetLabels()[constants.DevWorkspaceIDLabel]
 	objectName := obj.GetName()
 

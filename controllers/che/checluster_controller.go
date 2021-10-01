@@ -99,12 +99,8 @@ type CheClusterReconciler struct {
 }
 
 // NewReconciler returns a new CheClusterReconciler
-func NewReconciler(mgr ctrl.Manager, namespace string) (*CheClusterReconciler, error) {
+func NewReconciler(mgr ctrl.Manager, namespace string, discoveryClient *discovery.DiscoveryClient) (*CheClusterReconciler, error) {
 	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
-	if err != nil {
-		return nil, err
-	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +136,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	}
 
-	var toTrustedBundleConfigMapRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []ctrl.Request {
+	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
 		isTrusted, reconcileRequest := isTrustedBundleConfigMap(mgr, obj)
 		if isTrusted {
 			return []ctrl.Request{reconcileRequest}
@@ -148,7 +144,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []ctrl.Request{}
 	}
 
-	var toEclipseCheRelatedObjRequestMapper handler.ToRequestsFunc = func(obj handler.MapObject) []ctrl.Request {
+	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
 		isEclipseCheRelatedObj, reconcileRequest := isEclipseCheRelatedObj(mgr, obj)
 		if isEclipseCheRelatedObj {
 			return []ctrl.Request{reconcileRequest}
@@ -193,15 +189,15 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			OwnerType:    &orgv1.CheCluster{},
 		}).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: toTrustedBundleConfigMapRequestMapper},
+			handler.EnqueueRequestsFromMapFunc(toTrustedBundleConfigMapRequestMapper),
 			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		).
 		Watches(&source.Kind{Type: &corev1.Secret{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: toEclipseCheRelatedObjRequestMapper},
+			handler.EnqueueRequestsFromMapFunc(toEclipseCheRelatedObjRequestMapper),
 			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: toEclipseCheRelatedObjRequestMapper},
+			handler.EnqueueRequestsFromMapFunc(toEclipseCheRelatedObjRequestMapper),
 			builder.WithPredicates(onAllExceptGenericEventsPredicate),
 		)
 
@@ -230,8 +226,8 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // move the current state of the cluster closer to the desired state.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.3/pkg/reconcile
-func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.5/pkg/reconcile
+func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
 	clusterAPI := deploy.ClusterAPI{
@@ -659,7 +655,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 }
 
 // isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
-func isTrustedBundleConfigMap(mgr ctrl.Manager, obj handler.MapObject) (bool, ctrl.Request) {
+func isTrustedBundleConfigMap(mgr ctrl.Manager, obj client.Object) (bool, ctrl.Request) {
 	checlusters := &orgv1.CheClusterList{}
 	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
 		return false, ctrl.Request{}
@@ -670,18 +666,18 @@ func isTrustedBundleConfigMap(mgr ctrl.Manager, obj handler.MapObject) (bool, ct
 	}
 
 	// Check if config map is the config map from CR
-	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
+	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.GetName() {
 		// No, it is not form CR
 		// Check for labels
 
 		// Check for part of Che label
-		if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+		if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
 			// Labels do not match
 			return false, ctrl.Request{}
 		}
 
 		// Check for CA bundle label
-		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
+		if value, exists := obj.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
 			// Labels do not match
 			return false, ctrl.Request{}
 		}
@@ -775,7 +771,7 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 
 // isEclipseCheRelatedObj indicates if there is a object with
 // the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
-func isEclipseCheRelatedObj(mgr ctrl.Manager, obj handler.MapObject) (bool, ctrl.Request) {
+func isEclipseCheRelatedObj(mgr ctrl.Manager, obj client.Object) (bool, ctrl.Request) {
 	checlusters := &orgv1.CheClusterList{}
 	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
 		return false, ctrl.Request{}
@@ -785,7 +781,7 @@ func isEclipseCheRelatedObj(mgr ctrl.Manager, obj handler.MapObject) (bool, ctrl
 		return false, ctrl.Request{}
 	}
 
-	if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+	if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
 		// Labels do not match
 		return false, ctrl.Request{}
 	}

@@ -14,7 +14,6 @@ package sync
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,15 +40,11 @@ func New(client client.Client, scheme *runtime.Scheme) Syncer {
 
 // Sync syncs the blueprint to the cluster in a generic (as much as Go allows) manner.
 // Returns true if the object was created or updated, false if there was no change detected.
-func (s *Syncer) Sync(ctx context.Context, owner metav1.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, runtime.Object, error) {
-	blueprintObject, ok := blueprint.(runtime.Object)
-	if !ok {
-		return false, nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
-	}
+func (s *Syncer) Sync(ctx context.Context, owner client.Object, blueprint client.Object, diffOpts cmp.Option) (bool, client.Object, error) {
 
 	key := client.ObjectKey{Name: blueprint.GetName(), Namespace: blueprint.GetNamespace()}
 
-	actual := blueprintObject.DeepCopyObject()
+	actual := blueprint.DeepCopyObject().(client.Object)
 
 	if getErr := s.client.Get(context.TODO(), key, actual); getErr != nil {
 		if statusErr, ok := getErr.(*errors.StatusError); !ok || statusErr.Status().Reason != metav1.StatusReasonNotFound {
@@ -71,17 +66,12 @@ func (s *Syncer) Sync(ctx context.Context, owner metav1.Object, blueprint metav1
 }
 
 // Delete deletes the supplied object from the cluster.
-func (s *Syncer) Delete(ctx context.Context, object metav1.Object) error {
+func (s *Syncer) Delete(ctx context.Context, object client.Object) error {
 	key := client.ObjectKey{Name: object.GetName(), Namespace: object.GetNamespace()}
 
 	var err error
-	ro, ok := object.(runtime.Object)
-	if !ok {
-		return fmt.Errorf("Could not use the supplied object as kubernetes runtime object. That's unexpected: %s", object)
-	}
-
-	if err = s.client.Get(ctx, key, ro); err == nil {
-		err = s.client.Delete(ctx, ro)
+	if err = s.client.Get(ctx, key, object); err == nil {
+		err = s.client.Delete(ctx, object)
 	}
 
 	if err != nil && !errors.IsNotFound(err) {
@@ -91,17 +81,11 @@ func (s *Syncer) Delete(ctx context.Context, object metav1.Object) error {
 	return nil
 }
 
-func (s *Syncer) create(ctx context.Context, owner metav1.Object, key client.ObjectKey, blueprint metav1.Object) (runtime.Object, error) {
-	blueprintObject, ok := blueprint.(runtime.Object)
-	kind := blueprintObject.GetObjectKind().GroupVersionKind().Kind
-	if !ok {
-		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", blueprint)
-	}
-
-	actual := blueprintObject.DeepCopyObject()
-
+func (s *Syncer) create(ctx context.Context, owner client.Object, key client.ObjectKey, blueprint client.Object) (client.Object, error) {
+	actual := blueprint.DeepCopyObject().(client.Object)
+	kind := blueprint.GetObjectKind().GroupVersionKind().Kind
 	log.Info("Creating a new object", "kind", kind, "name", blueprint.GetName(), "namespace", blueprint.GetNamespace())
-	obj, err := s.setOwnerReferenceAndConvertToRuntime(owner, blueprint)
+	obj, err := s.setOwnerReference(owner, blueprint)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +107,7 @@ func (s *Syncer) create(ctx context.Context, owner metav1.Object, key client.Obj
 	return actual, nil
 }
 
-func (s *Syncer) update(ctx context.Context, owner metav1.Object, actual runtime.Object, blueprint metav1.Object, diffOpts cmp.Option) (bool, runtime.Object, error) {
+func (s *Syncer) update(ctx context.Context, owner client.Object, actual client.Object, blueprint client.Object, diffOpts cmp.Option) (bool, client.Object, error) {
 	actualMeta := actual.(metav1.Object)
 
 	diff := cmp.Diff(actual, blueprint, diffOpts)
@@ -164,7 +148,7 @@ func (s *Syncer) update(ctx context.Context, owner metav1.Object, actual runtime
 			obj, err := s.create(ctx, owner, key, blueprint)
 			return false, obj, err
 		} else {
-			obj, err := s.setOwnerReferenceAndConvertToRuntime(owner, blueprint)
+			obj, err := s.setOwnerReference(owner, blueprint)
 			if err != nil {
 				return false, actual, err
 			}
@@ -189,20 +173,14 @@ func isUpdateUsingDeleteCreate(kind string) bool {
 	return "Service" == kind || "Ingress" == kind || "Route" == kind
 }
 
-func (s *Syncer) setOwnerReferenceAndConvertToRuntime(owner metav1.Object, obj metav1.Object) (runtime.Object, error) {
-	robj, ok := obj.(runtime.Object)
-	if !ok {
-		return nil, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", obj)
-	}
-
+func (s *Syncer) setOwnerReference(owner client.Object, obj client.Object) (client.Object, error) {
 	if owner == nil {
-		return robj, nil
+		return obj, nil
 	}
 
-	err := controllerutil.SetControllerReference(owner, obj, s.scheme)
-	if err != nil {
+	if err := controllerutil.SetControllerReference(owner, obj, s.scheme); err != nil {
 		return nil, err
 	}
 
-	return robj, nil
+	return obj, nil
 }

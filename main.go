@@ -15,6 +15,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -62,7 +63,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
-	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
+	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -79,6 +80,13 @@ var (
 	metricsAddr          string
 	enableLeaderElection bool
 	probeAddr            string
+
+	leaseDuration = 40 * time.Second
+	renewDeadline = 30 * time.Second
+)
+
+const (
+	leasesApiResourceName = "leases"
 )
 
 func init() {
@@ -193,27 +201,42 @@ func main() {
 			"the manager will watch and manage resources in all namespaces")
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "e79b08a4.org.eclipse.che",
+	config := ctrl.GetConfigOrDie()
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		setupLog.Error(err, "failed to create discovery client")
+		os.Exit(1)
+	}
+
+	if !util.HasK8SResourceObject(discoveryClient, leasesApiResourceName) {
+		setupLog.Info("Leader election was disabled", "Cause:", leasesApiResourceName+"k8s api resource is an absent.")
+		enableLeaderElection = false
+	}
+
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
+		Scheme:                        scheme,
+		MetricsBindAddress:            metricsAddr,
+		Port:                          9443,
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "e79b08a4.org.eclipse.che",
+		LeaderElectionReleaseOnCancel: true,
+		LeaseDuration:                 &leaseDuration,
+		RenewDeadline:                 &renewDeadline,
+
 		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
 		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
 		// Instead, if some controller wants to limit itself to single namespace, it can do it
 		// for example using an event filter, as checontroller does.
 		// Namespace:              watchNamespace,
-		// TODO try to use it instead of signal handler....
-		// GracefulShutdownTimeout: ,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	cheReconciler, err := checontroller.NewReconciler(mgr, watchNamespace)
+	cheReconciler, err := checontroller.NewReconciler(mgr, watchNamespace, discoveryClient)
 	if err != nil {
 		setupLog.Error(err, "unable to create checluster reconciler")
 		os.Exit(1)
@@ -251,8 +274,8 @@ func main() {
 	}
 
 	// Start the Cmd
-	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	setupLog.Info("starting manager")
+	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	if err := mgr.Start(signal.SetupSignalHandler(period)); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

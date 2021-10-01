@@ -25,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -44,8 +44,9 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should provision GitHub OAuth with legacy secret",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "che-cluster",
-					Namespace: "eclipse-che",
+					Name:            "che-cluster",
+					Namespace:       "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
@@ -85,8 +86,9 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should provision GitHub OAuth",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "che-cluster",
-					Namespace: "eclipse-che",
+					Name:            "che-cluster",
+					Namespace:       "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
@@ -123,14 +125,16 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should not provision GitHub OAuth",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "che-cluster",
-					Namespace: "eclipse-che",
+					Name:            "che-cluster",
+					Namespace:       "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			expectedCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "che-cluster",
-					Namespace: "eclipse-che",
+					Name:            "che-cluster",
+					Namespace:       "eclipse-che",
+					ResourceVersion: "0",
 				},
 			},
 			initObjects: []runtime.Object{
@@ -157,8 +161,9 @@ func TestSyncGitHubOAuth(t *testing.T) {
 			name: "Should delete GitHub OAuth",
 			initCR: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "che-cluster",
-					Namespace: "eclipse-che",
+					Name:            "che-cluster",
+					Namespace:       "eclipse-che",
+					ResourceVersion: "0",
 				},
 				Status: orgv1.CheClusterStatus{
 					GitHubOAuthProvisioned: true,
@@ -180,7 +185,7 @@ func TestSyncGitHubOAuth(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initCR)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)

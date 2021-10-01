@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -240,7 +240,7 @@ func deleteAll(deployContext *deploy.DeployContext) error {
 
 func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {
 	key := client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}
-	ro := obj.(runtime.Object)
+	ro := obj.(client.Object)
 	if getErr := clusterAPI.Client.Get(context.TODO(), key, ro); getErr == nil {
 		if err := clusterAPI.Client.Delete(context.TODO(), ro); err != nil {
 			if !errors.IsNotFound(err) {

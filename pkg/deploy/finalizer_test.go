@@ -19,8 +19,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"testing"
 )
@@ -36,7 +37,7 @@ func TestAppendFinalizer(t *testing.T) {
 			Name:      "eclipse-che",
 		},
 	}
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
 
@@ -76,7 +77,7 @@ func TestDeleteFinalizer(t *testing.T) {
 			Finalizers: []string{finalizer},
 		},
 	}
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
 

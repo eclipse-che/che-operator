@@ -71,7 +71,7 @@ func getSpecObjectsForManager(t *testing.T, mgr *v2alpha1.CheCluster, routing *d
 
 	// we need to do 1 round of che manager reconciliation so that the solver gets initialized
 	cheRecon := controller.New(cl, scheme)
-	_, err = cheRecon.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: mgr.Name, Namespace: mgr.Namespace}})
+	_, err = cheRecon.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: mgr.Name, Namespace: mgr.Namespace}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func getSpecObjectsForManager(t *testing.T, mgr *v2alpha1.CheCluster, routing *d
 	}
 
 	// now we need a second round of che manager reconciliation so that it proclaims the che gateway as established
-	cheRecon.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: "che", Namespace: "ns"}})
+	cheRecon.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "che", Namespace: "ns"}})
 
 	return cl, solver, objs
 }
