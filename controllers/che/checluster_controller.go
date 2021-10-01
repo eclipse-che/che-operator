@@ -463,7 +463,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	done, err = deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
 	if !done {
 		if err != nil {
-			r.Log.Error(err, "")
+			logrus.Error(err)
 		}
 		return ctrl.Result{RequeueAfter: time.Second}, err
 	}

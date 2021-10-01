@@ -96,7 +96,6 @@ func SyncAndAddFinalizer(
 // Gets object by key.
 // Returns true if object exists otherwise returns false.
 func Get(deployContext *DeployContext, key client.ObjectKey, actual client.Object) (bool, error) {
-
 	cli := getClientForObject(key.Namespace, deployContext)
 	return doGet(cli, key, actual)
 }
@@ -118,8 +117,8 @@ func GetClusterObject(deployContext *DeployContext, name string, actual client.O
 }
 
 // Creates object.
-// Return true if a new object is created or has been already created otherwise returns false.
-func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (bool, error) {
+// Return true if a new object is created, false if it has been already created or error occurred.
+func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (isCreated bool, err error) {
 	// eclipse-che custom resource is being deleted, we shouldn't sync
 	// TODO move this check before `Sync` invocation
 	if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -132,7 +131,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (b
 	actual := blueprint.DeepCopyObject().(client.Object)
 	exists, err := doGet(cli, key, actual)
 	if exists {
-		return true, nil
+		return false, nil
 	} else if err != nil {
 		return false, err
 	}
@@ -144,7 +143,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (b
 		return false, err
 	}
 
-	return doCreate(cli, blueprint, true)
+	return doCreate(cli, blueprint, false)
 }
 
 // Creates object.

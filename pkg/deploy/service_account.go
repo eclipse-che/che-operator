@@ -18,7 +18,8 @@ import (
 
 func SyncServiceAccountToCluster(deployContext *DeployContext, name string) (bool, error) {
 	saSpec := getServiceAccountSpec(deployContext, name)
-	return CreateIfNotExists(deployContext, saSpec)
+	_, err := CreateIfNotExists(deployContext, saSpec)
+	return err == nil, err
 }
 
 func getServiceAccountSpec(deployContext *DeployContext, name string) *corev1.ServiceAccount {

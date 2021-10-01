@@ -248,16 +248,20 @@ compile:
 	echo "che-operator binary compiled to $${binary}"
 
 fmt: ## Run go fmt against code.
-	go fmt ./...
+  ifneq ($(shell command -v goimports 2> /dev/null),)
+	  find . -not -path "./vendor/*" -name "*.go" -exec goimports -w {} \;
+  else
+	  @echo "WARN: goimports is not installed -- formatting using go fmt instead."
+	  @echo "      Please install goimports to ensure file imports are consistent."
+	  go fmt -x ./...
+  endif
 
 vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: manifests generate fmt vet ## Run tests.
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
+test: manifests generate fmt vet prepare-templates ## Run tests.
+	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 ##@ Build
 

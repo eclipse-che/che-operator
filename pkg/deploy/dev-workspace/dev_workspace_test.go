@@ -16,6 +16,9 @@ import (
 	"os"
 	"strings"
 
+	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"testing"
@@ -35,7 +38,7 @@ import (
 )
 
 const (
-	DevWorkspaceCSVName = "devworkspace-operator.v0.6.0"
+	DevWorkspaceCSVName = "devworkspace-operator.v0.9.0"
 )
 
 func TestReconcileDevWorkspace(t *testing.T) {
@@ -121,11 +124,13 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 
 			util.IsOpenShift = testCase.IsOpenShift
 			util.IsOpenShift4 = testCase.IsOpenShift4
-			os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+			assert.NoError(t, err)
 
 			done, err := ReconcileDevWorkspace(deployContext)
 			assert.NoError(t, err, "Reconcile failed")
@@ -151,7 +156,8 @@ func TestShouldNotReconcileDevWorkspaceIfForbidden(t *testing.T) {
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	assert.NoError(t, err)
 
 	reconciled, err := ReconcileDevWorkspace(deployContext)
 
@@ -188,15 +194,16 @@ func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T)
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
+	assert.NoError(t, err)
 
 	reconciled, err := ReconcileDevWorkspace(deployContext)
 
 	assert.Nil(t, err, "Reconciliation error occurred %v", err)
-	assert.True(t, reconciled, "Devworkspace should be reconciled.")
+	assert.True(t, reconciled, "DevWorkspace should be reconciled.")
 }
 
-func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t *testing.T) {
+func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
@@ -204,12 +211,6 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 		Spec: orgv1.CheClusterSpec{
 			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 				Enable: true,
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(true),
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "single-host",
 			},
 		},
 	}
@@ -220,13 +221,8 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 		},
 		Spec: &operatorsv1alpha1.SubscriptionSpec{},
 	}
-	webhook := &admissionregistrationv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: DevWorkspaceWebhookName,
-		},
-	}
 
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{subscription, webhook})
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{subscription})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(admissionregistrationv1.SchemeGroupVersion, &admissionregistrationv1.MutatingWebhookConfiguration{})
 	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
@@ -238,11 +234,17 @@ func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t 
 	}
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
-	_, err := ReconcileDevWorkspace(deployContext)
-	assert.NotNil(t, err, "Reconcilation should be fail")
-	assert.Equal(t, err.Error(), "a non matching version of the Dev Workspace operator is already installed",
-		"Reconcilation failed with non-expected reason")
+	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
+
+	isDone, err := ReconcileDevWorkspace(deployContext)
+	assert.NoError(t, err)
+	assert.True(t, isDone)
+
+	// verify that DWO is not provisioned
+	namespace := &corev1.Namespace{}
+	err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, namespace)
+	assert.True(t, k8sErrors.IsNotFound(err))
 }
 
 func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
@@ -253,12 +255,6 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 		Spec: orgv1.CheClusterSpec{
 			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 				Enable: true,
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(true),
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "single-host",
 			},
 		},
 	}
@@ -273,7 +269,8 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersion{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.ClusterServiceVersionList{})
-	deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
+	err := deployContext.ClusterAPI.Client.Create(context.TODO(), devWorkspaceCSV)
+	assert.NoError(t, err)
 	deployContext.ClusterAPI.DiscoveryClient.(*fakeDiscovery.FakeDiscovery).Fake.Resources = []*metav1.APIResourceList{
 		{
 			APIResources: []metav1.APIResource{
@@ -286,44 +283,21 @@ func TestReconcileDevWorkspaceCheckIfCSVExists(t *testing.T) {
 
 	util.IsOpenShift = true
 	util.IsOpenShift4 = true
-	os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
+
 	reconciled, _ := ReconcileDevWorkspace(deployContext)
 
 	assert.True(t, reconciled, "Reconcile is not triggered")
 
 	// Get Devworkspace namespace. If error is thrown means devworkspace is not anymore installed if CSV is detected
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceNamespace}, &corev1.Namespace{})
 	assert.True(t, k8sErrors.IsNotFound(err), "DevWorkspace namespace is created when instead DWO CSV is expected to be created")
 }
 
-func TestShouldSyncNewObject(t *testing.T) {
-	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
-
-	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash",
-	}
-
-	// tries to sync a new object
-	isDone, err := syncObject(deployContext, obj2sync, "eclipse-che")
-	assert.NoError(t, err, "Failed to sync object")
-	assert.True(t, isDone, "Failed to sync object")
-
-	// reads object and check content, object is supposed to be created
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	assert.NoError(t, err, "failed to get configmap")
-	assert.True(t, exists, "configmap is not found")
-
-	assert.Equal(t, "eclipse-che", actual.GetAnnotations()[deploy.CheEclipseOrgNamespace], "hash annotation mismatch")
-	assert.Equal(t, "hash", actual.GetAnnotations()[deploy.CheEclipseOrgHash256], "namespace annotation mismatch")
-}
-
-func TestShouldSyncObjectIfItWasCreatedByAnotherOriginHashDifferent(t *testing.T) {
+func TestReconcileDevWorkspaceIfUnmanagedDWONamespaceExists(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
 			Namespace: "eclipse-che",
 		},
 		Spec: orgv1.CheClusterSpec{
@@ -332,80 +306,34 @@ func TestShouldSyncObjectIfItWasCreatedByAnotherOriginHashDifferent(t *testing.T
 			},
 		},
 	}
+
+	dwoNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: DevWorkspaceNamespace,
+			// no che annotations are there
+		},
+	}
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
-
-	// creates initial object
-	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
-	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash2",
-		deploy.CheEclipseOrgNamespace: "eclipse-che-2",
-	})
-	isCreated, err := deploy.Create(deployContext, initialObject)
+	err := deployContext.ClusterAPI.Client.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
-	assert.True(t, isCreated)
 
-	// tries to sync object with a new hash but different origin
-	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash",
-	}
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
+	reconciled, _ := ReconcileDevWorkspace(deployContext)
 
-	_, err = syncObject(deployContext, obj2sync, "eclipse-che")
-	assert.NoError(t, err, "Failed to sync object")
+	assert.True(t, reconciled, "Reconcile is not triggered")
 
-	// reads object and check content, object supposed to be updated
-	// there is only one operator to mange DW resources
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	assert.NoError(t, err, "failed to get configmap")
-	assert.True(t, exists, "configmap is not found")
-
-	assert.Equal(t, "eclipse-che", actual.GetAnnotations()[deploy.CheEclipseOrgNamespace], "hash annotation mismatch")
-	assert.Equal(t, "hash", actual.GetAnnotations()[deploy.CheEclipseOrgHash256], "namespace annotation mismatch")
-	assert.Equal(t, "c", actual.Data["a"], "data mismatch")
+	// check is reconcile created deployment if existing namespace is not annotated in che specific way
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: DevWorkspaceDeploymentName}, &appsv1.Deployment{})
+	assert.True(t, k8sErrors.IsNotFound(err), "DevWorkspace deployment is created but it should not since it's DWO namespace managed not by Che")
 }
 
-func TestShouldSyncObjectIfItWasCreatedBySameOriginHashDifferent(t *testing.T) {
-	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
-
-	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
-	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash",
-		deploy.CheEclipseOrgNamespace: "eclipse-che",
-	})
-	isCreated, err := deploy.Create(deployContext, initialObject)
-	assert.NoError(t, err)
-	assert.True(t, isCreated)
-
-	// creates initial object
-	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "newHash",
-	}
-
-	// tries to sync object with a new
-	_, err = syncObject(deployContext, obj2sync, "eclipse-che")
-	assert.NoError(t, err, "Failed to sync object")
-
-	// reads object and check content, object supposed to be updated
-	// it was created by the same origin
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	assert.NoError(t, err, "failed to get configmap")
-	assert.True(t, exists, "configmap is not found")
-
-	assert.Equal(t, "eclipse-che", actual.GetAnnotations()[deploy.CheEclipseOrgNamespace], "hash annotation mismatch")
-	assert.Equal(t, "newHash", actual.GetAnnotations()[deploy.CheEclipseOrgHash256], "namespace annotation mismatch")
-	assert.Equal(t, "c", actual.Data["a"], "data mismatch")
-}
-
-func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
+func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 	cheCluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che-1",
+			Namespace: "eclipse-che",
 		},
 		Spec: orgv1.CheClusterSpec{
 			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
@@ -413,80 +341,162 @@ func TestShouldNotSyncObjectIfThereIsAnotherCheCluster(t *testing.T) {
 			},
 		},
 	}
-	anotherCheCluster := &orgv1.CheCluster{
+
+	dwoNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eclipse-che",
-			Namespace: "eclipse-che-2",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
+			Name: DevWorkspaceNamespace,
+			Annotations: map[string]string{
+				deploy.CheEclipseOrgNamespace: "eclipse-che",
 			},
+			// no che annotations are there
 		},
 	}
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{anotherCheCluster})
-
-	// creates initial object
-	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
-	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash-2",
-		deploy.CheEclipseOrgNamespace: "eclipse-che-2",
-	})
-	isCreated, err := deploy.Create(deployContext, initialObject)
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
-	assert.True(t, isCreated)
 
-	// tries to sync object with a new hash but different origin
-	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash-1",
-	}
-	isDone, err := syncObject(deployContext, obj2sync, "eclipse-che")
-	assert.NoError(t, err, "Failed to sync object")
-	assert.True(t, isDone, "Failed to sync object")
+	exists, err := deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceNamespace, Namespace: DevWorkspaceNamespace},
+		&corev1.Namespace{})
 
-	// reads object and check content, object isn't supposed to be updated
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	assert.NoError(t, err, "failed to get configmap")
-	assert.True(t, exists, "configmap is not found")
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
 
-	assert.Equal(t, "eclipse-che-2", actual.GetAnnotations()[deploy.CheEclipseOrgNamespace], "hash annotation mismatch")
-	assert.Equal(t, "hash-2", actual.GetAnnotations()[deploy.CheEclipseOrgHash256], "namespace annotation mismatch")
-	assert.Equal(t, "b", actual.Data["a"], "data mismatch")
+	reconciled, err := ReconcileDevWorkspace(deployContext)
+
+	assert.True(t, reconciled, "Reconcile is not triggered")
+	assert.NoError(t, err, "Reconcile failed")
+
+	// check is reconcile created deployment if existing namespace is not annotated in che specific way
+	exists, err = deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+		&appsv1.Deployment{})
+	assert.True(t, exists, "DevWorkspace deployment is not created in Che managed DWO namespace")
+	assert.NoError(t, err, "Failed to get devworkspace deployment")
 }
 
-func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
-	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
-
-	// creates initial object
-	initialObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "b"}, "test")
-	initialObject.SetAnnotations(map[string]string{
-		deploy.CheEclipseOrgHash256:   "hash",
-		deploy.CheEclipseOrgNamespace: "eclipse-che",
-	})
-	isCreated, err := deploy.Create(deployContext, initialObject)
-	assert.NoError(t, err)
-	assert.True(t, isCreated)
-
-	// tries to sync object with the same hash
-	newObject := deploy.GetConfigMapSpec(deployContext, "test", map[string]string{"a": "c"}, "test")
-	obj2sync := &Object2Sync{
-		obj:     newObject,
-		hash256: "hash",
+func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
 	}
-	isDone, err := syncObject(deployContext, obj2sync, "eclipse-che")
-	assert.NoError(t, err, "Failed to sync object")
-	assert.True(t, isDone, "Failed to sync object")
 
-	// reads object and check content, object isn't supposed to be updated
-	actual := &corev1.ConfigMap{}
-	exists, err := deploy.GetNamespacedObject(deployContext, "test", actual)
-	assert.NoError(t, err, "failed to get configmap")
-	assert.True(t, exists, "configmap is not found")
+	dwoNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: DevWorkspaceNamespace,
+			Annotations: map[string]string{
+				deploy.CheEclipseOrgNamespace: "eclipse-che-removed",
+			},
+			// no che annotations are there
+		},
+	}
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
+	err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), dwoNamespace)
+	assert.NoError(t, err)
 
-	assert.Equal(t, "eclipse-che", actual.GetAnnotations()[deploy.CheEclipseOrgNamespace], "hash annotation mismatch")
-	assert.Equal(t, "hash", actual.GetAnnotations()[deploy.CheEclipseOrgHash256], "namespace annotation mismatch")
-	assert.Equal(t, "b", actual.Data["a"], "data mismatch")
+	exists, err := deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceNamespace, Namespace: DevWorkspaceNamespace},
+		&corev1.Namespace{})
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
+
+	reconciled, err := ReconcileDevWorkspace(deployContext)
+
+	assert.True(t, reconciled, "Reconcile is not triggered")
+	assert.NoError(t, err, "Reconcile failed")
+
+	// check is reconcile updated namespace with according way
+	exists, err = deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceNamespace},
+		dwoNamespace)
+	assert.True(t, exists, "DevWorkspace Namespace does not exist")
+	assert.Equal(t, "eclipse-che", dwoNamespace.GetAnnotations()[deploy.CheEclipseOrgNamespace])
+
+	// check that objects are sync
+	exists, err = deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+		&appsv1.Deployment{})
+	assert.True(t, exists, "DevWorkspace deployment is not created in Che managed DWO namespace")
+	assert.NoError(t, err, "Failed to get devworkspace deployment")
+}
+
+func TestReconcileDevWorkspaceIfManagedDWOShouldNotBeTakenUnderControl(t *testing.T) {
+	cheCluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      "che-cluster",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
+	}
+	cheCluster2 := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che2",
+			Name:      "che-cluster2",
+		},
+		Spec: orgv1.CheClusterSpec{
+			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
+				Enable: true,
+			},
+		},
+	}
+
+	dwoNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: DevWorkspaceNamespace,
+			Annotations: map[string]string{
+				deploy.CheEclipseOrgNamespace: "eclipse-che2",
+			},
+			// no che annotations are there
+		},
+	}
+	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
+	err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), dwoNamespace)
+	assert.NoError(t, err)
+	err = deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), cheCluster2)
+	assert.NoError(t, err)
+
+	exists, err := deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceNamespace, Namespace: DevWorkspaceNamespace},
+		&corev1.Namespace{})
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+	err = os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
+	assert.NoError(t, err)
+
+	reconciled, err := ReconcileDevWorkspace(deployContext)
+
+	assert.True(t, reconciled, "Reconcile is not triggered")
+	assert.NoError(t, err, "Reconcile failed")
+
+	// check is reconcile updated namespace with according way
+	exists, err = deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceNamespace},
+		dwoNamespace)
+	assert.True(t, exists, "DevWorkspace Namespace does not exist")
+	assert.Equal(t, "eclipse-che2", dwoNamespace.GetAnnotations()[deploy.CheEclipseOrgNamespace])
+
+	// check that objects are sync
+	exists, err = deploy.Get(deployContext,
+		types.NamespacedName{Name: DevWorkspaceDeploymentName, Namespace: DevWorkspaceNamespace},
+		&appsv1.Deployment{})
+	assert.False(t, exists, "DevWorkspace deployment is not created in Che managed DWO namespace")
+	assert.NoError(t, err, "Failed to get devworkspace deployment")
 }
