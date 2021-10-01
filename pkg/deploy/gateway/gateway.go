@@ -427,6 +427,9 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	if !instance.Spec.Server.ExternalDevfileRegistry {
 		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
 	}
+	if util.IsNativeUserModeEnabled(instance) {
+		skipAuthPaths = append(skipAuthPaths, "/healthz$")
+	}
 	if len(skipAuthPaths) > 0 {
 		return fmt.Sprintf("skip_auth_regex = \"%s\"", strings.Join(skipAuthPaths, "|"))
 	}

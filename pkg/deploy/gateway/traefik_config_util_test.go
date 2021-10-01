@@ -58,9 +58,9 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 		cfg.AddAuthHeaderRewrite(testComponentName)
 
-		assert.Equal(t, testComponentName+"-strip-prefix", cfg.HTTP.Routers[testComponentName].Middlewares[0],
+		assert.Equal(t, testComponentName+StripPrefixMiddlewareSuffix, cfg.HTTP.Routers[testComponentName].Middlewares[0],
 			"first middleware should be strip-prefix")
-		assert.Equal(t, testComponentName+"-header-rewrite", cfg.HTTP.Routers[testComponentName].Middlewares[1],
+		assert.Equal(t, testComponentName+HeaderRewriteMiddlewareSuffix, cfg.HTTP.Routers[testComponentName].Middlewares[1],
 			"second middleware should be header-rewrite")
 	})
 
@@ -69,9 +69,9 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 		cfg.AddAuthHeaderRewrite(testComponentName)
 		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
-		assert.Equal(t, testComponentName+"-header-rewrite", cfg.HTTP.Routers[testComponentName].Middlewares[0],
+		assert.Equal(t, testComponentName+HeaderRewriteMiddlewareSuffix, cfg.HTTP.Routers[testComponentName].Middlewares[0],
 			"first middleware should be header-rewrite")
-		assert.Equal(t, testComponentName+"-strip-prefix", cfg.HTTP.Routers[testComponentName].Middlewares[1],
+		assert.Equal(t, testComponentName+StripPrefixMiddlewareSuffix, cfg.HTTP.Routers[testComponentName].Middlewares[1],
 			"second middleware should be strip-prefix")
 	})
 }

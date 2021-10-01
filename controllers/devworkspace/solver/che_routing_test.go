@@ -301,7 +301,7 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 			t.Fatalf("Expected 1 middlewares set but got '%d'", len(workspaceConfig.HTTP.Middlewares))
 		}
 
-		mwares := []string{wsid + "-prefix"}
+		mwares := []string{wsid + gateway.StripPrefixMiddlewareSuffix}
 		for _, mware := range mwares {
 			if _, ok := workspaceConfig.HTTP.Middlewares[mware]; !ok {
 				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
@@ -411,7 +411,10 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 		}
 
 		wsid = "wsid"
-		mwares := []string{wsid + "-auth", wsid + "-prefix", wsid + "-header"}
+		mwares := []string{
+			wsid + gateway.AuthMiddlewareSuffix,
+			wsid + gateway.StripPrefixMiddlewareSuffix,
+			wsid + gateway.HeaderRewriteMiddlewareSuffix}
 		for _, mware := range mwares {
 			if _, ok := workspaceMainConfig.HTTP.Middlewares[mware]; !ok {
 				t.Fatalf("traefik config doesn't set middleware '%s'", mware)
