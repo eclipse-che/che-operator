@@ -28,6 +28,10 @@ jobs:
         minishift start --memory=5500 --vm-driver=virtualbox --registry-mirror=https://quay.io
     - name: Install chectl
       run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
     - name: Install yq and pysemver
       run: |
         pip3 install operator-courier==2.1.7
