@@ -20,6 +20,7 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
 )
 
 func TestSyncAllToCluster(t *testing.T) {
@@ -240,4 +242,49 @@ func TestOauthProxyConfigUnauthorizedRegistries(t *testing.T) {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
 		}
 	})
+}
+
+func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
+	onOpenShift4(func() {
+		orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+		corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
+
+		cm, err := getGatewayServerConfigSpec(&deploy.DeployContext{
+			CheCluster: &orgv1.CheCluster{
+				Spec: orgv1.CheClusterSpec{
+					Auth: orgv1.CheClusterSpecAuth{
+						NativeUserMode: util.NewBoolPointer(true),
+					},
+				},
+			},
+			ClusterAPI: deploy.ClusterAPI{
+				Scheme: scheme.Scheme,
+			},
+		})
+		assert.NoError(t, err)
+
+		cfg := &TraefikConfig{}
+
+		assert.NoError(t, yaml.Unmarshal([]byte(cm.Data["server.yml"]), cfg))
+
+		if assert.Contains(t, cfg.HTTP.Routers, "server") {
+			assert.Contains(t, cfg.HTTP.Routers["server"].Middlewares, "server-token-check")
+		}
+		if assert.Contains(t, cfg.HTTP.Middlewares, "server-token-check") && assert.NotNil(t, cfg.HTTP.Middlewares["server-token-check"].ForwardAuth) {
+			assert.Equal(t, "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~", cfg.HTTP.Middlewares["server-token-check"].ForwardAuth.Address)
+		}
+	})
+}
+
+func onOpenShift4(f func()) {
+	openshift := util.IsOpenShift
+	openshiftv4 := util.IsOpenShift4
+
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+
+	f()
+
+	util.IsOpenShift = openshift
+	util.IsOpenShift4 = openshiftv4
 }

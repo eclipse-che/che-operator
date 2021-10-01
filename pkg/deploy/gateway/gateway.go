@@ -274,6 +274,12 @@ func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.Con
 
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
+		// native user mode is currently only available on OpenShift but let's be defensive here so that
+		// this doesn't break once we enable it on Kubernetes, too. Token check will have to work
+		// differently on Kuberentes.
+		if util.IsOpenShift {
+			cfg.AddOpenShiftTokenCheck(serverComponentName)
+		}
 	}
 
 	return GetConfigmapForGatewayConfig(deployContext, serverComponentName, cfg)
