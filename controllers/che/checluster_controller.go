@@ -464,9 +464,11 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	// Create service account "che" for che-server component.
 	// "che" is the one which token is used to create workspace objects.
 	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
-	_, err = deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
-	if err != nil {
-		r.Log.Error(err, "")
+	done, err = deploy.SyncServiceAccountToCluster(deployContext, CheServiceAccountName)
+	if !done {
+		if err != nil {
+			logrus.Error(err)
+		}
 		return ctrl.Result{RequeueAfter: time.Second}, err
 	}
 
