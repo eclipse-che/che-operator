@@ -17,7 +17,6 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -65,7 +64,7 @@ func DeleteFinalizer(deployContext *DeployContext, finalizer string) error {
 	return nil
 }
 
-func DeleteObjectWithFinalizer(deployContext *DeployContext, key client.ObjectKey, objectMeta metav1.Object, finalizer string) error {
+func DeleteObjectWithFinalizer(deployContext *DeployContext, key client.ObjectKey, objectMeta client.Object, finalizer string) error {
 	_, err := Delete(deployContext, key, objectMeta)
 	if err != nil {
 		// failed to delete, shouldn't us prevent from removing finalizer

@@ -61,3 +61,17 @@ func (cfg *TraefikConfig) AddAuthHeaderRewrite(componentName string) {
 		},
 	}
 }
+
+func (cfg *TraefikConfig) AddOpenShiftTokenCheck(componentName string) {
+	middlewareName := componentName + "-token-check"
+	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
+	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
+		ForwardAuth: &TraefikConfigForwardAuth{
+			Address:            "https://kubernetes.default.svc/apis/user.openshift.io/v1/users/~",
+			TrustForwardHeader: true,
+			TLS: &TraefikConfigTLS{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+}

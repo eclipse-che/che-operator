@@ -13,7 +13,6 @@ package devworkspace
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -24,7 +23,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -181,7 +179,7 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	return syncObject(deployContext, deployment, DevWorkspaceNamespace)
 }
 
-func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj metav1.Object, namespace string) (bool, error) {
+func readAndSyncObject(deployContext *deploy.DeployContext, yamlFile string, obj client.Object, namespace string) (bool, error) {
 	err := readK8SObject(yamlFile, obj)
 	if err != nil {
 		return false, err
@@ -226,17 +224,16 @@ func createUnstructured(deployContext *deploy.DeployContext, obj *unstructured.U
 	return true, nil
 }
 
-func syncObject(deployContext *deploy.DeployContext, obj2sync metav1.Object, namespace string) (bool, error) {
+func syncObject(deployContext *deploy.DeployContext, obj2sync client.Object, namespace string) (bool, error) {
 	obj2sync.SetNamespace(namespace)
 
-	runtimeObject, ok := obj2sync.(runtime.Object)
-	if !ok {
-		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	actual, err := deployContext.ClusterAPI.Scheme.New(obj2sync.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return false, err
 	}
 
-	actual := runtimeObject.DeepCopyObject()
 	key := types.NamespacedName{Namespace: obj2sync.GetNamespace(), Name: obj2sync.GetName()}
-	exists, err := deploy.Get(deployContext, key, actual.(metav1.Object))
+	exists, err := deploy.Get(deployContext, key, actual.(client.Object))
 	if err != nil {
 		return false, err
 	}

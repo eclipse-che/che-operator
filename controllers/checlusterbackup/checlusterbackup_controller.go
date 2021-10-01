@@ -89,7 +89,7 @@ func (r *ReconcileCheClusterBackup) SetupWithManager(mgr ctrl.Manager) error {
 // and what is in the CheClusterBackup.Spec
 // Note: The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileCheClusterBackup) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+func (r *ReconcileCheClusterBackup) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the CheClusterBackup instance
 	backupCR := &chev1.CheClusterBackup{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, backupCR)

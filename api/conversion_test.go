@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	"github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/pkg/util"

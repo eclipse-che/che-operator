@@ -32,8 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -69,7 +69,7 @@ func TestCreateInitialUser(t *testing.T) {
 		Spec: oauth_config.OAuthSpec{IdentityProviders: []oauth_config.IdentityProvider{}},
 	}
 
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 	scheme := scheme.Scheme
 	orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -127,7 +127,7 @@ func TestCreateInitialUser(t *testing.T) {
 }
 
 func TestDeleteInitialUser(t *testing.T) {
-	logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 	scheme := scheme.Scheme
 	orgv1.SchemeBuilder.AddToScheme(scheme)

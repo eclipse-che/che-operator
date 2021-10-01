@@ -64,7 +64,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.namespaceCache.client = r.client
 
-	var obj runtime.Object
+	var obj client.Object
 	if infrastructure.IsOpenShift() {
 		obj = &projectv1.Project{}
 	} else {
@@ -79,6 +79,14 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &v1.CheCluster{}}, r.triggerAllNamespaces(ctx))
 
 	return bld.Complete(r)
+}
+
+func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) handler.EventHandler {
+	rules := r.commonRules(ctx, deploy.CheTLSSelfSignedCertificateSecretName)
+	return handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(obj client.Object) []reconcile.Request {
+			return asReconcileRequestsForNamespaces(obj, rules)
+		}))
 }
 
 func asReconcileRequestsForNamespaces(obj metav1.Object, rules []eventRule) []reconcile.Request {
@@ -118,22 +126,12 @@ func (r *CheUserNamespaceReconciler) commonRules(ctx context.Context, namesInChe
 	}
 }
 
-func (r *CheUserNamespaceReconciler) watchRulesForSecrets(ctx context.Context) *handler.EnqueueRequestsFromMapFunc {
-	rules := r.commonRules(ctx, deploy.CheTLSSelfSignedCertificateSecretName)
-	return &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
-			return asReconcileRequestsForNamespaces(mo.Meta, rules)
-		}),
-	}
-}
-
-func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) *handler.EnqueueRequestsFromMapFunc {
+func (r *CheUserNamespaceReconciler) watchRulesForConfigMaps(ctx context.Context) handler.EventHandler {
 	rules := r.commonRules(ctx, deploy.CheAllCACertsConfigMapName)
-	return &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
-			return asReconcileRequestsForNamespaces(mo.Meta, rules)
-		}),
-	}
+	return handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(obj client.Object) []reconcile.Request {
+			return asReconcileRequestsForNamespaces(obj, rules)
+		}))
 }
 
 func (r *CheUserNamespaceReconciler) hasNameAndIsCollocatedWithCheCluster(ctx context.Context, obj metav1.Object, names ...string) bool {
@@ -156,8 +154,8 @@ func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, o
 }
 
 func (r *CheUserNamespaceReconciler) triggerAllNamespaces(ctx context.Context) handler.EventHandler {
-	return &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: handler.ToRequestsFunc(func(mo handler.MapObject) []reconcile.Request {
+	return handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(obj client.Object) []reconcile.Request {
 			nss := r.namespaceCache.GetAllKnownNamespaces()
 			ret := make([]reconcile.Request, len(nss))
 
@@ -169,7 +167,7 @@ func (r *CheUserNamespaceReconciler) triggerAllNamespaces(ctx context.Context) h
 
 			return ret
 		}),
-	}
+	)
 }
 
 func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespace string) bool {
@@ -181,9 +179,7 @@ func (r *CheUserNamespaceReconciler) hasCheCluster(ctx context.Context, namespac
 	return len(list.Items) > 0
 }
 
-func (r *CheUserNamespaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-
+func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	info, err := r.namespaceCache.ExamineNamespace(ctx, req.Name)
 	if err != nil {
 		logrus.Errorf("Failed to examine namespace %s for presence of Che user info labels: %v", req.Name, err)

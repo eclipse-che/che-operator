@@ -25,7 +25,7 @@ import (
 	"reflect"
 	"time"
 
-	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/golang/mock/gomock"
 
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
@@ -64,9 +64,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	configv1 "github.com/openshift/api/config/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/yaml"
 
 	"testing"
@@ -225,7 +225,7 @@ func TestNativeUserModeEnabled(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -263,7 +263,7 @@ func TestNativeUserModeEnabled(t *testing.T) {
 				},
 			}
 
-			_, err := r.Reconcile(req)
+			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
@@ -435,7 +435,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -486,7 +486,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			util.IsOpenShift = true
 			util.IsOpenShift4 = !testCase.isOpenshift3
 
-			_, err := r.Reconcile(req)
+			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
@@ -546,7 +546,7 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -580,7 +580,7 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 				},
 			}
 
-			_, err := r.Reconcile(req)
+			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
@@ -675,7 +675,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -707,7 +707,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
 
-			_, err := r.Reconcile(req)
+			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
@@ -777,7 +777,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            os.Getenv("CHE_FLAVOR"),
 					Namespace:       namespace,
-					ResourceVersion: "1",
+					ResourceVersion: "2",
 					Finalizers: []string{
 						"kubernetesimagepullers.finalizers.che.eclipse.org",
 					},
@@ -922,6 +922,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				clusterServiceVersion,
 				getDefaultImagePuller(),
 			},
+			expectedCR:   InitCheCRWithImagePullerDisabled(),
 			shouldDelete: true,
 		},
 		{
@@ -934,33 +935,14 @@ func TestImagePullerConfiguration(t *testing.T) {
 				clusterServiceVersion,
 				getDefaultImagePuller(),
 			},
-			expectedCR: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              os.Getenv("CHE_FLAVOR"),
-					Namespace:         namespace,
-					ResourceVersion:   "1",
-					DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
-				},
-				Spec: orgv1.CheClusterSpec{
-					ImagePuller: orgv1.CheClusterSpecImagePuller{
-						Enable: true,
-					},
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "multi-host",
-					},
-				},
-			},
 			shouldDelete: true,
+			expectedCR:   nil,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 			packagesv1.AddToScheme(scheme.Scheme)
 			operatorsv1alpha1.AddToScheme(scheme.Scheme)
@@ -1016,7 +998,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					Namespace: namespace,
 				},
 			}
-			_, err := r.Reconcile(req)
+			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
@@ -1076,6 +1058,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 				}
 			}
 			if testCase.shouldDelete {
+				if testCase.expectedCR == nil {
+					gotCR := &orgv1.CheCluster{}
+					err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
+					if !errors.IsNotFound(err) {
+						t.Fatal("CR CheCluster should be removed")
+					}
+				}
 
 				imagePuller := &chev1alpha1.KubernetesImagePuller{}
 				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR") + "-image-puller"}, imagePuller)
@@ -1135,19 +1124,19 @@ func TestCheController(t *testing.T) {
 		},
 	}
 
-	_, err := r.Reconcile(req)
+	_, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1170,15 +1159,15 @@ func TestCheController(t *testing.T) {
 	}
 
 	// reconcile again
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1226,7 +1215,7 @@ func TestCheController(t *testing.T) {
 		t.Error("Failed to update CheCluster custom resource")
 	}
 
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1285,7 +1274,7 @@ func TestCheController(t *testing.T) {
 	postgresDeployment := &appsv1.Deployment{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
 	err = r.client.Delete(context.TODO(), postgresDeployment)
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1308,7 +1297,7 @@ func TestCheController(t *testing.T) {
 	if err = r.client.Delete(context.TODO(), pvc); err != nil {
 		t.Fatalf("Failed to delete PVC %s: %s", pvc.Name, err)
 	}
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1353,7 +1342,7 @@ func TestCheController(t *testing.T) {
 func TestConfiguringLabelsForRoutes(t *testing.T) {
 	util.IsOpenShift = true
 	// Set the logger to development mode for verbose logs.
-	logf.SetLogger(logf.ZapLogger(true))
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 	cl, dc, scheme := Init()
 
@@ -1376,7 +1365,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	}
 
 	// reconcile
-	_, err := r.Reconcile(req)
+	_, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1391,7 +1380,7 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	}
 
 	// reconcile again
-	_, err = r.Reconcile(req)
+	_, err = r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
@@ -1462,7 +1451,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.LoggerTo(os.Stdout, true))
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
@@ -1510,11 +1499,11 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 				},
 			}
 
-			_, err := r.Reconcile(req)
+			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
-			_, err = r.Reconcile(req)
+			_, err = r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
 			}
@@ -1661,8 +1650,9 @@ func InitCheWithSimpleCR() *orgv1.CheCluster {
 func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
+			Name:            os.Getenv("CHE_FLAVOR"),
+			Namespace:       namespace,
+			ResourceVersion: "0",
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
@@ -1683,6 +1673,7 @@ func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 			Finalizers: []string{
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
+			ResourceVersion: "1",
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
@@ -1704,6 +1695,7 @@ func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *orgv1.CheCluster {
 				"kubernetesimagepullers.finalizers.che.eclipse.org",
 			},
 			DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
+			ResourceVersion:   "1",
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
@@ -1743,9 +1735,14 @@ func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 
 func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
 	return &orgv1.CheCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CheCluster",
+			APIVersion: "org.eclipse.che/v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
+			Name:            os.Getenv("CHE_FLAVOR"),
+			Namespace:       namespace,
+			ResourceVersion: "1",
 		},
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{

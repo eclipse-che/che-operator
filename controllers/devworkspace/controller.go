@@ -127,9 +127,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return bld.Complete(r)
 }
 
-func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-
+func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	cheInstancesAccess.Lock()
 	defer cheInstancesAccess.Unlock()
 

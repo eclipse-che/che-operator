@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -28,8 +28,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+var (
+	log = ctrl.Log.WithName("image-puller")
 )
 
 var imagePullerFinalizerName = "kubernetesimagepullers.finalizers.che.eclipse.org"
@@ -156,6 +161,9 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			}
 			if ctx.CheCluster.Spec.ImagePuller.Spec.ConfigMapName == "" {
 				ctx.CheCluster.Spec.ImagePuller.Spec.ConfigMapName = imagePuller.Spec.ConfigMapName
+			}
+			if ctx.CheCluster.Spec.ImagePuller.Spec.ImagePullerImage == "" {
+				ctx.CheCluster.Spec.ImagePuller.Spec.ImagePullerImage = imagePuller.Spec.ImagePullerImage
 			}
 
 			// If ImagePuller specs are different, update the KubernetesImagePuller CR
@@ -286,7 +294,7 @@ func CheckNeededImagePullerApis(ctx *DeployContext) (bool, bool, bool, error) {
 
 	for _, l := range resourcesList {
 		for _, r := range l.APIResources {
-			if l.GroupVersion == chev1alpha1.SchemeGroupVersion.String() && r.Kind == "KubernetesImagePuller" {
+			if l.GroupVersion == chev1alpha1.SchemeBuilder.GroupVersion.String() && r.Kind == "KubernetesImagePuller" {
 				foundKubernetesImagePullerAPI = true
 			}
 		}

@@ -16,7 +16,6 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '--release-version') RELEASE=$2; shift 1;;
     '--channel') CHANNEL=$2; shift 1;;
-    '--dev-workspace-controller-version') DEV_WORKSPACE_CONTROLLER_VERSION=$2; shift 1;;
   esac
   shift 1
 done
@@ -77,10 +76,9 @@ downloadLatestReleasedBundleCRCRD() {
   fi
 }
 
-if [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]] || [[ -z "$RELEASE" ]]; then
+if [[ -z "$RELEASE" ]] || [[ -z "$CHANNEL" ]]; then
   echo "One of the following required parameters is missing"
-  echo "--release-version $RELEASE"
-  echo "--dev-workspace-controller-version $DEV_WORKSPACE_CONTROLLER_VERSION"
+  echo "--release-version <RELEASE> --channel <CHANNEL>"
   exit 1
 fi
 
@@ -121,7 +119,6 @@ do
   -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
   -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
-  -e 's|quay.io/devfile/devworkspace-controller:next|quay.io/devfile/devworkspace-controller:'${DEV_WORKSPACE_CONTROLLER_VERSION}'|' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
   -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
   -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
@@ -134,15 +131,6 @@ do
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
   if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
-    # Set by default devworkspace enabled
-		fixedSample=$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-			fromjson | \
-			( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace.enable) |= true" ${NEW_CSV} |  sed -r 's/"/\\"/g')
-    yq -riY ".metadata.annotations[\"alm-examples\"] = \"${fixedSample}\"" ${RELEASE_CSV}
-
-    # Move the suggested namespace to openshift-operators.
-    sed -ri 's|operatorframework.io/suggested-namespace: eclipse-che|operatorframework.io/suggested-namespace: openshift-operators|' "${RELEASE_CSV}"
-
     # Set tech-preview-stable-all-namespaces versions
     yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
     yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
@@ -171,14 +159,14 @@ do
 
   ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
   sed \
-  -e 's/operators.operatorframework.io.bundle.channels.v1: *next/operators.operatorframework.io.bundle.channels.v1: '$CHANNEL'/' \
-  -e 's/operators.operatorframework.io.bundle.channel.default.v1: *next/operators.operatorframework.io.bundle.channel.default.v1: '$CHANNEL'/' \
+  -e 's/operators.operatorframework.io.bundle.channels.v1: .*/operators.operatorframework.io.bundle.channels.v1: '$CHANNEL'/' \
+  -e 's/operators.operatorframework.io.bundle.channel.default.v1: .*/operators.operatorframework.io.bundle.channel.default.v1: '$CHANNEL'/' \
   -i "${ANNOTATION_METADATA_YAML}"
 
   BUNDLE_DOCKERFILE="${STABLE_BUNDLE_PATH}/bundle.Dockerfile"
   sed \
-  -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=next/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
-  -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=next/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
+  -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=.*/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
+  -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=.*/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
 
   pushd "${CURRENT_DIR}" || true

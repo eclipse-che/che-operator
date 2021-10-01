@@ -24,6 +24,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/utils/pointer"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,7 +65,7 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -93,7 +94,7 @@ func TestNoCustomResourceSharedWhenReconcilingNonExistent(t *testing.T) {
 		},
 	}))
 
-	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -132,7 +133,7 @@ func TestAddsCustomResourceToSharedMapOnCreate(t *testing.T) {
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -181,7 +182,7 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -234,7 +235,7 @@ func TestUpdatesCustomResourceInSharedMapOnUpdate(t *testing.T) {
 
 	// now reconcile and see that the value in the map is now updated
 
-	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -283,7 +284,7 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -306,7 +307,7 @@ func TestRemovesCustomResourceFromSharedMapOnDelete(t *testing.T) {
 
 	// now reconcile and see that the value is no longer in the map
 
-	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -353,7 +354,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 
 	reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -379,7 +380,7 @@ func TestCustomResourceFinalization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to update the manager in the fake client: %s", err)
 	}
-	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -412,19 +413,15 @@ func TestCustomResourceFinalization(t *testing.T) {
 		t.Fatalf("Failed to delete the test configmap: %s", err)
 	}
 
-	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
 
 	manager = v1.CheCluster{}
 	err = cl.Get(ctx, client.ObjectKey{Name: managerName, Namespace: ns}, &manager)
-	if err != nil {
+	if err == nil || !k8sErrors.IsNotFound(err) {
 		t.Fatalf("Failed to obtain the manager from the fake client: %s", err)
-	}
-
-	if len(manager.Finalizers) != 0 {
-		t.Fatalf("The finalizers should be cleared after the finalization success but there were still some: %d", len(manager.Finalizers))
 	}
 }
 
@@ -478,11 +475,11 @@ func TestExternalGatewayDetection(t *testing.T) {
 		reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
 		// first reconcile sets the finalizer, second reconcile actually finishes the process
-		_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
+		_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
 		if err != nil {
 			t.Fatalf("Failed to reconcile che manager with error: %s", err)
 		}
-		_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
+		_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
 		if err != nil {
 			t.Fatalf("Failed to reconcile che manager with error: %s", err)
 		}
@@ -521,11 +518,11 @@ func TestExternalGatewayDetection(t *testing.T) {
 		reconciler := CheClusterReconciler{client: cl, scheme: scheme, syncer: sync.New(cl, scheme)}
 
 		// first reconcile sets the finalizer, second reconcile actually finishes the process
-		_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
+		_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
 		if err != nil {
 			t.Fatalf("Failed to reconcile che manager with error: %s", err)
 		}
-		_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
+		_, err = reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: clusterName, Namespace: ns}})
 		if err != nil {
 			t.Fatalf("Failed to reconcile che manager with error: %s", err)
 		}

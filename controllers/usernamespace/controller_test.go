@@ -30,9 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -45,7 +46,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 	}
 
 	cheNamespace.SetName(cheNamespaceName)
-	if err := cl.Create(ctx, cheNamespace.(runtime.Object)); err != nil {
+	if err := cl.Create(ctx, cheNamespace.(client.Object)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,10 +107,10 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 
 	r := devworkspace.New(cl, scheme)
 	// the reconciliation needs to run twice for it to be truly finished - we're setting up finalizers etc...
-	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
+	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
+	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: cheName, Namespace: cheNamespaceName}}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -143,7 +144,7 @@ func TestSkipsUnlabeledNamespaces(t *testing.T) {
 		scheme, cl, r := setup(infraType, namespace.(runtime.Object))
 		setupCheCluster(t, ctx, cl, scheme, "che", "che")
 
-		if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
+		if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -186,7 +187,7 @@ func TestRequiresLabelsToMatchOneOfMultipleCheCluster(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
-		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation should have succeeded.")
 
 		assert.True(t, res.Requeue, "The reconciliation request should have been requeued.")
@@ -222,7 +223,7 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 		setupCheCluster(t, ctx, cl, scheme, "che1", "che")
 		setupCheCluster(t, ctx, cl, scheme, "che2", "che")
 
-		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation shouldn't have failed")
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but is requesting a requeue.")
@@ -262,7 +263,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		scheme, cl, r := setup(infraType, allObjs...)
 		setupCheCluster(t, ctx, cl, scheme, "eclipse-che", "che")
 
-		res, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
+		res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: namespace.GetName()}})
 		assert.NoError(t, err, "Reconciliation should have succeeded")
 
 		assert.False(t, res.Requeue, "The reconciliation request should have succeeded but it is requesting a requeue")
@@ -355,10 +356,15 @@ func TestWatchRulesForSecretsInSameNamespace(t *testing.T) {
 	ctx := context.TODO()
 
 	h := r.watchRulesForSecrets(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new secret creation.
+	h.Create(event.CreateEvent{Object: secret}, rlq)
 
-	rs := h.ToRequests.Map(handler.MapObject{Meta: secret, Object: secret})
-	assert.Equal(t, 1, len(rs))
-	assert.Equal(t, "ns", rs[0].Name)
+	amountReconcileRequests := rlq.Len()
+	rs, _ := rlq.Get()
+
+	assert.Equal(t, 1, amountReconcileRequests)
+	assert.Equal(t, "ns", rs.(reconcile.Request).Name)
 }
 
 func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
@@ -382,10 +388,15 @@ func TestWatchRulesForConfigMapsInSameNamespace(t *testing.T) {
 	ctx := context.TODO()
 
 	h := r.watchRulesForSecrets(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new config map creation.
+	h.Create(event.CreateEvent{Object: cm}, rlq)
 
-	rs := h.ToRequests.Map(handler.MapObject{Meta: cm, Object: cm})
-	assert.Equal(t, 1, len(rs))
-	assert.Equal(t, "ns", rs[0].Name)
+	amountReconcileRequests := rlq.Len()
+	rs, _ := rlq.Get()
+
+	assert.Equal(t, 1, amountReconcileRequests)
+	assert.Equal(t, "ns", rs.(reconcile.Request).Name)
 }
 
 func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
@@ -449,12 +460,20 @@ func TestWatchRulesForSecretsInOtherNamespaces(t *testing.T) {
 	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
 
 	h := r.watchRulesForSecrets(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new secret creation.
+	h.Create(event.CreateEvent{Object: secret}, rlq)
 
-	rs := h.ToRequests.Map(handler.MapObject{Meta: secret, Object: secret})
-	assert.Equal(t, 3, len(rs))
-	assert.Contains(t, rs, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
-	assert.Contains(t, rs, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
-	assert.Contains(t, rs, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
+	amountReconcileRequests := rlq.Len()
+	rs1, _ := rlq.Get()
+	rs2, _ := rlq.Get()
+	rs3, _ := rlq.Get()
+	reconciles := []reconcile.Request{rs1.(reconcile.Request), rs2.(reconcile.Request), rs3.(reconcile.Request)}
+
+	assert.Equal(t, 3, amountReconcileRequests)
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
 }
 
 func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
@@ -518,10 +537,18 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 	r.namespaceCache.ExamineNamespace(ctx, "eclipse-che")
 
 	h := r.watchRulesForConfigMaps(ctx)
+	rlq := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	// Let's throw event to controller about new config map creation.
+	h.Create(event.CreateEvent{Object: cm}, rlq)
 
-	rs := h.ToRequests.Map(handler.MapObject{Meta: cm, Object: cm})
-	assert.Equal(t, 3, len(rs))
-	assert.Contains(t, rs, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
-	assert.Contains(t, rs, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
-	assert.Contains(t, rs, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
+	amountReconcileRequests := rlq.Len()
+	rs1, _ := rlq.Get()
+	rs2, _ := rlq.Get()
+	rs3, _ := rlq.Get()
+	reconciles := []reconcile.Request{rs1.(reconcile.Request), rs2.(reconcile.Request), rs3.(reconcile.Request)}
+
+	assert.Equal(t, 3, amountReconcileRequests)
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns1"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "ns2"}})
+	assert.Contains(t, reconciles, reconcile.Request{NamespacedName: types.NamespacedName{Name: "eclipse-che"}})
 }
