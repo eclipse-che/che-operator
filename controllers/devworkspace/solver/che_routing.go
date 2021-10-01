@@ -347,13 +347,7 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 }
 
 func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo)) *corev1.ConfigMap {
-	wsRouteConfig := gateway.TraefikConfig{
-		HTTP: gateway.TraefikConfigHTTP{
-			Routers:     map[string]*gateway.TraefikConfigRouter{},
-			Services:    map[string]*gateway.TraefikConfigService{},
-			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
-		},
-	}
+	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
 	commonService := getCommonService(objs, routing.Spec.DevWorkspaceId)
 	if commonService == nil {
@@ -368,7 +362,7 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 			}
 
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
-				addEndpointToTraefikConfig(componentName, e, &wsRouteConfig, cheCluster, routing)
+				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
 			} else {
 				if !containPort(commonService, int32(e.TargetPort)) {
 					commonService.Spec.Ports = append(commonService.Spec.Ports, corev1.ServicePort{
@@ -445,8 +439,8 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 		dwId,
 		fmt.Sprintf("PathPrefix(`/%s`)", dwId),
 		100,
-		getServiceURL(wsGatewayPort, dwId, dwNamespace))
-	cfg.AddStripPrefix(dwId, []string{"/" + dwId})
+		getServiceURL(wsGatewayPort, dwId, dwNamespace),
+		[]string{"/" + dwId})
 
 	if infrastructure.IsOpenShift() {
 		// on OpenShift, we need to set authorization header.
@@ -518,76 +512,27 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 	}
 
 	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, routeName)
-	cfg.HTTP.Routers[name] = &gateway.TraefikConfigRouter{
-		Rule:        rulePrefix,
-		Service:     name,
-		Middlewares: calculateMiddlewares(name, false),
-		Priority:    100,
-	}
-
-	cfg.HTTP.Services[name] = &gateway.TraefikConfigService{
-		LoadBalancer: gateway.TraefikConfigLoadbalancer{
-			Servers: []gateway.TraefikConfigLoadbalancerServer{
-				{
-					URL: fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
-				},
-			},
-		},
-	}
-
-	cfg.HTTP.Middlewares[name+gateway.StripPrefixMiddlewareSuffix] = &gateway.TraefikConfigMiddleware{
-		StripPrefix: &gateway.TraefikConfigStripPrefix{
-			Prefixes: []string{prefix},
-		},
-	}
-
+	cfg.AddComponent(
+		name,
+		rulePrefix,
+		100,
+		fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
+		[]string{prefix})
 	if infrastructure.IsOpenShift() {
-		cfg.HTTP.Middlewares[name+gateway.AuthMiddlewareSuffix] = &gateway.TraefikConfigMiddleware{
-			ForwardAuth: &gateway.TraefikConfigForwardAuth{
-				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
-			},
-		}
+		cfg.AddAuth(name, fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace))
 	}
 
 	// we need to disable auth for '/healthz' path in main endpoint
 	if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
 		healthzName := name + "-healthz"
 		healthzPath := prefix + "/healthz"
-		cfg.HTTP.Routers[healthzName] = &gateway.TraefikConfigRouter{
-			Rule:        fmt.Sprintf("Path(`%s`)", healthzPath),
-			Service:     healthzName,
-			Middlewares: []string{healthzName + gateway.StripPrefixMiddlewareSuffix},
-			Priority:    101,
-		}
-
-		cfg.HTTP.Services[healthzName] = &gateway.TraefikConfigService{
-			LoadBalancer: gateway.TraefikConfigLoadbalancer{
-				Servers: []gateway.TraefikConfigLoadbalancerServer{
-					{
-						URL: fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
-					},
-				},
-			},
-		}
-
-		cfg.HTTP.Middlewares[healthzName+gateway.StripPrefixMiddlewareSuffix] = &gateway.TraefikConfigMiddleware{
-			StripPrefix: &gateway.TraefikConfigStripPrefix{
-				Prefixes: []string{prefix},
-			},
-		}
+		cfg.AddComponent(
+			healthzName,
+			fmt.Sprintf("Path(`%s`)", healthzPath),
+			101,
+			fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
+			[]string{prefix})
 	}
-}
-
-func calculateMiddlewares(name string, header bool) []string {
-	middlewares := []string{name + gateway.StripPrefixMiddlewareSuffix}
-	if infrastructure.IsOpenShift() {
-		// Header-Rewrite middleware MUST come before Auth middleware!
-		if header {
-			middlewares = append(middlewares, name+gateway.HeaderRewriteMiddlewareSuffix)
-		}
-		middlewares = append(middlewares, name+gateway.AuthMiddlewareSuffix)
-	}
-	return middlewares
 }
 
 func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Service {

@@ -365,7 +365,8 @@ func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {
 		deploy.IdentityProviderName,
 		"PathPrefix(`/auth`)",
 		10,
-		"http://"+deploy.IdentityProviderName+":8080")
+		"http://"+deploy.IdentityProviderName+":8080",
+		[]string{})
 
 	if util.IsNativeUserModeEnabled(cheCluster) {
 		cfg.AddAuthHeaderRewrite(deploy.IdentityProviderName)

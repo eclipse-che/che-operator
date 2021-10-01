@@ -17,30 +17,40 @@ const (
 	AuthMiddlewareSuffix          = "-auth"
 )
 
-func CreateCommonTraefikConfig(componentName string, rule string, priority int, serviceAddr string) *TraefikConfig {
+func CreateEmptyTraefikConfig() *TraefikConfig {
 	return &TraefikConfig{
 		HTTP: TraefikConfigHTTP{
-			Routers: map[string]*TraefikConfigRouter{
-				componentName: {
-					Rule:        rule,
-					Service:     componentName,
-					Middlewares: []string{},
-					Priority:    priority,
-				},
-			},
-			Services: map[string]*TraefikConfigService{
-				componentName: {
-					LoadBalancer: TraefikConfigLoadbalancer{
-						Servers: []TraefikConfigLoadbalancerServer{
-							{
-								URL: serviceAddr,
-							},
-						},
-					},
-				},
-			},
+			Routers:     map[string]*TraefikConfigRouter{},
+			Services:    map[string]*TraefikConfigService{},
 			Middlewares: map[string]*TraefikConfigMiddleware{},
 		},
+	}
+}
+
+func CreateCommonTraefikConfig(componentName string, rule string, priority int, serviceAddr string, stripPrefixes []string) *TraefikConfig {
+	cfg := CreateEmptyTraefikConfig()
+	cfg.AddComponent(componentName, rule, priority, serviceAddr, stripPrefixes)
+	return cfg
+}
+
+func (cfg *TraefikConfig) AddComponent(componentName string, rule string, priority int, serviceAddr string, stripPrefixes []string) {
+	cfg.HTTP.Routers[componentName] = &TraefikConfigRouter{
+		Rule:        rule,
+		Service:     componentName,
+		Middlewares: []string{},
+		Priority:    priority,
+	}
+	cfg.HTTP.Services[componentName] = &TraefikConfigService{
+		LoadBalancer: TraefikConfigLoadbalancer{
+			Servers: []TraefikConfigLoadbalancerServer{
+				{
+					URL: serviceAddr,
+				},
+			},
+		},
+	}
+	if len(stripPrefixes) > 0 {
+		cfg.AddStripPrefix(componentName, stripPrefixes)
 	}
 }
 

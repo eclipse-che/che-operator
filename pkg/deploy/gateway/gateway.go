@@ -270,7 +270,8 @@ func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.Con
 		serverComponentName,
 		"Path(`/`, `/f`) || PathPrefix(`/api`, `/swagger`, `/_app`)",
 		1,
-		"http://"+deploy.CheServiceName+":8080")
+		"http://"+deploy.CheServiceName+":8080",
+		[]string{})
 
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
 		cfg.AddAuthHeaderRewrite(serverComponentName)

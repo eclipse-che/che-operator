@@ -23,7 +23,7 @@ const (
 )
 
 func TestAddStripPrefix(t *testing.T) {
-	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 	cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
 	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
@@ -32,7 +32,7 @@ func TestAddStripPrefix(t *testing.T) {
 }
 
 func TestAddAuthHeaderRewrite(t *testing.T) {
-	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 	cfg.AddAuthHeaderRewrite(testComponentName)
 
 	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
@@ -41,7 +41,7 @@ func TestAddAuthHeaderRewrite(t *testing.T) {
 }
 
 func TestAddOpenShiftTokenCheck(t *testing.T) {
-	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 	cfg.AddOpenShiftTokenCheck(testComponentName)
 
 	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 1, *cfg)
@@ -54,7 +54,7 @@ func TestAddOpenShiftTokenCheck(t *testing.T) {
 
 func TestMiddlewaresPreserveOrder(t *testing.T) {
 	t.Run("strip-header", func(t *testing.T) {
-		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 		cfg.AddAuthHeaderRewrite(testComponentName)
 
@@ -65,7 +65,7 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 	})
 
 	t.Run("header-strip", func(t *testing.T) {
-		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 		cfg.AddAuthHeaderRewrite(testComponentName)
 		cfg.AddStripPrefix(testComponentName, []string{"/test"})
 
@@ -77,7 +77,7 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 }
 
 func TestCreateCommonTraefikConfig(t *testing.T) {
-	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080")
+	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 
 	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 0, *cfg)
 	assert.Len(t, cfg.HTTP.Middlewares, 0, *cfg)

@@ -113,8 +113,8 @@ func (p *DevfileRegistry) createGatewayConfig() *gateway.TraefikConfig {
 		deploy.DevfileRegistryName,
 		fmt.Sprintf("PathPrefix(`%s`)", pathPrefix),
 		10,
-		"http://"+deploy.DevfileRegistryName+":8080")
-	cfg.AddStripPrefix(deploy.DevfileRegistryName, []string{pathPrefix})
+		"http://"+deploy.DevfileRegistryName+":8080",
+		[]string{pathPrefix})
 
 	return cfg
 }
