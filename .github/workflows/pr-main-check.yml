@@ -73,22 +73,13 @@ jobs:
         fi
     - name: Check format
       run: |
-        git reset HEAD --hard
-        go fmt -x ./...
-        if [[ ! -z $(git status -s) ]]
-        then
-          echo "not well formatted sources are found:"
-          git --no-pager diff
-          exit 1
-        fi
-    - name: Check imports
-      run: |
         go get -u golang.org/x/tools/cmd/goimports
         git reset HEAD --hard
         if [[ $(find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;) != "" ]]
         then
-          echo "not well organized imports are found."
-          echo "execute 'find . -not -path \"./vendor/*\" -name \"*.go\" -exec goimports -w {} \;' to fix the following:"
+          echo "not well formatted sources are found."
+          echo "execute 'make fmt' to fix the following:"
           find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
+          git --no-pager diff
           exit 1
         fi

@@ -248,7 +248,13 @@ compile:
 	echo "che-operator binary compiled to $${binary}"
 
 fmt: ## Run go fmt against code.
-	go fmt ./...
+  ifneq ($(shell command -v goimports 2> /dev/null),)
+	  find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
+  else
+	  @echo "WARN: goimports is not installed -- formatting using go fmt instead."
+	  @echo "      Please install goimports to ensure file imports are consistent."
+	  go fmt -x ./...
+  endif
 
 vet: ## Run go vet against code.
 	go vet ./...
