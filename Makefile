@@ -249,7 +249,7 @@ compile:
 
 fmt: ## Run go fmt against code.
   ifneq ($(shell command -v goimports 2> /dev/null),)
-	  find . -not -path "./vendor/*" -name '*.go' -exec goimports -l {} \;
+	  find . -not -path "./vendor/*" -name "*.go" -exec goimports -w {} \;
   else
 	  @echo "WARN: goimports is not installed -- formatting using go fmt instead."
 	  @echo "      Please install goimports to ensure file imports are consistent."
