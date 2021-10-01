@@ -22,6 +22,46 @@ const (
 	testRule          = "PathPrefix(`/test`)"
 )
 
+func TestCreateEmptyTraefikConfig(t *testing.T) {
+	cfg := CreateEmptyTraefikConfig()
+
+	assert.Empty(t, cfg.HTTP.Routers)
+	assert.Empty(t, cfg.HTTP.Services)
+	assert.Empty(t, cfg.HTTP.Middlewares)
+}
+
+func TestTraefikConfig_AddComponent(t *testing.T) {
+	cfg := CreateEmptyTraefikConfig()
+	cfg.AddComponent(testComponentName, testRule, 1, "http://svc", []string{})
+
+	assert.Contains(t, cfg.HTTP.Routers, testComponentName)
+	assert.Contains(t, cfg.HTTP.Services, testComponentName)
+	assert.Empty(t, cfg.HTTP.Middlewares)
+}
+
+func TestStripPrefixesWhenCreating(t *testing.T) {
+	check := func(cfg *TraefikConfig) {
+		assert.Contains(t, cfg.HTTP.Routers[testComponentName].Middlewares, testComponentName+StripPrefixMiddlewareSuffix)
+		setPrefixes := cfg.HTTP.Middlewares[testComponentName+StripPrefixMiddlewareSuffix].StripPrefix.Prefixes
+		assert.Contains(t, setPrefixes, "a")
+		assert.Contains(t, setPrefixes, "b")
+		assert.Contains(t, setPrefixes, "c")
+		assert.Len(t, setPrefixes, 3)
+	}
+	t.Run("addComponent", func(t *testing.T) {
+		cfg := CreateEmptyTraefikConfig()
+		cfg.AddComponent(testComponentName, testRule, 1, "http://svc", []string{"a", "b", "c"})
+
+		check(cfg)
+	})
+
+	t.Run("createCommon", func(t *testing.T) {
+		cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc", []string{"a", "b", "c"})
+
+		check(cfg)
+	})
+}
+
 func TestAddStripPrefix(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 	cfg.AddStripPrefix(testComponentName, []string{"/test"})
@@ -79,6 +119,8 @@ func TestMiddlewaresPreserveOrder(t *testing.T) {
 func TestCreateCommonTraefikConfig(t *testing.T) {
 	cfg := CreateCommonTraefikConfig(testComponentName, testRule, 1, "http://svc:8080", []string{})
 
-	assert.Len(t, cfg.HTTP.Routers[testComponentName].Middlewares, 0, *cfg)
-	assert.Len(t, cfg.HTTP.Middlewares, 0, *cfg)
+	assert.Contains(t, cfg.HTTP.Routers, testComponentName)
+	assert.Contains(t, cfg.HTTP.Services, testComponentName)
+	assert.Empty(t, cfg.HTTP.Routers[testComponentName].Middlewares, *cfg)
+	assert.Empty(t, cfg.HTTP.Middlewares, *cfg)
 }
