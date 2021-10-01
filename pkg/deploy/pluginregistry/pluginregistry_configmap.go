@@ -18,6 +18,7 @@ import (
 type PluginRegistryConfigMap struct {
 	CheSidecarContainersRegistryURL          string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_URL"`
 	CheSidecarContainersRegistryOrganization string `json:"CHE_SIDECAR_CONTAINERS_REGISTRY_ORGANIZATION"`
+	ChePluginRegistryURL                     string `json:"CHE_PLUGIN_REGISTRY_URL"`
 }
 
 func (p *PluginRegistry) GetConfigMapData() (map[string]string, error) {
@@ -25,6 +26,7 @@ func (p *PluginRegistry) GetConfigMapData() (map[string]string, error) {
 	data := &PluginRegistryConfigMap{
 		CheSidecarContainersRegistryURL:          p.deployContext.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
 		CheSidecarContainersRegistryOrganization: p.deployContext.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
+		ChePluginRegistryURL:                     p.deployContext.CheCluster.Status.PluginRegistryURL,
 	}
 
 	out, err := json.Marshal(data)

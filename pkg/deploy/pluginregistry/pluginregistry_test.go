@@ -72,6 +72,13 @@ func TestPluginRegistrySyncAll(t *testing.T) {
 		t.Fatalf("Route not found: %v", err)
 	}
 
+	// check configmap
+	cm := &corev1.ConfigMap{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, cm)
+	if err != nil {
+		t.Fatalf("Config Map not found: %v", err)
+	}
+
 	// check deployment
 	deployment := &appsv1.Deployment{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: "plugin-registry", Namespace: "eclipse-che"}, deployment)

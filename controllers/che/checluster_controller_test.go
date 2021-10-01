@@ -231,6 +231,7 @@ func TestNativeUserModeEnabled(t *testing.T) {
 			orgv1.SchemeBuilder.AddToScheme(scheme)
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 			initCR := InitCheWithSimpleCR().DeepCopy()
 			testCase.initObjects = append(testCase.initObjects, initCR)
 
@@ -1095,6 +1096,8 @@ func TestImagePullerConfiguration(t *testing.T) {
 }
 
 func TestCheController(t *testing.T) {
+	var err error
+
 	util.IsOpenShift = true
 	util.IsOpenShift4 = false
 
@@ -1124,27 +1127,24 @@ func TestCheController(t *testing.T) {
 		},
 	}
 
-	_, err := r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
+	reconcileLoops := 4
+	for i := 0; i < reconcileLoops; i++ {
+		_, err = r.Reconcile(context.TODO(), req)
+		if err != nil {
+			t.Fatalf("reconcile: (%v)", err)
+		}
 	}
 
 	// get devfile-registry configmap
 	devfilecm := &corev1.ConfigMap{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, devfilecm); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
+	}
+
+	// get plugin-registry configmap
+	pluginRegistrycm := &corev1.ConfigMap{}
+	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, pluginRegistrycm); err != nil {
+		t.Errorf("ConfigMap %s not found: %s", pluginRegistrycm.Name, err)
 	}
 
 	// get CR
@@ -1159,17 +1159,11 @@ func TestCheController(t *testing.T) {
 	}
 
 	// reconcile again
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
+	for i := 0; i < reconcileLoops; i++ {
+		_, err = r.Reconcile(context.TODO(), req)
+		if err != nil {
+			t.Fatalf("reconcile: (%v)", err)
+		}
 	}
 
 	// get configmap
@@ -1194,7 +1188,9 @@ func TestCheController(t *testing.T) {
 
 	// run a few checks to make sure the operator reconciled tls routes and updated configmap
 	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {
-		t.Errorf("ConfigMap wasn't updated. Extecting true, got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])
+		// If the test fails here without obvious reason, it could mean that there was not enought reconcile loops before.
+		// To fix the above problem, just increase reconcileLoops variable above.
+		t.Errorf("ConfigMap wasn't updated. Expecting true, but got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])
 	}
 	route := &routev1.Route{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(cheCR), Namespace: cheCR.Namespace}, route); err != nil {
