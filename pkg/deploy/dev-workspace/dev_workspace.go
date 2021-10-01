@@ -51,7 +51,7 @@ var (
 	// Can be replaced with something less drastic (especially useful in tests)
 	restartCheOperator = func() {
 		logrus.Warn("Exiting the operator after DevWorkspace installation. DevWorkspace support will be initialized on the next start.")
-		os.Exit(1)
+		os.Exit(0)
 	}
 )
 
