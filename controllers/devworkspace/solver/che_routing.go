@@ -296,10 +296,10 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *v2
 	configs := make([]corev1.ConfigMap, 0)
 
 	// first do routing from main che-gateway into workspace service
-	if masterConfig, err := provisionMasterRouting(cheCluster, routing, cmLabels); err != nil {
+	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels); err != nil {
 		return nil, err
 	} else {
-		configs = append(configs, *masterConfig)
+		configs = append(configs, *mainWsRouteConfig)
 	}
 
 	// then expose the endpoints
@@ -431,7 +431,7 @@ func containPort(service *corev1.Service, port int32) bool {
 	return false
 }
 
-func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string) (*corev1.ConfigMap, error) {
+func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string) (*corev1.ConfigMap, error) {
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
 
