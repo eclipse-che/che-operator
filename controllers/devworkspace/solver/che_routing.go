@@ -449,10 +449,10 @@ func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.D
 
 		// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
 		cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
-	}
 
-	// make '/healthz' path of main endpoints reachable from outside
-	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
+		// make '/healthz' path of main endpoints reachable from outside
+		routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
+	}
 
 	if contents, err := yaml.Marshal(cfg); err != nil {
 		return nil, err
@@ -522,8 +522,9 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 		cfg.AddAuth(name, fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace))
 	}
 
-	// we need to disable auth for '/healthz' path in main endpoint
-	if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
+	// we need to disable auth for '/healthz' path in main endpoint, for now only on OpenShift
+	if infrastructure.IsOpenShift() &&
+		e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
 		healthzName := name + "-healthz"
 		healthzPath := prefix + "/healthz"
 		cfg.AddComponent(
