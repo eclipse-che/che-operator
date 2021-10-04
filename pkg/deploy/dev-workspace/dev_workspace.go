@@ -18,8 +18,7 @@ import (
 	"os"
 	"strings"
 
-	org "github.com/eclipse-che/che-operator/api"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -37,6 +36,7 @@ import (
 var (
 	DevWorkspaceNamespace      = "devworkspace-controller"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
+	DevWorkspaceWebhookName    = "controller.devfile.io"
 
 	SubscriptionResourceName          = "subscriptions"
 	ClusterServiceVersionResourceName = "clusterserviceversions"
@@ -139,7 +139,12 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (done bool, err 
 		}
 	}
 
-	beforeSyncState := devworkspace.GetDevworkspaceState(deployContext.ClusterAPI.Scheme, org.AsV2alpha1(deployContext.CheCluster))
+	// check if DW exists on the cluster
+	devWorkspaceWebHookExistedBeforeSync, err := deploy.Get(
+		deployContext,
+		client.ObjectKey{Name: DevWorkspaceWebhookName},
+		&admissionregistrationv1.MutatingWebhookConfiguration{},
+	)
 
 	for _, syncItem := range syncItems {
 		_, err := syncItem(deployContext)
@@ -148,11 +153,8 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (done bool, err 
 		}
 	}
 
-	afterSyncState := devworkspace.GetDevworkspaceState(deployContext.ClusterAPI.Scheme, org.AsV2alpha1(deployContext.CheCluster))
-
 	if !util.IsTestMode() {
-		if beforeSyncState != afterSyncState {
-			// DevWorkspace Status changed after sync
+		if !devWorkspaceWebHookExistedBeforeSync {
 			// we need to restart Che Operator to switch devworkspace controller mode
 			restartCheOperator()
 		}
