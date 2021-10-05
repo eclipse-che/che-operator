@@ -1,15 +1,17 @@
 //
 // Copyright (c) 2019-2021 Red Hat, Inc.
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// SPDX-License-Identifier: EPL-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Contributors:
-//   Red Hat, Inc. - initial API and implementation
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
-
 package config
 
 import (
@@ -17,6 +19,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/devfile/devworkspace-operator/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -67,4 +70,12 @@ func GetResourceQuantityFromEnvVar(env string) (*resource.Quantity, error) {
 		return nil, fmt.Errorf("failed to parse environment variable %s: %s", env, err)
 	}
 	return &quantity, nil
+}
+
+func GetWorkspaceControllerSA() (string, error) {
+	saName := os.Getenv(constants.ControllerServiceAccountNameEnvVar)
+	if saName == "" {
+		return "", fmt.Errorf("environment variable %s is unset", constants.ControllerServiceAccountNameEnvVar)
+	}
+	return saName, nil
 }

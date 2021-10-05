@@ -38,12 +38,11 @@ github.com/davecgh/go-spew/spew
 github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
 github.com/devfile/api/v2/pkg/attributes
 github.com/devfile/api/v2/pkg/devfile
-# github.com/devfile/devworkspace-operator v0.2.1-0.20210906065716-d0b62f524bef
+# github.com/devfile/devworkspace-operator v0.2.1-0.20211005102315-728dff7e987c
 ## explicit
 github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers
-github.com/devfile/devworkspace-operator/internal/images
 github.com/devfile/devworkspace-operator/internal/map
 github.com/devfile/devworkspace-operator/pkg/common
 github.com/devfile/devworkspace-operator/pkg/config

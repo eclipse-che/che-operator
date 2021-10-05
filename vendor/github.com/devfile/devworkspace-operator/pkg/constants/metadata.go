@@ -1,15 +1,17 @@
 //
 // Copyright (c) 2019-2021 Red Hat, Inc.
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// SPDX-License-Identifier: EPL-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Contributors:
-//   Red Hat, Inc. - initial API and implementation
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
-
 package constants
 
 // Constants that are used in labels and annotation on DevWorkspace-related resources.
@@ -25,6 +27,14 @@ const (
 
 	// DevWorkspaceMountLabel is the label key to store if a configmap or secret should be mounted to the devworkspace
 	DevWorkspaceMountLabel = "controller.devfile.io/mount-to-devworkspace"
+
+	// DevWorkspaceGitCredentialLabel is the label key to specify if the secret is a git credential. All secrets who
+	// specify this label in a namespace will consolidate into one secret before mounting into a devworkspace.
+	// Only secret data with the credentials key will be used and credentials must be the base64 encoded version
+	//	of https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}
+	// E.g. echo -n "https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}" | base64
+	// see https://git-scm.com/docs/git-credential-store#_storage_format for more details
+	DevWorkspaceGitCredentialLabel = "controller.devfile.io/git-credential"
 
 	// DevWorkspaceMountPathAnnotation is the annotation key to store the mount path for the secret or configmap.
 	// If no mount path is provided, configmaps will be mounted at /etc/config/<configmap-name>, secrets will
@@ -47,6 +57,11 @@ const (
 	// annotation will cause devworkspace start to fail if webhooks are disabled.
 	// Operator also propagates it to the devworkspace-related objects to perform authorization.
 	DevWorkspaceRestrictedAccessAnnotation = "controller.devfile.io/restricted-access"
+
+	// DevWorkspaceStartedStatusAnnotation is applied to subresources of DevWorkspaces to indicate the owning object's
+	// .spec.started value. This annotation is applied to DevWorkspaceRoutings to trigger reconciles when a DevWorkspace
+	// is started or stopped.
+	DevWorkspaceStartedStatusAnnotation = "controller.devfile.io/devworkspace-started"
 
 	// DevWorkspaceStopReasonAnnotation marks the reason why the devworkspace was stopped; when a devworkspace is restarted
 	// this annotation will be cleared
