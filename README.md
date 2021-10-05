@@ -436,3 +436,50 @@ $ mockgen -source=pkg/controller/che/oauth_initial_htpasswd_provider.go \
 ```
 
 See more: https://github.com/golang/mock/blob/master/README.md
+
+### Validation licenses for runtime dependencies
+
+che-operator is an Eclipse Foundation project. So we have to use only open source runtime dependencies with Eclipse compatible license https://www.eclipse.org/legal/licenses.php.
+Runtime dependencies license validation process described here: https://www.eclipse.org/projects/handbook/#ip-third-party
+To merge code with third party dependencies you have to follow process: https://www.eclipse.org/projects/handbook/#ip-prereq-diligence
+When you are using new golang dependencies you have to validate the license for transitive dependencies too.
+You can skip license validation for test dependencies.
+All new dependencies you can find using git diff in the go.sum file.
+
+Sometimes in the go.sum file you can find few versions for the same dependency:
+
+```go.sum
+...
+github.com/go-openapi/analysis v0.18.0/go.mod h1:IowGgpVeD0vNm45So8nr+IcQ3pxVtpRoBWb8PVZO0ik=
+github.com/go-openapi/analysis v0.19.2/go.mod h1:3P1osvZa9jKjb8ed2TPng3f0i/UY9snX6gxi44djMjk=
+...
+```
+
+In this case will be used only one version(the highest) in the runtime, so you need to validate license for only one of them(the latest).
+But also you can find module path https://golang.org/ref/mod#module-path with major version suffix in the go.sum file:
+
+```go.sum
+...
+github.com/evanphx/json-patch v4.11.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
+github.com/evanphx/json-patch/v5 v5.1.0/go.mod h1:G79N1coSVB93tBe7j6PhzjmR3/2VvlbKOFpnXhI9Bw4=
+...
+```
+
+In this case we have the same dependency, but with different major versions suffix.
+Main project module uses both these versions in runtime. So both of them should be validated.
+
+Also there is some useful golang commands to take a look full list dependencies:
+
+```bash
+$ go list -mod=mod -m all
+```
+
+This command returns all test and runtime dependencies. Like mentioned above, you can skip test dependencies.
+
+If you want to know dependencies relation you can build dependencies graph:
+
+```bash
+$ go mod graph
+```
+
+> IMPORTANT: Dependencies validation information should be stored in the `.deps/Dependencies.md` file.

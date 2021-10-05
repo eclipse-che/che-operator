@@ -1,4 +1,4 @@
-# Production dependencies
+# Runtime dependencies
 
 | Packages | License | Resolved CQs |
 | --- | --- | --- |
@@ -437,18 +437,18 @@
 | [github.com/asaskevich/govalidator@f61b66f89f4a311bef65f13e575bcf1a2ffadda6](https://github.com/asaskevich/govalidator.git) | MIT | [clearlydefined](https://clearlydefined.io/definitions/git/github/asaskevich/govalidator/f61b66f89f4a311bef65f13e575bcf1a2ffadda6) |
 | [github.com/lucasjones/reggen@37ba4fa293bb40d3e1d805ba3545bfaab688d669](https://github.com/lucasjones/reggen.git) | MIT | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23647) |
 | [github.com/asaskevich/govalidator@f61b66f89f4a311bef65f13e575bcf1a2ffadda6](https://github.com/asaskevich/govalidator.git) | MIT | [clearlydefined](https://clearlydefined.io/definitions/git/github/asaskevich/govalidator/f61b66f89f4a311bef65f13e575bcf1a2ffadda6) |
-| [golang.org/x/crypto@5ea612d1eb830b38bc4e914e37f55311eb58adce](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/exp@956cc1757749645f24cefb2ef2a41b0ec4514cf8](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/image@0694c2d4d067f97ebef574d63a763ee8ab559da7](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/lint@738671d3881b9731cc63024d5d88cf28db875626](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/mod@v0.4.2](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/net@a5a99cb37ef4b68617775ab669177656090ab396](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/sync@036812b2e83c0ddf193dd5a34e034151da389d09](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/sys@0f9fa26af87c481a6877a4ca1330699ba9a30673](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/term@6a3ed077a48de71621ad530f9078fffa0bc0ce32](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/text@v0.3.4](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/time@1f47c861a9ac5a6e7645609f91b895398ff31642](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/tools@v0.1.5](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/xerrors@5ec99f83aff198f5fbd629d6c8d8eb38a04218ca](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/oauth2@bf48bf16ab8d622ce64ec6ce98d2c98f916b6303](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
-| [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go.git) | BSD-3-Clause | N/A |
+| [golang.org/x/crypto@5ea612d1eb830b38bc4e914e37f55311eb58adce](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/exp@956cc1757749645f24cefb2ef2a41b0ec4514cf8](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/image@0694c2d4d067f97ebef574d63a763ee8ab559da7](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/lint@738671d3881b9731cc63024d5d88cf28db875626](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/mod@v0.4.2](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/net@a5a99cb37ef4b68617775ab669177656090ab396](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/sync@036812b2e83c0ddf193dd5a34e034151da389d09](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/sys@0f9fa26af87c481a6877a4ca1330699ba9a30673](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/term@6a3ed077a48de71621ad530f9078fffa0bc0ce32](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/text@v0.3.4](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/time@1f47c861a9ac5a6e7645609f91b895398ff31642](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/tools@v0.1.5](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/xerrors@5ec99f83aff198f5fbd629d6c8d8eb38a04218ca](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/oauth2@bf48bf16ab8d622ce64ec6ce98d2c98f916b6303](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
