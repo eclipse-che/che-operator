@@ -482,4 +482,4 @@ If you want to know dependencies relation you can build dependencies graph:
 $ go mod graph
 ```
 
-> IMPORTANT: Dependencies validation information should be stored in the `.deps/Dependencies.md` file.
+> IMPORTANT: Dependencies validation information should be stored in the `DEPENDENCIES.md` file.
