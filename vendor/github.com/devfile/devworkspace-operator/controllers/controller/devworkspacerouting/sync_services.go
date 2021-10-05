@@ -1,20 +1,23 @@
 //
 // Copyright (c) 2019-2021 Red Hat, Inc.
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// SPDX-License-Identifier: EPL-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Contributors:
-//   Red Hat, Inc. - initial API and implementation
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
-
 package devworkspacerouting
 
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/devfile/devworkspace-operator/pkg/constants"
@@ -31,10 +34,25 @@ import (
 
 var serviceDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(corev1.Service{}, "TypeMeta", "ObjectMeta", "Status"),
-	cmpopts.IgnoreFields(corev1.ServiceSpec{}, "ClusterIP", "ClusterIPs", "IPFamilies", "IPFamilyPolicy", "SessionAffinity"),
-	cmpopts.IgnoreFields(corev1.ServicePort{}, "TargetPort"),
-	cmpopts.SortSlices(func(a, b corev1.ServicePort) bool {
-		return strings.Compare(a.Name, b.Name) > 0
+	cmp.Comparer(func(x, y corev1.ServiceSpec) bool {
+		xCopy := x.DeepCopy()
+		yCopy := y.DeepCopy()
+		if !cmp.Equal(xCopy.Selector, yCopy.Selector) {
+			return false
+		}
+		// Function that takes a slice of servicePorts and returns the appropriate comparison
+		// function to pass to sort.Slice() for that slice of servicePorts.
+		servicePortSorter := func(servicePorts []corev1.ServicePort) func(i, j int) bool {
+			return func(i, j int) bool {
+				return strings.Compare(servicePorts[i].Name, servicePorts[j].Name) > 0
+			}
+		}
+		sort.Slice(xCopy.Ports, servicePortSorter(xCopy.Ports))
+		sort.Slice(yCopy.Ports, servicePortSorter(yCopy.Ports))
+		if !cmp.Equal(xCopy.Ports, yCopy.Ports) {
+			return false
+		}
+		return xCopy.Type == yCopy.Type
 	}),
 }
 
@@ -59,6 +77,10 @@ func (r *DevWorkspaceRoutingReconciler) syncServices(routing *controllerv1alpha1
 		if contains, idx := listContainsByName(specService, clusterServices); contains {
 			clusterService := clusterServices[idx]
 			if !cmp.Equal(specService, clusterService, serviceDiffOpts) {
+				r.Log.Info(fmt.Sprintf("Updating service: %s", clusterService.Name))
+				if r.DebugLogging {
+					r.Log.Info(fmt.Sprintf("Diff: %s", cmp.Diff(specService, clusterService, serviceDiffOpts)))
+				}
 				// Cannot naively copy spec, as clusterIP is unmodifiable
 				clusterIP := clusterService.Spec.ClusterIP
 				clusterService.Spec = specService.Spec

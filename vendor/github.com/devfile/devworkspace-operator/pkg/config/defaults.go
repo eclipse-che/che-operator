@@ -12,7 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Package v1alpha1 contains API Schema definitions for the controller v1alpha1 API group
-// +k8s:deepcopy-gen=package,register
-// +groupName=controller.devfile.io
-package v1alpha1
+package config
+
+import "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+
+// DefaultConfig represents the default configuration for the DevWorkspace Operator.
+var DefaultConfig = &v1alpha1.OperatorConfiguration{
+	Routing: &v1alpha1.RoutingConfig{
+		DefaultRoutingClass: "basic",
+		ClusterHostSuffix:   "", // is auto discovered when running on OpenShift. Must be defined by CR on Kubernetes.
+	},
+	Workspace: &v1alpha1.WorkspaceConfig{
+		ImagePullPolicy: "Always",
+		PVCName:         "claim-devworkspace",
+		IdleTimeout:     "15m",
+		ProgressTimeout: "5m",
+	},
+}

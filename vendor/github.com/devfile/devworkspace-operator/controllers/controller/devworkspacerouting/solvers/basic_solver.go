@@ -1,15 +1,17 @@
 //
 // Copyright (c) 2019-2021 Red Hat, Inc.
-// This program and the accompanying materials are made
-// available under the terms of the Eclipse Public License 2.0
-// which is available at https://www.eclipse.org/legal/epl-2.0/
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// SPDX-License-Identifier: EPL-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Contributors:
-//   Red Hat, Inc. - initial API and implementation
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
-
 package solvers
 
 import (
@@ -56,9 +58,9 @@ func (s *BasicSolver) Finalize(*controllerv1alpha1.DevWorkspaceRouting) error {
 func (s *BasicSolver) GetSpecObjects(routing *controllerv1alpha1.DevWorkspaceRouting, workspaceMeta DevWorkspaceMetadata) (RoutingObjects, error) {
 	routingObjects := RoutingObjects{}
 
-	routingSuffix := config.ControllerCfg.GetProperty(config.RoutingSuffix)
-	if routingSuffix == nil {
-		return routingObjects, errors.New(config.RoutingSuffix + " must be set for basic routing")
+	routingSuffix := config.Routing.ClusterHostSuffix
+	if routingSuffix == "" {
+		return routingObjects, errors.New("basic routing requires .config.routing.clusterHostSuffix to be set in operator config")
 	}
 
 	spec := routing.Spec
@@ -66,9 +68,9 @@ func (s *BasicSolver) GetSpecObjects(routing *controllerv1alpha1.DevWorkspaceRou
 	services = append(services, GetDiscoverableServicesForEndpoints(spec.Endpoints, workspaceMeta)...)
 	routingObjects.Services = services
 	if infrastructure.IsOpenShift() {
-		routingObjects.Routes = getRoutesForSpec(*routingSuffix, spec.Endpoints, workspaceMeta)
+		routingObjects.Routes = getRoutesForSpec(routingSuffix, spec.Endpoints, workspaceMeta)
 	} else {
-		routingObjects.Ingresses = getIngressesForSpec(*routingSuffix, spec.Endpoints, workspaceMeta)
+		routingObjects.Ingresses = getIngressesForSpec(routingSuffix, spec.Endpoints, workspaceMeta)
 	}
 
 	return routingObjects, nil
