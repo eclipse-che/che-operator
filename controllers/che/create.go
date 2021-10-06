@@ -16,10 +16,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.DeployContext, request reconcile.Request) (err error) {
+func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.DeployContext) (err error) {
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	cheNamespace := deployContext.CheCluster.Namespace
 	if len(deployContext.CheCluster.Spec.Server.CheFlavor) < 1 {
