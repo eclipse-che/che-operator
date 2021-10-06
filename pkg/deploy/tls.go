@@ -595,6 +595,7 @@ func GetCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, err
 	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
+		Namespace:     deployContext.CheCluster.GetNamespace(),
 	}
 	if err := deployContext.ClusterAPI.Client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
 		return nil, err
