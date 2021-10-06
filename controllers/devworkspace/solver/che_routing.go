@@ -481,8 +481,9 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 				if infrastructure.IsOpenShift() {
 					middlewares = append(middlewares, dwId+gateway.HeaderRewriteMiddlewareSuffix)
 				}
-				cfg.HTTP.Routers[dwId+"-healthz"] = &gateway.TraefikConfigRouter{
-					Rule:        fmt.Sprintf("Path(`%s`)", fmt.Sprintf("/%s/%s/%d/healthz", dwId, componentName, e.TargetPort)),
+				routeName, endpointPath := createEndpointPath(&e, componentName)
+				cfg.HTTP.Routers[routeName+"-healthz"] = &gateway.TraefikConfigRouter{
+					Rule:        fmt.Sprintf("Path(`/%s%s/healthz`)", dwId, endpointPath),
 					Service:     dwId,
 					Middlewares: middlewares,
 					Priority:    101,
@@ -493,15 +494,7 @@ func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints 
 }
 
 func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gateway.TraefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
-	var routeName string
-	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
-		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
-		routeName = e.Name
-	} else {
-		// if endpoint is NOT unique, we're exposing on /componentName/<port-number>
-		routeName = strconv.Itoa(e.TargetPort)
-	}
-	prefix := fmt.Sprintf("/%s/%s", componentName, routeName)
+	routeName, prefix := createEndpointPath(&e, componentName)
 	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
 
 	// skip if exact same route is already exposed
@@ -534,6 +527,19 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 			fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
 			[]string{prefix})
 	}
+}
+
+func createEndpointPath(e *dw.Endpoint, componentName string) (routeName string, path string) {
+	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
+		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
+		routeName = e.Name
+	} else {
+		// if endpoint is NOT unique, we're exposing on /componentName/<port-number>
+		routeName = strconv.Itoa(e.TargetPort)
+	}
+	path = fmt.Sprintf("/%s/%s", componentName, routeName)
+
+	return routeName, path
 }
 
 func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Service {
