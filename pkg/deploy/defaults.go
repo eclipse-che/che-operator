@@ -156,6 +156,14 @@ const (
 	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket"
 	BitBucketOAuthConfigPrivateKey  = "private.key"
 	BitBucketOAuthConfigConsumerKey = "consumer.key"
+
+	GitHubOAuthConfigMountPath    = "/che-conf/oauth/github"
+	GitHubOAuthConfigClientId     = "id"
+	GitHubOAuthConfigClientSecret = "secret"
+
+	GitLabOAuthConfigMountPath    = "/che-conf/oauth/gitlab"
+	GitLabOAuthConfigClientId     = "id"
+	GitLabOAuthConfigClientSecret = "secret"
 )
 
 func InitDefaults(defaultsPath string) {
