@@ -84,7 +84,7 @@ func (r *CheClusterReconciler) delegateWorkspacePermissionsInTheDifferNamespaceT
 		return false, err
 	}
 
-	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesClusterRoleBindingName, CheServiceAccountName, сheWorkspacesClusterRoleName)
+	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheWorkspacesClusterRoleBindingName, deploy.CheServiceAccountName, сheWorkspacesClusterRoleName)
 	if !done {
 		return false, err
 	}
@@ -121,7 +121,7 @@ func (r *CheClusterReconciler) delegateNamespaceEditorPermissions(deployContext 
 		return false, err
 	}
 
-	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheNamespaceEditorClusterRoleBindingName, CheServiceAccountName, сheNamespaceEditorClusterRoleName)
+	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, сheNamespaceEditorClusterRoleBindingName, deploy.CheServiceAccountName, сheNamespaceEditorClusterRoleName)
 	if !done {
 		return false, err
 	}
@@ -156,7 +156,7 @@ func (r *CheClusterReconciler) delegateDevWorkspacePermissions(deployContext *de
 		return false, err
 	}
 
-	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, devWorkspaceClusterRoleBindingName, CheServiceAccountName, devWorkspaceClusterRoleName)
+	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, devWorkspaceClusterRoleBindingName, deploy.CheServiceAccountName, devWorkspaceClusterRoleName)
 	if !done {
 		return false, err
 	}
