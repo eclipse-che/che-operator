@@ -220,7 +220,10 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 		return true, err
 	}
 
-	fakeDeployContext := &deploy.DeployContext{ClusterAPI: deploy.ClusterAPI{Client: bctx.r.client}}
+	fakeDeployContext := &deploy.DeployContext{
+		ClusterAPI: deploy.ClusterAPI{Client: bctx.r.client},
+		CheCluster: bctx.cheCR,
+	}
 	caBundlesConfigmaps, err := deploy.GetCACertsConfigMaps(fakeDeployContext)
 	if err != nil {
 		return false, err
