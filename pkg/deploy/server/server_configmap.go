@@ -308,7 +308,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 
 	addMap(cheEnv, s.deployContext.CheCluster.Spec.Server.CustomCheProperties)
 
-	err = setBitBucketEndpoints(s.deployContext, cheEnv)
+	err = setBitbucketEndpoints(s.deployContext, cheEnv)
 	if err != nil {
 		return nil, err
 	}
