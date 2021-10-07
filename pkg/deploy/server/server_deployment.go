@@ -417,10 +417,10 @@ func MountBitBucketOAuthConfig(deployContext *deploy.DeployContext, deployment *
 		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
 		container.Env = append(container.Env, corev1.EnvVar{
 			Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
-			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigConsumerKey,
+			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigConsumerKeyFileName,
 		}, corev1.EnvVar{
 			Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
-			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigPrivateKey,
+			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigPrivateKeyFileName,
 		}, corev1.EnvVar{
 			Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
 			Value: endpoint,
@@ -463,10 +463,10 @@ func MountGitHubOAuthConfig(deployContext *deploy.DeployContext, deployment *app
 		// mount env
 		container.Env = append(container.Env, corev1.EnvVar{
 			Name:  "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH",
-			Value: deploy.GitHubOAuthConfigMountPath + "/" + deploy.GitHubOAuthConfigClientId,
+			Value: deploy.GitHubOAuthConfigMountPath + "/" + deploy.GitHubOAuthConfigClientIdFileName,
 		}, corev1.EnvVar{
 			Name:  "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH",
-			Value: deploy.GitHubOAuthConfigMountPath + "/" + deploy.GitHubOAuthConfigClientSecret,
+			Value: deploy.GitHubOAuthConfigMountPath + "/" + deploy.GitHubOAuthConfigClientSecretFileName,
 		})
 	}
 
@@ -506,10 +506,10 @@ func MountGitLabOAuthConfig(deployContext *deploy.DeployContext, deployment *app
 		// mount env
 		container.Env = append(container.Env, corev1.EnvVar{
 			Name:  "CHE_OAUTH_GITLAB_CLIENTID__FILEPATH",
-			Value: deploy.GitLabOAuthConfigMountPath + "/" + deploy.GitLabOAuthConfigClientId,
+			Value: deploy.GitLabOAuthConfigMountPath + "/" + deploy.GitLabOAuthConfigClientIdFileName,
 		}, corev1.EnvVar{
 			Name:  "CHE_OAUTH_GITLAB_CLIENTSECRET__FILEPATH",
-			Value: deploy.GitLabOAuthConfigMountPath + "/" + deploy.GitLabOAuthConfigClientSecret,
+			Value: deploy.GitLabOAuthConfigMountPath + "/" + deploy.GitLabOAuthConfigClientSecretFileName,
 		})
 
 		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
