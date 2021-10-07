@@ -13,6 +13,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"os"
 	"time"
@@ -257,7 +258,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = enableDevworkspaceSupport(mgr); err != nil {
+	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
+	sigHandler := signal.SetupSignalHandler(period)
+
+	if err = enableDevworkspaceSupport(mgr, sigHandler.Done()); err != nil {
 		setupLog.Error(err, "unable to initialize devworkspace support")
 		os.Exit(1)
 	}
@@ -275,18 +279,17 @@ func main() {
 
 	// Start the Cmd
 	setupLog.Info("starting manager")
-	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
-	if err := mgr.Start(signal.SetupSignalHandler(period)); err != nil {
+	if err := mgr.Start(sigHandler); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }
 
-func enableDevworkspaceSupport(mgr manager.Manager) error {
+func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error {
 	// DWO and DWCO use the infrastructure package for openshift detection. It needs to be initialized
 	// but only supports OpenShift v4 or Kubernetes.
 	if err := infrastructure.Initialize(); err != nil {
-		setupLog.Info("devworkspace cannot run on this infrastructure")
+		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
 		return nil
 	}
 
@@ -297,54 +300,97 @@ func enableDevworkspaceSupport(mgr manager.Manager) error {
 		return err
 	}
 
-	// we only enable Devworkspace support, if there is the controller.devfile.io resource group in the cluster
-	// we assume that if the group is there, then we have all the expected CRs there, too.
+	// we only enable DevWorkspace support, if there is the controller.devfile.io resource group in the cluster
+	// and DevWorkspaces are enabled at least on one CheCluster
+	dwEnabled := doesCheClusterWithDevWorkspaceEnabledExist()
 
-	cl, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if !dwEnabled {
+		doAsyncRestartWhenDevWorkspaceEnabled(stop)
+		return nil
+	}
+
+	// we assume that if the group is there, then we have all the expected CRs there, too.
+	dwApiExists, err := findApiGroup(mgr, "controller.devfile.io")
 	if err != nil {
 		return err
+	}
+
+	if !dwApiExists {
+		return errors.New("there is a CheCluster with DevWorkspace enabled but " +
+			"devworkspace api group 'controller.devfile.io' is not available")
+	}
+
+	if err := dwo_api.AddToScheme(mgr.GetScheme()); err != nil {
+		return err
+	}
+
+	routing := dwr.DevWorkspaceRoutingReconciler{
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
+		Scheme:       mgr.GetScheme(),
+		SolverGetter: solver.Getter(mgr.GetScheme()),
+	}
+	if err := routing.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
+		return err
+	}
+
+	userNamespaceReconciler := usernamespace.NewReconciler()
+
+	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
+		return err
+	}
+
+	setupLog.Info("DevWorkspace support enabled")
+
+	return nil
+}
+
+func doesCheClusterWithDevWorkspaceEnabledExist() bool {
+	cheClusters := devworkspace.GetCurrentCheClusterInstances()
+	for _, cheCluster := range cheClusters {
+		if cheCluster.Spec.IsEnabled() {
+			return true
+		}
+	}
+	return false
+}
+
+func doAsyncRestartWhenDevWorkspaceEnabled(stop <-chan struct{}) {
+	setupLog.Info("DevWorkspace support disabled. Will initiate restart when CheCluster with devworkspaces enabled will appear")
+	for {
+		select {
+		case <-stop:
+			return
+		case <-time.After(time.Duration(30) * time.Second):
+			// don't spam the log every time we check. The first time was enough...
+			exists := doesCheClusterWithDevWorkspaceEnabledExist()
+			if exists {
+				setupLog.Info("CheCluster with DevWorkspace enabled discovered. Restarting to activate DevWorkspaces mode")
+				os.Exit(0)
+			}
+		}
+	}
+}
+
+func findApiGroup(mgr manager.Manager, apiGroup string) (bool, error) {
+	cl, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		return false, err
 	}
 
 	groups, err := cl.ServerGroups()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	supported := false
 	for _, g := range groups.Groups {
-		if g.Name == "controller.devfile.io" {
+		if g.Name == apiGroup {
 			supported = true
 			break
 		}
 	}
-
-	if supported {
-		if err := dwo_api.AddToScheme(mgr.GetScheme()); err != nil {
-			return err
-		}
-
-		routing := dwr.DevWorkspaceRoutingReconciler{
-			Client:       mgr.GetClient(),
-			Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
-			Scheme:       mgr.GetScheme(),
-			SolverGetter: solver.Getter(mgr.GetScheme()),
-		}
-		if err := routing.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
-			return err
-		}
-
-		userNamespaceReconciler := usernamespace.NewReconciler()
-
-		if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
-			return err
-		}
-
-		setupLog.Info("Devworkspace support enabled")
-	} else {
-		setupLog.Info("Devworkspace support disabled")
-	}
-
-	return nil
+	return supported, nil
 }
