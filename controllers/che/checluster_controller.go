@@ -258,8 +258,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	} else {
 		logrus.Info("Reconciliation completed.")
-		if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
-			return ctrl.Result{}, err
+		if checluster.Status.Reason != "" {
+			if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
