@@ -1218,8 +1218,6 @@ spec:
                         value: quay.io/eclipse/che-dotnet-2.2@sha256:b42e8dae8d896645d9ad709aef4c4446e4a3ef64aaa5b4842703a443022f00bd
                       - name: RELATED_IMAGE_che_dotnet_3_1_devfile_registry_image_G4XDGNZOGE______
                         value: quay.io/eclipse/che-dotnet-3.1@sha256:82f6c96e0ad34e25477dc232ad98e84fe39d0b33ecbe3513fd5fb243b19b0caf
-                      - name: RELATED_IMAGE_che_golang_1_14_devfile_registry_image_G4XDGNZOGE______
-                        value: quay.io/eclipse/che-golang-1.14@sha256:3540caaa846e0930389860c126cee3de39300a4e38341f81a76b4a260cccbf9c
                       - name: RELATED_IMAGE_che_java11_gradle_devfile_registry_image_G4XDGNZOGE______
                         value: quay.io/eclipse/che-java11-gradle@sha256:a6f64ded0ac58b2e97243e87b5dfbc491d2c9a08c33b45fce2f9bd201322fb96
                       - name: RELATED_IMAGE_che_java11_maven_devfile_registry_image_G4XDGNZOGE______
@@ -1695,9 +1693,6 @@ spec:
     - name: che-dotnet-3.1-7.37.1
       image: quay.io/eclipse/che-dotnet-3.1@sha256:82f6c96e0ad34e25477dc232ad98e84fe39d0b33ecbe3513fd5fb243b19b0caf
       # tag: quay.io/eclipse/che-dotnet-3.1:7.37.1
-    - name: che-golang-1.14-7.37.1
-      image: quay.io/eclipse/che-golang-1.14@sha256:3540caaa846e0930389860c126cee3de39300a4e38341f81a76b4a260cccbf9c
-      # tag: quay.io/eclipse/che-golang-1.14:7.37.1
     - name: che-java11-gradle-7.37.1
       image: quay.io/eclipse/che-java11-gradle@sha256:a6f64ded0ac58b2e97243e87b5dfbc491d2c9a08c33b45fce2f9bd201322fb96
       # tag: quay.io/eclipse/che-java11-gradle:7.37.1
