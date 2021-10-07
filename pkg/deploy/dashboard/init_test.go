@@ -9,6 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package dashboard
 
 import "github.com/eclipse-che/che-operator/pkg/deploy"

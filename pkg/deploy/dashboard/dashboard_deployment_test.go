@@ -9,10 +9,13 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package dashboard
 
 import (
 	"os"
+
+	configv1 "github.com/openshift/api/config/v1"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
@@ -49,11 +52,13 @@ func TestDashboardDeploymentSecurityContext(t *testing.T) {
 			},
 		},
 		ClusterAPI: deploy.ClusterAPI{
-			Client: cli,
-			Scheme: scheme.Scheme,
+			Client:          cli,
+			NonCachedClient: cli,
+			Scheme:          scheme.Scheme,
 		},
 		Proxy: &deploy.Proxy{},
 	}
+	deployContext.ClusterAPI.Scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Console{})
 
 	dashboard := NewDashboard(deployContext)
 	deployment, err := dashboard.getDashboardDeploymentSpec()
@@ -122,11 +127,13 @@ func TestDashboardDeploymentResources(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
+					Client:          cli,
+					NonCachedClient: cli,
+					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Console{})
 
 			dashboard := NewDashboard(deployContext)
 			deployment, err := dashboard.getDashboardDeploymentSpec()
@@ -171,6 +178,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Name:  "CHE_INTERNAL_URL",
 					Value: "http://che-host.eclipse-che.svc:8080/api",
 				},
+				{
+					Name: "OPENSHIFT_CONSOLE_URL",
+				},
 			},
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -195,6 +205,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Name:  "CHE_URL",
 					Value: "http://che.com",
 				},
+				{
+					Name: "OPENSHIFT_CONSOLE_URL",
+				},
 				// the following are not provisioned: CHE_INTERNAL_URL
 			},
 			cheCluster: &orgv1.CheCluster{
@@ -205,6 +218,48 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						DisableInternalClusterSVCNames: &trueBool,
 						CheHost:                        "che.com",
+					},
+				},
+			},
+		},
+		{
+			name: "Test provisioning OpenShift Console URL",
+			initObjects: []runtime.Object{
+				&configv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster",
+						Namespace: "openshift-console",
+					},
+					Status: configv1.ConsoleStatus{
+						ConsoleURL: "https://console-openshift-console.apps.my-host/",
+					},
+				},
+			},
+			envVars: []corev1.EnvVar{
+				{
+					Name:  "CHE_HOST",
+					Value: "http://che.com",
+				},
+				{
+					Name:  "CHE_URL",
+					Value: "http://che.com",
+				},
+				{
+					Name:  "CHE_INTERNAL_URL",
+					Value: "http://che-host.eclipse-che.svc:8080/api",
+				},
+				{
+					Name:  "OPENSHIFT_CONSOLE_URL",
+					Value: "https://console-openshift-console.apps.my-host/",
+				},
+			},
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						CheHost: "che.com",
 					},
 				},
 			},
@@ -221,11 +276,13 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
+					Client:          cli,
+					NonCachedClient: cli,
+					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}
+			deployContext.ClusterAPI.Scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Console{})
 
 			dashboard := NewDashboard(deployContext)
 			deployment, err := dashboard.getDashboardDeploymentSpec()
@@ -337,8 +394,9 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
+					Client:          cli,
+					NonCachedClient: cli,
+					Scheme:          scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}

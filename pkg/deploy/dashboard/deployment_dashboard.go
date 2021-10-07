@@ -9,11 +9,16 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package dashboard
 
 import (
+	"context"
 	"fmt"
 	"strconv"
+
+	configv1 "github.com/openshift/api/config/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -58,6 +63,13 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 				Name:  "CHE_INTERNAL_URL",
 				Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, d.deployContext.CheCluster.Namespace)},
 		)
+	}
+
+	if util.IsOpenShift {
+		envVars = append(envVars,
+			corev1.EnvVar{
+				Name:  "OPENSHIFT_CONSOLE_URL",
+				Value: d.evaluateOpenShiftConsoleURL()})
 	}
 
 	terminationGracePeriodSeconds := int64(30)
@@ -184,6 +196,22 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	return deployment, nil
+}
+
+func (d *Dashboard) evaluateOpenShiftConsoleURL() string {
+	console := &configv1.Console{}
+
+	err := d.deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{
+		Name:      "cluster",
+		Namespace: "openshift-console",
+	}, console)
+
+	if err != nil {
+		// if error happen don't fail deployment but try again on the next reconcile loop
+		log.Error(err, "failed to get OpenShift Console Custom Resource to evaluate URL")
+		return ""
+	}
+	return console.Status.ConsoleURL
 }
 
 func (d *Dashboard) provisionCheSelfSignedCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
