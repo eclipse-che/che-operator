@@ -359,7 +359,7 @@ rules:
     - config.openshift.io
     resources:
     - consoles
-    resourcesNames:
+    resourceNames:
     - cluster
     verbs:
     - get
