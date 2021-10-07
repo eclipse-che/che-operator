@@ -9,10 +9,13 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package dashboard
 
 import (
 	"fmt"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
@@ -24,6 +27,10 @@ import (
 
 const (
 	exposePath = "/dashboard/"
+)
+
+var (
+	log = ctrl.Log.WithName("dashboard")
 )
 
 type Dashboard struct {

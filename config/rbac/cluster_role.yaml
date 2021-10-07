@@ -355,6 +355,14 @@ rules:
     - kubernetesimagepullers
     verbs:
     - '*'
+  - apiGroups:
+    - config.openshift.io
+    resources:
+    - consoles
+    resourcesNames:
+    - cluster
+    verbs:
+    - get
   ### CHE-OPERATOR ROLES ONLY: END
   # devworkspace-controller-view-workspaces.ClusterRole.yaml
   - apiGroups:
