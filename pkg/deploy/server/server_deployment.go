@@ -264,6 +264,16 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		return nil, err
 	}
 
+	err = MountGitHubOAuthConfig(s.deployContext, deployment)
+	if err != nil {
+		return nil, err
+	}
+
+	err = MountGitLabOAuthConfig(s.deployContext, deployment)
+	if err != nil {
+		return nil, err
+	}
+
 	container := &deployment.Spec.Template.Spec.Containers[0]
 	chePostgresSecret := s.deployContext.CheCluster.Spec.Database.ChePostgresSecret
 	if len(chePostgresSecret) > 0 {
@@ -374,7 +384,6 @@ func GetFullCheServerImageLink(checluster *orgv1.CheCluster) string {
 }
 
 func MountBitBucketOAuthConfig(deployContext *deploy.DeployContext, deployment *appsv1.Deployment) error {
-	// mount BitBucket configuration
 	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
 		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
 		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
@@ -387,36 +396,120 @@ func MountBitBucketOAuthConfig(deployContext *deploy.DeployContext, deployment *
 	} else if len(secrets) > 1 {
 		return errors.New("More than 1 BitBucket OAuth configuration secrets found")
 	} else if len(secrets) == 1 {
-		// mount secrets
-		container := &deployment.Spec.Template.Spec.Containers[0]
-		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
-			corev1.Volume{
-				Name: secrets[0].Name,
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: secrets[0].Name,
-					},
-				},
-			})
-		container.VolumeMounts = append(container.VolumeMounts,
-			corev1.VolumeMount{
-				Name:      secrets[0].Name,
-				MountPath: deploy.BitBucketOAuthConfigMountPath,
-			})
-
-		// mount env
-		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
-			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigConsumerKey,
-		}, corev1.EnvVar{
-			Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
-			Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigPrivateKey,
-		}, corev1.EnvVar{
-			Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
-			Value: endpoint,
+		mountSecret(deployment, &secrets[0], deploy.BitBucketOAuthConfigMountPath)
+		mountEnv(deployment, []corev1.EnvVar{
+			{
+				Name:  "CHE_OAUTH1_BITBUCKET_CONSUMERKEYPATH",
+				Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigConsumerKeyFileName,
+			}, {
+				Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
+				Value: deploy.BitBucketOAuthConfigMountPath + "/" + deploy.BitBucketOAuthConfigPrivateKeyFileName,
+			},
 		})
+
+		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+		if endpoint != "" {
+			mountEnv(deployment, []corev1.EnvVar{{
+				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
+				Value: endpoint,
+			}})
+		}
 	}
 
 	return nil
+}
+
+func MountGitHubOAuthConfig(deployContext *deploy.DeployContext, deployment *appsv1.Deployment) error {
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "github",
+	})
+
+	if err != nil {
+		return err
+	} else if len(secrets) > 1 {
+		return errors.New("More than 1 GitHub OAuth configuration secrets found")
+	} else if len(secrets) == 1 {
+		mountSecret(deployment, &secrets[0], deploy.GitHubOAuthConfigMountPath)
+		mountEnv(deployment, []corev1.EnvVar{
+			{
+				Name:  "CHE_OAUTH2_GITHUB_CLIENTID__FILEPATH",
+				Value: deploy.GitHubOAuthConfigMountPath + "/" + deploy.GitHubOAuthConfigClientIdFileName,
+			}, {
+				Name:  "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH",
+				Value: deploy.GitHubOAuthConfigMountPath + "/" + deploy.GitHubOAuthConfigClientSecretFileName,
+			},
+		})
+
+		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+		if endpoint != "" {
+			mountEnv(deployment, []corev1.EnvVar{{
+				Name:  "CHE_INTEGRATION_GITHUB_SERVER__ENDPOINTS",
+				Value: endpoint,
+			}})
+		}
+	}
+
+	return nil
+}
+
+func MountGitLabOAuthConfig(deployContext *deploy.DeployContext, deployment *appsv1.Deployment) error {
+	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: "gitlab",
+	})
+
+	if err != nil {
+		return err
+	} else if len(secrets) > 1 {
+		return errors.New("More than 1 GitLab OAuth configuration secrets found")
+	} else if len(secrets) == 1 {
+		mountSecret(deployment, &secrets[0], deploy.GitLabOAuthConfigMountPath)
+		mountEnv(deployment, []corev1.EnvVar{
+			{
+				Name:  "CHE_OAUTH_GITLAB_CLIENTID__FILEPATH",
+				Value: deploy.GitLabOAuthConfigMountPath + "/" + deploy.GitLabOAuthConfigClientIdFileName,
+			}, {
+				Name:  "CHE_OAUTH_GITLAB_CLIENTSECRET__FILEPATH",
+				Value: deploy.GitLabOAuthConfigMountPath + "/" + deploy.GitLabOAuthConfigClientSecretFileName,
+			},
+		})
+
+		endpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+		if endpoint != "" {
+			mountEnv(deployment, []corev1.EnvVar{{
+				Name:  "CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS",
+				Value: endpoint,
+			}})
+		}
+	}
+
+	return nil
+}
+
+func mountSecret(deployment *appsv1.Deployment, secret *corev1.Secret, mountPath string) {
+	container := &deployment.Spec.Template.Spec.Containers[0]
+	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
+		corev1.Volume{
+			Name: secret.Name,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secret.Name,
+				},
+			},
+		})
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      secret.Name,
+			MountPath: mountPath,
+		})
+}
+
+func mountEnv(deployment *appsv1.Deployment, envVar []corev1.EnvVar) {
+	container := &deployment.Spec.Template.Spec.Containers[0]
+	container.Env = append(container.Env, envVar...)
 }

@@ -153,9 +153,17 @@ const (
 	DefaultPostgresCpuLimit      = "500m"
 	DefaultPostgresCpuRequest    = "100m"
 
-	BitBucketOAuthConfigMountPath   = "/che-conf/oauth/bitbucket"
-	BitBucketOAuthConfigPrivateKey  = "private.key"
-	BitBucketOAuthConfigConsumerKey = "consumer.key"
+	BitBucketOAuthConfigMountPath           = "/che-conf/oauth/bitbucket"
+	BitBucketOAuthConfigPrivateKeyFileName  = "private.key"
+	BitBucketOAuthConfigConsumerKeyFileName = "consumer.key"
+
+	GitHubOAuthConfigMountPath            = "/che-conf/oauth/github"
+	GitHubOAuthConfigClientIdFileName     = "id"
+	GitHubOAuthConfigClientSecretFileName = "secret"
+
+	GitLabOAuthConfigMountPath            = "/che-conf/oauth/gitlab"
+	GitLabOAuthConfigClientIdFileName     = "id"
+	GitLabOAuthConfigClientSecretFileName = "secret"
 )
 
 func InitDefaults(defaultsPath string) {
