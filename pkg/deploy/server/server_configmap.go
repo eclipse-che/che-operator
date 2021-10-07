@@ -316,7 +316,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	return cheEnv, nil
 }
 
-func setBitBucketEndpoints(deployContext *deploy.DeployContext, cheEnv map[string]string) error {
+func setBitbucketEndpoints(deployContext *deploy.DeployContext, cheEnv map[string]string) error {
 	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
 		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
 		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
