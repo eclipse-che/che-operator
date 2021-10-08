@@ -15,8 +15,9 @@ package usernamespace
 import (
 	"context"
 
+	"github.com/eclipse-che/che-operator/pkg/util"
+
 	"github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	org "github.com/eclipse-che/che-operator/api"
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
@@ -65,7 +66,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.namespaceCache.client = r.client
 
 	var obj client.Object
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift {
 		obj = &projectv1.Project{}
 	} else {
 		obj = &corev1.Namespace{}

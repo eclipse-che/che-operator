@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/util"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
@@ -189,7 +191,7 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 }
 
 func TestCreateRelocatedObjectsK8S(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	util.IsOpenShift = false
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
 	t.Run("noIngresses", func(t *testing.T) {
@@ -321,7 +323,8 @@ func TestCreateRelocatedObjectsK8S(t *testing.T) {
 }
 
 func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	util.IsOpenShift = true
+
 	cl, _, objs := getSpecObjects(t, relocatableDevWorkspaceRouting())
 
 	t.Run("noIngresses", func(t *testing.T) {
@@ -432,7 +435,7 @@ func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 
 func TestCreateSubDomainObjects(t *testing.T) {
 	testCommon := func(infra infrastructure.Type) solvers.RoutingObjects {
-		infrastructure.InitializeForTesting(infra)
+		util.IsOpenShift = infra == infrastructure.OpenShiftv4
 
 		cl, _, objs := getSpecObjects(t, subdomainDevWorkspaceRouting())
 
@@ -502,7 +505,9 @@ func TestCreateSubDomainObjects(t *testing.T) {
 }
 
 func TestReportRelocatableExposedEndpoints(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	// kubernetes
+	util.IsOpenShift = false
+
 	routing := relocatableDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
 
@@ -554,7 +559,7 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 }
 
 func TestReportSubdomainExposedEndpoints(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	util.IsOpenShift = false
 	routing := subdomainDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
 
@@ -606,7 +611,7 @@ func TestReportSubdomainExposedEndpoints(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	util.IsOpenShift = false
 	routing := relocatableDevWorkspaceRouting()
 	cl, slv, _ := getSpecObjects(t, routing)
 
@@ -627,7 +632,7 @@ func TestFinalize(t *testing.T) {
 }
 
 func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	util.IsOpenShift = false
 	routing := relocatableDevWorkspaceRouting()
 	_, slv, objs := getSpecObjects(t, routing)
 
@@ -650,7 +655,8 @@ func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T)
 }
 
 func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	util.IsOpenShift = false
+	util.IsOpenShift4 = false
 
 	mgr := &v2alpha1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -691,7 +697,7 @@ func TestUsesIngressAnnotationsForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	util.IsOpenShift = false
 
 	mgr := &v2alpha1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -769,7 +775,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 }
 
 func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
-	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
+	util.IsOpenShift = true
 
 	mgr := &v2alpha1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{

@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	checluster "github.com/eclipse-che/che-operator/api"
 	checlusterv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
@@ -121,7 +120,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbac.Role{}).
 		Owns(&rbac.RoleBinding{})
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift {
 		bld.Owns(&routev1.Route{})
 	}
 	return bld.Complete(r)
@@ -273,7 +272,7 @@ func (r *CheClusterReconciler) updateStatus(ctx context.Context, cluster *v2alph
 func (r *CheClusterReconciler) validate(cluster *v2alpha1.CheCluster) error {
 	validationErrors := []string{}
 
-	if !infrastructure.IsOpenShift() {
+	if !util.IsOpenShift {
 		// The validation error messages must correspond to the storage version of the resource, which is currently
 		// v1...
 		if cluster.Spec.WorkspaceDomainEndpoints.BaseDomain == "" {
@@ -342,7 +341,7 @@ func (r *CheClusterReconciler) ensureFinalizer(ctx context.Context, cluster *v2a
 
 // Tries to autodetect the route base domain.
 func (r *CheClusterReconciler) detectOpenShiftRouteBaseDomain(cluster *v2alpha1.CheCluster) (string, error) {
-	if !infrastructure.IsOpenShift() {
+	if !util.IsOpenShift {
 		return "", nil
 	}
 

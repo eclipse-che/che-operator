@@ -18,6 +18,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+
 	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -32,11 +34,10 @@ import (
 
 	osruntime "runtime"
 
+	"fmt"
+
 	dwo_api "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-
-	"fmt"
 
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
@@ -286,13 +287,6 @@ func main() {
 }
 
 func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error {
-	// DWO and DWCO use the infrastructure package for openshift detection. It needs to be initialized
-	// but only supports OpenShift v4 or Kubernetes.
-	if err := infrastructure.Initialize(); err != nil {
-		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
-		return nil
-	}
-
 	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
 	// can write meaningful status messages into the CheCluster CRs.
 	dwChe := devworkspace.CheClusterReconciler{}
@@ -324,6 +318,11 @@ func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error 
 		return err
 	}
 
+	if err := infrastructure.Initialize(); err != nil {
+		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
+		return nil
+	}
+
 	routing := dwr.DevWorkspaceRoutingReconciler{
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
@@ -336,7 +335,6 @@ func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error 
 	}
 
 	userNamespaceReconciler := usernamespace.NewReconciler()
-
 	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
 		return err
