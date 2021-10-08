@@ -14,7 +14,6 @@ package devworkspace
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -53,8 +52,9 @@ func ShouldDevWorkspacesBeEnabled(mgr manager.Manager) (bool, error) {
 	}
 
 	if !dwApiExists {
-		return false, errors.New("there is a CheCluster with DevWorkspace enabled but " +
-			"devworkspace api group 'controller.devfile.io' is not available")
+		log.Info("WARN: there is a CheCluster with DevWorkspace enabled but devworkspace api group 'controller.devfile.io' is not available." +
+			"DevWorkspace mode is not activating assuming that Che Operator will install it and initiate reboot")
+		return false, nil
 	}
 
 	return true, nil
