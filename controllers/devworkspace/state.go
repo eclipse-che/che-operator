@@ -67,11 +67,11 @@ func NotifyWhenDevWorkspaceEnabled(mgr manager.Manager, stop <-chan struct{}, ca
 			return
 		case <-time.After(time.Duration(60) * time.Second):
 			// don't spam the log every time we check. The first time was enough...
-			exists, err := doesCheClusterWithDevWorkspaceEnabledExist(mgr)
+			shouldDevWorkspacesBeEnabled, err := ShouldDevWorkspacesBeEnabled(mgr)
 			if err != nil {
 				log.Error(err, "Failed to check if there is any CheCluster with DevWorkspaces enabled. DevWorkspace mode is not activated")
 			}
-			if exists {
+			if shouldDevWorkspacesBeEnabled {
 				callback()
 			}
 		}
