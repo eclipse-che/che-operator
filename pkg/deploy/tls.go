@@ -47,8 +47,6 @@ const (
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 	DefaultCheTLSSecretName               = "che-tls"
 
-	// CheCACertsConfigMapLabelKey is the label key which marks config map with additional CA certificates
-	CheCACertsConfigMapLabelKey = "app.kubernetes.io/component"
 	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
 	CheCACertsConfigMapLabelValue = "ca-bundle"
 	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
@@ -591,7 +589,7 @@ func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool
 func GetCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
-	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(CheCACertsConfigMapLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
+	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesComponentLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
 	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),

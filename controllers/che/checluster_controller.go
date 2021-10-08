@@ -37,7 +37,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -137,7 +136,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toTrustedBundleConfigMapRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
-		isTrusted, reconcileRequest := isTrustedBundleConfigMap(mgr, obj)
+		isTrusted, reconcileRequest := IsTrustedBundleConfigMap(r.nonCachedClient, r.namespace, obj)
 		if isTrusted {
 			return []ctrl.Request{reconcileRequest}
 		}
@@ -145,7 +144,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	var toEclipseCheRelatedObjRequestMapper handler.MapFunc = func(obj client.Object) []ctrl.Request {
-		isEclipseCheRelatedObj, reconcileRequest := isEclipseCheRelatedObj(mgr, obj)
+		isEclipseCheRelatedObj, reconcileRequest := IsEclipseCheRelatedObj(r.nonCachedClient, r.namespace, obj)
 		if isEclipseCheRelatedObj {
 			return []ctrl.Request{reconcileRequest}
 		}
@@ -654,43 +653,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-// isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
-func isTrustedBundleConfigMap(mgr ctrl.Manager, obj client.Object) (bool, ctrl.Request) {
-	checlusters := &orgv1.CheClusterList{}
-	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
-		return false, ctrl.Request{}
-	}
-
-	if len(checlusters.Items) != 1 {
-		return false, ctrl.Request{}
-	}
-
-	// Check if config map is the config map from CR
-	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.GetName() {
-		// No, it is not form CR
-		// Check for labels
-
-		// Check for part of Che label
-		if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
-			// Labels do not match
-			return false, ctrl.Request{}
-		}
-
-		// Check for CA bundle label
-		if value, exists := obj.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
-			// Labels do not match
-			return false, ctrl.Request{}
-		}
-	}
-
-	return true, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: checlusters.Items[0].Namespace,
-			Name:      checlusters.Items[0].Name,
-		},
-	}
-}
-
 func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployContext, request ctrl.Request, isOpenShift4 bool) (reconcile.Result, error) {
 	var message, reason string
 	oauth := false
@@ -767,31 +729,6 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 	}
 
 	return reconcile.Result{}, nil
-}
-
-// isEclipseCheRelatedObj indicates if there is a object with
-// the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
-func isEclipseCheRelatedObj(mgr ctrl.Manager, obj client.Object) (bool, ctrl.Request) {
-	checlusters := &orgv1.CheClusterList{}
-	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
-		return false, ctrl.Request{}
-	}
-
-	if len(checlusters.Items) != 1 {
-		return false, ctrl.Request{}
-	}
-
-	if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
-		// Labels do not match
-		return false, ctrl.Request{}
-	}
-
-	return true, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: checlusters.Items[0].Namespace,
-			Name:      checlusters.Items[0].Name,
-		},
-	}
 }
 
 func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployContext) {

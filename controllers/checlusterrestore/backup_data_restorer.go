@@ -124,7 +124,7 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	actualCheCR, cheCRCount, err := util.FindCheCRinNamespace(rctx.r.client, rctx.namespace)
+	actualCheCR, cheCRCount, err := util.FindCheClusterCRInNamespace(rctx.r.client, rctx.namespace)
 	if cheCRCount == -1 {
 		// error occurred while retreiving CheCluster CR
 		return false, err
