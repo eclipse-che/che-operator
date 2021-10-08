@@ -227,7 +227,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 			// try to find the endpoint in the ingresses/routes first. If it is there, it is exposed on a subdomain
 			// otherwise it is exposed through the gateway
 			var endpointURL string
-			if util.IsOpenShift {
+			if util.IsOpenShift4 {
 				route := findRouteForEndpoint(component, endpoint, &routingObj, workspaceID)
 				if route != nil {
 					endpointURL = path.Join(route.Spec.Host, endpoint.Path)
@@ -314,7 +314,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *v2
 }
 
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects) (func(info *EndpointInfo), error) {
-	if util.IsOpenShift {
+	if util.IsOpenShift4 {
 		exposer := &RouteExposer{}
 		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
@@ -475,7 +475,7 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 		},
 	}
 
-	if util.IsOpenShift {
+	if util.IsOpenShift4 {
 		mdls[dwId+"-auth"] = &gateway.TraefikConfigMiddleware{
 			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: "http://127.0.0.1:8089?namespace=" + dwNamespace,
@@ -561,7 +561,7 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 		},
 	}
 
-	if util.IsOpenShift {
+	if util.IsOpenShift4 {
 		cfg.HTTP.Middlewares[name+"-auth"] = &gateway.TraefikConfigMiddleware{
 			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
@@ -571,7 +571,7 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 }
 
 func calculateMiddlewares(name string, header bool) []string {
-	if util.IsOpenShift {
+	if util.IsOpenShift4 {
 		if header {
 			return []string{name + "-header", name + "-prefix", name + "-auth"}
 		} else {

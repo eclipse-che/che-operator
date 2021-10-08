@@ -66,7 +66,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.namespaceCache.client = r.client
 
 	var obj client.Object
-	if util.IsOpenShift {
+	if util.IsOpenShift4 {
 		obj = &projectv1.Project{}
 	} else {
 		obj = &corev1.Namespace{}

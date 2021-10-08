@@ -338,10 +338,10 @@ create-namespace:
 	set -e
 
 apply-crd:
-	kubectl apply -f ${ECLIPSE_CHE_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1}
-	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1}
+	kubectl apply -f ${ECLIPSE_CHE_CRD_V1BETA1}
+	kubectl apply -f ${ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1}
+	kubectl apply -f ${ECLIPSE_CHE_BACKUP_CRD_V1BETA1}
+	kubectl apply -f ${ECLIPSE_CHE_RESTORE_CRD_V1BETA1}
 
 .PHONY: init-cr
 init-cr:

@@ -59,6 +59,7 @@ func createTestScheme() *runtime.Scheme {
 func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 	test := func(infraType infrastructure.Type, namespace metav1.Object) {
 		util.IsOpenShift = infraType == infrastructure.OpenShiftv4
+		util.IsOpenShift4 = infraType == infrastructure.OpenShiftv4
 		ctx := context.TODO()
 
 		ns := namespace.GetName()
@@ -95,6 +96,7 @@ func TestExamineUpdatesCache(t *testing.T) {
 		nsName := namespace.GetName()
 		cl := fake.NewFakeClientWithScheme(createTestScheme(), namespace.(runtime.Object))
 		util.IsOpenShift = infraType == infrastructure.OpenShiftv4
+		util.IsOpenShift4 = infraType == infrastructure.OpenShiftv4
 
 		nsc := namespaceCache{
 			client:          cl,

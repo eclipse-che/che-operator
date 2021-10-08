@@ -91,7 +91,7 @@ func (c *namespaceCache) GetAllKnownNamespaces() []string {
 
 func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) (*namespaceInfo, error) {
 	var obj client.Object
-	if util.IsOpenShift {
+	if util.IsOpenShift4 {
 		obj = &projectv1.Project{}
 	} else {
 		obj = &corev1.Namespace{}
