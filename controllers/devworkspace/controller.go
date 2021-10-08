@@ -113,15 +113,16 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&checlusterv1.CheCluster{}).
 		Owns(&corev1.Service{}).
-		Owns(&networkingv1.Ingress{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbac.Role{}).
 		Owns(&rbac.RoleBinding{})
-	if util.IsOpenShift4 {
+	if util.IsOpenShift {
 		bld.Owns(&routev1.Route{})
+	} else {
+		bld.Owns(&networkingv1.Ingress{})
 	}
 	return bld.Complete(r)
 }
@@ -272,7 +273,7 @@ func (r *CheClusterReconciler) updateStatus(ctx context.Context, cluster *v2alph
 func (r *CheClusterReconciler) validate(cluster *v2alpha1.CheCluster) error {
 	validationErrors := []string{}
 
-	if !util.IsOpenShift4 {
+	if !util.IsOpenShift {
 		// The validation error messages must correspond to the storage version of the resource, which is currently
 		// v1...
 		if cluster.Spec.WorkspaceDomainEndpoints.BaseDomain == "" {
@@ -341,7 +342,7 @@ func (r *CheClusterReconciler) ensureFinalizer(ctx context.Context, cluster *v2a
 
 // Tries to autodetect the route base domain.
 func (r *CheClusterReconciler) detectOpenShiftRouteBaseDomain(cluster *v2alpha1.CheCluster) (string, error) {
-	if !util.IsOpenShift4 {
+	if !util.IsOpenShift {
 		return "", nil
 	}
 
