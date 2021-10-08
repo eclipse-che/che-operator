@@ -197,7 +197,7 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if devworkspace.GetDevworkspaceState(r.scheme, checluster) != devworkspace.DevworkspaceStateEnabled {
+	if devworkspace.GetDevWorkspaceState(r.scheme, checluster) != devworkspace.EnabledState {
 		return ctrl.Result{}, nil
 	}
 

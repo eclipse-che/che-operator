@@ -44,7 +44,7 @@ import (
 )
 
 var (
-	log                 = ctrl.Log.WithName("che")
+	log                 = ctrl.Log.WithName("devworkspace-che")
 	currentCheInstances = map[client.ObjectKey]v2alpha1.CheCluster{}
 	cheInstancesAccess  = sync.Mutex{}
 )
@@ -155,10 +155,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	disabledMessage := ""
-	switch GetDevworkspaceState(r.scheme, current) {
-	case DevworkspaceStateNotPresent:
+	switch GetDevWorkspaceState(r.scheme, current) {
+	case APINotPresentState:
 		disabledMessage = "DevWorkspace CRDs are not installed"
-	case DevworkspaceStateDisabled:
+	case DisabledState:
 		disabledMessage = "DevWorkspace Che is disabled"
 	}
 

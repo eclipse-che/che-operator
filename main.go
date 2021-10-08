@@ -13,16 +13,18 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"flag"
 	"os"
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
+	"github.com/eclipse-che/che-operator/controllers/devworkspace"
+	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
+
+	"github.com/eclipse-che/che-operator/controllers/usernamespace"
 
 	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -34,14 +36,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	osruntime "runtime"
 
 	"fmt"
-
-	dwo_api "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
 
 	"github.com/go-logr/logr"
 	configv1 "github.com/openshift/api/config/v1"
@@ -52,8 +50,6 @@ import (
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
 	backupcontroller "github.com/eclipse-che/che-operator/controllers/checlusterbackup"
 	restorecontroller "github.com/eclipse-che/che-operator/controllers/checlusterrestore"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
-	"github.com/eclipse-che/che-operator/controllers/usernamespace"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -265,10 +261,54 @@ func main() {
 	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	sigHandler := signal.SetupSignalHandler(period)
 
-	err = enableDevWorkspaceSupport(mgr, sigHandler.Done())
-	if err != nil {
+	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
+	// can write meaningful status messages into the CheCluster CRs.
+	dwChe := devworkspace.CheClusterReconciler{}
+	if err := dwChe.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up devWorkspace controller", "controller", "DevWorkspaceReconciler")
 		os.Exit(1)
+	}
+
+	shouldDevWorkspaceBeEnabled, err := devworkspace.ShouldDevWorkspacesBeEnabled(mgr)
+	if err != nil {
+		setupLog.Error(err, "Failed to evaluate DevWorkspace mode state", "controller", "DevWorkspaceReconciler")
+		os.Exit(1)
+	}
+	if shouldDevWorkspaceBeEnabled {
+		if err := dwoApi.AddToScheme(mgr.GetScheme()); err != nil {
+			setupLog.Error(err, "failed to register DevWorkspace API Scheme", "controller", "DevWorkspace")
+			os.Exit(1)
+		}
+
+		// DWO use the infrastructure package for openshift detection. It needs to be initialized
+		// but only supports OpenShift v4 or Kubernetes.
+		if err := infrastructure.Initialize(); err != nil {
+			setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
+			os.Exit(1)
+		}
+		routing := dwr.DevWorkspaceRoutingReconciler{
+			Client:       mgr.GetClient(),
+			Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
+			Scheme:       mgr.GetScheme(),
+			SolverGetter: solver.Getter(mgr.GetScheme()),
+		}
+		if err := routing.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
+			os.Exit(1)
+		}
+
+		userNamespaceReconciler := usernamespace.NewReconciler()
+		if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
+			os.Exit(1)
+		}
+		setupLog.Info("DevWorkspace support enabled.")
+	} else {
+		setupLog.Info("DevWorkspace support disabled. Will initiate restart when CheCluster with devworkspaces enabled will appear")
+		go devworkspace.NotifyWhenDevWorkspaceEnabled(mgr, sigHandler.Done(), func() {
+			setupLog.Info("CheCluster with DevWorkspace enabled discovered. Restarting to activate DevWorkspaces mode")
+			os.Exit(0)
+		})
 	}
 
 	// +kubebuilder:scaffold:builder
@@ -287,134 +327,4 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-}
-
-func enableDevWorkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error {
-	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
-	// can write meaningful status messages into the CheCluster CRs.
-	dwChe := devworkspace.CheClusterReconciler{}
-	if err := dwChe.SetupWithManager(mgr); err != nil {
-		return err
-	}
-
-	// we only enable DevWorkspace support, if there is the controller.devfile.io resource group in the cluster
-	// and DevWorkspaces are enabled at least on one CheCluster
-	dwEnabled, err := doesCheClusterWithDevWorkspaceEnabledExist(mgr)
-	if err != nil {
-		return err
-	}
-
-	if !dwEnabled {
-		doAsyncRestartWhenDevWorkspaceEnabled(mgr, stop)
-		return nil
-	}
-
-	// we assume that if the group is there, then we have all the expected CRs there, too.
-	dwApiExists, err := findApiGroup(mgr, "controller.devfile.io")
-	if err != nil {
-		return err
-	}
-
-	if !dwApiExists {
-		return errors.New("there is a CheCluster with DevWorkspace enabled but " +
-			"devworkspace api group 'controller.devfile.io' is not available")
-	}
-
-	if err := dwo_api.AddToScheme(mgr.GetScheme()); err != nil {
-		return err
-	}
-
-	// DWO use the infrastructure package for openshift detection. It needs to be initialized
-	// but only supports OpenShift v4 or Kubernetes.
-	if err := infrastructure.Initialize(); err != nil {
-		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
-		return nil
-	}
-
-	routing := dwr.DevWorkspaceRoutingReconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
-		Scheme:       mgr.GetScheme(),
-		SolverGetter: solver.Getter(mgr.GetScheme()),
-	}
-	if err := routing.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to set up controller", "controller", "DevWorkspaceRouting")
-		return err
-	}
-
-	userNamespaceReconciler := usernamespace.NewReconciler()
-	if err = userNamespaceReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to set up controller", "controller", "CheUserReconciler")
-		return err
-	}
-
-	setupLog.Info("DevWorkspace support enabled")
-
-	return nil
-}
-
-var nonCachedClient *client.Client;
-func doesCheClusterWithDevWorkspaceEnabledExist(mgr manager.Manager) (bool, error) {
-	if nonCachedClient == nil {
-		c, err := client.New(mgr.GetConfig(), client.Options{
-			Scheme: mgr.GetScheme(),
-		})
-		if err != nil {
-			return false, err
-		}
-		nonCachedClient = &c
-	}
-
-	cheClusters := &orgv1.CheClusterList{}
-	err := (*nonCachedClient).List(context.TODO(), cheClusters, &client.ListOptions{})
-	if err != nil {
-		return false, err
-	}
-	for _, cheCluster := range cheClusters.Items {
-		if cheCluster.Spec.DevWorkspace.Enable {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func doAsyncRestartWhenDevWorkspaceEnabled(mgr manager.Manager, stop <-chan struct{}) {
-	setupLog.Info("DevWorkspace support disabled. Will initiate restart when CheCluster with devworkspaces enabled will appear")
-	for {
-		select {
-		case <-stop:
-			return
-		case <-time.After(time.Duration(60) * time.Second):
-			// don't spam the log every time we check. The first time was enough...
-			exists, err := doesCheClusterWithDevWorkspaceEnabledExist(mgr)
-			if err != nil {
-				setupLog.Error(err, "Failed to check if there is any CheCluster with DevWorkspaces enabled. DevWorkspace mode is not activated")
-			}
-			if exists {
-				setupLog.Info("CheCluster with DevWorkspace enabled discovered. Restarting to activate DevWorkspaces mode")
-				os.Exit(0)
-			}
-		}
-	}
-}
-
-func findApiGroup(mgr manager.Manager, apiGroup string) (bool, error) {
-	cl, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
-	if err != nil {
-		return false, err
-	}
-
-	groups, err := cl.ServerGroups()
-	if err != nil {
-		return false, err
-	}
-
-	supported := false
-	for _, g := range groups.Groups {
-		if g.Name == apiGroup {
-			supported = true
-			break
-		}
-	}
-	return supported, nil
 }
