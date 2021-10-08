@@ -13,12 +13,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"os"
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/controllers/devworkspace"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -48,7 +52,6 @@ import (
 	checontroller "github.com/eclipse-che/che-operator/controllers/che"
 	backupcontroller "github.com/eclipse-che/che-operator/controllers/checlusterbackup"
 	restorecontroller "github.com/eclipse-che/che-operator/controllers/checlusterrestore"
-	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/solver"
 	"github.com/eclipse-che/che-operator/controllers/usernamespace"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -262,13 +265,13 @@ func main() {
 	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
 	sigHandler := signal.SetupSignalHandler(period)
 
-	if err = enableDevworkspaceSupport(mgr, sigHandler.Done()); err != nil {
-		setupLog.Error(err, "unable to initialize devworkspace support")
+	err = enableDevWorkspaceSupport(mgr, sigHandler.Done())
+	if err != nil {
+		setupLog.Error(err, "unable to set up devWorkspace controller", "controller", "DevWorkspaceReconciler")
 		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder
-
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
@@ -286,7 +289,7 @@ func main() {
 	}
 }
 
-func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error {
+func enableDevWorkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error {
 	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it
 	// can write meaningful status messages into the CheCluster CRs.
 	dwChe := devworkspace.CheClusterReconciler{}
@@ -296,10 +299,13 @@ func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error 
 
 	// we only enable DevWorkspace support, if there is the controller.devfile.io resource group in the cluster
 	// and DevWorkspaces are enabled at least on one CheCluster
-	dwEnabled := doesCheClusterWithDevWorkspaceEnabledExist()
+	dwEnabled, err := doesCheClusterWithDevWorkspaceEnabledExist(mgr)
+	if err != nil {
+		return err
+	}
 
 	if !dwEnabled {
-		doAsyncRestartWhenDevWorkspaceEnabled(stop)
+		doAsyncRestartWhenDevWorkspaceEnabled(mgr, stop)
 		return nil
 	}
 
@@ -318,6 +324,8 @@ func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error 
 		return err
 	}
 
+	// DWO use the infrastructure package for openshift detection. It needs to be initialized
+	// but only supports OpenShift v4 or Kubernetes.
 	if err := infrastructure.Initialize(); err != nil {
 		setupLog.Error(err, "failed to evaluate infrastructure which is needed for DevWorkspace support")
 		return nil
@@ -345,25 +353,43 @@ func enableDevworkspaceSupport(mgr manager.Manager, stop <-chan struct{}) error 
 	return nil
 }
 
-func doesCheClusterWithDevWorkspaceEnabledExist() bool {
-	cheClusters := devworkspace.GetCurrentCheClusterInstances()
-	for _, cheCluster := range cheClusters {
-		if cheCluster.Spec.IsEnabled() {
-			return true
+var nonCachedClient *client.Client;
+func doesCheClusterWithDevWorkspaceEnabledExist(mgr manager.Manager) (bool, error) {
+	if nonCachedClient == nil {
+		c, err := client.New(mgr.GetConfig(), client.Options{
+			Scheme: mgr.GetScheme(),
+		})
+		if err != nil {
+			return false, err
+		}
+		nonCachedClient = &c
+	}
+
+	cheClusters := &orgv1.CheClusterList{}
+	err := (*nonCachedClient).List(context.TODO(), cheClusters, &client.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, cheCluster := range cheClusters.Items {
+		if cheCluster.Spec.DevWorkspace.Enable {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
-func doAsyncRestartWhenDevWorkspaceEnabled(stop <-chan struct{}) {
+func doAsyncRestartWhenDevWorkspaceEnabled(mgr manager.Manager, stop <-chan struct{}) {
 	setupLog.Info("DevWorkspace support disabled. Will initiate restart when CheCluster with devworkspaces enabled will appear")
 	for {
 		select {
 		case <-stop:
 			return
-		case <-time.After(time.Duration(30) * time.Second):
+		case <-time.After(time.Duration(60) * time.Second):
 			// don't spam the log every time we check. The first time was enough...
-			exists := doesCheClusterWithDevWorkspaceEnabledExist()
+			exists, err := doesCheClusterWithDevWorkspaceEnabledExist(mgr)
+			if err != nil {
+				setupLog.Error(err, "Failed to check if there is any CheCluster with DevWorkspaces enabled. DevWorkspace mode is not activated")
+			}
 			if exists {
 				setupLog.Info("CheCluster with DevWorkspace enabled discovered. Restarting to activate DevWorkspaces mode")
 				os.Exit(0)
