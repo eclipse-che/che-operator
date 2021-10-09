@@ -17,6 +17,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/eclipse-che/che-operator/pkg/util"
+
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	v1 "github.com/eclipse-che/che-operator/api/v1"
@@ -56,7 +58,8 @@ func createTestScheme() *runtime.Scheme {
 
 func TestGetNamespaceInfoReadsFromCache(t *testing.T) {
 	test := func(infraType infrastructure.Type, namespace metav1.Object) {
-		infrastructure.InitializeForTesting(infraType)
+		util.IsOpenShift = infraType == infrastructure.OpenShiftv4
+		util.IsOpenShift4 = infraType == infrastructure.OpenShiftv4
 		ctx := context.TODO()
 
 		ns := namespace.GetName()
@@ -92,7 +95,8 @@ func TestExamineUpdatesCache(t *testing.T) {
 
 		nsName := namespace.GetName()
 		cl := fake.NewFakeClientWithScheme(createTestScheme(), namespace.(runtime.Object))
-		infrastructure.InitializeForTesting(infraType)
+		util.IsOpenShift = infraType == infrastructure.OpenShiftv4
+		util.IsOpenShift4 = infraType == infrastructure.OpenShiftv4
 
 		nsc := namespaceCache{
 			client:          cl,

@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eclipse-che/che-operator/pkg/util"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -28,7 +30,6 @@ import (
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
@@ -226,7 +227,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *v2alpha1.CheCluster, 
 			// try to find the endpoint in the ingresses/routes first. If it is there, it is exposed on a subdomain
 			// otherwise it is exposed through the gateway
 			var endpointURL string
-			if infrastructure.IsOpenShift() {
+			if util.IsOpenShift4 {
 				route := findRouteForEndpoint(component, endpoint, &routingObj, workspaceID)
 				if route != nil {
 					endpointURL = path.Join(route.Spec.Host, endpoint.Path)
@@ -313,7 +314,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *v2
 }
 
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects) (func(info *EndpointInfo), error) {
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		exposer := &RouteExposer{}
 		if err := exposer.initFrom(context.TODO(), c.client, cheCluster, routing); err != nil {
 			return nil, err
@@ -474,7 +475,7 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 		},
 	}
 
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		mdls[dwId+"-auth"] = &gateway.TraefikConfigMiddleware{
 			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: "http://127.0.0.1:8089?namespace=" + dwNamespace,
@@ -560,7 +561,7 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 		},
 	}
 
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		cfg.HTTP.Middlewares[name+"-auth"] = &gateway.TraefikConfigMiddleware{
 			ForwardAuth: &gateway.TraefikConfigForwardAuth{
 				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
@@ -570,7 +571,7 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 }
 
 func calculateMiddlewares(name string, header bool) []string {
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		if header {
 			return []string{name + "-header", name + "-prefix", name + "-auth"}
 		} else {
