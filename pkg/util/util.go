@@ -561,33 +561,6 @@ func ComputeHash256(data []byte) string {
 	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
-func ReloadCheCluster(client client.Client, cheCluster *orgv1.CheCluster) error {
-	return client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: cheCluster.Name, Namespace: cheCluster.Namespace},
-		cheCluster)
-}
-
-func FindCheCRinNamespace(cl client.Client, namespace string) (*orgv1.CheCluster, int, error) {
-	cheClusters := &orgv1.CheClusterList{}
-	listOptions := &client.ListOptions{Namespace: namespace}
-	if err := cl.List(context.TODO(), cheClusters, listOptions); err != nil {
-		return nil, -1, err
-	}
-
-	if len(cheClusters.Items) != 1 {
-		return nil, len(cheClusters.Items), fmt.Errorf("expected an instance of CheCluster, but got %d instances", len(cheClusters.Items))
-	}
-
-	cheCR := &orgv1.CheCluster{}
-	namespacedName := types.NamespacedName{Namespace: namespace, Name: cheClusters.Items[0].GetName()}
-	err := cl.Get(context.TODO(), namespacedName, cheCR)
-	if err != nil {
-		return nil, -1, err
-	}
-	return cheCR, 1, nil
-}
-
 func UpdateBackupServerConfiguration(client client.Client, backupServerConfig *orgv1.CheBackupServerConfiguration) error {
 	err := client.Update(context.TODO(), backupServerConfig)
 	if err != nil {

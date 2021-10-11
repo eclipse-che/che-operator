@@ -39,7 +39,7 @@ import (
 
 func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme *runtime.Scheme, cheNamespaceName string, cheName string) {
 	var cheNamespace metav1.Object
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		cheNamespace = &projectv1.Project{}
 	} else {
 		cheNamespace = &corev1.Namespace{}

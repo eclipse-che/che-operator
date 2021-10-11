@@ -16,7 +16,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/util"
+
 	projectv1 "github.com/openshift/api/project/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -90,7 +91,7 @@ func (c *namespaceCache) GetAllKnownNamespaces() []string {
 
 func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) (*namespaceInfo, error) {
 	var obj client.Object
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		obj = &projectv1.Project{}
 	} else {
 		obj = &corev1.Namespace{}

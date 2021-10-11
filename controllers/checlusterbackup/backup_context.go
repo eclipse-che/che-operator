@@ -48,7 +48,7 @@ func NewBackupContext(r *ReconcileCheClusterBackup, backupCR *chev1.CheClusterBa
 		// After the preparations, a new reconcile loop will be triggered, so backupServer will not be nil any more.
 	}
 
-	cheCR, _, err := util.FindCheCRinNamespace(r.client, namespace)
+	cheCR, _, err := util.FindCheClusterCRInNamespace(r.client, namespace)
 	if err != nil {
 		return nil, err
 	}

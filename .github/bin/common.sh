@@ -32,7 +32,7 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
-  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/master/devfiles/go/devfile.yaml"
+  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/main/devfiles/nodejs/devfile.yaml"
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NEXT_CSV_FILE="${OPERATOR_REPO}/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
@@ -184,17 +184,17 @@ collectDevworkspaceOperatorLogs() {
   #determine the name of the devworkspace controller manager pod
   local CONTROLLER_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].metadata.name')
   local WEBHOOK_SVR_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-webhook-server -o json | jq -r '.items[0].metadata.name')
-  
+
   # save the logs of all the containers in the DWO pod
   for container in $(oc get pod -n devworkspace-controller ${CONTROLLER_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
     mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}
     oc logs -n devworkspace-controller deployment/devworkspace-controller-manager -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}/${container}.log
-  done 
+  done
 
   for container in $(oc get pod -n devworkspace-controller ${WEBHOOK_SVR_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
     mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}
     oc logs -n devworkspace-controller deployment/devworkspace-webhook-server -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}/${container}.log
-  done 
+  done
 }
 
 # Build latest operator image
