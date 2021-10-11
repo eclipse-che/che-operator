@@ -23,10 +23,10 @@ import (
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/sync"
+	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -145,7 +145,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(manager *v2alpha1.CheCluster, wor
 			// try to find the endpoint in the ingresses/routes first. If it is there, it is exposed on a subdomain
 			// otherwise it is exposed through the gateway
 			var endpointURL string
-			if infrastructure.IsOpenShift() {
+			if util.IsOpenShift4 {
 				route := findRouteForEndpoint(machineName, endpoint, &routingObj)
 				if route != nil {
 					endpointURL = path.Join(route.Spec.Host, endpoint.Path)
@@ -246,7 +246,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheManager *v2
 	// to devise a different algorithm to produce them. Some kind of hash of workspaceID, component name, endpoint name and port
 	// might work but will not be relatable to the workspace ID just by looking at it anymore.
 	order := 0
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift4 {
 		exposer := &RouteExposer{}
 		if err := exposer.initFrom(context.TODO(), c.client, cheManager, routing); err != nil {
 			return []corev1.ConfigMap{}, err
