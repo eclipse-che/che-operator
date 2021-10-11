@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	checluster "github.com/eclipse-che/che-operator/api"
 	checlusterv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
@@ -45,7 +44,7 @@ import (
 )
 
 var (
-	log                 = ctrl.Log.WithName("che")
+	log                 = ctrl.Log.WithName("devworkspace-che")
 	currentCheInstances = map[client.ObjectKey]v2alpha1.CheCluster{}
 	cheInstancesAccess  = sync.Mutex{}
 )
@@ -105,15 +104,16 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&checlusterv1.CheCluster{}).
 		Owns(&corev1.Service{}).
-		Owns(&networkingv1.Ingress{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbac.Role{}).
 		Owns(&rbac.RoleBinding{})
-	if infrastructure.IsOpenShift() {
+	if util.IsOpenShift {
 		bld.Owns(&routev1.Route{})
+	} else {
+		bld.Owns(&networkingv1.Ingress{})
 	}
 	return bld.Complete(r)
 }
@@ -149,13 +149,11 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	var disabledMessage string
-
-	if !r.scheme.IsGroupRegistered("controller.devfile.io") {
-		disabledMessage = "Devworkspace CRDs are not installed"
-	}
-
-	if disabledMessage == "" && !current.Spec.IsEnabled() {
-		disabledMessage = "Devworkspace Che is disabled"
+	switch GetDevWorkspaceState(r.scheme, current) {
+	case APINotPresentState:
+		disabledMessage = "DevWorkspace CRDs are not installed"
+	case DisabledState:
+		disabledMessage = "DevWorkspace Che is disabled"
 	}
 
 	if disabledMessage != "" {
@@ -272,7 +270,7 @@ func (r *CheClusterReconciler) updateStatus(ctx context.Context, cluster *v2alph
 func (r *CheClusterReconciler) validate(cluster *v2alpha1.CheCluster) error {
 	validationErrors := []string{}
 
-	if !infrastructure.IsOpenShift() {
+	if !util.IsOpenShift {
 		// The validation error messages must correspond to the storage version of the resource, which is currently
 		// v1...
 		if cluster.Spec.WorkspaceDomainEndpoints.BaseDomain == "" {
@@ -341,7 +339,7 @@ func (r *CheClusterReconciler) ensureFinalizer(ctx context.Context, cluster *v2a
 
 // Tries to autodetect the route base domain.
 func (r *CheClusterReconciler) detectOpenShiftRouteBaseDomain(cluster *v2alpha1.CheCluster) (string, error) {
-	if !infrastructure.IsOpenShift() {
+	if !util.IsOpenShift {
 		return "", nil
 	}
 
