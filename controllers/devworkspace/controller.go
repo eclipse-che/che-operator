@@ -104,7 +104,6 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&checlusterv1.CheCluster{}).
 		Owns(&corev1.Service{}).
-		Owns(&networkingv1.Ingress{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Pod{}).
