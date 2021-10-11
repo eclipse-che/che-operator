@@ -270,7 +270,8 @@ func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.Con
 		serverComponentName,
 		"Path(`/`, `/f`) || PathPrefix(`/api`, `/swagger`, `/_app`)",
 		1,
-		"http://"+deploy.CheServiceName+":8080")
+		"http://"+deploy.CheServiceName+":8080",
+		[]string{})
 
 	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
@@ -426,6 +427,9 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	}
 	if !instance.Spec.Server.ExternalDevfileRegistry {
 		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
+	}
+	if util.IsNativeUserModeEnabled(instance) {
+		skipAuthPaths = append(skipAuthPaths, "/healthz$")
 	}
 	if len(skipAuthPaths) > 0 {
 		return fmt.Sprintf("skip_auth_regex = \"%s\"", strings.Join(skipAuthPaths, "|"))

@@ -113,7 +113,8 @@ func (d *Dashboard) createGatewayConfig() *gateway.TraefikConfig {
 		d.component,
 		fmt.Sprintf("PathPrefix(`%s`)", exposePath),
 		10,
-		"http://"+d.component+":8080")
+		"http://"+d.component+":8080",
+		[]string{})
 	if util.IsNativeUserModeEnabled(d.deployContext.CheCluster) {
 		cfg.AddAuthHeaderRewrite(d.component)
 	}

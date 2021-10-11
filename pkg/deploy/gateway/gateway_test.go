@@ -190,7 +190,7 @@ func TestRandomCookieSecret(t *testing.T) {
 	}
 }
 
-func TestOauthProxyConfigUnauthorizedRegistries(t *testing.T) {
+func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	t.Run("no skip auth", func(t *testing.T) {
 		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
 			Spec: orgv1.CheClusterSpec{
@@ -241,6 +241,16 @@ func TestOauthProxyConfigUnauthorizedRegistries(t *testing.T) {
 		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry\"") {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
 		}
+	})
+
+	t.Run("skip '/healthz' path", func(t *testing.T) {
+		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
+			Spec: orgv1.CheClusterSpec{
+				Auth: orgv1.CheClusterSpecAuth{
+					NativeUserMode: util.NewBoolPointer(true),
+				}}}, "blabol")
+		config := configmap.Data["oauth-proxy.cfg"]
+		assert.Contains(t, config, "/healthz$")
 	})
 }
 

@@ -297,8 +297,10 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *v2
 	configs := make([]corev1.ConfigMap, 0)
 
 	// first do routing from main che-gateway into workspace service
-	if masterConfig := provisionMasterRouting(cheCluster, routing, cmLabels); masterConfig != nil {
-		configs = append(configs, *masterConfig)
+	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels); err != nil {
+		return nil, err
+	} else {
+		configs = append(configs, *mainWsRouteConfig)
 	}
 
 	// then expose the endpoints
@@ -346,13 +348,7 @@ func getCommonService(objs *solvers.RoutingObjects, dwId string) *corev1.Service
 }
 
 func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, ingressExpose func(*EndpointInfo)) *corev1.ConfigMap {
-	wsRouteConfig := gateway.TraefikConfig{
-		HTTP: gateway.TraefikConfigHTTP{
-			Routers:     map[string]*gateway.TraefikConfigRouter{},
-			Services:    map[string]*gateway.TraefikConfigService{},
-			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
-		},
-	}
+	wsRouteConfig := gateway.CreateEmptyTraefikConfig()
 
 	commonService := getCommonService(objs, routing.Spec.DevWorkspaceId)
 	if commonService == nil {
@@ -367,7 +363,7 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 			}
 
 			if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
-				addEndpointToTraefikConfig(componentName, e, &wsRouteConfig, cheCluster, routing)
+				addEndpointToTraefikConfig(componentName, e, wsRouteConfig, cheCluster, routing)
 			} else {
 				if !containPort(commonService, int32(e.TargetPort)) {
 					commonService.Spec.Ports = append(commonService.Spec.Ports, corev1.ServicePort{
@@ -436,71 +432,33 @@ func containPort(service *corev1.Service, port int32) bool {
 	return false
 }
 
-func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string) *corev1.ConfigMap {
-	cfg := &gateway.TraefikConfig{
-		HTTP: gateway.TraefikConfigHTTP{
-			Routers:     map[string]*gateway.TraefikConfigRouter{},
-			Services:    map[string]*gateway.TraefikConfigService{},
-			Middlewares: map[string]*gateway.TraefikConfigMiddleware{},
-		},
-	}
-
-	rtrs := cfg.HTTP.Routers
-	srvcs := cfg.HTTP.Services
-	mdls := cfg.HTTP.Middlewares
-
+func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, cmLabels map[string]string) (*corev1.ConfigMap, error) {
 	dwId := routing.Spec.DevWorkspaceId
 	dwNamespace := routing.Namespace
 
-	rtrs[dwId] = &gateway.TraefikConfigRouter{
-		Rule:        fmt.Sprintf("PathPrefix(`/%s`)", dwId),
-		Service:     dwId,
-		Middlewares: calculateMiddlewares(dwId, true),
-		Priority:    100,
-	}
-
-	srvcs[dwId] = &gateway.TraefikConfigService{
-		LoadBalancer: gateway.TraefikConfigLoadbalancer{
-			Servers: []gateway.TraefikConfigLoadbalancerServer{
-				{
-					URL: getServiceURL(wsGatewayPort, dwId, dwNamespace),
-				},
-			},
-		},
-	}
-
-	mdls[dwId+"-prefix"] = &gateway.TraefikConfigMiddleware{
-		StripPrefix: &gateway.TraefikConfigStripPrefix{
-			Prefixes: []string{"/" + dwId},
-		},
-	}
+	cfg := gateway.CreateCommonTraefikConfig(
+		dwId,
+		fmt.Sprintf("PathPrefix(`/%s`)", dwId),
+		100,
+		getServiceURL(wsGatewayPort, dwId, dwNamespace),
+		[]string{"/" + dwId})
 
 	if util.IsOpenShift4 {
-		mdls[dwId+"-auth"] = &gateway.TraefikConfigMiddleware{
-			ForwardAuth: &gateway.TraefikConfigForwardAuth{
-				Address: "http://127.0.0.1:8089?namespace=" + dwNamespace,
-			},
-		}
+		// on OpenShift, we need to set authorization header.
+		// This MUST come before Auth, because Auth needs Authorization header to be properly set.
+		cfg.AddAuthHeaderRewrite(dwId)
 
-		mdls[dwId+"-header"] = &gateway.TraefikConfigMiddleware{
-			Plugin: &gateway.TraefikPlugin{
-				HeaderRewrite: &gateway.TraefikPluginHeaderRewrite{
-					From:   "X-Forwarded-Access-Token",
-					To:     "Authorization",
-					Prefix: "Bearer ",
-				},
-			},
-		}
+		// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
+		cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
+
+		// make '/healthz' path of main endpoints reachable from outside
+		routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
 	}
 
-	if len(cfg.HTTP.Routers) > 0 {
-		contents, err := yaml.Marshal(cfg)
-		if err != nil {
-			logger.Error(err, "can't serialize traefik config")
-			return nil
-		}
-
-		configMap := &corev1.ConfigMap{
+	if contents, err := yaml.Marshal(cfg); err != nil {
+		return nil, err
+	} else {
+		return &corev1.ConfigMap{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      defaults.GetGatewayWorkspaceConfigMapName(dwId),
 				Namespace: cheCluster.Namespace,
@@ -510,24 +468,34 @@ func provisionMasterRouting(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWor
 					defaults.ConfigAnnotationDevWorkspaceRoutingNamespace: routing.Namespace,
 				},
 			},
-			Data: map[string]string{},
-		}
-		configMap.Data[dwId+".yml"] = string(contents)
-		return configMap
+			Data: map[string]string{dwId + ".yml": string(contents)},
+		}, nil
 	}
-	return nil
+}
+
+// makes '/healthz' path of main endpoints reachable from the outside
+func routeForHealthzEndpoint(cfg *gateway.TraefikConfig, dwId string, endpoints map[string]dwo.EndpointList) {
+	for componentName, endpoints := range endpoints {
+		for _, e := range endpoints {
+			if e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
+				middlewares := []string{dwId + gateway.StripPrefixMiddlewareSuffix}
+				if util.IsOpenShift4 {
+					middlewares = append(middlewares, dwId+gateway.HeaderRewriteMiddlewareSuffix)
+				}
+				routeName, endpointPath := createEndpointPath(&e, componentName)
+				cfg.HTTP.Routers[routeName+"-healthz"] = &gateway.TraefikConfigRouter{
+					Rule:        fmt.Sprintf("Path(`/%s%s/healthz`)", dwId, endpointPath),
+					Service:     dwId,
+					Middlewares: middlewares,
+					Priority:    101,
+				}
+			}
+		}
+	}
 }
 
 func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gateway.TraefikConfig, cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) {
-	var routeName string
-	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
-		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
-		routeName = e.Name
-	} else {
-		// if endpoint is NOT unique, we're exposing on /componentName/<port-number>
-		routeName = strconv.Itoa(e.TargetPort)
-	}
-	prefix := fmt.Sprintf("/%s/%s", componentName, routeName)
+	routeName, prefix := createEndpointPath(&e, componentName)
 	rulePrefix := fmt.Sprintf("PathPrefix(`%s`)", prefix)
 
 	// skip if exact same route is already exposed
@@ -538,48 +506,41 @@ func addEndpointToTraefikConfig(componentName string, e dw.Endpoint, cfg *gatewa
 	}
 
 	name := fmt.Sprintf("%s-%s-%s", routing.Spec.DevWorkspaceId, componentName, routeName)
-	cfg.HTTP.Routers[name] = &gateway.TraefikConfigRouter{
-		Rule:        rulePrefix,
-		Service:     name,
-		Middlewares: calculateMiddlewares(name, false),
-		Priority:    100,
-	}
-
-	cfg.HTTP.Services[name] = &gateway.TraefikConfigService{
-		LoadBalancer: gateway.TraefikConfigLoadbalancer{
-			Servers: []gateway.TraefikConfigLoadbalancerServer{
-				{
-					URL: fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
-				},
-			},
-		},
-	}
-
-	cfg.HTTP.Middlewares[name+"-prefix"] = &gateway.TraefikConfigMiddleware{
-		StripPrefix: &gateway.TraefikConfigStripPrefix{
-			Prefixes: []string{prefix},
-		},
-	}
-
+	cfg.AddComponent(
+		name,
+		rulePrefix,
+		100,
+		fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
+		[]string{prefix})
 	if util.IsOpenShift4 {
-		cfg.HTTP.Middlewares[name+"-auth"] = &gateway.TraefikConfigMiddleware{
-			ForwardAuth: &gateway.TraefikConfigForwardAuth{
-				Address: fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace),
-			},
-		}
+		cfg.AddAuth(name, fmt.Sprintf("http://%s.%s:8089?namespace=%s", gateway.GatewayServiceName, cheCluster.Namespace, routing.Namespace))
+	}
+
+	// we need to disable auth for '/healthz' path in main endpoint, for now only on OpenShift
+	if util.IsOpenShift4 &&
+		e.Attributes.GetString(string(dwo.TypeEndpointAttribute), nil) == string(dwo.MainEndpointType) {
+		healthzName := name + "-healthz"
+		healthzPath := prefix + "/healthz"
+		cfg.AddComponent(
+			healthzName,
+			fmt.Sprintf("Path(`%s`)", healthzPath),
+			101,
+			fmt.Sprintf("http://127.0.0.1:%d", e.TargetPort),
+			[]string{prefix})
 	}
 }
 
-func calculateMiddlewares(name string, header bool) []string {
-	if util.IsOpenShift4 {
-		if header {
-			return []string{name + "-header", name + "-prefix", name + "-auth"}
-		} else {
-			return []string{name + "-prefix", name + "-auth"}
-		}
+func createEndpointPath(e *dw.Endpoint, componentName string) (routeName string, path string) {
+	if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
+		// if endpoint is unique, we're exposing on /componentName/<endpoint-name>
+		routeName = e.Name
 	} else {
-		return []string{name + "-prefix"}
+		// if endpoint is NOT unique, we're exposing on /componentName/<port-number>
+		routeName = strconv.Itoa(e.TargetPort)
 	}
+	path = fmt.Sprintf("/%s/%s", componentName, routeName)
+
+	return routeName, path
 }
 
 func findServiceForPort(port int32, objs *solvers.RoutingObjects) *corev1.Service {
