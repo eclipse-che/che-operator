@@ -22,17 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetPostgresProvisionCommand(identityProviderPostgresPassword string) (command string) {
-	command = "OUT=$(psql postgres -tAc \"SELECT 1 FROM pg_roles WHERE rolname='keycloak'\"); " +
-		"if [ $OUT -eq 1 ]; then echo \"DB exists\"; exit 0; fi " +
-		"&& psql -c \"CREATE USER keycloak WITH PASSWORD '" + identityProviderPostgresPassword + "'\" " +
-		"&& psql -c \"CREATE DATABASE keycloak\" " +
-		"&& psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak\" " +
-		"&& psql -c \"ALTER USER ${POSTGRESQL_USER} WITH SUPERUSER\""
-
-	return command
-}
-
 func GetKeycloakProvisionCommand(cr *v1.CheCluster) (command string, err error) {
 	cheFlavor := deploy.DefaultCheFlavor(cr)
 	requiredActions := (map[bool]string{true: "\"UPDATE_PASSWORD\"", false: ""})[cr.Spec.Auth.UpdateAdminPassword]

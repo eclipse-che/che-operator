@@ -17,6 +17,8 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
+	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -252,6 +254,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 							Env: cheEnv,
 						},
 					},
+					InitContainers:                []corev1.Container{},
 					RestartPolicy:                 "Always",
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 				},
@@ -355,6 +358,24 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
 			RunAsUser: &runAsUser,
 			FSGroup:   &fsGroup,
+		}
+	}
+
+	if deploy.IsEndpointMonitorConfigured(s.deployContext.CheCluster) {
+		if !s.deployContext.CheCluster.Spec.Database.ExternalDb {
+			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(s.deployContext)
+			if err != nil {
+				return nil, err
+			}
+			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForPostgresInitContainer)
+		}
+
+		if !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+			waitForKeycloakInitContainer, err := identity_provider.GetWaitForKeycloakInitContainer(s.deployContext)
+			if err != nil {
+				return nil, err
+			}
+			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForKeycloakInitContainer)
 		}
 	}
 

@@ -270,7 +270,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 			return ctrl.Result{}, err
 		}
-		if backupCR.Status.State == orgv1.STATE_IN_PROGRESS {
+		if backupCR.Status.State == orgv1.STATE_IN_PROGRESS || backupCR.Status.State == "" {
 			// Backup is still in progress
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
