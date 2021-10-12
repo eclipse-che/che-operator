@@ -34,6 +34,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -237,11 +238,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	cheReconciler, err := checontroller.NewReconciler(mgr, watchNamespace, discoveryClient)
+	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: scheme})
 	if err != nil {
-		setupLog.Error(err, "unable to create checluster reconciler")
+		setupLog.Error(err, "unable to initialize non cached client")
 		os.Exit(1)
 	}
+
+	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), noncachedClient, discoveryClient, mgr.GetScheme(), watchNamespace)
 	backupReconciler := backupcontroller.NewReconciler(mgr, watchNamespace)
 	restoreReconciler := restorecontroller.NewReconciler(mgr, watchNamespace)
 

@@ -54,10 +54,6 @@ import (
 )
 
 const (
-	failedValidationReason            = "InstallOrUpdateFailed"
-	failedNoOpenshiftUser             = "NoOpenshiftUsers"
-	failedNoIdentityProviders         = "NoIdentityProviders"
-	failedUnableToGetOAuth            = "UnableToGetOpenshiftOAuth"
 	warningNoIdentityProvidersMessage = "No Openshift identity providers."
 
 	AddIdentityProviderMessage      = "Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
@@ -84,31 +80,39 @@ type CheClusterReconciler struct {
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
 	// in the API Server
-	discoveryClient   discovery.DiscoveryInterface
-	tests             bool
-	userHandler       OpenShiftOAuthUserHandler
-	permissionChecker PermissionChecker
+	discoveryClient discovery.DiscoveryInterface
+	tests           bool
+	userHandler     OpenShiftOAuthUserHandler
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
-	namespace string
+	namespace   string
+	syncManager *deploy.SyncManager
 }
 
 // NewReconciler returns a new CheClusterReconciler
-func NewReconciler(mgr ctrl.Manager, namespace string, discoveryClient *discovery.DiscoveryClient) (*CheClusterReconciler, error) {
-	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
-	if err != nil {
-		return nil, err
-	}
+func NewReconciler(
+	k8sclient client.Client,
+	noncachedClient client.Client,
+	discoveryClient discovery.DiscoveryInterface,
+	scheme *k8sruntime.Scheme,
+	namespace string) *CheClusterReconciler {
+
+	syncManager := deploy.NewSyncManager()
+
+	// order does matter
+	imagePuller := deploy.NewImagePuller()
+	imagePuller.Register(syncManager)
+
 	return &CheClusterReconciler{
-		Scheme: mgr.GetScheme(),
+		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
 
-		client:            mgr.GetClient(),
-		nonCachedClient:   noncachedClient,
-		discoveryClient:   discoveryClient,
-		userHandler:       NewOpenShiftOAuthUserHandler(noncachedClient),
-		permissionChecker: &K8sApiPermissionChecker{},
-		namespace:         namespace,
-	}, nil
+		client:          k8sclient,
+		nonCachedClient: noncachedClient,
+		discoveryClient: discoveryClient,
+		userHandler:     NewOpenShiftOAuthUserHandler(noncachedClient),
+		namespace:       namespace,
+		syncManager:     syncManager,
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -224,6 +228,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
+	tests := r.tests
 	clusterAPI := deploy.ClusterAPI{
 		Client:          r.client,
 		NonCachedClient: r.nonCachedClient,
@@ -250,28 +255,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		CheCluster: checluster,
 	}
 
-	result, err := r.doReconcile(deployContext)
-	if err != nil {
-		logrus.Errorf("Reconciliation failed, cause: %v", err)
-		if err := deploy.SetStatusDetails(deployContext, failedValidationReason, err.Error(), ""); err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		logrus.Info("Reconciliation completed.")
-		if checluster.Status.Reason != "" {
-			if err := deploy.SetStatusDetails(deployContext, "", "", ""); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	}
-
-	return result, err
-}
-
-func (r *CheClusterReconciler) doReconcile(deployContext *deploy.DeployContext) (ctrl.Result, error) {
-	tests := r.tests
-	checluster := deployContext.CheCluster
-
 	if isCheGoingToBeUpdated(checluster) {
 		// Current operator is newer than deployed Che
 		backupCR, err := getBackupCRForUpdate(deployContext)
@@ -295,17 +278,23 @@ func (r *CheClusterReconciler) doReconcile(deployContext *deploy.DeployContext) 
 		// Proceed anyway
 	}
 
+	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		result, err := r.syncManager.SyncAll(deployContext)
+		if result != nil {
+			return *result, err
+		}
+		// if result == nil {
+		// 	logrus.Info("Successfully reconciled.")
+		// 	return ctrl.Result{}, nil
+		// } else {
+		// 	return *result, err
+		// }
+	} else {
+		r.syncManager.FinalizeAll(deployContext)
+	}
+
 	// Reconcile finalizers before CR is deleted
 	r.reconcileFinalizers(deployContext)
-
-	// Reconcile the imagePuller section of the CheCluster
-	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
-	if err != nil {
-		return imagePullerResult, err
-	}
-	if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
-		return imagePullerResult, err
-	}
 
 	// Check Che CR correctness
 	if !util.IsTestMode() {
@@ -657,6 +646,7 @@ func (r *CheClusterReconciler) doReconcile(deployContext *deploy.DeployContext) 
 		}
 	}
 
+	logrus.Info("Successfully reconciled.")
 	return ctrl.Result{}, nil
 }
 

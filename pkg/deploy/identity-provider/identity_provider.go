@@ -126,9 +126,6 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 				}
 				break
 			}
-
-			// provision keycloak resources requires to restart keycloak pod
-			return false, nil
 		}
 
 		// Updates keycloak if chehost has been changed

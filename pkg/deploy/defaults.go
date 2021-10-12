@@ -167,6 +167,8 @@ const (
 	GitLabOAuthConfigMountPath            = "/che-conf/oauth/gitlab"
 	GitLabOAuthConfigClientIdFileName     = "id"
 	GitLabOAuthConfigClientSecretFileName = "secret"
+
+	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 )
 
 func InitDefaults(defaultsPath string) {

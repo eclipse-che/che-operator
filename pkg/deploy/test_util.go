@@ -31,6 +31,10 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 				Name:      "eclipse-che",
 				Namespace: "eclipse-che",
 			},
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "org.eclipse.che/v1",
+				Kind:       "CheCluster",
+			},
 		}
 	}
 

@@ -17,8 +17,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
-	"unicode/utf8"
 
 	mocks "github.com/eclipse-che/che-operator/mocks"
 
@@ -30,7 +28,6 @@ import (
 
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -59,7 +56,6 @@ import (
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -73,51 +69,7 @@ import (
 )
 
 var (
-	namespace       = "eclipse-che"
-	csvName         = "kubernetes-imagepuller-operator.v0.0.9"
-	packageManifest = &packagesv1.PackageManifest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes-imagepuller-operator",
-			Namespace: namespace,
-		},
-		Status: packagesv1.PackageManifestStatus{
-			CatalogSource:          "community-operators",
-			CatalogSourceNamespace: "olm",
-			DefaultChannel:         "stable",
-			PackageName:            "kubernetes-imagepuller-operator",
-		},
-	}
-	operatorGroup = &operatorsv1.OperatorGroup{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes-imagepuller-operator",
-			Namespace: namespace,
-		},
-		Spec: operatorsv1.OperatorGroupSpec{
-			TargetNamespaces: []string{
-				namespace,
-			},
-		},
-	}
-	subscription = &operatorsv1alpha1.Subscription{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes-imagepuller-operator",
-			Namespace: namespace,
-		},
-		Spec: &operatorsv1alpha1.SubscriptionSpec{
-			CatalogSource:          "community-operators",
-			Channel:                "stable",
-			CatalogSourceNamespace: "olm",
-			InstallPlanApproval:    operatorsv1alpha1.ApprovalAutomatic,
-			Package:                "kubernetes-imagepuller-operator",
-		},
-	}
-	valueTrue             = true
-	clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      csvName,
-		},
-	}
+	namespace        = "eclipse-che"
 	nonEmptyUserList = &userv1.UserList{
 		Items: []userv1.User{
 			{
@@ -158,7 +110,6 @@ var (
 			Name: "cluster",
 		},
 	}
-	defaultImagePullerImages string
 )
 
 func init() {
@@ -170,8 +121,6 @@ func init() {
 			os.Setenv(env.Name, env.Value)
 		}
 	}
-	defaultImagePullerImages = "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") +
-		";che-workspace-plugin-broker-artifacts=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts") + ";"
 }
 
 func TestNativeUserModeEnabled(t *testing.T) {
@@ -249,14 +198,9 @@ func TestNativeUserModeEnabled(t *testing.T) {
 				t.Fatal("Error creating fake discovery client")
 			}
 
-			r := &CheClusterReconciler{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				Scheme:          scheme,
-				tests:           true,
-				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
-			}
+			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
+			r.tests = true
+
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      os.Getenv("CHE_FLAVOR"),
@@ -468,15 +412,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				defer ctrl.Finish()
 			}
 
-			r := &CheClusterReconciler{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				Scheme:          scheme,
-				tests:           true,
-				userHandler:     userHandlerMock,
-				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
-			}
+			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
+			r.userHandler = userHandlerMock
+			r.tests = true
+
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      os.Getenv("CHE_FLAVOR"),
@@ -566,14 +505,9 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 				t.Fatal("Error creating fake discovery client")
 			}
 
-			r := &CheClusterReconciler{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				Scheme:          scheme,
-				tests:           true,
-				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
-			}
+			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
+			r.tests = true
+
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      os.Getenv("CHE_FLAVOR"),
@@ -690,14 +624,9 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 			}
 			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
 
-			r := &CheClusterReconciler{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				Scheme:          scheme,
-				tests:           true,
-				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
-			}
+			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
+			r.tests = true
+
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      os.Getenv("CHE_FLAVOR"),
@@ -725,376 +654,6 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 	}
 }
 
-func TestImagePullerConfiguration(t *testing.T) {
-	oldBrokerMetaDataImage := strings.Split(os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata"), ":")[0] + ":old"
-	oldBrokerArtifactsImage := strings.Split(os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_artifacts"), ":")[0] + ":old"
-	type testCase struct {
-		name                  string
-		initCR                *orgv1.CheCluster
-		initObjects           []runtime.Object
-		expectedCR            *orgv1.CheCluster
-		expectedOperatorGroup *operatorsv1.OperatorGroup
-		expectedSubscription  *operatorsv1alpha1.Subscription
-		expectedImagePuller   *chev1alpha1.KubernetesImagePuller
-		shouldDelete          bool
-	}
-
-	testCases := []testCase{
-		{
-			name:   "image puller enabled, no operatorgroup, should create an operatorgroup",
-			initCR: InitCheCRWithImagePullerEnabled(),
-			initObjects: []runtime.Object{
-				packageManifest,
-			},
-			expectedOperatorGroup: operatorGroup,
-		},
-		{
-			name:   "image puller enabled, operatorgroup exists, should create a subscription",
-			initCR: InitCheCRWithImagePullerEnabled(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-			},
-			expectedSubscription: subscription,
-		},
-		{
-			name:       "image puller enabled, subscription created, should add finalizer",
-			initCR:     InitCheCRWithImagePullerEnabled(),
-			expectedCR: ExpectedCheCRWithImagePullerFinalizer(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-			},
-		},
-		{
-			name:   "image puller enabled with finalizer but default values are empty, subscription exists, should update the CR",
-			initCR: InitCheCRWithImagePullerFinalizer(),
-			expectedCR: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            os.Getenv("CHE_FLAVOR"),
-					Namespace:       namespace,
-					ResourceVersion: "2",
-					Finalizers: []string{
-						"kubernetesimagepullers.finalizers.che.eclipse.org",
-					},
-				},
-				Spec: orgv1.CheClusterSpec{
-					ImagePuller: orgv1.CheClusterSpecImagePuller{
-						Enable: true,
-						Spec: chev1alpha1.KubernetesImagePullerSpec{
-							DeploymentName: "kubernetes-image-puller",
-							ConfigMapName:  "k8s-image-puller",
-						},
-					},
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "multi-host",
-					},
-				},
-			},
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-			},
-		},
-		{
-			name:   "image puller enabled default values already set, subscription exists, should create a KubernetesImagePuller",
-			initCR: InitCheCRWithImagePullerEnabledAndDefaultValuesSet(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: defaultImagePullerImages, ObjectMetaResourceVersion: "1"}),
-		},
-		{
-			name:   "image puller enabled, user images set, subscription exists, should create a KubernetesImagePuller with user images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url"),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url", ObjectMetaResourceVersion: "1"}),
-		},
-		{
-			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default image",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";"),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";", ObjectMetaResourceVersion: "2"}),
-		},
-		{
-			name:   "image puller enabled, one default image set, subscription exists, should update KubernetesImagePuller default images while keeping user image",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";"),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;che-workspace-plugin-broker-metadata=" + os.Getenv("RELATED_IMAGE_che_workspace_plugin_broker_metadata") + ";", ObjectMetaResourceVersion: "2"}),
-		},
-		{
-			name:   "image puller enabled, default images set, subscription exists, should update KubernetesImagePuller default images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";che-workspace-plugin-broker-artifacts=" + oldBrokerArtifactsImage + ";"),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "che-workspace-plugin-broker-metadata=" + oldBrokerMetaDataImage + ";che-workspace-plugin-broker-artifacts=" + oldBrokerArtifactsImage + ";", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: defaultImagePullerImages, ObjectMetaResourceVersion: "2"}),
-		},
-		{
-			name:   "image puller enabled, latest default images set, subscription exists, should not update KubernetesImagePuller default images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet(defaultImagePullerImages),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: defaultImagePullerImages, ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: defaultImagePullerImages, ObjectMetaResourceVersion: "1"}),
-		},
-		{
-			name:   "image puller enabled, default images not set, subscription exists, should not set KubernetesImagePuller default images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;"),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;", ObjectMetaResourceVersion: "1"}),
-			},
-			expectedImagePuller: InitImagePuller(ImagePullerOptions{SpecImages: "image=image_url;", ObjectMetaResourceVersion: "1"}),
-		},
-		{
-			name:   "image puller enabled, KubernetesImagePuller created and spec in CheCluster is different, should update the KubernetesImagePuller",
-			initCR: InitCheCRWithImagePullerEnabledAndNewValuesSet(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				getDefaultImagePuller(),
-			},
-			expectedImagePuller: &chev1alpha1.KubernetesImagePuller{
-				TypeMeta: metav1.TypeMeta{Kind: "KubernetesImagePuller", APIVersion: "che.eclipse.org/v1alpha1"},
-				ObjectMeta: metav1.ObjectMeta{
-					ResourceVersion: "2",
-					Name:            os.Getenv("CHE_FLAVOR") + "-image-puller",
-					Namespace:       namespace,
-					Labels: map[string]string{
-						"app":                       "che",
-						"component":                 "kubernetes-image-puller",
-						"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
-					},
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion:         "org.eclipse.che/v1",
-							Kind:               "CheCluster",
-							BlockOwnerDeletion: &valueTrue,
-							Controller:         &valueTrue,
-							Name:               os.Getenv("CHE_FLAVOR"),
-						},
-					},
-				},
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					ConfigMapName:  "k8s-image-puller-trigger-update",
-					DeploymentName: "kubernetes-image-puller-trigger-update",
-				},
-			},
-		},
-		{
-			name:   "image puller already created, imagePuller disabled, should delete everything",
-			initCR: InitCheCRWithImagePullerDisabled(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				clusterServiceVersion,
-				getDefaultImagePuller(),
-			},
-			expectedCR:   InitCheCRWithImagePullerDisabled(),
-			shouldDelete: true,
-		},
-		{
-			name:   "image puller already created, finalizer deleted",
-			initCR: InitCheCRWithImagePullerFinalizerAndDeletionTimestamp(),
-			initObjects: []runtime.Object{
-				packageManifest,
-				operatorGroup,
-				subscription,
-				clusterServiceVersion,
-				getDefaultImagePuller(),
-			},
-			shouldDelete: true,
-			expectedCR:   nil,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			packagesv1.AddToScheme(scheme.Scheme)
-			operatorsv1alpha1.AddToScheme(scheme.Scheme)
-			operatorsv1.AddToScheme(scheme.Scheme)
-			chev1alpha1.AddToScheme(scheme.Scheme)
-			routev1.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects, testCase.initCR)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
-				{
-					GroupVersion: "packages.operators.coreos.com/v1",
-					APIResources: []metav1.APIResource{
-						{
-							Kind: "PackageManifest",
-						},
-					},
-				},
-				{
-					GroupVersion: "operators.coreos.com/v1alpha1",
-					APIResources: []metav1.APIResource{
-						{Kind: "OperatorGroup"},
-						{Kind: "Subscription"},
-						{Kind: "ClusterServiceVersion"},
-					},
-				},
-				{
-					GroupVersion: "che.eclipse.org/v1alpha1",
-					APIResources: []metav1.APIResource{
-						{Kind: "KubernetesImagePuller"},
-					},
-				},
-			}
-
-			if !ok {
-				t.Error("Error creating fake discovery client")
-				os.Exit(1)
-			}
-
-			r := &CheClusterReconciler{
-				client:          cli,
-				nonCachedClient: nonCachedClient,
-				discoveryClient: fakeDiscovery,
-				Scheme:          scheme.Scheme,
-				tests:           true,
-				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
-			}
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      os.Getenv("CHE_FLAVOR"),
-					Namespace: namespace,
-				},
-			}
-			_, err := r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
-
-			if testCase.expectedOperatorGroup != nil {
-				gotOperatorGroup := &operatorsv1.OperatorGroup{}
-				err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedOperatorGroup.Namespace, Name: testCase.expectedOperatorGroup.Name}, gotOperatorGroup)
-				if err != nil {
-					t.Errorf("Error getting OperatorGroup: %v", err)
-				}
-				if !reflect.DeepEqual(testCase.expectedOperatorGroup.Spec.TargetNamespaces, gotOperatorGroup.Spec.TargetNamespaces) {
-					t.Errorf("Error expected target namespace %v but got %v", testCase.expectedOperatorGroup.Spec.TargetNamespaces, gotOperatorGroup.Spec.TargetNamespaces)
-				}
-			}
-			if testCase.expectedSubscription != nil {
-				gotSubscription := &operatorsv1alpha1.Subscription{}
-				err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedSubscription.Namespace, Name: testCase.expectedSubscription.Name}, gotSubscription)
-				if err != nil {
-					t.Errorf("Error getting Subscription: %v", err)
-				}
-				if !reflect.DeepEqual(testCase.expectedSubscription.Spec, gotSubscription.Spec) {
-					t.Errorf("Error, subscriptions differ (-want +got) %v", cmp.Diff(testCase.expectedSubscription.Spec, gotSubscription.Spec))
-				}
-			}
-			// if expectedCR is not set, don't check it
-			if testCase.expectedCR != nil && !reflect.DeepEqual(testCase.initCR, testCase.expectedCR) {
-				gotCR := &orgv1.CheCluster{}
-				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
-				if err != nil {
-					t.Errorf("Error getting CheCluster: %v", err)
-				}
-				if !reflect.DeepEqual(testCase.expectedCR, gotCR) {
-					t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCR, gotCR))
-				}
-			}
-			if testCase.expectedImagePuller != nil {
-				gotImagePuller := &chev1alpha1.KubernetesImagePuller{}
-				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedImagePuller.Namespace, Name: testCase.expectedImagePuller.Name}, gotImagePuller)
-				if err != nil {
-					t.Errorf("Error getting KubernetesImagePuller: %v", err)
-				}
-
-				diff := cmp.Diff(testCase.expectedImagePuller, gotImagePuller, cmpopts.IgnoreFields(chev1alpha1.KubernetesImagePullerSpec{}, "Images"))
-				if diff != "" {
-					t.Errorf("Expected KubernetesImagePuller and KubernetesImagePuller returned from API server differ (-want, +got): %v", diff)
-				}
-
-				expectedImages := nonEmptySplit(testCase.expectedImagePuller.Spec.Images, ";")
-				if len(nonEmptySplit(testCase.expectedImagePuller.Spec.Images, ";")) != len(expectedImages) {
-					t.Errorf("Expected KubernetesImagePuller returns %d images", len(expectedImages))
-				}
-
-				for _, expectedImage := range expectedImages {
-					if !strings.Contains(gotImagePuller.Spec.Images, expectedImage) {
-						t.Errorf("Expected KubernetesImagePuller returned image: %s, but it did not", expectedImage)
-					}
-				}
-			}
-			if testCase.shouldDelete {
-				if testCase.expectedCR == nil {
-					gotCR := &orgv1.CheCluster{}
-					err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR")}, gotCR)
-					if !errors.IsNotFound(err) {
-						t.Fatal("CR CheCluster should be removed")
-					}
-				}
-
-				imagePuller := &chev1alpha1.KubernetesImagePuller{}
-				err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: os.Getenv("CHE_FLAVOR") + "-image-puller"}, imagePuller)
-				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found KubernetesImagePuller: %v", err)
-				}
-
-				clusterServiceVersion := &operatorsv1alpha1.ClusterServiceVersion{}
-				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: csvName}, clusterServiceVersion)
-				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found ClusterServiceVersion: %v", err)
-				}
-
-				subscription := &operatorsv1alpha1.Subscription{}
-				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
-				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found Subscription: %v", err)
-				}
-
-				operatorGroup := &operatorsv1.OperatorGroup{}
-				err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
-				if err == nil || !errors.IsNotFound(err) {
-					t.Fatalf("Should not have found OperatorGroup: %v", err)
-				}
-			}
-		})
-	}
-}
-
 func TestCheController(t *testing.T) {
 	var err error
 
@@ -1104,7 +663,8 @@ func TestCheController(t *testing.T) {
 	cl, dc, scheme := Init()
 
 	// Create a ReconcileChe object with the scheme and fake client
-	r := &CheClusterReconciler{client: cl, nonCachedClient: cl, Scheme: &scheme, discoveryClient: dc, tests: true, Log: ctrl.Log.WithName("controllers").WithName("CheCluster")}
+	r := NewReconciler(cl, cl, dc, &scheme, "")
+	r.tests = true
 
 	// get CR
 	cheCR := &orgv1.CheCluster{
@@ -1343,7 +903,8 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 	cl, dc, scheme := Init()
 
 	// Create a ReconcileChe object with the scheme and fake client
-	r := &CheClusterReconciler{client: cl, nonCachedClient: cl, Scheme: &scheme, discoveryClient: dc, tests: true, Log: ctrl.Log.WithName("controllers").WithName("CheCluster")}
+	r := NewReconciler(cl, cl, dc, &scheme, "")
+	r.tests = true
 
 	// get CR
 	cheCR := &orgv1.CheCluster{}
@@ -1479,15 +1040,9 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 				defer ctrl.Finish()
 			}
 
-			r := &CheClusterReconciler{
-				client:            cli,
-				nonCachedClient:   nonCachedClient,
-				discoveryClient:   fakeDiscovery,
-				Scheme:            scheme,
-				permissionChecker: m,
-				tests:             true,
-				Log:               ctrl.Log.WithName("controllers").WithName("CheCluster"),
-			}
+			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
+			r.tests = true
+
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      os.Getenv("CHE_FLAVOR"),
@@ -1641,262 +1196,4 @@ func InitCheWithSimpleCR() *orgv1.CheCluster {
 			},
 		},
 	}
-}
-
-func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            os.Getenv("CHE_FLAVOR"),
-			Namespace:       namespace,
-			ResourceVersion: "0",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-			ResourceVersion: "1",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-			DeletionTimestamp: &metav1.Time{Time: time.Unix(1, 0)},
-			ResourceVersion:   "1",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
-			},
-		},
-	}
-}
-
-func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CheCluster",
-			APIVersion: "org.eclipse.che/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-			ResourceVersion: "1",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerDisabled() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CheCluster",
-			APIVersion: "org.eclipse.che/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            os.Getenv("CHE_FLAVOR"),
-			Namespace:       namespace,
-			ResourceVersion: "1",
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: false,
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller",
-					ConfigMapName:  "k8s-image-puller",
-				},
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller",
-					ConfigMapName:  "k8s-image-puller",
-					Images:         images,
-				},
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
-		},
-	}
-}
-
-func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-			Finalizers: []string{
-				"kubernetesimagepullers.finalizers.che.eclipse.org",
-			},
-		},
-		Spec: orgv1.CheClusterSpec{
-			ImagePuller: orgv1.CheClusterSpecImagePuller{
-				Enable: true,
-				Spec: chev1alpha1.KubernetesImagePullerSpec{
-					DeploymentName: "kubernetes-image-puller-trigger-update",
-					ConfigMapName:  "k8s-image-puller-trigger-update",
-				},
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
-		},
-	}
-}
-
-type ImagePullerOptions struct {
-	SpecImages                string
-	ObjectMetaResourceVersion string
-}
-
-func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePuller {
-	return &chev1alpha1.KubernetesImagePuller{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "che.eclipse.org/v1alpha1",
-			Kind:       "KubernetesImagePuller",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR") + "-image-puller",
-			Namespace: namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
-				"app":                       "che",
-				"component":                 "kubernetes-image-puller",
-			},
-			ResourceVersion: options.ObjectMetaResourceVersion,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "org.eclipse.che/v1",
-					Kind:               "CheCluster",
-					Controller:         &valueTrue,
-					BlockOwnerDeletion: &valueTrue,
-					Name:               os.Getenv("CHE_FLAVOR"),
-				},
-			},
-		},
-		Spec: chev1alpha1.KubernetesImagePullerSpec{
-			DeploymentName: "kubernetes-image-puller",
-			ConfigMapName:  "k8s-image-puller",
-			Images:         options.SpecImages,
-		},
-	}
-}
-
-func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
-	return &chev1alpha1.KubernetesImagePuller{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "che.eclipse.org/v1alpha1",
-			Kind:       "KubernetesImagePuller",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR") + "-image-puller",
-			Namespace: namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
-				"app":                       "che",
-				"component":                 "kubernetes-image-puller",
-			},
-			ResourceVersion: "1",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "org.eclipse.che/v1",
-					Kind:               "CheCluster",
-					Controller:         &valueTrue,
-					BlockOwnerDeletion: &valueTrue,
-					Name:               os.Getenv("CHE_FLAVOR"),
-				},
-			},
-		},
-		Spec: chev1alpha1.KubernetesImagePullerSpec{
-			DeploymentName: "kubernetes-image-puller",
-			ConfigMapName:  "k8s-image-puller",
-			Images:         defaultImagePullerImages,
-		},
-	}
-}
-
-// Split string by separator without empty elems
-func nonEmptySplit(lineToSplit string, separator string) []string {
-	splitFn := func(c rune) bool {
-		runeChar, _ := utf8.DecodeRuneInString(separator)
-		return c == runeChar
-	}
-	return strings.FieldsFunc(lineToSplit, splitFn)
 }
