@@ -241,6 +241,10 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	return false
 }
 
+func IsComponentReadinessInitContainersConfigured(cr *orgv1.CheCluster) bool {
+	return os.Getenv("ADD_COMPONENT_READINESS_INIT_CONTAINERS") == "true"
+}
+
 func DefaultServerTrustStoreConfigMapName() string {
 	return getDefaultFromEnv("CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME")
 }

@@ -676,7 +676,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${CSV_CR_SAMPLES}\"" $${NEW_CSV}
 
 		# Set specific OpenShift version
-		echo "\n  com.redhat.openshift.versions: \"v4.8\"" >> $${BUNDLE_PATH}/metadata/annotations.yaml
+		printf "\n  com.redhat.openshift.versions: \"v4.8\"" >> $${BUNDLE_PATH}/metadata/annotations.yaml
 	fi
 
 	# Base cluster service version file has got correctly sorted CRDs.

@@ -17,7 +17,6 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -122,7 +121,7 @@ func (p *Postgres) ProvisionDB() (bool, error) {
 		p.deployContext.CheCluster,
 		deploy.PostgresName,
 		func(cr *orgv1.CheCluster) (string, error) {
-			return identity_provider.GetPostgresProvisionCommand(identityProviderPostgresPassword), nil
+			return getPostgresProvisionCommand(identityProviderPostgresPassword), nil
 		},
 		"create Keycloak DB, user, privileges")
 	if err != nil {
@@ -159,4 +158,15 @@ func (p *Postgres) setDbVersion() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func getPostgresProvisionCommand(identityProviderPostgresPassword string) (command string) {
+	command = "OUT=$(psql postgres -tAc \"SELECT 1 FROM pg_roles WHERE rolname='keycloak'\"); " +
+		"if [ $OUT -eq 1 ]; then echo \"DB exists\"; exit 0; fi " +
+		"&& psql -c \"CREATE USER keycloak WITH PASSWORD '" + identityProviderPostgresPassword + "'\" " +
+		"&& psql -c \"CREATE DATABASE keycloak\" " +
+		"&& psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak\" " +
+		"&& psql -c \"ALTER USER ${POSTGRESQL_USER} WITH SUPERUSER\""
+
+	return command
 }

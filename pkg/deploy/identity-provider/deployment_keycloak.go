@@ -19,6 +19,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -714,6 +715,16 @@ func GetSpecKeycloakDeployment(
 				},
 			},
 		},
+	}
+
+	if deploy.IsComponentReadinessInitContainersConfigured(deployContext.CheCluster) {
+		if !deployContext.CheCluster.Spec.Database.ExternalDb {
+			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(deployContext)
+			if err != nil {
+				return nil, err
+			}
+			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForPostgresInitContainer)
+		}
 	}
 
 	return deployment, nil
