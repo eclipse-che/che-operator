@@ -242,7 +242,7 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 }
 
 func IsEndpointMonitorConfigured(cr *orgv1.CheCluster) bool {
-	return os.Getenv("CHE_ENDPOINT_MONITOR") == "true"
+	return os.Getenv("ADD_COMPONENT_READINESS_INIT_CONTAINERS") == "true"
 }
 
 func DefaultServerTrustStoreConfigMapName() string {

@@ -117,7 +117,7 @@ spec:
               value: "1"
             - name: ALLOW_DEVWORKSPACE_ENGINE
               value: "true"
-            - name: CHE_ENDPOINT_MONITOR
+            - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
               value: "false"
           livenessProbe:
             httpGet:
