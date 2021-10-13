@@ -39,7 +39,7 @@ func GetWaitForPostgresInitContainer(deployContext *deploy.DeployContext) (*core
 		Name:            "wait-for-postgres",
 		Image:           postgresEndpointCheckerImage,
 		ImagePullPolicy: imagePullPolicy,
-		Args: []string{
+		Command: []string{
 			"/bin/sh",
 			"-c",
 			getCheckPostgresReadinessScript(deployContext),

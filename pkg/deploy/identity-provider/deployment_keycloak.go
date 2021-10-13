@@ -710,7 +710,6 @@ func GetSpecKeycloakDeployment(
 							},
 						},
 					},
-					InitContainers:                []corev1.Container{},
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					RestartPolicy:                 "Always",
 				},

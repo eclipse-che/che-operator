@@ -254,7 +254,6 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 							Env: cheEnv,
 						},
 					},
-					InitContainers:                []corev1.Container{},
 					RestartPolicy:                 "Always",
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 				},

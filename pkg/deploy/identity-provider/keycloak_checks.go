@@ -27,7 +27,7 @@ func GetWaitForKeycloakInitContainer(deployContext *deploy.DeployContext) (*core
 		Name:            "wait-for-keycloak",
 		Image:           keycloakEndpointCheckerImage,
 		ImagePullPolicy: imagePullPolicy,
-		Args: []string{
+		Command: []string{
 			"/bin/sh",
 			"-c",
 			getCheckKeycloakReadinessScript(deployContext),
@@ -38,10 +38,19 @@ func GetWaitForKeycloakInitContainer(deployContext *deploy.DeployContext) (*core
 func getCheckKeycloakReadinessScript(deployContext *deploy.DeployContext) string {
 	cheFlavor := deploy.DefaultCheFlavor(deployContext.CheCluster)
 	realmName := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	// URL example: https://keycloak-eclipse-che.192.168.99.254.nip.io/auth/realms/che/.well-known/openid-configuration
 	url := fmt.Sprintf("%s/realms/%s/.well-known/openid-configuration", deployContext.CheCluster.Status.KeycloakURL, realmName)
+	// URL example: https://keycloak-eclipse-che.192.168.99.254.nip.io/auth/realms/che/.well-known/openid-configuration
 
-	return fmt.Sprintf(
-		"until curl --connect-timeout 5 -kI %s; do echo 'waiting for Keycloak'; sleep 1; done;",
-		url)
+	script := `
+	while : ; do
+	  response_code=$(curl --connect-timeout 5 -kI %s 2>/dev/null | awk 'NR==1 {print $2}')
+    if [ "$response_code" == "200" ]; then
+		  break
+		fi
+		echo 'waiting for Keycloak'
+		sleep 2
+	done
+	`
+
+	return fmt.Sprintf(script, url)
 }
