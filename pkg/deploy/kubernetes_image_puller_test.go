@@ -23,10 +23,9 @@ import (
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
-	"gopkg.in/yaml.v2"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"sigs.k8s.io/yaml"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 
