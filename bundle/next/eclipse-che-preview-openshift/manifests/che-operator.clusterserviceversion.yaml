@@ -114,7 +114,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.37.0-325.next
+  name: eclipse-che-preview-openshift.v7.38.0-326.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1125,6 +1125,8 @@ spec:
                         value: "1"
                       - name: ALLOW_DEVWORKSPACE_ENGINE
                         value: "true"
+                      - name: CHE_ENDPOINT_MONITOR
+                        value: "false"
                     image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
@@ -1404,4 +1406,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.37.0-325.next
+  version: 7.38.0-326.next
