@@ -12,67 +12,69 @@
 package deploy
 
 import (
+	"reflect"
+	"runtime"
+
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type Syncable interface {
-	// Syncs object to a cluster.
-	// Returns nil,nil if object successfully reconciled.
-	Sync(ctx *DeployContext) (*reconcile.Result, error)
+type Reconcilable interface {
+	// Reconcile object.
+	Reconcile(ctx *DeployContext) (result reconcile.Result, done bool, err error)
 	// Does finalization (removes cluster scope objects, etc)
-	Finalize(ctx *DeployContext) (*reconcile.Result, error)
+	Finalize(ctx *DeployContext) (done bool, err error)
 	// Registration
-	Register(sm *SyncManager)
+	Register(reconcileManager *ReconcileManager)
 }
 
-type SyncManager struct {
-	syncers      []Syncable
-	failedSyncer Syncable
+type ReconcileManager struct {
+	reconcilers      []Reconcilable
+	failedReconciler *Reconcilable
 }
 
-func NewSyncManager() *SyncManager {
-	return &SyncManager{
-		syncers:      make([]Syncable, 0),
-		failedSyncer: nil,
+func NewReconcileManager() *ReconcileManager {
+	return &ReconcileManager{
+		reconcilers:      make([]Reconcilable, 0),
+		failedReconciler: nil,
 	}
 }
 
-func (sm *SyncManager) RegisterSyncer(syncer Syncable) {
-	sm.syncers = append(sm.syncers, syncer)
+func (rm *ReconcileManager) RegisterReconciler(reconciler Reconcilable) {
+	rm.reconcilers = append(rm.reconcilers, reconciler)
 }
 
-// Sync all objects consequently.
-func (sm *SyncManager) SyncAll(ctx *DeployContext) (*reconcile.Result, error) {
-	for _, syncer := range sm.syncers {
-		result, err := syncer.Sync(ctx)
+// Reconcile all objects in a order they have been added
+// If reconciliation failed then CheCluster status will be updated accordingly.
+func (rm *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Result, bool, error) {
+	for _, reconciler := range rm.reconcilers {
+		result, done, err := reconciler.Reconcile(ctx)
 		if err != nil {
-			sm.failedSyncer = syncer
-
-			err = SetStatusDetails(ctx, InstallOrUpdateFailed, err.Error(), "")
-			logrus.Errorf("Failed to update checluster status, cause: %v", err)
-		} else if sm.failedSyncer == syncer {
-			sm.failedSyncer = nil
-
-			err = SetStatusDetails(ctx, "", "", "")
-			if err != nil {
-				return &reconcile.Result{Requeue: true}, err
+			rm.failedReconciler = &reconciler
+			if err := SetStatusDetails(ctx, InstallOrUpdateFailed, err.Error(), ""); err != nil {
+				logrus.Errorf("Failed to update checluster status, cause: %v", err)
+			}
+		} else if rm.failedReconciler == &reconciler {
+			rm.failedReconciler = nil
+			if err := SetStatusDetails(ctx, "", "", ""); err != nil {
+				logrus.Errorf("Failed to update checluster status, cause: %v", err)
 			}
 		}
 
-		if result != nil {
-			return result, err
+		if !done {
+			return result, done, err
 		}
 	}
 
-	return nil, nil
+	return reconcile.Result{}, true, nil
 }
 
-func (sm *SyncManager) FinalizeAll(ctx *DeployContext) {
-	for _, syncer := range sm.syncers {
-		_, err := syncer.Finalize(ctx)
+func (sm *ReconcileManager) FinalizeAll(ctx *DeployContext) {
+	for _, reconciler := range sm.reconcilers {
+		_, err := reconciler.Finalize(ctx)
 		if err != nil {
-			logrus.Errorf("Failed to finalize, cause: %v", err)
+			reconcilerName := runtime.FuncForPC(reflect.ValueOf(reconciler).Pointer()).Name()
+			logrus.Errorf("Finalization failed for reconciler: `%s`, cause: %v", reconcilerName, err)
 		}
 	}
 }

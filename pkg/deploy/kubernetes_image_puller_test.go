@@ -326,7 +326,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 					t.Fatalf("Error reconciling: %v", err)
 				}
 			} else {
-				_, err = ReconcileImagePuller(deployContext)
+				_, _, err = ReconcileImagePuller(deployContext)
 				if err != nil {
 					t.Fatalf("Error reconciling: %v", err)
 				}

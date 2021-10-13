@@ -80,12 +80,12 @@ type CheClusterReconciler struct {
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
 	// in the API Server
-	discoveryClient discovery.DiscoveryInterface
-	tests           bool
-	userHandler     OpenShiftOAuthUserHandler
+	discoveryClient  discovery.DiscoveryInterface
+	tests            bool
+	userHandler      OpenShiftOAuthUserHandler
+	reconcileManager *deploy.ReconcileManager
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
-	namespace   string
-	syncManager *deploy.SyncManager
+	namespace string
 }
 
 // NewReconciler returns a new CheClusterReconciler
@@ -96,22 +96,22 @@ func NewReconciler(
 	scheme *k8sruntime.Scheme,
 	namespace string) *CheClusterReconciler {
 
-	syncManager := deploy.NewSyncManager()
+	reconcileManager := deploy.NewReconcileManager()
 
 	// order does matter
 	imagePuller := deploy.NewImagePuller()
-	imagePuller.Register(syncManager)
+	imagePuller.Register(reconcileManager)
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
 
-		client:          k8sclient,
-		nonCachedClient: noncachedClient,
-		discoveryClient: discoveryClient,
-		userHandler:     NewOpenShiftOAuthUserHandler(noncachedClient),
-		namespace:       namespace,
-		syncManager:     syncManager,
+		client:           k8sclient,
+		nonCachedClient:  noncachedClient,
+		discoveryClient:  discoveryClient,
+		userHandler:      NewOpenShiftOAuthUserHandler(noncachedClient),
+		namespace:        namespace,
+		reconcileManager: reconcileManager,
 	}
 }
 
@@ -279,18 +279,16 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		result, err := r.syncManager.SyncAll(deployContext)
-		if result != nil {
-			return *result, err
+		result, done, err := r.reconcileManager.ReconcileAll(deployContext)
+		if !done {
+			return result, err
+			// TODO: uncomment when all items added to ReconcilerManager
+			// } else {
+			// 	logrus.Info("Successfully reconciled.")
+			// 	return ctrl.Result{}, nil
 		}
-		// if result == nil {
-		// 	logrus.Info("Successfully reconciled.")
-		// 	return ctrl.Result{}, nil
-		// } else {
-		// 	return *result, err
-		// }
 	} else {
-		r.syncManager.FinalizeAll(deployContext)
+		r.reconcileManager.FinalizeAll(deployContext)
 	}
 
 	// Reconcile finalizers before CR is deleted
