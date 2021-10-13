@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -20,12 +20,12 @@ import (
 )
 
 func GetWaitForKeycloakInitContainer(deployContext *deploy.DeployContext) (*corev1.Container, error) {
-	keycloakEndpointCheckerImage := deploy.DefaultKeycloakImage(deployContext.CheCluster)
-	imagePullPolicy := corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(keycloakEndpointCheckerImage))
+	keycloakReadinessCheckerImage := deploy.DefaultKeycloakImage(deployContext.CheCluster)
+	imagePullPolicy := corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(keycloakReadinessCheckerImage))
 
 	return &corev1.Container{
-		Name:            "wait-for-keycloak",
-		Image:           keycloakEndpointCheckerImage,
+		Name:            "wait-for-identity-provider",
+		Image:           keycloakReadinessCheckerImage,
 		ImagePullPolicy: imagePullPolicy,
 		Command: []string{
 			"/bin/sh",
@@ -47,7 +47,7 @@ func getCheckKeycloakReadinessScript(deployContext *deploy.DeployContext) string
     if [ "$response_code" == "200" ]; then
 		  break
 		fi
-		echo 'waiting for Keycloak'
+		echo 'waiting for Identity provider'
 		sleep 2
 	done
 	`

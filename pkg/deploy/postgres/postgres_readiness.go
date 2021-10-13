@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -29,15 +29,15 @@ func GetWaitForPostgresInitContainer(deployContext *deploy.DeployContext) (*core
 	if !exists {
 		postgresDeployment = nil
 	}
-	postgresEndpointCheckerImage, err := getPostgresImage(postgresDeployment, deployContext.CheCluster)
+	postgresReadinessCheckerImage, err := getPostgresImage(postgresDeployment, deployContext.CheCluster)
 	if err != nil {
 		return nil, err
 	}
-	imagePullPolicy := corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(postgresEndpointCheckerImage))
+	imagePullPolicy := corev1.PullPolicy(deploy.DefaultPullPolicyFromDockerImage(postgresReadinessCheckerImage))
 
 	return &corev1.Container{
 		Name:            "wait-for-postgres",
-		Image:           postgresEndpointCheckerImage,
+		Image:           postgresReadinessCheckerImage,
 		ImagePullPolicy: imagePullPolicy,
 		Command: []string{
 			"/bin/sh",
