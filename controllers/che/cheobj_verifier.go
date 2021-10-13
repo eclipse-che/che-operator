@@ -29,7 +29,9 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 
 	checluster, num, _ := util.FindCheClusterCRInNamespace(cl, watchNamespace)
 	if num != 1 {
-		logrus.Warn("More than one checluster Custom Resource found.")
+		if num > 1 {
+			logrus.Warn("More than one checluster Custom Resource found.")
+		}
 		return false, ctrl.Request{}
 	}
 
@@ -78,7 +80,9 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 
 	checluster, num, _ := util.FindCheClusterCRInNamespace(cl, watchNamespace)
 	if num != 1 {
-		logrus.Warn("More than one checluster Custom Resource found.")
+		if num > 1 {
+			logrus.Warn("More than one checluster Custom Resource found.")
+		}
 		return false, ctrl.Request{}
 	}
 
