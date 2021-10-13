@@ -241,7 +241,7 @@ func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
 	return false
 }
 
-func IsEndpointMonitorConfigured(cr *orgv1.CheCluster) bool {
+func IsComponentReadinessInitContainersConfigured(cr *orgv1.CheCluster) bool {
 	return os.Getenv("ADD_COMPONENT_READINESS_INIT_CONTAINERS") == "true"
 }
 

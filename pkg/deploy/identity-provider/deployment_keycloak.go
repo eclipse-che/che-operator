@@ -717,7 +717,7 @@ func GetSpecKeycloakDeployment(
 		},
 	}
 
-	if deploy.IsEndpointMonitorConfigured(deployContext.CheCluster) {
+	if deploy.IsComponentReadinessInitContainersConfigured(deployContext.CheCluster) {
 		if !deployContext.CheCluster.Spec.Database.ExternalDb {
 			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(deployContext)
 			if err != nil {

@@ -360,7 +360,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		}
 	}
 
-	if deploy.IsEndpointMonitorConfigured(s.deployContext.CheCluster) {
+	if deploy.IsComponentReadinessInitContainersConfigured(s.deployContext.CheCluster) {
 		if !s.deployContext.CheCluster.Spec.Database.ExternalDb {
 			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(s.deployContext)
 			if err != nil {
