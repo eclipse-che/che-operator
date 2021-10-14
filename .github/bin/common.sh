@@ -184,17 +184,17 @@ collectDevworkspaceOperatorLogs() {
   #determine the name of the devworkspace controller manager pod
   local CONTROLLER_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].metadata.name')
   local WEBHOOK_SVR_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-webhook-server -o json | jq -r '.items[0].metadata.name')
-  
+
   # save the logs of all the containers in the DWO pod
   for container in $(oc get pod -n devworkspace-controller ${CONTROLLER_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
     mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}
     oc logs -n devworkspace-controller deployment/devworkspace-controller-manager -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}/${container}.log
-  done 
+  done
 
   for container in $(oc get pod -n devworkspace-controller ${WEBHOOK_SVR_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
     mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}
     oc logs -n devworkspace-controller deployment/devworkspace-webhook-server -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}/${container}.log
-  done 
+  done
 }
 
 # Build latest operator image
@@ -547,7 +547,7 @@ enableDevWorkspaceEngine() {
 }
 
 deployCertManager() {
-  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/installers/cert-manager.yml
+  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/resources/cert-manager.yml
   sleep 10s
 
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=60s
