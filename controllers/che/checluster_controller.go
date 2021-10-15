@@ -99,6 +99,11 @@ func NewReconciler(
 	reconcileManager := deploy.NewReconcileManager()
 
 	// order does matter
+	if !util.IsTestMode() {
+		cheClusterValidator := NewCheClusterValidator()
+		cheClusterValidator.Register(reconcileManager)
+	}
+
 	imagePuller := deploy.NewImagePuller()
 	imagePuller.Register(reconcileManager)
 
@@ -292,14 +297,8 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Reconcile finalizers before CR is deleted
+	// TODO remove in favor of r.reconcileManager.FinalizeAll(deployContext)
 	r.reconcileFinalizers(deployContext)
-
-	// Check Che CR correctness
-	if !util.IsTestMode() {
-		if err := ValidateCheCR(checluster); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
 
 	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(checluster) {
 		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {

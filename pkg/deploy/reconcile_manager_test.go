@@ -29,10 +29,6 @@ func NewTestReconcilable(shouldFailReconcileOnce bool) *TestReconcilable {
 	return &TestReconcilable{shouldFailReconcileOnce, false}
 }
 
-func (tr *TestReconcilable) Register(sm *ReconcileManager) {
-	sm.RegisterReconciler(tr)
-}
-
 func (tr *TestReconcilable) Reconcile(ctx *DeployContext) (reconcile.Result, bool, error) {
 	// Fails on first invocation passes on others
 	if !tr.alreadyFailed && tr.shouldFailReconcileOnce {
@@ -45,6 +41,10 @@ func (tr *TestReconcilable) Reconcile(ctx *DeployContext) (reconcile.Result, boo
 
 func (tr *TestReconcilable) Finalize(ctx *DeployContext) (bool, error) {
 	return true, nil
+}
+
+func (tr *TestReconcilable) Register(rm *ReconcileManager) {
+	rm.RegisterReconciler(tr)
 }
 
 func TestShouldUpdateAndCleanStatus(t *testing.T) {

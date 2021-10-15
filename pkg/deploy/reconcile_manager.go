@@ -24,8 +24,8 @@ type Reconcilable interface {
 	Reconcile(ctx *DeployContext) (result reconcile.Result, done bool, err error)
 	// Does finalization (removes cluster scope objects, etc)
 	Finalize(ctx *DeployContext) (done bool, err error)
-	// Registration
-	Register(reconcileManager *ReconcileManager)
+	// Does registration
+	Register(rm *ReconcileManager)
 }
 
 type ReconcileManager struct {
