@@ -30,7 +30,7 @@ type Reconcilable interface {
 
 type ReconcileManager struct {
 	reconcilers      []Reconcilable
-	failedReconciler *Reconcilable
+	failedReconciler Reconcilable
 }
 
 func NewReconcileManager() *ReconcileManager {
@@ -50,11 +50,11 @@ func (rm *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Result, 
 	for _, reconciler := range rm.reconcilers {
 		result, done, err := reconciler.Reconcile(ctx)
 		if err != nil {
-			rm.failedReconciler = &reconciler
+			rm.failedReconciler = reconciler
 			if err := SetStatusDetails(ctx, InstallOrUpdateFailed, err.Error(), ""); err != nil {
 				logrus.Errorf("Failed to update checluster status, cause: %v", err)
 			}
-		} else if rm.failedReconciler == &reconciler {
+		} else if rm.failedReconciler == reconciler {
 			rm.failedReconciler = nil
 			if err := SetStatusDetails(ctx, "", "", ""); err != nil {
 				logrus.Errorf("Failed to update checluster status, cause: %v", err)
