@@ -936,7 +936,7 @@ catalog-build: opm ## Build a catalog image.
 	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.2 \
 	--mode semver $(FROM_INDEX_OPT)
 
-# Push the catalog image.
+# Push the catalog image. 
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
