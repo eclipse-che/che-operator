@@ -963,10 +963,10 @@ spec:
                     resources:
                       limits:
                         cpu: 500m
-                        memory: 256Mi
+                        memory: 512Mi
                       requests:
                         cpu: 100m
-                        memory: 64Mi
+                        memory: 256Mi
                     securityContext:
                       capabilities:
                         drop:
