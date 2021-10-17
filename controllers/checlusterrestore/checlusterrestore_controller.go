@@ -74,7 +74,7 @@ func (r *ReconcileCheClusterRestore) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &chev1.CheClusterRestore{}}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(restoreCRPredicate))
 
 	if r.namespace != "" {
-		bldr.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
+		bldr = bldr.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
 	}
 
 	return bldr.

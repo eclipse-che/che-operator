@@ -213,7 +213,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	if r.namespace != "" {
-		contollerBuilder.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
+		contollerBuilder = contollerBuilder.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
 	}
 
 	return contollerBuilder.
