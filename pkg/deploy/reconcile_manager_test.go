@@ -43,16 +43,13 @@ func (tr *TestReconcilable) Finalize(ctx *DeployContext) (bool, error) {
 	return true, nil
 }
 
-func (tr *TestReconcilable) Register(rm *ReconcileManager) {
-	rm.RegisterReconciler(tr)
-}
-
 func TestShouldUpdateAndCleanStatus(t *testing.T) {
 	deployContext := GetTestDeployContext(nil, []runtime.Object{})
 
-	rm := NewReconcileManager()
 	tr := NewTestReconcilable(true)
-	tr.Register(rm)
+
+	rm := NewReconcileManager()
+	rm.RegisterReconciler(tr)
 
 	_, done, err := rm.ReconcileAll(deployContext)
 

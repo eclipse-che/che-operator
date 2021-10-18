@@ -100,12 +100,11 @@ func NewReconciler(
 
 	// order does matter
 	if !util.IsTestMode() {
-		cheClusterValidator := NewCheClusterValidator()
-		cheClusterValidator.Register(reconcileManager)
+		checlusterValidator := NewCheClusterValidator
+		reconcileManager.RegisterReconciler(checlusterValidator())
 	}
-
-	imagePuller := deploy.NewImagePuller()
-	imagePuller.Register(reconcileManager)
+	ip := deploy.NewImagePuller()
+	reconcileManager.RegisterReconciler(ip)
 
 	return &CheClusterReconciler{
 		Scheme: scheme,

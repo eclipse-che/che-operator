@@ -20,6 +20,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	NamespaceStrategyErrorMessage  = "Namespace strategies other than 'per user' is not supported anymore. Using the <username> or <userid> placeholder is required in the 'spec.server.workspaceNamespaceDefault' field. The current value is: %s"
+	AuthenticationModeErrorMessage = "Single user authentication mode is not supported anymore. To backup your data you can commit workspace configuration to an SCM server and use factories to restore it in multi user mode. To switch to multi user authentication mode set 'spec.server.customCheProperties.CHE_MULTIUSER' to 'true' in %s CheCluster custom resource. Switching to multi user authentication mode without backing up your data will cause data loss."
+)
+
 // CheClusterValidator checks CheCluster CR configuration.
 // It detect:
 // - configurations which miss required field(s) to deploy Che
@@ -32,10 +37,6 @@ func NewCheClusterValidator() *CheClusterValidator {
 	return &CheClusterValidator{}
 }
 
-func (v *CheClusterValidator) Register(rm *deploy.ReconcileManager) {
-	rm.RegisterReconciler(v)
-}
-
 func (v *CheClusterValidator) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	if !util.IsOpenShift {
 		if ctx.CheCluster.Spec.K8s.IngressDomain == "" {
@@ -45,11 +46,11 @@ func (v *CheClusterValidator) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 	if strings.Index(workspaceNamespaceDefault, "<username>") == -1 && strings.Index(workspaceNamespaceDefault, "<userid>") == -1 {
-		return reconcile.Result{}, false, fmt.Errorf(`Namespace strategies other than 'per user' is not supported anymore. Using the <username> or <userid> placeholder is required in the 'spec.server.workspaceNamespaceDefault' field. The current value is: %s`, workspaceNamespaceDefault)
+		return reconcile.Result{}, false, fmt.Errorf(NamespaceStrategyErrorMessage, workspaceNamespaceDefault)
 	}
 
 	if !util.IsCheMultiUser(ctx.CheCluster) {
-		return reconcile.Result{}, false, fmt.Errorf("Single user authentication mode is not supported anymore. To backup your data you can commit workspace configuration to an SCM server and use factories to restore it in multi user mode. To switch to multi user authentication mode set 'spec.server.customCheProperties.CHE_MULTIUSER' to 'true' in %s CheCluster custom resource. Switching to multi user authentication mode without backing up your data will cause data loss.", ctx.CheCluster.Name)
+		return reconcile.Result{}, false, fmt.Errorf(AuthenticationModeErrorMessage, ctx.CheCluster.Name)
 	}
 
 	return reconcile.Result{}, true, nil

@@ -24,8 +24,6 @@ type Reconcilable interface {
 	Reconcile(ctx *DeployContext) (result reconcile.Result, done bool, err error)
 	// Does finalization (removes cluster scope objects, etc)
 	Finalize(ctx *DeployContext) (done bool, err error)
-	// Does registration
-	Register(rm *ReconcileManager)
 }
 
 type ReconcileManager struct {
@@ -40,22 +38,22 @@ func NewReconcileManager() *ReconcileManager {
 	}
 }
 
-func (rm *ReconcileManager) RegisterReconciler(reconciler Reconcilable) {
-	rm.reconcilers = append(rm.reconcilers, reconciler)
+func (manager *ReconcileManager) RegisterReconciler(reconciler Reconcilable) {
+	manager.reconcilers = append(manager.reconcilers, reconciler)
 }
 
 // Reconcile all objects in a order they have been added
 // If reconciliation failed then CheCluster status will be updated accordingly.
-func (rm *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Result, bool, error) {
-	for _, reconciler := range rm.reconcilers {
+func (manager *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Result, bool, error) {
+	for _, reconciler := range manager.reconcilers {
 		result, done, err := reconciler.Reconcile(ctx)
 		if err != nil {
-			rm.failedReconciler = reconciler
+			manager.failedReconciler = reconciler
 			if err := SetStatusDetails(ctx, InstallOrUpdateFailed, err.Error(), ""); err != nil {
 				logrus.Errorf("Failed to update checluster status, cause: %v", err)
 			}
-		} else if rm.failedReconciler == reconciler {
-			rm.failedReconciler = nil
+		} else if manager.failedReconciler == reconciler {
+			manager.failedReconciler = nil
 			if err := SetStatusDetails(ctx, "", "", ""); err != nil {
 				logrus.Errorf("Failed to update checluster status, cause: %v", err)
 			}
@@ -69,8 +67,8 @@ func (rm *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Result, 
 	return reconcile.Result{}, true, nil
 }
 
-func (sm *ReconcileManager) FinalizeAll(ctx *DeployContext) {
-	for _, reconciler := range sm.reconcilers {
+func (manager *ReconcileManager) FinalizeAll(ctx *DeployContext) {
+	for _, reconciler := range manager.reconcilers {
 		_, err := reconciler.Finalize(ctx)
 		if err != nil {
 			reconcilerName := runtime.FuncForPC(reflect.ValueOf(reconciler).Pointer()).Name()

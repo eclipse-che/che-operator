@@ -52,10 +52,6 @@ func NewImagePuller() *ImagePuller {
 	return &ImagePuller{}
 }
 
-func (ip *ImagePuller) Register(sm *ReconcileManager) {
-	sm.RegisterReconciler(ip)
-}
-
 func (ip *ImagePuller) Reconcile(ctx *DeployContext) (reconcile.Result, bool, error) {
 	return ReconcileImagePuller(ctx)
 }
