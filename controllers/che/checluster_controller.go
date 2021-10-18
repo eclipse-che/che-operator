@@ -156,7 +156,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return []ctrl.Request{}
 	}
 
-	contollerBuilder := ctrl.NewControllerManagedBy(mgr).
+	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		// Watch for changes to primary resource CheCluster
 		Watches(&source.Kind{Type: &orgv1.CheCluster{}}, &handler.EnqueueRequestForObject{}).
 		// Watch for changes to secondary resources and requeue the owner CheCluster
@@ -206,22 +206,22 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		)
 
 	if isOpenShift {
-		contollerBuilder = contollerBuilder.Watches(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
+		controllerBuilder = controllerBuilder.Watches(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		})
 	} else {
-		contollerBuilder = contollerBuilder.Watches(&source.Kind{Type: &networking.Ingress{}}, &handler.EnqueueRequestForOwner{
+		controllerBuilder = controllerBuilder.Watches(&source.Kind{Type: &networking.Ingress{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		})
 	}
 
 	if r.namespace != "" {
-		contollerBuilder.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
+		controllerBuilder = controllerBuilder.WithEventFilter(util.InNamespaceEventFilter(r.namespace))
 	}
 
-	return contollerBuilder.
+	return controllerBuilder.
 		For(&orgv1.CheCluster{}).
 		Complete(r)
 }
