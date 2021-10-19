@@ -19,6 +19,6 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v1
     - name: DEPENDENCIES.md file checker.
-      uses: che-incubator/dependencies-license-action@0.0.1
+      uses: che-incubator/dependencies-license-action@0.0.2
       env:
         EXCLUDE_DEPS: "github.com/bmizerany/assert, gotest.tools/v3, github.com/dhui/dktest, gotest.tools, github.com/golangplus/testing"
