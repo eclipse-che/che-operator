@@ -55,7 +55,3 @@ type Proxy struct {
 	NoProxy          string
 	TrustedCAMapName string
 }
-
-type Syncable interface {
-	Sync() (bool, error)
-}

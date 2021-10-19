@@ -122,6 +122,9 @@ const (
 	PluginRegistryName   = "plugin-registry"
 	PostgresName         = "postgres"
 
+	// CheServiceAccountName - service account name for che-server.
+	CheServiceAccountName = "che"
+
 	// limits
 	DefaultDashboardMemoryLimit   = "256Mi"
 	DefaultDashboardMemoryRequest = "32Mi"
@@ -164,6 +167,8 @@ const (
 	GitLabOAuthConfigMountPath            = "/che-conf/oauth/gitlab"
 	GitLabOAuthConfigClientIdFileName     = "id"
 	GitLabOAuthConfigClientSecretFileName = "secret"
+
+	InstallOrUpdateFailed = "InstallOrUpdateFailed"
 )
 
 func InitDefaults(defaultsPath string) {

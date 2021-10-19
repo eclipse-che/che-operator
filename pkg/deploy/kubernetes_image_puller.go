@@ -45,25 +45,35 @@ type ImageAndName struct {
 	Image string // image (ex. quay.io/test/abc)
 }
 
+type ImagePuller struct {
+}
+
+func NewImagePuller() *ImagePuller {
+	return &ImagePuller{}
+}
+
+func (ip *ImagePuller) Reconcile(ctx *DeployContext) (reconcile.Result, bool, error) {
+	return ReconcileImagePuller(ctx)
+}
+
+func (ip *ImagePuller) Finalize(ctx *DeployContext) (bool, error) {
+	return DeleteImagePullerOperatorAndFinalizer(ctx)
+}
+
 // Reconcile the imagePuller section of the CheCluster CR.  If imagePuller.enable is set to true, install the Kubernetes Image Puller operator and create
 // a KubernetesImagePuller CR.  Add a finalizer to the CheCluster CR.  If false, remove the KubernetesImagePuller CR, uninstall the operator, and remove the finalizer.
-func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
-
-	if !ctx.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		return DeleteImagePullerOperatorAndFinalizer(ctx)
-	}
-
+func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, bool, error) {
 	// Determine what server groups the API Server knows about
 	foundPackagesAPI, foundOperatorsAPI, _, err := CheckNeededImagePullerApis(ctx)
 	if err != nil {
 		logrus.Errorf("Error discovering image puller APIs: %v", err)
-		return reconcile.Result{}, err
+		return reconcile.Result{}, false, err
 	}
 
 	// If the image puller should be installed but the APIServer doesn't know about PackageManifests/Subscriptions, log a warning and requeue
 	if ctx.CheCluster.Spec.ImagePuller.Enable && (!foundPackagesAPI || !foundOperatorsAPI) {
 		logrus.Infof("Couldn't find Operator Lifecycle Manager types to install the Kubernetes Image Puller Operator.  Please install Operator Lifecycle Manager to install the operator or disable the image puller by setting spec.imagePuller.enable to false.")
-		return reconcile.Result{RequeueAfter: time.Second}, nil
+		return reconcile.Result{RequeueAfter: time.Second}, false, nil
 	}
 
 	if ctx.CheCluster.Spec.ImagePuller.Enable {
@@ -72,42 +82,42 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 			if err != nil {
 				if errors.IsNotFound(err) {
 					logrus.Infof("There is no PackageManifest for the Kubernetes Image Puller Operator.  Install the Operator Lifecycle Manager and the Community Operators Catalog")
-					return reconcile.Result{RequeueAfter: time.Second}, nil
+					return reconcile.Result{RequeueAfter: time.Second}, false, nil
 				}
 				logrus.Errorf("Error getting packagemanifest: %v", err)
-				return reconcile.Result{}, err
+				return reconcile.Result{}, false, err
 			}
 
 			createdOperatorGroup, err := CreateOperatorGroupIfNotFound(ctx)
 			if err != nil {
 				logrus.Infof("Error creating OperatorGroup: %v", err)
-				return reconcile.Result{}, err
+				return reconcile.Result{}, false, err
 			}
 			if createdOperatorGroup {
-				return reconcile.Result{RequeueAfter: time.Second}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, false, nil
 			}
 			createdOperatorSubscription, err := CreateImagePullerSubscription(ctx, packageManifest)
 			if err != nil {
 				logrus.Infof("Error creating Subscription: %v", err)
-				return reconcile.Result{}, err
+				return reconcile.Result{}, false, err
 			}
 			if createdOperatorSubscription {
-				return reconcile.Result{RequeueAfter: time.Second}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, false, nil
 			}
 
 			// Add the image puller finalizer
 			if !HasImagePullerFinalizer(ctx.CheCluster) {
 				if err := ReconcileImagePullerFinalizer(ctx); err != nil {
-					return reconcile.Result{}, err
+					return reconcile.Result{}, false, err
 				}
-				return reconcile.Result{RequeueAfter: time.Second}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, false, nil
 			}
 		}
 
 		_, _, foundKubernetesImagePullerAPI, err := CheckNeededImagePullerApis(ctx)
 		if err != nil {
 			logrus.Errorf("Error discovering image puller APIs: %v", err)
-			return reconcile.Result{}, err
+			return reconcile.Result{}, false, err
 		}
 		// If the KubernetesImagePuller API service exists, attempt to reconcile creation/update
 		if foundKubernetesImagePullerAPI {
@@ -125,15 +135,15 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 						_, err := UpdateImagePullerSpecIfEmpty(ctx)
 						if err != nil {
 							logrus.Errorf("Error updating CheCluster: %v", err)
-							return reconcile.Result{}, err
+							return reconcile.Result{}, false, err
 						}
-						return reconcile.Result{RequeueAfter: time.Second}, nil
+						return reconcile.Result{RequeueAfter: time.Second}, false, nil
 					}
 
 					if ctx.CheCluster.IsImagePullerImagesEmpty() {
 						if err = SetDefaultImages(ctx); err != nil {
 							logrus.Error(err)
-							return reconcile.Result{}, err
+							return reconcile.Result{}, false, err
 						}
 					}
 
@@ -141,19 +151,19 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 					createdImagePuller, err := CreateKubernetesImagePuller(ctx)
 					if err != nil {
 						logrus.Error("Error creating KubernetesImagePuller: ", err)
-						return reconcile.Result{}, err
+						return reconcile.Result{}, false, err
 					}
 					if createdImagePuller {
-						return reconcile.Result{}, nil
+						return reconcile.Result{}, false, nil
 					}
 				}
 				logrus.Errorf("Error getting KubernetesImagePuller: %v", err)
-				return reconcile.Result{}, err
+				return reconcile.Result{}, false, err
 			}
 
 			if err = UpdateDefaultImagesIfNeeded(ctx); err != nil {
 				logrus.Error(err)
-				return reconcile.Result{}, err
+				return reconcile.Result{}, false, err
 			}
 
 			if ctx.CheCluster.Spec.ImagePuller.Spec.DeploymentName == "" {
@@ -172,44 +182,43 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 				logrus.Infof("Updating KubernetesImagePuller %v", imagePuller.Name)
 				if err = ctx.ClusterAPI.Client.Update(context.TODO(), imagePuller, &client.UpdateOptions{}); err != nil {
 					logrus.Errorf("Error updating KubernetesImagePuller: %v", err)
-					return reconcile.Result{}, err
+					return reconcile.Result{}, false, err
 				}
-				return reconcile.Result{RequeueAfter: time.Second}, nil
+				return reconcile.Result{RequeueAfter: time.Second}, false, nil
 			}
 		} else {
 			logrus.Infof("Waiting 15 seconds for kubernetesimagepullers.che.eclipse.org API")
-			return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+			return reconcile.Result{RequeueAfter: 15 * time.Second}, false, nil
 		}
 
 	} else {
 		if foundOperatorsAPI && foundPackagesAPI {
-			return DeleteImagePullerOperatorAndFinalizer(ctx)
+			done, err := DeleteImagePullerOperatorAndFinalizer(ctx)
+			if !done {
+				return reconcile.Result{}, false, err
+			} else {
+				return reconcile.Result{}, true, nil
+			}
 		}
 	}
-	return reconcile.Result{}, nil
+	return reconcile.Result{}, true, nil
 }
 
-func DeleteImagePullerOperatorAndFinalizer(ctx *DeployContext) (reconcile.Result, error) {
-	requeue := false
+func DeleteImagePullerOperatorAndFinalizer(ctx *DeployContext) (bool, error) {
 	if _, err := GetImagePullerOperator(ctx); err == nil {
-		requeue = true
 		if _, err := UninstallImagePullerOperator(ctx); err != nil {
 			logrus.Errorf("Error uninstalling Image Puller: %v", err)
-			return reconcile.Result{}, err
+			return false, err
 		}
 	}
 	if HasImagePullerFinalizer(ctx.CheCluster) {
-		requeue = true
 		if err := DeleteImagePullerFinalizer(ctx); err != nil {
 			logrus.Errorf("Error deleting finalizer: %v", err)
-			return reconcile.Result{}, err
+			return false, err
 		}
 	}
 
-	if requeue {
-		return reconcile.Result{RequeueAfter: time.Second}, nil
-	}
-	return reconcile.Result{}, nil
+	return true, nil
 }
 
 func HasImagePullerFinalizer(instance *orgv1.CheCluster) bool {
