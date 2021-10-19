@@ -437,6 +437,12 @@
 | [github.com/asaskevich/govalidator@f61b66f89f4a311bef65f13e575bcf1a2ffadda6](https://github.com/asaskevich/govalidator.git) | MIT | [clearlydefined](https://clearlydefined.io/definitions/git/github/asaskevich/govalidator/f61b66f89f4a311bef65f13e575bcf1a2ffadda6) |
 | [github.com/lucasjones/reggen@37ba4fa293bb40d3e1d805ba3545bfaab688d669](https://github.com/lucasjones/reggen.git) | MIT | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23647) |
 | [github.com/asaskevich/govalidator@f61b66f89f4a311bef65f13e575bcf1a2ffadda6](https://github.com/asaskevich/govalidator.git) | MIT | [clearlydefined](https://clearlydefined.io/definitions/git/github/asaskevich/govalidator/f61b66f89f4a311bef65f13e575bcf1a2ffadda6) |
+| [github.com/moby/moby@38ab9da0030917f154f4d1b05962d48de149d47c](https://github.com/moby/moby.git) | Apache-2.0 AND BSD-3-Clause AND BSD-2-Clause AND MIT | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23774) |
+| [github.com/go-openapi/analysis@v0.19.2](https://github.com/go-openapi/analysis.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23775) |
+| [github.com/google/shlex@e7afc7fbc51079733e9468cdfd1efcd7d196cd1d](https://github.com/google/shlex.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23776) |
+| [github.com/anmitsu/go-shlex@648efa622239a2f6ff949fed78ee37b48d499ba4](https://github.com/anmitsu/go-shlex.git) | MIT | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23777) |
+| [sigs.k8s.io/kustomize@v2.0.3](https://sigs.k8s.io/kustomize.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23778) |
+| [github.com/go-git/go-git-fixtures/v4@f56387b50c12de95a311253967bdbdcaf56e4545](https://github.com/go-git/go-git-fixtures.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23779) |
 | [golang.org/x/crypto@5ea612d1eb830b38bc4e914e37f55311eb58adce](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/exp@956cc1757749645f24cefb2ef2a41b0ec4514cf8](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/image@0694c2d4d067f97ebef574d63a763ee8ab559da7](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
@@ -452,3 +458,6 @@
 | [golang.org/x/xerrors@5ec99f83aff198f5fbd629d6c8d8eb38a04218ca](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/oauth2@bf48bf16ab8d622ce64ec6ce98d2c98f916b6303](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
+| [github.com/devfile/api/v2@03e023e7078b64884216d8e6dce8f0cf8b7e74d2](https://github.com/devfile/api.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23680) |
+| [github.com/che-incubator/kubernetes-image-puller-operator@0128446f5af78587c0427a35d693bbb8d24036bc](https://github.com/che-incubator/kubernetes-image-puller-operator.git) | EPL-2.0 | todo |
+| [github.com/devfile/devworkspace-operator@728dff7e987c761723d4155fc5758f5673b4e955](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [CQ](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=23780) |
