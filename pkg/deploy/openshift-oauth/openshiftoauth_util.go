@@ -15,32 +15,7 @@ package openshiftoauth
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	oauthv1 "github.com/openshift/api/config/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
-
-// Gets OpenShift user credentials secret from from the secret from:
-// - openshift-config namespace
-// - eclipse-che namespace
-func GetOpenShiftOAuthUserCredentialsSecret(ctx *deploy.DeployContext) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-
-	exists, err := deploy.Get(ctx, types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, secret)
-	if err != nil {
-		return nil, err
-	} else if exists {
-		return secret, nil
-	}
-
-	exists, err = deploy.GetNamespacedObject(ctx, OpenShiftOAuthUserCredentialsSecret, secret)
-	if err != nil {
-		return nil, err
-	} else if exists {
-		return secret, nil
-	}
-
-	return nil, nil
-}
 
 // Gets OpenShift OAuth.
 func GetOpenshiftOAuth(ctx *deploy.DeployContext) (*oauthv1.OAuth, error) {

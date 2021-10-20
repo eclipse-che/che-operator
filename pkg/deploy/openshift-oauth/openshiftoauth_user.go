@@ -22,10 +22,12 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -57,6 +59,50 @@ func NewOpenShiftOAuthUser() *OpenShiftOAuthUser {
 	}
 }
 
+func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+	if !util.IsOpenShift4 {
+		return reconcile.Result{}, true, nil
+	}
+
+	if ctx.CheCluster.IsOpenShiftOAuthUser() {
+		done, err := oou.Create(ctx)
+		if !done {
+			return reconcile.Result{Requeue: true}, false, err
+		}
+		return reconcile.Result{}, true, nil
+	} else {
+		// c.Status.OpenShiftOAuthUserCredentialsSecret != ""
+		if err := oou.Delete(ctx); err != nil {
+			return reconcile.Result{}, false, errors.Wrap(err, "Unable to delete initial OpenShift OAuth user from a cluster")
+		}
+
+		ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
+		if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+			return reconcile.Result{}, false, err
+		}
+
+		ctx.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
+		updateFields := map[string]string{
+			"openShiftoAuth":            "nil",
+			"initialOpenShiftOAuthUser": "nil",
+		}
+
+		if err := deploy.UpdateCheCRSpecByFields(ctx, updateFields); err != nil {
+			return reconcile.Result{}, false, err
+		}
+	}
+
+	return reconcile.Result{}, true, nil
+}
+
+func (oou *OpenShiftOAuthUser) Finalize(ctx *deploy.DeployContext) error {
+	if util.IsOpenShift4 {
+		return oou.Delete(ctx)
+	}
+
+	return nil
+}
+
 // Creates new htpasswd provider with initial user with Che flavor name
 // if Openshift cluster hasn't got identity providers, otherwise do nothing.
 // It usefull for good first user experience.
@@ -74,7 +120,7 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 	var storedPassword string
 
 	// read existed password from the secret (operator has been restarted case)
-	secret, err := GetOpenShiftOAuthUserCredentialsSecret(ctx)
+	secret, err := oou.getOpenShiftOAuthUserCredentialsSecret(ctx)
 	if err != nil {
 		return false, err
 	} else if secret != nil {
@@ -172,6 +218,29 @@ func (oou *OpenShiftOAuthUser) generateHtPasswdUserInfo(userName string, passwor
 		return "", errorMsg.New("Failed to generate data for HTPasswd identity provider: " + oou.runnable.GetStdErr())
 	}
 	return oou.runnable.GetStdOut(), nil
+}
+
+// Gets OpenShift user credentials secret from from the secret from:
+// - openshift-config namespace
+// - eclipse-che namespace
+func (oou *OpenShiftOAuthUser) getOpenShiftOAuthUserCredentialsSecret(ctx *deploy.DeployContext) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+
+	exists, err := deploy.Get(ctx, types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, secret)
+	if err != nil {
+		return nil, err
+	} else if exists {
+		return secret, nil
+	}
+
+	exists, err = deploy.GetNamespacedObject(ctx, OpenShiftOAuthUserCredentialsSecret, secret)
+	if err != nil {
+		return nil, err
+	} else if exists {
+		return secret, nil
+	}
+
+	return nil, nil
 }
 
 func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {

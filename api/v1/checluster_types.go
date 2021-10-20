@@ -781,3 +781,11 @@ func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
 	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
 }
+
+func (c *CheCluster) IsOpenShiftOAuthUser() bool {
+	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
+}
+
+func (c *CheCluster) IsOpenShiftOAuth() bool {
+	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
+}

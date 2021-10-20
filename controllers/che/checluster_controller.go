@@ -106,6 +106,9 @@ func NewReconciler(
 	}
 	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
+	openShiftOAuthUser := openshiftoauth.NewOpenShiftOAuthUser()
+	reconcileManager.RegisterReconciler(openShiftOAuthUser)
+
 	return &CheClusterReconciler{
 		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
@@ -113,7 +116,7 @@ func NewReconciler(
 		client:             k8sclient,
 		nonCachedClient:    noncachedClient,
 		discoveryClient:    discoveryClient,
-		openShiftOAuthUser: openshiftoauth.NewOpenShiftOAuthUser(),
+		openShiftOAuthUser: openShiftOAuthUser,
 		namespace:          namespace,
 		reconcileManager:   reconcileManager,
 	}
@@ -299,42 +302,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// TODO remove in favor of r.reconcileManager.FinalizeAll(deployContext)
 	r.reconcileFinalizers(deployContext)
 
-	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(checluster) {
-		if err := r.openShiftOAuthUser.Delete(deployContext); err != nil {
-			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
-			checluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
-			err := deploy.UpdateCheCRSpec(deployContext, "initialOpenShiftOAuthUser", "nil")
-			return reconcile.Result{}, err
-		}
-
-		checluster.Spec.Auth.OpenShiftoAuth = nil
-		checluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
-		updateFields := map[string]string{
-			"openShiftoAuth":            "nil",
-			"initialOpenShiftOAuthUser": "nil",
-		}
-
-		if err := deploy.UpdateCheCRSpecByFields(deployContext, updateFields); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
-	}
-
-	// Update status if OpenShift initial user is deleted (in the previous step)
-	if checluster.Spec.Auth.InitialOpenShiftOAuthUser == nil && checluster.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret, err := openshiftoauth.GetOpenShiftOAuthUserCredentialsSecret(deployContext)
-		if err != nil {
-			// We should `Requeue` since we deal with cluster scope objects
-			return ctrl.Result{RequeueAfter: time.Second}, err
-		} else if secret == nil {
-			checluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
-			if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
 	if util.IsOpenShift && checluster.Spec.DevWorkspace.Enable && checluster.Spec.Auth.NativeUserMode == nil {
 		newNativeUserModeValue := util.NewBoolPointer(true)
 		checluster.Spec.Auth.NativeUserMode = newNativeUserModeValue
@@ -394,13 +361,13 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(util.IsOpenShift4 && util.IsOAuthEnabled(checluster) && !checluster.Spec.Server.TlsSupport) {
+			(util.IsOpenShift4 && checluster.IsOpenShiftOAuth() && !checluster.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 
-		if util.IsOAuthEnabled(checluster) {
+		if util.IsOpenShift && checluster.IsOpenShiftOAuth() {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
 			if err != nil {
@@ -709,15 +676,9 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 }
 
 func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployContext) {
-	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && deployContext.CheCluster.IsOpenShiftOAuth() {
 		if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
 			logrus.Error(err)
-		}
-	}
-
-	if util.IsOpenShift4 && util.IsInitialOpenShiftOAuthUserEnabled(deployContext.CheCluster) {
-		if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-			r.openShiftOAuthUser.Delete(deployContext)
 		}
 	}
 

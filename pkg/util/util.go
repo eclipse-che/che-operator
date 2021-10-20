@@ -484,11 +484,6 @@ func IsNativeUserModeEnabled(c *orgv1.CheCluster) bool {
 	return IsOpenShift && c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
 }
 
-// IsOAuthEnabled returns true when oAuth is enable for CheCluster resource, otherwise false.
-func IsOAuthEnabled(c *orgv1.CheCluster) bool {
-	return IsOpenShift && c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
-}
-
 // IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
 func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
 	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
@@ -504,15 +499,10 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	}
 
 	workspaceNamespaceDefault := cr.Namespace
-	if IsOpenShift && IsOAuthEnabled(cr) {
+	if IsOpenShift && cr.IsOpenShiftOAuth() {
 		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
 	}
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
-}
-
-// IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
-func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
-	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
