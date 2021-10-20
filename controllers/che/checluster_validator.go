@@ -56,6 +56,6 @@ func (v *CheClusterValidator) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (v *CheClusterValidator) Finalize(ctx *deploy.DeployContext) (bool, error) {
-	return true, nil
+func (v *CheClusterValidator) Finalize(ctx *deploy.DeployContext) error {
+	return nil
 }

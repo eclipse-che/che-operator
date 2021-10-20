@@ -24,6 +24,7 @@ import (
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 	openshiftoauth "github.com/eclipse-che/che-operator/pkg/deploy/openshift-oauth"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
@@ -103,7 +104,7 @@ func NewReconciler(
 	if !util.IsTestMode() {
 		reconcileManager.RegisterReconciler(NewCheClusterValidator())
 	}
-	reconcileManager.RegisterReconciler(deploy.NewImagePuller())
+	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
