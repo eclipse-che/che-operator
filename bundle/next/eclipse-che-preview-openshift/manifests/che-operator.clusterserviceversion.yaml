@@ -1162,7 +1162,7 @@ spec:
                     resources:
                       limits:
                         cpu: 500m
-                        memory: 2560Mi
+                        memory: 5Gi
                       requests:
                         cpu: 100m
                         memory: 64Mi
