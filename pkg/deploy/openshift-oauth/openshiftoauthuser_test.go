@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package che
+package openshiftoauth
 
 import (
 	"context"
@@ -85,15 +85,14 @@ func TestCreateInitialUser(t *testing.T) {
 	m.EXPECT().GetStdErr().Return("")
 	defer ctrl.Finish()
 
-	initialUserHandler := &OpenShiftOAuthUserOperatorHandler{
-		runtimeClient: runtimeClient,
-		runnable:      m,
+	initialUserHandler := &OpenShiftOAuthUser{
+		runnable: m,
 	}
 	dc := &deploy.DeployContext{
 		CheCluster: testCR,
 		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
 	}
-	provisined, err := initialUserHandler.SyncOAuthInitialUser(oAuth, dc)
+	provisined, err := initialUserHandler.Create(dc)
 	if err != nil {
 		t.Errorf("Failed to create user: %s", err.Error())
 	}
@@ -103,12 +102,12 @@ func TestCreateInitialUser(t *testing.T) {
 
 	// Check created objects
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, expectedCheSecret); err != nil {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret); err != nil {
 		t.Errorf("Initial user secret should exists")
 	}
 
 	expectedHtpasswsSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: htpasswdSecretName, Namespace: ocConfigNamespace}, expectedHtpasswsSecret); err != nil {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, expectedHtpasswsSecret); err != nil {
 		t.Errorf("Initial user secret should exists")
 	}
 
@@ -121,7 +120,7 @@ func TestCreateInitialUser(t *testing.T) {
 		t.Error("List identity providers should not be an empty")
 	}
 
-	if !util.ContainsString(testCR.Finalizers, openshiftOauthUserFinalizerName) {
+	if !util.ContainsString(testCR.Finalizers, OpenshiftOauthUserFinalizerName) {
 		t.Error("Finaizer hasn't been added")
 	}
 }
@@ -149,8 +148,8 @@ func TestDeleteInitialUser(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      openShiftOAuthUserCredentialsSecret,
-			Namespace: ocConfigNamespace,
+			Name:      OpenShiftOAuthUserCredentialsSecret,
+			Namespace: OcConfigNamespace,
 		},
 	}
 	htpasswdSecret := &corev1.Secret{
@@ -159,13 +158,13 @@ func TestDeleteInitialUser(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      htpasswdSecretName,
-			Namespace: ocConfigNamespace,
+			Name:      HtpasswdSecretName,
+			Namespace: OcConfigNamespace,
 		},
 	}
 	userIdentity := &userv1.Identity{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: htpasswdIdentityProviderName + ":" + testUserName,
+			Name: HtpasswdIdentityProviderName + ":" + testUserName,
 		},
 	}
 	user := &userv1.User{
@@ -176,30 +175,28 @@ func TestDeleteInitialUser(t *testing.T) {
 
 	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, cheSecret, htpasswdSecret, userIdentity, user, testCR)
 
-	initialUserHandler := &OpenShiftOAuthUserOperatorHandler{
-		runtimeClient: runtimeClient,
-	}
+	initialUserHandler := &OpenShiftOAuthUser{}
 
 	dc := &deploy.DeployContext{
 		CheCluster: testCR,
 		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
 	}
-	if err := initialUserHandler.DeleteOAuthInitialUser(dc); err != nil {
+	if err := initialUserHandler.Delete(dc); err != nil {
 		t.Errorf("Unable to delete initial user: %s", err.Error())
 	}
 
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: openShiftOAuthUserCredentialsSecret, Namespace: ocConfigNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
 		t.Errorf("Initial user secret should be deleted")
 	}
 
 	expectedHtpasswsSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: htpasswdSecretName, Namespace: ocConfigNamespace}, expectedHtpasswsSecret); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, expectedHtpasswsSecret); !errors.IsNotFound(err) {
 		t.Errorf("Initial user secret should be deleted")
 	}
 
 	expectedUserIdentity := &userv1.Identity{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: htpasswdIdentityProviderName + ":" + testUserName}, expectedUserIdentity); !errors.IsNotFound(err) {
+	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: HtpasswdIdentityProviderName + ":" + testUserName}, expectedUserIdentity); !errors.IsNotFound(err) {
 		t.Errorf("Initial user identity should be deleted")
 	}
 
@@ -217,7 +214,7 @@ func TestDeleteInitialUser(t *testing.T) {
 		t.Error("List identity providers should be an empty")
 	}
 
-	if util.ContainsString(testCR.Finalizers, openshiftOauthUserFinalizerName) {
+	if util.ContainsString(testCR.Finalizers, OpenshiftOauthUserFinalizerName) {
 		t.Error("Finalizer hasn't been removed")
 	}
 }

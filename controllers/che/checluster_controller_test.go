@@ -19,6 +19,7 @@ import (
 	"strconv"
 
 	mocks "github.com/eclipse-che/che-operator/mocks"
+	openshiftoauth "github.com/eclipse-che/che-operator/mocks/pkg/deploy/openshift-oauth"
 
 	"reflect"
 	"time"
@@ -49,7 +50,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 
-	che_mocks "github.com/eclipse-che/che-operator/mocks/controllers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -133,7 +133,7 @@ func TestNativeUserModeEnabled(t *testing.T) {
 		devworkspaceEnabled     bool
 		initialNativeUserValue  *bool
 		expectedNativeUserValue *bool
-		mockFunction            func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler
+		mockFunction            func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
 	}
 
 	testCases := []testCase{
@@ -251,7 +251,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		oAuthExpected                       *bool
 		initialOpenShiftOAuthUserEnabled    *bool
 		OpenShiftOAuthUserCredentialsSecret string
-		mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *che_mocks.MockOpenShiftOAuthUserHandler
+		mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
 	}
 
 	testCases := []testCase{
@@ -414,7 +414,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			}
 
 			// prepare mocks
-			var userHandlerMock *che_mocks.MockOpenShiftOAuthUserHandler
+			var userHandlerMock *openshiftoauth.MockIOpenShiftOAuthUser
 			if testCase.mockFunction != nil {
 				ctrl := gomock.NewController(t)
 				userHandlerMock = testCase.mockFunction(ctrl, initCR.Namespace, deploy.DefaultCheFlavor(initCR))
@@ -422,7 +422,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			}
 
 			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
-			r.userHandler = userHandlerMock
+			r.openShiftOAuthUser = userHandlerMock
 			r.tests = true
 
 			req := reconcile.Request{

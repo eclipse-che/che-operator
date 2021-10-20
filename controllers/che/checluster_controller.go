@@ -24,6 +24,7 @@ import (
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	openshiftoauth "github.com/eclipse-che/che-operator/pkg/deploy/openshift-oauth"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
@@ -80,10 +81,10 @@ type CheClusterReconciler struct {
 	nonCachedClient client.Client
 	// A discovery client to check for the existence of certain APIs registered
 	// in the API Server
-	discoveryClient  discovery.DiscoveryInterface
-	tests            bool
-	userHandler      OpenShiftOAuthUserHandler
-	reconcileManager *deploy.ReconcileManager
+	discoveryClient    discovery.DiscoveryInterface
+	tests              bool
+	openShiftOAuthUser openshiftoauth.IOpenShiftOAuthUser
+	reconcileManager   *deploy.ReconcileManager
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
 	namespace string
 }
@@ -108,12 +109,12 @@ func NewReconciler(
 		Scheme: scheme,
 		Log:    ctrl.Log.WithName("controllers").WithName("CheCluster"),
 
-		client:           k8sclient,
-		nonCachedClient:  noncachedClient,
-		discoveryClient:  discoveryClient,
-		userHandler:      NewOpenShiftOAuthUserHandler(noncachedClient),
-		namespace:        namespace,
-		reconcileManager: reconcileManager,
+		client:             k8sclient,
+		nonCachedClient:    noncachedClient,
+		discoveryClient:    discoveryClient,
+		openShiftOAuthUser: openshiftoauth.NewOpenShiftOAuthUser(),
+		namespace:          namespace,
+		reconcileManager:   reconcileManager,
 	}
 }
 
@@ -298,7 +299,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	r.reconcileFinalizers(deployContext)
 
 	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(checluster) {
-		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
+		if err := r.openShiftOAuthUser.Delete(deployContext); err != nil {
 			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
 			checluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
 			err := deploy.UpdateCheCRSpec(deployContext, "initialOpenShiftOAuthUser", "nil")
@@ -321,12 +322,11 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Update status if OpenShift initial user is deleted (in the previous step)
 	if checluster.Spec.Auth.InitialOpenShiftOAuthUser == nil && checluster.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret := &corev1.Secret{}
-		exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
+		secret, err := openshiftoauth.GetOpenShiftOAuthUserCredentialsSecret(deployContext)
 		if err != nil {
 			// We should `Requeue` since we deal with cluster scope objects
 			return ctrl.Result{RequeueAfter: time.Second}, err
-		} else if !exists {
+		} else if secret == nil {
 			checluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
 			if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
 				return reconcile.Result{}, err
@@ -648,7 +648,7 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 	oauth := false
 	cr := deployContext.CheCluster
 	if util.IsOpenShift4 {
-		openshitOAuth, err := GetOpenshiftOAuth(deployContext.ClusterAPI.NonCachedClient)
+		openshitOAuth, err := openshiftoauth.GetOpenshiftOAuth(deployContext)
 		if err != nil {
 			logrus.Error("Unable to get Openshift oAuth. Cause: " + err.Error())
 		} else {
@@ -659,7 +659,7 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 				// since kubeadmin is a valid user for native user mode
 				oauth = true
 			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
+				provisioned, err := r.openShiftOAuthUser.Create(deployContext)
 				if err != nil {
 					logrus.Error(warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error())
 					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
@@ -675,8 +675,8 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 					}
 					oauth = true
 					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
-						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
-						if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
+						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openshiftoauth.OpenShiftOAuthUserCredentialsSecret
+						if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", openshiftoauth.OpenShiftOAuthUserCredentialsSecret); err != nil {
 							return reconcile.Result{}, err
 						}
 					}
@@ -716,7 +716,7 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 
 	if util.IsOpenShift4 && util.IsInitialOpenShiftOAuthUserEnabled(deployContext.CheCluster) {
 		if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-			r.userHandler.DeleteOAuthInitialUser(deployContext)
+			r.openShiftOAuthUser.Delete(deployContext)
 		}
 	}
 
