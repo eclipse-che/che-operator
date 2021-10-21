@@ -119,7 +119,6 @@ func TestNativeUserModeEnabled(t *testing.T) {
 		devworkspaceEnabled     bool
 		initialNativeUserValue  *bool
 		expectedNativeUserValue *bool
-		// mockFunction            func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
 	}
 
 	testCases := []testCase{
@@ -237,7 +236,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		oAuthExpected                       *bool
 		initialOpenShiftOAuthUserEnabled    *bool
 		OpenShiftOAuthUserCredentialsSecret string
-		// mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
 	}
 
 	testCases := []testCase{
