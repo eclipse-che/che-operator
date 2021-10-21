@@ -18,10 +18,8 @@ import (
 	"testing"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	util_mocks "github.com/eclipse-che/che-operator/mocks/pkg/util"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"github.com/golang/mock/gomock"
 	oauth_config "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -78,16 +76,8 @@ func TestCreateInitialUser(t *testing.T) {
 
 	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, testCR)
 
-	ctrl := gomock.NewController(t)
-	m := util_mocks.NewMockRunnable(ctrl)
-	m.EXPECT().Run("htpasswd", "-nbB", gomock.Any(), gomock.Any()).Return(nil)
-	m.EXPECT().GetStdOut().Return("test-string")
-	m.EXPECT().GetStdErr().Return("")
-	defer ctrl.Finish()
+	initialUserHandler := NewOpenShiftOAuthUser()
 
-	initialUserHandler := &OpenShiftOAuthUser{
-		runnable: m,
-	}
 	dc := &deploy.DeployContext{
 		CheCluster: testCR,
 		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},

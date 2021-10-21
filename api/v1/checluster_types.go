@@ -782,10 +782,14 @@ func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
 	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
 }
 
-func (c *CheCluster) IsOpenShiftOAuthUser() bool {
+func (c *CheCluster) IsOpenShiftOAuthUserConfigured() bool {
 	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
 }
 
-func (c *CheCluster) IsOpenShiftOAuth() bool {
+func (c *CheCluster) IsOpenShiftOAuthUserMustBeDeleted() bool {
+	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*c.Spec.Auth.InitialOpenShiftOAuthUser
+}
+
+func (c *CheCluster) IsOpenShiftOAuthEnabled() bool {
 	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
 }

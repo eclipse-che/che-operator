@@ -499,7 +499,7 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	}
 
 	workspaceNamespaceDefault := cr.Namespace
-	if IsOpenShift && cr.IsOpenShiftOAuth() {
+	if IsOpenShift && cr.IsOpenShiftOAuthEnabled() {
 		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
 	}
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)

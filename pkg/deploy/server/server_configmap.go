@@ -110,7 +110,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	if util.IsOpenShift && s.deployContext.CheCluster.IsOpenShiftOAuth() {
+	if util.IsOpenShift && s.deployContext.CheCluster.IsOpenShiftOAuthEnabled() {
 		openShiftIdentityProviderId = "openshift-v3"
 		if util.IsOpenShift4 {
 			openShiftIdentityProviderId = "openshift-v4"

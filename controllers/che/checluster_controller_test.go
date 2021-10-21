@@ -14,12 +14,11 @@ package che
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 
 	mocks "github.com/eclipse-che/che-operator/mocks"
-	openshiftoauth "github.com/eclipse-che/che-operator/mocks/pkg/deploy/openshift-oauth"
+	"github.com/stretchr/testify/assert"
 
 	"reflect"
 	"time"
@@ -38,7 +37,7 @@ import (
 	console "github.com/openshift/api/console/v1"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	oauth "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -49,6 +48,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/utils/pointer"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,7 +65,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/yaml"
 
 	"testing"
 )
@@ -86,7 +85,6 @@ var (
 			},
 		},
 	}
-	oAuthClient                  = &oauth.OAuthClient{}
 	oAuthWithNoIdentityProviders = &configv1.OAuth{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
@@ -106,24 +104,12 @@ var (
 			},
 		},
 	}
-	route = &routev1.Route{}
 	proxy = &configv1.Proxy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
 		},
 	}
 )
-
-func init() {
-	operator := &appsv1.Deployment{}
-	data, err := ioutil.ReadFile("../../config/manager/manager.yaml")
-	yaml.Unmarshal(data, operator)
-	if err == nil {
-		for _, env := range operator.Spec.Template.Spec.Containers[0].Env {
-			os.Setenv(env.Name, env.Value)
-		}
-	}
-}
 
 func TestNativeUserModeEnabled(t *testing.T) {
 	type testCase struct {
@@ -133,7 +119,7 @@ func TestNativeUserModeEnabled(t *testing.T) {
 		devworkspaceEnabled     bool
 		initialNativeUserValue  *bool
 		expectedNativeUserValue *bool
-		mockFunction            func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
+		// mockFunction            func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
 	}
 
 	testCases := []testCase{
@@ -142,21 +128,21 @@ func TestNativeUserModeEnabled(t *testing.T) {
 			isOpenshift:             true,
 			devworkspaceEnabled:     true,
 			initialNativeUserValue:  nil,
-			expectedNativeUserValue: util.NewBoolPointer(true),
+			expectedNativeUserValue: pointer.BoolPtr(true),
 		},
 		{
 			name:                    "che-operator should use nativeUserMode value from initial CR",
 			isOpenshift:             true,
 			devworkspaceEnabled:     true,
-			initialNativeUserValue:  util.NewBoolPointer(false),
-			expectedNativeUserValue: util.NewBoolPointer(false),
+			initialNativeUserValue:  pointer.BoolPtr(false),
+			expectedNativeUserValue: pointer.BoolPtr(false),
 		},
 		{
 			name:                    "che-operator should use nativeUserMode value from initial CR",
 			isOpenshift:             true,
 			devworkspaceEnabled:     true,
-			initialNativeUserValue:  util.NewBoolPointer(true),
-			expectedNativeUserValue: util.NewBoolPointer(true),
+			initialNativeUserValue:  pointer.BoolPtr(true),
+			expectedNativeUserValue: pointer.BoolPtr(true),
 		},
 		{
 			name:                    "che-operator should not modify nativeUserMode when not on openshift",
@@ -180,8 +166,8 @@ func TestNativeUserModeEnabled(t *testing.T) {
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
-			scheme.AddKnownTypes(routev1.GroupVersion, route)
-			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
+			scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, &oauthv1.OAuthClient{})
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 			scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 
@@ -246,12 +232,12 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 	type testCase struct {
 		name                                string
 		initObjects                         []runtime.Object
-		isOpenshift3                        bool
+		isOpenshift4                        bool
 		initialOAuthValue                   *bool
 		oAuthExpected                       *bool
 		initialOpenShiftOAuthUserEnabled    *bool
 		OpenShiftOAuthUserCredentialsSecret string
-		mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
+		// mockFunction                        func(ctrl *gomock.Controller, crNamespace string, usernamePrefix string) *openshiftoauth.MockIOpenShiftOAuthUser
 	}
 
 	testCases := []testCase{
@@ -259,61 +245,61 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			name: "che-operator should auto enable oAuth when Che CR with oAuth nil value on the Openshift 3 with users > 0",
 			initObjects: []runtime.Object{
 				nonEmptyUserList,
-				&oauth.OAuthClient{},
+				&oauthv1.OAuthClient{},
 			},
-			isOpenshift3:      true,
+			isOpenshift4:      false,
 			initialOAuthValue: nil,
-			oAuthExpected:     util.NewBoolPointer(true),
+			oAuthExpected:     pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should auto disable oAuth when Che CR with nil oAuth on the Openshift 3 with no users",
 			initObjects: []runtime.Object{
 				&userv1.UserList{},
-				&oauth.OAuthClient{},
+				&oauthv1.OAuthClient{},
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(false),
-			oAuthExpected:     util.NewBoolPointer(false),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(false),
+			oAuthExpected:     pointer.BoolPtr(false),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there no users on the Openshift 3",
 			initObjects: []runtime.Object{
 				&userv1.UserList{},
-				&oauth.OAuthClient{},
+				&oauthv1.OAuthClient{},
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(true),
-			oAuthExpected:     util.NewBoolPointer(true),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(true),
+			oAuthExpected:     pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 3",
 			initObjects: []runtime.Object{
 				nonEmptyUserList,
-				&oauth.OAuthClient{},
+				&oauthv1.OAuthClient{},
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(true),
-			oAuthExpected:     util.NewBoolPointer(true),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(true),
+			oAuthExpected:     pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if there are some users on the Openshift 3",
 			initObjects: []runtime.Object{
 				nonEmptyUserList,
-				&oauth.OAuthClient{},
+				&oauthv1.OAuthClient{},
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(false),
-			oAuthExpected:     util.NewBoolPointer(false),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(false),
+			oAuthExpected:     pointer.BoolPtr(false),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if no users on the Openshift 3",
 			initObjects: []runtime.Object{
 				&userv1.UserList{},
-				&oauth.OAuthClient{},
+				&oauthv1.OAuthClient{},
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(false),
-			oAuthExpected:     util.NewBoolPointer(false),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(false),
+			oAuthExpected:     pointer.BoolPtr(false),
 		},
 		{
 			name: "che-operator should auto enable oAuth when Che CR with nil value on the Openshift 4 with identity providers",
@@ -321,9 +307,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithIdentityProvider,
 				proxy,
 			},
-			isOpenshift3:      false,
+			isOpenshift4:      true,
 			initialOAuthValue: nil,
-			oAuthExpected:     util.NewBoolPointer(true),
+			oAuthExpected:     pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there no indentity providers on the Openshift 4",
@@ -331,10 +317,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithNoIdentityProviders,
 				proxy,
 			},
-			isOpenshift3:                     false,
-			initialOAuthValue:                util.NewBoolPointer(true),
-			oAuthExpected:                    util.NewBoolPointer(true),
-			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
+			isOpenshift4:                     true,
+			initialOAuthValue:                pointer.BoolPtr(true),
+			oAuthExpected:                    pointer.BoolPtr(true),
+			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should not create initial user and enable oAuth, when oAuth = true, initialOpenShiftOAuthUserEnabled = true and there no indentity providers on the Openshift 4",
@@ -342,10 +328,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithNoIdentityProviders,
 				proxy,
 			},
-			isOpenshift3:                     false,
-			initialOAuthValue:                util.NewBoolPointer(true),
-			oAuthExpected:                    util.NewBoolPointer(true),
-			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(false),
+			isOpenshift4:                     true,
+			initialOAuthValue:                pointer.BoolPtr(true),
+			oAuthExpected:                    pointer.BoolPtr(true),
+			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(false),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
@@ -353,10 +339,10 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithIdentityProvider,
 				proxy,
 			},
-			isOpenshift3:                     true,
-			initialOAuthValue:                util.NewBoolPointer(true),
-			oAuthExpected:                    util.NewBoolPointer(true),
-			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
+			isOpenshift4:                     false,
+			initialOAuthValue:                pointer.BoolPtr(true),
+			oAuthExpected:                    pointer.BoolPtr(true),
+			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
@@ -364,9 +350,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithNoIdentityProviders,
 				proxy,
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(false),
-			oAuthExpected:     util.NewBoolPointer(false),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(false),
+			oAuthExpected:     pointer.BoolPtr(false),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if there are some users on the Openshift 4",
@@ -374,55 +360,35 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithIdentityProvider,
 				proxy,
 			},
-			isOpenshift3:      true,
-			initialOAuthValue: util.NewBoolPointer(false),
-			oAuthExpected:     util.NewBoolPointer(false),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(false),
+			oAuthExpected:     pointer.BoolPtr(false),
 		},
 		{
 			name:                             "che-operator should auto disable oAuth on error retieve identity providers",
 			initObjects:                      []runtime.Object{},
-			isOpenshift3:                     true,
+			isOpenshift4:                     false,
 			initialOAuthValue:                nil,
-			initialOpenShiftOAuthUserEnabled: util.NewBoolPointer(true),
-			oAuthExpected:                    util.NewBoolPointer(false),
+			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
+			oAuthExpected:                    pointer.BoolPtr(false),
 		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			scheme := scheme.Scheme
-			orgv1.SchemeBuilder.AddToScheme(scheme)
-			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
-			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
-			scheme.AddKnownTypes(routev1.GroupVersion, route)
-			scheme.AddKnownTypes(configv1.GroupVersion, &configv1.Proxy{})
 			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.Auth.OpenShiftoAuth = testCase.initialOAuthValue
-			testCase.initObjects = append(testCase.initObjects, initCR)
 			initCR.Spec.Auth.InitialOpenShiftOAuthUser = testCase.initialOpenShiftOAuthUserEnabled
 
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
+			deployContext := deploy.GetTestDeployContext(initCR, testCase.initObjects)
 
-			if !ok {
-				t.Fatal("Error creating fake discovery client")
-			}
-
-			// prepare mocks
-			var userHandlerMock *openshiftoauth.MockIOpenShiftOAuthUser
-			if testCase.mockFunction != nil {
-				ctrl := gomock.NewController(t)
-				userHandlerMock = testCase.mockFunction(ctrl, initCR.Namespace, deploy.DefaultCheFlavor(initCR))
-				defer ctrl.Finish()
-			}
-
-			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
-			r.openShiftOAuthUser = userHandlerMock
+			r := NewReconciler(
+				deployContext.ClusterAPI.Client,
+				deployContext.ClusterAPI.NonCachedClient,
+				deployContext.ClusterAPI.DiscoveryClient,
+				deployContext.ClusterAPI.Client.Scheme(),
+				"")
 			r.tests = true
 
 			req := reconcile.Request{
@@ -433,29 +399,18 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			}
 
 			util.IsOpenShift = true
-			util.IsOpenShift4 = !testCase.isOpenshift3
+			util.IsOpenShift4 = testCase.isOpenshift4
 
 			_, err := r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
+			assert.Nil(t, err)
 
 			cheCR := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
-				t.Errorf("CR not found")
-			}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR)
+			assert.Nil(t, err)
 
-			if cheCR.Spec.Auth.OpenShiftoAuth == nil {
-				t.Error("OAuth should not stay with nil value.")
-			}
-
-			if *cheCR.Spec.Auth.OpenShiftoAuth != *testCase.oAuthExpected {
-				t.Errorf("Openshift oAuth should be %t", *testCase.oAuthExpected)
-			}
-
-			if cheCR.Status.OpenShiftOAuthUserCredentialsSecret != testCase.OpenShiftOAuthUserCredentialsSecret {
-				t.Errorf("Expected initial openshift oAuth user secret %s in the CR status", testCase.OpenShiftOAuthUserCredentialsSecret)
-			}
+			assert.NotNil(t, cheCR.Spec.Auth.OpenShiftoAuth)
+			assert.Equal(t, *testCase.oAuthExpected, *cheCR.Spec.Auth.OpenShiftoAuth)
+			assert.Equal(t, testCase.OpenShiftOAuthUserCredentialsSecret, cheCR.Status.OpenShiftOAuthUserCredentialsSecret)
 		})
 	}
 }
@@ -524,6 +479,8 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 				},
 			}
 
+			util.IsOpenShift = true
+			util.IsOpenShift4 = false
 			_, err := r.Reconcile(context.TODO(), req)
 			if err != nil {
 				t.Fatalf("Error reconciling: %v", err)
@@ -823,7 +780,7 @@ func TestCheController(t *testing.T) {
 	}
 	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
 	oauthSecret := cheCR.Spec.Auth.OAuthSecret
-	oAuthClient := &oauth.OAuthClient{}
+	oAuthClient := &oauthv1.OAuthClient{}
 	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
 		t.Errorf("Failed to Get oAuthClient %s: %s", oAuthClient.Name, err)
 	}
@@ -896,7 +853,7 @@ func TestCheController(t *testing.T) {
 		t.Fatal("Failed to reconcile oAuthClient")
 	}
 	oauthClientName := cheCR.Spec.Auth.OAuthClientName
-	oauthClient := &oauth.OAuthClient{}
+	oauthClient := &oauthv1.OAuthClient{}
 	err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName}, oauthClient)
 	if err == nil {
 		t.Fatalf("OauthClient %s has not been deleted", oauthClientName)
@@ -1021,13 +978,13 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 
 			scheme := scheme.Scheme
 			orgv1.SchemeBuilder.AddToScheme(scheme)
-			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+			scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, &oauthv1.OAuthClient{})
 			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
-			scheme.AddKnownTypes(routev1.GroupVersion, route)
+			scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
 
 			initCR := testCase.checluster
-			initCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(false)
+			initCR.Spec.Auth.OpenShiftoAuth = pointer.BoolPtr(false)
 			testCase.initObjects = append(testCase.initObjects, initCR)
 
 			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
@@ -1119,12 +1076,12 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	objs, ds, scheme := createAPIObjects()
 
-	oAuthClient := &oauth.OAuthClient{}
+	oAuthClient := &oauthv1.OAuthClient{}
 	users := &userv1.UserList{}
 	user := &userv1.User{}
 
 	// Register operator types with the runtime scheme
-	scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
+	scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, oAuthClient)
 	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
 	scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
 
@@ -1201,7 +1158,7 @@ func InitCheWithSimpleCR() *orgv1.CheCluster {
 				CheWorkspaceClusterRole: "cluster-admin",
 			},
 			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
+				OpenShiftoAuth: pointer.BoolPtr(false),
 			},
 		},
 	}

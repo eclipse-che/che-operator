@@ -14,13 +14,11 @@ package openshiftoauth
 
 import (
 	"context"
-
-	errorMsg "errors"
+	"fmt"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
-	oauthv1 "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -64,14 +62,15 @@ func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.R
 		return reconcile.Result{}, true, nil
 	}
 
-	if ctx.CheCluster.IsOpenShiftOAuthUser() {
+	if ctx.CheCluster.IsOpenShiftOAuthUserConfigured() {
 		done, err := oou.Create(ctx)
 		if !done {
 			return reconcile.Result{Requeue: true}, false, err
 		}
 		return reconcile.Result{}, true, nil
-	} else {
-		// c.Status.OpenShiftOAuthUserCredentialsSecret != ""
+	}
+
+	if ctx.CheCluster.IsOpenShiftOAuthUserMustBeDeleted() {
 		if err := oou.Delete(ctx); err != nil {
 			return reconcile.Result{}, false, errors.Wrap(err, "Unable to delete initial OpenShift OAuth user from a cluster")
 		}
@@ -81,6 +80,7 @@ func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.R
 			return reconcile.Result{}, false, err
 		}
 
+		// set 'openShiftoAuth:nil` to reenable on the following reconcile loop (if possible)
 		ctx.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
 		updateFields := map[string]string{
 			"openShiftoAuth":            "nil",
@@ -90,6 +90,8 @@ func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.R
 		if err := deploy.UpdateCheCRSpecByFields(ctx, updateFields); err != nil {
 			return reconcile.Result{}, false, err
 		}
+
+		return reconcile.Result{}, true, nil
 	}
 
 	return reconcile.Result{}, true, nil
@@ -104,10 +106,10 @@ func (oou *OpenShiftOAuthUser) Finalize(ctx *deploy.DeployContext) error {
 }
 
 // Creates new htpasswd provider with initial user with Che flavor name
-// if Openshift cluster hasn't got identity providers, otherwise do nothing.
+// if Openshift cluster hasn't got identity providers then does nothing.
 // It usefull for good first user experience.
-// User can't use kube:admin or system:admin user in the Openshift oAuth. That's why we provide
-// initial user for good first meeting with Eclipse Che.
+// User can't use kube:admin or system:admin user in the Openshift oAuth when DevWorkspace engine disabled.
+// That's why we provide initial user for good first meeting with Eclipse Che.
 func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 	userName := deploy.DefaultCheFlavor(ctx.CheCluster)
 	if htpasswdFileContent == "" {
@@ -207,6 +209,9 @@ func (oou *OpenShiftOAuthUser) Delete(ctx *deploy.DeployContext) error {
 }
 
 func (oou *OpenShiftOAuthUser) generateHtPasswdUserInfo(userName string, password string) (string, error) {
+	if util.IsTestMode() {
+		return "", nil
+	}
 	logrus.Info("Generate initial user httpasswd info")
 
 	err := oou.runnable.Run("htpasswd", "-nbB", userName, password)
@@ -215,7 +220,7 @@ func (oou *OpenShiftOAuthUser) generateHtPasswdUserInfo(userName string, passwor
 	}
 
 	if len(oou.runnable.GetStdErr()) > 0 {
-		return "", errorMsg.New("Failed to generate data for HTPasswd identity provider: " + oou.runnable.GetStdErr())
+		return "", fmt.Errorf("Failed to generate data for HTPasswd identity provider: %s", oou.runnable.GetStdErr())
 	}
 	return oou.runnable.GetStdOut(), nil
 }
@@ -243,7 +248,7 @@ func (oou *OpenShiftOAuthUser) getOpenShiftOAuthUserCredentialsSecret(ctx *deplo
 	return nil, nil
 }
 
-func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {
+func identityProviderExists(providerName string, oAuth *configv1.OAuth) bool {
 	if len(oAuth.Spec.IdentityProviders) == 0 {
 		return false
 	}
@@ -255,7 +260,7 @@ func identityProviderExists(providerName string, oAuth *oauthv1.OAuth) bool {
 	return false
 }
 
-func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) error {
+func appendIdentityProvider(oAuth *configv1.OAuth, runtimeClient client.Client) error {
 	logrus.Info("Add initial user httpasswd provider to the oAuth")
 
 	htpasswdProvider := newHtpasswdProvider()
@@ -272,14 +277,14 @@ func appendIdentityProvider(oAuth *oauthv1.OAuth, runtimeClient client.Client) e
 	return nil
 }
 
-func newHtpasswdProvider() *oauthv1.IdentityProvider {
-	return &oauthv1.IdentityProvider{
+func newHtpasswdProvider() *configv1.IdentityProvider {
+	return &configv1.IdentityProvider{
 		Name:          HtpasswdIdentityProviderName,
 		MappingMethod: configv1.MappingMethodClaim,
-		IdentityProviderConfig: oauthv1.IdentityProviderConfig{
+		IdentityProviderConfig: configv1.IdentityProviderConfig{
 			Type: "HTPasswd",
-			HTPasswd: &oauthv1.HTPasswdIdentityProvider{
-				FileData: oauthv1.SecretNameReference{Name: HtpasswdSecretName},
+			HTPasswd: &configv1.HTPasswdIdentityProvider{
+				FileData: configv1.SecretNameReference{Name: HtpasswdSecretName},
 			},
 		},
 	}

@@ -361,13 +361,13 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(util.IsOpenShift4 && checluster.IsOpenShiftOAuth() && !checluster.Spec.Server.TlsSupport) {
+			(util.IsOpenShift4 && checluster.IsOpenShiftOAuthEnabled() && !checluster.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 
-		if util.IsOpenShift && checluster.IsOpenShiftOAuth() {
+		if util.IsOpenShift && checluster.IsOpenShiftOAuthEnabled() {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
 			if err != nil {
@@ -676,7 +676,7 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 }
 
 func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployContext) {
-	if util.IsOpenShift && deployContext.CheCluster.IsOpenShiftOAuth() {
+	if util.IsOpenShift && deployContext.CheCluster.IsOpenShiftOAuthEnabled() {
 		if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
 			logrus.Error(err)
 		}

@@ -21,7 +21,7 @@ import (
 
 type Reconcilable interface {
 	// Reconcile object.
-	Reconcile(ctx *DeployContext) (reconcile.Result, bool, error)
+	Reconcile(ctx *DeployContext) (result reconcile.Result, done bool, err error)
 	// Does finalization (removes cluster scope objects, etc)
 	Finalize(ctx *DeployContext) error
 }
