@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -43,15 +42,16 @@ const (
 type ReconcileCheClusterBackup struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	cachingClient    client.Client
+	nonCachingClient client.Client
+	scheme           *runtime.Scheme
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
 	namespace string
 }
 
 // NewReconciler returns a new reconcile.Reconciler
-func NewReconciler(mgr manager.Manager, namespace string) *ReconcileCheClusterBackup {
-	return &ReconcileCheClusterBackup{client: mgr.GetClient(), scheme: mgr.GetScheme(), namespace: namespace}
+func NewReconciler(cachingClient client.Client, noncachingClient client.Client, scheme *runtime.Scheme, namespace string) *ReconcileCheClusterBackup {
+	return &ReconcileCheClusterBackup{cachingClient: cachingClient, nonCachingClient: noncachingClient, scheme: scheme, namespace: namespace}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -92,7 +92,7 @@ func (r *ReconcileCheClusterBackup) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ReconcileCheClusterBackup) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the CheClusterBackup instance
 	backupCR := &chev1.CheClusterBackup{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, backupCR)
+	err := r.cachingClient.Get(context.TODO(), request.NamespacedName, backupCR)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -156,7 +156,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup
 	if backupCR.Spec.BackupServerConfigRef != "" {
 		backupServerConfigCR = &chev1.CheBackupServerConfiguration{}
 		backupServerConfigNamespacedName := types.NamespacedName{Namespace: backupCR.GetNamespace(), Name: backupCR.Spec.BackupServerConfigRef}
-		if err := r.client.Get(context.TODO(), backupServerConfigNamespacedName, backupServerConfigCR); err != nil {
+		if err := r.cachingClient.Get(context.TODO(), backupServerConfigNamespacedName, backupServerConfigCR); err != nil {
 			if errors.IsNotFound(err) {
 				return true, fmt.Errorf("backup server configuration with name '%s' not found in '%s' namespace", backupCR.Spec.BackupServerConfigRef, backupCR.GetNamespace())
 			}
@@ -198,7 +198,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup
 	bctx.UpdateBackupStatusPhase()
 
 	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
-	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
+	done, err := bctx.backupServer.PrepareConfiguration(bctx.r.nonCachingClient, bctx.namespace)
 	if err != nil || !done {
 		return done, err
 	}
@@ -261,7 +261,7 @@ func (r *ReconcileCheClusterBackup) doReconcile(backupCR *chev1.CheClusterBackup
 }
 
 func (r *ReconcileCheClusterBackup) UpdateCR(cr *chev1.CheClusterBackup) error {
-	err := r.client.Update(context.TODO(), cr)
+	err := r.cachingClient.Update(context.TODO(), cr)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR: %s", cr.Name, err.Error())
 		return err
@@ -270,7 +270,7 @@ func (r *ReconcileCheClusterBackup) UpdateCR(cr *chev1.CheClusterBackup) error {
 }
 
 func (r *ReconcileCheClusterBackup) UpdateCRStatus(cr *chev1.CheClusterBackup) error {
-	err := r.client.Status().Update(context.TODO(), cr)
+	err := r.cachingClient.Status().Update(context.TODO(), cr)
 	if err != nil {
 		logrus.Errorf("Failed to update %s CR status: %s", cr.Name, err.Error())
 		return err

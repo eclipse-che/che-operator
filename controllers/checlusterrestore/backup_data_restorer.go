@@ -124,14 +124,14 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	}
 
 	// Delete Che CR to stop operator from dealing with current installation
-	actualCheCR, cheCRCount, err := util.FindCheClusterCRInNamespace(rctx.r.client, rctx.namespace)
+	actualCheCR, cheCRCount, err := util.FindCheClusterCRInNamespace(rctx.r.cachingClient, rctx.namespace)
 	if cheCRCount == -1 {
 		// error occurred while retreiving CheCluster CR
 		return false, err
 	} else if actualCheCR != nil {
 		if actualCheCR.GetObjectMeta().GetDeletionTimestamp().IsZero() {
 			logrus.Infof("Restore: Deleteing CheCluster custom resource in '%s' namespace", rctx.namespace)
-			err := rctx.r.client.Delete(context.TODO(), actualCheCR)
+			err := rctx.r.cachingClient.Delete(context.TODO(), actualCheCR)
 			if err == nil {
 				// Che CR is marked for deletion, but actually still exists.
 				// Wait for finalizers and actual resource deletion (not found expected).
@@ -161,45 +161,45 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 
 	// Delete all Che related deployments, but keep operator (excluded by name) and internal backup server (excluded by label)
 	deploymentsList := &appsv1.DeploymentList{}
-	if err := rctx.r.client.List(context.TODO(), deploymentsList, cheResourcesListOptions); err != nil {
+	if err := rctx.r.nonCachingClient.List(context.TODO(), deploymentsList, cheResourcesListOptions); err != nil {
 		return false, err
 	}
 	for _, deployment := range deploymentsList.Items {
 		if strings.Contains(deployment.GetName(), cheFlavor+"-operator") {
 			continue
 		}
-		if err := rctx.r.client.Delete(context.TODO(), &deployment); err != nil && !errors.IsNotFound(err) {
+		if err := rctx.r.nonCachingClient.Delete(context.TODO(), &deployment); err != nil && !errors.IsNotFound(err) {
 			return false, err
 		}
 	}
 
 	// Delete all Che related secrets, but keep backup server ones (excluded by label)
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.Secret{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+	if err := rctx.r.nonCachingClient.DeleteAllOf(context.TODO(), &corev1.Secret{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
 		return false, err
 	}
 
 	// Delete all configmaps with custom CA certificates
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+	if err := rctx.r.nonCachingClient.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
 		return false, err
 	}
 
 	// Delete all Che related config maps
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+	if err := rctx.r.nonCachingClient.DeleteAllOf(context.TODO(), &corev1.ConfigMap{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
 		return false, err
 	}
 
 	// Delete all Che related ingresses / routes
 	if rctx.isOpenShift {
-		err = rctx.r.client.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
+		err = rctx.r.nonCachingClient.DeleteAllOf(context.TODO(), &routev1.Route{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
 	} else {
-		err = rctx.r.client.DeleteAllOf(context.TODO(), &networking.Ingress{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
+		err = rctx.r.nonCachingClient.DeleteAllOf(context.TODO(), &networking.Ingress{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector)
 	}
 	if err != nil {
 		return false, err
 	}
 
 	// Delete all Che related persistent volumes
-	if err := rctx.r.client.DeleteAllOf(context.TODO(), &corev1.PersistentVolumeClaim{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
+	if err := rctx.r.nonCachingClient.DeleteAllOf(context.TODO(), &corev1.PersistentVolumeClaim{}, client.InNamespace(rctx.namespace), cheResourcesMatchingLabelsSelector); err != nil {
 		return false, err
 	}
 
@@ -215,10 +215,10 @@ func deleteKeycloakPod(rctx *RestoreContext) (bool, error) {
 	}
 	keycloakPodNsN := types.NamespacedName{Name: keycloakPodName, Namespace: rctx.namespace}
 	keycloakPod := &corev1.Pod{}
-	if err := rctx.r.client.Get(context.TODO(), keycloakPodNsN, keycloakPod); err != nil {
+	if err := rctx.r.nonCachingClient.Get(context.TODO(), keycloakPodNsN, keycloakPod); err != nil {
 		return false, err
 	}
-	if err := rctx.r.client.Delete(context.TODO(), keycloakPod); err != nil {
+	if err := rctx.r.nonCachingClient.Delete(context.TODO(), keycloakPod); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -264,15 +264,15 @@ func restoreConfigMaps(rctx *RestoreContext, dataDir string) (bool, error) {
 
 		configMap.ObjectMeta.Namespace = rctx.namespace
 
-		if err := rctx.r.client.Create(context.TODO(), configMap); err != nil {
+		if err := rctx.r.nonCachingClient.Create(context.TODO(), configMap); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				return false, err
 			}
 
-			if err := rctx.r.client.Delete(context.TODO(), configMap); err != nil {
+			if err := rctx.r.nonCachingClient.Delete(context.TODO(), configMap); err != nil {
 				return false, err
 			}
-			if err := rctx.r.client.Create(context.TODO(), configMap); err != nil {
+			if err := rctx.r.nonCachingClient.Create(context.TODO(), configMap); err != nil {
 				return false, err
 			}
 		}
@@ -306,15 +306,15 @@ func restoreSecrets(rctx *RestoreContext, dataDir string) (bool, error) {
 		secret.ObjectMeta.Namespace = rctx.namespace
 		secret.ObjectMeta.OwnerReferences = nil
 
-		if err := rctx.r.client.Create(context.TODO(), secret); err != nil {
+		if err := rctx.r.nonCachingClient.Create(context.TODO(), secret); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				return false, err
 			}
 
-			if err := rctx.r.client.Delete(context.TODO(), secret); err != nil {
+			if err := rctx.r.nonCachingClient.Delete(context.TODO(), secret); err != nil {
 				return false, err
 			}
-			if err := rctx.r.client.Create(context.TODO(), secret); err != nil {
+			if err := rctx.r.nonCachingClient.Create(context.TODO(), secret); err != nil {
 				return false, err
 			}
 		}
@@ -329,7 +329,7 @@ func restoreCheCR(rctx *RestoreContext, dataDir string) (bool, error) {
 		return done, err
 	}
 
-	if err := rctx.r.client.Create(context.TODO(), cheCR); err != nil {
+	if err := rctx.r.cachingClient.Create(context.TODO(), cheCR); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// We should take into account that every step can be executed several times due to async behavior.
 			// 1. We ensured that CheCluster is removed before restoring.
@@ -499,7 +499,7 @@ func getDatabaseOwner(rctx *RestoreContext, dbName string) (string, error) {
 			Name:      rctx.cheCR.Spec.Database.ChePostgresSecret,
 			Namespace: rctx.namespace,
 		}
-		if err := rctx.r.client.Get(context.TODO(), chePostgresCredentialSecretNsN, secret); err != nil {
+		if err := rctx.r.nonCachingClient.Get(context.TODO(), chePostgresCredentialSecretNsN, secret); err != nil {
 			return "", err
 		}
 		return string(secret.Data["user"]), nil
@@ -533,7 +533,7 @@ func getPatchDatabaseScript(rctx *RestoreContext, dbName string, dataDir string)
 	newNamespace := rctx.namespace
 	appsDomain := ""
 	if rctx.isOpenShift {
-		appsDomain, err = util.GetRouterCanonicalHostname(rctx.r.client, rctx.namespace)
+		appsDomain, err = util.GetRouterCanonicalHostname(rctx.r.nonCachingClient, rctx.namespace)
 		if err != nil {
 			return "", err
 		}

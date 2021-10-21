@@ -245,8 +245,8 @@ func main() {
 	}
 
 	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), noncachedClient, discoveryClient, mgr.GetScheme(), watchNamespace)
-	backupReconciler := backupcontroller.NewReconciler(mgr, watchNamespace)
-	restoreReconciler := restorecontroller.NewReconciler(mgr, watchNamespace)
+	backupReconciler := backupcontroller.NewReconciler(mgr.GetClient(), noncachedClient, mgr.GetScheme(), watchNamespace)
+	restoreReconciler := restorecontroller.NewReconciler(mgr.GetClient(), noncachedClient, mgr.GetScheme(), watchNamespace)
 
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
