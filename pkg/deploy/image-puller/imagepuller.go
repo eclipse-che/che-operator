@@ -47,6 +47,7 @@ type ImageAndName struct {
 }
 
 type ImagePuller struct {
+	deploy.Reconcilable
 }
 
 func NewImagePuller() *ImagePuller {

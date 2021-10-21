@@ -31,6 +31,7 @@ const (
 // - self-contradictory configurations
 // - configurations with which it is impossible to deploy Che
 type CheClusterValidator struct {
+	deploy.Reconcilable
 }
 
 func NewCheClusterValidator() *CheClusterValidator {

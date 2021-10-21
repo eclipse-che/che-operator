@@ -48,6 +48,9 @@ type IOpenShiftOAuthUser interface {
 
 type OpenShiftOAuthUser struct {
 	runnable util.Runnable
+
+	deploy.Reconcilable
+	IOpenShiftOAuthUser
 }
 
 func NewOpenShiftOAuthUser() *OpenShiftOAuthUser {
