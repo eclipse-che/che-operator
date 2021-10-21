@@ -124,11 +124,15 @@ func TestReconcileDevWorkspace(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 
 			util.IsOpenShift = testCase.IsOpenShift
 			util.IsOpenShift4 = testCase.IsOpenShift4
+
+			// reread templates (workaround after setting IsOpenShift value)
+			DevWorkspaceTemplates = DevWorkspaceTemplatesPath()
+			DevWorkspaceIssuerFile = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
+			DevWorkspaceCertificateFile = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
+
 			err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "true")
 			assert.NoError(t, err)
 

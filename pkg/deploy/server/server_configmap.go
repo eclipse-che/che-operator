@@ -281,6 +281,10 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
 
+		if s.deployContext.CheCluster.Spec.DevWorkspace.Enable {
+			k8sCheEnv["CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S"] = "true"
+		}
+
 		// Add TLS key and server certificate to properties since user workspaces is created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable
 		if s.deployContext.CheCluster.Spec.K8s.TlsSecretName != "" {

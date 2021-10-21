@@ -14,6 +14,7 @@ package deploy
 import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
@@ -40,6 +41,8 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 
 	scheme := scheme.Scheme
 	orgv1.SchemeBuilder.AddToScheme(scheme)
+	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+	scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 
 	initObjs = append(initObjs, cheCluster)

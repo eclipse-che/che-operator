@@ -48,7 +48,7 @@ var (
 		syncDwDeployment,
 	}
 
-	DevWorkspaceTemplates = devWorkspaceTemplatesPath()
+	DevWorkspaceTemplates = DevWorkspaceTemplatesPath()
 
 	OpenshiftDevWorkspaceTemplatesPath  = "/tmp/devworkspace-operator/templates/deployment/openshift/objects"
 	KubernetesDevWorkspaceTemplatesPath = "/tmp/devworkspace-operator/templates/deployment/kubernetes/objects"
@@ -247,7 +247,7 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync client.Object, nam
 	return true, nil
 }
 
-func devWorkspaceTemplatesPath() string {
+func DevWorkspaceTemplatesPath() string {
 	if util.IsOpenShift {
 		return OpenshiftDevWorkspaceTemplatesPath
 	}
