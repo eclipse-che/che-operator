@@ -1,0 +1,20 @@
+--- /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/generated/kubernetes/org_v1_che_crd.yaml	2021-10-21 01:49:00.174949427 +0000
++++ /home/runner/work/che-operator/che-operator/bundle/stable/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml	2021-10-21 01:49:01.426967921 +0000
+@@ -237,6 +237,8 @@
+                   spec:
+                     description: A KubernetesImagePullerSpec to configure the image puller in the CheCluster
+                     properties:
++                      affinity:
++                        type: string
+                       cachingCPULimit:
+                         type: string
+                       cachingCPURequest:
+@@ -255,6 +257,8 @@
+                         type: string
+                       imagePullSecrets:
+                         type: string
++                      imagePullerImage:
++                        type: string
+                       images:
+                         type: string
+                       nodeSelector:
