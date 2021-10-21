@@ -25,7 +25,9 @@ import (
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	"github.com/golang/mock/gomock"
+	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/google/go-cmp/cmp"
 
@@ -181,12 +183,19 @@ func TestNativeUserModeEnabled(t *testing.T) {
 			scheme.AddKnownTypes(routev1.GroupVersion, route)
 			scheme.AddKnownTypes(oauth.SchemeGroupVersion, oAuthClient)
 			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
-			initCR := InitCheWithSimpleCR().DeepCopy()
-			testCase.initObjects = append(testCase.initObjects, initCR)
+			scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 
+			initCR := InitCheWithSimpleCR().DeepCopy()
 			initCR.Spec.DevWorkspace.Enable = testCase.devworkspaceEnabled
 			initCR.Spec.Auth.NativeUserMode = testCase.initialNativeUserValue
+			testCase.initObjects = append(testCase.initObjects, initCR)
+
 			util.IsOpenShift = testCase.isOpenshift
+
+			// reread templates (workaround after setting IsOpenShift value)
+			devworkspace.DevWorkspaceTemplates = devworkspace.DevWorkspaceTemplatesPath()
+			devworkspace.DevWorkspaceIssuerFile = devworkspace.DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
+			devworkspace.DevWorkspaceCertificateFile = devworkspace.DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
 
 			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
 			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)

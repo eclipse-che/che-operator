@@ -99,11 +99,6 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (done bool, err 
 		logrus.Warnf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
 	}
 
-	if !util.IsOpenShift && util.GetCheServerCustomCheProperty(deployContext.CheCluster, "CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S") != "true" {
-		logrus.Warn(`DevWorkspace Che operator can't be enabled on a Kubernetes cluster without explicitly enabled k8s API on che-server. To enable DevWorkspace Che operator set 'spec.server.customCheProperties[CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S]' to 'true'.`)
-		return true, nil
-	}
-
 	isCreated, err := createDwNamespace(deployContext)
 	if err != nil {
 		return false, err

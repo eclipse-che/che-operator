@@ -510,14 +510,6 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
-// GetCheServerCustomCheProperty - returns value of che-server's custom property.
-func GetCheServerCustomCheProperty(cr *orgv1.CheCluster, key string) string {
-	if cr.Spec.Server.CustomCheProperties != nil {
-		return cr.Spec.Server.CustomCheProperties[key]
-	}
-	return ""
-}
-
 // IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
 func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
 	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""
