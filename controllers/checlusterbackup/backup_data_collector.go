@@ -60,7 +60,7 @@ func createBackupMetadataFile(bctx *BackupContext, destDir string) (bool, error)
 
 	var appsDomain string
 	if util.IsOpenShift {
-		host, err := util.GetRouterCanonicalHostname(bctx.r.client, bctx.namespace)
+		host, err := util.GetRouterCanonicalHostname(bctx.r.nonCachingClient, bctx.namespace)
 		if err != nil {
 			return false, err
 		}
@@ -129,7 +129,7 @@ func prepareDirectory(destDir string) error {
 func backupCheCR(bctx *BackupContext, destDir string) (bool, error) {
 	cheCR := &orgv1.CheCluster{}
 	namespacedName := types.NamespacedName{Namespace: bctx.namespace, Name: bctx.cheCR.GetName()}
-	if err := bctx.r.client.Get(context.TODO(), namespacedName, cheCR); err != nil {
+	if err := bctx.r.cachingClient.Get(context.TODO(), namespacedName, cheCR); err != nil {
 		return false, err
 	}
 	util.ClearMetadata(&cheCR.ObjectMeta)
@@ -221,7 +221,7 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 	}
 
 	fakeDeployContext := &deploy.DeployContext{
-		ClusterAPI: deploy.ClusterAPI{Client: bctx.r.client},
+		ClusterAPI: deploy.ClusterAPI{Client: bctx.r.nonCachingClient},
 		CheCluster: bctx.cheCR,
 	}
 	caBundlesConfigmaps, err := deploy.GetCACertsConfigMaps(fakeDeployContext)
@@ -268,7 +268,7 @@ func backupSecrets(bctx *BackupContext, destDir string) (bool, error) {
 	for _, secretName := range secretsNames {
 		secret := &corev1.Secret{}
 		namespacedName := types.NamespacedName{Name: secretName, Namespace: bctx.namespace}
-		if err := bctx.r.client.Get(context.TODO(), namespacedName, secret); err != nil {
+		if err := bctx.r.nonCachingClient.Get(context.TODO(), namespacedName, secret); err != nil {
 			return false, err
 		}
 

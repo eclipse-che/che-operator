@@ -67,7 +67,7 @@ func ensureInternalBackupServerDeploymentExist(bctx *BackupContext) (bool, error
 		Namespace: bctx.namespace,
 		Name:      BackupServerDeploymentName,
 	}
-	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerDeployment)
+	err := bctx.r.nonCachingClient.Get(context.TODO(), namespacedName, backupServerDeployment)
 	if err == nil {
 		return true, nil
 	}
@@ -78,7 +78,7 @@ func ensureInternalBackupServerDeploymentExist(bctx *BackupContext) (bool, error
 	// Get default configuration of the backup server deployment
 	backupServerDeployment = getBackupServerDeploymentSpec(bctx)
 	// Create backup server deployment
-	err = bctx.r.client.Create(context.TODO(), backupServerDeployment)
+	err = bctx.r.nonCachingClient.Create(context.TODO(), backupServerDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -149,7 +149,7 @@ func ensureInternalBackupServerPodReady(bctx *BackupContext) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	_, err = backupServer.PrepareConfiguration(bctx.r.client, bctx.namespace)
+	_, err = backupServer.PrepareConfiguration(bctx.r.nonCachingClient, bctx.namespace)
 	if err != nil {
 		return true, err
 	}
@@ -172,7 +172,7 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) (bool, error) 
 		Namespace: bctx.namespace,
 		Name:      backupServerServiceName,
 	}
-	err := bctx.r.client.Get(context.TODO(), namespacedName, backupServerService)
+	err := bctx.r.nonCachingClient.Get(context.TODO(), namespacedName, backupServerService)
 	if err == nil {
 		// Backup server service already exists, do nothing
 		return true, nil
@@ -184,7 +184,7 @@ func ensureInternalBackupServerServiceExists(bctx *BackupContext) (bool, error) 
 	// Backup server service doesn't exists, create it
 	backupServerService = getBackupServerServiceSpec(bctx)
 	// Create backup server service
-	err = bctx.r.client.Create(context.TODO(), backupServerService)
+	err = bctx.r.nonCachingClient.Create(context.TODO(), backupServerService)
 	if err != nil {
 		return false, err
 	}
@@ -228,13 +228,13 @@ func ensureInternalBackupServerConfigurationExistAndCorrect(bctx *BackupContext)
 	// Check if the internal backup server configuration exists
 	internalBackupServerConfiguration := &chev1.CheBackupServerConfiguration{}
 	namespacedName := types.NamespacedName{Namespace: bctx.namespace, Name: BackupServerConfigurationName}
-	err := bctx.r.client.Get(context.TODO(), namespacedName, internalBackupServerConfiguration)
+	err := bctx.r.cachingClient.Get(context.TODO(), namespacedName, internalBackupServerConfiguration)
 	if err == nil {
 		// Configuration exist, check if it is correct
 		expectedInternalRestServerConfig := getExpectedInternalRestServerConfiguration(bctx)
 		if *internalBackupServerConfiguration.Spec.Rest != *expectedInternalRestServerConfig {
 			// Something is wrong in the configuration
-			if err := bctx.r.client.Delete(context.TODO(), internalBackupServerConfiguration); err != nil {
+			if err := bctx.r.cachingClient.Delete(context.TODO(), internalBackupServerConfiguration); err != nil {
 				return false, err
 			}
 			// Reconcile to recreate the configuration
@@ -249,7 +249,7 @@ func ensureInternalBackupServerConfigurationExistAndCorrect(bctx *BackupContext)
 
 	// Create internal backup server configuration
 	internalBackupServerConfiguration = getInternalBackupServerConfigurationSpec(bctx)
-	err = bctx.r.client.Create(context.TODO(), internalBackupServerConfiguration)
+	err = bctx.r.cachingClient.Create(context.TODO(), internalBackupServerConfiguration)
 	if err != nil {
 		return false, err
 	}
@@ -310,7 +310,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 		Namespace: bctx.namespace,
 		Name:      bctx.backupServerConfigCR.Spec.Rest.RepositoryPasswordSecretRef,
 	}
-	err := bctx.r.client.Get(context.TODO(), namespacedName, repoPasswordSecret)
+	err := bctx.r.nonCachingClient.Get(context.TODO(), namespacedName, repoPasswordSecret)
 	if err == nil {
 		return true, nil
 	}
@@ -320,7 +320,7 @@ func ensureInternalBackupServerSecretExists(bctx *BackupContext) (bool, error) {
 
 	repoPassword := util.GeneratePasswd(12)
 	repoPasswordSecret = getRepoPasswordSecretSpec(bctx, repoPassword)
-	err = bctx.r.client.Create(context.TODO(), repoPasswordSecret)
+	err = bctx.r.nonCachingClient.Create(context.TODO(), repoPasswordSecret)
 	if err != nil {
 		return false, err
 	}

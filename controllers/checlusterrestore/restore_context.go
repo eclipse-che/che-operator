@@ -38,7 +38,7 @@ func NewRestoreContext(r *ReconcileCheClusterRestore, restoreCR *chev1.CheCluste
 		return nil, err
 	}
 
-	cheCR, CRCount, err := util.FindCheClusterCRInNamespace(r.client, namespace)
+	cheCR, CRCount, err := util.FindCheClusterCRInNamespace(r.cachingClient, namespace)
 	if err != nil {
 		// Check if Che CR is present
 		if CRCount > 0 {
