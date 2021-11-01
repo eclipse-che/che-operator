@@ -334,6 +334,14 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
+	r.Log.Info("======Operator namespace", "is:", util.GetCheOperatorNamespace())
+	if util.IsOpenShift && !checluster.Spec.DevWorkspace.Enable && util.GetCheOperatorNamespace() == deploy.DefaultNamespaceForAllNamespacesMode && devworkspace.IsDevWorkspaceOperatorCSVExists(deployContext) {
+		checluster.Spec.DevWorkspace.Enable = true
+		if err := deploy.UpdateCheCRSpec(deployContext, "enable", strconv.FormatBool(true)); err != nil {
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
+		}
+	}
+
 	if util.IsOpenShift && checluster.Spec.DevWorkspace.Enable && checluster.Spec.Auth.NativeUserMode == nil {
 		newNativeUserModeValue := util.NewBoolPointer(true)
 		checluster.Spec.Auth.NativeUserMode = newNativeUserModeValue

@@ -66,7 +66,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (done bool, err 
 		return true, nil
 	}
 
-	if isDevWorkspaceOperatorCSVExists(deployContext) {
+	if IsDevWorkspaceOperatorCSVExists(deployContext) {
 		// Do nothing if DevWorkspace has been already deployed via OLM
 		return true, nil
 	}
@@ -165,13 +165,14 @@ func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) (bool, 
 	}, &appsv1.Deployment{})
 }
 
-func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
+func IsDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
 		return false
 	}
 
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
+	// Namespace: deploy.DefaultNamespaceForAllNamespacesMode
 	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
 	if err != nil {
 		return false

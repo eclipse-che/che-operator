@@ -125,6 +125,8 @@ const (
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
 
+	DefaultNamespaceForAllNamespacesMode = "openshift-operators"
+
 	// limits
 	DefaultDashboardMemoryLimit   = "256Mi"
 	DefaultDashboardMemoryRequest = "32Mi"
