@@ -130,9 +130,15 @@
         },
         {
             "label": "Build and push development bundle Kubernetes platform",
-            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"kubernetes\" -s; make bundle-build bundle-push -s BUNDLE_IMG=${BUNDLE_IMG} platform=\"kubernetes\"",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; export IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:next\";make bundle IMG=\"${IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\" -s; make bundle-build bundle-push -s BUNDLE_IMG=\"${BUNDLE_IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\"",
             "type": "shell",
             "args": [],
+            "options": {  
+            "env": {
+                    "PLATFORM": "kubernetes",
+                    "CHANNEL": "next",
+                }
+            },
             "problemMatcher": [
                 "$go"
             ],
@@ -143,9 +149,15 @@
         },
         {
             "label": "Build and push development bundle Openshift platform",
-            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"openshift\" -s; make bundle-build bundle-push -s BUNDLE_IMG=${BUNDLE_IMG} platform=\"openshift\"",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:next\"; make bundle IMG=\"${IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\" -s; make bundle-build bundle-push -s BUNDLE_IMG=\"${BUNDLE_IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\"",
             "type": "shell",
             "args": [],
+            "options": {  
+            "env": {
+                    "PLATFORM": "openshift",
+                    "CHANNEL": "next",
+                }
+            },
             "problemMatcher": [
                 "$go"
             ],
@@ -156,7 +168,7 @@
         },
         {
             "label": "Install che-operator via OLM",
-            "command": "kubectl apply -f config/manager/controller-namespace.yaml; operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1 --namespace ${NAMESPACE}; kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n ${NAMESPACE}",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; kubectl apply -f config/manager/controller-namespace.yaml; operator-sdk run bundle \"${BUNDLE_IMG}\" --namespace \"${NAMESPACE}\"; kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n \"${NAMESPACE}\"",
             "type": "shell",
             "args": [],
             "problemMatcher": [
