@@ -334,7 +334,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	r.Log.Info("======Operator namespace", "is:", util.GetCheOperatorNamespace())
 	if util.IsOpenShift && !checluster.Spec.DevWorkspace.Enable && util.GetCheOperatorNamespace() == deploy.DefaultNamespaceForAllNamespacesMode && devworkspace.IsDevWorkspaceOperatorCSVExists(deployContext) {
 		checluster.Spec.DevWorkspace.Enable = true
 		if err := deploy.UpdateCheCRSpec(deployContext, "enable", strconv.FormatBool(true)); err != nil {
