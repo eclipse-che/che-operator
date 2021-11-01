@@ -15,6 +15,8 @@ package dashboard
 import (
 	"fmt"
 
+	"github.com/eclipse-che/che-operator/pkg/util"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
@@ -25,7 +27,7 @@ const DashboardSAClusterRoleTemplate = "%s-che-dashboard"
 const DashboardSAClusterRoleBindingTemplate = "%s-che-dashboard"
 
 func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
-	return []rbacv1.PolicyRule{
+	rules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{"workspace.devfile.io"},
 			Resources: []string{"devworkspaces"},
@@ -42,6 +44,19 @@ func GetPrivilegedPoliciesRulesForKubernetes() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "create", "update", "list"},
 		},
 	}
+
+	if !util.IsOpenShift {
+		rules = append(rules,
+			// on Kubernetes, Dashboard stores user preferences in secrets with SA
+			// until native auth is not implemented there as well
+			rbacv1.PolicyRule{
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+				Verbs:     []string{"get", "create", "update", "list"},
+			})
+	}
+
+	return rules
 }
 
 func (d *Dashboard) getClusterRoleName() string {
