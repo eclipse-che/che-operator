@@ -172,8 +172,7 @@ func IsDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	}
 
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
-	// Namespace: deploy.DefaultNamespaceForAllNamespacesMode
-	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
+	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{Namespace: deploy.DefaultNamespaceForAllNamespacesMode})
 	if err != nil {
 		return false
 	}
