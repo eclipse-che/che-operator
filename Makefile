@@ -289,7 +289,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager || true && $(KUSTOMIZE) edit set image controller=${IMG} && cd ../..
+	cd config/manager || true && $(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=${IMG} && cd ../..
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 	echo "[INFO] Start printing logs..."
@@ -499,7 +499,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	DESIRED_CRD_NAME=org_v1_che_crd.yaml
 
 	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
+	cd config/manager && $(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG) && cd ../..
 	$(KUSTOMIZE) build config/platforms/$(platform) | \
 	$(OPERATOR_SDK_BINARY) generate bundle \
 	-q --overwrite \
