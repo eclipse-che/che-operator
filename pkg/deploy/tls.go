@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -514,7 +514,7 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
 	// Get all source config maps, if any
-	caConfigMaps, err := GetCACertsConfigMaps(deployContext)
+	caConfigMaps, err := GetCACertsConfigMaps(deployContext.ClusterAPI.Client, deployContext.CheCluster.GetNamespace())
 	if err != nil {
 		return false, err
 	}
@@ -586,16 +586,16 @@ func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool
 
 // GetCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
 // The selection is based on the specific label
-func GetCACertsConfigMaps(deployContext *DeployContext) ([]corev1.ConfigMap, error) {
+func GetCACertsConfigMaps(client k8sclient.Client, namespace string) ([]corev1.ConfigMap, error) {
 	CACertsConfigMapList := &corev1.ConfigMapList{}
 
 	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesComponentLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
 	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
-	listOptions := &client.ListOptions{
+	listOptions := &k8sclient.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
-		Namespace:     deployContext.CheCluster.GetNamespace(),
+		Namespace:     namespace,
 	}
-	if err := deployContext.ClusterAPI.Client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
+	if err := client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
 		return nil, err
 	}
 

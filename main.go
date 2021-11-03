@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/sirupsen/logrus"
 
 	dwoApi "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwr "github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
@@ -32,8 +33,11 @@ import (
 	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -62,14 +66,17 @@ import (
 	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
-	rbac "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	orgv2alpha1 "github.com/eclipse-che/che-operator/api/v2alpha1"
 	//+kubebuilder:scaffold:imports
@@ -126,7 +133,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	utilruntime.Must(rbac.AddToScheme(scheme))
+	utilruntime.Must(rbacv1.AddToScheme(scheme))
 
 	// Setup Scheme for all resources
 	utilruntime.Must(orgv1.AddToScheme(scheme))
@@ -216,6 +223,12 @@ func main() {
 		enableLeaderElection = false
 	}
 
+	cacheFunction, err := getCacheFunc()
+	if err != nil {
+		setupLog.Error(err, "failed to create cache function")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:                        scheme,
 		MetricsBindAddress:            metricsAddr,
@@ -226,6 +239,7 @@ func main() {
 		LeaderElectionReleaseOnCancel: true,
 		LeaseDuration:                 &leaseDuration,
 		RenewDeadline:                 &renewDeadline,
+		NewCache:                      cacheFunction,
 
 		// NOTE: We CANNOT limit the manager to a single namespace, because that would limit the
 		// devworkspace routing reconciler to a single namespace, which would make it totally unusable.
@@ -238,15 +252,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: scheme})
+	nonCachingClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: scheme})
 	if err != nil {
 		setupLog.Error(err, "unable to initialize non cached client")
 		os.Exit(1)
 	}
 
-	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), noncachedClient, discoveryClient, mgr.GetScheme(), watchNamespace)
-	backupReconciler := backupcontroller.NewReconciler(mgr.GetClient(), noncachedClient, mgr.GetScheme(), watchNamespace)
-	restoreReconciler := restorecontroller.NewReconciler(mgr.GetClient(), noncachedClient, mgr.GetScheme(), watchNamespace)
+	cheReconciler := checontroller.NewReconciler(mgr.GetClient(), nonCachingClient, discoveryClient, mgr.GetScheme(), watchNamespace)
+	backupReconciler := backupcontroller.NewReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), watchNamespace)
+	restoreReconciler := restorecontroller.NewReconciler(mgr.GetClient(), nonCachingClient, mgr.GetScheme(), watchNamespace)
 
 	if err = cheReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to set up controller", "controller", "CheCluster")
@@ -324,10 +338,68 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Migrate Che related resources labels in order to comply with the custom cache function
+	deploy.MigrateCheResourcesLabels(nonCachingClient)
+
 	// Start the Cmd
 	setupLog.Info("starting manager")
 	if err := mgr.Start(sigHandler); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func getCacheFunc() (cache.NewCacheFunc, error) {
+	cheInstanceRequirement, err := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{os.Getenv("CHE_FLAVOR")})
+	if err != nil {
+		return nil, err
+	}
+	cheObjectSelector := labels.NewSelector().Add(*cheInstanceRequirement)
+
+	logrus.Infof("Limit cache by selector: %s", cheObjectSelector.String())
+
+	routeKey := &routev1.Route{}
+	selectors := cache.SelectorsByObject{
+		&appsv1.Deployment{}: {
+			Label: cheObjectSelector,
+		},
+		&corev1.Pod{}: {
+			Label: cheObjectSelector,
+		},
+		&batchv1.Job{}: {
+			Label: cheObjectSelector,
+		},
+		&corev1.Service{}: {
+			Label: cheObjectSelector,
+		},
+		&networkingv1.Ingress{}: {
+			Label: cheObjectSelector,
+		},
+		routeKey: {
+			Label: cheObjectSelector,
+		},
+		&corev1.ConfigMap{}: {
+			Label: cheObjectSelector,
+		},
+		&corev1.Secret{}: {
+			Label: cheObjectSelector,
+		},
+		&corev1.ServiceAccount{}: {
+			Label: cheObjectSelector,
+		},
+		&rbacv1.Role{}: {
+			Label: cheObjectSelector,
+		},
+		&rbacv1.RoleBinding{}: {
+			Label: cheObjectSelector,
+		},
+	}
+
+	if !util.IsOpenShift {
+		delete(selectors, routeKey)
+	}
+
+	return cache.BuilderWithOptions(cache.Options{
+		SelectorsByObject: selectors,
+	}), nil
 }
