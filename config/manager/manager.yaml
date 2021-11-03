@@ -171,12 +171,12 @@ spec:
               value: quay.io/eclipse/che-plugin-sidecar@sha256:2ba8fffe6f2d64f82896367a34fdb657672984548c7904f906178e8e08294277
             - name: RELATED_IMAGE_che_plugin_sidecar_plugin_registry_image_IBZWQYJSGU3DUYTCGQYDIZTGMFQTCMRVGY2WEZLCGEZGENDDMQ4DCNRQMNTGCM3GMYZWKZRTMJSTIMRQGQZTAYJWGU3DEZRRMZSTIOBWGM4WGYTGGFTA____
               value: quay.io/eclipse/che-plugin-sidecar@sha256:bb404ffaa12565beb12b4cd8160cfa3ff3ef3be420430a6562f1fe48639cbf1f
-            - name: RELATED_IMAGE_che_theia_plugin_registry_image_IBZWQYJSGU3DUNZYGM3GKN3DGI4DMZBYGM2TMNLCMY4DOZBQHBRDQOBTMI4DSNLFGM2TCZRSME4GEMJYMI3GIYZTGY2DCMDCME2GEOBYHE2TEMTBMY2A____
-              value: quay.io/eclipse/che-theia@sha256:7836e7c286d83565bf87d08b883b895e351f2a8b18b6dc36410ba4b889522af4
-            - name: RELATED_IMAGE_che_machine_exec_plugin_registry_image_IBZWQYJSGU3DUNLBMM3DEMJUMQZDGMLEGY2DAOJZG42TGYZRGMYTIMZZGI3DQMBRGBSTGNTFGIZTCYZYHA2TCOJZGE4DMOBXMRRDOYLFMY2TGYLGMRRQ____
-              value: quay.io/eclipse/che-machine-exec@sha256:5ac6214d231d64099753c131439268010e36e231c88519918687db7aef53afdc
-            - name: RELATED_IMAGE_che_theia_endpoint_runtime_binary_plugin_registry_image_IBZWQYJSGU3DUOJSGMYWKNLEGNRDMZJQG43WCZTDGU2TIZJSGY2TIODBGMYWMM3CMU2GEYZVGFSGGYRYMYYTANJXMI3WCMJXGBSWKMZUGE3DMY3EGFSA____
-              value: quay.io/eclipse/che-theia-endpoint-runtime-binary@sha256:9231e5d3b6e077afc554e26548a31f3be4bc51dcb8f1057b7a170ee34166cd1d
+            - name: RELATED_IMAGE_che_theia_plugin_registry_image_IBZWQYJSGU3DUYJSGIYDSMZYGAYDMMBZGM2TIYZWGJQTGNDCGI4DENRYGI4TMNBTGA4TSNTGGNQWMZBZGZSDOZTCGQYDIMDGMI2GEMRZGQYGGYRUME3A____
+              value: quay.io/eclipse/che-theia@sha256:a22093800609354c62a34b28268296430996f3afd96d7fb4040fb4b2940cb4a6
+            - name: RELATED_IMAGE_che_machine_exec_plugin_registry_image_IBZWQYJSGU3DUY3CGE4GMMLEMIYGMOJRHFSGIZRSMM2DOM3EG43WMZBUGE2WMZRVGQYGKMRRGVSGIMZWMQ2GMYJYHA3WGNZZG43DCOBSGI2WMYRTMI2Q____
+              value: quay.io/eclipse/che-machine-exec@sha256:cb18f1db0f919ddf2c473d77fd415ff540e215dd36d4fa887c797618225fb3b5
+            - name: RELATED_IMAGE_che_theia_endpoint_runtime_binary_plugin_registry_image_IBZWQYJSGU3DUYJUHE3TKYJTMM2DQOLGG5TGENZYGE2DIZLGMQZDEMJSHBQTQMTFHBSGGNRXMJTDIZDFGFTDSZJZMY2WMNTDG4ZDSOBUMUZWIODDGA3A____
+              value: quay.io/eclipse/che-theia-endpoint-runtime-binary@sha256:a4975a3c489f7fb78144efd22128a82e8dc67bf4de1f9e9f5f6c72984e3d8c06
             - name: RELATED_IMAGE_che_editor_jupyter_plugin_registry_image_IBZWQYJSGU3DUOBTGQZTSYLFHFSWIY3BMEZWCOJXGUZTMNZUGIZTCNLBG44TCMTGHEZWKNBZHFTDIOJYGQ3WIYJQHE2GGNBYGAYDGMLFMFSTIYTBGQ3Q____
               value: index.docker.io/ksmster/che-editor-jupyter@sha256:83439ae9edcaa3a97536742315a7912f93e499f49847da094c480031eae4ba47
             - name: RELATED_IMAGE_dirigible_openshift_plugin_registry_image_IBZWQYJSGU3DUMZTGY2TMMZVMQYWKMBUGAZTMOJXMRSWCMBWG42GEYTCMRRTONBZMM2GEZJSMRRDEOJYGE4GCOJTMI4GKMLFGUZWGM3DGUYTINBRGEZQ____
@@ -234,7 +234,7 @@ spec:
             - name: RELATED_IMAGE_ubi8_minimal_devfile_registry_image_HAXDG___
               value: registry.access.redhat.com/ubi8-minimal@sha256:2f6b88c037c0503da7704bccd3fc73cb76324101af39ad28f16460e7bce98324
             - name: RELATED_IMAGE_ubi_minimal_devfile_registry_image_
-              value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:54ef2173bba7384dc7609e8affbae1c36f8a3ec137cacc0866116d65dd4b9afe
+              value: registry.access.redhat.com/ubi8/ubi-minimal@sha256:c536d4c63253318fdfc1db499f8f4bb0881db7fbd6f3d1554b4d54c812f85cc7
           livenessProbe:
             httpGet:
               path: /healthz
