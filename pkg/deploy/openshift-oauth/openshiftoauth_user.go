@@ -78,22 +78,6 @@ func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.R
 			return reconcile.Result{}, false, errors.Wrap(err, "Unable to delete initial OpenShift OAuth user from a cluster")
 		}
 
-		ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
-		if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
-			return reconcile.Result{}, false, err
-		}
-
-		// set 'openShiftoAuth:nil` to reenable on the following reconcile loop (if possible)
-		ctx.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
-		updateFields := map[string]string{
-			"openShiftoAuth":            "nil",
-			"initialOpenShiftOAuthUser": "nil",
-		}
-
-		if err := deploy.UpdateCheCRSpecByFields(ctx, updateFields); err != nil {
-			return reconcile.Result{}, false, err
-		}
-
 		return reconcile.Result{}, true, nil
 	}
 
@@ -160,6 +144,11 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
+	ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = OpenShiftOAuthUserCredentialsSecret
+	if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", OpenShiftOAuthUserCredentialsSecret); err != nil {
+		return false, err
+	}
+
 	if err := deploy.AppendFinalizer(ctx, OpenshiftOauthUserFinalizerName); err != nil {
 		return false, err
 	}
@@ -205,6 +194,23 @@ func (oou *OpenShiftOAuthUser) Delete(ctx *deploy.DeployContext) error {
 	}
 
 	if err := deploy.DeleteFinalizer(ctx, OpenshiftOauthUserFinalizerName); err != nil {
+		return err
+	}
+
+	ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
+	if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+		return err
+	}
+
+	// set 'openShiftoAuth:nil` to reenable on the following reconcile loop (if possible)
+	ctx.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
+	ctx.CheCluster.Spec.Auth.OpenShiftoAuth = nil
+	updateFields := map[string]string{
+		"openShiftoAuth":            "nil",
+		"initialOpenShiftOAuthUser": "nil",
+	}
+
+	if err := deploy.UpdateCheCRSpecByFields(ctx, updateFields); err != nil {
 		return err
 	}
 

@@ -22,14 +22,13 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/util"
 	oauth_config "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -39,8 +38,8 @@ const (
 	testUserName  = "test"
 )
 
-var (
-	testCR = &orgv1.CheCluster{
+func TestCreateInitialUser(t *testing.T) {
+	checluster := &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "eclipse-che",
 			Namespace: testNamespace,
@@ -51,81 +50,53 @@ var (
 			},
 		},
 	}
-)
-
-func TestCreateInitialUser(t *testing.T) {
-	type testCase struct {
-		name        string
-		oAuth       *oauth_config.OAuth
-		initObjects []runtime.Object
-	}
-
 	oAuth := &oauth_config.OAuth{
 		ObjectMeta: v1.ObjectMeta{
 			Name: "cluster",
 		},
 		Spec: oauth_config.OAuthSpec{IdentityProviders: []oauth_config.IdentityProvider{}},
 	}
-
 	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{oAuth})
 
-	scheme := scheme.Scheme
-	orgv1.SchemeBuilder.AddToScheme(scheme)
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-	scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
-
-	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, testCR)
-
-	initialUserHandler := NewOpenShiftOAuthUser()
-
-	dc := &deploy.DeployContext{
-		CheCluster: testCR,
-		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
-	}
-	provisined, err := initialUserHandler.Create(dc)
-	if err != nil {
-		t.Errorf("Failed to create user: %s", err.Error())
-	}
-	if !provisined {
-		t.Error("Unexpected error")
-	}
+	openShiftOAuthUser := NewOpenShiftOAuthUser()
+	done, err := openShiftOAuthUser.Create(ctx)
+	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// Check created objects
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret); err != nil {
-		t.Errorf("Initial user secret should exists")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret)
+	assert.Nil(t, err)
 
 	expectedHtpasswsSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, expectedHtpasswsSecret); err != nil {
-		t.Errorf("Initial user secret should exists")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, expectedHtpasswsSecret)
+	assert.Nil(t, err)
 
 	expectedOAuth := &oauth_config.OAuth{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, expectedOAuth); err != nil {
-		t.Errorf("Initial oAuth should exists")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, expectedOAuth)
+	assert.Nil(t, err)
+	assert.Equal(t, len(expectedOAuth.Spec.IdentityProviders), 1)
+	assert.True(t, util.ContainsString(checluster.Finalizers, OpenshiftOauthUserFinalizerName))
 
-	if len(expectedOAuth.Spec.IdentityProviders) < 0 {
-		t.Error("List identity providers should not be an empty")
-	}
-
-	if !util.ContainsString(testCR.Finalizers, OpenshiftOauthUserFinalizerName) {
-		t.Error("Finaizer hasn't been added")
-	}
+	assert.Equal(t, checluster.Status.OpenShiftOAuthUserCredentialsSecret, OpenShiftOAuthUserCredentialsSecret)
 }
 
 func TestDeleteInitialUser(t *testing.T) {
-	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-	scheme := scheme.Scheme
-	orgv1.SchemeBuilder.AddToScheme(scheme)
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-	scheme.AddKnownTypes(oauth_config.SchemeGroupVersion, &oauth_config.OAuth{})
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.Identity{})
-	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
-	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.User{})
-
+	checluster := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che",
+			Namespace: testNamespace,
+		},
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				CheFlavor: testUserName,
+			},
+		},
+		Status: orgv1.CheClusterStatus{
+			OpenShiftOAuthUserCredentialsSecret: "some-secret",
+		},
+	}
 	oAuth := &oauth_config.OAuth{
 		ObjectMeta: v1.ObjectMeta{
 			Name: "cluster",
@@ -163,48 +134,35 @@ func TestDeleteInitialUser(t *testing.T) {
 		},
 	}
 
-	runtimeClient := fake.NewFakeClientWithScheme(scheme, oAuth, cheSecret, htpasswdSecret, userIdentity, user, testCR)
+	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{oAuth, cheSecret, htpasswdSecret, userIdentity, user})
 
-	initialUserHandler := &OpenShiftOAuthUser{}
-
-	dc := &deploy.DeployContext{
-		CheCluster: testCR,
-		ClusterAPI: deploy.ClusterAPI{Client: runtimeClient, NonCachedClient: runtimeClient, DiscoveryClient: nil, Scheme: scheme},
-	}
-	if err := initialUserHandler.Delete(dc); err != nil {
-		t.Errorf("Unable to delete initial user: %s", err.Error())
-	}
+	openShiftOAuthUser := &OpenShiftOAuthUser{}
+	err := openShiftOAuthUser.Delete(ctx)
+	assert.Nil(t, err)
 
 	expectedCheSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret); !errors.IsNotFound(err) {
-		t.Errorf("Initial user secret should be deleted")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret)
+	assert.True(t, errors.IsNotFound(err))
 
 	expectedHtpasswsSecret := &corev1.Secret{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, expectedHtpasswsSecret); !errors.IsNotFound(err) {
+	if err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, expectedHtpasswsSecret); !errors.IsNotFound(err) {
 		t.Errorf("Initial user secret should be deleted")
 	}
+	assert.True(t, errors.IsNotFound(err))
 
 	expectedUserIdentity := &userv1.Identity{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: HtpasswdIdentityProviderName + ":" + testUserName}, expectedUserIdentity); !errors.IsNotFound(err) {
-		t.Errorf("Initial user identity should be deleted")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: HtpasswdIdentityProviderName + ":" + testUserName}, expectedUserIdentity)
+	assert.True(t, errors.IsNotFound(err))
 
 	expectedUser := &userv1.User{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: testUserName}, expectedUser); !errors.IsNotFound(err) {
-		t.Errorf("Initial user should be deleted")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: testUserName}, expectedUser)
+	assert.True(t, errors.IsNotFound(err))
 
 	expectedOAuth := &oauth_config.OAuth{}
-	if err := runtimeClient.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, expectedOAuth); err != nil {
-		t.Errorf("OAuth should exists")
-	}
-
-	if len(expectedOAuth.Spec.IdentityProviders) != 0 {
-		t.Error("List identity providers should be an empty")
-	}
-
-	if util.ContainsString(testCR.Finalizers, OpenshiftOauthUserFinalizerName) {
-		t.Error("Finalizer hasn't been removed")
-	}
+	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, expectedOAuth)
+	assert.Nil(t, err)
+	assert.Equal(t, len(expectedOAuth.Spec.IdentityProviders), 0)
+	assert.False(t, util.ContainsString(checluster.Finalizers, OpenshiftOauthUserFinalizerName))
+	assert.Empty(t, checluster.Status.OpenShiftOAuthUserCredentialsSecret)
 }

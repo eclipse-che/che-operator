@@ -229,13 +229,12 @@ func TestNativeUserModeEnabled(t *testing.T) {
 
 func TestCaseAutoDetectOAuth(t *testing.T) {
 	type testCase struct {
-		name                                string
-		initObjects                         []runtime.Object
-		isOpenshift4                        bool
-		initialOAuthValue                   *bool
-		oAuthExpected                       *bool
-		initialOpenShiftOAuthUserEnabled    *bool
-		OpenShiftOAuthUserCredentialsSecret string
+		name                             string
+		initObjects                      []runtime.Object
+		isOpenshift4                     bool
+		initialOAuthValue                *bool
+		oAuthExpected                    *bool
+		initialOpenShiftOAuthUserEnabled *bool
 	}
 
 	testCases := []testCase{
@@ -321,17 +320,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
 		},
 		{
-			name: "che-operator should not create initial user and enable oAuth, when oAuth = true, initialOpenShiftOAuthUserEnabled = true and there no indentity providers on the Openshift 4",
-			initObjects: []runtime.Object{
-				oAuthWithNoIdentityProviders,
-				proxy,
-			},
-			isOpenshift4:                     true,
-			initialOAuthValue:                pointer.BoolPtr(true),
-			oAuthExpected:                    pointer.BoolPtr(true),
-			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(false),
-		},
-		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
 			initObjects: []runtime.Object{
 				oAuthWithIdentityProvider,
@@ -408,7 +396,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 
 			assert.NotNil(t, cheCR.Spec.Auth.OpenShiftoAuth)
 			assert.Equal(t, *testCase.oAuthExpected, *cheCR.Spec.Auth.OpenShiftoAuth)
-			assert.Equal(t, testCase.OpenShiftOAuthUserCredentialsSecret, cheCR.Status.OpenShiftOAuthUserCredentialsSecret)
 		})
 	}
 }
