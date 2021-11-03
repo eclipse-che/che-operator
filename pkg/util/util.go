@@ -484,11 +484,6 @@ func IsNativeUserModeEnabled(c *orgv1.CheCluster) bool {
 	return IsOpenShift && c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
 }
 
-// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
-func IsInitialOpenShiftOAuthUserEnabled(c *orgv1.CheCluster) bool {
-	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
-}
-
 // GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
 func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	if cr.Spec.Server.CustomCheProperties != nil {

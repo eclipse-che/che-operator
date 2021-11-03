@@ -65,7 +65,7 @@ func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.R
 		return reconcile.Result{}, true, nil
 	}
 
-	if ctx.CheCluster.IsOpenShiftOAuthUserConfigured() {
+	if ctx.CheCluster.IsOpenShiftOAuthUserConfigured() && ctx.CheCluster.IsOpenShiftOAuthEnabled() {
 		done, err := oou.Create(ctx)
 		if !done {
 			return reconcile.Result{Requeue: true}, false, err

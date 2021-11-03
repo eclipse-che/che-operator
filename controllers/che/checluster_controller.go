@@ -626,7 +626,7 @@ func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployConte
 				// enable OpenShift OAuth without adding initial OpenShift OAuth user
 				// since kubeadmin is a valid user for native user mode
 				oauth = true
-			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
+			} else if cr.IsOpenShiftOAuthUserConfigured() {
 				provisioned, err := r.openShiftOAuthUser.Create(deployContext)
 				if err != nil {
 					logrus.Error(warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error())
