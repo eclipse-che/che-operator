@@ -18,7 +18,7 @@ on:
 jobs:
   minishift:
     name: Test Eclipse Che update from stable to next
-    runs-on: macos-latest
+    runs-on: macos-10.15
     steps:
     - uses: actions/checkout@v1
     - name: Build Che operator image
