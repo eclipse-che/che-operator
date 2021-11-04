@@ -13,10 +13,16 @@ package deploy
 
 import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	configv1 "github.com/openshift/api/config/v1"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -44,6 +50,11 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 	scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
 	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
+	scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, &oauthv1.OAuthClient{})
+	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{}, &userv1.Identity{})
+	scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
+	scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
+	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
 
 	initObjs = append(initObjs, cheCluster)
 	cli := fake.NewFakeClientWithScheme(scheme, initObjs...)

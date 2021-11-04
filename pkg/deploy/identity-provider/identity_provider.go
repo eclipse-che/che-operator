@@ -148,7 +148,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 
 func syncOpenShiftIdentityProvider(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if util.IsOpenShift && util.IsOAuthEnabled(cr) {
+	if util.IsOpenShift && cr.IsOpenShiftOAuthEnabled() {
 		return SyncOpenShiftIdentityProviderItems(deployContext)
 	}
 	return true, nil
@@ -327,7 +327,7 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted bool, err error) {
-	if !util.IsOAuthEnabled(deployContext.CheCluster) && deployContext.CheCluster.Status.OpenShiftoAuthProvisioned == true {
+	if !deployContext.CheCluster.IsOpenShiftOAuthEnabled() && deployContext.CheCluster.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
 		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: deployContext.CheCluster.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err.Error())

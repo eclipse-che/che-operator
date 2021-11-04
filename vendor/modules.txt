@@ -134,6 +134,7 @@ github.com/operator-framework/operator-registry/pkg/api
 github.com/operator-framework/operator-registry/pkg/image
 github.com/operator-framework/operator-registry/pkg/registry
 # github.com/pkg/errors v0.9.1 => github.com/pkg/errors v0.0.0-20200114194744-614d223910a1
+## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0 => github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib

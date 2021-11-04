@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package imagepuller
 
 import (
 	"context"
@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"sigs.k8s.io/yaml"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -276,7 +277,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 
-			deployContext := GetTestDeployContext(testCase.initCR, []runtime.Object{})
+			deployContext := deploy.GetTestDeployContext(testCase.initCR, []runtime.Object{})
 
 			orgv1.SchemeBuilder.AddToScheme(deployContext.ClusterAPI.Scheme)
 			packagesv1.AddToScheme(deployContext.ClusterAPI.Scheme)
@@ -320,7 +321,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 			var err error
 			if testCase.shouldDelete {
-				_, err = DeleteImagePullerOperatorAndFinalizer(deployContext)
+				err = DeleteImagePullerOperatorAndFinalizer(deployContext)
 				if err != nil {
 					t.Fatalf("Error reconciling: %v", err)
 				}
