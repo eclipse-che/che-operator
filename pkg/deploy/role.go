@@ -41,6 +41,8 @@ func SyncTLSRoleToCluster(deployContext *DeployContext) (bool, error) {
 			},
 			Verbs: []string{
 				"create",
+				"get",
+				"patch",
 			},
 		},
 	}

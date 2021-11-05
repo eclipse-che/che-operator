@@ -17,6 +17,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	stderrors "errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -349,15 +350,22 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		}
 
 		domains := deployContext.CheCluster.Spec.K8s.IngressDomain + ",*." + deployContext.CheCluster.Spec.K8s.IngressDomain
-		if deployContext.CheCluster.Spec.Server.CheHost != "" && strings.Index(deployContext.CheCluster.Spec.Server.CheHost, deployContext.CheCluster.Spec.K8s.IngressDomain) == -1 && deployContext.CheCluster.Spec.Server.CheHostTLSSecret == "" {
+		if deployContext.CheCluster.Spec.Server.CheHost != "" && !strings.Contains(deployContext.CheCluster.Spec.Server.CheHost, deployContext.CheCluster.Spec.K8s.IngressDomain) && deployContext.CheCluster.Spec.Server.CheHostTLSSecret == "" {
 			domains += "," + deployContext.CheCluster.Spec.Server.CheHost
 		}
+
+		labels := ""
+		for labelName, labelValue := range GetLabels(deployContext.CheCluster, cheTLSSecretName) {
+			labels += fmt.Sprintf("%s=%s ", labelName, labelValue)
+		}
+
 		cheTLSSecretsCreationJobImage := DefaultCheTLSSecretsCreationJobImage()
 		jobEnvVars := map[string]string{
 			"DOMAIN":                         domains,
 			"CHE_NAMESPACE":                  deployContext.CheCluster.Namespace,
 			"CHE_SERVER_TLS_SECRET_NAME":     cheTLSSecretName,
 			"CHE_CA_CERTIFICATE_SECRET_NAME": CheTLSSelfSignedCertificateSecretName,
+			"LABELS":                         labels,
 		}
 
 		done, err = SyncJobToCluster(deployContext, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)

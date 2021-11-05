@@ -19,7 +19,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,7 +26,7 @@ var (
 	jobDiffOpts = cmp.Options{
 		cmpopts.IgnoreFields(batchv1.Job{}, "TypeMeta", "ObjectMeta", "Status"),
 		cmpopts.IgnoreFields(batchv1.JobSpec{}, "Selector", "TTLSecondsAfterFinished"),
-		cmpopts.IgnoreFields(v1.PodTemplateSpec{}, "ObjectMeta"),
+		cmpopts.IgnoreFields(corev1.PodTemplateSpec{}, "ObjectMeta"),
 		cmpopts.IgnoreFields(corev1.Container{}, "TerminationMessagePath", "TerminationMessagePolicy"),
 		cmpopts.IgnoreFields(corev1.PodSpec{}, "DNSPolicy", "SchedulerName", "SecurityContext"),
 		cmp.Comparer(func(x, y []corev1.EnvVar) bool {
