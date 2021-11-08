@@ -794,3 +794,7 @@ func (c *CheCluster) IsOpenShiftOAuthUserMustBeDeleted() bool {
 func (c *CheCluster) IsOpenShiftOAuthEnabled() bool {
 	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
 }
+
+func (c *CheCluster) IsNativeUserModeEnabled() bool {
+	return c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
+}
