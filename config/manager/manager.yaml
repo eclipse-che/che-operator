@@ -68,7 +68,7 @@ spec:
             - name: RELATED_IMAGE_devfile_registry
               value: quay.io/eclipse/che-devfile-registry:next
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
-              value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
+              value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
             - name: RELATED_IMAGE_pvc_jobs
               value: registry.access.redhat.com/ubi8-minimal:8.5-204
             - name: RELATED_IMAGE_postgres

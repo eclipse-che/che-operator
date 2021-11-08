@@ -39,14 +39,14 @@ func MigrateCheResourcesLabels(nonCachingClient client.Client) bool {
 	noErrors := true
 
 	// Prepare selector
-	chePartOfSelectorRequirement, err := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
+	partOfCheSelectorRequirement, err := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
 	if err != nil {
-		logrus.Error("Failed to create selector for resources migration. All custom user objects are lost.")
+		logrus.Error("Failed to create selector for resources migration. Unable to perform resources migration.")
 		return false
 	}
-	partOfCheLebelSelector := labels.NewSelector().Add(*chePartOfSelectorRequirement)
+	partOfCheLabelSelector := labels.NewSelector().Add(*partOfCheSelectorRequirement)
 	listOptions := &client.ListOptions{
-		LabelSelector: partOfCheLebelSelector,
+		LabelSelector: partOfCheLabelSelector,
 	}
 
 	// Migrate all config maps
