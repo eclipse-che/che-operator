@@ -41,12 +41,17 @@ func MigrateCheResourcesLabels(nonCachingClient client.Client) bool {
 	// Prepare selector
 	partOfCheSelectorRequirement, err := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
 	if err != nil {
-		logrus.Error("Failed to create selector for resources migration. Unable to perform resources migration.")
+		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return false
 	}
-	partOfCheLabelSelector := labels.NewSelector().Add(*partOfCheSelectorRequirement)
+	instanceNotCheFlavorSelectorRequirement, err := labels.NewRequirement(KubernetesInstanceLabelKey, selection.NotEquals, []string{cheFlavor})
+	if err != nil {
+		logrus.Error(getFailedToCreateSelectorErrorMessage())
+		return false
+	}
+	objectsToMigrateLabelSelector := labels.NewSelector().Add(*partOfCheSelectorRequirement).Add(*instanceNotCheFlavorSelectorRequirement)
 	listOptions := &client.ListOptions{
-		LabelSelector: partOfCheLabelSelector,
+		LabelSelector: objectsToMigrateLabelSelector,
 	}
 
 	// Migrate all config maps
@@ -58,13 +63,10 @@ func MigrateCheResourcesLabels(nonCachingClient client.Client) bool {
 	}
 	if configMapsList.Items != nil {
 		for _, cm := range configMapsList.Items {
-			labels := cm.GetLabels()
-			if labels != nil && labels[KubernetesInstanceLabelKey] != cheFlavor {
-				cm.ObjectMeta.Labels[KubernetesInstanceLabelKey] = cheFlavor
-				if err := nonCachingClient.Update(context.TODO(), &cm); err != nil {
-					logrus.Warn(getFailedToUpdateErrorMessage(cm.GetName(), reflect.TypeOf(cm).Name()))
-					noErrors = false
-				}
+			cm.ObjectMeta.Labels[KubernetesInstanceLabelKey] = cheFlavor
+			if err := nonCachingClient.Update(context.TODO(), &cm); err != nil {
+				logrus.Warn(getFailedToUpdateErrorMessage(cm.GetName(), reflect.TypeOf(cm).Name()))
+				noErrors = false
 			}
 		}
 	}
@@ -78,13 +80,10 @@ func MigrateCheResourcesLabels(nonCachingClient client.Client) bool {
 	}
 	if secretsList.Items != nil {
 		for _, secret := range secretsList.Items {
-			labels := secret.GetLabels()
-			if labels != nil && labels[KubernetesInstanceLabelKey] != cheFlavor {
-				secret.ObjectMeta.Labels[KubernetesInstanceLabelKey] = cheFlavor
-				if err := nonCachingClient.Update(context.TODO(), &secret); err != nil {
-					logrus.Warn(getFailedToUpdateErrorMessage(secret.GetName(), reflect.TypeOf(secret).Name()))
-					noErrors = false
-				}
+			secret.ObjectMeta.Labels[KubernetesInstanceLabelKey] = cheFlavor
+			if err := nonCachingClient.Update(context.TODO(), &secret); err != nil {
+				logrus.Warn(getFailedToUpdateErrorMessage(secret.GetName(), reflect.TypeOf(secret).Name()))
+				noErrors = false
 			}
 		}
 	}
@@ -100,4 +99,8 @@ func getFailedToGetErrorMessageFor(item string) string {
 func getFailedToUpdateErrorMessage(objectName string, objectKind string) string {
 	return fmt.Sprintf("Failed to update %s '%s' with label %s=%s. This resource will be ignored by Operator.",
 		objectKind, objectName, KubernetesInstanceLabelKey, cheFlavor)
+}
+
+func getFailedToCreateSelectorErrorMessage() string {
+	return "Failed to create selector for resources migration. Unable to perform resources migration."
 }
