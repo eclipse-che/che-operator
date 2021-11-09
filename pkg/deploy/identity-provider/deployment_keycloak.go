@@ -563,9 +563,15 @@ func GetSpecKeycloakDeployment(
 			"title=\"Username has to comply with the DNS naming convention. An alphanumeric (a-z, and 0-9) string, with a maximum length of 63 characters, with the '-' character allowed anywhere except the first or last character.\" " +
 			"name=\"username\"|g' ${baseTemplate}"
 		patchOpenshiftLaunch := "sed -i 's|standalone.sh -c standalone-openshift.xml|standalone.sh -c standalone-openshift.xml ${KEYCLOAK_SYS_PROPS}|' /opt/eap/bin/openshift-launch.sh"
+		// Workaround described in https://access.redhat.com/solutions/6485431
+		// Until https://issues.redhat.com/browse/CIAM-1269 is solved
+		fixPodStartInAirGapMode := "mkdir -pv /home/jboss/.m2/repository > /tmp/preconfigure.log 2>&1" +
+			" && cp -vr /opt/jboss/container/wildfly/s2i/galleon/galleon-m2-repository/* /home/jboss/.m2/repository/ >> /tmp/preconfigure.log 2>&1" +
+			" && ls -al /home/jboss/.m2/repository >> /tmp/preconfigure.log 2>&1"
 		command = bashFunctions + "\n" +
 			addUsernameReadonlyTheme +
 			" && " + addUsernameValidationForKeycloakTheme +
+			" && " + fixPodStartInAirGapMode +
 			" && " + addCertToTrustStoreCommand +
 			addProxyCliCommand +
 			applyProxyCliCommand +
