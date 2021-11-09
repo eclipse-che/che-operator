@@ -33,10 +33,10 @@ type DeployContext struct {
 }
 
 type ClusterAPI struct {
-	Client          client.Client
-	NonCachedClient client.Client
-	DiscoveryClient discovery.DiscoveryInterface
-	Scheme          *runtime.Scheme
+	Client           client.Client
+	NonCachingClient client.Client
+	DiscoveryClient  discovery.DiscoveryInterface
+	Scheme           *runtime.Scheme
 }
 
 type Proxy struct {

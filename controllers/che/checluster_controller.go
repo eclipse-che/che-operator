@@ -222,10 +222,10 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	tests := r.tests
 	clusterAPI := deploy.ClusterAPI{
-		Client:          r.client,
-		NonCachedClient: r.nonCachedClient,
-		DiscoveryClient: r.discoveryClient,
-		Scheme:          r.Scheme,
+		Client:           r.client,
+		NonCachingClient: r.nonCachedClient,
+		DiscoveryClient:  r.discoveryClient,
+		Scheme:           r.Scheme,
 	}
 
 	// Fetch the CheCluster instance

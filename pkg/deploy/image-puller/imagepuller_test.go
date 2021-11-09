@@ -288,7 +288,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 			for _, obj := range testCase.initObjects {
 				obj.(metav1.Object).SetResourceVersion("")
-				err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), obj.(client.Object))
+				err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), obj.(client.Object))
 				if err != nil {
 					t.Fatalf(err.Error())
 				}
@@ -334,7 +334,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 			if testCase.expectedOperatorGroup != nil {
 				gotOperatorGroup := &operatorsv1.OperatorGroup{}
-				err := deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedOperatorGroup.Namespace, Name: testCase.expectedOperatorGroup.Name}, gotOperatorGroup)
+				err := deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedOperatorGroup.Namespace, Name: testCase.expectedOperatorGroup.Name}, gotOperatorGroup)
 				if err != nil {
 					t.Errorf("Error getting OperatorGroup: %v", err)
 				}
@@ -344,7 +344,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			}
 			if testCase.expectedSubscription != nil {
 				gotSubscription := &operatorsv1alpha1.Subscription{}
-				err := deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedSubscription.Namespace, Name: testCase.expectedSubscription.Name}, gotSubscription)
+				err := deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: testCase.expectedSubscription.Namespace, Name: testCase.expectedSubscription.Name}, gotSubscription)
 				if err != nil {
 					t.Errorf("Error getting Subscription: %v", err)
 				}
@@ -402,19 +402,19 @@ func TestImagePullerConfiguration(t *testing.T) {
 				}
 
 				clusterServiceVersion := &operatorsv1alpha1.ClusterServiceVersion{}
-				err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: csvName}, clusterServiceVersion)
+				err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: csvName}, clusterServiceVersion)
 				if err == nil || !errors.IsNotFound(err) {
 					t.Fatalf("Should not have found ClusterServiceVersion: %v", err)
 				}
 
 				subscription := &operatorsv1alpha1.Subscription{}
-				err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
+				err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
 				if err == nil || !errors.IsNotFound(err) {
 					t.Fatalf("Should not have found Subscription: %v", err)
 				}
 
 				operatorGroup := &operatorsv1.OperatorGroup{}
-				err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
+				err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
 				if err == nil || !errors.IsNotFound(err) {
 					t.Fatalf("Should not have found OperatorGroup: %v", err)
 				}

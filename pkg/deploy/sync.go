@@ -111,7 +111,7 @@ func GetNamespacedObject(deployContext *DeployContext, name string, actual clien
 // Gets cluster scope object by name
 // Returns true if object exists otherwise returns false
 func GetClusterObject(deployContext *DeployContext, name string, actual client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachedClient
+	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
 	return doGet(client, key, actual)
 }
@@ -181,7 +181,7 @@ func DeleteNamespacedObject(deployContext *DeployContext, name string, objectMet
 }
 
 func DeleteClusterObject(deployContext *DeployContext, name string, objectMeta client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachedClient
+	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
 	return doDeleteByKey(client, deployContext.ClusterAPI.Scheme, key, objectMeta)
 }
@@ -334,7 +334,7 @@ func getClientForObject(objectNamespace string, deployContext *DeployContext) cl
 	if deployContext.CheCluster.Namespace == objectNamespace {
 		return deployContext.ClusterAPI.Client
 	}
-	return deployContext.ClusterAPI.NonCachedClient
+	return deployContext.ClusterAPI.NonCachingClient
 }
 
 func getObjectType(objectMeta metav1.Object) string {

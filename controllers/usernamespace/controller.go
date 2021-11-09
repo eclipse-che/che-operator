@@ -205,10 +205,10 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	deployContext := &deploy.DeployContext{
 		CheCluster: org.AsV1(checluster),
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          r.client,
-			NonCachedClient: r.client,
-			DiscoveryClient: nil,
-			Scheme:          r.scheme,
+			Client:           r.client,
+			NonCachingClient: r.client,
+			DiscoveryClient:  nil,
+			Scheme:           r.scheme,
 		},
 	}
 

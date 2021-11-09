@@ -140,7 +140,7 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if err := appendIdentityProvider(oAuth, ctx.ClusterAPI.NonCachedClient); err != nil {
+	if err := appendIdentityProvider(oAuth, ctx.ClusterAPI.NonCachingClient); err != nil {
 		return false, err
 	}
 
@@ -173,7 +173,7 @@ func (oou *OpenShiftOAuthUser) Delete(ctx *deploy.DeployContext) error {
 		return err
 	}
 
-	if err := deleteIdentityProvider(oAuth, ctx.ClusterAPI.NonCachedClient); err != nil {
+	if err := deleteIdentityProvider(oAuth, ctx.ClusterAPI.NonCachingClient); err != nil {
 		return err
 	}
 

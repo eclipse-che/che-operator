@@ -242,7 +242,7 @@ func ReconcileImagePullerFinalizer(ctx *deploy.DeployContext) (err error) {
 			clusterServiceVersionName := deploy.DefaultKubernetesImagePullerOperatorCSV()
 			logrus.Infof("Custom resource %s is being deleted. Deleting ClusterServiceVersion %s first", instance.Name, clusterServiceVersionName)
 			clusterServiceVersion := &operatorsv1alpha1.ClusterServiceVersion{}
-			err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: clusterServiceVersionName}, clusterServiceVersion)
+			err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: instance.Namespace, Name: clusterServiceVersionName}, clusterServiceVersion)
 			if err != nil {
 				logrus.Errorf("Error getting ClusterServiceVersion: %v", err)
 				return err
@@ -316,7 +316,7 @@ func CheckNeededImagePullerApis(ctx *deploy.DeployContext) (bool, bool, bool, er
 // Search for the kubernetes-imagepuller-operator PackageManifest
 func GetPackageManifest(ctx *deploy.DeployContext) (*packagesv1.PackageManifest, error) {
 	packageManifest := &packagesv1.PackageManifest{}
-	err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, packageManifest)
+	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, packageManifest)
 	if err != nil {
 		return packageManifest, err
 	}
@@ -327,7 +327,7 @@ func GetPackageManifest(ctx *deploy.DeployContext) (*packagesv1.PackageManifest,
 // OperatorGroup was created, and any error returned during the List and Create operation
 func CreateOperatorGroupIfNotFound(ctx *deploy.DeployContext) (bool, error) {
 	operatorGroupList := &operatorsv1.OperatorGroupList{}
-	err := ctx.ClusterAPI.NonCachedClient.List(context.TODO(), operatorGroupList, &client.ListOptions{Namespace: ctx.CheCluster.Namespace})
+	err := ctx.ClusterAPI.NonCachingClient.List(context.TODO(), operatorGroupList, &client.ListOptions{Namespace: ctx.CheCluster.Namespace})
 	if err != nil {
 		return false, err
 	}
@@ -348,7 +348,7 @@ func CreateOperatorGroupIfNotFound(ctx *deploy.DeployContext) (bool, error) {
 			},
 		}
 		logrus.Infof("Creating kubernetes image puller OperatorGroup")
-		if err = ctx.ClusterAPI.NonCachedClient.Create(context.TODO(), operatorGroup, &client.CreateOptions{}); err != nil {
+		if err = ctx.ClusterAPI.NonCachingClient.Create(context.TODO(), operatorGroup, &client.CreateOptions{}); err != nil {
 			return false, err
 		}
 		return true, nil
@@ -358,14 +358,14 @@ func CreateOperatorGroupIfNotFound(ctx *deploy.DeployContext) (bool, error) {
 
 func CreateImagePullerSubscription(ctx *deploy.DeployContext, packageManifest *packagesv1.PackageManifest) (bool, error) {
 	imagePullerOperatorSubscription := &operatorsv1alpha1.Subscription{}
-	err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{
+	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
 		Name:      "kubernetes-imagepuller-operator",
 		Namespace: ctx.CheCluster.Namespace,
 	}, imagePullerOperatorSubscription)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logrus.Info("Creating kubernetes image puller operator Subscription")
-			err = ctx.ClusterAPI.NonCachedClient.Create(context.TODO(), GetExpectedSubscription(ctx, packageManifest), &client.CreateOptions{})
+			err = ctx.ClusterAPI.NonCachingClient.Create(context.TODO(), GetExpectedSubscription(ctx, packageManifest), &client.CreateOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -397,7 +397,7 @@ func GetExpectedSubscription(ctx *deploy.DeployContext, packageManifest *package
 
 func GetActualSubscription(ctx *deploy.DeployContext) (*operatorsv1alpha1.Subscription, error) {
 	actual := &operatorsv1alpha1.Subscription{}
-	err := ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, actual)
+	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, actual)
 	if err != nil {
 		return nil, err
 	}
@@ -612,14 +612,14 @@ func UninstallImagePullerOperator(ctx *deploy.DeployContext) (bool, error) {
 	if hasOperatorsAPIs {
 		// Delete the ClusterServiceVersion
 		csv := &operatorsv1alpha1.ClusterServiceVersion{}
-		err = ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: deploy.DefaultKubernetesImagePullerOperatorCSV()}, csv)
+		err = ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: deploy.DefaultKubernetesImagePullerOperatorCSV()}, csv)
 		if err != nil && !errors.IsNotFound(err) {
 			return updated, err
 		}
 
 		if csv.Name != "" {
 			logrus.Infof("Deleting ClusterServiceVersion %v", csv.Name)
-			err := ctx.ClusterAPI.NonCachedClient.Delete(context.TODO(), csv, &client.DeleteOptions{})
+			err := ctx.ClusterAPI.NonCachingClient.Delete(context.TODO(), csv, &client.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				return updated, err
 			}
@@ -627,28 +627,28 @@ func UninstallImagePullerOperator(ctx *deploy.DeployContext) (bool, error) {
 
 		// Delete the Subscription
 		subscription := &operatorsv1alpha1.Subscription{}
-		err = ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
+		err = ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, subscription)
 		if err != nil && !errors.IsNotFound(err) {
 			return updated, err
 		}
 
 		if subscription.Name != "" {
 			logrus.Infof("Deleting Subscription %v", subscription.Name)
-			err := ctx.ClusterAPI.NonCachedClient.Delete(context.TODO(), subscription, &client.DeleteOptions{})
+			err := ctx.ClusterAPI.NonCachingClient.Delete(context.TODO(), subscription, &client.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				return updated, err
 			}
 		}
 		// Delete the OperatorGroup if it was created
 		operatorGroup := &operatorsv1.OperatorGroup{}
-		err = ctx.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
+		err = ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: "kubernetes-imagepuller-operator"}, operatorGroup)
 		if err != nil && !errors.IsNotFound(err) {
 			return updated, err
 		}
 
 		if operatorGroup.Name != "" {
 			logrus.Infof("Deleting OperatorGroup %v", operatorGroup.Name)
-			err := ctx.ClusterAPI.NonCachedClient.Delete(context.TODO(), operatorGroup, &client.DeleteOptions{})
+			err := ctx.ClusterAPI.NonCachingClient.Delete(context.TODO(), operatorGroup, &client.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				return updated, err
 			}

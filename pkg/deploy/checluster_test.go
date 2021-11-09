@@ -43,9 +43,9 @@ func TestReload(t *testing.T) {
 	deployContext := &DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 	}
 

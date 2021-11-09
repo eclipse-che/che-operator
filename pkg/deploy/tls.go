@@ -302,10 +302,25 @@ func GetEndpointTLSCrtBytes(deployContext *DeployContext, endpointURL string) (c
 func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, error) {
 	cheTLSSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 
+	cheTLSSecretNamespacedName := types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cheTLSSecretName}
+	CheTLSSelfSignedCertificateSecretNamespacedName := types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheTLSSelfSignedCertificateSecretName}
+
+	job := &batchv1.Job{}
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: deployContext.CheCluster.Namespace}, job)
+	var jobExists bool
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return reconcile.Result{}, err
+		}
+		jobExists = false
+	} else {
+		jobExists = true
+	}
+
 	// ===== Check Che server TLS certificate ===== //
 
 	cheTLSSecret := &corev1.Secret{}
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cheTLSSecretName}, cheTLSSecret)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), cheTLSSecretNamespacedName, cheTLSSecret)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading secret info
@@ -313,11 +328,57 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
+		requiredLabels := GetLabels(deployContext.CheCluster, cheTLSSecretName)
+
+		// Check if a job is already running for TLS secrets creation
+		if jobExists {
+			if job.Status.Succeeded == 0 && job.Status.Failed == 0 {
+				logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
+				return reconcile.Result{RequeueAfter: 2 * time.Second}, err
+			} else if job.Status.Succeeded > 0 {
+				// Secrets are ready, restart reconcilation loop
+				return reconcile.Result{}, nil
+			}
+		} else {
+			// Handle case when the secret(s) exists, but miss the required labels
+			err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), cheTLSSecretNamespacedName, cheTLSSecret)
+			if err == nil {
+				// Che TLS secret exists, add required labels
+				addLabelsToSecret(requiredLabels, cheTLSSecret)
+				err := deployContext.ClusterAPI.NonCachingClient.Update(context.TODO(), cheTLSSecret)
+				if err == nil {
+					// Try to do the same for CA certifaicete if any
+					cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
+					err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheTLSSelfSignedCertificateSecret)
+					if err == nil {
+						// CA certifaicete secret exists, add required labels
+						addLabelsToSecret(requiredLabels, cheTLSSelfSignedCertificateSecret)
+						err = deployContext.ClusterAPI.NonCachingClient.Update(context.TODO(), cheTLSSelfSignedCertificateSecret)
+						return reconcile.Result{RequeueAfter: time.Second}, err
+					} else if !errors.IsNotFound(err) {
+						// Error reading CA certificate secret
+						logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", CheTLSSelfSignedCertificateSecretName, err)
+						return reconcile.Result{RequeueAfter: time.Second}, err
+					}
+					// Che self-signed CA certificate secert doesn't exists.
+					// Consider, that a commonly trusted TLS certificate is used.
+					return reconcile.Result{}, nil
+				} else {
+					// Failed to update Che TLS secret with the required labels
+					return reconcile.Result{RequeueAfter: time.Second}, err
+				}
+			} else if !errors.IsNotFound(err) {
+				// Error reading Che TLS secret info
+				logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
+				return reconcile.Result{RequeueAfter: time.Second}, err
+			}
+		}
+
 		// Che TLS secret doesn't exist, generate a new one
 
 		// Remove Che CA certificate secret if any
 		cheCASelfSignedCertificateSecret := &corev1.Secret{}
-		err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheTLSSelfSignedCertificateSecretName}, cheCASelfSignedCertificateSecret)
+		err = deployContext.ClusterAPI.Client.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheCASelfSignedCertificateSecret)
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				// Error reading secret info
@@ -355,7 +416,7 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		}
 
 		labels := ""
-		for labelName, labelValue := range GetLabels(deployContext.CheCluster, cheTLSSecretName) {
+		for labelName, labelValue := range requiredLabels {
 			labels += fmt.Sprintf("%s=%s ", labelName, labelValue)
 		}
 
@@ -368,33 +429,15 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			"LABELS":                         labels,
 		}
 
-		done, err = SyncJobToCluster(deployContext, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{RequeueAfter: time.Second}, err
+		_, err = SyncJobToCluster(deployContext, CheTLSJobName, CheTLSJobComponentName, cheTLSSecretsCreationJobImage, CheTLSJobServiceAccountName, jobEnvVars)
+		if err != nil {
+			logrus.Error(err)
 		}
-
-		job := &batchv1.Job{}
-		exists, err := GetNamespacedObject(deployContext, CheTLSJobName, job)
-		if !exists || job.Status.Succeeded == 0 {
-			logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
-			if err != nil {
-				logrus.Error(err)
-			}
-			return reconcile.Result{RequeueAfter: time.Second}, err
-		}
+		return reconcile.Result{RequeueAfter: time.Second}, err
 	}
 
 	// cleanup job
-	job := &batchv1.Job{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: CheTLSJobName, Namespace: deployContext.CheCluster.Namespace}, job)
-	if err != nil && !errors.IsNotFound(err) {
-		// Failed to get the job
-		return reconcile.Result{RequeueAfter: time.Second}, err
-	}
-	if err == nil {
+	if jobExists {
 		// The job object is present
 		if job.Status.Succeeded > 0 {
 			logrus.Infof("Import public part of Eclipse Che self-signed CA certificate from \"%s\" secret into your browser.", CheTLSSelfSignedCertificateSecretName)
@@ -437,7 +480,7 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 	// ===== Check Che CA certificate ===== //
 
 	cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheTLSSelfSignedCertificateSecretName}, cheTLSSelfSignedCertificateSecret)
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheTLSSelfSignedCertificateSecret)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			// Error reading Che self-signed secret info
@@ -481,6 +524,15 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 
 	// TLS configuration is ok, go further in reconcile loop
 	return reconcile.Result{}, nil
+}
+
+func addLabelsToSecret(labels map[string]string, secret *corev1.Secret) {
+	if secret.ObjectMeta.Labels == nil {
+		secret.ObjectMeta.Labels = make(map[string]string)
+	}
+	for labelName, labelValue := range labels {
+		secret.ObjectMeta.Labels[labelName] = labelValue
+	}
 }
 
 func isCheTLSSecretValid(cheTLSSecret *corev1.Secret) bool {
