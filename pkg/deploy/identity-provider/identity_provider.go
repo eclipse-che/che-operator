@@ -49,7 +49,7 @@ var (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if util.IsNativeUserModeEnabled(cr) {
+	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
 		return syncNativeIdentityProviderItems(deployContext)
 	} else if cr.Spec.Auth.ExternalIdentityProvider {
 		return true, nil
@@ -368,7 +368,7 @@ func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {
 		"http://"+deploy.IdentityProviderName+":8080",
 		[]string{})
 
-	if util.IsNativeUserModeEnabled(cheCluster) {
+	if util.IsOpenShift && cheCluster.IsNativeUserModeEnabled() {
 		cfg.AddAuthHeaderRewrite(deploy.IdentityProviderName)
 	}
 
