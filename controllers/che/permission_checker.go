@@ -6,8 +6,8 @@
 //
 // SPDX-License-Identifier: EPL-2.0
 //
-// Contributors:	// Contributors:
-//   Red Hat, Inc. - initial API and implementation	//   Red Hat, Inc. - initial API and implementation
+// Contributors:
+//   Red Hat, Inc. - initial API and implementation
 //
 
 package che

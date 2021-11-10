@@ -9,6 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+#
 
 if [ -z "${OPERATOR_REPO}" ]; then
   SCRIPT=$(readlink -f "$0")
