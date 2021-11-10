@@ -56,6 +56,7 @@ import (
 	backupcontroller "github.com/eclipse-che/che-operator/controllers/checlusterbackup"
 	restorecontroller "github.com/eclipse-che/che-operator/controllers/checlusterrestore"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
 	"github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
 
@@ -339,7 +340,7 @@ func main() {
 	}
 
 	// Migrate Che related resources labels in order to comply with the custom cache function
-	deploy.MigrateCheResourcesLabels(nonCachingClient)
+	migration.OnStartMigration(nonCachingClient)
 
 	// Start the Cmd
 	setupLog.Info("starting manager")

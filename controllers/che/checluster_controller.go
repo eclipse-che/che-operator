@@ -23,6 +23,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
+	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
 	openshiftoauth "github.com/eclipse-che/che-operator/pkg/deploy/openshift-oauth"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
@@ -86,6 +87,7 @@ func NewReconciler(
 	reconcileManager := deploy.NewReconcileManager()
 
 	// order does matter
+	reconcileManager.RegisterReconciler(migration.NewMigrator())
 	if !util.IsTestMode() {
 		reconcileManager.RegisterReconciler(NewCheClusterValidator())
 	}
