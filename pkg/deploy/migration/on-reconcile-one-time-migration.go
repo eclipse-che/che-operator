@@ -50,6 +50,10 @@ func (m *Migrator) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool,
 	return result, done, err
 }
 
+func (m *Migrator) Finalize(ctx *deploy.DeployContext) error {
+	return nil
+}
+
 func (m *Migrator) migrate(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	// Add required labels for the config map with additional CA certificates
 	if ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
