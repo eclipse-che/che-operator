@@ -328,8 +328,6 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			return reconcile.Result{RequeueAfter: time.Second}, err
 		}
 
-		requiredLabels := GetLabels(deployContext.CheCluster, cheTLSSecretName)
-
 		// Check if a job is already running for TLS secrets creation
 		if jobExists {
 			if job.Status.Succeeded == 0 && job.Status.Failed == 0 {
@@ -338,39 +336,6 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 			} else if job.Status.Succeeded > 0 {
 				// Secrets are ready, restart reconcilation loop
 				return reconcile.Result{}, nil
-			}
-		} else {
-			// Handle case when the secret(s) exists, but miss the required labels
-			err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), cheTLSSecretNamespacedName, cheTLSSecret)
-			if err == nil {
-				// Che TLS secret exists, add required labels
-				addLabelsToSecret(requiredLabels, cheTLSSecret)
-				err := deployContext.ClusterAPI.NonCachingClient.Update(context.TODO(), cheTLSSecret)
-				if err == nil {
-					// Try to do the same for CA certifaicete if any
-					cheTLSSelfSignedCertificateSecret := &corev1.Secret{}
-					err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), CheTLSSelfSignedCertificateSecretNamespacedName, cheTLSSelfSignedCertificateSecret)
-					if err == nil {
-						// CA certifaicete secret exists, add required labels
-						addLabelsToSecret(requiredLabels, cheTLSSelfSignedCertificateSecret)
-						err = deployContext.ClusterAPI.NonCachingClient.Update(context.TODO(), cheTLSSelfSignedCertificateSecret)
-						return reconcile.Result{RequeueAfter: time.Second}, err
-					} else if !errors.IsNotFound(err) {
-						// Error reading CA certificate secret
-						logrus.Errorf("Error getting Che self-signed certificate secert \"%s\": %v", CheTLSSelfSignedCertificateSecretName, err)
-						return reconcile.Result{RequeueAfter: time.Second}, err
-					}
-					// Che self-signed CA certificate secert doesn't exists.
-					// Consider, that a commonly trusted TLS certificate is used.
-					return reconcile.Result{}, nil
-				} else {
-					// Failed to update Che TLS secret with the required labels
-					return reconcile.Result{RequeueAfter: time.Second}, err
-				}
-			} else if !errors.IsNotFound(err) {
-				// Error reading Che TLS secret info
-				logrus.Errorf("Error getting Che TLS secert \"%s\": %v", cheTLSSecretName, err)
-				return reconcile.Result{RequeueAfter: time.Second}, err
 			}
 		}
 
@@ -416,7 +381,7 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		}
 
 		labels := ""
-		for labelName, labelValue := range requiredLabels {
+		for labelName, labelValue := range GetLabels(deployContext.CheCluster, cheTLSSecretName) {
 			labels += fmt.Sprintf("%s=%s ", labelName, labelValue)
 		}
 
