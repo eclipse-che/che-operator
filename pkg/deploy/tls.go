@@ -19,7 +19,6 @@ import (
 	stderrors "errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 	"time"
 
@@ -30,10 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -47,19 +43,6 @@ const (
 	CheTLSJobComponentName                = "che-create-tls-secret-job"
 	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
 	DefaultCheTLSSecretName               = "che-tls"
-
-	// CheCACertsConfigMapLabelKey is the label value which marks config map with additional CA certificates
-	CheCACertsConfigMapLabelValue = "ca-bundle"
-	// CheAllCACertsConfigMapName is the name of config map which contains all additional trusted by Che TLS CA certificates
-	CheAllCACertsConfigMapName = "ca-certs-merged"
-	// CheMergedCAConfigMapRevisionsAnnotationKey is annotation name which holds versions of included config maps in format: cm-name1=ver1,cm-name2=ver2
-	CheMergedCAConfigMapRevisionsAnnotationKey = "che.eclipse.org/included-configmaps"
-
-	// Local constants
-	// labelEqualSign consyant is used as a replacement for '=' symbol in labels because '=' is not allowed there
-	labelEqualSign = "-"
-	// labelCommaSign consyant is used as a replacement for ',' symbol in labels because ',' is not allowed there
-	labelCommaSign = "."
 )
 
 // IsSelfSignedCASecretExists checks if CheTLSSelfSignedCertificateSecretName exists so depending components can mount it
@@ -524,107 +507,4 @@ func deleteJob(deployContext *DeployContext, job *batchv1.Job) {
 	if err := deployContext.ClusterAPI.Client.Delete(context.TODO(), job); err != nil {
 		logrus.Errorf("Error deleting job: '%s', error: %v", CheTLSJobName, err)
 	}
-}
-
-// SyncAdditionalCACertsConfigMapToCluster makes sure that additional CA certs config map is up to date if any
-func SyncAdditionalCACertsConfigMapToCluster(deployContext *DeployContext) (bool, error) {
-	cr := deployContext.CheCluster
-	// Get all source config maps, if any
-	caConfigMaps, err := GetCACertsConfigMaps(deployContext.ClusterAPI.Client, deployContext.CheCluster.GetNamespace())
-	if err != nil {
-		return false, err
-	}
-	if len(cr.Spec.Server.ServerTrustStoreConfigMapName) > 0 {
-		crConfigMap := &corev1.ConfigMap{}
-		err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: cr.Spec.Server.ServerTrustStoreConfigMapName}, crConfigMap)
-		if err != nil {
-			return false, err
-		}
-		caConfigMaps = append(caConfigMaps, *crConfigMap)
-	}
-
-	mergedCAConfigMap := &corev1.ConfigMap{}
-	err = deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: deployContext.CheCluster.Namespace, Name: CheAllCACertsConfigMapName}, mergedCAConfigMap)
-	if err == nil {
-		// Merged config map exists. Check if it is up to date.
-		caConfigMapsCurrentRevisions := make(map[string]string)
-		for _, cm := range caConfigMaps {
-			caConfigMapsCurrentRevisions[cm.Name] = cm.ResourceVersion
-		}
-
-		caConfigMapsCachedRevisions := make(map[string]string)
-		if mergedCAConfigMap.ObjectMeta.Annotations != nil {
-			if revisions, exists := mergedCAConfigMap.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey]; exists {
-				for _, cmNameRevision := range strings.Split(revisions, labelCommaSign) {
-					nameRevision := strings.Split(cmNameRevision, labelEqualSign)
-					if len(nameRevision) != 2 {
-						// The label value is invalid, recreate merged config map
-						break
-					}
-					caConfigMapsCachedRevisions[nameRevision[0]] = nameRevision[1]
-				}
-			}
-		}
-
-		if reflect.DeepEqual(caConfigMapsCurrentRevisions, caConfigMapsCachedRevisions) {
-			// Existing merged config map is up to date, do nothing
-			return true, nil
-		}
-	} else {
-		if !errors.IsNotFound(err) {
-			return false, err
-		}
-		// Merged config map doesn't exist. Create it.
-	}
-
-	// Merged config map is out of date or doesn't exist
-	// Merge all config maps into single one to mount inside Che components and workspaces
-	data := make(map[string]string)
-	revisions := ""
-	for _, cm := range caConfigMaps {
-		// Copy data
-		for key, dataRecord := range cm.Data {
-			data[cm.ObjectMeta.Name+"."+key] = dataRecord
-		}
-
-		// Save source config map revision
-		if revisions != "" {
-			revisions += labelCommaSign
-		}
-		revisions += cm.ObjectMeta.Name + labelEqualSign + cm.ObjectMeta.ResourceVersion
-	}
-
-	mergedCAConfigMapSpec := GetConfigMapSpec(deployContext, CheAllCACertsConfigMapName, data, DefaultCheFlavor(cr))
-	mergedCAConfigMapSpec.ObjectMeta.Labels[KubernetesPartOfLabelKey] = CheEclipseOrg
-	mergedCAConfigMapSpec.ObjectMeta.Annotations[CheMergedCAConfigMapRevisionsAnnotationKey] = revisions
-	return SyncConfigMapSpecToCluster(deployContext, mergedCAConfigMapSpec)
-}
-
-// GetCACertsConfigMaps returns list of config maps with additional CA certificates that should be trusted by Che
-// The selection is based on the specific label
-func GetCACertsConfigMaps(client k8sclient.Client, namespace string) ([]corev1.ConfigMap, error) {
-	CACertsConfigMapList := &corev1.ConfigMapList{}
-
-	caBundleLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesComponentLabelKey, selection.Equals, []string{CheCACertsConfigMapLabelValue})
-	cheComponetLabelSelectorRequirement, _ := labels.NewRequirement(KubernetesPartOfLabelKey, selection.Equals, []string{CheEclipseOrg})
-	listOptions := &k8sclient.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*cheComponetLabelSelectorRequirement).Add(*caBundleLabelSelectorRequirement),
-		Namespace:     namespace,
-	}
-	if err := client.List(context.TODO(), CACertsConfigMapList, listOptions); err != nil {
-		return nil, err
-	}
-
-	return CACertsConfigMapList.Items, nil
-}
-
-// GetAdditionalCACertsConfigMapVersion returns revision of merged additional CA certs config map
-func GetAdditionalCACertsConfigMapVersion(deployContext *DeployContext) string {
-	trustStoreConfigMap := &corev1.ConfigMap{}
-	exists, _ := GetNamespacedObject(deployContext, CheAllCACertsConfigMapName, trustStoreConfigMap)
-	if exists {
-		return trustStoreConfigMap.ResourceVersion
-	}
-
-	return ""
 }

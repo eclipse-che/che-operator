@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/certificates"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -246,7 +247,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheServerSecureExposerJwtProxyImage:    deploy.DefaultCheServerSecureExposerJwtProxyImage(s.deployContext.CheCluster),
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
-		CheTrustedCABundlesConfigMap:           deploy.CheAllCACertsConfigMapName,
+		CheTrustedCABundlesConfigMap:           certificates.CheAllCACertsConfigMapName,
 		ServerStrategy:                         ingressStrategy,
 		WorkspaceExposure:                      workspaceExposure,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,

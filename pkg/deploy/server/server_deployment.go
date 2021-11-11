@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/certificates"
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 
@@ -35,7 +36,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	cmResourceVersions := GetCheConfigMapVersion(s.deployContext)
-	cmResourceVersions += "," + deploy.GetAdditionalCACertsConfigMapVersion(s.deployContext)
+	cmResourceVersions += "," + certificates.GetAdditionalCACertsConfigMapVersion(s.deployContext)
 
 	terminationGracePeriodSeconds := int64(30)
 	cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
@@ -50,7 +51,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: deploy.CheAllCACertsConfigMapName,
+					Name: certificates.CheAllCACertsConfigMapName,
 				},
 			},
 		},
