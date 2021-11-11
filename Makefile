@@ -262,7 +262,7 @@ compile:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -a -o "$${binary}" main.go
 	echo "che-operator binary compiled to $${binary}"
 
-fmt: ## Run go fmt against code.
+fmt: add-license ## Run go fmt against code.
   ifneq ($(shell command -v goimports 2> /dev/null),)
 	  find . -not -path "./vendor/*" -name "*.go" -exec goimports -w {} \;
   else
@@ -270,6 +270,9 @@ fmt: ## Run go fmt against code.
 	  @echo "      Please install goimports to ensure file imports are consistent."
 	  go fmt -x ./...
   endif
+
+	$(ADD_LICENSE) -f hack/license-header.txt $$(find . -not -path "./vendor/*"  -name '*.go')
+	$(ADD_LICENSE) -f hack/license-header.txt $$(find . -not -path "./vendor/*"  -name '*.sh')
 
 vet: ## Run go vet against code.
 	go vet ./...
@@ -419,6 +422,10 @@ controller-gen: ## Download controller-gen locally if necessary.
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+ADD_LICENSE = $(shell pwd)/bin/addlicense
+add-license: ## Download add-license locally if necessary.
+	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
