@@ -37,10 +37,18 @@ jobs:
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
     - name: Build and push images to quay.io
-      run: >
-        ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'next' -p 'openshift' &&
-        ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'next-all-namespaces' -p 'openshift' &&
-        ${GITHUB_WORKSPACE}/olm/buildAndPushBundleImages.sh -c 'next' -p 'kubernetes'
-      env:
-        IMAGE_REGISTRY_HOST: quay.io
-        IMAGE_REGISTRY_USER_NAME: eclipse
+      run: |
+        ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
+          --channel 'next' \
+          --platform 'openshift' \
+          --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next
+
+        ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
+          --channel 'next' \
+          --platform 'kubernetes' \
+          --catalog-image quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next
+
+        ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
+          --channel 'next-all-namespaces' \
+          --platform 'openshift' \
+          --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next

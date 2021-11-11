@@ -22,7 +22,7 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  "${OPERATOR_REPO}"/olm/testUpdate.sh "kubernetes" "stable" ${NAMESPACE}
+  "${OPERATOR_REPO}"/olm/testUpdate.sh -p kubernetes -c stable -i quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test -n ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   startNewWorkspace
   waitWorkspaceStart

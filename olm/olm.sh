@@ -248,6 +248,7 @@ installOPM() {
     chmod +x "${OPM_BINARY}"
     echo "[INFO] Downloading completed!"
     echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
+    ${OPM_BINARY} version
     popd || exit
   fi
 }
@@ -403,35 +404,20 @@ installPackage() {
   fi
 }
 
-applyCRCheCluster() {
-  platform="${1}"
-  if [ -z "${platform}" ]; then
-    echo "[ERROR] Please specify first argument: 'platform'"
-    exit 1
-  fi
-  namespace="${2}"
-  if [ -z "${namespace}" ]; then
-    echo "[ERROR] Please specify second argument: 'namespace'"
-    exit 1
-  fi
-  CSV_FILE="${3}"
-  if [ -z "${CSV_FILE}" ]; then
-    echo "[ERROR] Please specify third argument: 'CSV_FILE'"
-    exit 1
-  fi
+applyCheClusterCR() {
+  CSV_NAME=${1}
 
-  echo "[INFO] Creating Custom Resource"
+  CHECLUSTER=$(kubectl get csv ${CSV_NAME} -n ${NAMESPACE} -o yaml \
+    | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" \
+    | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}" \
+    | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"" \
+    | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}" \
+    | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
 
-  CR=$(yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" "${CSV_FILE}")
-  CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
-  CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"")
-  CR=$(echo "$CR" | yq -r ".spec.server.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
-  if [ "${platform}" == "kubernetes" ]
-  then
-    CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
-  fi
+  echo "[INFO] Creating Custom Resource: "
+  echo "${CHECLUSTER}"
 
-  echo "$CR" | kubectl apply -n "${namespace}" --validate=false -f -
+  echo "${CHECLUSTER}" | kubectl apply -n $NAMESPACE -f -
 }
 
 waitCheServerDeploy() {
@@ -508,8 +494,6 @@ getBundleListFromCatalogSource() {
   )
 
   LIST_BUNDLES=$(echo "${LIST_BUNDLES}" | head -n -1)
-
-  echo "${LIST_BUNDLES}"
 }
 
 getPreviousCSVInfo() {

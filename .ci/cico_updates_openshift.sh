@@ -26,7 +26,7 @@ overrideDefaults() {
 }
 
 runTests() {
-  "${OPERATOR_REPO}"/olm/testUpdate.sh "openshift" "stable" ${NAMESPACE}
+  "${OPERATOR_REPO}"/olm/testUpdate.sh -p openshift -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
   provisionOAuth
   startNewWorkspace

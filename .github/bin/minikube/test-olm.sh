@@ -28,12 +28,14 @@ trap "catchFinish" EXIT SIGINT
 
 runTest() {
   local channel=next
+  local catalogImage=quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next
   if [[ $GITHUB_HEAD_REF =~ release$ ]]; then
     channel=stable
+    catalogImage=quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test
   fi
 
   export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
-  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" ${channel} "${NAMESPACE}"
+  source "${OPERATOR_REPO}"/olm/testCatalog.sh -p kubernetes -c ${channel} -n ${NAMESPACE} -i ${catalogImage}
   startNewWorkspace
   waitWorkspaceStart
 
