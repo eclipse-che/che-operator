@@ -167,11 +167,11 @@
       "cwd": "${workspaceFolder}/olm",
       "program": "./buildCatalog.sh",
       "args": [
-        "--platform",
+        "-p",
         "kubernetes",
-        "--channel",
+        "-c",
         "next",
-        "--catalog-image",
+        "-i",
         "quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next"
       ]
     },
@@ -182,11 +182,11 @@
       "cwd": "${workspaceFolder}/olm",
       "program": "./buildCatalog.sh",
       "args": [
-        "--platform",
+        "-p",
         "openshift",
-        "--channel",
+        "-c",
         "next",
-        "--catalog-image",
+        "-i",
         "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
       ]
     },

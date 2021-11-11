@@ -46,9 +46,9 @@ with your latest development changes and use it in the test scripts. To build th
 
 ```bash
 $ olm/buildCatalog.sh \
-    --channel (next|next-all-namespaces|stable) \
-    --platform (openshift|kubernetes) \
-    --catalog-image <CATALOG_IMAGE>
+    -c (next|next-all-namespaces|stable|tech-preview-all-namespaces) \
+    -p (openshift|kubernetes) \
+    -i <CATALOG_IMAGE>
 ```
 
 ### Testing custom CatalogSource and bundle images on the Openshift
