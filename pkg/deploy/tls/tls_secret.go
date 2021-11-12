@@ -10,7 +10,7 @@
 //   Red Hat, Inc. - initial API and implementation
 //
 
-package certificates
+package tls
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -19,14 +19,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type SelfSignedSecret struct {
+type TlsSecret struct {
 }
 
-func NewSelfSignedSecret() *SelfSignedSecret {
-	return &SelfSignedSecret{}
+func NewTlsSecret() *TlsSecret {
+	return &TlsSecret{}
 }
 
-func (s *SelfSignedSecret) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (t *TlsSecret) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	if util.IsOpenShift {
 		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
 		if ctx.IsSelfSignedCertificate ||
@@ -72,6 +72,6 @@ func (s *SelfSignedSecret) Reconcile(ctx *deploy.DeployContext) (reconcile.Resul
 	return reconcile.Result{}, true, nil
 }
 
-func (s *SelfSignedSecret) Finalize(ctx *deploy.DeployContext) error {
+func (t *TlsSecret) Finalize(ctx *deploy.DeployContext) error {
 	return nil
 }

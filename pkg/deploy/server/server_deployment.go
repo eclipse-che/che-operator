@@ -17,9 +17,9 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/certificates"
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -36,7 +36,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	cmResourceVersions := GetCheConfigMapVersion(s.deployContext)
-	cmResourceVersions += "," + certificates.GetAdditionalCACertsConfigMapVersion(s.deployContext)
+	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(s.deployContext)
 
 	terminationGracePeriodSeconds := int64(30)
 	cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
@@ -51,7 +51,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: certificates.CheAllCACertsConfigMapName,
+					Name: tls.CheAllCACertsConfigMapName,
 				},
 			},
 		},

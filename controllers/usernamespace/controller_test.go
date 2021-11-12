@@ -22,7 +22,7 @@ import (
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/certificates"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -94,7 +94,7 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 
 	caCerts := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      certificates.CheAllCACertsConfigMapName,
+			Name:      tls.CheAllCACertsConfigMapName,
 			Namespace: cheNamespaceName,
 		},
 		Data: map[string]string{
@@ -484,7 +484,7 @@ func TestWatchRulesForConfigMapsInOtherNamespaces(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      certificates.CheAllCACertsConfigMapName,
+			Name:      tls.CheAllCACertsConfigMapName,
 			Namespace: "eclipse-che",
 		},
 	}

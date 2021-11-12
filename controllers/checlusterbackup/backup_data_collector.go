@@ -22,7 +22,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/certificates"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"

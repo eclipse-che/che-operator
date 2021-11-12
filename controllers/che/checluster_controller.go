@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/certificates"
 	"github.com/eclipse-che/che-operator/pkg/deploy/dashboard"
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
@@ -29,6 +28,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -97,8 +97,8 @@ func NewReconciler(
 	openShiftOAuthUser := openshiftoauth.NewOpenShiftOAuthUser()
 	reconcileManager.RegisterReconciler(openShiftOAuthUser)
 	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth(openShiftOAuthUser))
-	reconcileManager.RegisterReconciler(certificates.NewCertificates())
-	reconcileManager.RegisterReconciler(certificates.NewSelfSignedSecret())
+	reconcileManager.RegisterReconciler(tls.NewCertificates())
+	reconcileManager.RegisterReconciler(tls.NewTlsSecret())
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
