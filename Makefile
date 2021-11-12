@@ -159,35 +159,7 @@ removeRequiredAttribute:
 
 	mv $${filePath}.tmp $${filePath}
 
-ensure-license-header:
-	if [ -z $(FILE) ]; then
-		echo "[ERROR] Provide argument `FILE` with file path value."
-		exit 1
-	fi
-
-	fileHeader=$$(head -10 $(FILE) | tr --delete '\n' | tr --delete '\r')
-	licenseMarker="Copyright (c)"
-
-	case "$${fileHeader}" in
-		*$${licenseMarker}*) return ;;
-	esac;
-
-	echo "#
-	# Copyright (c) 2019-2021 Red Hat, Inc.
-	# This program and the accompanying materials are made
-	# available under the terms of the Eclipse Public License 2.0
-	# which is available at https://www.eclipse.org/legal/epl-2.0/
-	#
-	# SPDX-License-Identifier: EPL-2.0
-	#
-	# Contributors:
-	#   Red Hat, Inc. - initial API and implementation
-	#" > $(FILE).tmp
-
-	cat $(FILE) >> $(FILE).tmp
-	mv $(FILE).tmp $(FILE)
-
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: controller-gen add-license ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	# Generate CRDs v1beta1
 	$(CONTROLLER_GEN) $(CRD_BETA_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
@@ -242,14 +214,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_CRD_V1BETA1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1BETA1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_CRD_V1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD_V1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_BACKUP_CRD_V1)"
-	$(MAKE) ensure-license-header FILE="$(ECLIPSE_CHE_RESTORE_CRD_V1)"
+	$(ADD_LICENSE) -f hack/license-header.txt $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -401,7 +366,7 @@ create-env-file: prepare-templates
 	echo "WATCH_NAMESPACE='${ECLIPSE_CHE_NAMESPACE}'" >> "${ENV_FILE}"
 
 create-full-env-file: create-env-file
-	cat ./config/manager/manager.yaml | \
+	cat ./$(OPERATOR_YAML) | \
 	yq -r '.spec.template.spec.containers[0].env[] | select(.name == "WATCH_NAMESPACE" | not) | "export \(.name)=\"\(.value)\""' \
 	>> ${ENV_FILE}
 	echo "[INFO] Env file: ${ENV_FILE}"
@@ -424,7 +389,7 @@ kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
 ADD_LICENSE = $(shell pwd)/bin/addlicense
-add-license: ## Download add-license locally if necessary.
+add-license: ## Download addlicense locally if necessary.
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
@@ -555,7 +520,8 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	if [ "$${platform}" = "openshift" ]; then
 		yq -riY  '.spec.preserveUnknownFields = false' $${platformCRD}
 	fi
-	$(MAKE) ensure-license-header FILE="$${platformCRD}"
+	# todo try to set up header everywhere in the bundle
+	$(ADD_LICENSE) -f hack/license-header.txt "$${platformCRD}"
 
 	if [ -n "$(TAG)" ]; then
 		echo "[INFO] Set tags in next OLM files"
@@ -713,7 +679,6 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
 
-	# $(MAKE) ensure-license-header "$${NEW_CSV}"
 
 getPackageName:
 	if [ -z "$(platform)" ]; then
@@ -847,7 +812,7 @@ check-requirements:
 		*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
 	esac
 
-update-deployment-yaml-images:
+update-deployment-yaml-images: add-license
 	if [ -z $(UBI8_MINIMAL_IMAGE) ] || [ -z $(PLUGIN_BROKER_METADATA_IMAGE) ] || [ -z $(PLUGIN_BROKER_ARTIFACTS_IMAGE) ] || [ -z $(JWT_PROXY_IMAGE) ]; then
 		echo "[ERROR] Define required arguments: `UBI8_MINIMAL_IMAGE`, `PLUGIN_BROKER_METADATA_IMAGE`, `PLUGIN_BROKER_ARTIFACTS_IMAGE`, `JWT_PROXY_IMAGE`"
 		exit 1
@@ -856,7 +821,8 @@ update-deployment-yaml-images:
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"$(PLUGIN_BROKER_METADATA_IMAGE)\"" $(OPERATOR_YAML)
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"$(PLUGIN_BROKER_ARTIFACTS_IMAGE)\"" $(OPERATOR_YAML)
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"$(JWT_PROXY_IMAGE)\"" $(OPERATOR_YAML)
-	$(MAKE) ensure-license-header FILE="config/manager/manager.yaml"
+
+	$(ADD_LICENSE) -f hack/license-header.txt $(OPERATOR_YAML)
 
 update-dockerfile-image:
 	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
