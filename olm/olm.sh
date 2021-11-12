@@ -414,8 +414,9 @@ applyCheClusterCR() {
     | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"" \
     | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
 
+  echo "${CHECLUSTER}"
   if [[ ${PLATFORM} == "kubernetes" ]]; then
-    CHECLUSTER=$(echo "CHECLUSTER" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
+    CHECLUSTER=$(echo "${CHECLUSTER}" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
 
   echo "[INFO] Creating Custom Resource: "
