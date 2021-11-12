@@ -414,7 +414,7 @@ applyCheClusterCR() {
     | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"" \
     | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
 
-  if [[ $PLATFORM == "kubernentes" ]]; then
+  if [[ ${PLATFORM} == "kubernetes" ]]; then
     CHECLUSTER=$(echo "CHECLUSTER" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
 
