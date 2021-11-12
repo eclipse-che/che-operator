@@ -75,6 +75,7 @@ jobs:
     - name: Check format
       run: |
         go get -u golang.org/x/tools/cmd/goimports
+        go get -u github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a
         git reset HEAD --hard
         make fmt
         if [[ ! -z $(git status -s) ]]
@@ -84,3 +85,7 @@ jobs:
           git --no-pager diff
           exit 1
         fi
+        FILES_TO_CHECK_LICENSE=$(find . -not -path "./mocks/*" -not -path "./vendor/*" -not -path "./testbin/*" \( -name '*.sh' -o -name "*.go" \))
+	      LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
+        addlicense -f "${LICENSE_TEMPLATE}" "${FILES_TO_CHECK_LICENSE}"
+        go run ${GITHUB_WORKSPACE}/pkg/tools/license/check-license-formating.go -f "${LICENSE_TEMPLATE}" "${FILES_TO_CHECK_LICENSE}"
