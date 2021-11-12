@@ -115,7 +115,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: quay.io/aandriienko/che-operator:next
+    containerImage: quay.io/eclipse/che-operator:next
     createdAt: "2021-05-11T18:38:31Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
@@ -126,7 +126,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.39.0-335.next
+  name: eclipse-che-preview-openshift.v7.40.0-337.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1147,7 +1147,7 @@ spec:
                         value: "true"
                       - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
                         value: "false"
-                    image: quay.io/aandriienko/che-operator:next
+                    image: quay.io/eclipse/che-operator:next
                     imagePullPolicy: Always
                     livenessProbe:
                       failureThreshold: 10
@@ -1426,4 +1426,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.39.0-335.next
+  version: 7.40.0-337.next

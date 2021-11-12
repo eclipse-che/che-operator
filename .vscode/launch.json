@@ -158,6 +158,7 @@
       "type": "go",
       "request": "launch",
       "program": "${file}",
+      "args": ["-f", "/Users/oandriie/projects/che-operator/hack/license-header.txt", "/Users/oandriie/projects/che-operator/pkg/backup_servers/restic-client.go"]
     },
     {
       "useApiV1": false,
