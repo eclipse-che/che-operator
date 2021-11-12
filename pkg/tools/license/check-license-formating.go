@@ -88,6 +88,7 @@ func main() {
 				fileContentLineWithoutYears := rxp.ReplaceAllString(fileContent[i], "$1$4")
 				if licenseLineWithoutYears != fileContentLineWithoutYears {
 					fmt.Printf("Bad formatted license header for file %s \n", file)
+					os.Exit(1)
 					break
 				}
 				continue
@@ -96,6 +97,7 @@ func main() {
 				fmt.Printf("Bad formatted license header for file %s \n", file)
 				fmt.Println(licenseLine)
 				fmt.Println(fileContent[i])
+				os.Exit(1)
 				break
 			}
 		}
