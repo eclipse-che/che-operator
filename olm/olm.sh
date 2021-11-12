@@ -406,13 +406,17 @@ installPackage() {
 
 applyCheClusterCR() {
   CSV_NAME=${1}
+  PLATFORM=${2}
 
   CHECLUSTER=$(kubectl get csv ${CSV_NAME} -n ${NAMESPACE} -o yaml \
     | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" \
     | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}" \
     | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"" \
-    | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}" \
-    | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
+    | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
+
+  if [[ $PLATFORM == "kubernentes" ]]; then
+    CHECLUSTER=$(echo "CHECLUSTER" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
+  fi
 
   echo "[INFO] Creating Custom Resource: "
   echo "${CHECLUSTER}"
@@ -451,6 +455,8 @@ waitCheServerDeploy() {
 }
 
 waitCatalogSourcePod() {
+  sleep 10s
+
   CURRENT_TIME=$(date +%s)
   ENDTIME=$(($CURRENT_TIME + 300))
   CATALOG_POD=$(kubectl get pods -n "${namespace}" -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"${packageName}\")) | .metadata.name")

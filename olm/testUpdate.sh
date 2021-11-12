@@ -68,7 +68,7 @@ run() {
   installPackage "${PLATFORM}" "${NAMESPACE}"
   echo "[INFO] Installation of the previous che-operator version: ${PREVIOUS_CSV_NAME} successfully completed"
 
-  applyCheClusterCR ${PREVIOUS_CSV_NAME}
+  applyCheClusterCR ${PREVIOUS_CSV_NAME} ${PLATFORM}
   waitCheServerDeploy "${NAMESPACE}"
 
   installPackage "${PLATFORM}" "${NAMESPACE}"

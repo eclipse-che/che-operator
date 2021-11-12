@@ -58,7 +58,7 @@ run() {
   subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${LATEST_CSV_NAME}"
   installPackage "${PLATFORM}" "${NAMESPACE}"
 
-  applyCheClusterCR ${LATEST_CSV_NAME}
+  applyCheClusterCR ${LATEST_CSV_NAME} ${PLATFORM}
   waitCheServerDeploy "${NAMESPACE}"
 }
 
