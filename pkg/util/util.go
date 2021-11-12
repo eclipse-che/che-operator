@@ -479,11 +479,6 @@ func NewBoolPointer(value bool) *bool {
 	return &variable
 }
 
-func IsNativeUserModeEnabled(c *orgv1.CheCluster) bool {
-	// Native user mode is now available only on openshift
-	return IsOpenShift && c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
-}
-
 // GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
 func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	if cr.Spec.Server.CustomCheProperties != nil {

@@ -122,7 +122,7 @@ func (d *Dashboard) createGatewayConfig() *gateway.TraefikConfig {
 		10,
 		"http://"+d.component+":8080",
 		[]string{})
-	if util.IsNativeUserModeEnabled(d.deployContext.CheCluster) {
+	if util.IsOpenShift && d.deployContext.CheCluster.IsNativeUserModeEnabled() {
 		cfg.AddAuthHeaderRewrite(d.component)
 	}
 	return cfg
