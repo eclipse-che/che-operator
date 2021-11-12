@@ -13,11 +13,17 @@ package migration
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -62,6 +68,10 @@ func (m *Migrator) migrate(ctx *deploy.DeployContext) (reconcile.Result, bool, e
 		return reconcile.Result{}, false, err
 	}
 
+	if err := addRequiredLabelsForPartOfCheObjects(ctx); err != nil {
+		return reconcile.Result{}, false, err
+	}
+
 	// Give some time for the migration resources to be flushed
 	return reconcile.Result{RequeueAfter: 5 * time.Second}, true, nil
 }
@@ -72,14 +82,14 @@ func (m *Migrator) migrate(ctx *deploy.DeployContext) (reconcile.Result, bool, e
 func addRequiredLabelsForConfigMaps(ctx *deploy.DeployContext) error {
 	// Legacy config map with additional CA certificates
 	if ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName, deploy.CheCACertsConfigMapLabelValue); err != nil {
+		if err := addRequiredLabelsForConfigMap(ctx, ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName); err != nil {
 			return err
 		}
 	}
 
 	// Config map with CA certificates for git
 	if ctx.CheCluster.Spec.Server.GitSelfSignedCert {
-		if err := addRequiredLabelsForObject(ctx, gitSelfSignedCertsConfigMapName, deploy.CheCACertsConfigMapLabelValue); err != nil {
+		if err := addRequiredLabelsForConfigMap(ctx, gitSelfSignedCertsConfigMapName); err != nil {
 			return err
 		}
 	}
@@ -106,52 +116,52 @@ func addRequiredLabelsForSecrets(ctx *deploy.DeployContext) error {
 		if ctx.CheCluster.Spec.K8s.TlsSecretName != "" {
 			tlsSecretName = ctx.CheCluster.Spec.K8s.TlsSecretName
 		}
-		if err := addRequiredLabelsForObject(ctx, tlsSecretName, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, tlsSecretName); err != nil {
 			return err
 		}
 	}
 
 	// TLS
-	if err := addRequiredLabelsForObject(ctx, deploy.CheTLSSelfSignedCertificateSecretName, cheFlavor); err != nil {
+	if err := addRequiredLabelsForSecret(ctx, deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 		return err
 	}
 
 	if ctx.CheCluster.Spec.Server.CheHostTLSSecret != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Server.CheHostTLSSecret, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, ctx.CheCluster.Spec.Server.CheHostTLSSecret); err != nil {
 			return err
 		}
 	}
 
 	// Proxy credentials
 	if ctx.CheCluster.Spec.Server.ProxySecret != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Server.ProxySecret, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, ctx.CheCluster.Spec.Server.ProxySecret); err != nil {
 			return err
 		}
 	}
 
 	// Database credentials
 	if ctx.CheCluster.Spec.Database.ChePostgresSecret != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Database.ChePostgresSecret, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, ctx.CheCluster.Spec.Database.ChePostgresSecret); err != nil {
 			return err
 		}
 	}
 
 	// Keycloak related secrets
 	if ctx.CheCluster.Spec.Auth.IdentityProviderSecret != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Auth.IdentityProviderSecret, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, ctx.CheCluster.Spec.Auth.IdentityProviderSecret); err != nil {
 			return err
 		}
 	}
 
 	if ctx.CheCluster.Spec.Auth.IdentityProviderPostgresSecret != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Auth.IdentityProviderPostgresSecret, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, ctx.CheCluster.Spec.Auth.IdentityProviderPostgresSecret); err != nil {
 			return err
 		}
 	}
 
 	// OAuth
 	if ctx.CheCluster.Spec.Auth.OAuthSecret != "" {
-		if err := addRequiredLabelsForObject(ctx, ctx.CheCluster.Spec.Auth.OAuthSecret, cheFlavor); err != nil {
+		if err := addRequiredLabelsForSecret(ctx, ctx.CheCluster.Spec.Auth.OAuthSecret); err != nil {
 			return err
 		}
 	}
@@ -159,9 +169,21 @@ func addRequiredLabelsForSecrets(ctx *deploy.DeployContext) error {
 	return nil
 }
 
-func addRequiredLabelsForObject(ctx *deploy.DeployContext, objectName string, componentName string) error {
+func addRequiredLabelsForConfigMap(ctx *deploy.DeployContext, configMapName string) error {
+	configMap := &corev1.ConfigMap{}
+	return addRequiredLabelsForObject(ctx, configMapName, configMap)
+}
+
+func addRequiredLabelsForSecret(ctx *deploy.DeployContext, secretName string) error {
+	secret := &corev1.Secret{}
+	return addRequiredLabelsForObject(ctx, secretName, secret)
+}
+
+// addRequiredLabelsForObject adds standard set of labels to the object with given name
+// As the function doesn't know the kind of the object with given name an empty object should be passed,
+// for example: addRequiredLabelsForObject(ctx, "my-secret", &corev1.Secret{})
+func addRequiredLabelsForObject(ctx *deploy.DeployContext, objectName string, obj client.Object) error {
 	// Check if the object is already migrated
-	var obj client.Object
 	if exists, _ := deploy.GetNamespacedObject(ctx, objectName, obj); exists {
 		// Default client sees the object in cache, no need in adding labels
 		return nil
@@ -181,7 +203,7 @@ func addRequiredLabelsForObject(ctx *deploy.DeployContext, objectName string, co
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	for labelName, labelValue := range deploy.GetLabels(ctx.CheCluster, componentName) {
+	for labelName, labelValue := range deploy.GetLabels(ctx.CheCluster, deploy.DefaultCheFlavor(ctx.CheCluster)) {
 		labels[labelName] = labelValue
 	}
 	obj.SetLabels(labels)
@@ -190,4 +212,76 @@ func addRequiredLabelsForObject(ctx *deploy.DeployContext, objectName string, co
 	}
 
 	return nil
+}
+
+// addRequiredLabelsForPartOfCheObjects searches for secrets and config maps label in Che installation namespace,
+// that have 'app.kubernetes.io/part-of=che' label.
+// When such a resource is found, a standard set of labels is added to the resource to have it cached by the Operator client.
+func addRequiredLabelsForPartOfCheObjects(ctx *deploy.DeployContext) error {
+	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
+
+	// Prepare selector for all part-of objects in the installation namespace
+	partOfCheSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.Equals, []string{deploy.CheEclipseOrg})
+	if err != nil {
+		logrus.Error(getFailedToCreateSelectorErrorMessage())
+		return err
+	}
+	instanceNotCheFlavorSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.NotEquals, []string{cheFlavor})
+	if err != nil {
+		logrus.Error(getFailedToCreateSelectorErrorMessage())
+		return err
+	}
+	objectsToMigrateLabelSelector := labels.NewSelector().Add(*partOfCheSelectorRequirement).Add(*instanceNotCheFlavorSelectorRequirement)
+	listOptions := &client.ListOptions{
+		LabelSelector: objectsToMigrateLabelSelector,
+		Namespace:     ctx.CheCluster.GetNamespace(),
+	}
+
+	// Migrate all config maps with part-of che label
+	configMapsList := &corev1.ConfigMapList{}
+	if err = ctx.ClusterAPI.NonCachingClient.List(context.TODO(), configMapsList, listOptions); err != nil {
+		logrus.Warn(getFailedToGetErrorMessageFor("Config Maps"))
+		return err
+	}
+	if configMapsList.Items != nil {
+		for _, cm := range configMapsList.Items {
+			cm.ObjectMeta.Labels[deploy.KubernetesInstanceLabelKey] = cheFlavor
+			if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), &cm); err != nil {
+				logrus.Warn(getFailedToUpdateErrorMessage(cm.GetName(), reflect.TypeOf(cm).Name()))
+				return err
+			}
+		}
+	}
+
+	// Migrate all secrets with part-of che label
+	secretsList := &corev1.SecretList{}
+	if err = ctx.ClusterAPI.NonCachingClient.List(context.TODO(), secretsList, listOptions); err != nil {
+		logrus.Warn(getFailedToGetErrorMessageFor("Secrets"))
+		return err
+	}
+	if secretsList.Items != nil {
+		for _, secret := range secretsList.Items {
+			secret.ObjectMeta.Labels[deploy.KubernetesInstanceLabelKey] = cheFlavor
+			if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), &secret); err != nil {
+				logrus.Warn(getFailedToUpdateErrorMessage(secret.GetName(), reflect.TypeOf(secret).Name()))
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func getFailedToGetErrorMessageFor(item string) string {
+	return fmt.Sprintf("Failed to get %s to add %s label. This resources will be ignored by Operator.",
+		item, deploy.KubernetesInstanceLabelKey)
+}
+
+func getFailedToUpdateErrorMessage(objectName string, objectKind string) string {
+	return fmt.Sprintf("Failed to update %s '%s' with label %s. This resource will be ignored by Operator.",
+		objectKind, objectName, deploy.KubernetesInstanceLabelKey)
+}
+
+func getFailedToCreateSelectorErrorMessage() string {
+	return "Failed to create selector for resources migration. Unable to perform resources migration."
 }
