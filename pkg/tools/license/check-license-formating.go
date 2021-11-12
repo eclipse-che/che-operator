@@ -149,10 +149,9 @@ func readNLinesFromFile(filePath string, n int) []string {
 func getCommentDelimiters(file string) *CommentDelimiters {
 	fileExtension := filepath.Ext(file)
 	switch fileExtension {
-	case ".sh":
+	case ".sh", ".yaml", ".yml":
 		return &CommentDelimiters{"#", "#", "#"}
 	case ".go":
-	case ".yaml":
 		return &CommentDelimiters{"//", "//", "//"}
 	default:
 		log.Fatalf("Unsupported file extension:")

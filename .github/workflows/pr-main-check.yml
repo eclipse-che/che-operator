@@ -94,7 +94,8 @@ jobs:
         -not -path "./testbin/*" \
         -not -path "./bundle/tech-preview-stable-all-namespaces/*" \
         -not -path "./bundle/stable/*" \
-        \( -name '*.sh' -o -name "*.go" -o -name "*.yaml" \))
+        -not -path "./config/manager/controller_manager_config.yaml" \
+        \( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         addlicense --check -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
         go run ${GITHUB_WORKSPACE}/pkg/tools/license/check-license-formating.go -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
