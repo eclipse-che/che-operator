@@ -152,6 +152,7 @@ func getCommentDelimiters(file string) *CommentDelimiters {
 	case ".sh":
 		return &CommentDelimiters{"#", "#", "#"}
 	case ".go":
+	case ".yaml":
 		return &CommentDelimiters{"//", "//", "//"}
 	default:
 		log.Fatalf("Unsupported file extension:")

@@ -88,7 +88,13 @@ jobs:
         fi
 
         echo "[INFO] Check license headers."
-        FILES_TO_CHECK_LICENSE=$(find . -not -path "./mocks/*" -not -path "./vendor/*" -not -path "./testbin/*" \( -name '*.sh' -o -name "*.go" \))
+        FILES_TO_CHECK_LICENSE=$(find . \
+        -not -path "./mocks/*" \
+        -not -path "./vendor/*" \
+        -not -path "./testbin/*" \
+        -not -path "./bundle/tech-preview-stable-all-namespaces/*" \
+        -not -path "./bundle/stable/*" \
+        \( -name '*.sh' -o -name "*.go" -o -name "*.yaml" \))
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         addlicense --check -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
         go run ${GITHUB_WORKSPACE}/pkg/tools/license/check-license-formating.go -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}

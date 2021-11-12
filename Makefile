@@ -679,6 +679,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
 
+	$(ADD_LICENSE) -f hack/license-header.txt $$(find $${BUNDLE_PATH} -name "*.yaml")
 
 getPackageName:
 	if [ -z "$(platform)" ]; then
