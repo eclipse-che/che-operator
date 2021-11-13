@@ -155,6 +155,8 @@ func getCommentDelimiters(file string) *CommentDelimiters {
 		return &CommentDelimiters{"#", "#", "#"}
 	case ".go":
 		return &CommentDelimiters{"//", "//", "//"}
+	case ".ts":
+		return &CommentDelimiters{"/**", " *", " */"}
 	default:
 		log.Fatalf("Unsupported file extension:")
 	}
