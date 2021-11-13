@@ -76,6 +76,7 @@ jobs:
       run: |
         go get -u golang.org/x/tools/cmd/goimports
         go get -u github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a
+        go get -u github.com/che-incubator/check-license-header@379ba18fdb906d341ae451ea155cc34f1c4b4f1a
         git reset HEAD --hard
         echo "[INFO] Check code format and imports."
         make fmt
@@ -98,4 +99,4 @@ jobs:
         \( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
         LICENSE_TEMPLATE="${GITHUB_WORKSPACE}/hack/license-header.txt"
         addlicense --check -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
-        go run ${GITHUB_WORKSPACE}/pkg/tools/license/check-license-formating.go -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
+        check-license-header -f "${LICENSE_TEMPLATE}" ${FILES_TO_CHECK_LICENSE}
