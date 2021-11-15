@@ -159,7 +159,7 @@ removeRequiredAttribute:
 
 	mv $${filePath}.tmp $${filePath}
 
-manifests: controller-gen add-license ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: controller-gen add-license-download ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	# Generate CRDs v1beta1
 	$(CONTROLLER_GEN) $(CRD_BETA_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	mv "$(ECLIPSE_CHE_CRD)" "$(ECLIPSE_CHE_CRD_V1BETA1)"
@@ -214,7 +214,7 @@ manifests: controller-gen add-license ## Generate WebhookConfiguration, ClusterR
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_BACKUP_CRD_V1BETA1)"
 	$(MAKE) removeRequiredAttribute "filePath=$(ECLIPSE_CHE_RESTORE_CRD_V1BETA1)"
 
-	$(ADD_LICENSE) -f hack/license-header.txt $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
+	$(MAKE) add-license $$(find ./config/crd -not -path "./vendor/*" -name "*.yaml")
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -227,7 +227,7 @@ compile:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -a -o "$${binary}" main.go
 	echo "che-operator binary compiled to $${binary}"
 
-fmt: add-license ## Run go fmt against code.
+fmt: add-license-download ## Run go fmt against code.
   ifneq ($(shell command -v goimports 2> /dev/null),)
 	  find . -not -path "./vendor/*" -name "*.go" -exec goimports -w {} \;
   else
@@ -236,8 +236,15 @@ fmt: add-license ## Run go fmt against code.
 	  go fmt -x ./...
   endif
 
-	$(ADD_LICENSE) -f hack/license-header.txt $$(find . -not -path "./vendor/*"  -name '*.go')
-	$(ADD_LICENSE) -f hack/license-header.txt $$(find . -not -path "./vendor/*"  -name '*.sh')
+	FILES_TO_CHECK_LICENSE=$$(find . \
+		-not -path "./mocks/*" \
+		-not -path "./vendor/*" \
+		-not -path "./testbin/*" \
+		-not -path "./bundle/tech-preview-stable-all-namespaces/*" \
+		-not -path "./bundle/stable/*" \
+		-not -path "./config/manager/controller_manager_config.yaml" \
+		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
+	$(MAKE) add-license $${FILES_TO_CHECK_LICENSE}
 
 vet: ## Run go vet against code.
 	go vet ./...
@@ -389,8 +396,13 @@ kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
 ADD_LICENSE = $(shell pwd)/bin/addlicense
-add-license: ## Download addlicense locally if necessary.
+add-license-download: ## Download addlicense locally if necessary.
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
+
+add-license:
+	# Get all argument and remove make goal("add-license") to get only list files
+	FILES=$$(echo $(filter-out $@,$(MAKECMDGOALS)))
+	$(ADD_LICENSE) -f hack/license-header.txt $${FILES}
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -521,7 +533,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		yq -riY  '.spec.preserveUnknownFields = false' $${platformCRD}
 	fi
 	# todo try to set up header everywhere in the bundle
-	$(ADD_LICENSE) -f hack/license-header.txt "$${platformCRD}"
+	$(MAKE) add-license "$${platformCRD}"
 
 	if [ -n "$(TAG)" ]; then
 		echo "[INFO] Set tags in next OLM files"
@@ -679,8 +691,8 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
 
-	$(ADD_LICENSE) -f hack/license-header.txt $$(find $${BUNDLE_PATH} -name "*.yaml")
-	$(ADD_LICENSE) -f hack/license-header.txt $${BASE_CSV}
+	$(MAKE) add-license $$(find $${BUNDLE_PATH} -name "*.yaml")
+	$(MAKE) add-license $${BASE_CSV}
 
 getPackageName:
 	if [ -z "$(platform)" ]; then
@@ -814,7 +826,7 @@ check-requirements:
 		*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
 	esac
 
-update-deployment-yaml-images: add-license
+update-deployment-yaml-images: add-license-download
 	if [ -z $(UBI8_MINIMAL_IMAGE) ] || [ -z $(PLUGIN_BROKER_METADATA_IMAGE) ] || [ -z $(PLUGIN_BROKER_ARTIFACTS_IMAGE) ] || [ -z $(JWT_PROXY_IMAGE) ]; then
 		echo "[ERROR] Define required arguments: `UBI8_MINIMAL_IMAGE`, `PLUGIN_BROKER_METADATA_IMAGE`, `PLUGIN_BROKER_ARTIFACTS_IMAGE`, `JWT_PROXY_IMAGE`"
 		exit 1
@@ -824,7 +836,7 @@ update-deployment-yaml-images: add-license
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"$(PLUGIN_BROKER_ARTIFACTS_IMAGE)\"" $(OPERATOR_YAML)
 	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"$(JWT_PROXY_IMAGE)\"" $(OPERATOR_YAML)
 
-	$(ADD_LICENSE) -f hack/license-header.txt $(OPERATOR_YAML)
+	$(MAKE) add-license $(OPERATOR_YAML)
 
 update-dockerfile-image:
 	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
