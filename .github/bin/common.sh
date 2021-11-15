@@ -170,10 +170,46 @@ collectLogs() {
 
   set +e
   chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
+  collectK8sResourcesForNamespace $NAMESPACE
+  collectPodsLogsForNamespace $NAMESPACE
+
   collectDevworkspaceOperatorLogs
   oc get events -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}.txt
   oc get events -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}.txt
   set -e
+}
+
+collectK8sResourcesForNamespace() {
+  namespace="$1"
+  if [[ -z $namespace ]]; then return; fi
+
+  declare -a KINDS=("pods" "deployments" "services"
+                    "configmaps" "secrets"
+                    "serviceaccounts" "roles" "rolebindings"
+                    "checlusters" "checlusterbackups" "checlusterrestores"
+                   )
+  for kind in "${KINDS[@]}" ; do
+    dir="${ARTIFACTS_DIR}/cluster/${kind}"
+    mkdir -p $dir
+
+    names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
+    for name in $names ; do
+      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
+    done
+  done
+}
+
+collectPodsLogsForNamespace() {
+  namespace="$1"
+  if [[ -z $namespace ]]; then return; fi
+
+  dir="${ARTIFACTS_DIR}/cluster/logs"
+  mkdir -p $dir
+
+  PODS=$(kubectl get -n $namespace pods --no-headers=true -o custom-columns=":metadata.name")
+  for pod in $PODS ; do
+    kubectl logs -n $namespace $pod > "${dir}/${pod}.log"
+  done
 }
 
 collectDevworkspaceOperatorLogs() {
