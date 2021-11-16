@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019-2020 Red Hat, Inc.
+# Copyright (c) 2019-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,6 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+#
 
 set +x
 set -e
@@ -123,7 +124,7 @@ done
 yq -riY "( .spec.relatedImages ) += [${RELATED_IMAGES}]" ${CSV_FILE}
 yq -riY "( .spec.install.spec.deployments[0].spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${CSV_FILE}
 sed -i "${CSV_FILE}" -r -e "s|tag: |# tag: |"
-echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${CSV_FILE})" > ${CSV_FILE}
+echo -e "$(cat ${CSV_FILE})" > ${CSV_FILE}
 echo "[INFO] CSV updated: ${CSV_FILE}"
 
 if [[ ${OPERATOR_FILE} ]]; then
@@ -141,6 +142,6 @@ if [[ ${OPERATOR_FILE} ]]; then
 
   # add new `RELATED_IMAGES`
   yq -riY "( .spec.template.spec.containers[0].env ) += [${RELATED_IMAGES_ENV}]" ${OPERATOR_FILE}
-  echo -e "$(cat ${SCRIPTS_DIR}/license.txt)\n$(cat ${OPERATOR_FILE})" > ${OPERATOR_FILE}
+  echo -e "$(cat ${OPERATOR_FILE})" > ${OPERATOR_FILE}
   echo "[INFO] Operator deployment file updated: ${OPERATOR_FILE}"
 fi
