@@ -164,7 +164,6 @@ installYq() {
   echo "[INFO] $(jq --version)"
 }
 
-# Graps Eclipse Che logs
 collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
@@ -178,6 +177,7 @@ collectClusterData() {
   for namespace in $allNamespaces ; do
     collectK8sResourcesForNamespace $namespace
     collectPodsLogsForNamespace $namespace
+    collectEventsForNamespace $namespace
   done
   collectClusterScopeK8sResources
 }
@@ -190,14 +190,13 @@ collectK8sResourcesForNamespace() {
                   "services" "ingresses"
                   "configmaps" "secrets"
                   "serviceaccounts" "roles" "rolebindings"
-                  "events"
                   "pv" "pvc"
                  )
   CRDS_KINDS=($(kubectl get crds -o jsonpath="{.items[*].spec.names.plural}"))
   KINDS=("${STANDARD_KINDS[@]}" "${CRDS_KINDS[@]}")
 
   for kind in "${KINDS[@]}" ; do
-    dir="${ARTIFACTS_DIR}/cluster/namespaces/${namespace}/${kind}"
+    dir="${ARTIFACTS_DIR}/resources/namespaced/${namespace}/${kind}"
     mkdir -p $dir
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
@@ -213,7 +212,7 @@ collectClusterScopeK8sResources() {
                     "clusterroles" "clusterrolebindings"
                    )
   for kind in "${KINDS[@]}" ; do
-    dir="${ARTIFACTS_DIR}/cluster/global/${kind}"
+    dir="${ARTIFACTS_DIR}/resources/cluster/${kind}"
     mkdir -p $dir
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
@@ -238,6 +237,16 @@ collectPodsLogsForNamespace() {
       kubectl logs -n $namespace $pod -c $container > "${dir}/${pod}_${container}.log"
     done
   done
+}
+
+collectEventsForNamespace() {
+  namespace="$1"
+  if [[ -z $namespace ]]; then return; fi
+
+  dir="${ARTIFACTS_DIR}/cluster/namespaces/${namespace}"
+  mkdir -p $dir
+
+  kubectl get -n $namespace events > "${dir}/events.yaml"
 }
 
 # Build latest operator image
