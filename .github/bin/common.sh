@@ -170,12 +170,8 @@ collectLogs() {
 
   set +e
   chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
-
   collectClusterData
-
   collectDevworkspaceOperatorLogs
-  oc get events -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}.txt
-  oc get events -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}.txt
   set -e
 }
 
@@ -196,6 +192,7 @@ collectK8sResourcesForNamespace() {
                     "services" "ingresses"
                     "configmaps" "secrets"
                     "serviceaccounts" "roles" "rolebindings"
+                    "events"
                     "pv" "pvc"
                     "checlusters" "checlusterbackups" "checlusterrestores" "chebackupserverconfigurations"
                    )
@@ -205,6 +202,7 @@ collectK8sResourcesForNamespace() {
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
     for name in $names ; do
+      name=${name//[:<>|*?]/_}
       kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
     done
   done
@@ -220,6 +218,7 @@ collectClusterScopeK8sResources() {
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
     for name in $names ; do
+      name=${name//[:<>|*?]/_}
       kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
     done
   done
