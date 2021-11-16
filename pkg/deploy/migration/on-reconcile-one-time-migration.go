@@ -50,30 +50,33 @@ func (m *Migrator) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool,
 		return reconcile.Result{}, true, nil
 	}
 
-	result, done, err := m.migrate(ctx)
-	m.migrationDone = done && err == nil
-	return result, done, err
+	done, err := m.migrate(ctx)
+	if done && err == nil {
+		m.migrationDone = true
+		// Give some time for the migration resources to be flushed and rerun reconcile
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, false, err
+	}
+	return reconcile.Result{}, done, err
 }
 
 func (m *Migrator) Finalize(ctx *deploy.DeployContext) error {
 	return nil
 }
 
-func (m *Migrator) migrate(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (m *Migrator) migrate(ctx *deploy.DeployContext) (bool, error) {
 	if err := addRequiredLabelsForConfigMaps(ctx); err != nil {
-		return reconcile.Result{}, false, err
+		return false, err
 	}
 
 	if err := addRequiredLabelsForSecrets(ctx); err != nil {
-		return reconcile.Result{}, false, err
+		return false, err
 	}
 
 	if err := addRequiredLabelsForPartOfCheObjects(ctx); err != nil {
-		return reconcile.Result{}, false, err
+		return false, err
 	}
 
-	// Give some time for the migration resources to be flushed
-	return reconcile.Result{RequeueAfter: 5 * time.Second}, true, nil
+	return true, nil
 }
 
 // addRequiredLabelsForConfigMaps processes the following cofig maps:
@@ -112,7 +115,7 @@ func addRequiredLabelsForSecrets(ctx *deploy.DeployContext) error {
 	if !util.IsOpenShift {
 		// Kubernetes only
 
-		tlsSecretName := "che-tls"
+		tlsSecretName := deploy.DefaultCheTLSSecretName
 		if ctx.CheCluster.Spec.K8s.TlsSecretName != "" {
 			tlsSecretName = ctx.CheCluster.Spec.K8s.TlsSecretName
 		}
@@ -179,7 +182,7 @@ func addRequiredLabelsForSecret(ctx *deploy.DeployContext, secretName string) er
 	return addRequiredLabelsForObject(ctx, secretName, secret)
 }
 
-// addRequiredLabelsForObject adds standard set of labels to the object with given name
+// addRequiredLabelsForObject adds required label to the object with given name to be cached by operator's k8s client.
 // As the function doesn't know the kind of the object with given name an empty object should be passed,
 // for example: addRequiredLabelsForObject(ctx, "my-secret", &corev1.Secret{})
 func addRequiredLabelsForObject(ctx *deploy.DeployContext, objectName string, obj client.Object) error {
@@ -203,9 +206,7 @@ func addRequiredLabelsForObject(ctx *deploy.DeployContext, objectName string, ob
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	for labelName, labelValue := range deploy.GetLabels(ctx.CheCluster, deploy.DefaultCheFlavor(ctx.CheCluster)) {
-		labels[labelName] = labelValue
-	}
+	labels[deploy.KubernetesInstanceLabelKey] = deploy.DefaultCheFlavor(ctx.CheCluster)
 	obj.SetLabels(labels)
 	if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), obj); err != nil {
 		return err
