@@ -169,9 +169,7 @@ collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
   set +e
-  chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
   collectClusterData
-  collectDevworkspaceOperatorLogs
   set -e
 }
 
@@ -188,14 +186,16 @@ collectK8sResourcesForNamespace() {
   namespace="$1"
   if [[ -z $namespace ]]; then return; fi
 
-  declare -a KINDS=("pods" "jobs" "deployments"
-                    "services" "ingresses"
-                    "configmaps" "secrets"
-                    "serviceaccounts" "roles" "rolebindings"
-                    "events"
-                    "pv" "pvc"
-                    "checlusters" "checlusterbackups" "checlusterrestores" "chebackupserverconfigurations"
-                   )
+  STANDARD_KINDS=("pods" "jobs" "deployments"
+                  "services" "ingresses"
+                  "configmaps" "secrets"
+                  "serviceaccounts" "roles" "rolebindings"
+                  "events"
+                  "pv" "pvc"
+                 )
+  CRDS_KINDS=($(kubectl get crds -o jsonpath="{.items[*].spec.names.plural}"))
+  KINDS=("${STANDARD_KINDS[@]}" "${CRDS_KINDS[@]}")
+
   for kind in "${KINDS[@]}" ; do
     dir="${ARTIFACTS_DIR}/cluster/namespaces/${namespace}/${kind}"
     mkdir -p $dir
@@ -233,28 +233,10 @@ collectPodsLogsForNamespace() {
 
   pods=$(kubectl get -n $namespace pods --no-headers=true -o custom-columns=":metadata.name")
   for pod in $pods ; do
-    kubectl logs -n $namespace $pod > "${dir}/${pod}.log"
-  done
-}
-
-collectDevworkspaceOperatorLogs() {
-  mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator
-
-  oc get events -n devworkspace-controller > ${ARTIFACTS_DIR}/events-devworkspace-controller.txt
-
-  #determine the name of the devworkspace controller manager pod
-  local CONTROLLER_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].metadata.name')
-  local WEBHOOK_SVR_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-webhook-server -o json | jq -r '.items[0].metadata.name')
-
-  # save the logs of all the containers in the DWO pod
-  for container in $(oc get pod -n devworkspace-controller ${CONTROLLER_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
-    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}
-    oc logs -n devworkspace-controller deployment/devworkspace-controller-manager -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}/${container}.log
-  done
-
-  for container in $(oc get pod -n devworkspace-controller ${WEBHOOK_SVR_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
-    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}
-    oc logs -n devworkspace-controller deployment/devworkspace-webhook-server -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}/${container}.log
+    containers=$(kubectl get -n $namespace pod $pod -o jsonpath="{.spec.containers[*].name}")
+    for container in $containers ; do
+      kubectl logs -n $namespace $pod -c $container > "${dir}/${pod}_${container}.log"
+    done
   done
 }
 
