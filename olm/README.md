@@ -25,8 +25,8 @@ Each bundle consists of a cluster service version file (CSV) and a custom resour
 To test next Che operator you have to use the OLM CatalogSource(index) image.
 CatalogSource image stores in the internal database information about OLM bundles with different versions of the Eclipse Che. For next channel (dependent on platform) Eclipse Che provides two CatalogSource images:
 
- - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test` for Kubernetes platform;
- - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:test` for Openshift platform;
+ - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next` for Kubernetes platform;
+ - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:next` for Openshift platform;
 
 For each new next version Eclipse Che provides next bundle image with name pattern:
 

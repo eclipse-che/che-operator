@@ -32,7 +32,7 @@ init() {
       '--channel'|'-c') CHANNEL="$2"; shift 1;;
       '--platform'|'-p') PLATFORM="$2"; shift 1;;
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
-      '--operator-image'|'-i') OPERATOR_IMAGE="$2"; shift 1;;
+      '--operator-image'|'-o') OPERATOR_IMAGE="$2"; shift 1;;
       '--force'|'-f') FORCE="true";;
       '--help'|'-h') usage; exit;;
     esac
@@ -58,7 +58,7 @@ init() {
 
   if [[ ! -z ${OPERATOR_IMAGE} ]]; then
     # set a given operator image into CSV before build
-    sed -e "s|containerImage:.*|containerImage: ${OPERATOR_IMAGE}|" -i "${CSV}"
+    sed -e "s|image:.*|image: ${OPERATOR_IMAGE}|" -i "${CSV}"
   fi
 }
 

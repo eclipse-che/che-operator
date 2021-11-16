@@ -29,7 +29,7 @@ jobs:
       run: |
         minikube addons enable ingress
 
-        # Enable registry and portfward to push images to registry
+        # Enable registry and port forward to push images to registry
         /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
