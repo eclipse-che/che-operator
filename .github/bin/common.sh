@@ -202,9 +202,13 @@ collectDevworkspaceOperatorLogs() {
 
 # Build latest operator image
 buildCheOperatorImage() {
-  #docker build -t "${OPERATOR_IMAGE}" -f Dockerfile .
   docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
+
+buildAndPushCheOperatorImage() {
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . &&  docker push "${OPERATOR_IMAGE}"
+}
+
 
 copyCheOperatorImageToMinikube() {
   #docker save "${OPERATOR_IMAGE}" | minikube ssh --native-ssh=false -- docker load
@@ -406,11 +410,6 @@ setCustomOperatorImage() {
 
 enableImagePuller() {
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"imagePuller":{"enable": true}}}'
-}
-
-insecurePrivateDockerRegistry() {
-  IMAGE_REGISTRY_HOST="127.0.0.1:5000"
-  export IMAGE_REGISTRY_HOST
 }
 
 # Utility to print objects created by Openshift CI automatically

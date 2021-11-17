@@ -25,8 +25,8 @@ Each bundle consists of a cluster service version file (CSV) and a custom resour
 To test next Che operator you have to use the OLM CatalogSource(index) image.
 CatalogSource image stores in the internal database information about OLM bundles with different versions of the Eclipse Che. For next channel (dependent on platform) Eclipse Che provides two CatalogSource images:
 
- - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:preview` for Kubernetes platform;
- - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:preview` for Openshift platform;
+ - `quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next` for Kubernetes platform;
+ - `quay.io/eclipse/eclipse-che-openshift-opm-catalog:next` for Openshift platform;
 
 For each new next version Eclipse Che provides next bundle image with name pattern:
 
@@ -42,25 +42,13 @@ quay.io/eclipse/eclipse-che-openshift-opm-bundles:7.19.0-5.next
 ### Build custom next/stable OLM images
 
 For test purpose you can build your own "next" or "stable" CatalogSource and bundle images
-with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildAndPushBundleImages.sh`:
+with your latest development changes and use it in the test scripts. To build these images you can use script `olm/buildCatalog.sh`:
 
 ```bash
-$ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
-  export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushBundleImages.sh -p <openshift|kubernetes> -c <next|stable> -i <FROM-INDEX-IMAGE>
-```
-
-This script will build and push for you two images: CatalogSource(index) and bundle one:
-
-* `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-<openshift|kubernetes>-opm-bundles:<CHE_VERSION>-<INCREMENTAL_VERSION>.next`
-* `${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-<openshift|kubernetes>-opm-catalog:preview`
-
-CatalogSource images are additive. It's mean that you can re-use bundles from another CatalogSource image and include them to your custom CatalogSource image. For this purpose you can specify the parameter `-i`:
-
-```bash
-$ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
-  export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./buildAndPushBundleImages.sh -p <openshift|kubernetes> -n <next|stable> -i <FROM-INDEX-IMAGE>
+$ olm/buildCatalog.sh \
+    -c (next|next-all-namespaces|stable|tech-preview-all-namespaces) \
+    -p (openshift|kubernetes) \
+    -i <CATALOG_IMAGE>
 ```
 
 ### Testing custom CatalogSource and bundle images on the Openshift
@@ -68,21 +56,13 @@ $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
 To test the latest custom "next" bundle:
 
 ```bash
-$ ./testCatalogSource.sh "openshift" "next" <ECLIPSE_CHE_NAMESPACE>
+$ ./testCatalog.sh -p openshift -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
 
 ```bash
-$ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
-  export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./testUpdate.sh "openshift" "next" <ECLIPSE_CHE_NAMESPACE>
-```
-
-Note, to test your own operator image, it must be defined in `OPERATOR_IMAGE` environment variable before running `testCatalogSource.sh` script, for example:
-
-```bash
-export OPERATOR_IMAGE=registry/account/che-operator:tag
+$ ./testUpdate.sh -p openshift -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 ### Testing custom CatalogSource and bundle images on the Kubernetes
@@ -92,17 +72,13 @@ To test your custom CatalogSource and bundle images on the Kubernetes you need t
 To test the latest custom "next" bundle:
 
 ```bash
-$ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
-  export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
- ./testCatalogSource.sh "kubernetes" "next" <ECLIPSE_CHE_NAMESPACE>
+$ ./testCatalog.sh -p kubernetes -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
 
 ```bash
-$ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
-  export IMAGE_REGISTRY_HOST=<IMAGE_REGISTRY_HOST> && \
-  ./testUpdate.sh "kubernetes" "next" <ECLIPSE_CHE_NAMESPACE>
+$ ./testUpdate.sh -p kubernetes -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 Also you can test your changes without a public registry. You can use the minikube cluster and enable the minikube "registry" addon. For this purpose use the script:
@@ -121,9 +97,8 @@ $ curl -X GET localhost:5000/v2/_catalog
 With this private registry you can test Che operator from development bundle:
 
 ```bash
-$ export IMAGE_REGISTRY_HOST="127.0.0.1:5000" && \
-  export IMAGE_REGISTRY_USER_NAME="" && \
-  ./testCatalogSource.sh "kubernetes" "next" <ECLIPSE_CHE_NAMESPACE>
+$ olm/buildCatalog.sh -p kubernetes -c next -i 127.0.0.1:5000/test/catalog:test
+$ olm/testCatalog.sh -p kubernetes -c next -i 127.0.0.1:5000/test/catalog:test -n eclipse-che
 ```
 
 > Tips: If minikube was installed locally (driver 'none', local installation minikube), then registry is available on the host 0.0.0.0 without port forwarding but it requires `sudo`.
@@ -143,7 +118,7 @@ metadata:
   name:         eclipse-che-preview-custom
   namespace:    <che-namespace>
 spec:
-  image:        quay.io/eclipse/eclipse-che-<openshift|kubernetes>-opm-catalog:preview
+  image:        quay.io/eclipse/eclipse-che-<openshift|kubernetes>-opm-catalog:test
   sourceType:  grpc
   updateStrategy:
     registryPoll:

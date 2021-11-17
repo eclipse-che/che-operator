@@ -11,19 +11,20 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+set -e
+
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 
 if [ -z "${OPERATOR_REPO}" ]; then
   SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
 fi
-source "${OPERATOR_REPO}"/olm/olm.sh
+source "${OPERATOR_REPO}/olm/olm.sh"
 
 init() {
   unset CHANNEL
   unset PLATFORM
   unset CATALOG_IMAGE
-  unset OPERATOR_IMAGE
   unset NAMESPACE
 
   while [[ "$#" -gt 0 ]]; do
@@ -42,38 +43,29 @@ init() {
 
 usage () {
 	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|next-all-namespaces|stable) -i CATALOG_IMAGE -n NAMESPACE"
-	echo "Example: $0 -p openshift -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n eclipse-che"
+	echo "Example: $0 -p openshift -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -n eclipse-che"
 }
 
 run() {
-  createNamespace "${NAMESPACE}"
+  createNamespace ${NAMESPACE}
   installOperatorMarketPlace
   installCatalogSource "${PLATFORM}" "${NAMESPACE}" "${CATALOG_IMAGE}"
 
   getBundleListFromCatalogSource "${PLATFORM}" "${NAMESPACE}"
-  getPreviousCSVInfo "${CHANNEL}"
   getLatestCSVInfo "${CHANNEL}"
 
-  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
-
-  if [ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]; then
-    echo "[ERROR] Nothing to update. OLM channel '${channel}' contains only one bundle."
-    exit 1
-  fi
-
-  forcePullingOlmImages "${NAMESPACE}" "${PREVIOUS_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${NAMESPACE}" "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${PREVIOUS_CSV_NAME}"
+  subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${LATEST_CSV_NAME}"
   installPackage "${PLATFORM}" "${NAMESPACE}"
-  echo "[INFO] Installation of the previous che-operator version: ${PREVIOUS_CSV_NAME} successfully completed"
 
-  applyCheClusterCR ${PREVIOUS_CSV_NAME} ${PLATFORM}
+  applyCheClusterCR ${LATEST_CSV_NAME} ${PLATFORM}
   waitCheServerDeploy "${NAMESPACE}"
-
-  installPackage "${PLATFORM}" "${NAMESPACE}"
-  echo "[INFO] Installation of the latest che-operator version: ${LATEST_CSV_NAME} successfully completed"
 }
 
-init "$@"
+init $@
+installOPM
 run
+
+echo "[INFO] Done"
+

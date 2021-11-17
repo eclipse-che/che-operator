@@ -34,7 +34,7 @@ To be able to test update it is needed to created some user before. Login as `ku
 
 ```bash
 cd olm
-./testUpdate.sh openshift stable
+./testUpdate.sh -p openshift -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n eclipse-che
 ```
 
 Open Eclipse Che dashboard in an anonymous tab:
@@ -54,7 +54,7 @@ Run script to test updates:
 
 ```bash
 cd olm
-./testUpdate.sh kubernetes stable
+./testUpdate.sh -p kubernetes -c stable -i quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test -n eclipse-che
 ```
 
 Open Eclipse Che dashboard:

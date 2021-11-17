@@ -69,7 +69,7 @@ getLatestsStableVersions
 
 for platform in $(echo $PLATFORMS | tr "," " ")
 do
-  INDEX_IMAGE="quay.io/eclipse/eclipse-che-${platform}-opm-catalog:preview"
+  INDEX_IMAGE="quay.io/eclipse/eclipse-che-${platform}-opm-catalog:test"
   packageName="eclipse-che-preview-${platform}"
   echo
   echo "## Prepare the OperatorHub package to push to the 'community-operators' repository for platform '${platform}' from local package '${packageName}'"
@@ -97,7 +97,7 @@ do
     git remote remove upstream
     git remote add upstream https://github.com/redhat-openshift-ecosystem/community-operators-prod
   fi
-  
+
   git fetch upstream ${base_branch}:upstream/${base_branch}
 
   branch="update-eclipse-che"
