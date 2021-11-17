@@ -1,5 +1,5 @@
 # Add Web IDE link on PRs
-name: web-ide
+name: Try in Web IDE
 
 on:
   pull_request_target:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Web IDE Pull Request Check
-        id: try-in-web-ide
         uses: redhat-actions/try-in-web-ide@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          add_comment: false
