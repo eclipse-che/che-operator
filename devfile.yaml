@@ -35,7 +35,7 @@ components:
     memoryLimit: 1G
     type: dockerimage
     alias: dev
-    image: 'quay.io/eclipse/che-golang-1.12:nightly'
+    image: 'quay.io/eclipse/che-golang-1.14:next'
     env:
       - value: /go
         name: GOPATH
@@ -43,24 +43,27 @@ components:
         name: GOCACHE
 apiVersion: 1.0.0
 commands:
-  - name: compile
+  - name: Compile
     actions:
       - workdir: /projects/che-operator
         type: exec
-        command: >-
-          BINARY_PATH=/tmp/che-operator/che-operator && OOS=linux GOARCH=$ARCH
-          CGO_ENABLED=0 go build -o ${BINARY_PATH} cmd/manager/main.go && echo
-          "Compiled to $BINARY_PATH" && printf "\033[32mDone.\033[0m"
+        command: make compile
         component: dev
-  - name: test
+  - name: Test
     actions:
       - workdir: /projects/che-operator
         type: exec
-        command: go test -mod vendor ./...
+        command: make test
         component: dev
-  - name: format
+  - name: Format
     actions:
       - workdir: /projects/che-operator
         type: exec
-        command: 'go fmt ./... && printf "\033[32mDone.\033[0m"'
+        command: 'make fmt'
+        component: dev
+  - name: Update resources
+    actions:
+      - workdir: /projects/che-operator
+        type: exec
+        command: 'make update-resources -s'
         component: dev
