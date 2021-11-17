@@ -61,9 +61,3 @@ commands:
         type: exec
         command: 'make fmt'
         component: dev
-  - name: Update resources
-    actions:
-      - workdir: /projects/src/github.com/eclipse-che/che-operator
-        type: exec
-        command: 'make update-resources -s'
-        component: dev
