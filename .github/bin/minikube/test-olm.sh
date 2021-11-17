@@ -41,7 +41,7 @@ runTest() {
     # build catalog source
     channel=next
     catalogImage=127.0.0.1:5000/test/catalog:test
-    "${OPERATOR_REPO}"/olm/buildCatalog.sh -p kubernetes -c next -i 127.0.0.1:5000/test/catalog:test -o ${OPERATOR_IMAGE}
+    "${OPERATOR_REPO}"/olm/buildCatalog.sh -p kubernetes -c next -i ${catalogImage} -o ${OPERATOR_IMAGE}
   fi
 
   source "${OPERATOR_REPO}"/olm/testCatalog.sh -p kubernetes -c ${channel} -n ${NAMESPACE} -i ${catalogImage}
