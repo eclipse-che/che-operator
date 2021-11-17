@@ -30,10 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	gitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
-)
-
 type Migrator struct {
 	deploy.Reconcilable
 
@@ -93,7 +89,7 @@ func addRequiredLabelsForConfigMaps(ctx *deploy.DeployContext) error {
 
 	// Config map with CA certificates for git
 	if ctx.CheCluster.Spec.Server.GitSelfSignedCert {
-		if err := addRequiredLabelsForConfigMap(ctx, gitSelfSignedCertsConfigMapName); err != nil {
+		if err := addRequiredLabelsForConfigMap(ctx, deploy.GitSelfSignedCertsConfigMapName); err != nil {
 			return err
 		}
 	}
