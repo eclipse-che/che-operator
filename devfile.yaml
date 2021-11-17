@@ -49,12 +49,6 @@ commands:
         type: exec
         command: make compile
         component: dev
-  - name: Test
-    actions:
-      - workdir: /projects/src/github.com/eclipse-che/che-operator
-        type: exec
-        command: make test
-        component: dev
   - name: Format
     actions:
       - workdir: /projects/src/github.com/eclipse-che/che-operator
