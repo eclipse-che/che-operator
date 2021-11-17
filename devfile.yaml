@@ -45,25 +45,25 @@ apiVersion: 1.0.0
 commands:
   - name: Compile
     actions:
-      - workdir: /projects/che-operator
+      - workdir: /projects/src/github.com/eclipse-che/che-operator
         type: exec
         command: make compile
         component: dev
   - name: Test
     actions:
-      - workdir: /projects/che-operator
+      - workdir: /projects/src/github.com/eclipse-che/che-operator
         type: exec
         command: make test
         component: dev
   - name: Format
     actions:
-      - workdir: /projects/che-operator
+      - workdir: /projects/src/github.com/eclipse-che/che-operator
         type: exec
         command: 'make fmt'
         component: dev
   - name: Update resources
     actions:
-      - workdir: /projects/che-operator
+      - workdir: /projects/src/github.com/eclipse-che/che-operator
         type: exec
         command: 'make update-resources -s'
         component: dev
