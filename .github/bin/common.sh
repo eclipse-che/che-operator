@@ -167,36 +167,95 @@ installYq() {
   echo "[INFO] $(jq --version)"
 }
 
-# Graps Eclipse Che logs
 collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
   set +e
-  chectl server:logs --chenamespace=${NAMESPACE} --directory=${ARTIFACTS_DIR}
-  collectDevworkspaceOperatorLogs
-  oc get events -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}.txt
-  oc get events -n ${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE} > ${ARTIFACTS_DIR}/events-${DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE}.txt
+  collectClusterResources
   set -e
 }
 
-collectDevworkspaceOperatorLogs() {
-  mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator
+RESOURCES_DIR_NAME='resources'
+NAMESPACED_DIR_NAME='namespaced'
+CLUSTER_DIR_NAME='cluster'
 
-  oc get events -n devworkspace-controller > ${ARTIFACTS_DIR}/events-devworkspace-controller.txt
-
-  #determine the name of the devworkspace controller manager pod
-  local CONTROLLER_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-controller -o json | jq -r '.items[0].metadata.name')
-  local WEBHOOK_SVR_POD_NAME=$(oc get pods -n devworkspace-controller -l app.kubernetes.io/name=devworkspace-webhook-server -o json | jq -r '.items[0].metadata.name')
-
-  # save the logs of all the containers in the DWO pod
-  for container in $(oc get pod -n devworkspace-controller ${CONTROLLER_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
-    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}
-    oc logs -n devworkspace-controller deployment/devworkspace-controller-manager -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${CONTROLLER_POD_NAME}/${container}.log
+collectClusterResources() {
+  allNamespaces=$(kubectl get namespaces -o custom-columns=":metadata.name")
+  for namespace in $allNamespaces ; do
+    collectNamespacedScopeResources $namespace
+    collectNamespacedPodLogs $namespace
+    collectNamespacedEvents $namespace
   done
+  collectClusterScopeResources
+}
 
-  for container in $(oc get pod -n devworkspace-controller ${WEBHOOK_SVR_POD_NAME} -o json | jq -r '.spec.containers[] | .name'); do
-    mkdir -p ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}
-    oc logs -n devworkspace-controller deployment/devworkspace-webhook-server -c ${container} > ${ARTIFACTS_DIR}/devworkspace-operator/${WEBHOOK_SVR_POD_NAME}/${container}.log
+collectNamespacedScopeResources() {
+  namespace="$1"
+  if [[ -z $namespace ]]; then return; fi
+
+  STANDARD_KINDS=("pods" "jobs" "deployments"
+                  "services" "ingresses"
+                  "configmaps" "secrets"
+                  "serviceaccounts" "roles" "rolebindings"
+                  "pvc"
+                 )
+  CRDS_KINDS=($(kubectl get crds -o jsonpath="{.items[*].spec.names.plural}"))
+  KINDS=("${STANDARD_KINDS[@]}" "${CRDS_KINDS[@]}")
+
+  for kind in "${KINDS[@]}" ; do
+    dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${NAMESPACED_DIR_NAME}/${namespace}/${kind}"
+    mkdir -p $dir
+
+    names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
+    for name in $names ; do
+      name=${name//[:<>|*?]/_}
+      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
+    done
+  done
+}
+
+collectNamespacedPodLogs() {
+  namespace="$1"
+  if [[ -z $namespace ]]; then return; fi
+
+  dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${NAMESPACED_DIR_NAME}/${namespace}/logs"
+  mkdir -p $dir
+
+  pods=$(kubectl get -n $namespace pods --no-headers=true -o custom-columns=":metadata.name")
+  for pod in $pods ; do
+    pod=${pod//[:<>|*?]/_}
+    containers=$(kubectl get -n $namespace pod $pod -o jsonpath="{.spec.containers[*].name}")
+    for container in $containers ; do
+      container=${container//[:<>|*?]/_}
+      kubectl logs -n $namespace $pod -c $container > "${dir}/${pod}_${container}.log"
+    done
+  done
+}
+
+collectNamespacedEvents() {
+  namespace="$1"
+  if [[ -z $namespace ]]; then return; fi
+
+  dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${NAMESPACED_DIR_NAME}/${namespace}"
+  mkdir -p $dir
+
+  kubectl get -n $namespace events > "${dir}/events.yaml"
+}
+
+collectClusterScopeResources() {
+  KINDS=("crds"
+         "pv"
+         "clusterroles" "clusterrolebindings"
+        )
+  for kind in "${KINDS[@]}" ; do
+    dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${CLUSTER_DIR_NAME}/${kind}"
+    mkdir -p $dir
+
+    names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
+    for name in $names ; do
+      name=${name//[:<>|*?]/_}
+      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
+    done
   done
 }
 
