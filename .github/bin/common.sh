@@ -168,21 +168,25 @@ collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
   set +e
-  collectClusterData
+  collectClusterResources
   set -e
 }
 
-collectClusterData() {
+RESOURCES_DIR_NAME='resources'
+NAMESPACED_DIR_NAME='namespaced'
+CLUSTER_DIR_NAME='cluster'
+
+collectClusterResources() {
   allNamespaces=$(kubectl get namespaces -o custom-columns=":metadata.name")
   for namespace in $allNamespaces ; do
-    collectK8sResourcesForNamespace $namespace
-    collectPodsLogsForNamespace $namespace
-    collectEventsForNamespace $namespace
+    collectNamespacedScopeResources $namespace
+    collectNamespacedPodLogs $namespace
+    collectNamespacedEvents $namespace
   done
-  collectClusterScopeK8sResources
+  collectClusterScopeResources
 }
 
-collectK8sResourcesForNamespace() {
+collectNamespacedScopeResources() {
   namespace="$1"
   if [[ -z $namespace ]]; then return; fi
 
@@ -190,13 +194,13 @@ collectK8sResourcesForNamespace() {
                   "services" "ingresses"
                   "configmaps" "secrets"
                   "serviceaccounts" "roles" "rolebindings"
-                  "pv" "pvc"
+                  "pvc"
                  )
   CRDS_KINDS=($(kubectl get crds -o jsonpath="{.items[*].spec.names.plural}"))
   KINDS=("${STANDARD_KINDS[@]}" "${CRDS_KINDS[@]}")
 
   for kind in "${KINDS[@]}" ; do
-    dir="${ARTIFACTS_DIR}/resources/namespaced/${namespace}/${kind}"
+    dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${NAMESPACED_DIR_NAME}/${namespace}/${kind}"
     mkdir -p $dir
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
@@ -207,46 +211,49 @@ collectK8sResourcesForNamespace() {
   done
 }
 
-collectClusterScopeK8sResources() {
-  declare -a KINDS=("crds"
-                    "clusterroles" "clusterrolebindings"
-                   )
-  for kind in "${KINDS[@]}" ; do
-    dir="${ARTIFACTS_DIR}/resources/cluster/${kind}"
-    mkdir -p $dir
-
-    names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
-    for name in $names ; do
-      name=${name//[:<>|*?]/_}
-      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
-    done
-  done
-}
-
-collectPodsLogsForNamespace() {
+collectNamespacedPodLogs() {
   namespace="$1"
   if [[ -z $namespace ]]; then return; fi
 
-  dir="${ARTIFACTS_DIR}/cluster/namespaces/${namespace}/logs"
+  dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${NAMESPACED_DIR_NAME}/${namespace}/logs"
   mkdir -p $dir
 
   pods=$(kubectl get -n $namespace pods --no-headers=true -o custom-columns=":metadata.name")
   for pod in $pods ; do
+    pod=${pod//[:<>|*?]/_}
     containers=$(kubectl get -n $namespace pod $pod -o jsonpath="{.spec.containers[*].name}")
     for container in $containers ; do
+      container=${container//[:<>|*?]/_}
       kubectl logs -n $namespace $pod -c $container > "${dir}/${pod}_${container}.log"
     done
   done
 }
 
-collectEventsForNamespace() {
+collectNamespacedEvents() {
   namespace="$1"
   if [[ -z $namespace ]]; then return; fi
 
-  dir="${ARTIFACTS_DIR}/cluster/namespaces/${namespace}"
+  dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${NAMESPACED_DIR_NAME}/${namespace}"
   mkdir -p $dir
 
   kubectl get -n $namespace events > "${dir}/events.yaml"
+}
+
+collectClusterScopeResources() {
+  KINDS=("crds"
+         "pv"
+         "clusterroles" "clusterrolebindings"
+        )
+  for kind in "${KINDS[@]}" ; do
+    dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${CLUSTER_DIR_NAME}/${kind}"
+    mkdir -p $dir
+
+    names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
+    for name in $names ; do
+      name=${name//[:<>|*?]/_}
+      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
+    done
+  done
 }
 
 # Build latest operator image
