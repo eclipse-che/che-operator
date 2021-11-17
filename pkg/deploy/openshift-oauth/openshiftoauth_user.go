@@ -36,10 +36,6 @@ const (
 	OpenshiftOauthUserFinalizerName     = "openshift-oauth-user.finalizers.che.eclipse.org"
 )
 
-var (
-	htpasswdFileContent string
-)
-
 type IOpenShiftOAuthUser interface {
 	Create(ctx *deploy.DeployContext) (bool, error)
 	Delete(ctx *deploy.DeployContext) error
@@ -121,7 +117,8 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 
 	htpasswdSecretExists, _ := deploy.Get(ctx, types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, &corev1.Secret{})
 	if !htpasswdSecretExists {
-		if htpasswdFileContent, err = oou.generateHtPasswdUserInfo(userName, oou.userPassword); err != nil {
+		htpasswdFileContent, err := oou.generateHtPasswdUserInfo(userName, oou.userPassword)
+		if err != nil {
 			return false, err
 		}
 
