@@ -43,6 +43,8 @@ initDefaults() {
   export DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE=devworkspace-controller-test
   export DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE=devworkspace-cheoperator-test
   export IMAGE_PULLER_ENABLE="false"
+  export IS_OPENSHIFT=$(kubectl api-resources --api-group="route.openshift.io" --no-headers=true | head -n1 | wc -l)
+  export IS_KUBERNETES=$(if [[ $IS_OPENSHIFT == 0 ]]; then echo 1; else echo 0; fi)
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -170,11 +172,15 @@ installYq() {
 collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
-  set +e
-  set +x
-  collectClusterResources
-  set -e
-  set -x
+  set +ex
+  if [[ $IS_KUBERNETES == 1 ]]; then
+    # Collect logs only for k8s cluster since OpenShift CI already dump all resources
+    collectClusterResources
+  fi
+
+  # additionally grab server logs for fast access
+  chectl server:logs -n $NAMESPACE -d $ARTIFACTS_DIR
+  set -ex
 }
 
 RESOURCES_DIR_NAME='resources'
@@ -195,12 +201,19 @@ collectNamespacedScopeResources() {
   namespace="$1"
   if [[ -z $namespace ]]; then return; fi
 
-  STANDARD_KINDS=("pods" "jobs" "deployments"
-                  "services" "ingresses"
-                  "configmaps" "secrets"
-                  "serviceaccounts" "roles" "rolebindings"
+  STANDARD_KINDS=(
+                  "pods"
+                  "jobs"
+                  "deployments"
+                  "services"
+                  "ingresses"
+                  "configmaps"
+                  "secrets"
+                  "serviceaccounts"
+                  "roles"
+                  "rolebindings"
                   "pvc"
-                 )
+                  )
   CRDS_KINDS=($(kubectl get crds -o jsonpath="{.items[*].spec.names.plural}"))
   KINDS=("${STANDARD_KINDS[@]}" "${CRDS_KINDS[@]}")
 
@@ -210,8 +223,8 @@ collectNamespacedScopeResources() {
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
     for name in $names ; do
-      name=${name//[:<>|*?]/_}
-      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
+      filename=${name//[:<>|*?]/_}
+      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${filename}.yaml"
     done
   done
 }
@@ -245,9 +258,11 @@ collectNamespacedEvents() {
 }
 
 collectClusterScopeResources() {
-  KINDS=("crds"
-         "pv"
-         "clusterroles" "clusterrolebindings"
+  KINDS=(
+        "crds"
+        "pv"
+        "clusterroles"
+        "clusterrolebindings"
         )
   for kind in "${KINDS[@]}" ; do
     dir="${ARTIFACTS_DIR}/${RESOURCES_DIR_NAME}/${CLUSTER_DIR_NAME}/${kind}"
@@ -255,8 +270,8 @@ collectClusterScopeResources() {
 
     names=$(kubectl get -n $namespace $kind --no-headers=true -o custom-columns=":metadata.name")
     for name in $names ; do
-      name=${name//[:<>|*?]/_}
-      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${name}.yaml"
+      filename=${name//[:<>|*?]/_}
+      kubectl get -n $namespace $kind $name -o yaml > "${dir}/${filename}.yaml"
     done
   done
 }
