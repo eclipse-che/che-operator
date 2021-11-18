@@ -16,7 +16,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -376,65 +375,6 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 			},
 		},
 	}
-}
-
-func getGatewayOauthProxyConfigSpec(instance *orgv1.CheCluster, cookieSecret string) corev1.ConfigMap {
-	return corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config-oauth-proxy",
-			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
-		},
-		Data: map[string]string{
-			"oauth-proxy.cfg": fmt.Sprintf(`
-http_address = ":%d"
-https_address = ""
-provider = "openshift"
-redirect_url = "https://%s/oauth/callback"
-upstreams = [
-	"http://127.0.0.1:8081/"
-]
-client_id = "%s"
-client_secret = "%s"
-scope = "user:full"
-openshift_service_account = "%s"
-cookie_secret = "%s"
-cookie_expire = "24h0m0s"
-email_domains = "*"
-cookie_httponly = false
-pass_access_token = true
-skip_provider_button = true
-%s
-`, GatewayServicePort,
-				instance.Spec.Server.CheHost,
-				instance.Spec.Auth.OAuthClientName,
-				instance.Spec.Auth.OAuthSecret,
-				GatewayServiceName,
-				cookieSecret,
-				skipAuthConfig(instance)),
-		},
-	}
-}
-
-func skipAuthConfig(instance *orgv1.CheCluster) string {
-	var skipAuthPaths []string
-	if !instance.Spec.Server.ExternalPluginRegistry {
-		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.PluginRegistryName)
-	}
-	if !instance.Spec.Server.ExternalDevfileRegistry {
-		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
-	}
-	if util.IsNativeUserModeEnabled(instance) {
-		skipAuthPaths = append(skipAuthPaths, "/healthz$")
-	}
-	if len(skipAuthPaths) > 0 {
-		return fmt.Sprintf("skip_auth_regex = \"%s\"", strings.Join(skipAuthPaths, "|"))
-	}
-	return ""
 }
 
 func getGatewayKubeRbacProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {

@@ -48,6 +48,7 @@ type CheConfigMap struct {
 	CheMetricsEnabled                      string `json:"CHE_METRICS_ENABLED"`
 	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
+	CheInfraKubernetesUserClusterRoles     string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
 	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
 	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
@@ -95,7 +96,9 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 
 	// Adds `/auth` for external identity providers.
 	// If identity provide is deployed by operator then `/auth` is already added.
-	if s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider && !strings.HasSuffix(keycloakURL, "/auth") {
+	if !util.IsNativeUserModeEnabled(s.deployContext.CheCluster) &&
+		s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider &&
+		!strings.HasSuffix(keycloakURL, "/auth") {
 		if strings.HasSuffix(keycloakURL, "/") {
 			keycloakURL = keycloakURL + "auth"
 		} else {
@@ -209,6 +212,13 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	}
 	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
+	cheWorkspaceServiceAccount := "che-workspace"
+	cheUserClusterRoleNames := "NULL"
+	if util.IsNativeUserModeEnabled(s.deployContext.CheCluster) {
+		cheWorkspaceServiceAccount = "NULL"
+		cheUserClusterRoleNames = fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", s.deployContext.CheCluster.Namespace, s.deployContext.CheCluster.Namespace)
+	}
+
 	data := &CheConfigMap{
 		CheMultiUser:                           "true",
 		CheHost:                                cheHost,
@@ -219,7 +229,8 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheWebSocketInternalEndpoint:           webSocketInternalEndpoint,
 		CheDebugServer:                         cheDebug,
 		CheInfrastructureActive:                infra,
-		CheInfraKubernetesServiceAccountName:   "che-workspace",
+		CheInfraKubernetesServiceAccountName:   cheWorkspaceServiceAccount,
+		CheInfraKubernetesUserClusterRoles:     cheUserClusterRoleNames,
 		DefaultTargetNamespace:                 workspaceNamespaceDefault,
 		PvcStrategy:                            pvcStrategy,
 		PvcClaimSize:                           pvcClaimSize,

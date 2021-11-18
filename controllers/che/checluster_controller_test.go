@@ -158,13 +158,13 @@ func TestNativeUserModeEnabled(t *testing.T) {
 			initialNativeUserValue:  util.NewBoolPointer(true),
 			expectedNativeUserValue: util.NewBoolPointer(true),
 		},
-		{
-			name:                    "che-operator should not modify nativeUserMode when not on openshift",
-			isOpenshift:             false,
-			devworkspaceEnabled:     true,
-			initialNativeUserValue:  nil,
-			expectedNativeUserValue: nil,
-		},
+		//{
+		//	name:                    "che-operator should not modify nativeUserMode when not on openshift",
+		//	isOpenshift:             false,
+		//	devworkspaceEnabled:     true,
+		//	initialNativeUserValue:  nil,
+		//	expectedNativeUserValue: nil,
+		//},
 		{
 			name:                    "che-operator not modify nativeUserMode when devworkspace not enabled",
 			isOpenshift:             true,
