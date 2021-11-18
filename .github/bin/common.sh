@@ -608,7 +608,7 @@ enableDevWorkspaceEngine() {
 }
 
 deployCertManager() {
-  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/resources/cert-manager.yml
+  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/resources/cert-manager/cert-manager.yml
   sleep 10s
 
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=60s
