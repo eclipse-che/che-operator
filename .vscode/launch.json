@@ -27,50 +27,69 @@
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testCatalogSource.sh) minikube stable",
+      "name": "Bash-Debug (testCatalog.sh) minikube stable",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "program": "${workspaceFolder}/olm/testCatalog.sh",
       "args": [
+        "-p",
         "kubernetes",
+        "-c",
         "stable",
-        "che",
+        "-i",
+        "quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test",
+        "-n",
+        "eclipse-che",
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testCatalogSource.sh) minikube next",
+      "name": "Bash-Debug (testCatalog.sh) minikube next",
       "cwd": "${workspaceFolder}/olm",
-      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "program": "${workspaceFolder}/olm/testCatalog.sh",
       "args": [
+        "-p",
         "kubernetes",
+        "-c",
         "next",
-        "che",
-        "my_catalog"
+        "-i",
+        "quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next",
+        "-n",
+        "eclipse-che",
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testCatalogSource.sh) openshift next",
+      "name": "Bash-Debug (testCatalog.sh) openshift next",
       "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "program": "${workspaceFolder}/olm/testCatalog.sh",
       "args": [
+        "-p",
         "openshift",
+        "-c",
         "next",
-        "che"
+        "-i",
+        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next",
+        "-n",
+        "eclipse-che",
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (testCatalogSource.sh) openshift stable",
+      "name": "Bash-Debug (testCatalog.sh) openshift stable",
       "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/olm/testCatalogSource.sh",
+      "program": "${workspaceFolder}/olm/testCatalog.sh",
       "args": [
+        "-p",
         "openshift",
+        "-c",
         "stable",
-        "che"
+        "-i",
+        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:test",
+        "-n",
+        "eclipse-che",
       ]
     },
     {
@@ -80,9 +99,14 @@
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
+        "-p",
         "kubernetes",
+        "-c",
         "stable",
-        "che"
+        "-i",
+        "quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test",
+        "-n",
+        "eclipse-che"
       ]
     },
     {
@@ -92,9 +116,14 @@
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
+        "-p",
         "kubernetes",
+        "-c",
         "next",
-        "che"
+        "-i",
+        "quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next",
+        "-n",
+        "eclipse-che"
       ]
     },
     {
@@ -104,9 +133,14 @@
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
+        "-p",
         "openshift",
+        "-c",
         "stable",
-        "che"
+        "-i",
+        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:test",
+        "-n",
+        "eclipse-che"
       ]
     },
     {
@@ -116,35 +150,44 @@
       "cwd": "${workspaceFolder}/olm",
       "program": "${workspaceFolder}/olm/testUpdate.sh",
       "args": [
+        "-p",
         "openshift",
+        "-c",
         "next",
-        "che"
+        "-i",
+        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next",
+        "-n",
+        "eclipse-che"
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushBundleImages.sh) Kubernetes platfrom",
+      "name": "Bash-Debug (buildCatalog.sh) Kubernetes platfrom",
       "cwd": "${workspaceFolder}/olm",
-      "program": "./buildAndPushBundleImages.sh",
+      "program": "./buildCatalog.sh",
       "args": [
         "-p",
         "kubernetes",
         "-c",
-        "next"
+        "next",
+        "-i",
+        "quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next"
       ]
     },
     {
       "type": "bashdb",
       "request": "launch",
-      "name": "Bash-Debug (buildAndPushBundleImages.sh) Openshift platform",
+      "name": "Bash-Debug (buildCatalog.sh) Openshift platform",
       "cwd": "${workspaceFolder}/olm",
-      "program": "./buildAndPushBundleImages.sh",
+      "program": "./buildCatalog.sh",
       "args": [
         "-p",
         "openshift",
         "-c",
-        "next"
+        "next",
+        "-i",
+        "quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
       ]
     },
     {

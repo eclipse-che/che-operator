@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2020-2020 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -49,7 +49,7 @@ var (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if util.IsNativeUserModeEnabled(cr) {
+	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
 		return syncNativeIdentityProviderItems(deployContext)
 	} else if cr.Spec.Auth.ExternalIdentityProvider {
 		return true, nil
@@ -148,7 +148,7 @@ func syncKeycloakResources(deployContext *deploy.DeployContext) (bool, error) {
 
 func syncOpenShiftIdentityProvider(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if util.IsOpenShift && util.IsOAuthEnabled(cr) {
+	if util.IsOpenShift && cr.IsOpenShiftOAuthEnabled() {
 		return SyncOpenShiftIdentityProviderItems(deployContext)
 	}
 	return true, nil
@@ -328,7 +328,7 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted bool, err error) {
-	if !util.IsOAuthEnabled(deployContext.CheCluster) && deployContext.CheCluster.Status.OpenShiftoAuthProvisioned == true {
+	if !deployContext.CheCluster.IsOpenShiftOAuthEnabled() && deployContext.CheCluster.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
 		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: deployContext.CheCluster.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err.Error())
@@ -369,7 +369,7 @@ func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {
 		"http://"+deploy.IdentityProviderName+":8080",
 		[]string{})
 
-	if util.IsNativeUserModeEnabled(cheCluster) {
+	if util.IsOpenShift && cheCluster.IsNativeUserModeEnabled() {
 		cfg.AddAuthHeaderRewrite(deploy.IdentityProviderName)
 	}
 

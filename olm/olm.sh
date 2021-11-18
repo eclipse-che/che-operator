@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020 Red Hat, Inc.
+# Copyright (c) 2019-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -10,6 +10,7 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 #
+
 # Scripts to prepare OLM(operator lifecycle manager) and install che-operator package
 # with specific version using OLM.
 
@@ -247,6 +248,7 @@ installOPM() {
     chmod +x "${OPM_BINARY}"
     echo "[INFO] Downloading completed!"
     echo "[INFO] 'opm' binary path: ${OPM_BINARY}"
+    ${OPM_BINARY} version
     popd || exit
   fi
 }
@@ -402,35 +404,25 @@ installPackage() {
   fi
 }
 
-applyCRCheCluster() {
-  platform="${1}"
-  if [ -z "${platform}" ]; then
-    echo "[ERROR] Please specify first argument: 'platform'"
-    exit 1
-  fi
-  namespace="${2}"
-  if [ -z "${namespace}" ]; then
-    echo "[ERROR] Please specify second argument: 'namespace'"
-    exit 1
-  fi
-  CSV_FILE="${3}"
-  if [ -z "${CSV_FILE}" ]; then
-    echo "[ERROR] Please specify third argument: 'CSV_FILE'"
-    exit 1
+applyCheClusterCR() {
+  CSV_NAME=${1}
+  PLATFORM=${2}
+
+  CHECLUSTER=$(kubectl get csv ${CSV_NAME} -n ${NAMESPACE} -o yaml \
+    | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" \
+    | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}" \
+    | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"" \
+    | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
+
+  echo "${CHECLUSTER}"
+  if [[ ${PLATFORM} == "kubernetes" ]]; then
+    CHECLUSTER=$(echo "${CHECLUSTER}" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
   fi
 
-  echo "[INFO] Creating Custom Resource"
+  echo "[INFO] Creating Custom Resource: "
+  echo "${CHECLUSTER}"
 
-  CR=$(yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" "${CSV_FILE}")
-  CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
-  CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"")
-  CR=$(echo "$CR" | yq -r ".spec.server.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
-  if [ "${platform}" == "kubernetes" ]
-  then
-    CR=$(echo "$CR" | yq -r ".spec.k8s.ingressDomain = \"$(minikube ip).nip.io\"")
-  fi
-
-  echo "$CR" | kubectl apply -n "${namespace}" --validate=false -f -
+  echo "${CHECLUSTER}" | kubectl apply -n $NAMESPACE -f -
 }
 
 waitCheServerDeploy() {
@@ -464,6 +456,8 @@ waitCheServerDeploy() {
 }
 
 waitCatalogSourcePod() {
+  sleep 10s
+
   CURRENT_TIME=$(date +%s)
   ENDTIME=$(($CURRENT_TIME + 300))
   CATALOG_POD=$(kubectl get pods -n "${namespace}" -o yaml | yq -r ".items[] | select(.metadata.name | startswith(\"${packageName}\")) | .metadata.name")
@@ -507,8 +501,6 @@ getBundleListFromCatalogSource() {
   )
 
   LIST_BUNDLES=$(echo "${LIST_BUNDLES}" | head -n -1)
-
-  echo "${LIST_BUNDLES}"
 }
 
 getPreviousCSVInfo() {

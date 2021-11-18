@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2021 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,8 +14,6 @@ package che
 
 import (
 	"context"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +22,8 @@ import (
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	"github.com/eclipse-che/che-operator/pkg/deploy/devfileregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
+	openshiftoauth "github.com/eclipse-che/che-operator/pkg/deploy/openshift-oauth"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
@@ -48,20 +48,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	userv1 "github.com/openshift/api/user/v1"
 	networking "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-)
-
-const (
-	warningNoIdentityProvidersMessage = "No Openshift identity providers."
-
-	AddIdentityProviderMessage      = "Openshift oAuth was disabled. How to add identity provider read in the Help Link:"
-	warningNoRealUsersMessage       = "No real users. Openshift oAuth was disabled. How to add new user read in the Help Link:"
-	failedUnableToGetOpenshiftUsers = "Unable to get users on the OpenShift cluster."
-
-	howToAddIdentityProviderLinkOS4 = "https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html#identity-provider-overview_understanding-identity-provider"
-	howToConfigureOAuthLinkOS3      = "https://docs.openshift.com/container-platform/3.11/install_config/configuring_authentication.html"
 )
 
 // CheClusterReconciler reconciles a CheCluster object
@@ -82,7 +70,6 @@ type CheClusterReconciler struct {
 	// in the API Server
 	discoveryClient  discovery.DiscoveryInterface
 	tests            bool
-	userHandler      OpenShiftOAuthUserHandler
 	reconcileManager *deploy.ReconcileManager
 	// the namespace to which to limit the reconciliation. If empty, all namespaces are considered
 	namespace string
@@ -102,7 +89,11 @@ func NewReconciler(
 	if !util.IsTestMode() {
 		reconcileManager.RegisterReconciler(NewCheClusterValidator())
 	}
-	reconcileManager.RegisterReconciler(deploy.NewImagePuller())
+	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
+
+	openShiftOAuthUser := openshiftoauth.NewOpenShiftOAuthUser()
+	reconcileManager.RegisterReconciler(openShiftOAuthUser)
+	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth(openShiftOAuthUser))
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
@@ -111,7 +102,6 @@ func NewReconciler(
 		client:           k8sclient,
 		nonCachedClient:  noncachedClient,
 		discoveryClient:  discoveryClient,
-		userHandler:      NewOpenShiftOAuthUserHandler(noncachedClient),
 		namespace:        namespace,
 		reconcileManager: reconcileManager,
 	}
@@ -297,57 +287,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// TODO remove in favor of r.reconcileManager.FinalizeAll(deployContext)
 	r.reconcileFinalizers(deployContext)
 
-	if util.IsOpenShift4 && util.IsDeleteOAuthInitialUser(checluster) {
-		if err := r.userHandler.DeleteOAuthInitialUser(deployContext); err != nil {
-			logrus.Errorf("Unable to delete initial OpenShift OAuth user from a cluster. Cause: %s", err.Error())
-			checluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
-			err := deploy.UpdateCheCRSpec(deployContext, "initialOpenShiftOAuthUser", "nil")
-			return reconcile.Result{}, err
-		}
-
-		checluster.Spec.Auth.OpenShiftoAuth = nil
-		checluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
-		updateFields := map[string]string{
-			"openShiftoAuth":            "nil",
-			"initialOpenShiftOAuthUser": "nil",
-		}
-
-		if err := deploy.UpdateCheCRSpecByFields(deployContext, updateFields); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
-	}
-
-	// Update status if OpenShift initial user is deleted (in the previous step)
-	if checluster.Spec.Auth.InitialOpenShiftOAuthUser == nil && checluster.Status.OpenShiftOAuthUserCredentialsSecret != "" {
-		secret := &corev1.Secret{}
-		exists, err := getOpenShiftOAuthUserCredentialsSecret(deployContext, secret)
-		if err != nil {
-			// We should `Requeue` since we deal with cluster scope objects
-			return ctrl.Result{RequeueAfter: time.Second}, err
-		} else if !exists {
-			checluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
-			if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	if util.IsOpenShift && checluster.Spec.DevWorkspace.Enable && checluster.Spec.Auth.NativeUserMode == nil {
-		newNativeUserModeValue := util.NewBoolPointer(true)
-		checluster.Spec.Auth.NativeUserMode = newNativeUserModeValue
-		if err := deploy.UpdateCheCRSpec(deployContext, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
-	if util.IsOpenShift && checluster.Spec.Auth.OpenShiftoAuth == nil {
-		if reconcileResult, err := r.autoEnableOAuth(deployContext); err != nil {
-			return reconcileResult, err
-		}
-	}
-
 	// Reconcile Dev Workspace Operator
 	done, err := devworkspace.ReconcileDevWorkspace(deployContext)
 	if !done {
@@ -393,13 +332,13 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(util.IsOpenShift4 && util.IsOAuthEnabled(checluster) && !checluster.Spec.Server.TlsSupport) {
+			(util.IsOpenShift4 && checluster.IsOpenShiftOAuthEnabled() && !checluster.Spec.Server.TlsSupport) {
 			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 
-		if util.IsOAuthEnabled(checluster) {
+		if util.IsOpenShift && checluster.IsOpenShiftOAuthEnabled() {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
 			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
 			if err != nil {
@@ -644,83 +583,14 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployContext) (reconcile.Result, error) {
-	oauth := false
-	cr := deployContext.CheCluster
-	if util.IsOpenShift4 {
-		openshitOAuth, err := GetOpenshiftOAuth(deployContext.ClusterAPI.NonCachedClient)
-		if err != nil {
-			logrus.Error("Unable to get Openshift oAuth. Cause: " + err.Error())
-		} else {
-			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
-				oauth = true
-			} else if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
-				// enable OpenShift OAuth without adding initial OpenShift OAuth user
-				// since kubeadmin is a valid user for native user mode
-				oauth = true
-			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
-				if err != nil {
-					logrus.Error(warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error())
-					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
-					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
-					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
-					if err := deploy.UpdateCheCRStatus(deployContext, "initialOpenShiftOAuthUser", ""); err != nil {
-						return reconcile.Result{}, err
-					}
-					oauth = false
-				} else {
-					if !provisioned {
-						return reconcile.Result{}, err
-					}
-					oauth = true
-					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
-						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
-						if err := deploy.UpdateCheCRStatus(deployContext, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
-							return reconcile.Result{}, err
-						}
-					}
-				}
-			}
-		}
-	} else { // Openshift 3
-		users := &userv1.UserList{}
-		listOptions := &client.ListOptions{}
-		if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
-			logrus.Error(failedUnableToGetOpenshiftUsers + " Cause: " + err.Error())
-		} else {
-			oauth = len(users.Items) >= 1
-			if !oauth {
-				logrus.Warn(warningNoRealUsersMessage + " " + howToConfigureOAuthLinkOS3)
-			}
-		}
-	}
-
-	newOAuthValue := util.NewBoolPointer(oauth)
-	if !reflect.DeepEqual(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
-		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
-		if err := deploy.UpdateCheCRSpec(deployContext, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
-	return reconcile.Result{}, nil
-}
-
 func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployContext) {
-	if util.IsOpenShift && util.IsOAuthEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && deployContext.CheCluster.IsOpenShiftOAuthEnabled() {
 		if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
 			logrus.Error(err)
 		}
 	}
 
-	if util.IsOpenShift4 && util.IsInitialOpenShiftOAuthUserEnabled(deployContext.CheCluster) {
-		if !deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-			r.userHandler.DeleteOAuthInitialUser(deployContext)
-		}
-	}
-
-	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
 		if _, err := r.reconcileGatewayPermissionsFinalizers(deployContext); err != nil {
 			logrus.Error(err)
 		}

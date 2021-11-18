@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2021 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,9 +9,12 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package che
 
 import (
+	"strconv"
+
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -137,7 +140,7 @@ func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.Deplo
 		}
 	}
 
-	if !util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+	if !util.IsOpenShift || !deployContext.CheCluster.IsNativeUserModeEnabled() {
 		keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
 		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
 			deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
@@ -242,6 +245,14 @@ func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.Deplo
 		strategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 		deployContext.CheCluster.Spec.Server.ServerExposureStrategy = strategy
 		if err := deploy.UpdateCheCRSpec(deployContext, "serverExposureStrategy", strategy); err != nil {
+			return err
+		}
+	}
+
+	if util.IsOpenShift && deployContext.CheCluster.Spec.DevWorkspace.Enable && deployContext.CheCluster.Spec.Auth.NativeUserMode == nil {
+		newNativeUserModeValue := util.NewBoolPointer(true)
+		deployContext.CheCluster.Spec.Auth.NativeUserMode = newNativeUserModeValue
+		if err := deploy.UpdateCheCRSpec(deployContext, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {
 			return err
 		}
 	}

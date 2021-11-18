@@ -1,13 +1,15 @@
 #
-#  Copyright (c) 2019-2021 Red Hat, Inc.
-#    This program and the accompanying materials are made
-#    available under the terms of the Eclipse Public License 2.0
-#    which is available at https://www.eclipse.org/legal/epl-2.0/
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
 #
-#  SPDX-License-Identifier: EPL-2.0
+# SPDX-License-Identifier: EPL-2.0
 #
-#  Contributors:
-#    Red Hat, Inc. - initial API and implementation
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -68,7 +70,7 @@ spec:
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
               value: quay.io/eclipse/che-tls-secret-creator:alpine-d1ed4ad
             - name: RELATED_IMAGE_pvc_jobs
-              value: registry.access.redhat.com/ubi8-minimal:8.4-210
+              value: registry.access.redhat.com/ubi8-minimal:8.5-204
             - name: RELATED_IMAGE_postgres
               value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
             - name: RELATED_IMAGE_postgres_13_3

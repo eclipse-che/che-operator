@@ -86,7 +86,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	if util.IsNativeUserModeEnabled(instance) {
+	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
 		if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
 			if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
 				return err
@@ -272,7 +272,7 @@ func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.Con
 		"http://"+deploy.CheServiceName+":8080",
 		[]string{})
 
-	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
 		// native user mode is currently only available on OpenShift but let's be defensive here so that
 		// this doesn't break once we enable it on Kubernetes, too. Token check will have to work
@@ -439,7 +439,7 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	traefikPort := GatewayServicePort
-	if util.IsNativeUserModeEnabled(instance) {
+	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
 		traefikPort = 8081
 	}
 	data := fmt.Sprintf(`
@@ -462,7 +462,7 @@ providers:
 log:
   level: "INFO"`, traefikPort)
 
-	if util.IsNativeUserModeEnabled(instance) {
+	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
 		data += `
 experimental:
   localPlugins:
@@ -571,7 +571,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 		},
 	}
 
-	if util.IsNativeUserModeEnabled(instance) {
+	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
 		containers = append(containers,
 			corev1.Container{
 				Name:            "oauth-proxy",
@@ -623,7 +623,7 @@ func getTraefikContainerVolumeMounts(instance *orgv1.CheCluster) []corev1.Volume
 			MountPath: "/dynamic-config",
 		},
 	}
-	if util.IsNativeUserModeEnabled(instance) {
+	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
 		mounts = append(mounts, corev1.VolumeMount{
 			Name:      "header-rewrite-traefik-plugin",
 			MountPath: "/plugins-local/src/github.com/che-incubator/header-rewrite-traefik-plugin",
@@ -653,7 +653,7 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 		},
 	}
 
-	if util.IsNativeUserModeEnabled(instance) {
+	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
 		volumes = append(volumes, corev1.Volume{
 			Name: "oauth-proxy-config",
 			VolumeSource: corev1.VolumeSource{

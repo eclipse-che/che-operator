@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2021 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -26,7 +26,7 @@ const (
 )
 
 func (r *CheClusterReconciler) reconcileGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
-	if util.IsNativeUserModeEnabled(deployContext.CheCluster) {
+	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
 		name := gatewayPermisisonsName(deployContext.CheCluster)
 		if _, err := deploy.SyncClusterRoleToCluster(deployContext, name, getGatewayClusterRoleRules()); err != nil {
 			return false, err

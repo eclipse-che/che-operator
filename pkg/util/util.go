@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -503,15 +503,10 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 	}
 
 	workspaceNamespaceDefault := cr.Namespace
-	if IsOpenShift && IsOAuthEnabled(cr) {
+	if IsOpenShift && cr.IsOpenShiftOAuthEnabled() {
 		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
 	}
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
-}
-
-// IsDeleteOAuthInitialUser - returns true when initial Openshfit oAuth user must be deleted.
-func IsDeleteOAuthInitialUser(cr *orgv1.CheCluster) bool {
-	return cr.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*cr.Spec.Auth.InitialOpenShiftOAuthUser && cr.Status.OpenShiftOAuthUserCredentialsSecret != ""
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {

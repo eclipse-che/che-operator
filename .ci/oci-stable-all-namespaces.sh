@@ -9,6 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+#
 
 # exit immediately when a command fails
 set -e

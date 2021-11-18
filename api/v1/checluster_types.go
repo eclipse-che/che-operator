@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2021 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -780,4 +780,21 @@ func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 
 func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
 	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
+}
+
+// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
+func (c *CheCluster) IsOpenShiftOAuthUserConfigured() bool {
+	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
+}
+
+func (c *CheCluster) IsOpenShiftOAuthUserMustBeDeleted() bool {
+	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*c.Spec.Auth.InitialOpenShiftOAuthUser
+}
+
+func (c *CheCluster) IsOpenShiftOAuthEnabled() bool {
+	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
+}
+
+func (c *CheCluster) IsNativeUserModeEnabled() bool {
+	return c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
 }

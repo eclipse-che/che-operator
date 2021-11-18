@@ -9,6 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+#
 
 # Checks if repository resources are up to date:
 # - CRDs

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Red Hat, Inc.
+// Copyright (c) 2019-2021 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -113,7 +113,7 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	if util.IsOpenShift && util.IsOAuthEnabled(s.deployContext.CheCluster) {
+	if util.IsOpenShift && s.deployContext.CheCluster.IsOpenShiftOAuthEnabled() {
 		openShiftIdentityProviderId = "openshift-v3"
 		if util.IsOpenShift4 {
 			openShiftIdentityProviderId = "openshift-v4"

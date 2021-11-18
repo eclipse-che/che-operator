@@ -1,11 +1,14 @@
 #!/bin/bash
 #
-# Copyright (c) 2012-2020 Red Hat, Inc.
+# Copyright (c) 2019-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
 #
 # SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
 #
 
 set -e
@@ -24,13 +27,24 @@ source "${OPERATOR_REPO}/olm/olm.sh"
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  local channel=next
+  local channel
+  local catalogImage
+
   if [[ $GITHUB_HEAD_REF =~ release$ ]]; then
     channel=stable
+    catalogImage=quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test
+  else
+    # build operator image and push to a local docker registry
+    export OPERATOR_IMAGE="127.0.0.1:5000/test/operator:test"
+    buildAndPushCheOperatorImage
+
+    # build catalog source
+    channel=next
+    catalogImage=127.0.0.1:5000/test/catalog:test
+    "${OPERATOR_REPO}"/olm/buildCatalog.sh -p kubernetes -c next -i ${catalogImage} -o ${OPERATOR_IMAGE}
   fi
 
-  export OPERATOR_IMAGE="${IMAGE_REGISTRY_HOST}/operator:test"
-  source "${OPERATOR_REPO}"/olm/testCatalogSource.sh "kubernetes" ${channel} "${NAMESPACE}"
+  source "${OPERATOR_REPO}"/olm/testCatalog.sh -p kubernetes -c ${channel} -n ${NAMESPACE} -i ${catalogImage}
   startNewWorkspace
   waitWorkspaceStart
 
@@ -51,6 +65,4 @@ runTest() {
 }
 
 initDefaults
-installOperatorMarketPlace
-insecurePrivateDockerRegistry
 runTest

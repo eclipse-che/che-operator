@@ -9,6 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
+
 package che
 
 import (
@@ -31,6 +32,7 @@ const (
 // - self-contradictory configurations
 // - configurations with which it is impossible to deploy Che
 type CheClusterValidator struct {
+	deploy.Reconcilable
 }
 
 func NewCheClusterValidator() *CheClusterValidator {
@@ -56,6 +58,6 @@ func (v *CheClusterValidator) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (v *CheClusterValidator) Finalize(ctx *deploy.DeployContext) (bool, error) {
-	return true, nil
+func (v *CheClusterValidator) Finalize(ctx *deploy.DeployContext) error {
+	return nil
 }

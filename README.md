@@ -112,7 +112,7 @@ $ make update-resources -s
 3. Build catalog source and bundle images:
 
 ```bash
-$ olm/buildAndPushBundleImages.sh -p <openshift|kubernetes> -c "next"
+$ olm/buildCatalog.sh -p <PLATFORM> -c <CHANNEL> -i <CATALOG_IMAGE>
 ```
 
 4. Create a custom catalog source yaml (update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):
@@ -121,10 +121,10 @@ $ olm/buildAndPushBundleImages.sh -p <openshift|kubernetes> -c "next"
 apiVersion:  operators.coreos.com/v1alpha1
 kind:         CatalogSource
 metadata:
-  name:         eclipse-che-preview-custom
-  namespace:    che-namespace
+  name:         eclipse-che-custom-catalog
+  namespace:    eclipse-che
 spec:
-  image:        <IMAGE_REGISTRY_HOST>/<IMAGE_REGISTRY_USER_NAME>/eclipse-che-<openshift|kubernetes>-opm-catalog:preview
+  image:         <CATALOG_IMAGE>
   sourceType:  grpc
   updateStrategy:
     registryPoll:
@@ -135,7 +135,7 @@ spec:
 
 
 ```bash
-$ chectl server:deploy --installer=olm --platform=<CHECTL_SUPPORTED_PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=next --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
+$ chectl server:deploy --installer=olm --platform=<PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=next --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
 ```
 
 ### Deploy stable Che operator in Cluster Wide Availability

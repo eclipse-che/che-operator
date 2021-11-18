@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2019-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
 # available under the terms of the Eclipse Public License 2.0
 # which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,6 +9,7 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
+#
 
 set -e
 
@@ -109,6 +110,8 @@ do
   RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
   RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
 
+  MANAGER_YAML="${OPERATOR_DIR}/config/manager/manager.yaml"
+
   setLatestReleasedVersion
   downloadLatestReleasedBundleCRCRD
   packageName=$(getPackageName "${platform}")
@@ -169,12 +172,17 @@ do
   -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=.*/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
   -i "${BUNDLE_DOCKERFILE}"
 
-  pushd "${CURRENT_DIR}" || true
+  pushd "${CURRENT_DIR}" || exit 1
   source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
                 -t "${RELEASE}" \
-                -s "${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml" \
-                -o "${OPERATOR_DIR}/config/manager/manager.yaml"
-  popd || true
+                -s "${RELEASE_CSV}" \
+                -o "${MANAGER_YAML}"
+  popd || exit 1
+
+  pushd "${OPERATOR_DIR}" || exit 1
+  make add-license "${RELEASE_CSV}"
+  make add-license "${MANAGER_YAML}"
+  popd || exit 1
 
   if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CHE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true

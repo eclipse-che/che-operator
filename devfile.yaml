@@ -1,3 +1,15 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
 metadata:
   name: che-operator
 projects:
@@ -23,7 +35,7 @@ components:
     memoryLimit: 1G
     type: dockerimage
     alias: dev
-    image: 'quay.io/eclipse/che-golang-1.12:nightly'
+    image: 'quay.io/eclipse/che-golang-1.14:next'
     env:
       - value: /go
         name: GOPATH
@@ -31,24 +43,15 @@ components:
         name: GOCACHE
 apiVersion: 1.0.0
 commands:
-  - name: compile
+  - name: Compile
     actions:
-      - workdir: /projects/che-operator
+      - workdir: /projects/src/github.com/eclipse-che/che-operator
         type: exec
-        command: >-
-          BINARY_PATH=/tmp/che-operator/che-operator && OOS=linux GOARCH=$ARCH
-          CGO_ENABLED=0 go build -o ${BINARY_PATH} cmd/manager/main.go && echo
-          "Compiled to $BINARY_PATH" && printf "\033[32mDone.\033[0m"
+        command: make compile
         component: dev
-  - name: test
+  - name: Format
     actions:
-      - workdir: /projects/che-operator
+      - workdir: /projects/src/github.com/eclipse-che/che-operator
         type: exec
-        command: go test -mod vendor ./...
-        component: dev
-  - name: format
-    actions:
-      - workdir: /projects/che-operator
-        type: exec
-        command: 'go fmt ./... && printf "\033[32mDone.\033[0m"'
+        command: 'make fmt'
         component: dev
