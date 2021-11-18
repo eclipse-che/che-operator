@@ -238,11 +238,10 @@ collectNamespacedPodLogs() {
 
   pods=$(kubectl get -n $namespace pods --no-headers=true -o custom-columns=":metadata.name")
   for pod in $pods ; do
-    pod=${pod//[:<>|*?]/_}
     containers=$(kubectl get -n $namespace pod $pod -o jsonpath="{.spec.containers[*].name}")
     for container in $containers ; do
-      container=${container//[:<>|*?]/_}
-      kubectl logs -n $namespace $pod -c $container > "${dir}/${pod}_${container}.log"
+      filename=${pod//[:<>|*?]/_}_${container//[:<>|*?]/_}
+      kubectl logs -n $namespace $pod -c $container > "${dir}/${filename}.log"
     done
   done
 }
