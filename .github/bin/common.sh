@@ -171,8 +171,10 @@ collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
   set +e
+  set +x
   collectClusterResources
   set -e
+  set -x
 }
 
 RESOURCES_DIR_NAME='resources'
