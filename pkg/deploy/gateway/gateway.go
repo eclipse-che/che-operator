@@ -86,7 +86,7 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if deployContext.CheCluster.IsNativeUserModeEnabled() {
 		if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
 			if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
 				return err
@@ -439,7 +439,7 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
 	traefikPort := GatewayServicePort
-	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
+	if instance.IsNativeUserModeEnabled() {
 		traefikPort = 8081
 	}
 	data := fmt.Sprintf(`
@@ -571,7 +571,7 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 		},
 	}
 
-	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
+	if instance.IsNativeUserModeEnabled() {
 		containers = append(containers,
 			corev1.Container{
 				Name:            "oauth-proxy",
@@ -653,7 +653,7 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 		},
 	}
 
-	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
+	if instance.IsNativeUserModeEnabled() {
 		volumes = append(volumes, corev1.Volume{
 			Name: "oauth-proxy-config",
 			VolumeSource: corev1.VolumeSource{

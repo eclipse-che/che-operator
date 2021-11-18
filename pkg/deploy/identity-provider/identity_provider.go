@@ -49,7 +49,7 @@ var (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if deployContext.CheCluster.IsNativeUserModeEnabled() {
 		return syncNativeIdentityProviderItems(deployContext)
 	} else if cr.Spec.Auth.ExternalIdentityProvider {
 		return true, nil

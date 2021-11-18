@@ -140,7 +140,7 @@ func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.Deplo
 		}
 	}
 
-	if !util.IsOpenShift || !deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if !deployContext.CheCluster.IsNativeUserModeEnabled() {
 		keycloakRealm := util.GetValue(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
 		if len(deployContext.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
 			deployContext.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
