@@ -491,15 +491,6 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 	return reconcile.Result{}, nil
 }
 
-func addLabelsToSecret(labels map[string]string, secret *corev1.Secret) {
-	if secret.ObjectMeta.Labels == nil {
-		secret.ObjectMeta.Labels = make(map[string]string)
-	}
-	for labelName, labelValue := range labels {
-		secret.ObjectMeta.Labels[labelName] = labelValue
-	}
-}
-
 func isCheTLSSecretValid(cheTLSSecret *corev1.Secret) bool {
 	if data, exists := cheTLSSecret.Data["tls.key"]; !exists || len(data) == 0 {
 		return false

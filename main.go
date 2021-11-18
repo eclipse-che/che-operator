@@ -347,48 +347,57 @@ func main() {
 }
 
 func getCacheFunc() (cache.NewCacheFunc, error) {
-	cheInstanceRequirement, err := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{os.Getenv("CHE_FLAVOR")})
+	partOfCheRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.Equals, []string{deploy.CheEclipseOrg})
 	if err != nil {
 		return nil, err
 	}
-	cheObjectSelector := labels.NewSelector().Add(*cheInstanceRequirement)
+	partOfCheObjectSelector := labels.NewSelector().Add(*partOfCheRequirement)
 
-	logrus.Infof("Limit cache by selector: %s", cheObjectSelector.String())
+	logrus.Infof("Limit cache by selector: %s", partOfCheObjectSelector.String())
 
 	routeKey := &routev1.Route{}
 	selectors := cache.SelectorsByObject{
 		&appsv1.Deployment{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&corev1.Pod{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&batchv1.Job{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&corev1.Service{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&networkingv1.Ingress{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		routeKey: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&corev1.ConfigMap{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&corev1.Secret{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&corev1.ServiceAccount{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&rbacv1.Role{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
 		},
 		&rbacv1.RoleBinding{}: {
-			Label: cheObjectSelector,
+			Label: partOfCheObjectSelector,
+		},
+		&rbacv1.ClusterRole{}: {
+			Label: partOfCheObjectSelector,
+		},
+		&rbacv1.ClusterRoleBinding{}: {
+			Label: partOfCheObjectSelector,
+		},
+		&corev1.PersistentVolumeClaim{}: {
+			Label: partOfCheObjectSelector,
 		},
 	}
 
