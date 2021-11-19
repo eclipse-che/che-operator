@@ -396,7 +396,8 @@ authorization:
       name: "namespace"
   resourceAttributes:
     apiVersion: v1
-    resource: services
+    apiGroup: workspace.devfile.io
+    resource: devworkspaces
     namespace: "{{ .Value }}"`,
 		},
 	}

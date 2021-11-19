@@ -82,7 +82,7 @@ cookie_secret = "%s"
 cookie_expire = "24h0m0s"
 email_domains = "*"
 cookie_httponly = false
-pass_access_token = true
+pass_authorization_header = true
 skip_provider_button = true
 %s
 `, GatewayServicePort,
