@@ -215,7 +215,7 @@ func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) err
 		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return err
 	}
-	notPartOfCheSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{cheFlavor})
+	notPartOfCheSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{deploy.CheEclipseOrg})
 	if err != nil {
 		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return err
@@ -284,7 +284,6 @@ func getFailedToCreateSelectorErrorMessage() string {
 }
 
 func getObjectMigratedMessage(obj client.Object) string {
-	return fmt.Sprintf("Added '%s=%s' label to %s object of %s kind.",
-		deploy.KubernetesPartOfLabelKey, deploy.CheEclipseOrg,
-		obj.GetName(), obj.GetObjectKind().GroupVersionKind().Kind)
+	return fmt.Sprintf("Added '%s=%s' label to %s object of %s kind",
+		deploy.KubernetesPartOfLabelKey, deploy.CheEclipseOrg, obj.GetName(), deploy.GetObjectType(obj))
 }
