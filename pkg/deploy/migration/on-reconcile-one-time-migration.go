@@ -14,6 +14,7 @@ package migration
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -185,18 +186,22 @@ func addPartOfCheLabelToObject(ctx *deploy.DeployContext, objectName string, obj
 		return err
 	}
 
-	// Add part-of labels to the object
+	if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), setPartOfLabel(obj)); err != nil {
+		return err
+	}
+	logrus.Info(getObjectMigratedMessage(obj))
+
+	return nil
+}
+
+func setPartOfLabel(obj client.Object) client.Object {
 	labels := obj.GetLabels()
 	if labels == nil {
 		labels = make(map[string]string)
 	}
 	labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
 	obj.SetLabels(labels)
-	if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), obj); err != nil {
-		return err
-	}
-
-	return nil
+	return obj
 }
 
 // addPartOfLabelForObjectsWithInstanceCheLabel searches for objects in Che installation namespace,
@@ -264,18 +269,11 @@ func addPartOfCheLabelToObjectsBySelector(ctx *deploy.DeployContext, listOptions
 	}
 
 	for _, runtimeObj := range objects {
-		obj := runtimeObj.(client.Object)
-
-		labels := obj.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-		labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
-		obj.SetLabels(labels)
-
+		obj := setPartOfLabel(runtimeObj.(client.Object))
 		if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), obj); err != nil {
 			return err
 		}
+		logrus.Info(getObjectMigratedMessage(obj))
 	}
 
 	return nil
@@ -283,4 +281,10 @@ func addPartOfCheLabelToObjectsBySelector(ctx *deploy.DeployContext, listOptions
 
 func getFailedToCreateSelectorErrorMessage() string {
 	return "Failed to create selector for resources migration. Unable to perform resources migration."
+}
+
+func getObjectMigratedMessage(obj client.Object) string {
+	return fmt.Sprintf("Added '%s=%s' label to %s object of %s kind.",
+		deploy.KubernetesPartOfLabelKey, deploy.CheEclipseOrg,
+		obj.GetName(), obj.GetObjectKind().GroupVersionKind().Kind)
 }
