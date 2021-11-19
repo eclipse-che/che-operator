@@ -538,8 +538,8 @@ func GetExpectedKubernetesImagePuller(ctx *deploy.DeployContext) *chev1alpha1.Ku
 				*metav1.NewControllerRef(ctx.CheCluster, ctx.CheCluster.GroupVersionKind()),
 			},
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": ctx.CheCluster.Name,
-				"app":                       "che",
+				"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
+				"app":                       deploy.DefaultCheFlavor(ctx.CheCluster),
 				"component":                 "kubernetes-image-puller",
 			},
 		},

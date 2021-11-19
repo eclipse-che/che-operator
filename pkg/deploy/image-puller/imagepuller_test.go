@@ -225,9 +225,9 @@ func TestImagePullerConfiguration(t *testing.T) {
 					Name:            os.Getenv("CHE_FLAVOR") + "-image-puller",
 					Namespace:       namespace,
 					Labels: map[string]string{
-						"app":                       "che",
+						"app":                       os.Getenv("CHE_FLAVOR"),
 						"component":                 "kubernetes-image-puller",
-						"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
+						"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -752,8 +752,8 @@ func InitImagePuller(options ImagePullerOptions) *chev1alpha1.KubernetesImagePul
 			Namespace:       namespace,
 			ResourceVersion: options.ObjectMetaResourceVersion,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
-				"app":                       "che",
+				"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
+				"app":                       os.Getenv("CHE_FLAVOR"),
 				"component":                 "kubernetes-image-puller",
 			},
 			OwnerReferences: []metav1.OwnerReference{
@@ -784,8 +784,8 @@ func getDefaultImagePuller() *chev1alpha1.KubernetesImagePuller {
 			Name:      os.Getenv("CHE_FLAVOR") + "-image-puller",
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": os.Getenv("CHE_FLAVOR"),
-				"app":                       "che",
+				"app.kubernetes.io/part-of": deploy.CheEclipseOrg,
+				"app":                       os.Getenv("CHE_FLAVOR"),
 				"component":                 "kubernetes-image-puller",
 			},
 			OwnerReferences: []metav1.OwnerReference{
