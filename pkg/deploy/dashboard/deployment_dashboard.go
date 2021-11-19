@@ -201,7 +201,7 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 func (d *Dashboard) evaluateOpenShiftConsoleURL() string {
 	console := &configv1.Console{}
 
-	err := d.deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{
+	err := d.deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
 		Name:      "cluster",
 		Namespace: "openshift-console",
 	}, console)

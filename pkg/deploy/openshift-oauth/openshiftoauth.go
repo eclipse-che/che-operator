@@ -95,7 +95,7 @@ func (oo *OpenShiftOAuth) enableOpenShiftOAuth(ctx *deploy.DeployContext) (recon
 	} else { // Openshift 3
 		users := &userv1.UserList{}
 		listOptions := &client.ListOptions{}
-		if err := ctx.ClusterAPI.NonCachedClient.List(context.TODO(), users, listOptions); err != nil {
+		if err := ctx.ClusterAPI.NonCachingClient.List(context.TODO(), users, listOptions); err != nil {
 			logrus.Error(failedUnableToGetOpenshiftUsers + " Cause: " + err.Error())
 		} else {
 			oauth = len(users.Items) >= 1

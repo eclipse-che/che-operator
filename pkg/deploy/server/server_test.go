@@ -50,9 +50,9 @@ func TestSyncService(t *testing.T) {
 			},
 		},
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 	}
 
@@ -97,9 +97,9 @@ func TestSyncAll(t *testing.T) {
 	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 		Proxy: &deploy.Proxy{},
 	}
@@ -178,9 +178,9 @@ func TestSyncLegacyConfigMap(t *testing.T) {
 	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 		Proxy: &deploy.Proxy{},
 	}
@@ -234,9 +234,9 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 	}
 

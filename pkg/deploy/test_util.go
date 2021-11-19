@@ -64,10 +64,10 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 	return &DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme,
-			DiscoveryClient: fakeDiscovery,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme,
+			DiscoveryClient:  fakeDiscovery,
 		},
 		Proxy: &Proxy{},
 	}

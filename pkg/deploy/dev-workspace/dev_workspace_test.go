@@ -247,7 +247,7 @@ func TestReconcileWhenWebTerminalSubscriptionExists(t *testing.T) {
 
 	// verify that DWO is not provisioned
 	namespace := &corev1.Namespace{}
-	err = deployContext.ClusterAPI.NonCachedClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, namespace)
+	err = deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: DevWorkspaceNamespace}, namespace)
 	assert.True(t, k8sErrors.IsNotFound(err))
 }
 
@@ -356,7 +356,7 @@ func TestReconcileDevWorkspaceIfManagedDWONamespaceExists(t *testing.T) {
 		},
 	}
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
-	err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), dwoNamespace)
+	err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
 
 	exists, err := deploy.Get(deployContext,
@@ -404,7 +404,7 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldBeTakenUnderControl(t *testing.T
 	}
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
-	err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), dwoNamespace)
+	err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
 
 	exists, err := deploy.Get(deployContext,
@@ -471,9 +471,9 @@ func TestReconcileDevWorkspaceIfManagedDWOShouldNotBeTakenUnderControl(t *testin
 	}
 	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 	deployContext.ClusterAPI.Scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
-	err := deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), dwoNamespace)
+	err := deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), dwoNamespace)
 	assert.NoError(t, err)
-	err = deployContext.ClusterAPI.NonCachedClient.Create(context.TODO(), cheCluster2)
+	err = deployContext.ClusterAPI.NonCachingClient.Create(context.TODO(), cheCluster2)
 	assert.NoError(t, err)
 
 	exists, err := deploy.Get(deployContext,

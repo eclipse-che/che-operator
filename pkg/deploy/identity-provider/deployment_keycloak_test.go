@@ -238,9 +238,9 @@ func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
 			},
 		},
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 		Proxy: &deploy.Proxy{},
 	}

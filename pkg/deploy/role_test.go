@@ -36,9 +36,9 @@ func TestSyncRoleToCluster(t *testing.T) {
 			},
 		},
 		ClusterAPI: ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 	}
 
