@@ -221,7 +221,7 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 		return true, err
 	}
 
-	caBundlesConfigmaps, err := certificates.GetCACertsConfigMaps(bctx.r.nonCachingClient, bctx.cheCR.GetNamespace())
+	caBundlesConfigmaps, err := tls.GetCACertsConfigMaps(bctx.r.nonCachingClient, bctx.cheCR.GetNamespace())
 	if err != nil {
 		return false, err
 	}
