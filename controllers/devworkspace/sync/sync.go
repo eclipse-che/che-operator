@@ -15,6 +15,7 @@ package sync
 import (
 	"context"
 
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,7 +84,7 @@ func (s *Syncer) Delete(ctx context.Context, object client.Object) error {
 
 func (s *Syncer) create(ctx context.Context, owner client.Object, key client.ObjectKey, blueprint client.Object) (client.Object, error) {
 	actual := blueprint.DeepCopyObject().(client.Object)
-	kind := blueprint.GetObjectKind().GroupVersionKind().Kind
+	kind := deploy.GetObjectType(blueprint)
 	log.Info("Creating a new object", "kind", kind, "name", blueprint.GetName(), "namespace", blueprint.GetNamespace())
 	obj, err := s.setOwnerReference(owner, blueprint)
 	if err != nil {

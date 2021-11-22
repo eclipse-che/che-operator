@@ -201,7 +201,8 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// But we need to detect the hostname on which the gateway is exposed so that the rest of our subsystems work.
 	host, err = r.detectCheHost(ctx, currentV1)
 	if err != nil {
-		return ctrl.Result{}, err
+		// Wait some time in case the route is not ready yet
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 	}
 
 	// setting changed to false, because we jump from inactive directly to established, because we are no longer in
