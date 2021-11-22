@@ -332,7 +332,7 @@ func K8sHandleCheTLSSecrets(deployContext *DeployContext) (reconcile.Result, err
 		if jobExists {
 			if job.Status.Succeeded == 0 && job.Status.Failed == 0 {
 				logrus.Infof("Waiting on job '%s' to be finished", CheTLSJobName)
-				return reconcile.Result{RequeueAfter: 2 * time.Second}, err
+				return reconcile.Result{RequeueAfter: 2 * time.Second}, nil
 			} else if job.Status.Succeeded > 0 {
 				// Secrets are ready, restart reconcilation loop
 				return reconcile.Result{}, nil
