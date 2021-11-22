@@ -12,6 +12,7 @@
 #
 
 set -e
+set -x
 
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 
