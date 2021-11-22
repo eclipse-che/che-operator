@@ -17,6 +17,7 @@ import (
 	"runtime"
 
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -73,7 +74,7 @@ func AddStandardLabelsForComponent(cluster *v2alpha1.CheCluster, component strin
 
 func AddStandardLabelsFromNames(appName string, component string, labels map[string]string) map[string]string {
 	labels["app.kubernetes.io/name"] = appName
-	labels["app.kubernetes.io/part-of"] = appName
+	labels["app.kubernetes.io/part-of"] = deploy.CheEclipseOrg
 	labels["app.kubernetes.io/component"] = component
 	return labels
 }

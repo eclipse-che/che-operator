@@ -20,12 +20,12 @@ import (
 	"github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -103,10 +103,13 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 			yes := true
 
 			newSecret := &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      tlsSecretName,
 					Namespace: routing.Namespace,
-					OwnerReferences: []v1.OwnerReference{
+					Labels: map[string]string{
+						deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
+					},
+					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:               routing.Name,
 							Kind:               routing.Kind,
@@ -135,7 +138,8 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route 
 			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace: endpoint.service.Namespace,
 			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel: e.devWorkspaceID,
+				constants.DevWorkspaceIDLabel:   e.devWorkspaceID,
+				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
 			},
 			Annotations:     routeAnnotations(endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
@@ -176,7 +180,8 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) networking
 			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace: endpoint.service.Namespace,
 			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel: e.devWorkspaceID,
+				constants.DevWorkspaceIDLabel:   e.devWorkspaceID,
+				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
 			},
 			Annotations:     finalizeIngressAnnotations(e.ingressAnnotations, endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
