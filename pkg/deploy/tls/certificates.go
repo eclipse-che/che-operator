@@ -92,8 +92,14 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.De
 		return reconcile.Result{}, done, err
 	}
 
-	if actual.ObjectMeta.Labels[injector] != "true" {
+	if actual.ObjectMeta.Labels[injector] != "true" ||
+		actual.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] != deploy.CheEclipseOrg ||
+		actual.ObjectMeta.Labels[deploy.KubernetesComponentLabelKey] != CheCACertsConfigMapLabelValue {
+
 		actual.ObjectMeta.Labels[injector] = "true"
+		actual.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
+		actual.ObjectMeta.Labels[deploy.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
+
 		logrus.Infof("Updating existed object: %s, name: %s", configMapSpec.Kind, configMapSpec.Name)
 		if err := ctx.ClusterAPI.Client.Update(context.TODO(), actual); err != nil {
 			return reconcile.Result{}, false, err
