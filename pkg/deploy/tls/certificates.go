@@ -41,14 +41,15 @@ const (
 	labelCommaSign = "."
 )
 
-type Certificates struct {
+type CertificatesReconciler struct {
+	deploy.Reconcilable
 }
 
-func NewCertificates() *Certificates {
-	return &Certificates{}
+func NewCertificatesReconciler() *CertificatesReconciler {
+	return &CertificatesReconciler{}
 }
 
-func (c *Certificates) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (c *CertificatesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	if ctx.Proxy.TrustedCAMapName != "" {
 		if ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName == "" {
 			ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName = deploy.DefaultServerTrustStoreConfigMapName()
@@ -66,16 +67,18 @@ func (c *Certificates) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, b
 	return c.syncAdditionalCACertsConfigMapToCluster(ctx)
 }
 
-func (c *Certificates) Finalize(ctx *deploy.DeployContext) error {
+func (c *CertificatesReconciler) Finalize(ctx *deploy.DeployContext) error {
 	return nil
 }
 
-func (c *Certificates) syncTrustStoreConfigMapToCluster(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	name := ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName
 	configMapSpec := deploy.GetConfigMapSpec(ctx, name, map[string]string{}, deploy.DefaultCheFlavor(ctx.CheCluster))
 
 	// OpenShift will automatically injects all certs into the configmap
 	configMapSpec.ObjectMeta.Labels[injector] = "true"
+	configMapSpec.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
+	configMapSpec.ObjectMeta.Labels[deploy.KubernetesComponentLabelKey] = CheCACertsConfigMapLabelValue
 
 	actual := &corev1.ConfigMap{}
 	exists, err := deploy.GetNamespacedObject(ctx, name, actual)
@@ -100,19 +103,11 @@ func (c *Certificates) syncTrustStoreConfigMapToCluster(ctx *deploy.DeployContex
 	return reconcile.Result{}, true, nil
 }
 
-func (c *Certificates) syncAdditionalCACertsConfigMapToCluster(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (c *CertificatesReconciler) syncAdditionalCACertsConfigMapToCluster(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	// Get all source config maps, if any
 	caConfigMaps, err := GetCACertsConfigMaps(ctx.ClusterAPI.Client, ctx.CheCluster.GetNamespace())
 	if err != nil {
 		return reconcile.Result{}, false, err
-	}
-	if len(ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName) > 0 {
-		crConfigMap := &corev1.ConfigMap{}
-		err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: ctx.CheCluster.Spec.Server.ServerTrustStoreConfigMapName}, crConfigMap)
-		if err != nil {
-			return reconcile.Result{}, false, err
-		}
-		caConfigMaps = append(caConfigMaps, *crConfigMap)
 	}
 
 	mergedCAConfigMap := &corev1.ConfigMap{}

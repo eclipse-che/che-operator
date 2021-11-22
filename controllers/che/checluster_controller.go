@@ -97,8 +97,8 @@ func NewReconciler(
 	openShiftOAuthUser := openshiftoauth.NewOpenShiftOAuthUser()
 	reconcileManager.RegisterReconciler(openShiftOAuthUser)
 	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth(openShiftOAuthUser))
-	reconcileManager.RegisterReconciler(tls.NewCertificates())
-	reconcileManager.RegisterReconciler(tls.NewTlsSecret())
+	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
+	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
@@ -261,7 +261,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	deployContext.Proxy = proxy
 
 	// Detect whether self-signed certificate is used
-	isSelfSignedCertificate, err := deploy.IsSelfSignedCertificateUsed(deployContext)
+	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)
 	if err != nil {
 		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
 		return ctrl.Result{}, err

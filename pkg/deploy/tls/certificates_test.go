@@ -39,7 +39,7 @@ func TestSyncTrustStoreConfigMapToCluster(t *testing.T) {
 	}
 	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{})
 
-	certificates := NewCertificates()
+	certificates := NewCertificatesReconciler()
 	_, done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
@@ -72,7 +72,7 @@ func TestSyncExistedTrustStoreConfigMapToCluster(t *testing.T) {
 	}
 	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{trustStoreConfigMap})
 
-	certificates := NewCertificates()
+	certificates := NewCertificatesReconciler()
 	_, done, err := certificates.syncTrustStoreConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)
@@ -111,7 +111,7 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 
 	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{cert1})
 
-	certificates := NewCertificates()
+	certificates := NewCertificatesReconciler()
 	_, done, err := certificates.syncAdditionalCACertsConfigMapToCluster(ctx)
 	assert.Nil(t, err)
 	assert.True(t, done)

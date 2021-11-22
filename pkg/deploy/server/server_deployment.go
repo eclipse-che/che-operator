@@ -30,7 +30,7 @@ import (
 )
 
 func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
-	selfSignedCASecretExists, err := deploy.IsSelfSignedCASecretExists(s.deployContext)
+	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(s.deployContext)
 	if err != nil {
 		return nil, err
 	}

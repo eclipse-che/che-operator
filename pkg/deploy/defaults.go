@@ -128,6 +128,9 @@ const (
 	// Name of the secret that holds self-signed certificate for git connections
 	GitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
 
+	CheTLSSelfSignedCertificateSecretName = "self-signed-certificate"
+	DefaultCheTLSSecretName               = "che-tls"
+
 	// limits
 	DefaultDashboardMemoryLimit   = "256Mi"
 	DefaultDashboardMemoryRequest = "32Mi"
