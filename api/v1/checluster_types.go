@@ -104,6 +104,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheHost string `json:"cheHost,omitempty"`
 	// Name of a secret containing certificates to secure ingress or route for the custom host name of the installed Che server.
+	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// See the `cheHost` field.
 	// +optional
 	CheHostTLSSecret string `json:"cheHostTLSSecret,omitempty"`
@@ -114,10 +115,12 @@ type CheClusterSpecServer struct {
 	// +optional
 	CheDebug string `json:"cheDebug,omitempty"`
 	// A comma-separated list of ClusterRoles that will be assigned to Che ServiceAccount.
+	// Each role must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.
 	// +optional
 	CheClusterRoles string `json:"cheClusterRoles,omitempty"`
 	// Custom cluster role bound to the user for the Che workspaces.
+	// The role must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// The default roles are used when omitted or left blank.
 	// +optional
 	CheWorkspaceClusterRole string `json:"cheWorkspaceClusterRole,omitempty"`
@@ -140,9 +143,11 @@ type CheClusterSpecServer struct {
 	// Name of the ConfigMap with public certificates to add to Java trust store of the Che server.
 	// This is often required when adding the OpenShift OAuth provider, which has HTTPS endpoint signed with self-signed cert.
 	// The Che server must be aware of its CA cert to be able to request it. This is disabled by default.
+	// The Config Map must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	ServerTrustStoreConfigMapName string `json:"serverTrustStoreConfigMapName,omitempty"`
 	// When enabled, the certificate from `che-git-self-signed-cert` ConfigMap will be propagated to the Che components and provide particular configuration for Git.
+	// Note, the `che-git-self-signed-cert` ConfigMap must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	GitSelfSignedCert bool `json:"gitSelfSignedCert"`
 	// Deprecated. Instructs the Operator to deploy Che in TLS mode. This is enabled by default. Disabling TLS sometimes cause malfunction of some Che components.
@@ -296,6 +301,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	ProxyPassword string `json:"proxyPassword,omitempty"`
 	// The secret that contains `user` and `password` for a proxy server. When the secret is defined, the `proxyUser` and `proxyPassword` are ignored.
+	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	ProxySecret string `json:"proxySecret,omitempty"`
 	// Overrides the memory request used in the Che server deployment. Defaults to 512Mi.
@@ -369,6 +375,7 @@ type CheClusterSpecDB struct {
 	// 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB.
 	// 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `che-postgres-secret`
 	// will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.
+	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	ChePostgresSecret string `json:"chePostgresSecret,omitempty"`
 	// Overrides the container image used in the PostgreSQL database deployment. This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
@@ -422,6 +429,7 @@ type CheClusterSpecAuth struct {
 	// 1. `identityProviderAdminUserName` and `identityProviderPassword` are defined, then they will be used.
 	// 2. `identityProviderAdminUserName` or `identityProviderPassword` are not defined, then a new secret with the name
 	// `che-identity-secret` will be created with default value `admin` for `user` and with an auto-generated value for `password`.
+	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	IdentityProviderSecret string `json:"identityProviderSecret,omitempty"`
 	// Name of a Identity provider, Keycloak or RH-SSO, realm that is used for Che.
@@ -443,6 +451,7 @@ type CheClusterSpecAuth struct {
 	// When the secret is defined, the `identityProviderPostgresPassword` is ignored. When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database.
 	// 2. `identityProviderPostgresPassword` is not defined, then a new secret with the name `che-identity-postgres-secret` will be created with an auto-generated value for `password`.
+	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	IdentityProviderPostgresSecret string `json:"identityProviderPostgresSecret,omitempty"`
 	// Forces the default `admin` Che user to update password on first login. Defaults to `false`.
