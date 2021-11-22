@@ -93,7 +93,7 @@ buildCatalog () {
 }
 
 isBundleExistsInCatalog() {
-  local BUNDLE_NAME=$(docker run -ti --entrypoint sh ${CATALOG_IMAGE} -c "apk add sqlite && sqlite3 /database/index.db 'SELECT head_operatorbundle_name FROM channel WHERE name = \"next\" and head_operatorbundle_name = \"${CSV_NAME}\"'" | tail -n1 | tr -d '\r')
+  local BUNDLE_NAME=$(docker run --entrypoint sh ${CATALOG_IMAGE} -c "apk add sqlite && sqlite3 /database/index.db 'SELECT head_operatorbundle_name FROM channel WHERE name = \"next\" and head_operatorbundle_name = \"${CSV_NAME}\"'" | tail -n1 | tr -d '\r')
 
   # docker run produce more output then a single line
   # so, it is needed to check if the last line is actually a given bunle name
