@@ -99,17 +99,19 @@ func syncAll(deployContext *deploy.DeployContext) error {
 			return err
 		}
 
-		if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
-			if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-
 		kubeRbacProxyConfig := getGatewayKubeRbacProxyConfigSpec(instance)
 		if _, err := deploy.Sync(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
 			return err
+		}
+
+		if util.IsOpenShift {
+			if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
+				if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -377,32 +379,6 @@ func getGatewayRoleBindingSpec(instance *orgv1.CheCluster) rbac.RoleBinding {
 	}
 }
 
-func getGatewayKubeRbacProxyConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	return corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config-kube-rbac-proxy",
-			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
-		},
-		Data: map[string]string{
-			"authorization-config.yaml": `
-authorization:
-  rewrites:
-    byQueryParameter:
-      name: "namespace"
-  resourceAttributes:
-    apiVersion: v1
-    apiGroup: workspace.devfile.io
-    resource: devworkspaces
-    namespace: "{{ .Value }}"`,
-		},
-	}
-}
-
 func generateRandomCookieSecret() []byte {
 	return []byte(base64.StdEncoding.EncodeToString([]byte(util.GeneratePasswd(16))))
 }
@@ -529,8 +505,6 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 	configLabelsMap := util.GetMapValue(instance.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels)
 	gatewayImage := util.GetValue(instance.Spec.Server.SingleHostGatewayImage, deploy.DefaultSingleHostGatewayImage(instance))
 	configSidecarImage := util.GetValue(instance.Spec.Server.SingleHostGatewayConfigSidecarImage, deploy.DefaultSingleHostGatewayConfigSidecarImage(instance))
-	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
-	authzImage := util.GetValue(instance.Spec.Auth.GatewayAuthorizationSidecarImage, deploy.DefaultGatewayAuthorizationSidecarImage(instance))
 	configLabels := labels.FormatLabels(configLabelsMap)
 
 	containers := []corev1.Container{
@@ -574,40 +548,8 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 
 	if instance.IsNativeUserModeEnabled() {
 		containers = append(containers,
-			corev1.Container{
-				Name:            "oauth-proxy",
-				Image:           authnImage,
-				ImagePullPolicy: corev1.PullAlways,
-				Args: []string{
-					"--config=/etc/oauth-proxy/oauth-proxy.cfg",
-				},
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      "oauth-proxy-config",
-						MountPath: "/etc/oauth-proxy",
-					},
-				},
-				Ports: []corev1.ContainerPort{
-					{ContainerPort: GatewayServicePort, Protocol: "TCP"},
-				},
-			},
-			corev1.Container{
-				Name:            "kube-rbac-proxy",
-				Image:           authzImage,
-				ImagePullPolicy: corev1.PullAlways,
-				Args: []string{
-					"--insecure-listen-address=0.0.0.0:8089",
-					"--upstream=http://127.0.0.1:8090/ping",
-					"--logtostderr=true",
-					"--config-file=/etc/kube-rbac-proxy/authorization-config.yaml",
-				},
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      "kube-rbac-proxy-config",
-						MountPath: "/etc/kube-rbac-proxy",
-					},
-				},
-			})
+			getOauthProxyContainerSpec(instance),
+			getKubeRbacProxyContainerSpec(instance))
 	}
 
 	return containers
@@ -655,38 +597,22 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 	}
 
 	if instance.IsNativeUserModeEnabled() {
-		volumes = append(volumes, corev1.Volume{
-			Name: "oauth-proxy-config",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config-oauth-proxy",
-					},
-				},
-			},
-		})
+		volumes = append(volumes,
+			getOauthProxyConfigVolume(),
+			getKubeRbacProxyConfigVolume())
 
-		volumes = append(volumes, corev1.Volume{
-			Name: "header-rewrite-traefik-plugin",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config-header-rewrite-traefik-plugin",
+		if util.IsOpenShift {
+			volumes = append(volumes, corev1.Volume{
+				Name: "header-rewrite-traefik-plugin",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "che-gateway-config-header-rewrite-traefik-plugin",
+						},
 					},
 				},
-			},
-		})
-
-		volumes = append(volumes, corev1.Volume{
-			Name: "kube-rbac-proxy-config",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-gateway-config-kube-rbac-proxy",
-					},
-				},
-			},
-		})
+			})
+		}
 	}
 
 	return volumes

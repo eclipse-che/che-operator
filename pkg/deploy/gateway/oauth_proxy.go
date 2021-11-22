@@ -114,3 +114,37 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	}
 	return ""
 }
+
+func getOauthProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container{
+	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
+	return corev1.Container{
+		Name:            "oauth-proxy",
+		Image:           authnImage,
+		ImagePullPolicy: corev1.PullAlways,
+		Args: []string{
+			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "oauth-proxy-config",
+				MountPath: "/etc/oauth-proxy",
+			},
+		},
+		Ports: []corev1.ContainerPort{
+			{ContainerPort: GatewayServicePort, Protocol: "TCP"},
+		},
+	}
+}
+
+func getOauthProxyConfigVolume() corev1.Volume {
+	return corev1.Volume{
+		Name: "oauth-proxy-config",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "che-gateway-config-oauth-proxy",
+				},
+			},
+		},
+	}
+}
