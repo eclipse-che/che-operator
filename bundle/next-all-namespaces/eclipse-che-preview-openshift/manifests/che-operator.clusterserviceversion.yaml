@@ -126,7 +126,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.40.0-374.next
+  name: eclipse-che-preview-openshift.v7.40.0-376.next-all-namespaces
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -849,6 +849,17 @@ spec:
                 - create
             - apiGroups:
                 - ""
+              resourceNames:
+                - workspace-preferences-configmap
+              resources:
+                - configmaps
+              verbs:
+                - create
+                - delete
+                - get
+                - patch
+            - apiGroups:
+                - ""
               resources:
                 - configmaps
                 - persistentvolumeclaims
@@ -882,6 +893,7 @@ spec:
                 - create
                 - delete
                 - get
+                - patch
             - apiGroups:
                 - ""
               resources:
@@ -1427,4 +1439,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.40.0-374.next
+  version: 7.40.0-376.next-all-namespaces
