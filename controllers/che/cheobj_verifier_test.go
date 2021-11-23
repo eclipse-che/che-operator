@@ -13,6 +13,7 @@
 package che
 
 import (
+	"os"
 	"testing"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -44,7 +45,7 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 			Labels: map[string]string{
 				"app.kubernetes.io/part-of":   "che.eclipse.org",
 				"app.kubernetes.io/component": "ca-bundle",
-				"app.kubernetes.io/instance":  "che",
+				"app.kubernetes.io/instance":  os.Getenv("CHE_FLAVOR"),
 			},
 		},
 	}
@@ -167,7 +168,7 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			Name: "test",
 			Labels: map[string]string{
 				"app.kubernetes.io/part-of":  "che.eclipse.org",
-				"app.kubernetes.io/instance": "che",
+				"app.kubernetes.io/instance": os.Getenv("CHE_FLAVOR"),
 			},
 		},
 	}
