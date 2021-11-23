@@ -730,7 +730,7 @@ increment-next-version:
 	CSV="$${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
 	currentNextVersion=$$(yq -r ".spec.version" "$${CSV}")
-	echo  "[INFO] current next $(platform) version: $${currentNextVersion}"
+	echo  "[INFO] Current next $(platform) version: $${currentNextVersion}"
 
 	incrementPart=$$($(MAKE) get-next-version-increment nextVersion="$${currentNextVersion}" -s)
 
@@ -749,7 +749,7 @@ increment-next-version:
 	echo "$${STABLE_MINOR_VERSION}"
 
 	incrementPart=$$((incrementPart+1))
-	newVersion="$${STABLE_MAJOR_VERSION}.$${STABLE_MINOR_VERSION}.0-$${incrementPart}.next"
+	newVersion="$${STABLE_MAJOR_VERSION}.$${STABLE_MINOR_VERSION}.0-$${incrementPart}.$(channel)"
 
 	echo "[INFO] Set up next $(platform) version: $${newVersion}"
 	yq -rY "(.spec.version) = \"$${newVersion}\" | (.metadata.name) = \"eclipse-che-preview-$(platform).v$${newVersion}\"" "$${CSV}" > "$${CSV}.old"
@@ -773,12 +773,9 @@ get-next-version-increment:
 		exit 1
 	fi
 
-	versionWithoutNext="$${nextVersion%.next}"
-
+	versionWithoutNext="$${nextVersion%.next*}"
 	version="$${versionWithoutNext%-*}"
-
 	incrementPart="$${versionWithoutNext#*-}"
-
 	echo "$${incrementPart}"
 
 update-resources: SHELL := /bin/bash
