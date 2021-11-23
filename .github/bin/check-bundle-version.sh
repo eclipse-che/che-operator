@@ -45,7 +45,7 @@ compareBundleVersions() {
     if [[ "${file}" == "${CSV_KUBERNETES_NEXT_NEW}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_KUBERNETES_NEXT_NEW $CSV_KUBERNETES_NEXT_CURRENT
     elif [[ "${file}" == "${CSV_OPENSHIFT_NEXT_NEW}" ]]; then
-      compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_NEW $CSV_OPENSHIFT_CURRENT
+      compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_NEW $CSV_OPENSHIFT_NEX_CURRENT
     elif [[ "${file}" == "${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW $CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_CURRENT
     fi
