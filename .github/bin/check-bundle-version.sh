@@ -96,7 +96,7 @@ checkBundleVersions() {
 
 convertVersionToNumber() {
   version=$1                                    # 7.28.1-130.next
-  versionWithoutNext="${version%.next}"         # 7.28.1-130
+  versionWithoutNext="${version%.next*}"         # 7.28.1-130
   version="${versionWithoutNext%-*}"            # 7.28.1
   incrementPart="${versionWithoutNext#*-}"      # 130
   major=$(echo $version | cut  -d '.' -f 1)     # 7
