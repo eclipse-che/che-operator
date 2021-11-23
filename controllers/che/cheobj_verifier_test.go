@@ -13,6 +13,7 @@
 package che
 
 import (
+	"os"
 	"testing"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
@@ -40,8 +41,12 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test",
-			Labels: map[string]string{"app.kubernetes.io/part-of": "che.eclipse.org", "app.kubernetes.io/component": "ca-bundle"},
+			Name: "test",
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of":   "che.eclipse.org",
+				"app.kubernetes.io/component": "ca-bundle",
+				"app.kubernetes.io/instance":  os.Getenv("CHE_FLAVOR"),
+			},
 		},
 	}
 
@@ -134,7 +139,7 @@ func TestIsTrustedBundleConfigMap(t *testing.T) {
 				newTestObject.ObjectMeta.Labels = testCase.objLabels
 			}
 
-			isEclipseCheObj, req := IsTrustedBundleConfigMap(deployContext.ClusterAPI.NonCachedClient, testCase.watchNamespace, newTestObject)
+			isEclipseCheObj, req := IsTrustedBundleConfigMap(deployContext.ClusterAPI.NonCachingClient, testCase.watchNamespace, newTestObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {
@@ -160,8 +165,11 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test",
-			Labels: map[string]string{"app.kubernetes.io/part-of": "che.eclipse.org"},
+			Name: "test",
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of":  "che.eclipse.org",
+				"app.kubernetes.io/instance": os.Getenv("CHE_FLAVOR"),
+			},
 		},
 	}
 
@@ -225,7 +233,7 @@ func TestIsEclipseCheRelatedObj(t *testing.T) {
 			deployContext := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
 			testObject.ObjectMeta.Namespace = testCase.objNamespace
-			isEclipseCheObj, req := IsEclipseCheRelatedObj(deployContext.ClusterAPI.NonCachedClient, testCase.watchNamespace, testObject)
+			isEclipseCheObj, req := IsEclipseCheRelatedObj(deployContext.ClusterAPI.NonCachingClient, testCase.watchNamespace, testObject)
 
 			assert.Equal(t, testCase.expectedIsEclipseCheObj, isEclipseCheObj)
 			if isEclipseCheObj {

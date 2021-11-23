@@ -111,7 +111,7 @@ func GetNamespacedObject(deployContext *DeployContext, name string, actual clien
 // Gets cluster scope object by name
 // Returns true if object exists otherwise returns false
 func GetClusterObject(deployContext *DeployContext, name string, actual client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachedClient
+	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
 	return doGet(client, key, actual)
 }
@@ -136,7 +136,7 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint client.Object) (i
 		return false, err
 	}
 
-	logrus.Infof("Creating a new object: %s, name: %s", getObjectType(blueprint), blueprint.GetName())
+	logrus.Infof("Creating a new object: %s, name: %s", GetObjectType(blueprint), blueprint.GetName())
 
 	err = setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
@@ -157,7 +157,7 @@ func Create(deployContext *DeployContext, blueprint client.Object) (bool, error)
 
 	client := getClientForObject(blueprint.GetNamespace(), deployContext)
 
-	logrus.Infof("Creating a new object: %s, name: %s", getObjectType(blueprint), blueprint.GetName())
+	logrus.Infof("Creating a new object: %s, name: %s", GetObjectType(blueprint), blueprint.GetName())
 
 	err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {
@@ -181,7 +181,7 @@ func DeleteNamespacedObject(deployContext *DeployContext, name string, objectMet
 }
 
 func DeleteClusterObject(deployContext *DeployContext, name string, objectMeta client.Object) (bool, error) {
-	client := deployContext.ClusterAPI.NonCachedClient
+	client := deployContext.ClusterAPI.NonCachingClient
 	key := types.NamespacedName{Name: name}
 	return doDeleteByKey(client, deployContext.ClusterAPI.Scheme, key, objectMeta)
 }
@@ -229,7 +229,7 @@ func Update(deployContext *DeployContext, actual client.Object, blueprint client
 
 		client := getClientForObject(actualMeta.GetNamespace(), deployContext)
 		if isUpdateUsingDeleteCreate(actual.GetObjectKind().GroupVersionKind().Kind) {
-			logrus.Infof("Recreating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
+			logrus.Infof("Recreating existing object: %s, name: %s", GetObjectType(actualMeta), actualMeta.GetName())
 			done, err := doDelete(client, actual)
 			if !done {
 				return false, err
@@ -242,7 +242,7 @@ func Update(deployContext *DeployContext, actual client.Object, blueprint client
 
 			return doCreate(client, blueprint, false)
 		} else {
-			logrus.Infof("Updating existing object: %s, name: %s", getObjectType(actualMeta), actualMeta.GetName())
+			logrus.Infof("Updating existing object: %s, name: %s", GetObjectType(actualMeta), actualMeta.GetName())
 			err := setOwnerReferenceIfNeeded(deployContext, blueprint)
 			if err != nil {
 				return false, err
@@ -281,7 +281,7 @@ func doDeleteByKey(cli client.Client, scheme *runtime.Scheme, key client.ObjectK
 		return false, err
 	}
 
-	logrus.Infof("Deleting object: %s, name: %s", getObjectType(objectMeta), key.Name)
+	logrus.Infof("Deleting object: %s, name: %s", GetObjectType(objectMeta), key.Name)
 
 	return doDelete(cli, actual)
 }
@@ -334,10 +334,10 @@ func getClientForObject(objectNamespace string, deployContext *DeployContext) cl
 	if deployContext.CheCluster.Namespace == objectNamespace {
 		return deployContext.ClusterAPI.Client
 	}
-	return deployContext.ClusterAPI.NonCachedClient
+	return deployContext.ClusterAPI.NonCachingClient
 }
 
-func getObjectType(objectMeta metav1.Object) string {
+func GetObjectType(objectMeta metav1.Object) string {
 	objType := reflect.TypeOf(objectMeta).String()
 	if reflect.TypeOf(objectMeta).Kind().String() == "ptr" {
 		objType = objType[1:]

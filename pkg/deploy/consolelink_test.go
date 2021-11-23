@@ -60,10 +60,10 @@ func TestReconcileConsoleLink(t *testing.T) {
 	deployContext := &DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme,
-			DiscoveryClient: fakeDiscovery,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme,
+			DiscoveryClient:  fakeDiscovery,
 		},
 	}
 

@@ -17,6 +17,7 @@ metadata:
   labels:
     app.kubernetes.io/name: che
     app.kubernetes.io/instance: che
+    app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/component: che-operator
 rules:
   ### CHE-OPERATOR ROLES ONLY: BEGIN
@@ -451,6 +452,17 @@ rules:
   # devworkspace-controller-role.ClusterRole.yaml
   - apiGroups:
     - ""
+    resourceNames:
+    - workspace-preferences-configmap
+    resources:
+    - configmaps
+    verbs:
+    - create
+    - delete
+    - get
+    - patch
+  - apiGroups:
+    - ""
     resources:
     - configmaps
     - persistentvolumeclaims
@@ -484,6 +496,7 @@ rules:
     - create
     - delete
     - get
+    - patch
   - apiGroups:
     - ""
     resources:

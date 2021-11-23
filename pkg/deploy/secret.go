@@ -95,6 +95,7 @@ func GetSecretSpec(deployContext *DeployContext, name string, namespace string, 
 			Namespace: namespace,
 			Labels:    labels,
 		},
+		Type: corev1.SecretTypeOpaque,
 		Data: data,
 	}
 

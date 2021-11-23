@@ -44,9 +44,9 @@ func TestDevfileRegistrySyncAll(t *testing.T) {
 	deployContext := &deploy.DeployContext{
 		CheCluster: cheCluster,
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 	}
 

@@ -115,7 +115,7 @@ spec:
                     description: Password for a Identity Provider, Keycloak or RH-SSO, to connect to the database. Override this when an external Identity Provider is in use. See the `externalIdentityProvider` field. When omitted or left blank, it is set to an auto-generated password.
                     type: string
                   identityProviderPostgresSecret:
-                    description: 'The secret that contains `password` for the Identity Provider, Keycloak or RH-SSO, to connect to the database. When the secret is defined, the `identityProviderPostgresPassword` is ignored. When the value is omitted or left blank, the one of following scenarios applies: 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database. 2. `identityProviderPostgresPassword` is not defined, then a new secret with the name `che-identity-postgres-secret` will be created with an auto-generated value for `password`.'
+                    description: 'The secret that contains `password` for the Identity Provider, Keycloak or RH-SSO, to connect to the database. When the secret is defined, the `identityProviderPostgresPassword` is ignored. When the value is omitted or left blank, the one of following scenarios applies: 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database. 2. `identityProviderPostgresPassword` is not defined, then a new secret with the name `che-identity-postgres-secret` will be created with an auto-generated value for `password`. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.'
                     type: string
                   identityProviderRealm:
                     description: Name of a Identity provider, Keycloak or RH-SSO, realm that is used for Che. Override this when an external Identity Provider is in use. See the `externalIdentityProvider` field. When omitted or left blank, it is set to the value of the `flavour` field.
@@ -136,7 +136,7 @@ spec:
                         type: string
                     type: object
                   identityProviderSecret:
-                    description: 'The secret that contains `user` and `password` for Identity Provider. When the secret is defined, the `identityProviderAdminUserName` and `identityProviderPassword` are ignored. When the value is omitted or left blank, the one of following scenarios applies: 1. `identityProviderAdminUserName` and `identityProviderPassword` are defined, then they will be used. 2. `identityProviderAdminUserName` or `identityProviderPassword` are not defined, then a new secret with the name `che-identity-secret` will be created with default value `admin` for `user` and with an auto-generated value for `password`.'
+                    description: 'The secret that contains `user` and `password` for Identity Provider. When the secret is defined, the `identityProviderAdminUserName` and `identityProviderPassword` are ignored. When the value is omitted or left blank, the one of following scenarios applies: 1. `identityProviderAdminUserName` and `identityProviderPassword` are defined, then they will be used. 2. `identityProviderAdminUserName` or `identityProviderPassword` are not defined, then a new secret with the name `che-identity-secret` will be created with default value `admin` for `user` and with an auto-generated value for `password`. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.'
                     type: string
                   identityProviderURL:
                     description: Public URL of the Identity Provider server (Keycloak / RH-SSO server). Set this ONLY when a use of an external Identity Provider is needed. See the `externalIdentityProvider` field. By default, this will be automatically calculated and set by the Operator.
@@ -200,7 +200,7 @@ spec:
                     description: PostgreSQL Database port that the Che server uses to connect to. Defaults to 5432. Override this value ONLY when using an external database. See field `externalDb`. In the default case it will be automatically set by the Operator.
                     type: string
                   chePostgresSecret:
-                    description: 'The secret that contains PostgreSQL`user` and `password` that the Che server uses to connect to the DB. When the secret is defined, the `chePostgresUser` and `chePostgresPassword` are ignored. When the value is omitted or left blank, the one of following scenarios applies: 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB. 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `che-postgres-secret` will be created with default value of `pgche` for `user` and with an auto-generated value for `password`.'
+                    description: 'The secret that contains PostgreSQL`user` and `password` that the Che server uses to connect to the DB. When the secret is defined, the `chePostgresUser` and `chePostgresPassword` are ignored. When the value is omitted or left blank, the one of following scenarios applies: 1. `chePostgresUser` and `chePostgresPassword` are defined, then they will be used to connect to the DB. 2. `chePostgresUser` or `chePostgresPassword` are not defined, then a new secret with the name `che-postgres-secret` will be created with default value of `pgche` for `user` and with an auto-generated value for `password`. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.'
                     type: string
                   chePostgresUser:
                     description: PostgreSQL user that the Che server uses to connect to the DB. Defaults to `pgche`.
@@ -314,7 +314,7 @@ spec:
                     description: Deprecated. The value of this flag is ignored. Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
                     type: boolean
                   cheClusterRoles:
-                    description: A comma-separated list of ClusterRoles that will be assigned to Che ServiceAccount. Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.
+                    description: A comma-separated list of ClusterRoles that will be assigned to Che ServiceAccount. Each role must have `app.kubernetes.io/part-of=che.eclipse.org` label. Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.
                     type: string
                   cheDebug:
                     description: Enables the debug mode for Che server. Defaults to `false`.
@@ -326,7 +326,7 @@ spec:
                     description: Public host name of the installed Che server. When value is omitted, the value it will be automatically set by the Operator. See the `cheHostTLSSecret` field.
                     type: string
                   cheHostTLSSecret:
-                    description: Name of a secret containing certificates to secure ingress or route for the custom host name of the installed Che server. See the `cheHost` field.
+                    description: Name of a secret containing certificates to secure ingress or route for the custom host name of the installed Che server. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label. See the `cheHost` field.
                     type: string
                   cheImage:
                     description: Overrides the container image used in Che deployment. This does NOT include the container image tag. Omit it or leave it empty to use the default container image provided by the Operator.
@@ -368,7 +368,7 @@ spec:
                         type: string
                     type: object
                   cheWorkspaceClusterRole:
-                    description: Custom cluster role bound to the user for the Che workspaces. The default roles are used when omitted or left blank.
+                    description: Custom cluster role bound to the user for the Che workspaces. The role must have `app.kubernetes.io/part-of=che.eclipse.org` label. The default roles are used when omitted or left blank.
                     type: string
                   customCheProperties:
                     additionalProperties:
@@ -488,7 +488,7 @@ spec:
                     description: Instructs the Operator on whether to deploy a dedicated plugin registry server. By default, a dedicated plugin registry server is started. When `externalPluginRegistry` is `true`, no such dedicated server will be started by the Operator and you will have to manually set the `pluginRegistryUrl` field.
                     type: boolean
                   gitSelfSignedCert:
-                    description: When enabled, the certificate from `che-git-self-signed-cert` ConfigMap will be propagated to the Che components and provide particular configuration for Git.
+                    description: When enabled, the certificate from `che-git-self-signed-cert` ConfigMap will be propagated to the Che components and provide particular configuration for Git. Note, the `che-git-self-signed-cert` ConfigMap must have `app.kubernetes.io/part-of=che.eclipse.org` label.
                     type: boolean
                   nonProxyHosts:
                     description: 'List of hosts that will be reached directly, bypassing the proxy. Specify wild card domain use the following form `.<DOMAIN>` and `|` as delimiter, for example: `localhost|.my.host.com|123.42.12.32` Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `nonProxyHosts` in a custom resource leads to merging non proxy hosts lists from the cluster proxy configuration and ones defined in the custom resources. See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyURL` fields.'
@@ -548,7 +548,7 @@ spec:
                     description: Port of the proxy server. Only use when configuring a proxy is required. See also the `proxyURL` and `nonProxyHosts` fields.
                     type: string
                   proxySecret:
-                    description: The secret that contains `user` and `password` for a proxy server. When the secret is defined, the `proxyUser` and `proxyPassword` are ignored.
+                    description: The secret that contains `user` and `password` for a proxy server. When the secret is defined, the `proxyUser` and `proxyPassword` are ignored. The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
                     type: string
                   proxyURL:
                     description: URL (protocol+host name) of the proxy server. This drives the appropriate changes in the `JAVA_OPTS` and `https(s)_proxy` variables in the Che server and workspaces containers. Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration and no additional configuration is required, but defining `proxyUrl` in a custom resource leads to overrides the cluster proxy configuration with fields `proxyUrl`, `proxyPort`, `proxyUser` and `proxyPassword` from the custom resource. See the doc https://docs.openshift.com/container-platform/4.4/networking/enable-cluster-wide-proxy.html. See also the `proxyPort` and `nonProxyHosts` fields.
@@ -575,7 +575,7 @@ spec:
                     description: Overrides the memory request used in the Che server deployment. Defaults to 512Mi.
                     type: string
                   serverTrustStoreConfigMapName:
-                    description: Name of the ConfigMap with public certificates to add to Java trust store of the Che server. This is often required when adding the OpenShift OAuth provider, which has HTTPS endpoint signed with self-signed cert. The Che server must be aware of its CA cert to be able to request it. This is disabled by default.
+                    description: Name of the ConfigMap with public certificates to add to Java trust store of the Che server. This is often required when adding the OpenShift OAuth provider, which has HTTPS endpoint signed with self-signed cert. The Che server must be aware of its CA cert to be able to request it. This is disabled by default. The Config Map must have `app.kubernetes.io/part-of=che.eclipse.org` label.
                     type: string
                   singleHostGatewayConfigMapLabels:
                     additionalProperties:

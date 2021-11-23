@@ -68,6 +68,7 @@ func TestIngressSpec(t *testing.T) {
 						"type":                         "default",
 						"app.kubernetes.io/component":  DefaultCheFlavor(cheCluster),
 						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/part-of":    "che.eclipse.org",
 						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
 						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
 					},

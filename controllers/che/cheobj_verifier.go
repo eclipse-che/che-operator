@@ -56,6 +56,12 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 			// ignore not matched labels
 			return false, ctrl.Request{}
 		}
+
+		// Check for instance label
+		if value, exists := obj.GetLabels()[deploy.KubernetesInstanceLabelKey]; !exists || value != deploy.DefaultCheFlavor(checluster) {
+			// Ignore config map with missing instance label
+			return false, ctrl.Request{}
+		}
 	}
 
 	return true, ctrl.Request{
@@ -66,14 +72,10 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 	}
 }
 
-// isEclipseCheRelatedObj indicates if there is a object with
-// the label 'app.kubernetes.io/part-of=che.eclipse.org' in a che namespace
+// isEclipseCheRelatedObj indicates if there is an object in a che namespace with the labels:
+// - 'app.kubernetes.io/part-of=che.eclipse.org'
+// - 'app.kubernetes.io/instance=che'
 func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.Object) (bool, ctrl.Request) {
-	if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
-		// ignore not matched labels
-		return false, ctrl.Request{}
-	}
-
 	if obj.GetNamespace() == "" {
 		// ignore cluster scope objects
 		return false, ctrl.Request{}
@@ -89,6 +91,16 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 
 	if checluster.Namespace != obj.GetNamespace() {
 		// ignore object in another namespace
+		return false, ctrl.Request{}
+	}
+
+	// Check for part-of label
+	if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+		return false, ctrl.Request{}
+	}
+
+	// Check for instance label
+	if value, exists := obj.GetLabels()[deploy.KubernetesInstanceLabelKey]; !exists || value != deploy.DefaultCheFlavor(checluster) {
 		return false, ctrl.Request{}
 	}
 

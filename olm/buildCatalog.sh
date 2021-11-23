@@ -12,6 +12,7 @@
 #
 
 set -e
+set -x
 
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 
@@ -92,7 +93,11 @@ buildCatalog () {
 }
 
 isBundleExistsInCatalog() {
-  docker run -ti --entrypoint sh ${CATALOG_IMAGE} -c "apk add sqlite && sqlite3 /database/index.db 'SELECT head_operatorbundle_name FROM channel WHERE name = \"next\" and head_operatorbundle_name = \"${CSV_NAME}\"'" AND | tail -n1 | wc -l
+  local BUNDLE_NAME=$(docker run --entrypoint sh ${CATALOG_IMAGE} -c "apk add sqlite && sqlite3 /database/index.db 'SELECT head_operatorbundle_name FROM channel WHERE name = \"${CHANNEL}\" and head_operatorbundle_name = \"${CSV_NAME}\"'" | tail -n1 | tr -d '\r')
+
+  # docker run produce more output then a single line
+  # so, it is needed to check if the last line is actually a given bunle name
+  if [[ ${BUNDLE_NAME} == ${CSV_NAME} ]]; then echo 1; else echo 0; fi
 }
 
 isBundleImageExists() {

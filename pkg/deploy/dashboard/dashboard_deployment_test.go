@@ -52,9 +52,9 @@ func TestDashboardDeploymentSecurityContext(t *testing.T) {
 			},
 		},
 		ClusterAPI: deploy.ClusterAPI{
-			Client:          cli,
-			NonCachedClient: cli,
-			Scheme:          scheme.Scheme,
+			Client:           cli,
+			NonCachingClient: cli,
+			Scheme:           scheme.Scheme,
 		},
 		Proxy: &deploy.Proxy{},
 	}
@@ -127,9 +127,9 @@ func TestDashboardDeploymentResources(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: cli,
-					Scheme:          scheme.Scheme,
+					Client:           cli,
+					NonCachingClient: cli,
+					Scheme:           scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}
@@ -276,9 +276,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: cli,
-					Scheme:          scheme.Scheme,
+					Client:           cli,
+					NonCachingClient: cli,
+					Scheme:           scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}
@@ -394,9 +394,9 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: cli,
-					Scheme:          scheme.Scheme,
+					Client:           cli,
+					NonCachingClient: cli,
+					Scheme:           scheme.Scheme,
 				},
 				Proxy: &deploy.Proxy{},
 			}

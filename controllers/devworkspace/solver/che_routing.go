@@ -84,7 +84,8 @@ func (c *CheRoutingSolver) provisionServices(objs *solvers.RoutingObjects, cheCl
 			Name:      common.ServiceName(routing.Spec.DevWorkspaceId),
 			Namespace: routing.Namespace,
 			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel: routing.Spec.DevWorkspaceId,
+				constants.DevWorkspaceIDLabel:   routing.Spec.DevWorkspaceId,
+				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
 			},
 		},
 		Spec: corev1.ServiceSpec{
@@ -397,7 +398,8 @@ func exposeAllEndpoints(cheCluster *v2alpha1.CheCluster, routing *dwo.DevWorkspa
 			Name:      defaults.GetGatewayWorkspaceConfigMapName(routing.Spec.DevWorkspaceId),
 			Namespace: routing.Namespace,
 			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel: routing.Spec.DevWorkspaceId,
+				constants.DevWorkspaceIDLabel:   routing.Spec.DevWorkspaceId,
+				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
 			},
 		},
 		Data: map[string]string{},

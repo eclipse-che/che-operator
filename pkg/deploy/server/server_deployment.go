@@ -88,7 +88,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 					Key: "ca.crt",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-git-self-signed-cert",
+						Name: deploy.GitSelfSignedCertsConfigMapName,
 					},
 					Optional: &optionalEnv,
 				},
@@ -100,7 +100,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 					Key: "githost",
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "che-git-self-signed-cert",
+						Name: deploy.GitSelfSignedCertsConfigMapName,
 					},
 					Optional: &optionalEnv,
 				},

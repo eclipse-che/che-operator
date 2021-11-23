@@ -36,18 +36,14 @@ const (
 	OpenshiftOauthUserFinalizerName     = "openshift-oauth-user.finalizers.che.eclipse.org"
 )
 
-var (
-	password            = util.GeneratePasswd(6)
-	htpasswdFileContent string
-)
-
 type IOpenShiftOAuthUser interface {
 	Create(ctx *deploy.DeployContext) (bool, error)
 	Delete(ctx *deploy.DeployContext) error
 }
 
 type OpenShiftOAuthUser struct {
-	runnable util.Runnable
+	userPassword string
+	runnable     util.Runnable
 
 	deploy.Reconcilable
 	IOpenShiftOAuthUser
@@ -55,8 +51,8 @@ type OpenShiftOAuthUser struct {
 
 func NewOpenShiftOAuthUser() *OpenShiftOAuthUser {
 	return &OpenShiftOAuthUser{
-		// real process, mock for tests
-		runnable: util.NewRunnable(),
+		userPassword: util.GeneratePasswd(6),
+		runnable:     util.NewRunnable(), // real process, mock for tests
 	}
 }
 
@@ -65,7 +61,9 @@ func (oou *OpenShiftOAuthUser) Reconcile(ctx *deploy.DeployContext) (reconcile.R
 		return reconcile.Result{}, true, nil
 	}
 
-	if ctx.CheCluster.IsOpenShiftOAuthUserConfigured() && ctx.CheCluster.IsOpenShiftOAuthEnabled() {
+	if ctx.CheCluster.IsOpenShiftOAuthUserConfigured() &&
+		(ctx.CheCluster.Spec.Auth.OpenShiftoAuth == nil || *ctx.CheCluster.Spec.Auth.OpenShiftoAuth) {
+
 		done, err := oou.Create(ctx)
 		if !done {
 			return reconcile.Result{Requeue: true}, false, err
@@ -99,40 +97,36 @@ func (oou *OpenShiftOAuthUser) Finalize(ctx *deploy.DeployContext) error {
 // That's why we provide initial user for good first meeting with Eclipse Che.
 func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 	userName := deploy.DefaultCheFlavor(ctx.CheCluster)
-	if htpasswdFileContent == "" {
-		var err error
-		if htpasswdFileContent, err = oou.generateHtPasswdUserInfo(userName, password); err != nil {
-			return false, err
-		}
-	}
-
-	var storedPassword string
 
 	// read existed password from the secret (operator has been restarted case)
-	secret, err := oou.getOpenShiftOAuthUserCredentialsSecret(ctx)
+	oAuthUserCredentialsSecret, err := oou.getOpenShiftOAuthUserCredentialsSecret(ctx)
 	if err != nil {
 		return false, err
-	} else if secret != nil {
-		storedPassword = string(secret.Data["password"])
+	} else if oAuthUserCredentialsSecret != nil {
+		oou.userPassword = string(oAuthUserCredentialsSecret.Data["password"])
 	}
 
-	if storedPassword != "" && password != storedPassword {
-		password = storedPassword
-		if htpasswdFileContent, err = oou.generateHtPasswdUserInfo(userName, password); err != nil {
+	// create a new secret with user's credentials
+	if oAuthUserCredentialsSecret == nil {
+		initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(oou.userPassword)}
+		done, err := deploy.SyncSecretToCluster(ctx, OpenShiftOAuthUserCredentialsSecret, OcConfigNamespace, initialUserSecretData)
+		if !done {
 			return false, err
 		}
 	}
 
-	initialUserSecretData := map[string][]byte{"user": []byte(userName), "password": []byte(password)}
-	done, err := deploy.SyncSecretToCluster(ctx, OpenShiftOAuthUserCredentialsSecret, OcConfigNamespace, initialUserSecretData)
-	if !done {
-		return false, err
-	}
+	htpasswdSecretExists, _ := deploy.Get(ctx, types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, &corev1.Secret{})
+	if !htpasswdSecretExists {
+		htpasswdFileContent, err := oou.generateHtPasswdUserInfo(userName, oou.userPassword)
+		if err != nil {
+			return false, err
+		}
 
-	htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
-	done, err = deploy.SyncSecretToCluster(ctx, HtpasswdSecretName, OcConfigNamespace, htpasswdFileSecretData)
-	if !done {
-		return false, err
+		htpasswdFileSecretData := map[string][]byte{"htpasswd": []byte(htpasswdFileContent)}
+		done, err := deploy.SyncSecretToCluster(ctx, HtpasswdSecretName, OcConfigNamespace, htpasswdFileSecretData)
+		if !done {
+			return false, err
+		}
 	}
 
 	oAuth, err := GetOpenshiftOAuth(ctx)
@@ -140,7 +134,7 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if err := appendIdentityProvider(oAuth, ctx.ClusterAPI.NonCachedClient); err != nil {
+	if err := appendIdentityProvider(oAuth, ctx.ClusterAPI.NonCachingClient); err != nil {
 		return false, err
 	}
 
@@ -173,7 +167,7 @@ func (oou *OpenShiftOAuthUser) Delete(ctx *deploy.DeployContext) error {
 		return err
 	}
 
-	if err := deleteIdentityProvider(oAuth, ctx.ClusterAPI.NonCachedClient); err != nil {
+	if err := deleteIdentityProvider(oAuth, ctx.ClusterAPI.NonCachingClient); err != nil {
 		return err
 	}
 
@@ -221,7 +215,6 @@ func (oou *OpenShiftOAuthUser) generateHtPasswdUserInfo(userName string, passwor
 	if util.IsTestMode() {
 		return "", nil
 	}
-	logrus.Info("Generate initial user httpasswd info")
 
 	err := oou.runnable.Run("htpasswd", "-nbB", userName, password)
 	if err != nil {
@@ -270,8 +263,6 @@ func identityProviderExists(providerName string, oAuth *configv1.OAuth) bool {
 }
 
 func appendIdentityProvider(oAuth *configv1.OAuth, runtimeClient client.Client) error {
-	logrus.Info("Add initial user httpasswd provider to the oAuth")
-
 	htpasswdProvider := newHtpasswdProvider()
 	if !identityProviderExists(htpasswdProvider.Name, oAuth) {
 		oauthPatch := client.MergeFrom(oAuth.DeepCopy())

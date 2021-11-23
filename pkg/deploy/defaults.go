@@ -125,6 +125,9 @@ const (
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
 
+	// Name of the secret that holds self-signed certificate for git connections
+	GitSelfSignedCertsConfigMapName = "che-git-self-signed-cert"
+
 	// limits
 	DefaultDashboardMemoryLimit   = "256Mi"
 	DefaultDashboardMemoryRequest = "32Mi"

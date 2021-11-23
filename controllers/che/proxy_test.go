@@ -328,9 +328,9 @@ func TestReadProxyConfiguration(t *testing.T) {
 			deployContext := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
-					Client:          cli,
-					NonCachedClient: cli,
-					Scheme:          scheme,
+					Client:           cli,
+					NonCachingClient: cli,
+					Scheme:           scheme,
 				},
 			}
 
