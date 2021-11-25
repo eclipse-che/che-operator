@@ -89,7 +89,23 @@ func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.De
 	if !exists {
 		// We have to create an empty config map with the specific labels
 		done, err := deploy.Create(ctx, configMapSpec)
-		return reconcile.Result{}, done, err
+		if !errors.IsAlreadyExists(err) {
+			return reconcile.Result{}, done, err
+		}
+
+		// ConfigMap might miss `app.kubernetes.io/part-of: che.eclipse.org` label
+		if err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Namespace: ctx.CheCluster.Namespace, Name: name}, actual); err != nil {
+			return reconcile.Result{}, done, err
+		} else if actual.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] != deploy.CheEclipseOrg {
+			actual.ObjectMeta.Labels[deploy.KubernetesPartOfLabelKey] = deploy.CheEclipseOrg
+			if err := ctx.ClusterAPI.NonCachingClient.Update(context.TODO(), actual); err != nil {
+				return reconcile.Result{}, false, err
+			}
+			return reconcile.Result{}, false, nil
+		} else {
+			// ConfigMap might not be in cache yet, give another try
+			return reconcile.Result{}, false, nil
+		}
 	}
 
 	if actual.ObjectMeta.Labels[injector] != "true" ||
