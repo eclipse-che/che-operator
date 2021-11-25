@@ -115,7 +115,7 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	return ""
 }
 
-func getOauthProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container{
+func getOauthProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container {
 	authnImage := util.GetValue(instance.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(instance))
 	return corev1.Container{
 		Name:            "oauth-proxy",

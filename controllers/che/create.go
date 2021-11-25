@@ -249,7 +249,7 @@ func (r *CheClusterReconciler) GenerateAndSaveFields(deployContext *deploy.Deplo
 		}
 	}
 
-	if util.IsOpenShift && deployContext.CheCluster.Spec.DevWorkspace.Enable && deployContext.CheCluster.Spec.Auth.NativeUserMode == nil {
+	if deployContext.CheCluster.Spec.DevWorkspace.Enable && deployContext.CheCluster.Spec.Auth.NativeUserMode == nil {
 		newNativeUserModeValue := util.NewBoolPointer(true)
 		deployContext.CheCluster.Spec.Auth.NativeUserMode = newNativeUserModeValue
 		if err := deploy.UpdateCheCRSpec(deployContext, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {
