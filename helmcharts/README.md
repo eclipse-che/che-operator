@@ -1,26 +1,22 @@
 # Eclipse Che Helm Charts
 
 - [Charts](#charts)
-  - [Kubernetes Versions](#kubernetes-versions)
-  - [Helm Versions](#helm-versions)
-  - [Helm Chart Install](#helm-chart-install)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
 
 
 ## Charts
 
 Helm charts to deploy [Eclipse Che](https://www.eclipse.org/che/)
 
-### Kubernetes Versions
+### Prerequisites
 
-Minimal Kubernetes version is 1.19
+* Minimal Kubernetes version is 1.19
+* Minimal Helm version is 3.2.2
 
-### Helm Versions
+### Installation
 
-Helm charts are only tested with Helm version 3.7.1
-
-### Helm Chart Install
-
-Create a Namespace and install the helm chart for Eclipse Che.
+Create a Namespace and install the Helm Charts for Eclipse Che Operator.
 
 ```
 NAMESPACE=eclipse-che
