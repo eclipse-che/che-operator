@@ -28,6 +28,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -96,6 +97,8 @@ func NewReconciler(
 	openShiftOAuthUser := openshiftoauth.NewOpenShiftOAuthUser()
 	reconcileManager.RegisterReconciler(openShiftOAuthUser)
 	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth(openShiftOAuthUser))
+	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
+	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
@@ -249,6 +252,22 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		CheCluster: checluster,
 	}
 
+	// Read proxy configuration
+	proxy, err := GetProxyConfiguration(deployContext)
+	if err != nil {
+		r.Log.Error(err, "Error on reading proxy configuration")
+		return ctrl.Result{}, err
+	}
+	deployContext.Proxy = proxy
+
+	// Detect whether self-signed certificate is used
+	isSelfSignedCertificate, err := tls.IsSelfSignedCertificateUsed(deployContext)
+	if err != nil {
+		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
+		return ctrl.Result{}, err
+	}
+	deployContext.IsSelfSignedCertificate = isSelfSignedCertificate
+
 	if isCheGoingToBeUpdated(checluster) {
 		// Current operator is newer than deployed Che
 		backupCR, err := getBackupCRForUpdate(deployContext)
@@ -297,94 +316,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		// We should `Requeue` since we don't watch Dev Workspace controller objects
 		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	// Read proxy configuration
-	proxy, err := GetProxyConfiguration(deployContext)
-	if err != nil {
-		r.Log.Error(err, "Error on reading proxy configuration")
-		return ctrl.Result{}, err
-	}
-	// Assign Proxy to the deploy context
-	deployContext.Proxy = proxy
-
-	if proxy.TrustedCAMapName != "" {
-		provisioned, err := r.putOpenShiftCertsIntoConfigMap(deployContext)
-		if !provisioned {
-			configMapName := checluster.Spec.Server.ServerTrustStoreConfigMapName
-			if err != nil {
-				r.Log.Error(err, "Error on provisioning", "config map", configMapName)
-			} else {
-				r.Log.Error(err, "Waiting on provisioning", "config map", configMapName)
-			}
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Detect whether self-signed certificate is used
-	selfSignedCertUsed, err := deploy.IsSelfSignedCertificateUsed(deployContext)
-	if err != nil {
-		r.Log.Error(err, "Failed to detect if self-signed certificate used.")
-		return ctrl.Result{}, err
-	}
-
-	if util.IsOpenShift {
-		// create a secret with router tls cert when on OpenShift infra and router is configured with a self signed certificate
-		if selfSignedCertUsed ||
-			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
-			// and NOT from the Openshift API Master URL (as in v3)
-			// So we also need the self-signed certificate to access them (same as the Che server)
-			(util.IsOpenShift4 && checluster.IsOpenShiftOAuthEnabled() && !checluster.Spec.Server.TlsSupport) {
-			if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		if util.IsOpenShift && checluster.IsOpenShiftOAuthEnabled() {
-			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
-			if err != nil {
-				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
-			} else {
-				baseURL := map[bool]string{true: apiInternalUrl, false: apiUrl}[apiInternalUrl != ""]
-				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, baseURL, "openshift-api-crt"); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-		}
-	} else {
-		// Handle Che TLS certificates on Kubernetes infrastructure
-		if checluster.Spec.Server.TlsSupport {
-			if checluster.Spec.K8s.TlsSecretName != "" {
-				// Self-signed certificate should be created to secure Che ingresses
-				result, err := deploy.K8sHandleCheTLSSecrets(deployContext)
-				if result.Requeue || result.RequeueAfter > 0 {
-					if err != nil {
-						logrus.Error(err)
-					}
-					if !tests {
-						return result, err
-					}
-				}
-			} else if selfSignedCertUsed {
-				// Use default self-signed ingress certificate
-				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-		}
-	}
-
-	// Make sure that CA certificates from all marked config maps are merged into single config map to be propageted to Che components
-	done, err = deploy.SyncAdditionalCACertsConfigMapToCluster(deployContext)
-	if err != nil {
-		r.Log.Error(err, "Error updating additional CA config map")
-		return ctrl.Result{}, err
-	}
-	if !done && !tests {
-		// Config map update is in progress
-		// Return and do not force reconcile. When update finishes it will trigger reconcile loop.
-		return ctrl.Result{}, err
 	}
 
 	// Create service account "che" for che-server component.

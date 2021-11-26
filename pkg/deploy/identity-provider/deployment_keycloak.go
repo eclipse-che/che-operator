@@ -20,6 +20,7 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -100,7 +101,7 @@ func GetSpecKeycloakDeployment(
 		}
 	}
 
-	cmResourceVersions := deploy.GetAdditionalCACertsConfigMapVersion(deployContext)
+	cmResourceVersions := tls.GetAdditionalCACertsConfigMapVersion(deployContext)
 	terminationGracePeriodSeconds := int64(30)
 	cheCertSecretVersion := getSecretResourceVersion("self-signed-certificate", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
 	openshiftApiCertSecretVersion := getSecretResourceVersion("openshift-api-crt", deployContext.CheCluster.Namespace, deployContext.ClusterAPI)
@@ -136,7 +137,7 @@ func GetSpecKeycloakDeployment(
 	customPublicCertsVolumeSource = corev1.VolumeSource{
 		ConfigMap: &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: deploy.CheAllCACertsConfigMapName,
+				Name: tls.CheAllCACertsConfigMapName,
 			},
 		},
 	}

@@ -18,13 +18,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var SecretDiffOpts = cmp.Options{
@@ -100,25 +97,4 @@ func GetSecretSpec(deployContext *DeployContext, name string, namespace string, 
 	}
 
 	return secret
-}
-
-// CreateTLSSecretFromEndpoint creates TLS secret with given name which contains certificates obtained from the given url.
-// If the url is empty string, then cluster default certificate will be obtained.
-// Does nothing if secret with given name already exists.
-func CreateTLSSecretFromEndpoint(deployContext *DeployContext, url string, name string) (err error) {
-	secret := &corev1.Secret{}
-	if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: deployContext.CheCluster.Namespace}, secret); err != nil && errors.IsNotFound(err) {
-		crtBytes, err := GetEndpointTLSCrtBytes(deployContext, url)
-		if err != nil {
-			logrus.Errorf("Failed to extract certificate for secret %s. Failed to create a secret with a self signed crt: %s", name, err)
-			return err
-		}
-
-		_, err = SyncSecretToCluster(deployContext, name, deployContext.CheCluster.Namespace, map[string][]byte{"ca.crt": crtBytes})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
