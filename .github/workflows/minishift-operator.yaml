@@ -15,38 +15,60 @@ on: pull_request
 jobs:
   minishift-e2e:
     name: Testing latest changes
-    runs-on: macos-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
-    # All docker operations should be done in this step
+    - name: Install KVM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-kvm libvirt-bin bridge-utils virtinst virt-manager
+      # - name: Install VirtualBox
+      #   run: |
+      #     # Install dependencies
+      #     sudo apt-get update
+      #     sudo apt-get install -y gnupg
+      #     # Add PPA
+      #     wget -q -O - http://download.virtualbox.org/virtualbox/debian/oracle_vbox_2016.asc | sudo apt-key add -
+      #     echo "deb [arch=amd64] http://download.virtualbox.org/virtualbox/debian bionic contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
+      #     # Install Virtualbox 5.2
+      #     sudo apt-get update
+      #     sudo apt-get install -y virtualbox-5.2
+    - name: Install docker
+      run: |
+        # Install dependencies
+        sudo apt-get install -y ca-certificates curl gnupg lsb-release
+        # Add gpg key
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        # Add deb repository for docker
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        # Install docker
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
     - name: Build Che operator image
       run: |
         export OPERATOR_IMAGE=test/che-operator:test
-        # coreutils provides a readlink that supports `-f`
-
-        brew install coreutils docker docker-machine
-
-        mkdir -p ~/.docker/machine/cache/
-        sudo curl -Lo ~/.docker/machine/cache/boot2docker.iso https://github.com/boot2docker/boot2docker/releases/download/v19.03.12/boot2docker.iso
-
-        docker-machine --github-api-token="${{ secrets.GITHUB_TOKEN }}" create --driver virtualbox default
-        eval "$(docker-machine env default)"
-        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
-
-        docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
-
-        docker-machine stop
-    - name: Provision Minishift cluster
+        #docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
+    - name: Install Minishift
       run: |
-        brew install minishift
+        curl -L https://github.com/minishift/minishift/releases/download/v1.34.3/minishift-1.34.3-linux-amd64.tgz --output /tmp/minishift.tgz
+        tar zxvf /tmp/minishift.tgz
+        sudo mv minishift-1.34.3-linux-amd64/minishift /usr/local/bin
+    - name: Run Minishift
+      run: |
         export MINISHIFT_GITHUB_API_TOKEN=${{ secrets.GITHUB_TOKEN }}
-        minishift start --memory=5500 --vm-driver=virtualbox --registry-mirror=https://quay.io
-    - name: Install chectl
-      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
+        # minishift start --memory=5500 --vm-driver=virtualbox --registry-mirror=https://quay.io
+        minishift start --memory=5500 --registry-mirror=https://quay.io
     - name: Replace Minishift default certificates
       run: /bin/bash .github/bin/minishift/certs.sh
+    - name: Load operator image into Minishift
+      run: |
+        eval $(minishift docker-env)
+        docker load --input /tmp/operator.tar
     - name: Install jq
       run: sudo pip install yq
+    - name: Install chectl
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
       run: |
         eval $(minishift oc-env)
