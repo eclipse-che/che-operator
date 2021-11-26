@@ -16,6 +16,7 @@
 # - next olm bundle
 # - Dockerfile & operator.yaml
 # - DW resources
+# - Helm charts
 
 set -e
 
@@ -136,6 +137,19 @@ checkRoles() {
   fi
 }
 
+checkHelmCharts() {
+  changedFiles=(
+    $(git diff --name-only)
+  )
+  if [[ " ${changedFiles[*]} " =~ helmcharts ]]; then
+    echo "[ERROR] Helm Charts are not up to date"
+    echo "[ERROR] Run 'make update-resources -s' to update them."
+    exit 1
+  else
+    echo "[INFO] Helm Charts are up to date."
+  fi
+}
+
 installOperatorSDK
 
 pushd "${ROOT_PROJECT_DIR}" || true
@@ -146,6 +160,7 @@ checkRoles
 checkNextOlmBundle
 checkDockerfile
 checkOperatorYaml
+checkHelmCharts
 
 popd || true
 

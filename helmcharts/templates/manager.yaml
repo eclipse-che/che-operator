@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: che-operator
-  namespace: eclipse-che
+  namespace: '{{ .Release.Namespace }}'
   labels:
     app: che-operator
     app.kubernetes.io/name: che

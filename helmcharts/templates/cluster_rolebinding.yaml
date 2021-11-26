@@ -22,7 +22,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: che-operator
-    namespace: eclipse-che
+    namespace: '{{ .Release.Namespace }}'
 roleRef:
   kind: ClusterRole
   name: che-operator
