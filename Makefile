@@ -792,10 +792,16 @@ update-resources: check-requirements update-resource-images update-roles update-
 		done
 	done
 
+update-helmcharts: SHELL := /bin/bash
 update-helmcharts: add-license-download check-requirements update-resource-images update-roles
-	HELMCHARTS_TEMPLATES="helmcharts/templates"
-	HELMCHARTS_CRDS="helmcharts/crds"
+	helmFolder=$(HELM_FOLDER)
+	if [ -z "$${helmFolder}" ]; then
+		helmFolder="next"
+	fi
+	HELMCHARTS_TEMPLATES="helmcharts/$${helmFolder}/templates"
+	HELMCHARTS_CRDS="helmcharts/$${helmFolder}/crds"
 
+	echo "[INFO] Update Helm templates $${HELMCHARTS_TEMPLATES}"
 	cp config/manager/manager.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/rbac/cluster_role.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/rbac/cluster_rolebinding.yaml $${HELMCHARTS_TEMPLATES}
@@ -804,6 +810,7 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 	cp config/rbac/role_binding.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/samples/org.eclipse.che_v1_checluster.yaml $${HELMCHARTS_TEMPLATES}
 
+	echo "[INFO] Update helm CRDs $${HELMCHARTS_CRDS}"
 	cp config/crd/bases/org_v1_che_crd.yaml $${HELMCHARTS_CRDS}
 	cp config/crd/bases/org.eclipse.che_chebackupserverconfigurations_crd.yaml $${HELMCHARTS_CRDS}
 	cp config/crd/bases/org.eclipse.che_checlusterbackups_crd.yaml $${HELMCHARTS_CRDS}
