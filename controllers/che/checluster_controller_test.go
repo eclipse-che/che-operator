@@ -29,6 +29,7 @@ import (
 
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
 	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
+	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -47,7 +48,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/utils/pointer"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -481,7 +482,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// Get the custom role binding that should have been created for the role we passed in
-	rb := &rbac.RoleBinding{}
+	rb := &rbacv1.RoleBinding{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
 		t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
 	}
@@ -776,7 +777,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 			if testCase.clusterRole {
 				ctrl := gomock.NewController(t)
 				m = mocks.NewMockPermissionChecker(ctrl)
-				m.EXPECT().GetNotPermittedPolicyRules(gomock.Any(), "").Return([]rbac.PolicyRule{}, nil).MaxTimes(2)
+				m.EXPECT().GetNotPermittedPolicyRules(gomock.Any(), "").Return([]rbacv1.PolicyRule{}, nil).MaxTimes(2)
 				defer ctrl.Finish()
 			}
 
@@ -799,22 +800,22 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 				t.Fatalf("Error reconciling: %v", err)
 			}
 
-			manageNamespacesClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, namespace)
-			cheManageNamespaceClusterRole := &rbac.ClusterRole{}
+			manageNamespacesClusterRoleName := fmt.Sprintf(rbac.CheNamespaceEditorClusterRoleNameTemplate, namespace)
+			cheManageNamespaceClusterRole := &rbacv1.ClusterRole{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
 				t.Errorf("role '%s' not found", manageNamespacesClusterRoleName)
 			}
-			cheManageNamespaceClusterRoleBinding := &rbac.ClusterRoleBinding{}
+			cheManageNamespaceClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
 				t.Errorf("rolebinding '%s' not found", manageNamespacesClusterRoleName)
 			}
 
-			cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, namespace)
-			cheWorkspacesClusterRole := &rbac.ClusterRole{}
+			cheWorkspacesClusterRoleName := fmt.Sprintf(rbac.CheWorkspacesClusterRoleNameTemplate, namespace)
+			cheWorkspacesClusterRole := &rbacv1.ClusterRole{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
 				t.Errorf("role '%s' not found", cheWorkspacesClusterRole)
 			}
-			cheWorkspacesClusterRoleBinding := &rbac.ClusterRoleBinding{}
+			cheWorkspacesClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
 				t.Errorf("rolebinding '%s' not found", cheWorkspacesClusterRole)
 			}

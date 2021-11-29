@@ -12,11 +12,14 @@
 package util
 
 import (
+	"context"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type TestExpectedResources struct {
@@ -101,4 +104,13 @@ func FindVolumeMount(volumes []corev1.VolumeMount, name string) corev1.VolumeMou
 	}
 
 	return corev1.VolumeMount{}
+}
+
+func IsObjectExists(client client.Client, key types.NamespacedName, blueprint client.Object) bool {
+	err := client.Get(context.TODO(), key, blueprint)
+	if err != nil {
+		return false
+	}
+
+	return true
 }

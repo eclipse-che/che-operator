@@ -21,14 +21,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type CachedObjFile struct {
+type DevWorkspaceCachedObj struct {
 	data    []byte
 	hash256 string
 }
 
 var (
 	// cachedObjects
-	cachedObjFiles = make(map[string]*CachedObjFile)
+	cachedObjFiles = make(map[string]*DevWorkspaceCachedObj)
 )
 
 // readK8SObject reads DWO related object from file system and cache value to avoid read later
@@ -73,7 +73,7 @@ func readObj(yamlFile string, into interface{}) (string, error) {
 			return "", err
 		}
 
-		cachedFile = &CachedObjFile{
+		cachedFile = &DevWorkspaceCachedObj{
 			data,
 			util.ComputeHash256(data),
 		}
