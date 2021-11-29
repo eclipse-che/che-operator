@@ -46,10 +46,12 @@ jobs:
           git checkout gh-pages
           cp -rf /tmp/charts "${GITHUB_WORKSPACE}"/charts/new
           helm package ./charts/new
-          ls ./charts/new
+          mkdir -p charts/stable
           mv *.tgz charts/stable
           rm -rf ./charts/new
-          helm repo index --url https://andrienkoaleksandr.github.io/che-operator/charts charts
+
+          # Generate index.yaml with list Helm packages
+          helm repo index --url https://che-operator.github.io/che-operator/charts charts
 
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
