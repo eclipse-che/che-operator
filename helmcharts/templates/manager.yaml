@@ -1,0 +1,162 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: che-operator
+  namespace: '{{ .Release.Namespace }}'
+  labels:
+    app: che-operator
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/part-of: che.eclipse.org
+    app.kubernetes.io/component: che-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: che-operator
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: che-operator
+        app.kubernetes.io/name: che
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/part-of: che.eclipse.org
+        app.kubernetes.io/component: che-operator
+    spec:
+      containers:
+        - name: che-operator
+          image: quay.io/eclipse/che-operator:next
+          command:
+            - /manager
+          args:
+            - --leader-elect
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 60000
+              name: metrics
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: che-operator
+            - name: CHE_VERSION
+              value: next
+            - name: RELATED_IMAGE_che_server
+              value: quay.io/eclipse/che-server:next
+            - name: RELATED_IMAGE_dashboard
+              value: quay.io/eclipse/che-dashboard:next
+            - name: RELATED_IMAGE_plugin_registry
+              value: quay.io/eclipse/che-plugin-registry:next
+            - name: RELATED_IMAGE_devfile_registry
+              value: quay.io/eclipse/che-devfile-registry:next
+            - name: RELATED_IMAGE_che_tls_secrets_creation_job
+              value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
+            - name: RELATED_IMAGE_pvc_jobs
+              value: registry.access.redhat.com/ubi8-minimal:8.5-204
+            - name: RELATED_IMAGE_postgres
+              value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
+            - name: RELATED_IMAGE_postgres_13_3
+              value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
+            - name: RELATED_IMAGE_keycloak
+              value: quay.io/eclipse/che-keycloak:next
+            - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
+              value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
+            - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
+              value: quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0
+            - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
+              value: quay.io/eclipse/che-jwtproxy:0.10.0
+            - name: RELATED_IMAGE_single_host_gateway
+              value: quay.io/eclipse/che--traefik:v2.5.0-eb30f9f09a65cee1fab5ef9c64cb4ec91b800dc3fdd738d62a9d4334f0114683
+            - name: RELATED_IMAGE_single_host_gateway_config_sidecar
+              value: quay.io/che-incubator/configbump:0.1.4
+            - name: RELATED_IMAGE_devworkspace_controller
+              value: quay.io/devfile/devworkspace-controller:v0.9.0
+            - name: RELATED_IMAGE_internal_rest_backup_server
+              value: quay.io/eclipse/che-backup-server-rest:b6cc165
+            - name: RELATED_IMAGE_gateway_authentication_sidecar
+              value: quay.io/openshift/origin-oauth-proxy:4.7
+            - name: RELATED_IMAGE_gateway_authorization_sidecar
+              value: quay.io/openshift/origin-kube-rbac-proxy:4.7
+            - name: RELATED_IMAGE_gateway_header_sidecar
+              value: quay.io/che-incubator/header-rewrite-proxy:latest
+            - name: CHE_FLAVOR
+              value: che
+            - name: CONSOLE_LINK_NAME
+              value: che
+            - name: CONSOLE_LINK_DISPLAY_NAME
+              value: Eclipse Che
+            - name: CONSOLE_LINK_SECTION
+              value: Red Hat Applications
+            - name: CONSOLE_LINK_IMAGE
+              value: /dashboard/assets/branding/loader.svg
+            - name: CHE_IDENTITY_SECRET
+              value: che-identity-secret
+            - name: CHE_IDENTITY_POSTGRES_SECRET
+              value: che-identity-postgres-secret
+            - name: CHE_POSTGRES_SECRET
+              value: che-postgres-secret
+            - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
+              value: ca-certs
+            - name: MAX_CONCURRENT_RECONCILES
+              value: "1"
+            - name: ALLOW_DEVWORKSPACE_ENGINE
+              value: "true"
+            - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
+              value: "false"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 6789
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 6789
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+      hostIPC: false
+      hostNetwork: false
+      hostPID: false
+      restartPolicy: Always
+      serviceAccountName: che-operator
+      terminationGracePeriodSeconds: 20

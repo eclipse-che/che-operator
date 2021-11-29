@@ -30,25 +30,6 @@ var roleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
 }
 
-func SyncTLSRoleToCluster(deployContext *DeployContext) (bool, error) {
-	tlsPolicyRule := []rbac.PolicyRule{
-		{
-			APIGroups: []string{
-				"",
-			},
-			Resources: []string{
-				"secrets",
-			},
-			Verbs: []string{
-				"create",
-				"get",
-				"patch",
-			},
-		},
-	}
-	return SyncRoleToCluster(deployContext, CheTLSJobRoleName, tlsPolicyRule)
-}
-
 func SyncExecRoleToCluster(deployContext *DeployContext) (bool, error) {
 	execPolicyRule := []rbac.PolicyRule{
 		{

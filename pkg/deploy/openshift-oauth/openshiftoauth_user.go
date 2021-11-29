@@ -138,9 +138,11 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = OpenShiftOAuthUserCredentialsSecret
-	if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", OpenShiftOAuthUserCredentialsSecret); err != nil {
-		return false, err
+	if ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret != OpenShiftOAuthUserCredentialsSecret {
+		ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = OpenShiftOAuthUserCredentialsSecret
+		if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", OpenShiftOAuthUserCredentialsSecret); err != nil {
+			return false, err
+		}
 	}
 
 	if err := deploy.AppendFinalizer(ctx, OpenshiftOauthUserFinalizerName); err != nil {

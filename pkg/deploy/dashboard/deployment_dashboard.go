@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 
 	volumes, volumeMounts = d.provisionCustomPublicCA(volumes, volumeMounts)
 
-	selfSignedCertSecretExist, err := deploy.IsSelfSignedCASecretExists(d.deployContext)
+	selfSignedCertSecretExist, err := tls.IsSelfSignedCASecretExists(d.deployContext)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +244,7 @@ func (d *Dashboard) provisionCustomPublicCA(volumes []corev1.Volume, volumeMount
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: deploy.CheAllCACertsConfigMapName,
+					Name: tls.CheAllCACertsConfigMapName,
 				},
 			},
 		},

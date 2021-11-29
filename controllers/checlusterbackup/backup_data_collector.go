@@ -22,6 +22,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -220,7 +221,7 @@ func backupConfigMaps(bctx *BackupContext, destDir string) (bool, error) {
 		return true, err
 	}
 
-	caBundlesConfigmaps, err := deploy.GetCACertsConfigMaps(bctx.r.nonCachingClient, bctx.cheCR.GetNamespace())
+	caBundlesConfigmaps, err := tls.GetCACertsConfigMaps(bctx.r.nonCachingClient, bctx.cheCR.GetNamespace())
 	if err != nil {
 		return false, err
 	}

@@ -14,6 +14,7 @@ package che
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,7 +47,7 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 		// No, it is not form CR
 
 		// Check for component
-		if value, exists := obj.GetLabels()[deploy.KubernetesComponentLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
+		if value, exists := obj.GetLabels()[deploy.KubernetesComponentLabelKey]; !exists || value != tls.CheCACertsConfigMapLabelValue {
 			// Labels do not match
 			return false, ctrl.Request{}
 		}

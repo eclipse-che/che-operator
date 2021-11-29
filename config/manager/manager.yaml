@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: che-operator
-  namespace: system
+  namespace: eclipse-che
   labels:
     app: che-operator
     app.kubernetes.io/name: che
