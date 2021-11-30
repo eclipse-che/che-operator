@@ -447,7 +447,7 @@ func MountGitHubOAuthConfig(deployContext *deploy.DeployContext, deployment *app
 	}, map[string]string{
 		deploy.CheEclipseOrgOAuthScmServer: "github",
 	})
-
+	
 	if err != nil {
 		return err
 	} else if len(secrets) > 1 {

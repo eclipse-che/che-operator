@@ -56,7 +56,7 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	return false
 }
 
-func doesWebTerminalSubscriptionExist(deployContext *deploy.DeployContext) (bool, error) {
+func isWebTerminalSubscriptionExist(deployContext *deploy.DeployContext) (bool, error) {
 	// If subscriptions resource doesn't exist in cluster WTO as well will not be present
 	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, SubscriptionResourceName) {
 		return false, nil

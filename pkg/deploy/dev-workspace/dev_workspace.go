@@ -75,7 +75,7 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 	}
 
 	if util.IsOpenShift {
-		wtoInstalled, err := doesWebTerminalSubscriptionExist(ctx)
+		wtoInstalled, err := isWebTerminalSubscriptionExist(ctx)
 		if err != nil {
 			return reconcile.Result{Requeue: true}, false, err
 		}

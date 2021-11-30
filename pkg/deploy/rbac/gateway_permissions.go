@@ -67,11 +67,11 @@ func (gp *GatewayPermissionsReconciler) Finalize(ctx *deploy.DeployContext) erro
 
 func (gp *GatewayPermissionsReconciler) deleteGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
 	name := gp.gatewayPermissionsName(deployContext.CheCluster)
-	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); !done {
+	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); !done {
 		return false, err
 	}
 
-	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbacv1.ClusterRoleBinding{}); !done {
+	if done, err := deploy.Delete(deployContext, types.NamespacedName{Name: name}, &rbacv1.ClusterRole{}); !done {
 		return false, err
 	}
 
