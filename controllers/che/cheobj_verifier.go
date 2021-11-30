@@ -57,12 +57,6 @@ func IsTrustedBundleConfigMap(cl client.Client, watchNamespace string, obj clien
 			// ignore not matched labels
 			return false, ctrl.Request{}
 		}
-
-		// Check for instance label
-		if value, exists := obj.GetLabels()[deploy.KubernetesInstanceLabelKey]; !exists || value != deploy.DefaultCheFlavor(checluster) {
-			// Ignore config map with missing instance label
-			return false, ctrl.Request{}
-		}
 	}
 
 	return true, ctrl.Request{
@@ -97,11 +91,6 @@ func IsEclipseCheRelatedObj(cl client.Client, watchNamespace string, obj client.
 
 	// Check for part-of label
 	if value, exists := obj.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
-		return false, ctrl.Request{}
-	}
-
-	// Check for instance label
-	if value, exists := obj.GetLabels()[deploy.KubernetesInstanceLabelKey]; !exists || value != deploy.DefaultCheFlavor(checluster) {
 		return false, ctrl.Request{}
 	}
 
