@@ -149,9 +149,10 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 	cheFlavor := deploy.DefaultCheFlavor(rctx.cheCR)
 
 	cheNameRequirement, _ := labels.NewRequirement(deploy.KubernetesNameLabelKey, selection.Equals, []string{cheFlavor})
+	cheInstanceRequirement, _ := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{cheFlavor})
 	skipBackupObjectsRequirement, _ := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{checlusterbackup.BackupCheEclipseOrg})
 
-	cheResourcesLabelSelector := labels.NewSelector().Add(*cheNameRequirement).Add(*skipBackupObjectsRequirement)
+	cheResourcesLabelSelector := labels.NewSelector().Add(*cheInstanceRequirement).Add(*cheNameRequirement).Add(*skipBackupObjectsRequirement)
 	cheResourcesListOptions := &client.ListOptions{
 		LabelSelector: cheResourcesLabelSelector,
 		Namespace:     rctx.namespace,
