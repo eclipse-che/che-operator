@@ -75,7 +75,8 @@ func (p *Postgres) SyncService() (bool, error) {
 }
 
 func (p *Postgres) SyncPVC() (bool, error) {
-	done, err := deploy.SyncPVCToCluster(p.deployContext, deploy.DefaultPostgresVolumeClaimName, "1Gi", deploy.PostgresName)
+	pvcClaimSize := util.GetValue(p.deployContext.CheCluster.Spec.Database.PvcClaimSize, deploy.DefaultPostgresPvcClaimSize)
+	done, err := deploy.SyncPVCToCluster(p.deployContext, deploy.DefaultPostgresVolumeClaimName, pvcClaimSize, deploy.PostgresName)
 	if !done {
 		if err == nil {
 			logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
