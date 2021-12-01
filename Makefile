@@ -809,7 +809,6 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 	cp config/rbac/role.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/rbac/role_binding.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/samples/org.eclipse.che_v1_checluster.yaml $${HELMCHARTS_TEMPLATES}
-	cp config/manager/controller-namespace.yaml $${HELMCHARTS_TEMPLATES}
 
 	echo "[INFO] Update helm CRDs $${HELMCHARTS_CRDS}"
 	cp config/crd/bases/org_v1_che_crd.yaml $${HELMCHARTS_CRDS}
