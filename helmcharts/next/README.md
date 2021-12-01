@@ -14,7 +14,7 @@ Helm charts to deploy [Eclipse Che](https://www.eclipse.org/che/)
 * Minimal Kubernetes version is 1.19
 * Minimal Helm version is 3.2.2
 
-### Installation the next Helm chart
+### Installation
 
 Create a Namespace and install the Helm Charts for Eclipse Che Operator.
 
