@@ -7,8 +7,8 @@ require (
 	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver/v4 v4.0.0
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
-	github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
-	github.com/devfile/devworkspace-operator v0.2.1-0.20211005102315-728dff7e987c
+	github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460
+	github.com/devfile/devworkspace-operator v0.2.1-0.20211125202838-87f36bfe6e99
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.6
@@ -212,7 +212,7 @@ replace (
 	github.com/huandu/xstrings => github.com/huandu/xstrings v1.2.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/inconshreveable/mousetrap => github.com/inconshreveable/mousetrap v1.0.0
-	github.com/irifrance/gini => github.com/irifrance/gini v1.0.1
+	github.com/irifrance/gini => github.com/go-air/gini v1.0.1
 	github.com/itchyny/astgen-go => github.com/itchyny/astgen-go v0.0.0-20200519013840-cf3ea398f645
 	github.com/itchyny/go-flags => github.com/itchyny/go-flags v1.5.0
 	github.com/itchyny/gojq => github.com/itchyny/gojq v0.11.0

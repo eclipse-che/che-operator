@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package solvers
 
 import (
-	"errors"
-
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/pkg/config"
 	"github.com/devfile/devworkspace-operator/pkg/constants"
@@ -60,7 +59,7 @@ func (s *BasicSolver) GetSpecObjects(routing *controllerv1alpha1.DevWorkspaceRou
 
 	routingSuffix := config.Routing.ClusterHostSuffix
 	if routingSuffix == "" {
-		return routingObjects, errors.New("basic routing requires .config.routing.clusterHostSuffix to be set in operator config")
+		return routingObjects, &RoutingInvalid{"basic routing requires .config.routing.clusterHostSuffix to be set in operator config"}
 	}
 
 	spec := routing.Spec

@@ -18,6 +18,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/eclipse-che/che-operator/pkg/util"
 
 	"github.com/stretchr/testify/assert"
@@ -145,7 +147,7 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Exposure:   dw.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     true,
+						Secure:     pointer.BoolPtr(true),
 					},
 					{
 						Name:       "e3",
@@ -186,7 +188,7 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Exposure:   dw.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     true,
+						Secure:     pointer.BoolPtr(true),
 						Attributes: attributes.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 						},

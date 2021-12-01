@@ -15,9 +15,12 @@ package solver
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/pointer"
 	"path"
 	"strconv"
 	"strings"
+
+	"k8s.io/utils/pointer"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 
@@ -675,7 +678,7 @@ func determineEndpointScheme(e dw.Endpoint) string {
 		scheme = string(e.Protocol)
 	}
 
-	upgradeToSecure := e.Secure
+	upgradeToSecure := pointer.BoolPtrDerefOr(e.Secure, false)
 
 	// gateway is always on HTTPS, so if the endpoint is served through the gateway, we need to use the TLS'd variant.
 	if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
