@@ -1,0 +1,68 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+apiVersion: org.eclipse.che/v1
+kind: CheCluster
+metadata:
+  name: eclipse-che
+  namespace: eclipse-che
+spec:
+  server:
+    cheFlavor: ''
+    cheClusterRoles: ''
+    cheWorkspaceClusterRole: ''
+    serverTrustStoreConfigMapName: ''
+    gitSelfSignedCert: false
+    tlsSupport: true
+    proxyURL: ''
+    proxyPort: ''
+    proxyUser: ''
+    proxyPassword: ''
+    nonProxyHosts: ''
+    workspaceNamespaceDefault: "<username>-che"
+    allowUserDefinedWorkspaceNamespaces: false
+    serverExposureStrategy: ''
+  database:
+    externalDb: false
+    chePostgresHostName: ''
+    chePostgresPort: ''
+    chePostgresUser: ''
+    chePostgresPassword: ''
+    chePostgresDb: ''
+  storage:
+    pvcStrategy: 'common'
+    pvcClaimSize: '10Gi'
+    preCreateSubPaths: true
+    postgresPVCStorageClassName: ''
+    workspacePVCStorageClassName: ''
+  auth:
+    initialOpenShiftOAuthUser: true
+    externalIdentityProvider: false
+    identityProviderURL: ''
+    identityProviderAdminUserName: ''
+    identityProviderPassword: ''
+    identityProviderRealm: ''
+    identityProviderClientId: ''
+    oAuthClientName: ''
+    oAuthSecret: ''
+  k8s:
+    ingressDomain: '{{ .Values.k8s.ingressDomain }}'
+    ingressClass: ''
+    ingressStrategy: ''
+    tlsSecretName: 'che-tls'
+    securityContextFsGroup: ''
+    securityContextRunAsUser: ''
+    singleHostExposureType: ''
+  metrics:
+    enable: true
+  devWorkspace:
+    enable: false
