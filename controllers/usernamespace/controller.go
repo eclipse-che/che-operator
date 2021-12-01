@@ -78,7 +78,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(obj).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRulesForSecrets(ctx)).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRulesForConfigMaps(ctx)).
-		Watches(&source.Kind{Type: &v1.CheCluster{}}, r.triggerAllNamespaces(ctx))
+		Watches(&source.Kind{Type: &v1.CheCluster{}}, r.triggerAllNamespaces())
 
 	return bld.Complete(r)
 }
@@ -155,7 +155,7 @@ func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, o
 	return err == nil && info != nil && info.OwnerUid != ""
 }
 
-func (r *CheUserNamespaceReconciler) triggerAllNamespaces(ctx context.Context) handler.EventHandler {
+func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(obj client.Object) []reconcile.Request {
 			nss := r.namespaceCache.GetAllKnownNamespaces()
@@ -286,7 +286,8 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 			Name:      targetCertName,
 			Namespace: targetNs,
 			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				constants.DevWorkspaceMountLabel: "true",
+				constants.DevWorkspaceMountLabel:       "true",
+				constants.DevWorkspaceWatchSecretLabel: "true",
 			}),
 			Annotations: map[string]string{
 				constants.DevWorkspaceMountAsAnnotation:   "file",
@@ -330,7 +331,8 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 			Name:      targetConfigMapName,
 			Namespace: targetNs,
 			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				constants.DevWorkspaceMountLabel: "true",
+				constants.DevWorkspaceMountLabel:          "true",
+				constants.DevWorkspaceWatchConfigMapLabel: "true",
 			}),
 			Annotations: addToFirst(sourceMap.Annotations, map[string]string{
 				constants.DevWorkspaceMountAsAnnotation:   "file",
@@ -397,7 +399,8 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	requiredLabels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-		constants.DevWorkspaceMountLabel: "true",
+		constants.DevWorkspaceMountLabel:          "true",
+		constants.DevWorkspaceWatchConfigMapLabel: "true",
 	})
 	requiredAnnos := map[string]string{
 		constants.DevWorkspaceMountAsAnnotation: "env",
