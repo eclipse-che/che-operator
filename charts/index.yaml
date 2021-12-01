@@ -1,3 +1,33 @@
 apiVersion: v1
-entries: {}
-generated: "2021-12-01T15:39:48.48446479Z"
+entries:
+  eclipse-che:
+  - annotations:
+      artifacthub.io/license: EPL-2.0
+      artifacthub.io/links: |
+        - name: repository
+          url: https://github.com/eclipse-che/che-operator
+        - name: web-site
+          url: https://www.eclipse.org/che/
+        - name: docs
+          url: https://www.eclipse.org/che/docs
+        - name: support
+          url: https://github.com/eclipse/che
+      artifacthub.io/maintainers: |
+        - name: Anatolii Bazko
+          email: abazko@redhat.com
+        - name: Mykola Morhun
+          email: mmorhun@redhat.com
+        - name: Oleksandr Andriienko
+          email: oandriie@redhat.com
+      artifacthub.io/operator: "true"
+      artifacthub.io/operatorCapabilities: Seamless Upgrades
+      artifacthub.io/provider: Eclipse Foundation
+    apiVersion: v1
+    created: "2021-12-01T15:55:16.798475407Z"
+    description: A Helm chart for deploying Eclipse Che on a Kubernetes
+    digest: 79adec6ca4fd9d9d840b85d43ba924bd1039db01946d88df7f74fad2233f36c4
+    name: eclipse-che
+    urls:
+    - https://eclipse-che.github.io/che-operator/charts/stable/eclipse-che-7.39.0.tgz
+    version: 7.39.0
+generated: "2021-12-01T15:55:16.796825681Z"
