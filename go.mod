@@ -3,32 +3,76 @@ module github.com/eclipse-che/che-operator
 go 1.15
 
 require (
+	cloud.google.com/go v0.97.0 // indirect
+	github.com/BurntSushi/toml v0.4.1 // indirect
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/bitly/go-simplejson v0.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver/v4 v4.0.0
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
-	github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
-	github.com/devfile/devworkspace-operator v0.2.1-0.20211005102315-728dff7e987c
-	github.com/go-logr/logr v0.4.0
+	github.com/devfile/api/v2 v2.0.0-20211006183648-e38e88c50482
+	github.com/devfile/devworkspace-operator v0.10.0
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/go-logr/logr v1.2.1
+	github.com/go-logr/zapr v1.2.0 // indirect
+	github.com/go-openapi/jsonpointer v0.19.5 // indirect
+	github.com/go-openapi/jsonreference v0.19.6 // indirect
+	github.com/go-openapi/spec v0.20.4 // indirect
+	github.com/go-openapi/swag v0.19.15 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.5.0
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/googleapis/gnostic v0.5.7 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/operator-framework/api v0.10.0
 	github.com/operator-framework/operator-lifecycle-manager v0.18.1
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/redhat-cop/operator-utils v1.2.2 // indirect
 	github.com/sirupsen/logrus v1.7.0
+	github.com/spf13/cast v1.4.1 // indirect
 	github.com/stretchr/testify v1.7.0
-	go.uber.org/zap v1.18.1
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
-	golang.org/x/tools v0.1.5 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.19.1
+	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
+	golang.org/x/mod v0.5.1 // indirect
+	golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
+	golang.org/x/tools v0.1.7 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	k8s.io/api v0.21.3
-	k8s.io/apiextensions-apiserver v0.21.3
-	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.21.3
-	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471
-	sigs.k8s.io/controller-runtime v0.9.5
-	sigs.k8s.io/yaml v1.2.0
+	honnef.co/go/tools v0.2.2 // indirect
+	k8s.io/api v0.22.4
+	k8s.io/apiextensions-apiserver v0.22.4
+	k8s.io/apimachinery v0.22.4
+	k8s.io/client-go v1.5.2
+	k8s.io/component-base v0.22.4 // indirect
+	k8s.io/klog/v2 v2.30.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
+	k8s.io/kubectl v0.22.4 // indirect
+	k8s.io/utils v0.0.0-20211116205334-6203023598ed
+	sigs.k8s.io/controller-runtime v0.10.3
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
+	sigs.k8s.io/yaml v1.3.0
 )
 
 replace (

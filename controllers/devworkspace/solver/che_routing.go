@@ -679,10 +679,11 @@ func determineEndpointScheme(e dw.Endpoint) string {
 
 	// gateway is always on HTTPS, so if the endpoint is served through the gateway, we need to use the TLS'd variant.
 	if e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
-		upgradeToSecure = true
+		boolTrue := true
+		upgradeToSecure = &boolTrue
 	}
 
-	if upgradeToSecure {
+	if upgradeToSecure != nil && *upgradeToSecure {
 		scheme = secureScheme(scheme)
 	}
 

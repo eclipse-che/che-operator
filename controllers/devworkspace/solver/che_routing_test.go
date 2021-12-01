@@ -122,6 +122,7 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 }
 
 func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
+	boolTrue := true
 	return &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "routing",
@@ -145,7 +146,7 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Exposure:   dw.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     true,
+						Secure:     &boolTrue,
 					},
 					{
 						Name:       "e3",
@@ -159,6 +160,7 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 }
 
 func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
+	boolTrue := true
 	return &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "routing",
@@ -186,7 +188,7 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 						Exposure:   dw.PublicEndpointExposure,
 						Protocol:   "http",
 						Path:       "/2.js",
-						Secure:     true,
+						Secure:     &boolTrue,
 						Attributes: attributes.Attributes{
 							urlRewriteSupportedEndpointAttributeName: apiext.JSON{Raw: []byte("\"true\"")},
 						},
