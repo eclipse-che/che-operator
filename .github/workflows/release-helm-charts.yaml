@@ -44,9 +44,9 @@ jobs:
           helm version
           cp -rf "${GITHUB_WORKSPACE}"/helmcharts/stable /tmp/charts
           git checkout gh-pages
+          mkdir -p charts
           cp -rf /tmp/charts "${GITHUB_WORKSPACE}"/charts/new
           helm package ./charts/new
-          mkdir -p charts/stable
           mv *.tgz charts/stable
           rm -rf ./charts/new
 
