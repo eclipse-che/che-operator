@@ -24,8 +24,6 @@ DOMAIN=<KUBERNETES_CLUSTER_DOMAIN>
 
 kubectl create namespace $NAMESPACE
 
-cd next
-
 # Install charts
 helm install che --set k8s.ingressDomain=$DOMAIN --namespace $NAMESPACE .
 ```
