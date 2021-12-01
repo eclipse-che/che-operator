@@ -12,5 +12,24 @@
 
 apiVersion: v1
 description: A Helm chart for deploying Eclipse Che on a Kubernetes
-name: che
+name: Eclipse Che
 version: 7.39.0
+annotations:
+  artifacthub.io/license: EPL-2.0
+  artifacthub.io/links: |
+    - name: repository
+      url: https://github.com/eclipse-che/che-operator
+    - name: web-site
+      url: https://www.eclipse.org/che/
+    - name: docs
+      url: https://www.eclipse.org/che/docs
+    - name: support
+      url: https://github.com/eclipse/che
+  artifacthub.io/provider: Eclipse Foundation
+  artifacthub.io/maintainers: |
+    - name: Anatolii Bazko
+      email: abazko@redhat.com
+    - name: Mykola Morhun
+      email: mmorhun@redhat.com
+  artifacthub.io/operator: "true"
+  artifacthub.io/operatorCapabilities: Seamless Upgrades

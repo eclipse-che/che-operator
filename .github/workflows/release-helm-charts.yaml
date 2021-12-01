@@ -51,7 +51,7 @@ jobs:
           rm -rf ./charts/new
 
           # Generate index.yaml with list Helm packages
-          helm repo index --url https://che-operator.github.io/che-operator/charts charts
+          helm repo index --url https://eclipse-che.github.io/che-operator/charts charts
 
           git config --global user.name "Mykhailo Kuznietsov"
           git config --global user.email "mkuznets@redhat.com"
