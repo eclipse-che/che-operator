@@ -44,10 +44,11 @@ jobs:
           helm version
           cp -rf "${GITHUB_WORKSPACE}"/helmcharts/stable /tmp/charts
           git checkout gh-pages
-          mkdir -p charts
+          mkdir -p charts/stable
+          mkdir -p charts/next
           cp -rf /tmp/charts "${GITHUB_WORKSPACE}"/charts/new
           helm package ./charts/new
-          mv *.tgz charts/stable
+          mv *.tgz charts/stable/
           rm -rf ./charts/new
 
           # Generate index.yaml with list Helm packages
