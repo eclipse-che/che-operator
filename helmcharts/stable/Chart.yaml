@@ -12,7 +12,7 @@
 
 apiVersion: v1
 description: A Helm chart for deploying Eclipse Che on a Kubernetes
-name: Eclipse Che
+name: eclipse-che
 version: 7.39.0
 annotations:
   artifacthub.io/license: EPL-2.0
