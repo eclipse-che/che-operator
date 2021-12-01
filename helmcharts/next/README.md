@@ -29,7 +29,3 @@ cd next
 # Install charts
 helm install che --set k8s.ingressDomain=$DOMAIN --namespace $NAMESPACE .
 ```
-
-### Installation stable Helm charts
-
-Use https://artifacthub.io to install the latest stable Helm charts.
