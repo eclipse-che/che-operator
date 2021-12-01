@@ -69,6 +69,7 @@ const (
 	DefaultCheMetricsPort          = int32(8087)
 	DefaultCheDebugPort            = int32(8000)
 	DefaultPostgresVolumeClaimName = "postgres-data"
+	DefaultPostgresPvcClaimSize    = "1Gi"
 
 	DefaultJavaOpts          = "-XX:MaxRAMPercentage=85.0"
 	DefaultWorkspaceJavaOpts = "-XX:MaxRAM=150m -XX:MaxRAMFraction=2 -XX:+UseParallelGC " +
