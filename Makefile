@@ -809,6 +809,7 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 	cp config/rbac/role.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/rbac/role_binding.yaml $${HELMCHARTS_TEMPLATES}
 	cp config/samples/org.eclipse.che_v1_checluster.yaml $${HELMCHARTS_TEMPLATES}
+	cp config/manager/controller-namespace.yaml $${HELMCHARTS_TEMPLATES}
 
 	echo "[INFO] Update helm CRDs $${HELMCHARTS_CRDS}"
 	cp config/crd/bases/org_v1_che_crd.yaml $${HELMCHARTS_CRDS}
@@ -819,12 +820,12 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 	## Set references to values
 	yq -riY ".spec.k8s.ingressDomain  |= \"{{ .Values.k8s.ingressDomain }}\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
 
-	yq -riY '.metadata.namespace = "{{ .Release.Namespace }}"' $${HELMCHARTS_TEMPLATES}/manager.yaml
-	yq -riY '.metadata.namespace = "{{ .Release.Namespace }}"' $${HELMCHARTS_TEMPLATES}/service_account.yaml
-	yq -riY '.metadata.namespace = "{{ .Release.Namespace }}"' $${HELMCHARTS_TEMPLATES}/role.yaml
-	yq -riY '.metadata.namespace = "{{ .Release.Namespace }}"' $${HELMCHARTS_TEMPLATES}/role_binding.yaml
-	yq -riY '.metadata.namespace = "{{ .Release.Namespace }}"' $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
-	yq -riY '.subjects[0].namespace = "{{ .Release.Namespace }}"' $${HELMCHARTS_TEMPLATES}/cluster_rolebinding.yaml
+	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/manager.yaml
+	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/service_account.yaml
+	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/role.yaml
+	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/role_binding.yaml
+	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
+	yq -riY ".subjects[0].namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/cluster_rolebinding.yaml
 
 	$(MAKE) add-license $$(find ./helmcharts -name "*.yaml")
 check-requirements:
