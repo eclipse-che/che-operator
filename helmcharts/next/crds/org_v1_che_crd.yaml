@@ -365,7 +365,8 @@ spec:
                       type: string
                     pvcClaimSize:
                       description: Size of the persistent volume claim for database.
-                        Defaults to `1Gi`.
+                        Defaults to `1Gi`. To update pvc storageclass that provisions
+                        it must support resize when Eclipse Che has been already deployed.
                       type: string
                   type: object
                 devWorkspace:
