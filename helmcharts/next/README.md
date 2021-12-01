@@ -16,14 +16,11 @@ Helm charts to deploy [Eclipse Che](https://www.eclipse.org/che/)
 
 ### Installation
 
-Create a Namespace and install the Helm Charts for Eclipse Che Operator.
+Install the Helm Charts for Eclipse Che Operator.
 
 ```
-NAMESPACE=eclipse-che
 DOMAIN=<KUBERNETES_CLUSTER_DOMAIN>
 
-kubectl create namespace $NAMESPACE
-
 # Install charts
-helm install che --set k8s.ingressDomain=$DOMAIN --namespace $NAMESPACE .
+helm install che --set k8s.ingressDomain=$DOMAIN .
 ```
