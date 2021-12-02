@@ -1,0 +1,64 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+name: Release helm charts
+
+on:
+  # manual trigger if required
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason to trigger a release helm charts'
+        required: false
+  # trigger on commit to main branch after release
+  push:
+    branches:
+      - main
+    paths:
+      - 'version/version.go'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+
+      - name: Release
+        run: |
+          helm version
+          cp -rf "${GITHUB_WORKSPACE}"/helmcharts/stable /tmp/charts
+          git checkout gh-pages
+          mkdir -p charts/stable
+          mkdir -p charts/next
+          cp -rf /tmp/charts "${GITHUB_WORKSPACE}"/charts/new
+          helm package ./charts/new
+          mv *.tgz charts/stable/
+          rm -rf ./charts/new
+
+          # Generate index.yaml with list Helm packages
+          helm repo index --url https://eclipse-che.github.io/che-operator/charts charts
+
+          git config --global user.name "Mykhailo Kuznietsov"
+          git config --global user.email "mkuznets@redhat.com"
+          export GITHUB_TOKEN=${{ secrets.CHE_BOT_GITHUB_TOKEN }}
+
+          git add .
+          git commit -am "Add new chart package." --signoff
+
+          git push origin gh-pages

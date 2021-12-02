@@ -14,7 +14,7 @@ apiVersion: org.eclipse.che/v1
 kind: CheCluster
 metadata:
   name: eclipse-che
-  namespace: '{{ .Release.Namespace }}'
+  namespace: eclipse-che
 spec:
   server:
     cheFlavor: ''

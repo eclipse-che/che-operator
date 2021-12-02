@@ -391,6 +391,10 @@ type CheClusterSpecDB struct {
 	// PostgreSQL container custom settings
 	// +optional
 	ChePostgresContainerResources ResourcesCustomSettings `json:"chePostgresContainerResources,omitempty"`
+	// Size of the persistent volume claim for database. Defaults to `1Gi`.
+	// To update pvc storageclass that provisions it must support resize when Eclipse Che has been already deployed.
+	// +optional
+	PvcClaimSize string `json:"pvcClaimSize,omitempty"`
 }
 
 // +k8s:openapi-gen=true
