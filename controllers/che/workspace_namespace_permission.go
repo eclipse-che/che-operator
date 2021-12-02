@@ -89,6 +89,16 @@ func (r *CheClusterReconciler) delegateWorkspacePermissionsInTheDifferNamespaceT
 		return false, err
 	}
 
+	// Bind "edit" cluster role for "che" service account.
+	// che-operator doesn't create "edit" role. This role is pre-created on the cluster.
+	// Warning: operator binds clusterrole using rolebinding(not clusterrolebinding).
+	// That's why "che" service account has got permissions only in the one namespace!
+	// So permissions are binding in "non-cluster" scope.
+	done, err = deploy.SyncClusterRoleBindingToCluster(deployContext, EditRoleBindingName, deploy.CheServiceAccountName, EditClusterRoleName)
+	if !done {
+		return false, err
+	}
+
 	err = deploy.AppendFinalizer(deployContext, CheWorkspacesClusterPermissionsFinalizerName)
 	return err == nil, err
 }
