@@ -17,6 +17,10 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: checlusters.org.eclipse.che
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/managed-by: olm
 spec:
   group: org.eclipse.che
   names:

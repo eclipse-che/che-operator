@@ -19,6 +19,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/component: che-operator
+    app.kubernetes.io/managed-by: olm
 rules:
   ### CHE-OPERATOR ROLES ONLY: BEGIN
   - apiGroups:
