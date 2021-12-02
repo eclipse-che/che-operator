@@ -30,6 +30,7 @@ import (
 var (
 	syncItems = []func(*deploy.DeployContext) (bool, error){
 		syncDwService,
+		syncDwMetricService,
 		syncDwServiceAccount,
 		syncDwClusterRole,
 		syncDwProxyClusterRole,
@@ -67,6 +68,7 @@ var (
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceServiceFile                   = DevWorkspaceTemplates + "/devworkspace-controller-manager-service.Service.yaml"
+	DevWorkspaceMetricsServiceFile            = DevWorkspaceTemplates + "/devworkspace-controller-metrics.Service.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
 	DevWorkspaceIssuerFile                    = DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
 	DevWorkspaceCertificateFile               = DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
@@ -78,6 +80,10 @@ func syncDwServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
 
 func syncDwService(deployContext *deploy.DeployContext) (bool, error) {
 	return readAndSyncObject(deployContext, DevWorkspaceServiceFile, &corev1.Service{}, DevWorkspaceNamespace)
+}
+
+func syncDwMetricService(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndSyncObject(deployContext, DevWorkspaceMetricsServiceFile, &corev1.Service{}, DevWorkspaceNamespace)
 }
 
 func syncDwRole(deployContext *deploy.DeployContext) (bool, error) {
