@@ -806,8 +806,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://external-keycloak/auth",
+				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
+				"CHE_OIDC_AUTH__SERVER__URL":           "http://external-keycloak/auth",
 			},
 		},
 		{
@@ -829,8 +829,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://external-keycloak/auth",
+				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
+				"CHE_OIDC_AUTH__SERVER__URL":           "http://external-keycloak/auth",
 			},
 		},
 		{
@@ -855,8 +855,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://external-keycloak/auth",
+				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
+				"CHE_OIDC_AUTH__SERVER__URL":           "http://external-keycloak/auth",
 			},
 		},
 		{
@@ -881,8 +881,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://keycloak/auth",
+				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
+				"CHE_OIDC_AUTH__SERVER__URL":           "http://keycloak/auth",
 			},
 		},
 		{
@@ -904,8 +904,8 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL": "http://keycloak.eclipse-che.svc:8080/auth",
-				"CHE_KEYCLOAK_AUTH__SERVER__URL":           "http://keycloak/auth",
+				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "http://keycloak.eclipse-che.svc:8080/auth",
+				"CHE_OIDC_AUTH__SERVER__URL":           "http://keycloak/auth",
 			},
 		},
 	}
