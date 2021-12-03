@@ -174,9 +174,7 @@ spec:
                         is defined, then it will be used to connect to the database.
                         2. `identityProviderPostgresPassword` is not defined, then
                         a new secret with the name `che-identity-postgres-secret`
-                        will be created with an auto-generated value for `password`.
-                        The secret must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label.'
+                        will be created with an auto-generated value for `password`.'
                       type: string
                     identityProviderRealm:
                       description: Name of a Identity provider, Keycloak or RH-SSO,
@@ -217,8 +215,7 @@ spec:
                         or `identityProviderPassword` are not defined, then a new
                         secret with the name `che-identity-secret` will be created
                         with default value `admin` for `user` and with an auto-generated
-                        value for `password`. The secret must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label.'
+                        value for `password`.'
                       type: string
                     identityProviderURL:
                       description: Public URL of the Identity Provider server (Keycloak
@@ -331,8 +328,7 @@ spec:
                         to connect to the DB. 2. `chePostgresUser` or `chePostgresPassword`
                         are not defined, then a new secret with the name `che-postgres-secret`
                         will be created with default value of `pgche` for `user` and
-                        with an auto-generated value for `password`. The secret must
-                        have `app.kubernetes.io/part-of=che.eclipse.org` label.'
+                        with an auto-generated value for `password`.'
                       type: string
                     chePostgresUser:
                       description: PostgreSQL user that the Che server uses to connect
@@ -517,9 +513,9 @@ spec:
                       type: boolean
                     cheClusterRoles:
                       description: A comma-separated list of ClusterRoles that will
-                        be assigned to Che ServiceAccount. Each role must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label. Be aware that the Che Operator has to already have
-                        all permissions in these ClusterRoles to grant them.
+                        be assigned to Che ServiceAccount. Be aware that the Che Operator
+                        has to already have all permissions in these ClusterRoles
+                        to grant them.
                       type: string
                     cheDebug:
                       description: Enables the debug mode for Che server. Defaults
@@ -540,8 +536,7 @@ spec:
                     cheHostTLSSecret:
                       description: Name of a secret containing certificates to secure
                         ingress or route for the custom host name of the installed
-                        Che server. The secret must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label. See the `cheHost` field.
+                        Che server. See the `cheHost` field.
                       type: string
                     cheImage:
                       description: Overrides the container image used in Che deployment.
@@ -603,8 +598,8 @@ spec:
                       type: object
                     cheWorkspaceClusterRole:
                       description: Custom cluster role bound to the user for the Che
-                        workspaces. The role must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label. The default roles are used when omitted or left blank.
+                        workspaces. The default roles are used when omitted or left
+                        blank.
                       type: string
                     customCheProperties:
                       additionalProperties:
@@ -788,9 +783,7 @@ spec:
                     gitSelfSignedCert:
                       description: When enabled, the certificate from `che-git-self-signed-cert`
                         ConfigMap will be propagated to the Che components and provide
-                        particular configuration for Git. Note, the `che-git-self-signed-cert`
-                        ConfigMap must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label.
+                        particular configuration for Git.
                       type: boolean
                     nonProxyHosts:
                       description: 'List of hosts that will be reached directly, bypassing
@@ -889,8 +882,7 @@ spec:
                     proxySecret:
                       description: The secret that contains `user` and `password`
                         for a proxy server. When the secret is defined, the `proxyUser`
-                        and `proxyPassword` are ignored. The secret must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label.
+                        and `proxyPassword` are ignored.
                       type: string
                     proxyURL:
                       description: URL (protocol+host name) of the proxy server. This
@@ -950,8 +942,7 @@ spec:
                         required when adding the OpenShift OAuth provider, which has
                         HTTPS endpoint signed with self-signed cert. The Che server
                         must be aware of its CA cert to be able to request it. This
-                        is disabled by default. The Config Map must have `app.kubernetes.io/part-of=che.eclipse.org`
-                        label.
+                        is disabled by default.
                       type: string
                     singleHostGatewayConfigMapLabels:
                       additionalProperties:

@@ -816,17 +816,38 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 	cp config/crd/bases/org.eclipse.che_checlusterbackups_crd.yaml $${HELMCHARTS_CRDS}
 	cp config/crd/bases/org.eclipse.che_checlusterrestores_crd.yaml $${HELMCHARTS_CRDS}
 
-	## Set references to values
-	yq -riY ".spec.k8s.ingressDomain  |= \"{{ .Values.k8s.ingressDomain }}\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
-
 	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/manager.yaml
 	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/service_account.yaml
 	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/role.yaml
 	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/role_binding.yaml
-	yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
 	yq -riY ".subjects[0].namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/cluster_rolebinding.yaml
 
+	if [ $${helmFolder} == "stable" ]; then
+		chartYaml="helmcharts/$${helmFolder}/Chart.yaml"
+
+		EXAMPLE_FILES=(
+			$${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml \
+			config/samples/org_v1_checlusterbackup.yaml \
+			config/samples/org_v1_checlusterrestore.yaml \
+			config/samples/org_v1_chebackupserverconfiguration.yaml
+		)
+
+		CRDS=""
+		for exampleFile in "$${EXAMPLE_FILES[@]}"; do
+			example=$$(cat $${exampleFile} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
+		 	CRDS=$${CRDS}$${example}$$'\n'
+		done
+
+		yq -rYi --arg examples "$${CRDS}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}	
+		rm -rf $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
+	else
+		# Set references to values
+		yq -riY ".metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
+		yq -riY ".spec.k8s.ingressDomain |= \"{{ .Values.k8s.ingressDomain }}\"" $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
+	fi
+
 	$(MAKE) add-license $$(find ./helmcharts -name "*.yaml")
+
 check-requirements:
 	. olm/check-yq.sh
 
