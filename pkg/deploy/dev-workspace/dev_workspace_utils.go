@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,6 +45,7 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
 	err := deployContext.ClusterAPI.Client.List(context.TODO(), csvList, &client.ListOptions{})
 	if err != nil {
+		logrus.Errorf("Failed to list csv: %v", err)
 		return false
 	}
 
