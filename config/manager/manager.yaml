@@ -8,8 +8,6 @@
 #
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
-#
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -39,7 +37,7 @@ spec:
     spec:
       containers:
         - name: che-operator
-          image: quay.io/eclipse/che-operator:next
+          image: quay.io/eclipse/che-operator:7.40.0
           command:
             - /manager
           args:
@@ -60,15 +58,15 @@ spec:
             - name: OPERATOR_NAME
               value: che-operator
             - name: CHE_VERSION
-              value: next
+              value: 7.40.0
             - name: RELATED_IMAGE_che_server
-              value: quay.io/eclipse/che-server:next
+              value: quay.io/eclipse/che-server:7.40.0
             - name: RELATED_IMAGE_dashboard
-              value: quay.io/eclipse/che-dashboard:next
+              value: quay.io/eclipse/che-dashboard:7.40.0
             - name: RELATED_IMAGE_plugin_registry
-              value: quay.io/eclipse/che-plugin-registry:next
+              value: quay.io/eclipse/che-plugin-registry:7.40.0
             - name: RELATED_IMAGE_devfile_registry
-              value: quay.io/eclipse/che-devfile-registry:next
+              value: quay.io/eclipse/che-devfile-registry:7.40.0
             - name: RELATED_IMAGE_che_tls_secrets_creation_job
               value: quay.io/eclipse/che-tls-secret-creator:alpine-01a4c34
             - name: RELATED_IMAGE_pvc_jobs
@@ -78,7 +76,7 @@ spec:
             - name: RELATED_IMAGE_postgres_13_3
               value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
             - name: RELATED_IMAGE_keycloak
-              value: quay.io/eclipse/che-keycloak:next
+              value: quay.io/eclipse/che-keycloak:7.40.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
               value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
             - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
@@ -118,11 +116,11 @@ spec:
             - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
               value: ca-certs
             - name: MAX_CONCURRENT_RECONCILES
-              value: "1"
+              value: '1'
             - name: ALLOW_DEVWORKSPACE_ENGINE
-              value: "true"
+              value: 'true'
             - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
-              value: "false"
+              value: 'false'
           livenessProbe:
             httpGet:
               path: /healthz
