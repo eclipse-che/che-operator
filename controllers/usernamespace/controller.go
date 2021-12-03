@@ -228,6 +228,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileGitTlsCertificate(ctx, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile Che git TLS certificate  into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -421,6 +426,52 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	_, err = deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
+	targetName := prefixedName(checluster, "git-tls-creds")
+	delConfigMap := func() error {
+		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.Secret{})
+		return err
+	}
+
+	clusterv1 := org.AsV1(checluster)
+	if !clusterv1.Spec.Server.GitSelfSignedCert {
+		return delConfigMap()
+	}
+
+	gitCert := &corev1.ConfigMap{}
+
+	if err := deployContext.ClusterAPI.Client.Get(ctx, client.ObjectKey{Name: deploy.GitSelfSignedCertsConfigMapName, Namespace: checluster.Namespace}, gitCert); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		return delConfigMap()
+	}
+
+	target := corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName,
+			Namespace: targetNs,
+			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+				// TODO replace with constants.DevWorkspaceGitTLSLabel once
+				// https://github.com/devfile/devworkspace-operator/pull/625 is merged
+				"controller.devfile.io/git-tls-credential": "true",
+				constants.DevWorkspaceWatchConfigMapLabel:  "true",
+			}),
+		},
+		Data: map[string]string{
+			"host":        gitCert.Data["githost"],
+			"certificate": gitCert.Data["ca.crt"],
+		},
+	}
+
+	_, err := deploy.DoSync(deployContext, &target, deploy.ConfigMapDiffOpts)
 	return err
 }
 
