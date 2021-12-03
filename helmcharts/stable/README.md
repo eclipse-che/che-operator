@@ -26,7 +26,16 @@ $ kubectl get pods -n eclipse-che
 eclipse-che   che-operator-554c564476-fl98z                           1/1     Running   0          13s
 ```
 
-Use `kubectl edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
+Click `CRDS` button, select `CheCluster` template and copy 
+custom resource Eclipse Che to file org.eclipse.che_v1_checluster.yaml.
+Set up valid actual ingress domain `k8s.domain`.
+Apply CR:
+
+```bash
+$ kubectl apply -f org.eclipse.che_v1_checluster.yaml -n eclipse-che
+```
+
+Also you can use `kubectl edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
 See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
 
 The deployment process can be tracked by looking at the Operator logs by using the command:
