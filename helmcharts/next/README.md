@@ -19,6 +19,8 @@ Helm charts to deploy [Eclipse Che](https://www.eclipse.org/che/)
 Install the Helm Charts for Eclipse Che Operator.
 
 ```
+kubectl create namespace eclipse-che
+
 DOMAIN=<KUBERNETES_CLUSTER_DOMAIN>
 
 # Install charts

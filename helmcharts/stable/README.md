@@ -17,6 +17,12 @@ Helm charts to deploy [Eclipse Che](https://www.eclipse.org/che/)
 
 ### Installation
 
+Create namespace `eclipse-che`:
+
+```bash
+$ kubectl create namespace eclipse-che
+```
+
 Install `Eclipse Che Operator` by following instructions in top right button `Install`.
 
 A new pod che-operator is created in `eclipse-che` namespace
