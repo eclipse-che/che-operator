@@ -106,11 +106,11 @@ func TestNativeUserModeEnabled(t *testing.T) {
 			expectedNativeUserValue: pointer.BoolPtr(true),
 		},
 		{
-			name:                    "che-operator should not modify nativeUserMode when not on openshift",
+			name:                    "che-operator should use nativeUserMode when devworkspaces on kubernetes and no initial value in CR for nativeUserMode",
 			isOpenshift:             false,
 			devworkspaceEnabled:     true,
 			initialNativeUserValue:  nil,
-			expectedNativeUserValue: nil,
+			expectedNativeUserValue: pointer.BoolPtr(true),
 		},
 		{
 			name:                    "che-operator not modify nativeUserMode when devworkspace not enabled",

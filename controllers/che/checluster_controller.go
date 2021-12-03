@@ -523,7 +523,7 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 		}
 	}
 
-	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if deployContext.CheCluster.IsNativeUserModeEnabled() {
 		if _, err := r.reconcileGatewayPermissionsFinalizers(deployContext); err != nil {
 			logrus.Error(err)
 		}

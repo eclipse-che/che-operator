@@ -210,6 +210,12 @@ updateVersionFile() {
   git commit -m "ci: Update VERSION to $RELEASE" --signoff
 }
 
+releaseHelmPackage() {
+  echo "[INFO] releaseHelmPackage :: release Helm package"
+  yq -rYi ".version=\"${RELEASE}\"" "$RELEASE_DIR/helmcharts/stable/Chart.yaml"
+  make update-helmcharts HELM_FOLDER="stable"
+}
+
 releaseOlmFiles() {
   echo "[INFO] releaseOlmFiles :: Release OLM files"
   echo "[INFO] releaseOlmFiles :: Launch 'olm/release-olm-files.sh' script"
@@ -305,6 +311,7 @@ run() {
   checkoutToReleaseBranch
   updateVersionFile
   releaseOperatorCode
+  releaseHelmPackage
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi

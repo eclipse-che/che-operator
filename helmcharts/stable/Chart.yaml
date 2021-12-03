@@ -1,0 +1,88 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+apiVersion: v1
+description: A Helm chart for deploying Eclipse Che on a Kubernetes
+name: eclipse-che
+version: 7.39.2
+annotations:
+  artifacthub.io/license: EPL-2.0
+  artifacthub.io/links: |
+    - name: repository
+      url: https://github.com/eclipse-che/che-operator
+    - name: web-site
+      url: https://www.eclipse.org/che/
+    - name: docs
+      url: https://www.eclipse.org/che/docs
+    - name: support
+      url: https://github.com/eclipse/che
+  artifacthub.io/provider: Eclipse Foundation
+  artifacthub.io/maintainers: |
+    - name: Anatolii Bazko
+      email: abazko@redhat.com
+    - name: Mykola Morhun
+      email: mmorhun@redhat.com
+    - name: Oleksandr Andriienko
+      email: oandriie@redhat.com
+  artifacthub.io/operator: "true"
+  artifacthub.io/operatorCapabilities: Seamless Upgrades
+  artifacthub.io/crdsExamples: "- apiVersion: org.eclipse.che/v1\n  kind: CheCluster\n\
+    \  metadata:\n    name: eclipse-che\n    namespace: eclipse-che\n  spec:\n   \
+    \ server:\n      cheFlavor: ''\n      cheClusterRoles: ''\n      cheWorkspaceClusterRole:\
+    \ ''\n      serverTrustStoreConfigMapName: ''\n      gitSelfSignedCert: false\n\
+    \      tlsSupport: true\n      proxyURL: ''\n      proxyPort: ''\n      proxyUser:\
+    \ ''\n      proxyPassword: ''\n      nonProxyHosts: ''\n      workspaceNamespaceDefault:\
+    \ \"<username>-che\"\n      allowUserDefinedWorkspaceNamespaces: false\n     \
+    \ serverExposureStrategy: ''\n    database:\n      externalDb: false\n      chePostgresHostName:\
+    \ ''\n      chePostgresPort: ''\n      chePostgresUser: ''\n      chePostgresPassword:\
+    \ ''\n      chePostgresDb: ''\n    storage:\n      pvcStrategy: 'common'\n   \
+    \   pvcClaimSize: '10Gi'\n      preCreateSubPaths: true\n      postgresPVCStorageClassName:\
+    \ ''\n      workspacePVCStorageClassName: ''\n    auth:\n      initialOpenShiftOAuthUser:\
+    \ true\n      externalIdentityProvider: false\n      identityProviderURL: ''\n\
+    \      identityProviderAdminUserName: ''\n      identityProviderPassword: ''\n\
+    \      identityProviderRealm: ''\n      identityProviderClientId: ''\n      oAuthClientName:\
+    \ ''\n      oAuthSecret: ''\n    k8s:\n      ingressDomain: '192.168.99.101.nip.io'\n\
+    \      ingressClass: ''\n      ingressStrategy: ''\n      tlsSecretName: 'che-tls'\n\
+    \      securityContextFsGroup: ''\n      securityContextRunAsUser: ''\n      singleHostExposureType:\
+    \ ''\n    metrics:\n      enable: true\n    devWorkspace:\n      enable: false\n\
+    - apiVersion: org.eclipse.che/v1\n  kind: CheClusterBackup\n  metadata:\n    name:\
+    \ eclipse-che-backup\n    namespace: eclipse-che\n  spec:\n    useInternalBackupServer:\
+    \ false\n    backupServerConfigRef: eclipse-che-backup-server-configuration\n\
+    - apiVersion: org.eclipse.che/v1\n  kind: CheClusterRestore\n  metadata:\n   \
+    \ name: eclipse-che-restore\n    namespace: eclipse-che\n  spec:\n    backupServerConfigRef:\
+    \ eclipse-che-backup-server-configuration\n- apiVersion: org.eclipse.che/v1\n\
+    \  kind: CheBackupServerConfiguration\n  metadata:\n    name: eclipse-che-backup-server-configuration\n\
+    \    namespace: eclipse-che\n  spec:\n    awss3:\n      awsAccessKeySecretRef:\
+    \ minio-credentials-secret\n      hostname: minio.mydomain.net\n      port: 9000\n\
+    \      protocol: http\n      repositoryPath: che-backups-bucket\n      repositoryPasswordSecretRef:\
+    \ secret-name\n"
+  artifacthub.io/crds: |-
+    - kind: CheCluster
+      version: v1
+      name: checlusters.org.eclipse.che
+      displayName: CheCluster
+      description: The `CheCluster` custom resource allows defining and managing a Che server installation"
+    - kind: CheBackupServerConfiguration
+      version: v1
+      name: chebackupserverconfigurations.org.eclipse.che
+      displayName: CheBackupServerConfiguration
+      description: The `CheBackupServerConfiguration` custom resource allows defining and managing Eclipse Che Backup Server Configurations
+    - kind: CheClusterRestore
+      version: v1
+      name: checlusterrestores.org.eclipse.che
+      displayName: CheClusterRestore
+      description: The `CheClusterRestore` custom resource allows defining and managing Eclipse Che restore
+    - kind: CheClusterBackup
+      version: v1
+      name: checlusterbackups.org.eclipse.che
+      displayName: CheClusterBackup
+      description: The `CheClusterBackup` custom resource allows defining and managing Eclipse Che backup

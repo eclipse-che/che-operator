@@ -16,7 +16,6 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -26,7 +25,7 @@ const (
 )
 
 func (r *CheClusterReconciler) reconcileGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {
-	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if deployContext.CheCluster.IsNativeUserModeEnabled() {
 		name := gatewayPermisisonsName(deployContext.CheCluster)
 		if _, err := deploy.SyncClusterRoleToCluster(deployContext, name, getGatewayClusterRoleRules()); err != nil {
 			return false, err

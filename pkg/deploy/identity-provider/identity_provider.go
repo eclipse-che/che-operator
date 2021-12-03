@@ -49,7 +49,7 @@ var (
 // the provisioning is complete, false if requeue of the reconcile request is needed.
 func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
 	cr := deployContext.CheCluster
-	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if deployContext.CheCluster.IsNativeUserModeEnabled() {
 		return syncNativeIdentityProviderItems(deployContext)
 	} else if cr.Spec.Auth.ExternalIdentityProvider {
 		return true, nil
@@ -164,12 +164,13 @@ func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool,
 		return false, err
 	}
 
-	redirectURIs := []string{"https://" + cr.Spec.Server.CheHost + "/oauth/callback"}
-
-	oAuthClient := deploy.GetOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
-	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
-	if !provisioned {
-		return false, err
+	if util.IsOpenShift {
+		redirectURIs := []string{"https://" + cr.Spec.Server.CheHost + "/oauth/callback"}
+		oAuthClient := deploy.GetOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
+		provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
+		if !provisioned {
+			return false, err
+		}
 	}
 
 	return true, nil

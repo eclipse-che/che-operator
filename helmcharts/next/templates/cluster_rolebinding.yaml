@@ -10,8 +10,8 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
 metadata:
   name: che-operator
   labels:
@@ -19,11 +19,11 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/component: che-operator
-  namespace: '{{ .Release.Namespace }}'
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: che-operator
 subjects:
   - kind: ServiceAccount
     name: che-operator
+    namespace: eclipse-che
+roleRef:
+  kind: ClusterRole
+  name: che-operator
+  apiGroup: rbac.authorization.k8s.io

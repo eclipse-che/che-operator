@@ -49,6 +49,7 @@ type CheConfigMap struct {
 	CheMetricsEnabled                      string `json:"CHE_METRICS_ENABLED"`
 	CheInfrastructureActive                string `json:"CHE_INFRASTRUCTURE_ACTIVE"`
 	CheInfraKubernetesServiceAccountName   string `json:"CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME"`
+	CheInfraKubernetesUserClusterRoles     string `json:"CHE_INFRA_KUBERNETES_USER__CLUSTER__ROLES"`
 	DefaultTargetNamespace                 string `json:"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"`
 	PvcStrategy                            string `json:"CHE_INFRA_KUBERNETES_PVC_STRATEGY"`
 	PvcClaimSize                           string `json:"CHE_INFRA_KUBERNETES_PVC_QUANTITY"`
@@ -61,8 +62,8 @@ type CheConfigMap struct {
 	DbUserName                             string `json:"CHE_JDBC_USERNAME,omitempty"`
 	DbPassword                             string `json:"CHE_JDBC_PASSWORD,omitempty"`
 	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
-	KeycloakURL                            string `json:"CHE_KEYCLOAK_AUTH__SERVER__URL,omitempty"`
-	KeycloakInternalURL                    string `json:"CHE_KEYCLOAK_AUTH__INTERNAL__SERVER__URL,omitempty"`
+	IdentityProviderUrl                    string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
+	IdentityProviderInternalURL            string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
 	KeycloakRealm                          string `json:"CHE_KEYCLOAK_REALM,omitempty"`
 	KeycloakClientId                       string `json:"CHE_KEYCLOAK_CLIENT__ID,omitempty"`
 	OpenShiftIdentityProvider              string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
@@ -92,15 +93,17 @@ type CheConfigMap struct {
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
 func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	cheHost := s.deployContext.CheCluster.Spec.Server.CheHost
-	keycloakURL := s.deployContext.CheCluster.Spec.Auth.IdentityProviderURL
+	identityProviderURL := s.deployContext.CheCluster.Spec.Auth.IdentityProviderURL
 
 	// Adds `/auth` for external identity providers.
 	// If identity provide is deployed by operator then `/auth` is already added.
-	if s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider && !strings.HasSuffix(keycloakURL, "/auth") {
-		if strings.HasSuffix(keycloakURL, "/") {
-			keycloakURL = keycloakURL + "auth"
+	if !s.deployContext.CheCluster.IsNativeUserModeEnabled() &&
+		s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider &&
+		!strings.HasSuffix(identityProviderURL, "/auth") {
+		if strings.HasSuffix(identityProviderURL, "/") {
+			identityProviderURL = identityProviderURL + "auth"
 		} else {
-			keycloakURL = keycloakURL + "/auth"
+			identityProviderURL = identityProviderURL + "/auth"
 		}
 	}
 
@@ -186,7 +189,9 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	cheAPI := protocol + "://" + cheHost + "/api"
 	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint string
 
-	if s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
+	if !s.deployContext.CheCluster.IsNativeUserModeEnabled() &&
+		s.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() &&
+		!s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
 		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, s.deployContext.CheCluster.Namespace)
 	}
 
@@ -210,6 +215,13 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 	}
 	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
+	cheWorkspaceServiceAccount := "che-workspace"
+	cheUserClusterRoleNames := "NULL"
+	if s.deployContext.CheCluster.IsNativeUserModeEnabled() {
+		cheWorkspaceServiceAccount = "NULL"
+		cheUserClusterRoleNames = fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", s.deployContext.CheCluster.Namespace, s.deployContext.CheCluster.Namespace)
+	}
+
 	data := &CheConfigMap{
 		CheMultiUser:                           "true",
 		CheHost:                                cheHost,
@@ -220,7 +232,8 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheWebSocketInternalEndpoint:           webSocketInternalEndpoint,
 		CheDebugServer:                         cheDebug,
 		CheInfrastructureActive:                infra,
-		CheInfraKubernetesServiceAccountName:   "che-workspace",
+		CheInfraKubernetesServiceAccountName:   cheWorkspaceServiceAccount,
+		CheInfraKubernetesUserClusterRoles:     cheUserClusterRoleNames,
 		DefaultTargetNamespace:                 workspaceNamespaceDefault,
 		PvcStrategy:                            pvcStrategy,
 		PvcClaimSize:                           pvcClaimSize,
@@ -254,8 +267,8 @@ func (s *Server) getCheConfigMapData() (cheEnv map[string]string, err error) {
 		CheDevWorkspacesEnabled:                strconv.FormatBool(s.deployContext.CheCluster.Spec.DevWorkspace.Enable),
 	}
 
-	data.KeycloakURL = keycloakURL
-	data.KeycloakInternalURL = keycloakInternalURL
+	data.IdentityProviderUrl = identityProviderURL
+	data.IdentityProviderInternalURL = keycloakInternalURL
 	data.KeycloakRealm = keycloakRealm
 	data.KeycloakClientId = keycloakClientId
 	data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb

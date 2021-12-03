@@ -86,6 +86,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 					},
 					Server: orgv1.CheClusterSpecServer{
 						ServerExposureStrategy: "multi-host",
+						CustomCheProperties:    map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
 					},
 					K8s: orgv1.CheClusterSpecK8SOnly{
 						IngressDomain: "che.domain",
@@ -110,6 +111,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 					},
 					Server: orgv1.CheClusterSpecServer{
 						ServerExposureStrategy: "single-host",
+						CustomCheProperties:    map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
 					},
 					K8s: orgv1.CheClusterSpecK8SOnly{
 						IngressDomain: "che.domain",

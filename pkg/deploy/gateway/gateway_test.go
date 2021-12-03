@@ -205,6 +205,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 	})
 
 	t.Run("no devfile-registry auth", func(t *testing.T) {
+		util.IsOpenShift = true
 		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
 			Spec: orgv1.CheClusterSpec{
 				Server: orgv1.CheClusterSpecServer{
