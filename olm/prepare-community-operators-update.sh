@@ -21,7 +21,7 @@ set -u
 CURRENT_DIR=$(pwd)
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 BASE_DIR=$(dirname "$(dirname "$SCRIPT")")
-PLATFORMS="kubernetes,openshift"
+PLATFORMS="openshift"
 STABLE_CHANNELS=("tech-preview-stable-all-namespaces" "stable")
 source "${BASE_DIR}/olm/check-yq.sh"
 
@@ -101,10 +101,6 @@ do
   git fetch upstream ${base_branch}:upstream/${base_branch}
 
   branch="update-eclipse-che"
-  if [ "${platform}" == "kubernetes" ]
-  then
-    branch="${branch}-upstream"
-  fi
   branch="${branch}-operator-${LAST_PACKAGE_VERSION}"
   echo
   echo "   - Create branch '${branch}' in the local 'community-operators' repository: ${communityOperatorsLocalGitFolder}"
@@ -118,10 +114,6 @@ do
   for channel in "${STABLE_CHANNELS[@]}"
   do
     getLatestsStableVersions
-    if [[ $channel == "tech-preview-stable-all-namespaces" && $platform == "kubernetes" ]];then
-      continue
-    fi
-
     if [[ $channel == "tech-preview-stable-all-namespaces" ]];then
       # Add suffix for stable-<all-namespaces> channel
       LAST_PACKAGE_VERSION="$LAST_PACKAGE_VERSION-all-namespaces"

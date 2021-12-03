@@ -44,11 +44,6 @@ jobs:
           --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next
 
         ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
-          --channel 'next' \
-          --platform 'kubernetes' \
-          --catalog-image quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:next
-
-        ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
           --channel 'next-all-namespaces' \
           --platform 'openshift' \
           --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next
