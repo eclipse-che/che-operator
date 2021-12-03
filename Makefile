@@ -467,12 +467,12 @@ update-roles:
 .PHONY: bundle
 bundle: generate manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	if [ -z "$(platform)" ]; then
-		echo "[ERROR] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
+		echo "[ERROR] You must specify 'platform' macros. For example: `make bundle platform=openshift`"
 		exit 1
 	fi
 
 	if [ -z "$(channel)" ]; then
-		echo "[ERROR] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		echo "[ERROR] You must specify 'channel' macros. For example: `make bundle platform=openshift channel=next`"
 		exit 1
 	fi
 
@@ -540,56 +540,6 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
 	fi
 
-	# Remove roles for kubernetes bundle
-	YAML_CONTENT=$$(cat "$${NEW_CSV}")
-	if [ $${platform} = "kubernetes" ]; then
-		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
-		i=0
-		while [ "$${i}" -lt "$${clusterPermLength}" ]; do
-			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
-			if [ "$${apiGroupLength}" -gt 0 ]; then
-				j=0
-				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
-					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
-					case $${apiGroup} in *openshift.io)
-						# Permissions needed for DevWorkspace
-						if [ "$${apiGroup}" != "route.openshift.io" ] && [ "$${apiGroup}" != oauth.openshift.io ]; then
-							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-							j=$$((j-1))
-							i=$$((i-1))
-						fi
-						break
-						;;
-					esac;
-					j=$$((i+1))
-				done
-			fi
-			i=$$((i+1))
-		done
-
-		permLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.permissions[0].rules | length")
-		i=0
-		while [ "$${i}" -lt "$${permLength}" ]; do
-			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups | length')
-			if [ "$${apiGroupLength}" -gt 0 ]; then
-				j=0
-				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
-					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']')
-					case $${apiGroup} in *openshift.io)
-						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
-						j=$$((j-1))
-						i=$$((i-1))
-						break
-						;;
-					esac;
-					j=$$((i+1))
-				done
-			fi
-			i=$$((i+1))
-		done
-	fi
-	echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
-
 	# Remove roles for openshift bundle
 	YAML_CONTENT=$$(cat "$${NEW_CSV}")
 	if [ $${platform} = "openshift" ]; then
@@ -637,15 +587,6 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 			del( .[] | select(.kind == \"CheCluster\") | .spec.k8s)" $${NEW_CSV} |  sed -r 's/"/\\"/g')
 
 		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
-	fi
-	if [ "$${platform}" = "kubernetes" ]; then
-		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-			fromjson | \
-			del( .[] | select(.kind == \"CheCluster\") | .spec.auth.openShiftoAuth) | \
-			( .[] | select(.kind == \"CheCluster\") | .spec.k8s.ingressDomain) |= \"\" " $${NEW_CSV} |  sed -r 's/"/\\"/g')
-
-		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
-		yq -rYi "del(.metadata.annotations.\"operators.openshift.io/infrastructure-features\")" "$${NEW_CSV}"
 	fi
 
 	# set `app.kubernetes.io/managed-by` label
@@ -720,7 +661,7 @@ increment-next-version:
 	fi
 
 	if [ -z "$(channel)" ]; then
-		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=openshift channel=next`"
 		exit 1
 	fi
 
@@ -780,14 +721,10 @@ get-next-version-increment:
 
 update-resources: SHELL := /bin/bash
 update-resources: check-requirements update-resource-images update-roles update-helmcharts
-	for platform in 'openshift' 'kubernetes'
+	for platform in 'openshift'
 	do
 		for channel in 'next-all-namespaces' 'next'
 		do
-			# Skip next-all-namespaces in kubernetes platform, is not supported
-			if [ $${channel} == "next-all-namespaces" ] && [ $${platform} == "kubernetes" ]; then
-				continue
-			fi
 			$(MAKE) bundle platform=$${platform} channel=$${channel}
 		done
 	done
@@ -838,7 +775,7 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 		 	CRDS=$${CRDS}$${example}$$'\n'
 		done
 
-		yq -rYi --arg examples "$${CRDS}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}	
+		yq -rYi --arg examples "$${CRDS}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
 		rm -rf $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
 	else
 		# Set references to values
@@ -930,11 +867,11 @@ update-resource-images:
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
 	if [ -z "$(platform)" ]; then
-		echo "[INFO] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
+		echo "[INFO] You must specify 'platform' macros. For example: `make bundle platform=openshift`"
 		exit 1
 	fi
 	if [ -z "$(channel)" ]; then
-		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=openshift channel=next`"
 		exit 1
 	fi
 

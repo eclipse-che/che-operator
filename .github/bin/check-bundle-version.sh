@@ -19,9 +19,6 @@ if [ -z "${ROOT_PROJECT_DIR}" ]; then
   ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
 fi
 
-CSV_KUBERNETES_NEXT_NEW="bundle/next/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-CSV_KUBERNETES_NEXT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml
-
 CSV_OPENSHIFT_NEXT_NEW="bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 CSV_OPENSHIFT_NEXT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
@@ -42,9 +39,7 @@ compareBundleVersions() {
   do
     echo "[INFO] Changed file: $file"
 
-    if [[ "${file}" == "${CSV_KUBERNETES_NEXT_NEW}" ]]; then
-      compareVersions ${ROOT_PROJECT_DIR}/$CSV_KUBERNETES_NEXT_NEW $CSV_KUBERNETES_NEXT_CURRENT
-    elif [[ "${file}" == "${CSV_OPENSHIFT_NEXT_NEW}" ]]; then
+    if [[ "${file}" == "${CSV_OPENSHIFT_NEXT_NEW}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_NEW $CSV_OPENSHIFT_NEXT_CURRENT
     elif [[ "${file}" == "${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW}" ]]; then
       compareVersions ${ROOT_PROJECT_DIR}/$CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW $CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_CURRENT
@@ -71,8 +66,6 @@ compareVersions() {
 
 checkBundleVersions() {
   versionWithoutNext="$${nextVersion%.next*}"
-  CSV_KUBERNETES_NEXT_NEW_VERSION=$(yq -r ".spec.version" ${CSV_KUBERNETES_NEXT_NEW})
-  CSV_KUBERNETES_NEXT_NEW_VERSION=${CSV_KUBERNETES_NEXT_NEW_VERSION%.next*}
 
   CSV_OPENSHIFT_NEXT_NEW_VERSION=$(yq -r ".spec.version" ${CSV_OPENSHIFT_NEXT_NEW})
   CSV_OPENSHIFT_NEXT_NEW_VERSION=${CSV_OPENSHIFT_NEXT_NEW_VERSION%.next*}
@@ -80,18 +73,14 @@ checkBundleVersions() {
   CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION=$(yq -r ".spec.version" ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW})
   CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION=${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION%.next*}
 
-  if [[ ${CSV_KUBERNETES_NEXT_NEW_VERSION} != ${CSV_OPENSHIFT_NEXT_NEW_VERSION} ]] \
-    || [[ ${CSV_KUBERNETES_NEXT_NEW_VERSION} != ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION} ]] \
-    || [[ ${CSV_OPENSHIFT_NEXT_NEW_VERSION} != ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION} ]]; then
-
+  if [[ ${CSV_OPENSHIFT_NEXT_NEW_VERSION} != ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION} ]]; then
     echo "[ERROR] CSVs have different version"
-    echo "[ERROR] Kubernetes next channel CSV version: ${CSV_KUBERNETES_NEXT_NEW_VERSION}"
     echo "[ERROR] OpenShift next channel CSV version: ${CSV_OPENSHIFT_NEXT_NEW_VERSION}"
     echo "[ERROR] OpenShift next-all-namespaces channel CSV version: ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION}"
     exit 1
   fi
 
-  echo "[INFO] All CSVs have the same version: ${CSV_KUBERNETES_NEXT_NEW_VERSION}"
+  echo "[INFO] All CSVs have the same version: ${CSV_OPENSHIFT_NEXT_NEW_VERSION}"
 }
 
 convertVersionToNumber() {
