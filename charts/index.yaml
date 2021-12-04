@@ -129,11 +129,11 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2021-12-03T11:17:22.491856498Z"
+    created: "2021-12-04T09:09:02.360538028Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
-    digest: d878115d17844680d8eb1b4ba1760950840dd344e0b6f139e75d78092057eaaf
+    digest: aa4efbd1168883302315f172124bc11f433131a01b70aaf772e08eec3e3d551b
     name: eclipse-che
     urls:
     - https://eclipse-che.github.io/che-operator/charts/stable/eclipse-che-7.39.2.tgz
     version: 7.39.2
-generated: "2021-12-03T11:17:22.490133188Z"
+generated: "2021-12-04T09:09:02.359011118Z"
