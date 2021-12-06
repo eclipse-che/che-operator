@@ -18,61 +18,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// ViewRoleName role to get k8s object needed for Workspace components(metrics plugin, Che terminals, tasks etc.)
-	ViewRoleName = "view"
-	// ExecRoleName - role name to create Che terminals and tasks in the workspace.
-	ExecRoleName = "exec"
-)
-
 var roleDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(rbac.Role{}, "TypeMeta", "ObjectMeta"),
 	cmpopts.IgnoreFields(rbac.PolicyRule{}, "ResourceNames", "NonResourceURLs"),
-}
-
-func SyncExecRoleToCluster(deployContext *DeployContext) (bool, error) {
-	execPolicyRule := []rbac.PolicyRule{
-		{
-			APIGroups: []string{
-				"",
-			},
-			Resources: []string{
-				"pods/exec",
-			},
-			Verbs: []string{
-				"*",
-			},
-		},
-	}
-	return SyncRoleToCluster(deployContext, ExecRoleName, execPolicyRule)
-}
-
-func SyncViewRoleToCluster(deployContext *DeployContext) (bool, error) {
-	viewPolicyRule := []rbac.PolicyRule{
-		{
-			APIGroups: []string{
-				"",
-			},
-			Resources: []string{
-				"pods",
-			},
-			Verbs: []string{
-				"list", "get",
-			},
-		},
-		{
-			APIGroups: []string{
-				"metrics.k8s.io",
-			},
-			Resources: []string{
-				"pods",
-			},
-			Verbs: []string{
-				"list", "get", "watch",
-			},
-		},
-	}
-	return SyncRoleToCluster(deployContext, ViewRoleName, viewPolicyRule)
 }
 
 func SyncRoleToCluster(
