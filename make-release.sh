@@ -285,7 +285,7 @@ createPRToMainBranch() {
   resetChanges main
   local tmpBranch="copy-csv-to-main"
   git checkout -B $tmpBranch
-  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)Dockerfile' | git apply -3
+  git diff refs/heads/${BRANCH}...refs/heads/${RELEASE_BRANCH} ':(exclude)config/manager/manager.yaml' ':(exclude)Dockerfile' ':(exclude)bundle/stable/eclipse-che-preview-kubernetes/*' | git apply -3
   if git status --porcelain; then
     git add -A || true # add new generated CSV files in olm/ folder
     git commit -am "ci: Copy "$RELEASE" csv to main" --signoff

@@ -206,6 +206,5 @@ cd "${CURRENT_DIR}"
 echo
 echo "Generated pull requests will be here:
 
-https://github.com/k8s-operatorhub/community-operators/pulls/che-incubator-bot
 https://github.com/redhat-openshift-ecosystem/community-operators-prod/pulls/che-incubator-bot
 "
