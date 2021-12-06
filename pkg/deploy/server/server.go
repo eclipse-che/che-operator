@@ -263,7 +263,7 @@ func (s *Server) UpdateAvailabilityStatus() (bool, error) {
 					name = "CodeReady Workspaces"
 				}
 
-				logrus.Infof(name+" is now available at: %s", s.deployContext.CheCluster.Status.CheURL)
+				logrus.Infof(name+" is now available at: %s", util.GetCheURL(s.deployContext.CheCluster))
 				s.deployContext.CheCluster.Status.CheClusterRunning = AvailableStatus
 				err := deploy.UpdateCheCRStatus(s.deployContext, "status: Che API", AvailableStatus)
 				return err == nil, err
