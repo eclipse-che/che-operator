@@ -769,6 +769,14 @@ spec:
               verbs:
                 - get
             - apiGroups:
+                - ""
+              resources:
+                - pods/log
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
                 - workspace.devfile.io
               resources:
                 - devworkspaces
