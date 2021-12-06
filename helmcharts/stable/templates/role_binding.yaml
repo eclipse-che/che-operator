@@ -17,6 +17,7 @@ metadata:
   labels:
     app.kubernetes.io/name: che
     app.kubernetes.io/instance: che
+    app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/component: che-operator
   namespace: eclipse-che
 roleRef:
