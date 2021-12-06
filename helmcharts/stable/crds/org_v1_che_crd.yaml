@@ -359,6 +359,11 @@ spec:
                         values are: `9.6` and `13.3`. Migrate your PostgreSQL database
                         to switch from one version to another.'
                       type: string
+                    pvcClaimSize:
+                      description: Size of the persistent volume claim for database.
+                        Defaults to `1Gi`. To update pvc storageclass that provisions
+                        it must support resize when Eclipse Che has been already deployed.
+                      type: string
                   type: object
                 devWorkspace:
                   description: DevWorkspace operator configuration
