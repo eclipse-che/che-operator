@@ -184,7 +184,7 @@ func (r *ReconcileCheClusterRestore) doReconcile(restoreCR *chev1.CheClusterRest
 		}
 	}
 
-	// Makrctxe sure, that backup server configuration in the CR is valid and cache cluster resources
+	// Make sure, that backup server configuration in the CR is valid and cache cluster resources
 	done, err = rctx.backupServer.PrepareConfiguration(rctx.r.nonCachingClient, rctx.namespace)
 	if err != nil || !done {
 		return done, err
