@@ -32,14 +32,7 @@ $ kubectl get pods -n eclipse-che
 eclipse-che   che-operator-554c564476-fl98z                           1/1     Running   0          13s
 ```
 
-Click `CRDS` button, select `CheCluster` template and save Eclipse Che custom resource as a file `org.eclipse.che_v1_checluster.yaml`.
-Update Eclipse Che custom resource to set a valid ingress domain for a Kubernetes cluster:
-
-```bash
-yq -riY  '.spec.k8s.ingressDomain = "<DOMAIN>"' org.eclipse.che_v1_checluster.yaml
-```
-
-Apply Eclipse Che custom resource to trigger an installation:
+Click `CRDS` button, select `CheCluster` template and save Eclipse Che custom resource as a file `org.eclipse.che_v1_checluster.yaml` with a valid ingress domain for a Kubernetes cluster. Apply Eclipse Che custom resource to trigger an installation:
 
 ```bash
 $ kubectl apply -f org.eclipse.che_v1_checluster.yaml -n eclipse-che
