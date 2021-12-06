@@ -264,9 +264,14 @@ pushGitChanges() {
   echo "[INFO] Push git changes into $RELEASE_BRANCH branch"
   git push origin $RELEASE_BRANCH ${FORCE_UPDATE}
   if [[ $FORCE_UPDATE == "--force" ]]; then # if forced update, delete existing tag so we can replace it
+    if [[ $(git tag -l $RELEASE) ]]; then # if tag exists in local repo
+      echo "Remove existing local tag $RELEASE"
+      git tag -d $RELEASE
+    else
+      echo "Local tag $RELEASE does not exist" # should never get here
+    fi
     if [[ $(git ls-remote --tags $(git remote get-url origin) $RELEASE) ]]; then # if tag exists in remote repo
-      echo "Remove existing tag $RELEASE"
-      git tag -d $RELEASE || true
+      echo "Remove existing remote tag $RELEASE"
       git push origin :$RELEASE
     else
       echo "Remote tag $RELEASE does not exist" # should never get here
