@@ -41,37 +41,37 @@ setLatestReleasedVersion() {
 }
 
 downloadLatestReleasedBundleCRCRD() {
-  mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/${platform}" "${STABLE_BUNDLE_PATH}/metadata"
-  PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
-  PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
-  PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-  PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterbackups_crd.yaml"
-  PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org.eclipse.che_checlusterrestores_crd.yaml"
+  mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/openshift" "${STABLE_BUNDLE_PATH}/metadata"
+  PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/openshift/che-operator.clusterserviceversion.yaml"
+  PRE_RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org_v1_che_crd.yaml"
+  PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
+  PRE_RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_checlusterbackups_crd.yaml"
+  PRE_RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/generated/openshift/org.eclipse.che_checlusterrestores_crd.yaml"
 
   compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.34.0")
   if [ "${compareResult}" == "1" ]; then
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
         -q -O "${PRE_RELEASE_CSV}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_CRD}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/bundle/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
   else
     # don't exit immediately if some resources are absent
     set +e
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/che-operator.clusterserviceversion.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
         -q -O "${PRE_RELEASE_CSV}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org_v1_che_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_CRD}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_BACKUP_CRD}"
-    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterrestores_crd.yaml" \
         -q -O "${PRE_RELEASE_CHE_RESTORE_CRD}"
     set -e
   fi
@@ -84,119 +84,109 @@ if [[ -z "$RELEASE" ]] || [[ -z "$CHANNEL" ]]; then
 fi
 
 
-for platform in 'kubernetes' 'openshift'
-do
-  source ${BASE_DIR}/olm.sh
-  echo "[INFO] Creating release '${RELEASE}' for platform '${platform}'"
+source ${BASE_DIR}/olm.sh
+echo "[INFO] Creating release '${RELEASE}'"
 
-  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]] && [[ ${platform} == "kubernetes" ]];then
-    continue
-  fi
+if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
+  NEXT_BUNDLE_PATH=$(getBundlePath "next-all-namespaces")
+else
+  NEXT_BUNDLE_PATH=$(getBundlePath "next")
+fi
 
-  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
-    NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next-all-namespaces")
-  else
-    NEXT_BUNDLE_PATH=$(getBundlePath "${platform}" "next")
-  fi
+LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
+echo "[INFO] Last package next version: ${lastPackageNextVersion}"
 
-  LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-  lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
-  echo "[INFO] Last package next version: ${lastPackageNextVersion}"
+STABLE_BUNDLE_PATH=$(getBundlePath $CHANNEL)
+RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
+RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
+RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
 
-  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" $CHANNEL)
-  RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-  RELEASE_CHE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-  RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-  RELEASE_CHE_BACKUP_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
-  RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
+MANAGER_YAML="${OPERATOR_DIR}/config/manager/manager.yaml"
 
-  MANAGER_YAML="${OPERATOR_DIR}/config/manager/manager.yaml"
+setLatestReleasedVersion
+downloadLatestReleasedBundleCRCRD
+packageName=$(getPackageName)
 
-  setLatestReleasedVersion
-  downloadLatestReleasedBundleCRCRD
-  packageName=$(getPackageName "${platform}")
+echo "[INFO] Will create release '${RELEASE}' from next version ${lastPackageNextVersion}'"
 
-  echo "[INFO] Will create release '${RELEASE}' from next version ${lastPackageNextVersion}'"
+sed \
+-e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
+-e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
+-e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
+-e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
+-e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
+-e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
+-e "/^  replaces: ${packageName}.v.*/d" \
+-e "s/^  version: ${lastPackageNextVersion}/  version: ${RELEASE}/" \
+-e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${LAST_RELEASE_VERSION}" \
+-e "s/: next/: ${RELEASE}/" \
+-e "s/:next/:${RELEASE}/" \
+-e "s/${lastPackageNextVersion}/${RELEASE}/" \
+-e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
 
-  sed \
-  -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
-  -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
-  -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
-  -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
-  -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
-  -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
-  -e "/^  replaces: ${packageName}.v.*/d" \
-  -e "s/^  version: ${lastPackageNextVersion}/  version: ${RELEASE}/" \
-  -e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${LAST_RELEASE_VERSION}" \
-  -e "s/: next/: ${RELEASE}/" \
-  -e "s/:next/:${RELEASE}/" \
-  -e "s/${lastPackageNextVersion}/${RELEASE}/" \
-  -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
+if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
+  # Set tech-preview-stable-all-namespaces versions
+  yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
+  yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
+  yq -Yi '.metadata.name |= "eclipse-che-preview-openshift.v'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
+fi
 
-  if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
-    # Set tech-preview-stable-all-namespaces versions
-    yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
-    yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
-    yq -Yi '.metadata.name |= "eclipse-che-preview-openshift.v'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
-  fi
+# Remove from devWorkspace in stable channel and hide the value from UI
+if [[ ${CHANNEL} == "stable" ]];then
+  CR_SAMPLE=$(yq ".metadata.annotations.\"alm-examples\" | fromjson | del( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace)" "${RELEASE_CSV}" | sed -r 's/"/\\"/g')
+  yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
+  yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
+  mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
+  yq -rYi "(.spec.install.spec.deployments [] | select(.name == \"che-operator\") | .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"ALLOW_DEVWORKSPACE_ENGINE\") | .value ) = \"false\"" ${RELEASE_CSV}
+fi
 
-  # Remove from devWorkspace in stable channel and hide the value from UI
-  if [[ ${CHANNEL} == "stable" ]];then
-    CR_SAMPLE=$(yq ".metadata.annotations.\"alm-examples\" | fromjson | del( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace)" "${RELEASE_CSV}" | sed -r 's/"/\\"/g')
-    yq -rY " (.metadata.annotations.\"alm-examples\") = \"${CR_SAMPLE}\"" "${RELEASE_CSV}" > "${RELEASE_CSV}.old"
-    yq -Yi '.spec.customresourcedefinitions.owned[] |= (select(.name == "checlusters.org.eclipse.che").specDescriptors += [{"path":"devWorkspace", "x-descriptors": ["urn:alm:descriptor:com.tectonic.ui:hidden"]}])' "${RELEASE_CSV}.old"
-    mv "${RELEASE_CSV}.old" "${RELEASE_CSV}"
+cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
+cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
+cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups.yaml" "${RELEASE_CHE_BACKUP_CRD}"
+cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores.yaml" "${RELEASE_CHE_RESTORE_CRD}"
+cp -rf "${NEXT_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
+cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
+cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
 
-    if [[ ${platform} == "openshift" ]];then
-      yq -rYi "(.spec.install.spec.deployments [] | select(.name == \"che-operator\") | .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"ALLOW_DEVWORKSPACE_ENGINE\") | .value ) = \"false\"" ${RELEASE_CSV}
-    fi
-  fi
+ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
+sed \
+-e 's/operators.operatorframework.io.bundle.channels.v1: .*/operators.operatorframework.io.bundle.channels.v1: '$CHANNEL'/' \
+-e 's/operators.operatorframework.io.bundle.channel.default.v1: .*/operators.operatorframework.io.bundle.channel.default.v1: '$CHANNEL'/' \
+-i "${ANNOTATION_METADATA_YAML}"
 
-  cp "${NEXT_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml" "${RELEASE_CHE_CRD}"
-  cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_chebackupserverconfigurations.yaml" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}"
-  cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterbackups.yaml" "${RELEASE_CHE_BACKUP_CRD}"
-  cp "${NEXT_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores.yaml" "${RELEASE_CHE_RESTORE_CRD}"
-  cp -rf "${NEXT_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
-  cp -rf "${NEXT_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
-  cp -rf "${NEXT_BUNDLE_PATH}/tests" "${STABLE_BUNDLE_PATH}"
+BUNDLE_DOCKERFILE="${STABLE_BUNDLE_PATH}/bundle.Dockerfile"
+sed \
+-e 's/LABEL operators.operatorframework.io.bundle.channels.v1=.*/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
+-e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=.*/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
+-i "${BUNDLE_DOCKERFILE}"
 
-  ANNOTATION_METADATA_YAML="${STABLE_BUNDLE_PATH}/metadata/annotations.yaml"
-  sed \
-  -e 's/operators.operatorframework.io.bundle.channels.v1: .*/operators.operatorframework.io.bundle.channels.v1: '$CHANNEL'/' \
-  -e 's/operators.operatorframework.io.bundle.channel.default.v1: .*/operators.operatorframework.io.bundle.channel.default.v1: '$CHANNEL'/' \
-  -i "${ANNOTATION_METADATA_YAML}"
+pushd "${CURRENT_DIR}" || exit 1
+source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
+              -t "${RELEASE}" \
+              -s "${RELEASE_CSV}" \
+              -o "${MANAGER_YAML}"
+popd || exit 1
 
-  BUNDLE_DOCKERFILE="${STABLE_BUNDLE_PATH}/bundle.Dockerfile"
-  sed \
-  -e 's/LABEL operators.operatorframework.io.bundle.channels.v1=.*/LABEL operators.operatorframework.io.bundle.channels.v1='$CHANNEL'/' \
-  -e 's/LABEL operators.operatorframework.io.bundle.channel.default.v1=.*/LABEL operators.operatorframework.io.bundle.channel.default.v1='$CHANNEL'/' \
-  -i "${BUNDLE_DOCKERFILE}"
+pushd "${OPERATOR_DIR}" || exit 1
+make add-license "${RELEASE_CSV}"
+make add-license "${MANAGER_YAML}"
+popd || exit 1
 
-  pushd "${CURRENT_DIR}" || exit 1
-  source ${BASE_DIR}/addDigests.sh -w ${BASE_DIR} \
-                -t "${RELEASE}" \
-                -s "${RELEASE_CSV}" \
-                -o "${MANAGER_YAML}"
-  popd || exit 1
-
-  pushd "${OPERATOR_DIR}" || exit 1
-  make add-license "${RELEASE_CSV}"
-  make add-license "${MANAGER_YAML}"
-  popd || exit 1
-
-  if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CHE_CRD}" ]]; then
-    diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
-    diff -u "${PRE_RELEASE_CHE_CRD}" "${RELEASE_CHE_CRD}" > "${RELEASE_CHE_CRD}.diff" || true
-  fi
-  if [[ -n "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" ]]; then
-    diff -u "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" > "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}.diff" || true
-  fi
-  if [[ -n "${PRE_RELEASE_CHE_BACKUP_CRD}" ]]; then
-    diff -u "${PRE_RELEASE_CHE_BACKUP_CRD}" "${RELEASE_CHE_BACKUP_CRD}" > "${RELEASE_CHE_BACKUP_CRD}.diff" || true
-  fi
-  if [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
-    diff -u "${PRE_RELEASE_CHE_RESTORE_CRD}" "${RELEASE_CHE_RESTORE_CRD}" > "${RELEASE_CHE_RESTORE_CRD}.diff" || true
-  fi
-done
+if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CHE_CRD}" ]]; then
+  diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
+  diff -u "${PRE_RELEASE_CHE_CRD}" "${RELEASE_CHE_CRD}" > "${RELEASE_CHE_CRD}.diff" || true
+fi
+if [[ -n "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" ]]; then
+  diff -u "${PRE_RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}" > "${RELEASE_CHE_BACKUP_SERVER_CONFIGURATION_CRD}.diff" || true
+fi
+if [[ -n "${PRE_RELEASE_CHE_BACKUP_CRD}" ]]; then
+  diff -u "${PRE_RELEASE_CHE_BACKUP_CRD}" "${RELEASE_CHE_BACKUP_CRD}" > "${RELEASE_CHE_BACKUP_CRD}.diff" || true
+fi
+if [[ -n "${PRE_RELEASE_CHE_RESTORE_CRD}" ]]; then
+  diff -u "${PRE_RELEASE_CHE_RESTORE_CRD}" "${RELEASE_CHE_RESTORE_CRD}" > "${RELEASE_CHE_RESTORE_CRD}.diff" || true
+fi
 
 echo "[INFO] Release bundles successfully created."

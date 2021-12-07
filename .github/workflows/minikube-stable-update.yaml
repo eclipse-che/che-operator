@@ -11,33 +11,38 @@
 #
 
 name: Minikube
-on: pull_request
+on:
+  pull_request:
+    branches:
+     - 7.*
 jobs:
   minikube-e2e:
-    name: Testing latest changes (olm installer)
+    name: Testing stable versions updates
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - name: Install jq
-      run: sudo pip install yq
+    - name: Install yq and pysemver
+      run: |
+        pip install operator-courier==2.1.7
+        sudo pip install yq pysemver;
+        echo "[INFO] pysemver version:"
+        pysemver --version;
+        echo "[INFO] yq version:"
+        yq --version;
     - name: Provision Minikube cluster
       run: |
         curl -LO https://storage.googleapis.com/minikube/releases/v1.21.0/minikube-linux-amd64
         sudo install minikube-linux-amd64 /usr/local/bin/minikube
         minikube start --memory=6000mb
-    - name: Enable minikube addons
-      run: |
-        minikube addons enable ingress
-
-        # Enable registry and port forward to push images to registry
-        /bin/bash olm/minikube-registry-addon.sh &
     - name: Install chectl
-      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+      run: bash <(curl -sL  https://www.eclipse.org/che/chectl/) --channel=stable
     - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-olm.sh
+      run: /bin/bash .github/bin/minikube/test-stable-update.sh
+      env:
+        "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
     # Run this step even the previous step fail
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: minikube-olm-artifacts
+        name: minikube-updates-artifacts
         path: /tmp/artifacts-che

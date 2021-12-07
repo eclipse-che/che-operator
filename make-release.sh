@@ -228,16 +228,6 @@ releaseOlmFiles() {
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
     grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
-    if [[ $channel == "stable" ]];then
-      local kubernetes=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-kubernetes/manifests
-      grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
-
-      test -f $kubernetes/org_v1_che_crd.yaml
-      test -f $kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml
-      test -f $kubernetes/org.eclipse.che_checlusterbackups_crd.yaml
-      test -f $kubernetes/org.eclipse.che_checlusterrestores_crd.yaml
-    fi
-
     test -f $openshift/org_v1_che_crd.yaml
     test -f $openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml
     test -f $openshift/org.eclipse.che_checlusterbackups_crd.yaml
@@ -256,7 +246,6 @@ pushOlmBundlesToQuayIo() {
   echo "[INFO] Push OLM bundles to quay.io"
 
   . ${RELEASE_DIR}/olm/buildCatalog.sh -c tech-preview-stable-all-namespaces -p openshift -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
-  . ${RELEASE_DIR}/olm/buildCatalog.sh -c stable -p kubernetes -i quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test -f
   . ${RELEASE_DIR}/olm/buildCatalog.sh -c stable -p openshift -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
 }
 

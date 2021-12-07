@@ -45,31 +45,11 @@ echo http://$(oc get route -n eclipse-che-preview-test | grep ^che | awk -F ' ' 
 
 Login using HTPassword then allow selected permissions. Validate that the release version is installed and workspace can be created:
 
-## 3. Testing release on minikube
-
-This part now runs automatically as part of the PR check for release PRs. See `minikube-stable-operator-update.yml` action.
-Alternatively, use these manual steps to verify operator update on Minikube.
-
-Run script to test updates:
-
-```bash
-cd olm
-./testUpdate.sh -p kubernetes -c stable -i quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test -n eclipse-che
-```
-
-Open Eclipse Che dashboard:
-
-```bash
-xdg-open http://$(kubectl get ingress -n eclipse-che-preview-test | grep ^che | awk -F ' ' '{ print $2 }')
-```
-
-Validate that the release version is installed and workspace can be created:
-
-## 4. Merge pull requests
+## 3. Merge pull requests
 
 Merge pull request into .x and main branches.
 
-## 5. Testing release on minishift (when chectl is released)
+## 4. Testing release on minishift (when chectl is released)
 
 Login to local minishift cluster:
 
@@ -91,7 +71,7 @@ chectl server:update --platform=minishift  --installer=operator
 xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $2 }')
 ```
 
-## 6. Prepare community operator PR
+## 5. Prepare community operator PR
 
 See `release-community-operator-PRs.yml` workflow, which will be triggered automatically, once release PRs are merged.
 Alternatively, it can be run manually:
