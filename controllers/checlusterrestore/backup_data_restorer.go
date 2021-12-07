@@ -123,6 +123,9 @@ func cleanPreviousInstallation(rctx *RestoreContext, dataDir string) (bool, erro
 		rctx.cheCR = cheCR
 	}
 
+	// Drop databases, if any, to handle case of different Postgres version (otherwise clean Che will fail to start due to old data in volume)
+	dropDatabases(rctx)
+
 	// Delete Che CR to stop operator from dealing with current installation
 	actualCheCR, cheCRCount, err := util.FindCheClusterCRInNamespace(rctx.r.cachingClient, rctx.namespace)
 	if cheCRCount == -1 {
@@ -423,6 +426,36 @@ func readBackupMetadata(rctx *RestoreContext, dataDir string) (*checlusterbackup
 	}
 
 	return backupMetadata, true, nil
+}
+
+// dropDatabases deletes Che related databases from Postgres, if any
+func dropDatabases(rctx *RestoreContext) {
+	if rctx.cheCR.Spec.Database.ExternalDb {
+		// Skip this step as there is an external server to connect to
+		return
+	}
+
+	databasesToDrop := []string{
+		rctx.cheCR.Spec.Database.ChePostgresDb,
+		"keycloak",
+	}
+
+	k8sClient := util.GetK8Client()
+	postgresPodName, err := k8sClient.GetDeploymentPod(deploy.PostgresName, rctx.namespace)
+	if err != nil {
+		// Postgres pod not found, probably it doesn't exist
+		return
+	}
+
+	for _, dbName := range databasesToDrop {
+		execReason := fmt.Sprintf("dropping %s database", dbName)
+		dropDatabaseCommand := fmt.Sprintf("psql -c \"DROP DATABASE IF EXISTS %s;\"", dbName)
+		if output, err := k8sClient.DoExecIntoPod(rctx.namespace, postgresPodName, dropDatabaseCommand, execReason); err != nil {
+			if output != "" {
+				logrus.Error(output)
+			}
+		}
+	}
 }
 
 func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
