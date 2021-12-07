@@ -231,7 +231,6 @@ func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) err
 		&corev1.PodList{},
 		&batchv1.JobList{},
 		&corev1.ServiceList{},
-		&networkingv1.IngressList{},
 		&corev1.SecretList{},
 		&corev1.ConfigMapList{},
 		&corev1.ServiceAccountList{},
@@ -243,6 +242,8 @@ func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) err
 	}
 	if util.IsOpenShift {
 		kindsToMigrate = append(kindsToMigrate, &routev1.RouteList{})
+	} else {
+		kindsToMigrate = append(kindsToMigrate, &networkingv1.IngressList{})
 	}
 
 	for _, listToGet := range kindsToMigrate {
