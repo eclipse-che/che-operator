@@ -100,7 +100,7 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
 	reconcileManager.RegisterReconciler(devworkspace.NewDevWorkspaceReconciler())
-	reconcileManager.RegisterReconciler(rbac.NewRbacReconciler())
+	reconcileManager.RegisterReconciler(rbac.NewCheServerPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewGatewayPermissionsReconciler())
 	reconcileManager.RegisterReconciler(rbac.NewWorkspacePermissionsReconciler())
 

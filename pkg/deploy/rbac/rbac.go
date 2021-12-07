@@ -20,15 +20,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type RbacReconciler struct {
+type CheServerPermissionsReconciler struct {
 	deploy.Reconcilable
 }
 
-func NewRbacReconciler() *RbacReconciler {
-	return &RbacReconciler{}
+func NewCheServerPermissionsReconciler() *CheServerPermissionsReconciler {
+	return &CheServerPermissionsReconciler{}
 }
 
-func (c *RbacReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (c *CheServerPermissionsReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	// Create service account "che" for che-server component.
 	// "che" is the one which token is used to create workspace objects.
 	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
@@ -52,7 +52,7 @@ func (c *RbacReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result,
 	return reconcile.Result{}, true, err
 }
 
-func (c *RbacReconciler) Finalize(ctx *deploy.DeployContext) error {
+func (c *CheServerPermissionsReconciler) Finalize(ctx *deploy.DeployContext) error {
 	if len(ctx.CheCluster.Spec.Server.CheClusterRoles) > 0 {
 		cheClusterRoles := strings.Split(ctx.CheCluster.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
