@@ -891,7 +891,7 @@ catalog-push: ## Push a catalog image.
 
 chectl-templ: SHELL := /bin/bash
 chectl-templ:
-	if [ -z "$(TARGET)" ];
+	if [ -z "$(TARGET)" ]; then
 		echo "[ERROR] Specify templates target location, using argument `TARGET`"
 		exit 1
 	fi
