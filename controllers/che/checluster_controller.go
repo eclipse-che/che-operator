@@ -14,7 +14,6 @@ package che
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -27,6 +26,7 @@ import (
 	openshiftoauth "github.com/eclipse-che/che-operator/pkg/deploy/openshift-oauth"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
+	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
 	"github.com/eclipse-che/che-operator/pkg/deploy/server"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
@@ -37,7 +37,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -99,6 +99,10 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth(openShiftOAuthUser))
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
+	reconcileManager.RegisterReconciler(devworkspace.NewDevWorkspaceReconciler())
+	reconcileManager.RegisterReconciler(rbac.NewCheServerPermissionsReconciler())
+	reconcileManager.RegisterReconciler(rbac.NewGatewayPermissionsReconciler())
+	reconcileManager.RegisterReconciler(rbac.NewWorkspacePermissionsReconciler())
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
@@ -163,11 +167,11 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		}).
-		Watches(&source.Kind{Type: &rbac.Role{}}, &handler.EnqueueRequestForOwner{
+		Watches(&source.Kind{Type: &rbacv1.Role{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		}).
-		Watches(&source.Kind{Type: &rbac.RoleBinding{}}, &handler.EnqueueRequestForOwner{
+		Watches(&source.Kind{Type: &rbacv1.RoleBinding{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &orgv1.CheCluster{},
 		}).
@@ -225,7 +229,6 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
-	tests := r.tests
 	clusterAPI := deploy.ClusterAPI{
 		Client:           r.client,
 		NonCachingClient: r.nonCachedClient,
@@ -308,75 +311,6 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// TODO remove in favor of r.reconcileManager.FinalizeAll(deployContext)
 	r.reconcileFinalizers(deployContext)
 
-	// Reconcile Dev Workspace Operator
-	done, err := devworkspace.ReconcileDevWorkspace(deployContext)
-	if !done {
-		if err != nil {
-			r.Log.Error(err, "")
-		}
-		// We should `Requeue` since we don't watch Dev Workspace controller objects
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	// Create service account "che" for che-server component.
-	// "che" is the one which token is used to create workspace objects.
-	// Notice: Also we have on more "che-workspace" SA used by plugins like exec, terminal, metrics with limited privileges.
-	done, err = deploy.SyncServiceAccountToCluster(deployContext, deploy.CheServiceAccountName)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	if done, err = r.reconcileGatewayPermissions(deployContext); !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		// reconcile after 1 seconds since we deal with cluster objects
-		return reconcile.Result{RequeueAfter: time.Second}, err
-	}
-
-	done, err = r.reconcileWorkspacePermissions(deployContext)
-	if !done {
-		if err != nil {
-			logrus.Error(err)
-		}
-		// reconcile after 1 seconds since we deal with cluster objects
-		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	if len(checluster.Spec.Server.CheClusterRoles) > 0 {
-		cheClusterRoles := strings.Split(checluster.Spec.Server.CheClusterRoles, ",")
-		for _, cheClusterRole := range cheClusterRoles {
-			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := cheClusterRole
-			done, err := deploy.SyncClusterRoleBindingAndAddFinalizerToCluster(deployContext, cheClusterRoleBindingName, deploy.CheServiceAccountName, cheClusterRole)
-			if !tests {
-				if !done {
-					logrus.Infof("Waiting on cluster role binding '%s' to be created", cheClusterRoleBindingName)
-					if err != nil {
-						logrus.Error(err)
-					}
-					return ctrl.Result{RequeueAfter: time.Second}, err
-				}
-			}
-		}
-	}
-
-	// If the user specified an additional cluster role to use for the Che workspace, create a role binding for it
-	// Use a role binding instead of a cluster role binding to keep the additional access scoped to the workspace's namespace
-	workspaceClusterRole := checluster.Spec.Server.CheWorkspaceClusterRole
-	if workspaceClusterRole != "" {
-		done, err := deploy.SyncRoleBindingToCluster(deployContext, "che-workspace-custom", "view", workspaceClusterRole, "ClusterRole")
-		if !done {
-			if err != nil {
-				logrus.Error(err)
-			}
-			return ctrl.Result{RequeueAfter: time.Second}, err
-		}
-	}
-
 	if err := r.GenerateAndSaveFields(deployContext); err != nil {
 		_ = deploy.ReloadCheClusterCR(deployContext)
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
@@ -384,7 +318,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if !deployContext.CheCluster.Spec.Database.ExternalDb {
 		postgres := postgres.NewPostgres(deployContext)
-		done, err = postgres.SyncAll()
+		done, err := postgres.SyncAll()
 		if !done {
 			if err != nil {
 				logrus.Error(err)
@@ -396,7 +330,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// we have to expose che endpoint independently of syncing other server
 	// resources since che host is used for dashboard deployment and che config map
 	server := server.NewServer(deployContext)
-	done, err = server.ExposeCheServiceAndEndpoint()
+	done, err := server.ExposeCheServiceAndEndpoint()
 	if !done {
 		if err != nil {
 			logrus.Error(err)
@@ -523,16 +457,6 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 		}
 	}
 
-	if deployContext.CheCluster.IsNativeUserModeEnabled() {
-		if _, err := r.reconcileGatewayPermissionsFinalizers(deployContext); err != nil {
-			logrus.Error(err)
-		}
-	}
-
-	if _, err := r.reconcileWorkspacePermissionsFinalizers(deployContext); err != nil {
-		logrus.Error(err)
-	}
-
 	if err := deploy.ReconcileConsoleLinkFinalizer(deployContext); err != nil {
 		logrus.Error(err)
 	}
@@ -541,23 +465,6 @@ func (r *CheClusterReconciler) reconcileFinalizers(deployContext *deploy.DeployC
 		done, err := dashboard.NewDashboard(deployContext).Finalize()
 		if !done {
 			logrus.Error(err)
-		}
-	}
-
-	if len(deployContext.CheCluster.Spec.Server.CheClusterRoles) > 0 {
-		cheClusterRoles := strings.Split(deployContext.CheCluster.Spec.Server.CheClusterRoles, ",")
-		for _, cheClusterRole := range cheClusterRoles {
-			cheClusterRole := strings.TrimSpace(cheClusterRole)
-			cheClusterRoleBindingName := cheClusterRole
-			if err := deploy.ReconcileClusterRoleBindingFinalizer(deployContext, cheClusterRoleBindingName); err != nil {
-				logrus.Error(err)
-			}
-
-			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
-			cheClusterRoleBindingName = deploy.GetLegacyUniqueClusterRoleBindingName(deployContext, deploy.CheServiceAccountName, cheClusterRole)
-			if err := deploy.ReconcileLegacyClusterRoleBindingFinalizer(deployContext, cheClusterRoleBindingName); err != nil {
-				logrus.Error(err)
-			}
 		}
 	}
 }

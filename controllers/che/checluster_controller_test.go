@@ -14,17 +14,13 @@ package che
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strconv"
-
-	mocks "github.com/eclipse-che/che-operator/mocks"
 
 	"reflect"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
-	"github.com/golang/mock/gomock"
 	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
@@ -47,7 +43,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/utils/pointer"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -481,7 +477,7 @@ func TestCheController(t *testing.T) {
 	}
 
 	// Get the custom role binding that should have been created for the role we passed in
-	rb := &rbac.RoleBinding{}
+	rb := &rbacv1.RoleBinding{}
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
 		t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
 	}
@@ -690,135 +686,6 @@ func TestConfiguringLabelsForRoutes(t *testing.T) {
 
 	if route.ObjectMeta.Labels["route"] != "one" {
 		t.Fatalf("Route '%s' does not have label '%s'", route.Name, route)
-	}
-}
-
-func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
-	util.IsOpenShift = true
-
-	type testCase struct {
-		name        string
-		initObjects []runtime.Object
-
-		clusterRole bool
-		checluster  *orgv1.CheCluster
-	}
-
-	// the same namespace with Che
-	crWsInTheSameNs1 := InitCheWithSimpleCR().DeepCopy()
-	crWsInTheSameNs1.Spec.Server.WorkspaceNamespaceDefault = crWsInTheSameNs1.Namespace
-
-	crWsInTheSameNs2 := InitCheWithSimpleCR().DeepCopy()
-	crWsInTheSameNs2.Spec.Server.WorkspaceNamespaceDefault = ""
-
-	crWsInTheSameNs3 := InitCheWithSimpleCR().DeepCopy()
-	crWsInTheSameNs3.Spec.Server.CustomCheProperties = make(map[string]string)
-	crWsInTheSameNs3.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"] = ""
-
-	crWsInTheSameNs4 := InitCheWithSimpleCR().DeepCopy()
-	crWsInTheSameNs4.Spec.Server.CustomCheProperties = make(map[string]string)
-	crWsInTheSameNs4.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"] = crWsInTheSameNs1.Namespace
-
-	// differ namespace with Che
-	crWsInAnotherNs1 := InitCheWithSimpleCR().DeepCopy()
-	crWsInAnotherNs1.Spec.Server.WorkspaceNamespaceDefault = "some-test-namespace"
-
-	crWsInAnotherNs2 := InitCheWithSimpleCR().DeepCopy()
-	crWsInAnotherNs2.Spec.Server.CustomCheProperties = make(map[string]string)
-	crWsInAnotherNs2.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"] = "some-test-namespace"
-
-	crWsInAnotherNs3 := InitCheWithSimpleCR().DeepCopy()
-	crWsInAnotherNs3.Spec.Server.CustomCheProperties = make(map[string]string)
-	crWsInAnotherNs3.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"] = crWsInTheSameNs1.Namespace
-	crWsInAnotherNs3.Spec.Server.WorkspaceNamespaceDefault = "some-test-namespace"
-
-	testCases := []testCase{
-		{
-			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. WorkspaceNamespaceDefault = 'some-test-namespace'",
-			initObjects: []runtime.Object{},
-			clusterRole: true,
-			checluster:  crWsInAnotherNs1,
-		},
-		{
-			name:        "che-operator should delegate permission for workspaces in differ namespace than Che. Property CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT = 'some-test-namespace'",
-			initObjects: []runtime.Object{},
-			clusterRole: true,
-			checluster:  crWsInAnotherNs2,
-		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-			scheme := scheme.Scheme
-			orgv1.SchemeBuilder.AddToScheme(scheme)
-			scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, &oauthv1.OAuthClient{})
-			scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{})
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
-			scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
-
-			initCR := testCase.checluster
-			initCR.Spec.Auth.OpenShiftoAuth = pointer.BoolPtr(false)
-			testCase.initObjects = append(testCase.initObjects, initCR)
-
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			// todo do we need fake discovery
-			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
-
-			if !ok {
-				t.Fatal("Error creating fake discovery client")
-			}
-
-			var m *mocks.MockPermissionChecker
-			if testCase.clusterRole {
-				ctrl := gomock.NewController(t)
-				m = mocks.NewMockPermissionChecker(ctrl)
-				m.EXPECT().GetNotPermittedPolicyRules(gomock.Any(), "").Return([]rbac.PolicyRule{}, nil).MaxTimes(2)
-				defer ctrl.Finish()
-			}
-
-			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
-			r.tests = true
-
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      os.Getenv("CHE_FLAVOR"),
-					Namespace: namespace,
-				},
-			}
-
-			_, err := r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
-			_, err = r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
-
-			manageNamespacesClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, namespace)
-			cheManageNamespaceClusterRole := &rbac.ClusterRole{}
-			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRole); err != nil {
-				t.Errorf("role '%s' not found", manageNamespacesClusterRoleName)
-			}
-			cheManageNamespaceClusterRoleBinding := &rbac.ClusterRoleBinding{}
-			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: manageNamespacesClusterRoleName}, cheManageNamespaceClusterRoleBinding); err != nil {
-				t.Errorf("rolebinding '%s' not found", manageNamespacesClusterRoleName)
-			}
-
-			cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, namespace)
-			cheWorkspacesClusterRole := &rbac.ClusterRole{}
-			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRole); err != nil {
-				t.Errorf("role '%s' not found", cheWorkspacesClusterRole)
-			}
-			cheWorkspacesClusterRoleBinding := &rbac.ClusterRoleBinding{}
-			if err := r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: cheWorkspacesClusterRoleName}, cheWorkspacesClusterRoleBinding); err != nil {
-				t.Errorf("rolebinding '%s' not found", cheWorkspacesClusterRole)
-			}
-		})
 	}
 }
 
