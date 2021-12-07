@@ -311,20 +311,10 @@ prepareTemplates() {
     exit 1
   fi
 
-  mkdir -p "${SRC_TEMPLATES}"
-
-  cp -f "${SRC_TEMPLATES}/config/manager/manager.yaml" "${TARGET_TEMPLATES}/operator.yaml"
-
-  cp -rf "${SRC_TEMPLATES}/config/crd/bases/" "${TARGET_TEMPLATES}/crds/"
-
-  cp -f "${SRC_TEMPLATES}/config/rbac/role.yaml" "${TARGET_TEMPLATES}/"
-  cp -f "${SRC_TEMPLATES}/config/rbac/role_binding.yaml" "${TARGET_TEMPLATES}/"
-  cp -f "${SRC_TEMPLATES}/config/rbac/cluster_role.yaml" "${TARGET_TEMPLATES}/"
-  cp -f "${SRC_TEMPLATES}/config/rbac/cluster_rolebinding.yaml" "${TARGET_TEMPLATES}/"
-  cp -f "${SRC_TEMPLATES}/config/rbac/service_account.yaml" "${TARGET_TEMPLATES}/"
-
-  cp -f "${SRC_TEMPLATES}/config/samples/org.eclipse.che_v1_checluster.yaml" "${TARGET_TEMPLATES}/crds/org_v1_che_cr.yaml"
-  cp -f "${SRC_TEMPLATES}/config/crd/bases/org_v1_che_crd-v1beta1.yaml" "${TARGET_TEMPLATES}/crds/org_v1_che_crd-v1beta1.yaml"
+  local path=$(pwd)
+  echo "[INFO] src ${SRC_TEMPLATES}"
+  echo "[INFO] target ${TARGET_TEMPLATES}"
+  cd ${OPERATOR_REPO}; make chectl-templ "SRC=${SRC_TEMPLATES}" "TARGET=${TARGET_TEMPLATES}"; cd "${path}"
 }
 
 deployEclipseCheStable(){

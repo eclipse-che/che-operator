@@ -889,9 +889,9 @@ catalog-build: opm ## Build a catalog image.
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
+chectl-templ: SHELL := /bin/bash
 chectl-templ:
 	if [ -z "$(TARGET)" ];
-		then echo "A";
 		echo "[ERROR] Specify templates target location, using argument `TARGET`"
 		exit 1
 	fi
