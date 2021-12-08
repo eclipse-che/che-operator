@@ -17,84 +17,91 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type DevfileRegistry struct {
-	deployContext *deploy.DeployContext
+type DevfileRegistryReconciler struct {
+	deploy.Reconcilable
 }
 
-func NewDevfileRegistry(deployContext *deploy.DeployContext) *DevfileRegistry {
-	return &DevfileRegistry{
-		deployContext: deployContext,
-	}
+func NewDevfileRegistryReconciler() *DevfileRegistryReconciler {
+	return &DevfileRegistryReconciler{}
 }
 
-func (p *DevfileRegistry) SyncAll() (bool, error) {
-	done, err := p.SyncService()
-	if !done {
-		return false, err
+func (d *DevfileRegistryReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+	if ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
+		return reconcile.Result{}, true, nil
 	}
 
-	endpoint, done, err := p.ExposeEndpoint()
+	done, err := d.syncService(ctx)
 	if !done {
-		return false, err
+		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.UpdateStatus(endpoint)
+	endpoint, done, err := d.exposeEndpoint(ctx)
 	if !done {
-		return false, err
+		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.SyncConfigMap()
+	done, err = d.updateStatus(endpoint, ctx)
 	if !done {
-		return false, err
+		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.SyncDeployment()
+	done, err = d.syncConfigMap(ctx)
 	if !done {
-		return false, err
+		return reconcile.Result{}, false, err
 	}
 
-	return true, nil
+	done, err = d.syncDeployment(ctx)
+	if !done {
+		return reconcile.Result{}, false, err
+	}
+
+	return reconcile.Result{}, true, nil
 }
 
-func (p *DevfileRegistry) SyncService() (bool, error) {
+func (d *DevfileRegistryReconciler) Finalize(ctx *deploy.DeployContext) error {
+	return nil
+}
+
+func (d *DevfileRegistryReconciler) syncService(ctx *deploy.DeployContext) (bool, error) {
 	return deploy.SyncServiceToCluster(
-		p.deployContext,
+		ctx,
 		deploy.DevfileRegistryName,
 		[]string{"http"},
 		[]int32{8080},
 		deploy.DevfileRegistryName)
 }
 
-func (p *DevfileRegistry) SyncConfigMap() (bool, error) {
-	data, err := p.GetConfigMapData()
+func (d *DevfileRegistryReconciler) syncConfigMap(ctx *deploy.DeployContext) (bool, error) {
+	data, err := d.getConfigMapData(ctx)
 	if err != nil {
 		return false, err
 	}
-	return deploy.SyncConfigMapDataToCluster(p.deployContext, deploy.DevfileRegistryName, data, deploy.DevfileRegistryName)
+	return deploy.SyncConfigMapDataToCluster(ctx, deploy.DevfileRegistryName, data, deploy.DevfileRegistryName)
 }
 
-func (p *DevfileRegistry) ExposeEndpoint() (string, bool, error) {
+func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *deploy.DeployContext) (string, bool, error) {
 	return expose.Expose(
-		p.deployContext,
+		ctx,
 		deploy.DevfileRegistryName,
-		p.deployContext.CheCluster.Spec.Server.DevfileRegistryRoute,
-		p.deployContext.CheCluster.Spec.Server.DevfileRegistryIngress,
-		p.createGatewayConfig())
+		ctx.CheCluster.Spec.Server.DevfileRegistryRoute,
+		ctx.CheCluster.Spec.Server.DevfileRegistryIngress,
+		d.createGatewayConfig())
 }
 
-func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
+func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *deploy.DeployContext) (bool, error) {
 	var devfileRegistryURL string
-	if p.deployContext.CheCluster.Spec.Server.TlsSupport {
+	if ctx.CheCluster.Spec.Server.TlsSupport {
 		devfileRegistryURL = "https://" + endpoint
 	} else {
 		devfileRegistryURL = "http://" + endpoint
 	}
 
-	if devfileRegistryURL != p.deployContext.CheCluster.Status.DevfileRegistryURL {
-		p.deployContext.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
-		if err := deploy.UpdateCheCRStatus(p.deployContext, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
+	if devfileRegistryURL != ctx.CheCluster.Status.DevfileRegistryURL {
+		ctx.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
+		if err := deploy.UpdateCheCRStatus(ctx, "status: Devfile Registry URL", devfileRegistryURL); err != nil {
 			return false, err
 		}
 	}
@@ -102,12 +109,12 @@ func (p *DevfileRegistry) UpdateStatus(endpoint string) (bool, error) {
 	return true, nil
 }
 
-func (p *DevfileRegistry) SyncDeployment() (bool, error) {
-	spec := p.GetDevfileRegistryDeploymentSpec()
-	return deploy.SyncDeploymentSpecToCluster(p.deployContext, spec, deploy.DefaultDeploymentDiffOpts)
+func (d *DevfileRegistryReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, error) {
+	spec := d.getDevfileRegistryDeploymentSpec(ctx)
+	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (p *DevfileRegistry) createGatewayConfig() *gateway.TraefikConfig {
+func (d *DevfileRegistryReconciler) createGatewayConfig() *gateway.TraefikConfig {
 	pathPrefix := "/" + deploy.DevfileRegistryName
 	cfg := gateway.CreateCommonTraefikConfig(
 		deploy.DevfileRegistryName,

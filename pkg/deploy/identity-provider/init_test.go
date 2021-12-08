@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package identity_provider
+package identityprovider
 
 import "github.com/eclipse-che/che-operator/pkg/deploy"
 
