@@ -15,17 +15,11 @@ package che
 import (
 	"context"
 	"os"
-	"strconv"
 
-	"reflect"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
-	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
-	devworkspace "github.com/eclipse-che/che-operator/pkg/deploy/dev-workspace"
-	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -44,9 +38,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/utils/pointer"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,8 +50,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	configv1 "github.com/openshift/api/config/v1"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"testing"
@@ -69,350 +59,21 @@ var (
 	namespace = "eclipse-che"
 )
 
-func TestNativeUserModeEnabled(t *testing.T) {
-	type testCase struct {
-		name                    string
-		initObjects             []runtime.Object
-		isOpenshift             bool
-		devworkspaceEnabled     bool
-		initialNativeUserValue  *bool
-		expectedNativeUserValue *bool
-	}
-
-	testCases := []testCase{
-		{
-			name:                    "che-operator should use nativeUserMode when devworkspaces on openshift and no initial value in CR for nativeUserMode",
-			isOpenshift:             true,
-			devworkspaceEnabled:     true,
-			initialNativeUserValue:  nil,
-			expectedNativeUserValue: pointer.BoolPtr(true),
-		},
-		{
-			name:                    "che-operator should use nativeUserMode value from initial CR",
-			isOpenshift:             true,
-			devworkspaceEnabled:     true,
-			initialNativeUserValue:  pointer.BoolPtr(false),
-			expectedNativeUserValue: pointer.BoolPtr(false),
-		},
-		{
-			name:                    "che-operator should use nativeUserMode value from initial CR",
-			isOpenshift:             true,
-			devworkspaceEnabled:     true,
-			initialNativeUserValue:  pointer.BoolPtr(true),
-			expectedNativeUserValue: pointer.BoolPtr(true),
-		},
-		{
-			name:                    "che-operator should use nativeUserMode when devworkspaces on kubernetes and no initial value in CR for nativeUserMode",
-			isOpenshift:             false,
-			devworkspaceEnabled:     true,
-			initialNativeUserValue:  nil,
-			expectedNativeUserValue: pointer.BoolPtr(true),
-		},
-		{
-			name:                    "che-operator not modify nativeUserMode when devworkspace not enabled",
-			isOpenshift:             true,
-			devworkspaceEnabled:     false,
-			initialNativeUserValue:  nil,
-			expectedNativeUserValue: nil,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-			scheme := scheme.Scheme
-			orgv1.SchemeBuilder.AddToScheme(scheme)
-			scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
-			scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, &oauthv1.OAuthClient{})
-			scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
-			scheme.AddKnownTypes(crdv1.SchemeGroupVersion, &crdv1.CustomResourceDefinition{})
-
-			initCR := InitCheWithSimpleCR().DeepCopy()
-			initCR.Spec.DevWorkspace.Enable = testCase.devworkspaceEnabled
-			initCR.Spec.Auth.NativeUserMode = testCase.initialNativeUserValue
-			testCase.initObjects = append(testCase.initObjects, initCR)
-
-			util.IsOpenShift = testCase.isOpenshift
-
-			// reread templates (workaround after setting IsOpenShift value)
-			devworkspace.DevWorkspaceTemplates = devworkspace.DevWorkspaceTemplatesPath()
-			devworkspace.DevWorkspaceIssuerFile = devworkspace.DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
-			devworkspace.DevWorkspaceCertificateFile = devworkspace.DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
-
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
-
-			if !ok {
-				t.Fatal("Error creating fake discovery client")
-			}
-
-			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
-			r.tests = true
-
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      os.Getenv("CHE_FLAVOR"),
-					Namespace: namespace,
-				},
-			}
-
-			_, err := r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
-			cr := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
-				t.Errorf("CR not found")
-			}
-
-			if !reflect.DeepEqual(testCase.expectedNativeUserValue, cr.Spec.Auth.NativeUserMode) {
-				expectedValue, actualValue := "nil", "nil"
-				if testCase.expectedNativeUserValue != nil {
-					expectedValue = strconv.FormatBool(*testCase.expectedNativeUserValue)
-				}
-				if cr.Spec.Auth.NativeUserMode != nil {
-					actualValue = strconv.FormatBool(*cr.Spec.Auth.NativeUserMode)
-				}
-
-				t.Errorf("Expected nativeUserMode '%+v', but found '%+v' for input '%+v'",
-					expectedValue, actualValue, testCase)
-			}
-		})
-	}
-}
-
-func TestEnsureServerExposureStrategy(t *testing.T) {
-	type testCase struct {
-		name                string
-		expectedCr          *orgv1.CheCluster
-		devWorkspaceEnabled bool
-		initObjects         []runtime.Object
-	}
-
-	testCases := []testCase{
-		{
-			name: "Single Host should be enabled if devWorkspace is enabled",
-			expectedCr: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "single-host",
-					},
-				},
-			},
-			devWorkspaceEnabled: true,
-		},
-		{
-			name: "Multi Host should be enabled if devWorkspace is not enabled",
-			expectedCr: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "multi-host",
-					},
-				},
-			},
-			devWorkspaceEnabled: false,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-			scheme := scheme.Scheme
-			orgv1.SchemeBuilder.AddToScheme(scheme)
-			initCR := InitCheWithSimpleCR().DeepCopy()
-			testCase.initObjects = append(testCase.initObjects, initCR)
-			if testCase.devWorkspaceEnabled {
-				initCR.Spec.DevWorkspace.Enable = true
-			}
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
-
-			if !ok {
-				t.Fatal("Error creating fake discovery client")
-			}
-
-			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
-			r.tests = true
-
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      os.Getenv("CHE_FLAVOR"),
-					Namespace: namespace,
-				},
-			}
-
-			util.IsOpenShift = true
-			util.IsOpenShift4 = false
-			_, err := r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
-			cr := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
-				t.Errorf("CR not found")
-			}
-			if !reflect.DeepEqual(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy) {
-				t.Errorf("Expected CR and CR returned from API server are different (-want +got): %v", cmp.Diff(testCase.expectedCr.Spec.Server.ServerExposureStrategy, cr.Spec.Server.ServerExposureStrategy))
-			}
-		})
-	}
-}
-
-func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
-	type testCase struct {
-		name                       string
-		isOpenShift                bool
-		isOpenShift4               bool
-		initObjects                []runtime.Object
-		cheCluster                 *orgv1.CheCluster
-		expectedDevfileRegistryURL string
-	}
-
-	testCases := []testCase{
-		{
-			name: "Test Status.DevfileRegistryURL #1",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      os.Getenv("CHE_FLAVOR"),
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: false,
-					},
-				},
-			},
-			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
-		},
-		{
-			name: "Test Status.DevfileRegistryURL #2",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      os.Getenv("CHE_FLAVOR"),
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: false,
-						DevfileRegistryUrl:      "https://devfile-registry.external.1",
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.2"},
-						},
-					},
-				},
-			},
-			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
-		},
-		{
-			name: "Test Status.DevfileRegistryURL #2",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      os.Getenv("CHE_FLAVOR"),
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ExternalDevfileRegistry: true,
-						DevfileRegistryUrl:      "https://devfile-registry.external.1",
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "https://devfile-registry.external.2"},
-						},
-					},
-				},
-			},
-			expectedDevfileRegistryURL: "",
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-			scheme := scheme.Scheme
-			orgv1.SchemeBuilder.AddToScheme(scheme)
-			testCase.initObjects = append(testCase.initObjects, testCase.cheCluster)
-			cli := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			nonCachedClient := fake.NewFakeClientWithScheme(scheme, testCase.initObjects...)
-			clientSet := fakeclientset.NewSimpleClientset()
-			fakeDiscovery, ok := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
-			if !ok {
-				t.Fatal("Error creating fake discovery client")
-			}
-			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{}
-
-			r := NewReconciler(cli, nonCachedClient, fakeDiscovery, scheme, "")
-			r.tests = true
-
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      os.Getenv("CHE_FLAVOR"),
-					Namespace: namespace,
-				},
-			}
-
-			util.IsOpenShift = testCase.isOpenShift
-			util.IsOpenShift4 = testCase.isOpenShift4
-
-			_, err := r.Reconcile(context.TODO(), req)
-			if err != nil {
-				t.Fatalf("Error reconciling: %v", err)
-			}
-
-			cr := &orgv1.CheCluster{}
-			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cr); err != nil {
-				t.Errorf("CR not found")
-			}
-
-			if cr.Status.DevfileRegistryURL != testCase.expectedDevfileRegistryURL {
-				t.Fatalf("Exected: %s, but found: %s", testCase.expectedDevfileRegistryURL, cr.Status.DevfileRegistryURL)
-			}
-		})
-	}
-}
-
 func TestCheController(t *testing.T) {
 	var err error
 
 	util.IsOpenShift = true
-	util.IsOpenShift4 = false
+	util.IsOpenShift4 = true
 
 	cl, dc, scheme := Init()
 
 	// Create a ReconcileChe object with the scheme and fake client
 	r := NewReconciler(cl, cl, dc, &scheme, "")
-	r.tests = true
 
 	// get CR
-	cheCR := &orgv1.CheCluster{
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheHost: "eclipse.org",
-			},
-		},
-	}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
-		t.Errorf("CR not found")
-	}
+	checluster := &orgv1.CheCluster{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, checluster)
+	assert.Nil(t, err)
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -423,270 +84,123 @@ func TestCheController(t *testing.T) {
 		},
 	}
 
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.Nil(t, err)
+
+	assert.True(t, util.IsObjectExists(cl, types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: checluster.Namespace}, &corev1.ConfigMap{}))
+	assert.True(t, util.IsObjectExists(cl, types.NamespacedName{Name: deploy.PluginRegistryName, Namespace: checluster.Namespace}, &corev1.ConfigMap{}))
+
+	// reade checluster
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, checluster)
+	assert.Nil(t, err)
+
+	// update CR and make sure Che configmap has been updated
+	checluster.Spec.Server.TlsSupport = true
+	err = cl.Update(context.TODO(), checluster)
+	assert.Nil(t, err)
+
+	// reconcile several times
 	reconcileLoops := 4
 	for i := 0; i < reconcileLoops; i++ {
 		_, err = r.Reconcile(context.TODO(), req)
-		if err != nil {
-			t.Fatalf("reconcile: (%v)", err)
-		}
-	}
-
-	// get devfile-registry configmap
-	devfilecm := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, devfilecm); err != nil {
-		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
-	}
-
-	// get plugin-registry configmap
-	pluginRegistrycm := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, pluginRegistrycm); err != nil {
-		t.Errorf("ConfigMap %s not found: %s", pluginRegistrycm.Name, err)
-	}
-
-	// get CR
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
-		t.Errorf("CR not found")
-	}
-
-	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Server.TlsSupport = true
-	if err := cl.Update(context.TODO(), cheCR); err != nil {
-		t.Error("Failed to update CheCluster custom resource")
-	}
-
-	// reconcile again
-	for i := 0; i < reconcileLoops; i++ {
-		_, err = r.Reconcile(context.TODO(), req)
-		if err != nil {
-			t.Fatalf("reconcile: (%v)", err)
-		}
+		assert.Nil(t, err)
 	}
 
 	// get configmap
 	cm := &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cm); err != nil {
-		t.Errorf("ConfigMap %s not found: %s", cm.Name, err)
-	}
-
-	customCm := &corev1.ConfigMap{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: checluster.Namespace}, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"], "true")
 
 	// Custom ConfigMap should be gone
-	err = cl.Get(context.TODO(), types.NamespacedName{Name: "custom", Namespace: cheCR.Namespace}, customCm)
-	if !errors.IsNotFound(err) {
-		t.Errorf("Custom config map should be deleted and merged with Che ConfigMap")
-	}
+	assert.False(t, util.IsObjectExists(cl, types.NamespacedName{Name: "custom", Namespace: checluster.Namespace}, &corev1.ConfigMap{}))
 
 	// Get the custom role binding that should have been created for the role we passed in
-	rb := &rbacv1.RoleBinding{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che-workspace-custom", Namespace: cheCR.Namespace}, rb); err != nil {
-		t.Errorf("Custom role binding %s not found: %s", rb.Name, err)
-	}
+	assert.True(t, util.IsObjectExists(cl, types.NamespacedName{Name: "che-workspace-custom", Namespace: checluster.Namespace}, &rbacv1.RoleBinding{}))
 
-	// run a few checks to make sure the operator reconciled tls routes and updated configmap
-	if cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"] != "true" {
-		// If the test fails here without obvious reason, it could mean that there was not enought reconcile loops before.
-		// To fix the above problem, just increase reconcileLoops variable above.
-		t.Errorf("ConfigMap wasn't updated. Expecting true, but got: %s", cm.Data["CHE_INFRA_OPENSHIFT_TLS__ENABLED"])
-	}
 	route := &routev1.Route{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(cheCR), Namespace: cheCR.Namespace}, route); err != nil {
-		t.Errorf("Route %s not found: %s", cm.Name, err)
-	}
-	if route.Spec.TLS.Termination != "edge" {
-		t.Errorf("Test failed as %s %s is not a TLS route", route.Kind, route.Name)
-	}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(checluster), Namespace: checluster.Namespace}, route)
+	assert.Nil(t, err)
+	assert.Equal(t, route.Spec.TLS.Termination, routev1.TLSTerminationType("edge"))
 
-	// get CR
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
-		t.Errorf("CR not found")
-	}
+	// reread checluster
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, checluster)
+	assert.Nil(t, err)
 
 	// update CR and make sure Che configmap has been updated
-	cheCR.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
-	if err := cl.Update(context.TODO(), cheCR); err != nil {
-		t.Error("Failed to update CheCluster custom resource")
-	}
+	checluster.Spec.Auth.OpenShiftoAuth = util.NewBoolPointer(true)
+	err = cl.Update(context.TODO(), checluster)
+	assert.Nil(t, err)
 
 	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
+	assert.Nil(t, err)
 
 	// get configmap and check if identity provider name and workspace project name are correctly set
 	cm = &corev1.ConfigMap{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: cheCR.Namespace}, cm); err != nil {
-		t.Errorf("ConfigMap %s not found: %s", cm.Name, err)
-	}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: "che", Namespace: checluster.Namespace}, cm)
+	assert.Nil(t, err)
+	assert.Equal(t, cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"], "openshift-v4")
 
-	_, isOpenshiftv4, err := util.DetectOpenShift()
-	if err != nil {
-		logrus.Errorf("Error detecting openshift version: %v", err)
-	}
-	expectedIdentityProviderName := "openshift-v3"
-	if isOpenshiftv4 {
-		expectedIdentityProviderName = "openshift-v4"
-	}
-
-	if cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"] != expectedIdentityProviderName {
-		t.Errorf("ConfigMap wasn't updated properly. Expecting '%s', got: '%s'", expectedIdentityProviderName, cm.Data["CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"])
-	}
-
-	clusterAPI := deploy.ClusterAPI{
-		Client:           r.client,
-		NonCachingClient: r.client,
-		Scheme:           r.Scheme,
-	}
-
-	deployContext := &deploy.DeployContext{
-		CheCluster: cheCR,
-		ClusterAPI: clusterAPI,
-	}
-
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.Name, Namespace: cheCR.Namespace}, cheCR); err != nil {
-		t.Errorf("Failed to get the Che custom resource %s: %s", cheCR.Name, err)
-	}
-	if _, err = identity_provider.SyncOpenShiftIdentityProviderItems(deployContext); err != nil {
-		t.Errorf("Failed to create the items for the identity provider: %s", err)
-	}
-	oAuthClientName := cheCR.Spec.Auth.OAuthClientName
-	oauthSecret := cheCR.Spec.Auth.OAuthSecret
-	oAuthClient := &oauthv1.OAuthClient{}
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
-		t.Errorf("Failed to Get oAuthClient %s: %s", oAuthClient.Name, err)
-	}
-	if oAuthClient.Secret != oauthSecret {
-		t.Errorf("Secrets do not match. Expecting %s, got %s", oauthSecret, oAuthClient.Secret)
-	}
+	// reread checluster
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, checluster)
+	assert.Nil(t, err)
+	assert.True(t, util.IsObjectExists(cl, types.NamespacedName{Name: checluster.Spec.Auth.OAuthClientName}, &oauthv1.OAuthClient{}))
 
 	// check if a new Postgres deployment is not created when spec.Database.ExternalDB is true
-	cheCR.Spec.Database.ExternalDb = true
-	if err := cl.Update(context.TODO(), cheCR); err != nil {
-		t.Error("Failed to update CheCluster custom resource")
-	}
+	checluster.Spec.Database.ExternalDb = true
+	err = cl.Update(context.TODO(), checluster)
+	assert.Nil(t, err)
+
 	postgresDeployment := &appsv1.Deployment{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: checluster.Namespace}, postgresDeployment)
+	assert.Nil(t, err)
+
 	err = r.client.Delete(context.TODO(), postgresDeployment)
+	assert.Nil(t, err)
+
 	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.PostgresName, Namespace: cheCR.Namespace}, postgresDeployment)
-	if err == nil {
-		t.Fatalf("Deployment postgres shoud not exist")
-	}
+	assert.Nil(t, err)
+
+	assert.False(t, util.IsObjectExists(cl, types.NamespacedName{Name: deploy.PostgresName, Namespace: checluster.Namespace}, &appsv1.Deployment{}))
 
 	// check of storageClassName ends up in pvc spec
 	fakeStorageClassName := "fake-storage-class-name"
-	cheCR.Spec.Storage.PostgresPVCStorageClassName = fakeStorageClassName
-	cheCR.Spec.Database.ExternalDb = false
-	if err := r.client.Update(context.TODO(), cheCR); err != nil {
-		t.Fatalf("Failed to update %s CR: %s", cheCR.Name, err)
-	}
-	pvc := &corev1.PersistentVolumeClaim{}
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: cheCR.Namespace}, pvc); err != nil {
-		t.Fatalf("Failed to get PVC: %s", err)
-	}
-	if err = r.client.Delete(context.TODO(), pvc); err != nil {
-		t.Fatalf("Failed to delete PVC %s: %s", pvc.Name, err)
-	}
-	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	pvc = &corev1.PersistentVolumeClaim{}
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: cheCR.Namespace}, pvc); err != nil {
-		t.Fatalf("Failed to get PVC: %s", err)
-	}
-	actualStorageClassName := pvc.Spec.StorageClassName
-	if len(*actualStorageClassName) != len(fakeStorageClassName) {
-		t.Fatalf("Expecting %s storageClassName, got %s", fakeStorageClassName, *actualStorageClassName)
-	}
+	checluster.Spec.Storage.PostgresPVCStorageClassName = fakeStorageClassName
+	checluster.Spec.Database.ExternalDb = false
+	err = r.client.Update(context.TODO(), checluster)
+	assert.Nil(t, err)
 
-	// Get CheCR one more time to get it with newer Che url in the status.
-	r.client.Get(context.TODO(), types.NamespacedName{Name: cheCR.GetName(), Namespace: cheCR.GetNamespace()}, cheCR)
-	if err != nil {
-		t.Fatalf("Failed to get custom resource Eclipse Che: %s", err.Error())
-	}
-	if cheCR.Status.CheURL != "https://eclipse.org" {
-		t.Fatalf("Expected che host url in the custom resource status: %s, but got %s", "https://eclipse.org", cheCR.Status.CheURL)
-	}
+	pvc := &corev1.PersistentVolumeClaim{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: checluster.Namespace}, pvc)
+	assert.Nil(t, err)
+
+	err = r.client.Delete(context.TODO(), pvc)
+	assert.Nil(t, err)
+
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.Nil(t, err)
+
+	pvc = &corev1.PersistentVolumeClaim{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultPostgresVolumeClaimName, Namespace: checluster.Namespace}, pvc)
+	assert.Nil(t, err)
+	assert.Equal(t, fakeStorageClassName, *pvc.Spec.StorageClassName)
+
+	// reread checluster
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, checluster)
+	assert.Nil(t, err)
+	assert.Equal(t, "https://eclipse.org", checluster.Status.CheURL)
 
 	// check if oAuthClient is deleted after CR is deleted (finalizer logic)
 	// since fake api does not set deletion timestamp, CR is updated in tests rather than deleted
-	logrus.Info("Updating CR with deletion timestamp")
 	deletionTimestamp := &metav1.Time{Time: time.Now()}
-	cheCR.DeletionTimestamp = deletionTimestamp
-	if err := r.client.Update(context.TODO(), cheCR); err != nil {
-		t.Fatalf("Failed to update CR: %s", err)
-	}
-	if err := deploy.ReconcileOAuthClientFinalizer(deployContext); err != nil {
-		t.Fatal("Failed to reconcile oAuthClient")
-	}
-	oauthClientName := cheCR.Spec.Auth.OAuthClientName
-	oauthClient := &oauthv1.OAuthClient{}
-	err = r.nonCachedClient.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName}, oauthClient)
-	if err == nil {
-		t.Fatalf("OauthClient %s has not been deleted", oauthClientName)
-	}
-	logrus.Infof("Disregard the error above. OauthClient %s has been deleted", oauthClientName)
-}
+	checluster.DeletionTimestamp = deletionTimestamp
+	err = r.client.Update(context.TODO(), checluster)
+	assert.Nil(t, err)
 
-func TestConfiguringLabelsForRoutes(t *testing.T) {
-	util.IsOpenShift = true
-	// Set the logger to development mode for verbose logs.
-	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-
-	cl, dc, scheme := Init()
-
-	// Create a ReconcileChe object with the scheme and fake client
-	r := NewReconciler(cl, cl, dc, &scheme, "")
-	r.tests = true
-
-	// get CR
-	cheCR := &orgv1.CheCluster{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
-		t.Errorf("CR not found")
-	}
-
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-		},
-	}
-
-	// reconcile
-	_, err := r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: os.Getenv("CHE_FLAVOR"), Namespace: namespace}, cheCR); err != nil {
-		t.Errorf("CR not found")
-	}
-
-	cheCR.Spec.Server.CheServerRoute.Labels = "route=one"
-	if err := cl.Update(context.TODO(), cheCR); err != nil {
-		t.Error("Failed to update CheCluster custom resource")
-	}
-
-	// reconcile again
 	_, err = r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
+	assert.Nil(t, err)
 
-	// get route
-	route := &routev1.Route{}
-	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DefaultCheFlavor(cheCR), Namespace: cheCR.Namespace}, route); err != nil {
-		t.Errorf("Route %s not found: %s", route.Name, err)
-	}
-
-	if route.ObjectMeta.Labels["route"] != "one" {
-		t.Fatalf("Route '%s' does not have label '%s'", route.Name, route)
-	}
+	assert.False(t, util.IsObjectExists(cl, types.NamespacedName{Name: checluster.Spec.Auth.OAuthClientName}, &oauthv1.OAuthClient{}))
 }
 
 func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
@@ -721,7 +235,18 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 	}
 
 	// A CheCluster custom resource with metadata and spec
-	cheCR := InitCheWithSimpleCR()
+	cheCR := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      os.Getenv("CHE_FLAVOR"),
+			Namespace: namespace,
+		},
+		Spec: orgv1.CheClusterSpec{
+			Server: orgv1.CheClusterSpecServer{
+				CheHost:                 "eclipse.org",
+				CheWorkspaceClusterRole: "cluster-admin",
+			},
+		},
+	}
 
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
@@ -761,21 +286,4 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 
 	// Create a fake client to mock API calls
 	return objs, fakeDiscovery, *scheme
-}
-
-func InitCheWithSimpleCR() *orgv1.CheCluster {
-	return &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv("CHE_FLAVOR"),
-			Namespace: namespace,
-		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				CheWorkspaceClusterRole: "cluster-admin",
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: pointer.BoolPtr(false),
-			},
-		},
-	}
 }

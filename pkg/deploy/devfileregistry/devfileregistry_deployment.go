@@ -22,10 +22,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func (p *DevfileRegistry) GetDevfileRegistryDeploymentSpec() *appsv1.Deployment {
+func (p *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy.DeployContext) *appsv1.Deployment {
 	registryType := "devfile"
-	registryImage := util.GetValue(p.deployContext.CheCluster.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(p.deployContext.CheCluster))
-	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(p.deployContext.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
+	registryImage := util.GetValue(ctx.CheCluster.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(ctx.CheCluster))
+	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
 	probePath := "/devfiles/"
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
@@ -41,24 +41,24 @@ func (p *DevfileRegistry) GetDevfileRegistryDeploymentSpec() *appsv1.Deployment 
 	resources := v1.ResourceRequirements{
 		Requests: v1.ResourceList{
 			v1.ResourceMemory: util.GetResourceQuantity(
-				p.deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryRequest,
+				ctx.CheCluster.Spec.Server.DevfileRegistryMemoryRequest,
 				deploy.DefaultDevfileRegistryMemoryRequest),
 			v1.ResourceCPU: util.GetResourceQuantity(
-				p.deployContext.CheCluster.Spec.Server.DevfileRegistryCpuRequest,
+				ctx.CheCluster.Spec.Server.DevfileRegistryCpuRequest,
 				deploy.DefaultDevfileRegistryCpuRequest),
 		},
 		Limits: v1.ResourceList{
 			v1.ResourceMemory: util.GetResourceQuantity(
-				p.deployContext.CheCluster.Spec.Server.DevfileRegistryMemoryLimit,
+				ctx.CheCluster.Spec.Server.DevfileRegistryMemoryLimit,
 				deploy.DefaultDevfileRegistryMemoryLimit),
 			v1.ResourceCPU: util.GetResourceQuantity(
-				p.deployContext.CheCluster.Spec.Server.DevfileRegistryCpuLimit,
+				ctx.CheCluster.Spec.Server.DevfileRegistryCpuLimit,
 				deploy.DefaultDevfileRegistryCpuLimit),
 		},
 	}
 
 	return registry.GetSpecRegistryDeployment(
-		p.deployContext,
+		ctx,
 		registryType,
 		registryImage,
 		devfileImagesEnv,

@@ -32,15 +32,15 @@ var (
 	postgresAdminPassword = util.GeneratePasswd(12)
 )
 
-func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func (p *PostgresReconciler) getDeploymentSpec(clusterDeployment *appsv1.Deployment, ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelSelector := deploy.GetLabelsAndSelector(p.deployContext.CheCluster, deploy.PostgresName)
-	chePostgresDb := util.GetValue(p.deployContext.CheCluster.Spec.Database.ChePostgresDb, "dbche")
-	postgresImage, err := getPostgresImage(clusterDeployment, p.deployContext.CheCluster)
+	labels, labelSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, deploy.PostgresName)
+	chePostgresDb := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresDb, "dbche")
+	postgresImage, err := getPostgresImage(clusterDeployment, ctx.CheCluster)
 	if err != nil {
 		return nil, err
 	}
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(p.deployContext.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Database.PostgresImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(postgresImage)))
 
 	if clusterDeployment != nil {
 		clusterContainer := &clusterDeployment.Spec.Template.Spec.Containers[0]
@@ -57,7 +57,7 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploy.PostgresName,
-			Namespace: p.deployContext.CheCluster.Namespace,
+			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -95,18 +95,18 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
+										ctx.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Memory,
 										deploy.DefaultPostgresMemoryRequest),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
+										ctx.CheCluster.Spec.Database.ChePostgresContainerResources.Requests.Cpu,
 										deploy.DefaultPostgresCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
+										ctx.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Memory,
 										deploy.DefaultPostgresMemoryLimit),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										p.deployContext.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
+										ctx.CheCluster.Spec.Database.ChePostgresContainerResources.Limits.Cpu,
 										deploy.DefaultPostgresCpuLimit),
 								},
 							},
@@ -170,7 +170,7 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
 
-	chePostgresSecret := p.deployContext.CheCluster.Spec.Database.ChePostgresSecret
+	chePostgresSecret := ctx.CheCluster.Spec.Database.ChePostgresSecret
 	if len(chePostgresSecret) > 0 {
 		container.Env = append(container.Env,
 			corev1.EnvVar{
@@ -198,10 +198,10 @@ func (p *Postgres) GetDeploymentSpec(clusterDeployment *appsv1.Deployment) (*app
 		container.Env = append(container.Env,
 			corev1.EnvVar{
 				Name:  "POSTGRESQL_USER",
-				Value: p.deployContext.CheCluster.Spec.Database.ChePostgresUser,
+				Value: ctx.CheCluster.Spec.Database.ChePostgresUser,
 			}, corev1.EnvVar{
 				Name:  "POSTGRESQL_PASSWORD",
-				Value: p.deployContext.CheCluster.Spec.Database.ChePostgresPassword,
+				Value: ctx.CheCluster.Spec.Database.ChePostgresPassword,
 			})
 	}
 
