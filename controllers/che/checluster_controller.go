@@ -253,6 +253,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if err != nil {
 		if errors.IsNotFound(err) {
+			r.Log.Info("CheCluster Custom Resource not found.")
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -321,12 +322,8 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *CheClusterReconciler) GetCR(request ctrl.Request) (instance *orgv1.CheCluster, err error) {
-	instance = &orgv1.CheCluster{}
-	err = r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
-		r.Log.Error(err, "Failed to get %s CR: %s", "Cluster name", instance.Name)
-		return nil, err
-	}
-	return instance, nil
+func (r *CheClusterReconciler) GetCR(request ctrl.Request) (*orgv1.CheCluster, error) {
+	checluster := &orgv1.CheCluster{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, checluster)
+	return checluster, err
 }
