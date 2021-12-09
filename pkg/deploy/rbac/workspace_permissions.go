@@ -225,7 +225,7 @@ func (wp *WorkspacePermissionsReconciler) getDevWorkspacePolicies() []rbacv1.Pol
 		{
 			APIGroups: []string{"workspace.devfile.io"},
 			Resources: []string{"devworkspaces", "devworkspacetemplates"},
-			Verbs:     []string{"get", "create", "delete", "list", "update", "patch"},
+			Verbs:     []string{"get", "create", "delete", "list", "update", "patch", "watch"},
 		},
 	}
 
