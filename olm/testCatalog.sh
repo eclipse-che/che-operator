@@ -23,14 +23,12 @@ source "${OPERATOR_REPO}/olm/olm.sh"
 
 init() {
   unset CHANNEL
-  unset PLATFORM
   unset CATALOG_IMAGE
   unset NAMESPACE
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--channel'|'-c') CHANNEL="$2"; shift 1;;
-      '--platform'|'-p') PLATFORM="$2"; shift 1;;
       '--namespace'|'-n') NAMESPACE="$2"; shift 1;;
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
       '--help'|'-h') usage; exit;;
@@ -38,7 +36,7 @@ init() {
     shift 1
   done
 
-  if [[ ! ${CHANNEL} ]] || [[ ! ${PLATFORM} ]] || [[ ! ${CATALOG_IMAGE} ]] || [[ ! ${NAMESPACE} ]]; then usage; exit 1; fi
+  if [[ ! ${CHANNEL} ]]  || [[ ! ${CATALOG_IMAGE} ]] || [[ ! ${NAMESPACE} ]]; then usage; exit 1; fi
 }
 
 usage () {
@@ -49,17 +47,17 @@ usage () {
 run() {
   createNamespace ${NAMESPACE}
   installOperatorMarketPlace
-  installCatalogSource "${PLATFORM}" "${NAMESPACE}" "${CATALOG_IMAGE}"
+  installCatalogSource "${NAMESPACE}" "${CATALOG_IMAGE}"
 
-  getBundleListFromCatalogSource "${PLATFORM}" "${NAMESPACE}"
+  getBundleListFromCatalogSource "${NAMESPACE}"
   getLatestCSVInfo "${CHANNEL}"
 
   forcePullingOlmImages "${NAMESPACE}" "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  subscribeToInstallation "${PLATFORM}" "${NAMESPACE}" "${CHANNEL}" "${LATEST_CSV_NAME}"
-  installPackage "${PLATFORM}" "${NAMESPACE}"
+  subscribeToInstallation "${NAMESPACE}" "${CHANNEL}" "${LATEST_CSV_NAME}"
+  installPackage "${NAMESPACE}"
 
-  applyCheClusterCR ${LATEST_CSV_NAME} ${PLATFORM}
+  applyCheClusterCR ${LATEST_CSV_NAME}
   waitCheServerDeploy "${NAMESPACE}"
 }
 
