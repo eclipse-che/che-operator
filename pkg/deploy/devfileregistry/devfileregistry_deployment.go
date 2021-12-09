@@ -22,7 +22,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func (p *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy.DeployContext) *appsv1.Deployment {
+func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy.DeployContext) *appsv1.Deployment {
 	registryType := "devfile"
 	registryImage := util.GetValue(ctx.CheCluster.Spec.Server.DevfileRegistryImage, deploy.DefaultDevfileRegistryImage(ctx.CheCluster))
 	registryImagePullPolicy := v1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.DevfileRegistryPullPolicy), deploy.DefaultPullPolicyFromDockerImage(registryImage)))
@@ -30,11 +30,11 @@ func (p *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
 	// If there is a devfile registry deployed by operator
-	if p.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() && !p.deployContext.CheCluster.Spec.Server.ExternalDevfileRegistry {
+	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() && !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
 		devfileImagesEnv = append(devfileImagesEnv,
 			corev1.EnvVar{
 				Name:  "CHE_DEVFILE_REGISTRY_INTERNAL_URL",
-				Value: fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, p.deployContext.CheCluster.Namespace)},
+				Value: fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, ctx.CheCluster.Namespace)},
 		)
 	}
 
