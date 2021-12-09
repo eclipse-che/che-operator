@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -57,6 +58,27 @@ var (
 	configMapDiffOpts      = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
 	secretDiffOpts         = cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta")
 )
+
+type GatewayReconciler struct {
+	deploy.Reconcilable
+}
+
+func NewGatewayReconciler() *GatewayReconciler {
+	return &GatewayReconciler{}
+}
+
+func (p *GatewayReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+	err := SyncGatewayToCluster(ctx)
+	if err != nil {
+		return reconcile.Result{}, false, err
+	}
+
+	return reconcile.Result{}, true, nil
+}
+
+func (p *GatewayReconciler) Finalize(ctx *deploy.DeployContext) error {
+	return nil
+}
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {

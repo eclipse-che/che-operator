@@ -9,7 +9,7 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package identity_provider
+package identityprovider
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -28,6 +29,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
 )
 
 var (
@@ -45,26 +50,54 @@ var (
 	keycloakCheHost = ""
 )
 
-// SyncIdentityProviderToCluster instantiates the identity provider (Keycloak) in the cluster. Returns true if
-// the provisioning is complete, false if requeue of the reconcile request is needed.
-func SyncIdentityProviderToCluster(deployContext *deploy.DeployContext) (bool, error) {
-	cr := deployContext.CheCluster
-	if deployContext.CheCluster.IsNativeUserModeEnabled() {
-		return syncNativeIdentityProviderItems(deployContext)
-	} else if cr.Spec.Auth.ExternalIdentityProvider {
-		return true, nil
+type IdentityProviderReconciler struct {
+	deploy.Reconcilable
+}
+
+func NewIdentityProviderReconciler() *IdentityProviderReconciler {
+	return &IdentityProviderReconciler{}
+}
+
+func (ip *IdentityProviderReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+	if ctx.CheCluster.Spec.Auth.ExternalIdentityProvider {
+		keycloakURL := ctx.CheCluster.Spec.Auth.IdentityProviderURL
+		if ctx.CheCluster.Status.KeycloakURL != keycloakURL {
+			ctx.CheCluster.Status.KeycloakURL = keycloakURL
+			if err := deploy.UpdateCheCRStatus(ctx, "status: Keycloak URL", keycloakURL); err != nil {
+				return reconcile.Result{}, false, err
+			}
+		}
+
+		return reconcile.Result{}, true, nil
+	}
+
+	if ctx.CheCluster.IsNativeUserModeEnabled() {
+		done, err := syncNativeIdentityProviderItems(ctx)
+		if !done {
+			return reconcile.Result{}, false, err
+		}
+		return reconcile.Result{}, true, nil
 	}
 
 	for _, syncItem := range syncItems {
-		provisioned, err := syncItem(deployContext)
+		done, err := syncItem(ctx)
 		if !util.IsTestMode() {
-			if !provisioned {
-				return false, err
+			if !done {
+				return reconcile.Result{}, false, err
 			}
 		}
 	}
 
-	return true, nil
+	return reconcile.Result{}, true, nil
+}
+
+func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) error {
+	oAuthClientName := ctx.CheCluster.Spec.Auth.OAuthClientName
+	if oAuthClientName != "" {
+		return deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
+	} else {
+		return deploy.DeleteFinalizer(ctx, OAuthFinalizerName)
+	}
 }
 
 func syncService(deployContext *deploy.DeployContext) (bool, error) {
@@ -166,9 +199,14 @@ func syncNativeIdentityProviderItems(deployContext *deploy.DeployContext) (bool,
 
 	if util.IsOpenShift {
 		redirectURIs := []string{"https://" + cr.Spec.Server.CheHost + "/oauth/callback"}
-		oAuthClient := deploy.GetOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
-		provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
-		if !provisioned {
+		oAuthClient := getOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, redirectURIs)
+		done, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
+		if !done {
+			return false, err
+		}
+
+		err = deploy.AppendFinalizer(deployContext, OAuthFinalizerName)
+		if err != nil {
 			return false, err
 		}
 	}
@@ -189,7 +227,7 @@ func SyncOpenShiftIdentityProviderItems(deployContext *deploy.DeployContext) (bo
 	keycloakURL := cr.Spec.Auth.IdentityProviderURL
 	cheFlavor := deploy.DefaultCheFlavor(cr)
 	keycloakRealm := util.GetValue(cr.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	oAuthClient := deploy.GetKeycloakOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
+	oAuthClient := getKeycloakOAuthClientSpec(cr.Spec.Auth.OAuthClientName, cr.Spec.Auth.OAuthSecret, keycloakURL, keycloakRealm, util.IsOpenShift4)
 	provisioned, err := deploy.Sync(deployContext, oAuthClient, oAuthClientDiffOpts)
 	if !provisioned {
 		return false, err
@@ -327,10 +365,10 @@ func SyncGitHubOAuth(deployContext *deploy.DeployContext) (bool, error) {
 	return true, nil
 }
 
-func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted bool, err error) {
-	if !deployContext.CheCluster.IsOpenShiftOAuthEnabled() && deployContext.CheCluster.Status.OpenShiftoAuthProvisioned == true {
+func deleteIdentityProvider(ctx *deploy.DeployContext) error {
+	if !ctx.CheCluster.IsOpenShiftOAuthEnabled() && ctx.CheCluster.Status.OpenShiftoAuthProvisioned == true {
 		keycloakDeployment := &appsv1.Deployment{}
-		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: deployContext.CheCluster.Namespace}, keycloakDeployment); err != nil {
+		if err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: deploy.IdentityProviderName, Namespace: ctx.CheCluster.Namespace}, keycloakDeployment); err != nil {
 			logrus.Errorf("Deployment %s not found: %s", keycloakDeployment.Name, err.Error())
 		}
 
@@ -338,27 +376,56 @@ func ReconcileIdentityProvider(deployContext *deploy.DeployContext) (deleted boo
 		if util.IsOpenShift4 {
 			providerName = "openshift-v4"
 		}
+
 		_, err := util.K8sclient.ExecIntoPod(
-			deployContext.CheCluster,
+			ctx.CheCluster,
 			keycloakDeployment.Name,
 			func(cr *orgv1.CheCluster) (string, error) {
-				return GetIdentityProviderDeleteCommand(deployContext.CheCluster, providerName)
+				return GetIdentityProviderDeleteCommand(ctx.CheCluster, providerName)
 			},
 			"delete OpenShift identity provider")
 		if err == nil {
 			oAuthClient := &oauth.OAuthClient{}
-			oAuthClientName := deployContext.CheCluster.Spec.Auth.OAuthClientName
-			if err := deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{Name: oAuthClientName, Namespace: ""}, oAuthClient); err != nil {
-				logrus.Errorf("OAuthClient %s not found: %s", oAuthClient.Name, err.Error())
-			}
-			if err := deployContext.ClusterAPI.NonCachingClient.Delete(context.TODO(), oAuthClient); err != nil {
+			oAuthClientName := ctx.CheCluster.Spec.Auth.OAuthClientName
+			err := deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
+			if err != nil {
 				logrus.Errorf("Failed to delete %s %s: %s", oAuthClient.Kind, oAuthClient.Name, err.Error())
 			}
-			return true, nil
+
+			for {
+				ctx.CheCluster.Status.OpenShiftoAuthProvisioned = false
+				if err := deploy.UpdateCheCRStatus(ctx, "OpenShiftoAuthProvisioned", "false"); err != nil {
+					if apierrors.IsConflict(err) {
+						deploy.ReloadCheClusterCR(ctx)
+						continue
+					}
+				}
+				break
+			}
+
+			for {
+				ctx.CheCluster.Spec.Auth.OAuthSecret = ""
+				ctx.CheCluster.Spec.Auth.OAuthClientName = ""
+				updateFields := map[string]string{
+					"oAuthSecret":     "",
+					"oAuthClientName": "",
+				}
+
+				if err := deploy.UpdateCheCRSpecByFields(ctx, updateFields); err != nil {
+					if apierrors.IsConflict(err) {
+						deploy.ReloadCheClusterCR(ctx)
+						continue
+					}
+				}
+				break
+			}
+
+			return nil
 		}
-		return false, err
+		return err
 	}
-	return false, nil
+
+	return nil
 }
 
 func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {

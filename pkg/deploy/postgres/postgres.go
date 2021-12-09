@@ -21,62 +21,69 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type Postgres struct {
-	deployContext *deploy.DeployContext
+type PostgresReconciler struct {
+	deploy.Reconcilable
 }
 
-func NewPostgres(deployContext *deploy.DeployContext) *Postgres {
-	return &Postgres{
-		deployContext: deployContext,
-	}
+func NewPostgresReconciler() *PostgresReconciler {
+	return &PostgresReconciler{}
 }
 
-func (p *Postgres) SyncAll() (bool, error) {
-	done, err := p.SyncService()
-	if !done {
-		return false, err
+func (p *PostgresReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+	if ctx.CheCluster.Spec.Database.ExternalDb {
+		return reconcile.Result{}, true, nil
 	}
 
-	done, err = p.SyncPVC()
+	done, err := p.syncService(ctx)
 	if !done {
-		return false, err
+		return reconcile.Result{}, false, err
 	}
 
-	done, err = p.SyncDeployment()
+	done, err = p.syncPVC(ctx)
 	if !done {
-		return false, err
+		return reconcile.Result{}, false, err
 	}
 
-	if !p.deployContext.CheCluster.Status.DbProvisoned {
+	done, err = p.syncDeployment(ctx)
+	if !done {
+		return reconcile.Result{}, false, err
+	}
+
+	if !ctx.CheCluster.Status.DbProvisoned {
 		if !util.IsTestMode() { // ignore in tests
-			done, err = p.ProvisionDB()
+			done, err = p.provisionDB(ctx)
 			if !done {
-				return false, err
+				return reconcile.Result{}, false, err
 			}
 		}
 	}
 
-	if p.deployContext.CheCluster.Spec.Database.PostgresVersion == "" {
+	if ctx.CheCluster.Spec.Database.PostgresVersion == "" {
 		if !util.IsTestMode() { // ignore in tests
-			done, err := p.setDbVersion()
+			done, err := p.setDbVersion(ctx)
 			if !done {
-				return false, err
+				return reconcile.Result{}, false, err
 			}
 		}
 	}
 
-	return true, nil
+	return reconcile.Result{}, true, nil
 }
 
-func (p *Postgres) SyncService() (bool, error) {
-	return deploy.SyncServiceToCluster(p.deployContext, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
+func (p *PostgresReconciler) Finalize(ctx *deploy.DeployContext) error {
+	return nil
 }
 
-func (p *Postgres) SyncPVC() (bool, error) {
-	pvcClaimSize := util.GetValue(p.deployContext.CheCluster.Spec.Database.PvcClaimSize, deploy.DefaultPostgresPvcClaimSize)
-	done, err := deploy.SyncPVCToCluster(p.deployContext, deploy.DefaultPostgresVolumeClaimName, pvcClaimSize, deploy.PostgresName)
+func (p *PostgresReconciler) syncService(ctx *deploy.DeployContext) (bool, error) {
+	return deploy.SyncServiceToCluster(ctx, deploy.PostgresName, []string{deploy.PostgresName}, []int32{5432}, deploy.PostgresName)
+}
+
+func (p *PostgresReconciler) syncPVC(ctx *deploy.DeployContext) (bool, error) {
+	pvcClaimSize := util.GetValue(ctx.CheCluster.Spec.Database.PvcClaimSize, deploy.DefaultPostgresPvcClaimSize)
+	done, err := deploy.SyncPVCToCluster(ctx, deploy.DefaultPostgresVolumeClaimName, pvcClaimSize, deploy.PostgresName)
 	if !done {
 		if err == nil {
 			logrus.Infof("Waiting on pvc '%s' to be bound. Sometimes PVC can be bound only when the first consumer is created.", deploy.DefaultPostgresVolumeClaimName)
@@ -85,9 +92,9 @@ func (p *Postgres) SyncPVC() (bool, error) {
 	return done, err
 }
 
-func (p *Postgres) SyncDeployment() (bool, error) {
+func (p *PostgresReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, error) {
 	clusterDeployment := &appsv1.Deployment{}
-	exists, err := deploy.GetNamespacedObject(p.deployContext, deploy.PostgresName, clusterDeployment)
+	exists, err := deploy.GetNamespacedObject(ctx, deploy.PostgresName, clusterDeployment)
 	if err != nil {
 		return false, err
 	}
@@ -96,20 +103,20 @@ func (p *Postgres) SyncDeployment() (bool, error) {
 		clusterDeployment = nil
 	}
 
-	specDeployment, err := p.GetDeploymentSpec(clusterDeployment)
+	specDeployment, err := p.getDeploymentSpec(clusterDeployment, ctx)
 	if err != nil {
 		return false, err
 	}
 
-	return deploy.SyncDeploymentSpecToCluster(p.deployContext, specDeployment, deploy.DefaultDeploymentDiffOpts)
+	return deploy.SyncDeploymentSpecToCluster(ctx, specDeployment, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (p *Postgres) ProvisionDB() (bool, error) {
-	identityProviderPostgresPassword := p.deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresPassword
-	identityProviderPostgresSecret := p.deployContext.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
+func (p *PostgresReconciler) provisionDB(ctx *deploy.DeployContext) (bool, error) {
+	identityProviderPostgresPassword := ctx.CheCluster.Spec.Auth.IdentityProviderPostgresPassword
+	identityProviderPostgresSecret := ctx.CheCluster.Spec.Auth.IdentityProviderPostgresSecret
 	if identityProviderPostgresSecret != "" {
 		secret := &corev1.Secret{}
-		exists, err := deploy.GetNamespacedObject(p.deployContext, identityProviderPostgresSecret, secret)
+		exists, err := deploy.GetNamespacedObject(ctx, identityProviderPostgresSecret, secret)
 		if err != nil {
 			return false, err
 		} else if !exists {
@@ -119,7 +126,7 @@ func (p *Postgres) ProvisionDB() (bool, error) {
 	}
 
 	_, err := util.K8sclient.ExecIntoPod(
-		p.deployContext.CheCluster,
+		ctx.CheCluster,
 		deploy.PostgresName,
 		func(cr *orgv1.CheCluster) (string, error) {
 			return getPostgresProvisionCommand(identityProviderPostgresPassword), nil
@@ -129,8 +136,8 @@ func (p *Postgres) ProvisionDB() (bool, error) {
 		return false, err
 	}
 
-	p.deployContext.CheCluster.Status.DbProvisoned = true
-	err = deploy.UpdateCheCRStatus(p.deployContext, "status: provisioned with DB and user", "true")
+	ctx.CheCluster.Status.DbProvisoned = true
+	err = deploy.UpdateCheCRStatus(ctx, "status: provisioned with DB and user", "true")
 	if err != nil {
 		return false, err
 	}
@@ -138,9 +145,9 @@ func (p *Postgres) ProvisionDB() (bool, error) {
 	return true, nil
 }
 
-func (p *Postgres) setDbVersion() (bool, error) {
+func (p *PostgresReconciler) setDbVersion(ctx *deploy.DeployContext) (bool, error) {
 	postgresVersion, err := util.K8sclient.ExecIntoPod(
-		p.deployContext.CheCluster,
+		ctx.CheCluster,
 		deploy.PostgresName,
 		func(cr *orgv1.CheCluster) (string, error) {
 			// don't take into account bugfix version
@@ -152,8 +159,8 @@ func (p *Postgres) setDbVersion() (bool, error) {
 	}
 
 	postgresVersion = strings.TrimSpace(postgresVersion)
-	p.deployContext.CheCluster.Spec.Database.PostgresVersion = postgresVersion
-	err = deploy.UpdateCheCRSpec(p.deployContext, "database.postgresVersion", postgresVersion)
+	ctx.CheCluster.Spec.Database.PostgresVersion = postgresVersion
+	err = deploy.UpdateCheCRSpec(ctx, "database.postgresVersion", postgresVersion)
 	if err != nil {
 		return false, err
 	}

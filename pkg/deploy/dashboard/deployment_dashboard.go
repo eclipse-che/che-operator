@@ -32,14 +32,14 @@ import (
 const CHE_SELF_SIGNED_MOUNT_PATH = "/public-certs/che-self-signed"
 const CHE_CUSTOM_CERTS_MOUNT_PATH = "/public-certs/custom"
 
-func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
+func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
 	var volumes []corev1.Volume
 	var volumeMounts []corev1.VolumeMount
 	var envVars []corev1.EnvVar
 
 	volumes, volumeMounts = d.provisionCustomPublicCA(volumes, volumeMounts)
 
-	selfSignedCertSecretExist, err := tls.IsSelfSignedCASecretExists(d.deployContext)
+	selfSignedCertSecretExist, err := tls.IsSelfSignedCASecretExists(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,17 +52,17 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 		// CHE_HOST is here for backward compatibility. Replaced with CHE_URL
 		corev1.EnvVar{
 			Name:  "CHE_HOST",
-			Value: util.GetCheURL(d.deployContext.CheCluster)},
+			Value: util.GetCheURL(ctx.CheCluster)},
 		corev1.EnvVar{
 			Name:  "CHE_URL",
-			Value: util.GetCheURL(d.deployContext.CheCluster)},
+			Value: util.GetCheURL(ctx.CheCluster)},
 	)
 
-	if d.deployContext.CheCluster.IsInternalClusterSVCNamesEnabled() {
+	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "CHE_INTERNAL_URL",
-				Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, d.deployContext.CheCluster.Namespace)},
+				Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
 		)
 	}
 
@@ -70,14 +70,14 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 		envVars = append(envVars,
 			corev1.EnvVar{
 				Name:  "OPENSHIFT_CONSOLE_URL",
-				Value: d.evaluateOpenShiftConsoleURL()})
+				Value: d.evaluateOpenShiftConsoleURL(ctx)})
 	}
 
 	terminationGracePeriodSeconds := int64(30)
-	labels, labelsSelector := deploy.GetLabelsAndSelector(d.deployContext.CheCluster, d.component)
+	labels, labelsSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, d.getComponentName(ctx))
 
-	dashboardImageAndTag := util.GetValue(d.deployContext.CheCluster.Spec.Server.DashboardImage, deploy.DefaultDashboardImage(d.deployContext.CheCluster))
-	pullPolicy := corev1.PullPolicy(util.GetValue(d.deployContext.CheCluster.Spec.Server.DashboardImagePullPolicy, deploy.DefaultPullPolicyFromDockerImage(dashboardImageAndTag)))
+	dashboardImageAndTag := util.GetValue(ctx.CheCluster.Spec.Server.DashboardImage, deploy.DefaultDashboardImage(ctx.CheCluster))
+	pullPolicy := corev1.PullPolicy(util.GetValue(ctx.CheCluster.Spec.Server.DashboardImagePullPolicy, deploy.DefaultPullPolicyFromDockerImage(dashboardImageAndTag)))
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -85,8 +85,8 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      d.component,
-			Namespace: d.deployContext.CheCluster.Namespace,
+			Name:      d.getComponentName(ctx),
+			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -102,7 +102,7 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 					ServiceAccountName: DashboardSA,
 					Containers: []corev1.Container{
 						{
-							Name:            d.component,
+							Name:            d.getComponentName(ctx),
 							ImagePullPolicy: pullPolicy,
 							Image:           dashboardImageAndTag,
 							Ports: []corev1.ContainerPort{
@@ -115,18 +115,18 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										d.deployContext.CheCluster.Spec.Server.DashboardMemoryRequest,
+										ctx.CheCluster.Spec.Server.DashboardMemoryRequest,
 										deploy.DefaultDashboardMemoryRequest),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										d.deployContext.CheCluster.Spec.Server.DashboardCpuRequest,
+										ctx.CheCluster.Spec.Server.DashboardCpuRequest,
 										deploy.DefaultDashboardCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										d.deployContext.CheCluster.Spec.Server.DashboardMemoryLimit,
+										ctx.CheCluster.Spec.Server.DashboardMemoryLimit,
 										deploy.DefaultDashboardMemoryLimit),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										d.deployContext.CheCluster.Spec.Server.DashboardCpuLimit,
+										ctx.CheCluster.Spec.Server.DashboardCpuLimit,
 										deploy.DefaultDashboardCpuLimit),
 								},
 							},
@@ -182,11 +182,11 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	if !util.IsOpenShift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(d.deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
+		runAsUser, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(d.deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
+		fsGroup, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -199,10 +199,10 @@ func (d *Dashboard) getDashboardDeploymentSpec() (*appsv1.Deployment, error) {
 	return deployment, nil
 }
 
-func (d *Dashboard) evaluateOpenShiftConsoleURL() string {
+func (d *DashboardReconciler) evaluateOpenShiftConsoleURL(ctx *deploy.DeployContext) string {
 	console := &configv1.Console{}
 
-	err := d.deployContext.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
+	err := ctx.ClusterAPI.NonCachingClient.Get(context.TODO(), types.NamespacedName{
 		Name:      "cluster",
 		Namespace: "openshift-console",
 	}, console)
@@ -215,7 +215,7 @@ func (d *Dashboard) evaluateOpenShiftConsoleURL() string {
 	return console.Status.ConsoleURL
 }
 
-func (d *Dashboard) provisionCheSelfSignedCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
+func (d *DashboardReconciler) provisionCheSelfSignedCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
 	cheSelfSigned := corev1.Volume{
 		Name: "che-self-signed-ca",
 		VolumeSource: corev1.VolumeSource{
@@ -238,7 +238,7 @@ func (d *Dashboard) provisionCheSelfSignedCA(volumes []corev1.Volume, volumeMoun
 	return volumes, volumeMounts
 }
 
-func (d *Dashboard) provisionCustomPublicCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
+func (d *DashboardReconciler) provisionCustomPublicCA(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount) ([]corev1.Volume, []corev1.VolumeMount) {
 	customPublicCertsVolume := corev1.Volume{
 		Name: "che-custom-ca",
 		VolumeSource: corev1.VolumeSource{

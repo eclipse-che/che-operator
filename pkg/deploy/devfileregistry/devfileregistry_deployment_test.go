@@ -21,8 +21,6 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -51,6 +49,7 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 			},
 		},
@@ -63,6 +62,7 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 			memoryRequest: "150Mi",
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che",
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -80,21 +80,10 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			deployContext := &deploy.DeployContext{
-				ClusterAPI: deploy.ClusterAPI{
-					Client: cli,
-					Scheme: scheme.Scheme,
-				},
-				Proxy:      &deploy.Proxy{},
-				CheCluster: testCase.cheCluster,
-			}
-
-			devfileregistry := NewDevfileRegistry(deployContext)
-			deployment := devfileregistry.GetDevfileRegistryDeploymentSpec()
+			devfileregistry := NewDevfileRegistryReconciler()
+			deployment := devfileregistry.getDevfileRegistryDeploymentSpec(ctx)
 
 			util.CompareResources(deployment,
 				util.TestExpectedResources{

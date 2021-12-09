@@ -9,21 +9,16 @@
 // Contributors:
 //   Red Hat, Inc. - initial API and implementation
 //
-package deploy
+package identityprovider
 
 import (
 	"strings"
 
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	OAuthFinalizerName = "oauthclients.finalizers.che.eclipse.org"
-)
-
-func GetKeycloakOAuthClientSpec(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
+func getKeycloakOAuthClientSpec(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
 	providerName := "openshift-v3"
 	if isOpenShift4 {
 		providerName = "openshift-v4"
@@ -41,10 +36,10 @@ func GetKeycloakOAuthClientSpec(name string, oauthSecret string, keycloakURL str
 			"https://" + keycloakURL + redirectURLSuffix,
 		}
 	}
-	return GetOAuthClientSpec(name, oauthSecret, redirectURIs)
+	return getOAuthClientSpec(name, oauthSecret, redirectURIs)
 }
 
-func GetOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
+func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
 	return &oauth.OAuthClient{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OAuthClient",
@@ -58,15 +53,5 @@ func GetOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) 
 		Secret:       oauthSecret,
 		RedirectURIs: redirectURIs,
 		GrantMethod:  oauth.GrantHandlerPrompt,
-	}
-}
-
-func ReconcileOAuthClientFinalizer(deployContext *DeployContext) (err error) {
-	cheCluster := deployContext.CheCluster
-	if deployContext.CheCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		return AppendFinalizer(deployContext, OAuthFinalizerName)
-	} else {
-		oAuthClientName := cheCluster.Spec.Auth.OAuthClientName
-		return DeleteObjectWithFinalizer(deployContext, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
 	}
 }
