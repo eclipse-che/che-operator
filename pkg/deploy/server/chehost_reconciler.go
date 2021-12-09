@@ -21,6 +21,7 @@ import (
 
 type CheHostReconciler struct {
 	deploy.Reconcilable
+	defaultCheHost string
 }
 
 func NewCheHostReconciler() *CheHostReconciler {
@@ -28,12 +29,15 @@ func NewCheHostReconciler() *CheHostReconciler {
 }
 
 func (s *CheHostReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	done, err := s.detectDefaultCheHost(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
+	if util.IsOpenShift && s.defaultCheHost == "" {
+		done, defaultCheHost, err := s.getDefaultCheHost(ctx)
+		if !done {
+			return reconcile.Result{}, false, err
+		}
+		s.defaultCheHost = defaultCheHost
 	}
 
-	done, err = s.syncCheService(ctx)
+	done, err := s.syncCheService(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -50,12 +54,7 @@ func (s *CheHostReconciler) Finalize(ctx *deploy.DeployContext) error {
 	return nil
 }
 
-func (s *CheHostReconciler) detectDefaultCheHost(ctx *deploy.DeployContext) (bool, error) {
-	// only for OpenShift
-	if !util.IsOpenShift || ctx.DefaultCheHost != "" {
-		return true, nil
-	}
-
+func (s *CheHostReconciler) getDefaultCheHost(ctx *deploy.DeployContext) (bool, string, error) {
 	done, err := deploy.SyncRouteToCluster(
 		ctx,
 		getComponentName(ctx),
@@ -66,17 +65,16 @@ func (s *CheHostReconciler) detectDefaultCheHost(ctx *deploy.DeployContext) (boo
 		ctx.CheCluster.Spec.Server.CheServerRoute,
 		getComponentName(ctx))
 	if !done {
-		return false, err
+		return false, "", err
 	}
 
 	route := &routev1.Route{}
 	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), route)
 	if !exists {
-		return false, err
+		return false, "", err
 	}
 
-	ctx.DefaultCheHost = route.Spec.Host
-	return true, nil
+	return true, route.Spec.Host, nil
 }
 
 func (s *CheHostReconciler) syncCheService(ctx *deploy.DeployContext) (bool, error) {
@@ -124,7 +122,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, e
 		cheHost = ingress.Spec.Rules[0].Host
 	} else {
 		customHost := ctx.CheCluster.Spec.Server.CheHost
-		if ctx.DefaultCheHost == customHost {
+		if s.defaultCheHost == customHost {
 			// let OpenShift set a hostname by itself since it requires a routes/custom-host permissions
 			customHost = ""
 		}
@@ -149,7 +147,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, e
 		}
 
 		if customHost == "" {
-			ctx.DefaultCheHost = route.Spec.Host
+			s.defaultCheHost = route.Spec.Host
 		}
 		cheHost = route.Spec.Host
 	}
