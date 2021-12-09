@@ -94,7 +94,7 @@ func TestDeployment(t *testing.T) {
 				},
 			}
 
-			server := NewServerReconciler()
+			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
 
 			assert.Nil(t, err)
@@ -181,7 +181,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
-			server := NewServerReconciler()
+			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
 			assert.Nil(t, err, "Unexpected error occurred %v", err)
 
@@ -279,7 +279,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
-			server := NewServerReconciler()
+			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
 			assert.Nil(t, err, "Unexpected error %v", err)
 
@@ -373,7 +373,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
-			server := NewServerReconciler()
+			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
 			assert.Nil(t, err, "Unexpected error %v", err)
 

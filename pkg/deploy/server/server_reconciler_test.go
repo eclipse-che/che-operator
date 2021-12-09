@@ -51,7 +51,7 @@ func TestReconcile(t *testing.T) {
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	server := NewServerReconciler()
+	server := NewCheServerReconciler()
 	_, done, err = server.Reconcile(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
@@ -82,7 +82,7 @@ func TestSyncLegacyConfigMap(t *testing.T) {
 	err := ctx.ClusterAPI.Client.Create(context.TODO(), legacyConfigMap)
 	assert.Nil(t, err)
 
-	server := NewServerReconciler()
+	server := NewCheServerReconciler()
 	done, err := server.syncLegacyConfigMap(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)
@@ -113,7 +113,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 
 	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
 
-	server := NewServerReconciler()
+	server := NewCheServerReconciler()
 	done, err := server.updateAvailabilityStatus(ctx)
 	assert.True(t, done)
 	assert.Nil(t, err)

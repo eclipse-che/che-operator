@@ -91,7 +91,7 @@ type CheConfigMap struct {
 
 // GetCheConfigMapData gets env values from CR spec and returns a map with key:value
 // which is used in CheCluster ConfigMap to configure CheCluster master behavior
-func (s *ServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (cheEnv map[string]string, err error) {
+func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (cheEnv map[string]string, err error) {
 	cheHost := ctx.CheCluster.Spec.Server.CheHost
 	identityProviderURL := ctx.CheCluster.Spec.Auth.IdentityProviderURL
 

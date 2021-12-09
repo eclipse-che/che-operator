@@ -28,15 +28,15 @@ const (
 	RollingUpdateInProgressStatus = "Available: Rolling update in progress"
 )
 
-type ServerReconciler struct {
+type CheServerReconciler struct {
 	deploy.Reconcilable
 }
 
-func NewServerReconciler() *ServerReconciler {
-	return &ServerReconciler{}
+func NewCheServerReconciler() *CheServerReconciler {
+	return &CheServerReconciler{}
 }
 
-func (s *ServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (s *CheServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
 	done, err := s.syncLegacyConfigMap(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
@@ -77,11 +77,11 @@ func (s *ServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Resul
 	return reconcile.Result{}, true, nil
 }
 
-func (s *ServerReconciler) Finalize(ctx *deploy.DeployContext) error {
+func (s *CheServerReconciler) Finalize(ctx *deploy.DeployContext) error {
 	return nil
 }
 
-func (s ServerReconciler) updateCheURL(ctx *deploy.DeployContext) (bool, error) {
+func (s CheServerReconciler) updateCheURL(ctx *deploy.DeployContext) (bool, error) {
 	var cheUrl = util.GetCheURL(ctx.CheCluster)
 	if ctx.CheCluster.Status.CheURL != cheUrl {
 		ctx.CheCluster.Status.CheURL = cheUrl
@@ -92,7 +92,7 @@ func (s ServerReconciler) updateCheURL(ctx *deploy.DeployContext) (bool, error) 
 	return true, nil
 }
 
-func (s *ServerReconciler) syncCheConfigMap(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncCheConfigMap(ctx *deploy.DeployContext) (bool, error) {
 	data, err := s.getCheConfigMapData(ctx)
 	if err != nil {
 		return false, err
@@ -101,7 +101,7 @@ func (s *ServerReconciler) syncCheConfigMap(ctx *deploy.DeployContext) (bool, er
 	return deploy.SyncConfigMapDataToCluster(ctx, CheConfigMapName, data, getComponentName(ctx))
 }
 
-func (s ServerReconciler) syncLegacyConfigMap(ctx *deploy.DeployContext) (bool, error) {
+func (s CheServerReconciler) syncLegacyConfigMap(ctx *deploy.DeployContext) (bool, error) {
 	// Get custom ConfigMap
 	// if it exists, add the data into CustomCheProperties
 	customConfigMap := &corev1.ConfigMap{}
@@ -129,7 +129,7 @@ func (s ServerReconciler) syncLegacyConfigMap(ctx *deploy.DeployContext) (bool, 
 	return true, nil
 }
 
-func (s *ServerReconciler) updateAvailabilityStatus(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheServerReconciler) updateAvailabilityStatus(ctx *deploy.DeployContext) (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), cheDeployment)
 	if err != nil {
@@ -172,7 +172,7 @@ func (s *ServerReconciler) updateAvailabilityStatus(ctx *deploy.DeployContext) (
 	return true, nil
 }
 
-func (s *ServerReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, error) {
 	spec, err := s.getDeploymentSpec(ctx)
 	if err != nil {
 		return false, err
@@ -181,7 +181,7 @@ func (s *ServerReconciler) syncDeployment(ctx *deploy.DeployContext) (bool, erro
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (s ServerReconciler) updateCheVersion(ctx *deploy.DeployContext) (bool, error) {
+func (s CheServerReconciler) updateCheVersion(ctx *deploy.DeployContext) (bool, error) {
 	cheVersion := deploy.DefaultCheVersion()
 	if ctx.CheCluster.Status.CheVersion != cheVersion {
 		ctx.CheCluster.Status.CheVersion = cheVersion
