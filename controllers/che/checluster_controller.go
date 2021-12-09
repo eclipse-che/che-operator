@@ -114,7 +114,10 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
 	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())
 	reconcileManager.RegisterReconciler(server.NewCheServerReconciler())
-	reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
+
+	if util.IsOpenShift4 {
+		reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
+	}
 
 	return &CheClusterReconciler{
 		Scheme: scheme,
