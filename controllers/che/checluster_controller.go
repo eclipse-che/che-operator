@@ -113,7 +113,7 @@ func NewReconciler(
 	reconcileManager.RegisterReconciler(pluginregistry.NewPluginRegistryReconciler())
 	reconcileManager.RegisterReconciler(dashboard.NewDashboardReconciler())
 	reconcileManager.RegisterReconciler(gateway.NewGatewayReconciler())
-	reconcileManager.RegisterReconciler(server.NewServerReconciler())
+	reconcileManager.RegisterReconciler(server.NewCheServerReconciler())
 	reconcileManager.RegisterReconciler(consolelink.NewConsoleLinkReconciler())
 
 	return &CheClusterReconciler{

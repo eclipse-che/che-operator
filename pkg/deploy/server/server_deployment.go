@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (s ServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
+func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
 	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(ctx)
 	if err != nil {
 		return nil, err

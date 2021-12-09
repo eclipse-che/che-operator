@@ -95,8 +95,9 @@ func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) error 
 	oAuthClientName := ctx.CheCluster.Spec.Auth.OAuthClientName
 	if oAuthClientName != "" {
 		return deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
+	} else {
+		return deploy.DeleteFinalizer(ctx, OAuthFinalizerName)
 	}
-	return nil
 }
 
 func syncService(deployContext *deploy.DeployContext) (bool, error) {
@@ -426,33 +427,6 @@ func deleteIdentityProvider(ctx *deploy.DeployContext) error {
 
 	return nil
 }
-
-// Delete OpenShift identity provider if OpenShift oAuth is false in spec
-// but OpenShiftoAuthProvisioned is true in CR status, e.g. when oAuth has been turned on and then turned off
-// deleted, err := identityprovider.ReconcileIdentityProvider(deployContext)
-// if deleted {
-// 	// ignore error
-// 	deploy.DeleteFinalizer(deployContext, deploy.OAuthFinalizerName)
-// 	for {
-// 		checluster.Status.OpenShiftoAuthProvisioned = false
-// 		if err := deploy.UpdateCheCRStatus(deployContext, "status: provisioned with OpenShift identity provider", "false"); err != nil &&
-// 			errors.IsConflict(err) {
-// 			_ = deploy.ReloadCheClusterCR(deployContext)
-// 			continue
-// 		}
-// 		break
-// 	}
-// 	for {
-// 		checluster.Spec.Auth.OAuthSecret = ""
-// 		checluster.Spec.Auth.OAuthClientName = ""
-// 		if err := deploy.UpdateCheCRStatus(deployContext, "clean oAuth secret name and client name", ""); err != nil &&
-// 			errors.IsConflict(err) {
-// 			_ = deploy.ReloadCheClusterCR(deployContext)
-// 			continue
-// 		}
-// 		break
-// 	}
-// }
 
 func createGatewayConfig(cheCluster *orgv1.CheCluster) *gateway.TraefikConfig {
 	cfg := gateway.CreateCommonTraefikConfig(
