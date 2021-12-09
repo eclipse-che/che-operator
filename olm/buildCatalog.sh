@@ -25,14 +25,12 @@ source "${OPERATOR_REPO}"/olm/olm.sh
 init() {
   FORCE="false"
   unset CHANNEL
-  unset PLATFORM
   unset CATALOG_IMAGE
   unset OPERATOR_IMAGE
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
       '--channel'|'-c') CHANNEL="$2"; shift 1;;
-      '--platform'|'-p') PLATFORM="$2"; shift 1;;
       '--catalog-image'|'-i') CATALOG_IMAGE="$2"; shift 1;;
       '--operator-image'|'-o') OPERATOR_IMAGE="$2"; shift 1;;
       '--force'|'-f') FORCE="true";;
@@ -41,9 +39,9 @@ init() {
     shift 1
   done
 
-  if [[ ! ${CHANNEL} ]] || [[ ! ${PLATFORM} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
+  if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 
-  BUNDLE_DIR=$(getBundlePath "${PLATFORM}" "${CHANNEL}")
+  BUNDLE_DIR=$(getBundlePath "${CHANNEL}")
   OPM_BUNDLE_MANIFESTS_DIR="${BUNDLE_DIR}/manifests"
   CSV="${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
   CSV_NAME=$(yq -r ".metadata.name" "${CSV}")
@@ -51,7 +49,7 @@ init() {
 
   IMAGE_REGISTRY_HOST=$(echo ${CATALOG_IMAGE} | cut -d '/' -f1)
   IMAGE_REGISTRY_USER_NAME=$(echo ${CATALOG_IMAGE} | cut -d '/' -f2)
-  BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-${PLATFORM}-opm-bundles:${CSV_VERSION}"
+  BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/eclipse-che-openshift-opm-bundles:${CSV_VERSION}"
 
   echo "[INFO] CSV: ${CSV}"
   echo "[INFO] CSV name: ${CSV_NAME}"
@@ -72,7 +70,7 @@ usage () {
 buildBundle() {
   if [[ $(isBundleImageExists) == 0 ]] || [[ "${FORCE}" == "true" ]]; then
     echo "[INFO] Build bundle image"
-    buildBundleImage "${PLATFORM}" "${BUNDLE_IMAGE}" "${CHANNEL}" "docker"
+    buildBundleImage "${BUNDLE_IMAGE}" "${CHANNEL}" "docker"
   else
     echo "[INFO] Bundle image already exists. Use '--force' flag to force build."
   fi

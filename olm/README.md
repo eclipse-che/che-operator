@@ -44,7 +44,6 @@ with your latest development changes and use it in the test scripts. To build th
 ```bash
 $ olm/buildCatalog.sh \
     -c (next|stable) \
-    -p (openshift) \
     -i <CATALOG_IMAGE>
 ```
 
@@ -53,13 +52,13 @@ $ olm/buildCatalog.sh \
 To test the latest custom "next" bundle:
 
 ```bash
-$ ./testCatalog.sh -p openshift -c next -i <CATALOG_IMAGE> -n eclipse-che
+$ ./testCatalog.sh -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 If your CatalogSource image contains few bundles, you can test migration from previous bundle to the latest:
 
 ```bash
-$ ./testUpdate.sh -p openshift -c next -i <CATALOG_IMAGE> -n eclipse-che
+$ ./testUpdate.sh -c next -i <CATALOG_IMAGE> -n eclipse-che
 ```
 
 # Install Eclipse Che from `stable` channel using testing catalog source image
