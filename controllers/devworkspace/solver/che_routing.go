@@ -15,7 +15,6 @@ package solver
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/pointer"
 	"path"
 	"strconv"
 	"strings"
