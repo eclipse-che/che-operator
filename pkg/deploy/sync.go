@@ -337,9 +337,9 @@ func getClientForObject(objectNamespace string, deployContext *DeployContext) cl
 	return deployContext.ClusterAPI.NonCachingClient
 }
 
-func GetObjectType(objectMeta metav1.Object) string {
-	objType := reflect.TypeOf(objectMeta).String()
-	if reflect.TypeOf(objectMeta).Kind().String() == "ptr" {
+func GetObjectType(obj interface{}) string {
+	objType := reflect.TypeOf(obj).String()
+	if reflect.TypeOf(obj).Kind().String() == "ptr" {
 		objType = objType[1:]
 	}
 

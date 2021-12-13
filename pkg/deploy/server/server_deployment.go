@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	identity_provider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
+	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
@@ -29,18 +29,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
-	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(s.deployContext)
+func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*appsv1.Deployment, error) {
+	selfSignedCASecretExists, err := tls.IsSelfSignedCASecretExists(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	cmResourceVersions := GetCheConfigMapVersion(s.deployContext)
-	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(s.deployContext)
+	cmResourceVersions := GetCheConfigMapVersion(ctx)
+	cmResourceVersions += "," + tls.GetAdditionalCACertsConfigMapVersion(ctx)
 
 	terminationGracePeriodSeconds := int64(30)
-	cheFlavor := deploy.DefaultCheFlavor(s.deployContext.CheCluster)
-	labels, labelSelector := deploy.GetLabelsAndSelector(s.deployContext.CheCluster, cheFlavor)
+	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
+	labels, labelSelector := deploy.GetLabelsAndSelector(ctx.CheCluster, cheFlavor)
 	optionalEnv := true
 	selfSignedCertEnv := corev1.EnvVar{
 		Name:  "CHE_SELF__SIGNED__CERT",
@@ -82,7 +82,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 			},
 		}
 	}
-	if s.deployContext.CheCluster.Spec.Server.GitSelfSignedCert {
+	if ctx.CheCluster.Spec.Server.GitSelfSignedCert {
 		gitSelfSignedCertEnv = corev1.EnvVar{
 			Name: "CHE_GIT_SELF__SIGNED__CERT",
 			ValueFrom: &corev1.EnvVarSource{
@@ -114,7 +114,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	cheEnv = append(cheEnv, gitSelfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertHostEnv)
 
-	identityProviderSecret := s.deployContext.CheCluster.Spec.Auth.IdentityProviderSecret
+	identityProviderSecret := ctx.CheCluster.Spec.Auth.IdentityProviderSecret
 	if len(identityProviderSecret) > 0 {
 		cheEnv = append(cheEnv, corev1.EnvVar{
 			Name: "CHE_KEYCLOAK_ADMIN__PASSWORD",
@@ -141,11 +141,11 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	} else {
 		cheEnv = append(cheEnv, corev1.EnvVar{
 			Name:  "CHE_KEYCLOAK_ADMIN__PASSWORD",
-			Value: s.deployContext.CheCluster.Spec.Auth.IdentityProviderPassword,
+			Value: ctx.CheCluster.Spec.Auth.IdentityProviderPassword,
 		},
 			corev1.EnvVar{
 				Name:  "CHE_KEYCLOAK_ADMIN__USERNAME",
-				Value: s.deployContext.CheCluster.Spec.Auth.IdentityProviderAdminUserName,
+				Value: ctx.CheCluster.Spec.Auth.IdentityProviderAdminUserName,
 			})
 	}
 
@@ -162,15 +162,15 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 					FieldPath:  "metadata.namespace"}},
 		})
 
-	if s.deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if ctx.CheCluster.IsNativeUserModeEnabled() {
 		cheEnv = append(cheEnv, corev1.EnvVar{
 			Name:  "CHE_AUTH_NATIVEUSER",
 			Value: "true",
 		})
 	}
 
-	cheImageAndTag := GetFullCheServerImageLink(s.deployContext.CheCluster)
-	pullPolicy := corev1.PullPolicy(util.GetValue(string(s.deployContext.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))
+	cheImageAndTag := GetFullCheServerImageLink(ctx.CheCluster)
+	pullPolicy := corev1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -179,7 +179,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cheFlavor,
-			Namespace: s.deployContext.CheCluster.Namespace,
+			Namespace: ctx.CheCluster.Namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -222,18 +222,18 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										s.deployContext.CheCluster.Spec.Server.ServerMemoryRequest,
+										ctx.CheCluster.Spec.Server.ServerMemoryRequest,
 										deploy.DefaultServerMemoryRequest),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										s.deployContext.CheCluster.Spec.Server.ServerCpuRequest,
+										ctx.CheCluster.Spec.Server.ServerCpuRequest,
 										deploy.DefaultServerCpuRequest),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceMemory: util.GetResourceQuantity(
-										s.deployContext.CheCluster.Spec.Server.ServerMemoryLimit,
+										ctx.CheCluster.Spec.Server.ServerMemoryLimit,
 										deploy.DefaultServerMemoryLimit),
 									corev1.ResourceCPU: util.GetResourceQuantity(
-										s.deployContext.CheCluster.Spec.Server.ServerCpuLimit,
+										ctx.CheCluster.Spec.Server.ServerCpuLimit,
 										deploy.DefaultServerCpuLimit),
 								},
 							},
@@ -262,23 +262,23 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		},
 	}
 
-	err = MountBitBucketOAuthConfig(s.deployContext, deployment)
+	err = MountBitBucketOAuthConfig(ctx, deployment)
 	if err != nil {
 		return nil, err
 	}
 
-	err = MountGitHubOAuthConfig(s.deployContext, deployment)
+	err = MountGitHubOAuthConfig(ctx, deployment)
 	if err != nil {
 		return nil, err
 	}
 
-	err = MountGitLabOAuthConfig(s.deployContext, deployment)
+	err = MountGitLabOAuthConfig(ctx, deployment)
 	if err != nil {
 		return nil, err
 	}
 
 	container := &deployment.Spec.Template.Spec.Containers[0]
-	chePostgresSecret := s.deployContext.CheCluster.Spec.Database.ChePostgresSecret
+	chePostgresSecret := ctx.CheCluster.Spec.Database.ChePostgresSecret
 	if len(chePostgresSecret) > 0 {
 		container.Env = append(container.Env,
 			corev1.EnvVar{
@@ -305,7 +305,7 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	// configure probes if debug isn't set
-	cheDebug := util.GetValue(s.deployContext.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
+	cheDebug := util.GetValue(ctx.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	if cheDebug != "true" {
 		container.ReadinessProbe = &corev1.Probe{
 			Handler: corev1.Handler{
@@ -347,11 +347,11 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 	}
 
 	if !util.IsOpenShift {
-		runAsUser, err := strconv.ParseInt(util.GetValue(s.deployContext.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
+		runAsUser, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextRunAsUser, deploy.DefaultSecurityContextRunAsUser), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		fsGroup, err := strconv.ParseInt(util.GetValue(s.deployContext.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
+		fsGroup, err := strconv.ParseInt(util.GetValue(ctx.CheCluster.Spec.K8s.SecurityContextFsGroup, deploy.DefaultSecurityContextFsGroup), 10, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -361,17 +361,17 @@ func (s Server) getDeploymentSpec() (*appsv1.Deployment, error) {
 		}
 	}
 
-	if deploy.IsComponentReadinessInitContainersConfigured(s.deployContext.CheCluster) {
-		if !s.deployContext.CheCluster.Spec.Database.ExternalDb {
-			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(s.deployContext)
+	if deploy.IsComponentReadinessInitContainersConfigured(ctx.CheCluster) {
+		if !ctx.CheCluster.Spec.Database.ExternalDb {
+			waitForPostgresInitContainer, err := postgres.GetWaitForPostgresInitContainer(ctx)
 			if err != nil {
 				return nil, err
 			}
 			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForPostgresInitContainer)
 		}
 
-		if !s.deployContext.CheCluster.Spec.Auth.ExternalIdentityProvider {
-			waitForKeycloakInitContainer, err := identity_provider.GetWaitForKeycloakInitContainer(s.deployContext)
+		if !ctx.CheCluster.Spec.Auth.ExternalIdentityProvider {
+			waitForKeycloakInitContainer, err := identityprovider.GetWaitForKeycloakInitContainer(ctx)
 			if err != nil {
 				return nil, err
 			}

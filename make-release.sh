@@ -228,16 +228,6 @@ releaseOlmFiles() {
 
     echo "[INFO] releaseOlmFiles :: Validate changes"
     grep -q "version: "$RELEASE $openshift/che-operator.clusterserviceversion.yaml
-    if [[ $channel == "stable" ]];then
-      local kubernetes=$RELEASE_DIR/bundle/$channel/eclipse-che-preview-kubernetes/manifests
-      grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
-
-      test -f $kubernetes/org_v1_che_crd.yaml
-      test -f $kubernetes/org.eclipse.che_chebackupserverconfigurations_crd.yaml
-      test -f $kubernetes/org.eclipse.che_checlusterbackups_crd.yaml
-      test -f $kubernetes/org.eclipse.che_checlusterrestores_crd.yaml
-    fi
-
     test -f $openshift/org_v1_che_crd.yaml
     test -f $openshift/org.eclipse.che_chebackupserverconfigurations_crd.yaml
     test -f $openshift/org.eclipse.che_checlusterbackups_crd.yaml
@@ -255,18 +245,25 @@ pushOlmBundlesToQuayIo() {
   docker login quay.io -u "${QUAY_ECLIPSE_CHE_USERNAME}" -p "${QUAY_ECLIPSE_CHE_PASSWORD}"
   echo "[INFO] Push OLM bundles to quay.io"
 
-  . ${RELEASE_DIR}/olm/buildCatalog.sh -c tech-preview-stable-all-namespaces -p openshift -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
-  . ${RELEASE_DIR}/olm/buildCatalog.sh -c stable -p kubernetes -i quay.io/eclipse/eclipse-che-kubernetes-opm-catalog:test -f
-  . ${RELEASE_DIR}/olm/buildCatalog.sh -c stable -p openshift -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
+  . ${RELEASE_DIR}/olm/buildCatalog.sh -c tech-preview-stable-all-namespaces -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
+  . ${RELEASE_DIR}/olm/buildCatalog.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -f
 }
 
 pushGitChanges() {
   echo "[INFO] Push git changes into $RELEASE_BRANCH branch"
   git push origin $RELEASE_BRANCH ${FORCE_UPDATE}
   if [[ $FORCE_UPDATE == "--force" ]]; then # if forced update, delete existing tag so we can replace it
-    if git rev-parse "$RELEASE" >/dev/null 2>&1; then # if tag exists
+    if [[ $(git tag -l $RELEASE) ]]; then # if tag exists in local repo
+      echo "Remove existing local tag $RELEASE"
       git tag -d $RELEASE
+    else
+      echo "Local tag $RELEASE does not exist" # should never get here
+    fi
+    if [[ $(git ls-remote --tags $(git remote get-url origin) $RELEASE) ]]; then # if tag exists in remote repo
+      echo "Remove existing remote tag $RELEASE"
       git push origin :$RELEASE
+    else
+      echo "Remote tag $RELEASE does not exist" # should never get here
     fi
   fi
   git tag -a $RELEASE -m $RELEASE

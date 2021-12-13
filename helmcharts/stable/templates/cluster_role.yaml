@@ -17,6 +17,7 @@ metadata:
   labels:
     app.kubernetes.io/name: che
     app.kubernetes.io/instance: che
+    app.kubernetes.io/part-of: che.eclipse.org
     app.kubernetes.io/component: che-operator
 rules:
   ### CHE-OPERATOR ROLES ONLY: BEGIN
@@ -550,6 +551,13 @@ rules:
     - list
     - watch
   - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - localsubjectaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
     - batch
     resources:
     - jobs
@@ -589,6 +597,14 @@ rules:
     - create
     - get
     - update
+  - apiGroups:
+    - metrics.k8s.io
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
   - apiGroups:
     - monitoring.coreos.com
     resources:

@@ -275,7 +275,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), watchNamespace)
+	period := signal.GetTerminationGracePeriodSeconds(mgr.GetAPIReader(), util.GetCheOperatorNamespace())
 	sigHandler := signal.SetupSignalHandler(period)
 
 	// we install the devworkspace CheCluster reconciler even if dw is not supported so that it

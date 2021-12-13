@@ -16,6 +16,7 @@ import (
 	"os"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
@@ -27,8 +28,6 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -37,35 +36,12 @@ import (
 )
 
 func TestDashboardDeploymentSecurityContext(t *testing.T) {
-	logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	ctx := deploy.GetTestDeployContext(nil, []runtime.Object{})
 
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	dashboard := NewDashboardReconciler()
+	deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
 
-	deployContext := &deploy.DeployContext{
-		CheCluster: &orgv1.CheCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eclipse-che",
-			},
-			Spec: orgv1.CheClusterSpec{
-				Server: orgv1.CheClusterSpecServer{},
-			},
-		},
-		ClusterAPI: deploy.ClusterAPI{
-			Client:           cli,
-			NonCachingClient: cli,
-			Scheme:           scheme.Scheme,
-		},
-		Proxy: &deploy.Proxy{},
-	}
-	deployContext.ClusterAPI.Scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Console{})
-
-	dashboard := NewDashboard(deployContext)
-	deployment, err := dashboard.getDashboardDeploymentSpec()
-	if err != nil {
-		t.Fatalf("Failed to evaluate dashboard deployment spec: %v", err)
-	}
-
+	assert.Nil(t, err)
 	util.ValidateSecurityContext(deployment, t)
 }
 
@@ -91,6 +67,7 @@ func TestDashboardDeploymentResources(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 			},
 		},
@@ -104,6 +81,7 @@ func TestDashboardDeploymentResources(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -120,27 +98,11 @@ func TestDashboardDeploymentResources(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Console{})
-
-			dashboard := NewDashboard(deployContext)
-			deployment, err := dashboard.getDashboardDeploymentSpec()
-			if err != nil {
-				t.Fatalf("Failed to evaluate dashboard deployment spec: %v", err)
-			}
-
+			dashboard := NewDashboardReconciler()
+			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
+			assert.Nil(t, err)
 			util.CompareResources(deployment,
 				util.TestExpectedResources{
 					MemoryLimit:   testCase.memoryLimit,
@@ -185,6 +147,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -213,6 +176,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -256,6 +220,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -269,36 +234,14 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
-			deployContext.ClusterAPI.Scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Console{})
+			dashboard := NewDashboardReconciler()
+			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
 
-			dashboard := NewDashboard(deployContext)
-			deployment, err := dashboard.getDashboardDeploymentSpec()
-			if err != nil {
-				t.Fatalf("Failed to evaluate dashboard deployment spec: %v", err)
-			}
-			containers := deployment.Spec.Template.Spec.Containers
-			if len(containers) != 1 {
-				t.Fatalf("Dashboard deployment is expected to have only one container but is has %v", len(containers))
-			}
-
-			dashboardContainer := containers[0]
-			diff := cmp.Diff(testCase.envVars, dashboardContainer.Env)
-			if diff != "" {
-				t.Fatalf("Container env var does not match expected. Diff: %s", diff)
-			}
+			assert.Nil(t, err)
+			assert.Equal(t, len(deployment.Spec.Template.Spec.Containers), 1)
+			assert.Empty(t, cmp.Diff(testCase.envVars, deployment.Spec.Template.Spec.Containers[0].Env))
 		})
 	}
 }
@@ -334,6 +277,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 			},
 		},
@@ -379,6 +323,7 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 			},
 		},
@@ -387,40 +332,14 @@ func TestDashboardDeploymentVolumes(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
-			testCase.initObjects = append(testCase.initObjects)
-			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
-			deployContext := &deploy.DeployContext{
-				CheCluster: testCase.cheCluster,
-				ClusterAPI: deploy.ClusterAPI{
-					Client:           cli,
-					NonCachingClient: cli,
-					Scheme:           scheme.Scheme,
-				},
-				Proxy: &deploy.Proxy{},
-			}
+			dashboard := NewDashboardReconciler()
+			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
 
-			dashboard := NewDashboard(deployContext)
-			deployment, err := dashboard.getDashboardDeploymentSpec()
-			if err != nil {
-				t.Fatalf("Failed to evaluate dashboard deployment spec: %v", err)
-			}
-			containers := deployment.Spec.Template.Spec.Containers
-			if len(containers) != 1 {
-				t.Fatalf("Dashboard deployment is expected to have only one container but is has %v", len(containers))
-			}
-
-			diff := cmp.Diff(testCase.volumes, deployment.Spec.Template.Spec.Volumes)
-			if diff != "" {
-				t.Fatalf("Dashboard deployment volume not match expected. Diff: %s", diff)
-			}
-
-			dashboardContainer := containers[0]
-			diff = cmp.Diff(testCase.volumeMounts, dashboardContainer.VolumeMounts)
-			if diff != "" {
-				t.Fatalf("Dashboard deployment volume not match expected. Diff: %s", diff)
-			}
+			assert.Nil(t, err)
+			assert.Equal(t, len(deployment.Spec.Template.Spec.Containers), 1)
+			assert.Empty(t, cmp.Diff(testCase.volumeMounts, deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
 		})
 	}
 }

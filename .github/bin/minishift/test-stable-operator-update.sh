@@ -21,22 +21,12 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-preparePatchYaml() {
-  cat >${OPERATOR_REPO}/tmp/patch.yaml<<EOF
-spec:
-  auth:
-    updateAdminPassword: false
-    openShiftoAuth: false
-EOF
-}
-
 runTest() {
   chectl server:deploy \
     --batch \
     --platform minishift \
     --installer operator \
-    --version ${PREVIOUS_PACKAGE_VERSION} \
-    --che-operator-cr-patch-yaml ${OPERATOR_REPO}/tmp/patch.yaml
+    --version ${PREVIOUS_PACKAGE_VERSION}
 
   createWorkspace
 
@@ -48,7 +38,5 @@ runTest() {
 }
 
 initDefaults
-installYq
-initStableTemplates "openshift" "stable"
-preparePatchYaml
+initStableTemplates "kubernetes" "stable"
 runTest

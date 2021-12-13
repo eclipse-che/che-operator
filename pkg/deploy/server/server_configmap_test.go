@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,14 +70,11 @@ func TestNewCheConfigMap(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
+			assert.Nil(t, err)
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
@@ -225,14 +223,11 @@ func TestConfigMap(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
+			assert.Nil(t, err)
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
@@ -339,14 +334,11 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
+			assert.Nil(t, err)
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
@@ -550,14 +542,11 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
+			assert.Nil(t, err)
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
@@ -686,14 +675,11 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
+			assert.Nil(t, err)
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
@@ -763,14 +749,11 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
+			assert.Nil(t, err)
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}
@@ -914,10 +897,10 @@ func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			util.IsOpenShift = testCase.isOpenShift
 			util.IsOpenShift4 = testCase.isOpenShift4
-			deployContext := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
+			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
-			server := NewServer(deployContext)
-			actualData, err := server.getCheConfigMapData()
+			server := NewCheServerReconciler()
+			actualData, err := server.getCheConfigMapData(ctx)
 			if err != nil {
 				t.Fatalf("Error creating ConfigMap data: %v", err)
 			}

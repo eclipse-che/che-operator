@@ -112,7 +112,7 @@ $ make update-resources -s
 3. Build catalog source and bundle images:
 
 ```bash
-$ olm/buildCatalog.sh -p <PLATFORM> -c <CHANNEL> -i <CATALOG_IMAGE>
+$ olm/buildCatalog.sh -c <CHANNEL> -i <CATALOG_IMAGE>
 ```
 
 4. Create a custom catalog source yaml (update strategy is workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/903):

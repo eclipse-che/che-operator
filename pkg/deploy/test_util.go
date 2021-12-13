@@ -13,6 +13,7 @@ package deploy
 
 import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	console "github.com/openshift/api/console/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -52,9 +53,11 @@ func GetTestDeployContext(cheCluster *orgv1.CheCluster, initObjs []runtime.Objec
 	scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 	scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, &oauthv1.OAuthClient{})
 	scheme.AddKnownTypes(userv1.SchemeGroupVersion, &userv1.UserList{}, &userv1.User{}, &userv1.Identity{})
-	scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{})
+	scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.OAuth{}, &configv1.Proxy{}, &configv1.Console{})
 	scheme.AddKnownTypes(routev1.GroupVersion, &routev1.Route{})
 	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
+	scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Secret{})
+	scheme.AddKnownTypes(console.SchemeGroupVersion, &console.ConsoleLink{})
 
 	initObjs = append(initObjs, cheCluster)
 	cli := fake.NewFakeClientWithScheme(scheme, initObjs...)

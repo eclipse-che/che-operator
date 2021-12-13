@@ -13,6 +13,8 @@ package devfileregistry
 
 import (
 	"encoding/json"
+
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 )
 
 type DevFileRegistryConfigMap struct {
@@ -21,12 +23,12 @@ type DevFileRegistryConfigMap struct {
 	CheDevfileRegistryURL                string `json:"CHE_DEVFILE_REGISTRY_URL"`
 }
 
-func (p *DevfileRegistry) GetConfigMapData() (map[string]string, error) {
+func (d *DevfileRegistryReconciler) getConfigMapData(ctx *deploy.DeployContext) (map[string]string, error) {
 	devfileRegistryEnv := make(map[string]string)
 	data := &DevFileRegistryConfigMap{
-		CheDevfileImagesRegistryURL:          p.deployContext.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
-		CheDevfileImagesRegistryOrganization: p.deployContext.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
-		CheDevfileRegistryURL:                p.deployContext.CheCluster.Status.DevfileRegistryURL,
+		CheDevfileImagesRegistryURL:          ctx.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
+		CheDevfileImagesRegistryOrganization: ctx.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
+		CheDevfileRegistryURL:                ctx.CheCluster.Status.DevfileRegistryURL,
 	}
 
 	out, err := json.Marshal(data)

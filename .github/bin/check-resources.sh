@@ -79,11 +79,10 @@ checkCRDs() {
 
 checkNextOlmBundle() {
   # files to check
-  local CSV_KUBERNETES="bundle/next/eclipse-che-preview-kubernetes/manifests"
   local CSV_OPENSHIFT="bundle/next/eclipse-che-preview-openshift/manifests"
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
-  if [[ " ${changedFiles[*]} " =~ $CSV_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
+  if [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
     echo "[ERROR] Run 'make update-resources -s' to regenerate next bundle files."
     exit 1

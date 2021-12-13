@@ -365,6 +365,14 @@ rules:
     - cluster
     verbs:
     - get
+  - apiGroups:
+    - ''
+    resources:
+    - pods/log
+    verbs:
+    - get
+    - list
+    - watch
   ### CHE-OPERATOR ROLES ONLY: END
   # devworkspace-controller-view-workspaces.ClusterRole.yaml
   - apiGroups:
@@ -597,6 +605,14 @@ rules:
     - create
     - get
     - update
+  - apiGroups:
+    - metrics.k8s.io
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
   - apiGroups:
     - monitoring.coreos.com
     resources:

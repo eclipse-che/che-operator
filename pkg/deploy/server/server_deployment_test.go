@@ -86,7 +86,7 @@ func TestDeployment(t *testing.T) {
 			testCase.initObjects = append(testCase.initObjects)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
-			deployContext := &deploy.DeployContext{
+			ctx := &deploy.DeployContext{
 				CheCluster: testCase.cheCluster,
 				ClusterAPI: deploy.ClusterAPI{
 					Client: cli,
@@ -94,12 +94,10 @@ func TestDeployment(t *testing.T) {
 				},
 			}
 
-			server := NewServer(deployContext)
-			deployment, err := server.getDeploymentSpec()
-			if err != nil {
-				t.Fatalf("Error creating deployment: %v", err)
-			}
+			server := NewCheServerReconciler()
+			deployment, err := server.getDeploymentSpec(ctx)
 
+			assert.Nil(t, err)
 			util.CompareResources(deployment,
 				util.TestExpectedResources{
 					MemoryLimit:   testCase.memoryLimit,
@@ -181,10 +179,10 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
-			server := NewServer(deployContext)
-			deployment, err := server.getDeploymentSpec()
+			server := NewCheServerReconciler()
+			deployment, err := server.getDeploymentSpec(ctx)
 			assert.Nil(t, err, "Unexpected error occurred %v", err)
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
@@ -279,10 +277,10 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
-			server := NewServer(deployContext)
-			deployment, err := server.getDeploymentSpec()
+			server := NewCheServerReconciler()
+			deployment, err := server.getDeploymentSpec(ctx)
 			assert.Nil(t, err, "Unexpected error %v", err)
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
@@ -373,10 +371,10 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
 
-			server := NewServer(deployContext)
-			deployment, err := server.getDeploymentSpec()
+			server := NewCheServerReconciler()
+			deployment, err := server.getDeploymentSpec(ctx)
 			assert.Nil(t, err, "Unexpected error %v", err)
 
 			container := &deployment.Spec.Template.Spec.Containers[0]

@@ -162,7 +162,9 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 
 	databasesToBackup := []string{
 		bctx.cheCR.Spec.Database.ChePostgresDb,
-		"keycloak",
+	}
+	if !bctx.cheCR.Spec.DevWorkspace.Enable {
+		databasesToBackup = append(databasesToBackup, "keycloak")
 	}
 
 	k8sClient := util.GetK8Client()
@@ -178,7 +180,7 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 		return false, err
 	}
 
-	// Get and seve all dumps from the Postgres container
+	// Get and save all dumps from the Postgres container
 	for _, dbName := range databasesToBackup {
 		execReason := fmt.Sprintf("getting database %s dump", dbName)
 		dbDump, err := k8sClient.DoExecIntoPod(bctx.namespace, postgresPodName, getMoveDatabaseDumpScript(dbName), execReason)

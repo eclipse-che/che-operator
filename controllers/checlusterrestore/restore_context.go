@@ -75,31 +75,36 @@ func (rctx *RestoreContext) UpdateRestoreStatus() error {
 }
 
 type RestoreState struct {
-	backupDownloaded     bool
-	oldCheCleaned        bool
-	cheResourcesRestored bool
-	cheCRRestored        bool
-	cheAvailable         bool
-	cheDatabaseRestored  bool
-	cheRestored          bool
+	backupDownloaded        bool
+	oldCheDeletionRequested bool
+	oldCheCleaned           bool
+	cheResourcesRestored    bool
+	cheCRRestored           bool
+	cheAvailable            bool
+	cheDatabaseRestored     bool
+	cheRestored             bool
 }
 
 // RestoreState phase messages
 // Each message represents state in progress, not done
 const (
-	restoreStateIn_backupDownloaded     = "Downloading backup from backup server"
-	restoreStateIn_oldCheCleaned        = "Cleaning up existing Che"
-	restoreStateIn_cheResourcesRestored = "Restoring Che related cluster objects"
-	restoreStateIn_cheCRRestored        = "Restoring Che Custom Resource"
-	restoreStateIn_cheAvailable         = "Waiting until clean Che is ready"
-	restoreStateIn_cheDatabaseRestored  = "Restoring Che database"
-	restoreStateIn_cheRestored          = "Waiting until Che is ready"
+	restoreStateIn_backupDownloaded        = "Downloading backup from backup server"
+	restoreStateIn_oldCheDeletionRequested = "Requesting deletion of existing Che"
+	restoreStateIn_oldCheCleaned           = "Cleaning up existing Che"
+	restoreStateIn_cheResourcesRestored    = "Restoring Che related cluster objects"
+	restoreStateIn_cheCRRestored           = "Restoring Che Custom Resource"
+	restoreStateIn_cheAvailable            = "Waiting until clean Che is ready"
+	restoreStateIn_cheDatabaseRestored     = "Restoring Che database"
+	restoreStateIn_cheRestored             = "Waiting until Che is ready"
 )
 
 func (s *RestoreState) GetPhaseMessage() string {
 	// Order of the checks below should comply with restore steps order
 	if !s.backupDownloaded {
 		return restoreStateIn_backupDownloaded
+	}
+	if !s.oldCheDeletionRequested {
+		return restoreStateIn_oldCheDeletionRequested
 	}
 	if !s.oldCheCleaned {
 		return restoreStateIn_oldCheCleaned
@@ -150,6 +155,9 @@ func NewRestoreState(restoreCR *chev1.CheClusterRestore) (*RestoreState, error) 
 			rs.oldCheCleaned = true
 			fallthrough
 		case restoreStateIn_oldCheCleaned:
+			rs.oldCheDeletionRequested = true
+			fallthrough
+		case restoreStateIn_oldCheDeletionRequested:
 			rs.backupDownloaded = true
 			fallthrough
 		case restoreStateIn_backupDownloaded:

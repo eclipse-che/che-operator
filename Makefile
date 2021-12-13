@@ -466,30 +466,25 @@ update-roles:
 
 .PHONY: bundle
 bundle: generate manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	if [ -z "$(platform)" ]; then
-		echo "[ERROR] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
-		exit 1
-	fi
-
 	if [ -z "$(channel)" ]; then
-		echo "[ERROR] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		echo "[ERROR] 'channel' is not specified."
 		exit 1
 	fi
 
 	if [ -z "$(NO_INCREMENT)" ]; then
-		$(MAKE) increment-next-version platform="$${platform}"
+		$(MAKE) increment-next-version
 	fi
 
-	echo "[INFO] Updating OperatorHub bundle for platform '$${platform}'"
+	echo "[INFO] Updating OperatorHub bundle"
 
-	BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$${platform}" channel="$${channel}" -s)
+	BUNDLE_PATH=$$($(MAKE) getBundlePath channel="$${channel}" -s)
 	NEW_CSV=$${BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml
 	newNextBundleVersion=$$(yq -r ".spec.version" "$${NEW_CSV}")
 	echo "[INFO] Creation new next bundle version: $${newNextBundleVersion}"
 
 	createdAtOld=$$(yq -r ".metadata.annotations.createdAt" "$${NEW_CSV}")
 
-	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
+	BUNDLE_PACKAGE=$$($(MAKE) getPackageName)
 	BUNDLE_DIR="bundle/"$${channel}"/$${BUNDLE_PACKAGE}"
 	GENERATED_CSV_NAME=$${BUNDLE_PACKAGE}.clusterserviceversion.yaml
 	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
@@ -498,7 +493,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 
 	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG) && cd ../..
-	$(KUSTOMIZE) build config/platforms/$(platform) | \
+	$(KUSTOMIZE) build config/platforms/openshift | \
 	$(OPERATOR_SDK_BINARY) generate bundle \
 	-q --overwrite \
 	--version $${newNextBundleVersion} \
@@ -528,125 +523,56 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 		mv "$${NEW_CSV}.new" "$${NEW_CSV}"
 	fi
 
-	platformCRD="$${BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-	if [ "$${platform}" = "openshift" ]; then
-		yq -riY  '.spec.preserveUnknownFields = false' $${platformCRD}
-	fi
-	# todo try to set up header everywhere in the bundle
-	$(MAKE) add-license "$${platformCRD}"
+	CRD="$${BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+	yq -riY  '.spec.preserveUnknownFields = false' $${CRD}
 
 	if [ -n "$(TAG)" ]; then
 		echo "[INFO] Set tags in next OLM files"
 		sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
 	fi
 
-	# Remove roles for kubernetes bundle
-	YAML_CONTENT=$$(cat "$${NEW_CSV}")
-	if [ $${platform} = "kubernetes" ]; then
-		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
-		i=0
-		while [ "$${i}" -lt "$${clusterPermLength}" ]; do
-			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
-			if [ "$${apiGroupLength}" -gt 0 ]; then
-				j=0
-				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
-					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
-					case $${apiGroup} in *openshift.io)
-						# Permissions needed for DevWorkspace
-						if [ "$${apiGroup}" != "route.openshift.io" ] && [ "$${apiGroup}" != oauth.openshift.io ]; then
-							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-							j=$$((j-1))
-							i=$$((i-1))
-						fi
-						break
-						;;
-					esac;
-					j=$$((i+1))
-				done
-			fi
-			i=$$((i+1))
-		done
-
-		permLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.permissions[0].rules | length")
-		i=0
-		while [ "$${i}" -lt "$${permLength}" ]; do
-			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups | length')
-			if [ "$${apiGroupLength}" -gt 0 ]; then
-				j=0
-				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
-					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']')
-					case $${apiGroup} in *openshift.io)
-						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
-						j=$$((j-1))
-						i=$$((i-1))
-						break
-						;;
-					esac;
-					j=$$((i+1))
-				done
-			fi
-			i=$$((i+1))
-		done
-	fi
-	echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
-
 	# Remove roles for openshift bundle
 	YAML_CONTENT=$$(cat "$${NEW_CSV}")
-	if [ $${platform} = "openshift" ]; then
-		clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
-		i=0
-		while [ "$${i}" -lt "$${clusterPermLength}" ]; do
-			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
-			if [ "$${apiGroupLength}" -gt 0 ]; then
-				j=0
-				while [ "$${j}" -lt "$${apiGroupLength}" ]; do
-					apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
-					case $${apiGroup} in cert-manager.io)
-						YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-						j=$$((j-1))
-						i=$$((i-1))
-						break
-						;;
-					esac;
-					j=$$((i+1))
-				done
-			fi
-			i=$$((i+1))
-		done
-	fi
+	clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
+	i=0
+	while [ "$${i}" -lt "$${clusterPermLength}" ]; do
+		apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
+		if [ "$${apiGroupLength}" -gt 0 ]; then
+			j=0
+			while [ "$${j}" -lt "$${apiGroupLength}" ]; do
+				apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
+				case $${apiGroup} in cert-manager.io)
+					YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
+					j=$$((j-1))
+					i=$$((i-1))
+					break
+					;;
+				esac;
+				j=$$((i+1))
+			done
+		fi
+		i=$$((i+1))
+	done
 	echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
 
-	if [ $${platform} = "openshift" ]; then
-		# Removes che-tls-secret-creator
-		index=0
-		while [ $${index} -le 30 ]
-		do
-			if [ $$(cat $${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'].name') = "RELATED_IMAGE_che_tls_secrets_creation_job" ]; then
-				yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'])' $${NEW_CSV}
-				break
-			fi
-			index=$$((index+1))
-		done
-	fi
+	# Removes che-tls-secret-creator
+	index=0
+	while [ $${index} -le 30 ]
+	do
+		if [ $$(cat $${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'].name') = "RELATED_IMAGE_che_tls_secrets_creation_job" ]; then
+			yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'])' $${NEW_CSV}
+			break
+		fi
+		index=$$((index+1))
+	done
 
 	# Fix CSV
-	echo "[INFO] Fix $${platform} CSV"
-	if [ "$${platform}" = "openshift" ]; then
-		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-			fromjson | \
-			del( .[] | select(.kind == \"CheCluster\") | .spec.k8s)" $${NEW_CSV} |  sed -r 's/"/\\"/g')
+	echo "[INFO] Fix CSV"
+	fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
+		fromjson | \
+		del( .[] | select(.kind == \"CheCluster\") | .spec.k8s)" $${NEW_CSV} |  sed -r 's/"/\\"/g')
 
-		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
-	fi
-	if [ "$${platform}" = "kubernetes" ]; then
-		fixedSample=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-			fromjson | \
-			del( .[] | select(.kind == \"CheCluster\") | .spec.auth.openShiftoAuth) | \
-			( .[] | select(.kind == \"CheCluster\") | .spec.k8s.ingressDomain) |= \"\" " $${NEW_CSV} |  sed -r 's/"/\\"/g')
-
-		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
-		yq -rYi "del(.metadata.annotations.\"operators.openshift.io/infrastructure-features\")" "$${NEW_CSV}"
-	fi
+	yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${fixedSample}\"" $${NEW_CSV}
 
 	# set `app.kubernetes.io/managed-by` label
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "$${NEW_CSV}"
@@ -655,10 +581,8 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${NEW_CSV}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${NEW_CSV}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${NEW_CSV}"
-	if [ "$${platform}" = "openshift" ]; then
-		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
-		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
-	fi
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
+	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
 
 	# set InstallMode for next-all-namespaces
 	if [ "$${channel}" = "next-all-namespaces" ]; then
@@ -695,48 +619,34 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	$(MAKE) add-license $${BASE_CSV}
 
 getPackageName:
-	if [ -z "$(platform)" ]; then
-		echo "[ERROR] Please specify first argument: 'platform'"
-		exit 1
-	fi
-	echo "eclipse-che-preview-$(platform)"
+	echo "eclipse-che-preview-openshift"
 
 getBundlePath:
-	if [ -z "$(platform)" ]; then
-		echo "[ERROR] Please specify first argument: 'platform'"
-		exit 1
-	fi
 	if [ -z "$(channel)" ]; then
-		echo "[ERROR] Please specify second argument: 'channel'"
+		echo "[ERROR] 'channel' is not specified"
 		exit 1
 	fi
-	PACKAGE_NAME=$$($(MAKE) getPackageName platform="$(platform)" -s)
+	PACKAGE_NAME=$$($(MAKE) getPackageName)
 	echo "$(PROJECT_DIR)/bundle/$(channel)/$${PACKAGE_NAME}"
 
 increment-next-version:
-	if [ -z "$(platform)" ]; then
-		echo "[ERROR] please specify first argument 'platform'"
-		exit 1
-	fi
-
 	if [ -z "$(channel)" ]; then
-		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		echo "[ERROR] 'channel' is not specified"
 		exit 1
 	fi
 
-
-	BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$(platform)" channel="$(channel)" -s)
+	BUNDLE_PATH=$$($(MAKE) getBundlePath channel="$(channel)" -s)
 	OPM_BUNDLE_MANIFESTS_DIR="$${BUNDLE_PATH}/manifests"
 	CSV="$${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
 
 	currentNextVersion=$$(yq -r ".spec.version" "$${CSV}")
-	echo  "[INFO] Current next $(platform) version: $${currentNextVersion}"
+	echo  "[INFO] Current next version: $${currentNextVersion}"
 
 	incrementPart=$$($(MAKE) get-next-version-increment nextVersion="$${currentNextVersion}" -s)
 
-	PACKAGE_NAME="eclipse-che-preview-$(platform)"
+	PACKAGE_NAME=$$($(MAKE) getPackageName)
 
-	CLUSTER_SERVICE_VERSION=$$($(MAKE) get-current-stable-version platform="$(platform)" -s)
+	CLUSTER_SERVICE_VERSION=$$($(MAKE) get-current-stable-version)
 	STABLE_PACKAGE_VERSION=$$(echo "$${CLUSTER_SERVICE_VERSION}" | sed -e "s/$${PACKAGE_NAME}.v//")
 	echo "[INFO] Current stable package version: $${STABLE_PACKAGE_VERSION}"
 
@@ -751,17 +661,12 @@ increment-next-version:
 	incrementPart=$$((incrementPart+1))
 	newVersion="$${STABLE_MAJOR_VERSION}.$${STABLE_MINOR_VERSION}.0-$${incrementPart}.$(channel)"
 
-	echo "[INFO] Set up next $(platform) version: $${newVersion}"
-	yq -rY "(.spec.version) = \"$${newVersion}\" | (.metadata.name) = \"eclipse-che-preview-$(platform).v$${newVersion}\"" "$${CSV}" > "$${CSV}.old"
+	echo "[INFO] Set up next version: $${newVersion}"
+	yq -rY "(.spec.version) = \"$${newVersion}\" | (.metadata.name) = \"$${PACKAGE_NAME}.v$${newVersion}\"" "$${CSV}" > "$${CSV}.old"
 	mv "$${CSV}.old" "$${CSV}"
 
 get-current-stable-version:
-	if [ -z "$(platform)" ]; then
-		echo "[ERROR] Please specify first argument: 'platform'"
-		exit 1
-	fi
-
-	STABLE_BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$(platform)" channel="stable" -s)
+	STABLE_BUNDLE_PATH=$$($(MAKE) getBundlePath channel="stable" -s)
 	LAST_STABLE_CSV="$${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
 	lastStableVersion=$$(yq -r ".spec.version" "$${LAST_STABLE_CSV}")
@@ -780,16 +685,9 @@ get-next-version-increment:
 
 update-resources: SHELL := /bin/bash
 update-resources: check-requirements update-resource-images update-roles update-helmcharts
-	for platform in 'openshift' 'kubernetes'
+	for channel in 'next-all-namespaces' 'next'
 	do
-		for channel in 'next-all-namespaces' 'next'
-		do
-			# Skip next-all-namespaces in kubernetes platform, is not supported
-			if [ $${channel} == "next-all-namespaces" ] && [ $${platform} == "kubernetes" ]; then
-				continue
-			fi
-			$(MAKE) bundle platform=$${platform} channel=$${channel}
-		done
+		$(MAKE) bundle channel=$${channel}
 	done
 
 update-helmcharts: SHELL := /bin/bash
@@ -838,7 +736,7 @@ update-helmcharts: add-license-download check-requirements update-resource-image
 		 	CRDS=$${CRDS}$${example}$$'\n'
 		done
 
-		yq -rYi --arg examples "$${CRDS}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}	
+		yq -rYi --arg examples "$${CRDS}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
 		rm -rf $${HELMCHARTS_TEMPLATES}/org.eclipse.che_v1_checluster.yaml
 	else
 		# Set references to values
@@ -929,16 +827,12 @@ update-resource-images:
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	if [ -z "$(platform)" ]; then
-		echo "[INFO] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
-		exit 1
-	fi
 	if [ -z "$(channel)" ]; then
-		echo "[INFO] You must specify 'channel' macros. For example: `make bundle platform=kubernetes channel=next`"
+		echo "[ERROR] 'channel' is not specified"
 		exit 1
 	fi
 
-	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
+	BUNDLE_PACKAGE=$$($(MAKE) getPackageName)
 	BUNDLE_DIR="bundle/$(channel)/$${BUNDLE_PACKAGE}"
 	cd $${BUNDLE_DIR}
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
@@ -995,9 +889,9 @@ catalog-build: opm ## Build a catalog image.
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
+chectl-templ: SHELL := /bin/bash
 chectl-templ:
-	if [ -z "$(TARGET)" ];
-		then echo "A";
+	if [ -z "$(TARGET)" ]; then
 		echo "[ERROR] Specify templates target location, using argument `TARGET`"
 		exit 1
 	fi

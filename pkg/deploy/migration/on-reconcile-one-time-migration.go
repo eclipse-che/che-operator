@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eclipse-che/che-operator/controllers/checlusterbackup"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
@@ -214,12 +215,22 @@ func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) err
 		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return err
 	}
+	// Do not migrate already migrated objects
 	notPartOfCheSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{deploy.CheEclipseOrg})
 	if err != nil {
 		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return err
 	}
-	objectsToMigrateLabelSelector := labels.NewSelector().Add(*instanceCheSelectorRequirement).Add(*notPartOfCheSelectorRequirement)
+	// Do not migrate objects related to backup/restore
+	notPartOfCheBackupSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesPartOfLabelKey, selection.NotEquals, []string{checlusterbackup.BackupCheEclipseOrg})
+	if err != nil {
+		logrus.Error(getFailedToCreateSelectorErrorMessage())
+		return err
+	}
+	objectsToMigrateLabelSelector := labels.NewSelector().
+		Add(*instanceCheSelectorRequirement).
+		Add(*notPartOfCheSelectorRequirement).
+		Add(*notPartOfCheBackupSelectorRequirement)
 	listOptions := &client.ListOptions{
 		LabelSelector: objectsToMigrateLabelSelector,
 		Namespace:     ctx.CheCluster.GetNamespace(),
@@ -231,7 +242,6 @@ func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) err
 		&corev1.PodList{},
 		&batchv1.JobList{},
 		&corev1.ServiceList{},
-		&networkingv1.IngressList{},
 		&corev1.SecretList{},
 		&corev1.ConfigMapList{},
 		&corev1.ServiceAccountList{},
@@ -243,6 +253,8 @@ func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) err
 	}
 	if util.IsOpenShift {
 		kindsToMigrate = append(kindsToMigrate, &routev1.RouteList{})
+	} else {
+		kindsToMigrate = append(kindsToMigrate, &networkingv1.IngressList{})
 	}
 
 	for _, listToGet := range kindsToMigrate {
