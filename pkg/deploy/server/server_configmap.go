@@ -326,35 +326,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 
 	addMap(cheEnv, ctx.CheCluster.Spec.Server.CustomCheProperties)
 
-	err = setBitbucketEndpoints(ctx, cheEnv)
-	if err != nil {
-		return nil, err
-	}
-
 	return cheEnv, nil
-}
-
-func setBitbucketEndpoints(deployContext *deploy.DeployContext, cheEnv map[string]string) error {
-	secrets, err := deploy.GetSecrets(deployContext, map[string]string{
-		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
-		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
-	}, map[string]string{
-		deploy.CheEclipseOrgOAuthScmServer: "bitbucket",
-	})
-
-	if err != nil {
-		return err
-	} else if len(secrets) == 1 {
-		serverEndpoint := secrets[0].Annotations[deploy.CheEclipseOrgScmServerEndpoint]
-		endpoints, exists := cheEnv["CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS"]
-		if exists {
-			cheEnv["CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS"] = endpoints + "," + serverEndpoint
-		} else {
-			cheEnv["CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS"] = serverEndpoint
-		}
-	}
-
-	return nil
 }
 
 func GetCheConfigMapVersion(deployContext *deploy.DeployContext) string {

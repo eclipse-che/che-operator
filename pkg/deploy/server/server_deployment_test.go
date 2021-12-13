@@ -115,10 +115,12 @@ func TestDeployment(t *testing.T) {
 func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 	type testCase struct {
 		name                       string
+		checluster                 *orgv1.CheCluster
 		initObjects                []runtime.Object
 		expectedConsumerKeyPathEnv corev1.EnvVar
 		expectedPrivateKeyPathEnv  corev1.EnvVar
-		expectedEndpointEnv        corev1.EnvVar
+		expectedServerEndpointEnv  corev1.EnvVar
+		expectedOAuthEndpointEnv   corev1.EnvVar
 		expectedVolume             corev1.Volume
 		expectedVolumeMount        corev1.VolumeMount
 	}
@@ -126,6 +128,19 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "Test",
+			checluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						CustomCheProperties: map[string]string{
+							"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "endpoint_2",
+						},
+					},
+				},
+			},
 			initObjects: []runtime.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
@@ -141,7 +156,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "bitbucket",
-							"che.eclipse.org/scm-server-endpoint": "endpoint",
+							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
 						},
 					},
 					Data: map[string][]byte{
@@ -158,9 +173,13 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 				Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
 				Value: "/che-conf/oauth/bitbucket/private.key",
 			},
-			expectedEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
-				Value: "endpoint",
+			expectedOAuthEndpointEnv: corev1.EnvVar{
+				Name:  "CHE_INTEGRATION_BITBUCKET_OAUTH__ENDPOINT",
+				Value: "endpoint_1",
+			},
+			expectedServerEndpointEnv: corev1.EnvVar{
+				Name:  "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS",
+				Value: "endpoint_1,endpoint_2",
 			},
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
@@ -179,7 +198,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(testCase.checluster, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -195,9 +214,13 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedPrivateKeyPathEnv, *env)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_BITBUCKET_OAUTH__ENDPOINT")
 			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedEndpointEnv, *env)
+			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
+
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS")
+			assert.NotNil(t, env)
+			assert.Equal(t, testCase.expectedServerEndpointEnv, *env)
 
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
@@ -212,18 +235,33 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 func TestMountGitHubOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                     string
-		initObjects              []runtime.Object
-		expectedIdKeyPathEnv     corev1.EnvVar
-		expectedSecretKeyPathEnv corev1.EnvVar
-		expectedEndpointEnv      corev1.EnvVar
-		expectedVolume           corev1.Volume
-		expectedVolumeMount      corev1.VolumeMount
+		name                      string
+		checluster                *orgv1.CheCluster
+		initObjects               []runtime.Object
+		expectedIdKeyPathEnv      corev1.EnvVar
+		expectedSecretKeyPathEnv  corev1.EnvVar
+		expectedServerEndpointEnv corev1.EnvVar
+		expectedOAuthEndpointEnv  corev1.EnvVar
+		expectedVolume            corev1.Volume
+		expectedVolumeMount       corev1.VolumeMount
 	}
 
 	testCases := []testCase{
 		{
 			name: "Test",
+			checluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						CustomCheProperties: map[string]string{
+							"CHE_INTEGRATION_GITHUB_SERVER__ENDPOINTS": "endpoint_2",
+						},
+					},
+				},
+			},
 			initObjects: []runtime.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
@@ -239,7 +277,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "github",
-							"che.eclipse.org/scm-server-endpoint": "endpoint",
+							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
 						},
 					},
 					Data: map[string][]byte{
@@ -256,9 +294,13 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 				Name:  "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH",
 				Value: "/che-conf/oauth/github/secret",
 			},
-			expectedEndpointEnv: corev1.EnvVar{
+			expectedOAuthEndpointEnv: corev1.EnvVar{
+				Name:  "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT",
+				Value: "endpoint_1",
+			},
+			expectedServerEndpointEnv: corev1.EnvVar{
 				Name:  "CHE_INTEGRATION_GITHUB_SERVER__ENDPOINTS",
-				Value: "endpoint",
+				Value: "endpoint_1,endpoint_2",
 			},
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
@@ -277,7 +319,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(testCase.checluster, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -293,6 +335,14 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedSecretKeyPathEnv, *env)
 
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITHUB_SERVER__ENDPOINTS")
+			assert.NotNil(t, env)
+			assert.Equal(t, testCase.expectedServerEndpointEnv, *env)
+
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT")
+			assert.NotNil(t, env)
+			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
+
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
 			assert.Equal(t, testCase.expectedVolume, volume)
@@ -306,18 +356,33 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 
 func TestMountGitLabOAuthEnvVar(t *testing.T) {
 	type testCase struct {
-		name                     string
-		initObjects              []runtime.Object
-		expectedIdKeyPathEnv     corev1.EnvVar
-		expectedSecretKeyPathEnv corev1.EnvVar
-		expectedEndpointEnv      corev1.EnvVar
-		expectedVolume           corev1.Volume
-		expectedVolumeMount      corev1.VolumeMount
+		name                      string
+		checluster                *orgv1.CheCluster
+		initObjects               []runtime.Object
+		expectedIdKeyPathEnv      corev1.EnvVar
+		expectedSecretKeyPathEnv  corev1.EnvVar
+		expectedServerEndpointEnv corev1.EnvVar
+		expectedOAuthEndpointEnv  corev1.EnvVar
+		expectedVolume            corev1.Volume
+		expectedVolumeMount       corev1.VolumeMount
 	}
 
 	testCases := []testCase{
 		{
 			name: "Test",
+			checluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Server: orgv1.CheClusterSpecServer{
+						CustomCheProperties: map[string]string{
+							"CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS": "endpoint_2",
+						},
+					},
+				},
+			},
 			initObjects: []runtime.Object{
 				&corev1.Secret{
 					TypeMeta: metav1.TypeMeta{
@@ -333,7 +398,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "gitlab",
-							"che.eclipse.org/scm-server-endpoint": "endpoint",
+							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
 						},
 					},
 					Data: map[string][]byte{
@@ -343,16 +408,20 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 				},
 			},
 			expectedIdKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH_GITLAB_CLIENTID__FILEPATH",
+				Name:  "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH",
 				Value: "/che-conf/oauth/gitlab/id",
 			},
 			expectedSecretKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH_GITLAB_CLIENTSECRET__FILEPATH",
+				Name:  "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH",
 				Value: "/che-conf/oauth/gitlab/secret",
 			},
-			expectedEndpointEnv: corev1.EnvVar{
+			expectedServerEndpointEnv: corev1.EnvVar{
 				Name:  "CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS",
-				Value: "endpoint",
+				Value: "endpoint_1,endpoint_2",
+			},
+			expectedOAuthEndpointEnv: corev1.EnvVar{
+				Name:  "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT",
+				Value: "endpoint_1",
 			},
 			expectedVolume: corev1.Volume{
 				Name: "gitlab-oauth-config",
@@ -371,7 +440,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := deploy.GetTestDeployContext(nil, testCase.initObjects)
+			ctx := deploy.GetTestDeployContext(testCase.checluster, testCase.initObjects)
 
 			server := NewCheServerReconciler()
 			deployment, err := server.getDeploymentSpec(ctx)
@@ -379,17 +448,21 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			env := util.FindEnv(container.Env, "CHE_OAUTH_GITLAB_CLIENTID__FILEPATH")
+			env := util.FindEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH")
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedIdKeyPathEnv, *env)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH_GITLAB_CLIENTSECRET__FILEPATH")
+			env = util.FindEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH")
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedSecretKeyPathEnv, *env)
 
 			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS")
 			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedEndpointEnv, *env)
+			assert.Equal(t, testCase.expectedServerEndpointEnv, *env)
+
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT")
+			assert.NotNil(t, env)
+			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
 
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config")
 			assert.NotNil(t, volume)
