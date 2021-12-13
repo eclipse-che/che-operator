@@ -956,6 +956,21 @@ spec:
                     placeholders, such as che-workspace-<username>. In that case,
                     a new namespace will be created for each user or workspace.
                   type: string
+                workspacesDefaultPlugins:
+                  description: Default plug-ins applied to Devworkspaces.
+                  items:
+                    properties:
+                      editor:
+                        description: The editor id to specify default plug-ins for.
+                        type: string
+                      plugins:
+                        description: Default plug-in ids and uris for the specified
+                          editor.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  type: array
               type: object
             storage:
               description: Configuration settings related to the persistent storage
