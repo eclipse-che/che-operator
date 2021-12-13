@@ -137,6 +137,14 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 					Value: "http://che.com",
 				},
 				{
+					Name:  "CHECLUSTER_CR_NAMESPACE",
+					Value: "eclipse-che",
+				},
+				{
+					Name:  "CHECLUSTER_CR_NAME",
+					Value: "eclipse-che",
+				},
+				{
 					Name:  "CHE_INTERNAL_URL",
 					Value: "http://che-host.eclipse-che.svc:8080/api",
 				},
@@ -167,6 +175,14 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_URL",
 					Value: "http://che.com",
+				},
+				{
+					Name:  "CHECLUSTER_CR_NAMESPACE",
+					Value: "eclipse-che",
+				},
+				{
+					Name:  "CHECLUSTER_CR_NAME",
+					Value: "eclipse-che",
 				},
 				{
 					Name: "OPENSHIFT_CONSOLE_URL",
@@ -207,6 +223,14 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 				{
 					Name:  "CHE_URL",
 					Value: "http://che.com",
+				},
+				{
+					Name:  "CHECLUSTER_CR_NAMESPACE",
+					Value: "eclipse-che",
+				},
+				{
+					Name:  "CHECLUSTER_CR_NAME",
+					Value: "eclipse-che",
 				},
 				{
 					Name:  "CHE_INTERNAL_URL",
