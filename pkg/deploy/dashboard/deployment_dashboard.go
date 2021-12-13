@@ -56,6 +56,12 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 		corev1.EnvVar{
 			Name:  "CHE_URL",
 			Value: util.GetCheURL(ctx.CheCluster)},
+		corev1.EnvVar{
+			Name:  "CHECLUSTER_CR_NAMESPACE",
+			Value: ctx.CheCluster.Namespace},
+		corev1.EnvVar{
+			Name:  "CHECLUSTER_CR_NAME",
+			Value: ctx.CheCluster.Name},
 	)
 
 	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() {
