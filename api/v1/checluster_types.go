@@ -341,6 +341,9 @@ type CheClusterSpecServer struct {
 	// The Che server route custom settings.
 	// +optional
 	CheServerRoute RouteCustomSettings `json:"cheServerRoute,omitempty"`
+	// Default plug-ins applied to Devworkspaces.
+	// +optional
+	WorkspacesDefaultPlugins []WorkspacesDefaultPlugins `json:"workspacesDefaultPlugins,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -544,6 +547,13 @@ type ResourcesCustomSettings struct {
 	// Limits describes the maximum amount of compute resources allowed.
 	// +optional
 	Limits Resources `json:"limits,omitempty"`
+}
+
+type WorkspacesDefaultPlugins struct {
+	// The editor id to specify default plug-ins for.
+	Editor string `json:"editor,omitempty"`
+	// Default plug-in ids and uris for the specified editor.
+	Plugins []string `json:"plugins,omitempty"`
 }
 
 // List of resources
