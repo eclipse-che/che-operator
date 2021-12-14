@@ -12,7 +12,6 @@
 package server
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -418,8 +417,6 @@ func MountBitBucketOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Dep
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_ENDPOINT", oauthEndpoint)
 	}
-
-	mountServerEndpointIfExists(deployment, "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS", ctx.CheCluster.Spec.Server.CustomCheProperties, oauthEndpoint)
 	return nil
 }
 
@@ -437,8 +434,6 @@ func MountGitHubOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deploy
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT", oauthEndpoint)
 	}
-
-	mountServerEndpointIfExists(deployment, "CHE_INTEGRATION_GITHUB_SERVER__ENDPOINTS", ctx.CheCluster.Spec.Server.CustomCheProperties, oauthEndpoint)
 	return nil
 }
 
@@ -456,28 +451,7 @@ func MountGitLabOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Deploy
 	if oauthEndpoint != "" {
 		mountEnv(deployment, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT", oauthEndpoint)
 	}
-
-	mountServerEndpointIfExists(deployment, "CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS", ctx.CheCluster.Spec.Server.CustomCheProperties, oauthEndpoint)
 	return nil
-}
-
-func getOAuthConfig(ctx *deploy.DeployContext, oauthProvider string) (*corev1.Secret, error) {
-	secrets, err := deploy.GetSecrets(ctx, map[string]string{
-		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
-		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
-	}, map[string]string{
-		deploy.CheEclipseOrgOAuthScmServer: oauthProvider,
-	})
-
-	if err != nil {
-		return nil, err
-	} else if len(secrets) == 0 {
-		return nil, nil
-	} else if len(secrets) > 1 {
-		return nil, fmt.Errorf("More than 1 OAuth %s configuration secrets found", oauthProvider)
-	}
-
-	return &secrets[0], nil
 }
 
 func mountVolumes(deployment *appsv1.Deployment, secret *corev1.Secret, mountPath string) {
@@ -496,20 +470,6 @@ func mountVolumes(deployment *appsv1.Deployment, secret *corev1.Secret, mountPat
 			Name:      secret.Name,
 			MountPath: mountPath,
 		})
-}
-
-func mountServerEndpointIfExists(deployment *appsv1.Deployment, envName string, customCheProperties map[string]string, oauthEndpoint string) {
-	endpoints := []string{}
-	if oauthEndpoint != "" {
-		endpoints = append(endpoints, oauthEndpoint)
-	}
-	if customCheProperties[envName] != "" {
-		endpoints = append(endpoints, customCheProperties[envName])
-	}
-
-	if len(endpoints) != 0 {
-		mountEnv(deployment, envName, strings.Join(endpoints, ","))
-	}
 }
 
 func mountEnv(deployment *appsv1.Deployment, envName string, envValue string) {

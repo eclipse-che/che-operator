@@ -326,7 +326,41 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 
 	addMap(cheEnv, ctx.CheCluster.Spec.Server.CustomCheProperties)
 
+	err = updateIntegrationServerEndpoints(ctx, cheEnv, "bitbucket")
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateIntegrationServerEndpoints(ctx, cheEnv, "gitlab")
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateIntegrationServerEndpoints(ctx, cheEnv, "github")
+	if err != nil {
+		return nil, err
+	}
+
 	return cheEnv, nil
+}
+
+func updateIntegrationServerEndpoints(ctx *deploy.DeployContext, cheEnv map[string]string, oauthProvider string) error {
+	secret, err := getOAuthConfig(ctx, oauthProvider)
+	if secret == nil {
+		return err
+	}
+
+	envName := fmt.Sprintf("CHE_INTEGRATION_%s_SERVER__ENDPOINTS", strings.ToUpper(oauthProvider))
+	if err != nil {
+		return err
+	}
+
+	if cheEnv[envName] != "" {
+		cheEnv[envName] = secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint] + "," + cheEnv[envName]
+	} else {
+		cheEnv[envName] = secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
+	}
+	return nil
 }
 
 func GetCheConfigMapVersion(deployContext *deploy.DeployContext) string {
