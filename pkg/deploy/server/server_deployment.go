@@ -416,7 +416,7 @@ func MountBitBucketOAuthConfig(ctx *deploy.DeployContext, deployment *appsv1.Dep
 
 	oauthEndpoint := secret.Annotations[deploy.CheEclipseOrgScmServerEndpoint]
 	if oauthEndpoint != "" {
-		mountEnv(deployment, "CHE_INTEGRATION_BITBUCKET_OAUTH__ENDPOINT", oauthEndpoint)
+		mountEnv(deployment, "CHE_OAUTH1_BITBUCKET_ENDPOINT", oauthEndpoint)
 	}
 
 	mountServerEndpointIfExists(deployment, "CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS", ctx.CheCluster.Spec.Server.CustomCheProperties, oauthEndpoint)

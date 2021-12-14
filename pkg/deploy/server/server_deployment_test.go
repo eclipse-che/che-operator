@@ -174,7 +174,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 				Value: "/che-conf/oauth/bitbucket/private.key",
 			},
 			expectedOAuthEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_INTEGRATION_BITBUCKET_OAUTH__ENDPOINT",
+				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
 				Value: "endpoint_1",
 			},
 			expectedServerEndpointEnv: corev1.EnvVar{
@@ -214,7 +214,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedPrivateKeyPathEnv, *env)
 
-			env = util.FindEnv(container.Env, "CHE_INTEGRATION_BITBUCKET_OAUTH__ENDPOINT")
+			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
 
