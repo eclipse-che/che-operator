@@ -153,47 +153,56 @@ func (oou *OpenShiftOAuthUser) Create(ctx *deploy.DeployContext) (bool, error) {
 
 // Removes initial user, htpasswd provider, htpasswd secret and Che secret with username and password.
 func (oou *OpenShiftOAuthUser) Delete(ctx *deploy.DeployContext) bool {
+	done := true
+
 	oAuth, err := GetOpenshiftOAuth(ctx)
 	if err != nil {
+		done = false
 		logrus.Errorf("Failed to get Openshift OAuth, cause: %v", err)
 	}
 
 	userName := deploy.DefaultCheFlavor(ctx.CheCluster)
 	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: userName}, &userv1.User{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete Openshift user '%s', cause: %v", userName, err)
 	}
 
 	identityName := HtpasswdIdentityProviderName + ":" + userName
 	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: identityName}, &userv1.Identity{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete identity '%s', cause: %v", identityName, err)
 	}
 
 	if err := deleteIdentityProvider(oAuth, ctx.ClusterAPI.NonCachingClient); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete identity provider', cause: %v", err)
 	}
 
 	if _, err = deploy.Delete(ctx, types.NamespacedName{Name: HtpasswdSecretName, Namespace: OcConfigNamespace}, &corev1.Secret{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete HTpasswd secret '%s', cause: %v", HtpasswdSecretName, err)
 	}
 
 	// legacy secret in the current namespace
 	if _, err = deploy.DeleteNamespacedObject(ctx, OpenShiftOAuthUserCredentialsSecret, &corev1.Secret{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete legacy Openshift OAuth credentials secret '%s', cause: %v", OpenShiftOAuthUserCredentialsSecret, err)
 	}
 
 	if _, err = deploy.Delete(ctx, types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, &corev1.Secret{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete Openshift OAuth credentials secret '%s', cause: %v", OpenShiftOAuthUserCredentialsSecret, err)
 	}
 
 	if err := deploy.DeleteFinalizer(ctx, OpenshiftOauthUserFinalizerName); err != nil {
+		done = false
 		logrus.Errorf("Error deleting finalizer: %v", err)
-		return false
 	}
 
 	ctx.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = ""
 	if err := deploy.UpdateCheCRStatus(ctx, "openShiftOAuthUserCredentialsSecret", ""); err != nil {
+		done = false
 		logrus.Errorf("Filed to update openShiftOAuthUserCredentialsSecret in CR status, cause: %v", err)
-		return false
 	}
 
 	// set 'openShiftoAuth:nil` to reenable on the following reconcile loop (if possible)
@@ -205,11 +214,11 @@ func (oou *OpenShiftOAuthUser) Delete(ctx *deploy.DeployContext) bool {
 	}
 
 	if err := deploy.UpdateCheCRSpecByFields(ctx, updateFields); err != nil {
+		done = false
 		logrus.Errorf("Filed to update OAuth field in CR, cause: %v", err)
-		return false
 	}
 
-	return true
+	return done
 }
 
 func (oou *OpenShiftOAuthUser) generateHtPasswdUserInfo(userName string, password string) (string, error) {

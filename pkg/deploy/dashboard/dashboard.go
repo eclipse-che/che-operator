@@ -105,19 +105,22 @@ func (d *DashboardReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 }
 
 func (d *DashboardReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	done := true
 	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(ctx), err)
 	}
 
 	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(ctx), err)
 	}
 
 	if err := deploy.DeleteFinalizer(ctx, ClusterPermissionsDashboardFinalizer); err != nil {
+		done = false
 		logrus.Errorf("Error deleting finalizer: %v", err)
-		return false
 	}
-	return true
+	return done
 }
 
 func (d *DashboardReconciler) createGatewayConfig(ctx *deploy.DeployContext) *gateway.TraefikConfig {

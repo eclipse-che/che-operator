@@ -203,20 +203,23 @@ func ReconcileImagePuller(ctx *deploy.DeployContext) (reconcile.Result, bool, er
 }
 
 func DeleteImagePullerOperatorAndFinalizer(ctx *deploy.DeployContext) bool {
+	done := true
+
 	if _, err := GetImagePullerOperator(ctx); err == nil {
 		if _, err := UninstallImagePullerOperator(ctx); err != nil {
+			done = false
 			logrus.Errorf("Error uninstalling Image Puller: %v", err)
 		}
 	}
 
 	if HasImagePullerFinalizer(ctx.CheCluster) {
 		if err := DeleteImagePullerFinalizer(ctx); err != nil {
+			done = false
 			logrus.Errorf("Error deleting finalizer: %v", err)
-			return false
 		}
 	}
 
-	return true
+	return done
 }
 
 func HasImagePullerFinalizer(instance *orgv1.CheCluster) bool {

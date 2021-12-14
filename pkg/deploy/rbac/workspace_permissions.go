@@ -85,19 +85,21 @@ func (wp *WorkspacePermissionsReconciler) Reconcile(ctx *deploy.DeployContext) (
 }
 
 func (wp *WorkspacePermissionsReconciler) Finalize(ctx *deploy.DeployContext) bool {
-	if done := wp.removeNamespaceEditorPermissions(ctx); !done {
-		return false
+	done := true
+
+	if completed := wp.removeNamespaceEditorPermissions(ctx); !completed {
+		done = false
 	}
 
-	if done := wp.removeDevWorkspacePermissions(ctx); !done {
-		return false
+	if completed := wp.removeDevWorkspacePermissions(ctx); !completed {
+		done = false
 	}
 
-	if done := wp.removeWorkspacePermissionsInTheDifferNamespaceThanChe(ctx); !done {
-		return false
+	if completed := wp.removeWorkspacePermissionsInTheDifferNamespaceThanChe(ctx); !completed {
+		done = false
 	}
 
-	return true
+	return done
 }
 
 // Create cluster roles and cluster role bindings for "che" service account.
@@ -129,22 +131,27 @@ func (wp *WorkspacePermissionsReconciler) delegateWorkspacePermissionsInTheDiffe
 }
 
 func (wp *WorkspacePermissionsReconciler) removeWorkspacePermissionsInTheDifferNamespaceThanChe(deployContext *deploy.DeployContext) bool {
+	done := true
+
 	cheWorkspacesClusterRoleName := fmt.Sprintf(CheWorkspacesClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	cheWorkspacesClusterRoleBindingName := cheWorkspacesClusterRoleName
 
 	if _, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesClusterRoleName}, &rbacv1.ClusterRole{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete Che Workspaces ClusterRole '%s', cause: %v", cheWorkspacesClusterRoleName, err)
 	}
 
 	if _, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheWorkspacesClusterRoleBindingName}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete Che Workspace ClusterRoleBinding '%s', cause: %v", cheWorkspacesClusterRoleBindingName, err)
 	}
 
 	if err := deploy.DeleteFinalizer(deployContext, CheWorkspacesClusterPermissionsFinalizerName); err != nil {
+		done = false
 		logrus.Errorf("Error deleting finalizer: %v", err)
-		return false
 	}
-	return true
+
+	return done
 }
 
 func (wp *WorkspacePermissionsReconciler) delegateNamespaceEditorPermissions(deployContext *deploy.DeployContext) (bool, error) {
@@ -167,21 +174,26 @@ func (wp *WorkspacePermissionsReconciler) delegateNamespaceEditorPermissions(dep
 }
 
 func (wp *WorkspacePermissionsReconciler) removeNamespaceEditorPermissions(deployContext *deploy.DeployContext) bool {
+	done := true
+
 	cheNamespaceEditorClusterRoleName := fmt.Sprintf(CheNamespaceEditorClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 
 	if _, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheNamespaceEditorClusterRoleName}, &rbacv1.ClusterRole{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete Editor ClusterRole '%s', cause: %v", cheNamespaceEditorClusterRoleName, err)
 	}
 
 	if _, err := deploy.Delete(deployContext, types.NamespacedName{Name: cheNamespaceEditorClusterRoleName}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete Editor ClusterRoleBinding '%s', cause: %v", cheNamespaceEditorClusterRoleName, err)
 	}
 
 	if err := deploy.DeleteFinalizer(deployContext, NamespacesEditorPermissionsFinalizerName); err != nil {
+		done = false
 		logrus.Errorf("Error deleting finalizer: %v", err)
-		return false
 	}
-	return true
+
+	return done
 }
 
 func (wp *WorkspacePermissionsReconciler) delegateDevWorkspacePermissions(deployContext *deploy.DeployContext) (bool, error) {
@@ -203,22 +215,27 @@ func (wp *WorkspacePermissionsReconciler) delegateDevWorkspacePermissions(deploy
 }
 
 func (wp *WorkspacePermissionsReconciler) removeDevWorkspacePermissions(deployContext *deploy.DeployContext) bool {
+	done := true
+
 	devWorkspaceClusterRoleName := fmt.Sprintf(DevWorkspaceClusterRoleNameTemplate, deployContext.CheCluster.Namespace)
 	devWorkspaceClusterRoleBindingName := devWorkspaceClusterRoleName
 
 	if _, err := deploy.Delete(deployContext, types.NamespacedName{Name: devWorkspaceClusterRoleName}, &rbacv1.ClusterRole{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete DevWorkspace ClusterRole '%s', cause: %v", devWorkspaceClusterRoleName, err)
 	}
 
 	if _, err := deploy.Delete(deployContext, types.NamespacedName{Name: devWorkspaceClusterRoleBindingName}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		done = false
 		logrus.Errorf("Failed to delete DevWorkspace ClusterRoleBinding '%s', cause: %v", devWorkspaceClusterRoleName, err)
 	}
 
 	if err := deploy.DeleteFinalizer(deployContext, DevWorkspacePermissionsFinalizerName); err != nil {
+		done = false
 		logrus.Errorf("Error deleting finalizer: %v", err)
-		return false
 	}
-	return true
+
+	return done
 }
 
 func (wp *WorkspacePermissionsReconciler) getDevWorkspacePolicies() []rbacv1.PolicyRule {
