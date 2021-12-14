@@ -76,8 +76,8 @@ func (p *GatewayReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Resu
 	return reconcile.Result{}, true, nil
 }
 
-func (p *GatewayReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (p *GatewayReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration

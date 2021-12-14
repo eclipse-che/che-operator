@@ -321,9 +321,8 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 			var err error
 			if testCase.shouldDelete {
-				err = DeleteImagePullerOperatorAndFinalizer(deployContext)
-				if err != nil {
-					t.Fatalf("Error reconciling: %v", err)
+				if done := DeleteImagePullerOperatorAndFinalizer(deployContext); !done {
+					t.Fatal("Error reconciling: failed to delete Image Puller")
 				}
 			} else {
 				_, _, err = ReconcileImagePuller(deployContext)

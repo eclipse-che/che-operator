@@ -269,6 +269,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 	return reconcile.Result{}, true, nil
 }
 
-func (p *DefaultValuesReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (p *DefaultValuesReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }

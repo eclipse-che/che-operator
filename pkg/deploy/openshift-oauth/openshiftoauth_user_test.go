@@ -138,11 +138,11 @@ func TestDeleteInitialUser(t *testing.T) {
 	ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{oAuth, cheSecret, htpasswdSecret, userIdentity, user})
 
 	openShiftOAuthUser := &OpenShiftOAuthUser{}
-	err := openShiftOAuthUser.Delete(ctx)
-	assert.Nil(t, err)
+	done := openShiftOAuthUser.Delete(ctx)
+	assert.True(t, done)
 
 	expectedCheSecret := &corev1.Secret{}
-	err = ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret)
+	err := ctx.ClusterAPI.Client.Get(context.TODO(), types.NamespacedName{Name: OpenShiftOAuthUserCredentialsSecret, Namespace: OcConfigNamespace}, expectedCheSecret)
 	assert.True(t, errors.IsNotFound(err))
 
 	expectedHtpasswsSecret := &corev1.Secret{}

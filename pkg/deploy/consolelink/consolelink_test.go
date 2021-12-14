@@ -57,8 +57,8 @@ func TestReconcileConsoleLink(t *testing.T) {
 	assert.True(t, util.ContainsString(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))
 
 	// Initialize DeletionTimestamp => checluster is being deleted
-	err = consolelink.Finalize(ctx)
-	assert.Nil(t, err)
+	done = consolelink.Finalize(ctx)
+	assert.True(t, done)
 
 	assert.False(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.DefaultConsoleLinkName()}, &console.ConsoleLink{}))
 	assert.False(t, util.ContainsString(ctx.CheCluster.Finalizers, ConsoleLinkFinalizerName))

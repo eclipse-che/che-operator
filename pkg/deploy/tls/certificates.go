@@ -80,8 +80,8 @@ func (c *CertificatesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 	return c.syncAdditionalCACertsConfigMapToCluster(ctx)
 }
 
-func (c *CertificatesReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (c *CertificatesReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (c *CertificatesReconciler) syncTrustStoreConfigMapToCluster(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {

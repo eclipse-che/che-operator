@@ -16,6 +16,7 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
+	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -56,13 +57,12 @@ func (gp *GatewayPermissionsReconciler) Reconcile(ctx *deploy.DeployContext) (re
 	return reconcile.Result{}, true, nil
 }
 
-func (gp *GatewayPermissionsReconciler) Finalize(ctx *deploy.DeployContext) error {
-	_, err := gp.deleteGatewayPermissions(ctx)
-	if err != nil {
-		return err
+func (gp *GatewayPermissionsReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	if _, err := gp.deleteGatewayPermissions(ctx); err != nil {
+		logrus.Errorf("Error deleting finalizer: %v", err)
+		return false
 	}
-
-	return nil
+	return true
 }
 
 func (gp *GatewayPermissionsReconciler) deleteGatewayPermissions(deployContext *deploy.DeployContext) (bool, error) {

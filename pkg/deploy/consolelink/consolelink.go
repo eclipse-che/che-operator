@@ -58,8 +58,12 @@ func (c *ConsoleLinkReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.
 	return reconcile.Result{}, true, nil
 }
 
-func (c *ConsoleLinkReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return deploy.DeleteObjectWithFinalizer(ctx, client.ObjectKey{Name: deploy.DefaultConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName)
+func (c *ConsoleLinkReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	if err := deploy.DeleteObjectWithFinalizer(ctx, client.ObjectKey{Name: deploy.DefaultConsoleLinkName()}, &consolev1.ConsoleLink{}, ConsoleLinkFinalizerName); err != nil {
+		logrus.Errorf("Error deleting finalizer: %v", err)
+		return false
+	}
+	return true
 }
 
 func (c *ConsoleLinkReconciler) createConsoleLink(ctx *deploy.DeployContext) (bool, error) {

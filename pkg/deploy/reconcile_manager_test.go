@@ -39,8 +39,8 @@ func (tr *TestReconcilable) Reconcile(ctx *DeployContext) (reconcile.Result, boo
 	}
 }
 
-func (tr *TestReconcilable) Finalize(ctx *DeployContext) error {
-	return nil
+func (tr *TestReconcilable) Finalize(ctx *DeployContext) bool {
+	return true
 }
 
 func TestShouldUpdateAndCleanStatus(t *testing.T) {

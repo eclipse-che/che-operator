@@ -50,8 +50,8 @@ func (s *CheHostReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Resu
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheHostReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (s *CheHostReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (s *CheHostReconciler) getDefaultCheHost(ctx *deploy.DeployContext) (bool, string, error) {

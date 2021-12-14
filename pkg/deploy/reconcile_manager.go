@@ -20,7 +20,7 @@ type Reconcilable interface {
 	// Reconcile object.
 	Reconcile(ctx *DeployContext) (result reconcile.Result, done bool, err error)
 	// Does finalization (removes cluster scope objects, etc)
-	Finalize(ctx *DeployContext) error
+	Finalize(ctx *DeployContext) (done bool)
 }
 
 type ReconcileManager struct {
@@ -66,10 +66,10 @@ func (manager *ReconcileManager) ReconcileAll(ctx *DeployContext) (reconcile.Res
 
 func (manager *ReconcileManager) FinalizeAll(ctx *DeployContext) {
 	for _, reconciler := range manager.reconcilers {
-		err := reconciler.Finalize(ctx)
-		if err != nil {
+		done := reconciler.Finalize(ctx)
+		if !done {
 			reconcilerName := GetObjectType(reconciler)
-			logrus.Errorf("Finalization failed for reconciler: `%s`, cause: %v", reconcilerName, err)
+			logrus.Errorf("Finalization failed for reconciler: `%s`", reconcilerName)
 		}
 	}
 }
