@@ -236,6 +236,9 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
 			ctx := deploy.GetTestDeployContext(testCase.cheCluster, testCase.initObjects)
 
+			util.IsOpenShift = true
+			util.IsOpenShift4 = true
+
 			dashboard := NewDashboardReconciler()
 			deployment, err := dashboard.getDashboardDeploymentSpec(ctx)
 
