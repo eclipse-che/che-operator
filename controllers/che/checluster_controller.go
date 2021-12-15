@@ -320,7 +320,7 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	} else {
 		done := r.reconcileManager.FinalizeAll(deployContext)
-		return ctrl.Result{Requeue: done}, nil
+		return ctrl.Result{Requeue: !done}, nil
 	}
 }
 
