@@ -629,7 +629,7 @@ metadata:
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: registry.redhat.io/redhat/community-operator-index:v4.7
+  image: registry.redhat.io/redhat/community-operator-index:v4.9
   displayName: Eclipse Che Catalog
   publisher: Eclipse Che
   updateStrategy:
