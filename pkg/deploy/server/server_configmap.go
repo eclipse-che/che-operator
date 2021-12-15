@@ -326,19 +326,11 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 
 	addMap(cheEnv, ctx.CheCluster.Spec.Server.CustomCheProperties)
 
-	err = updateIntegrationServerEndpoints(ctx, cheEnv, "bitbucket")
-	if err != nil {
-		return nil, err
-	}
-
-	err = updateIntegrationServerEndpoints(ctx, cheEnv, "gitlab")
-	if err != nil {
-		return nil, err
-	}
-
-	err = updateIntegrationServerEndpoints(ctx, cheEnv, "github")
-	if err != nil {
-		return nil, err
+	for _, oauthProvider := range []string{"bitbucket", "gitlab", "github"} {
+		err := updateIntegrationServerEndpoints(ctx, cheEnv, oauthProvider)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cheEnv, nil
