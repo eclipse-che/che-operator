@@ -160,6 +160,6 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevWorkspaceReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (d *DevWorkspaceReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }

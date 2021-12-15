@@ -62,8 +62,8 @@ func (m *Migrator) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool,
 	return reconcile.Result{}, done, err
 }
 
-func (m *Migrator) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (m *Migrator) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (m *Migrator) migrate(ctx *deploy.DeployContext) (bool, error) {

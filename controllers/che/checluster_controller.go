@@ -319,10 +319,9 @@ func (r *CheClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 	} else {
-		r.reconcileManager.FinalizeAll(deployContext)
+		done := r.reconcileManager.FinalizeAll(deployContext)
+		return ctrl.Result{Requeue: !done}, nil
 	}
-
-	return ctrl.Result{}, nil
 }
 
 func (r *CheClusterReconciler) GetCR(request ctrl.Request) (*orgv1.CheCluster, error) {

@@ -70,8 +70,8 @@ func (p *PluginRegistryReconciler) Reconcile(ctx *deploy.DeployContext) (reconci
 	return reconcile.Result{}, true, nil
 }
 
-func (p *PluginRegistryReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (p *PluginRegistryReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (p *PluginRegistryReconciler) syncService(ctx *deploy.DeployContext) (bool, error) {

@@ -77,8 +77,8 @@ func (s *CheServerReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheServerReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (s *CheServerReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (s CheServerReconciler) updateCheURL(ctx *deploy.DeployContext) (bool, error) {

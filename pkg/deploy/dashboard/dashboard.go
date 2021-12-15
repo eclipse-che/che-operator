@@ -22,6 +22,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/expose"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -103,18 +104,23 @@ func (d *DashboardReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DashboardReconciler) Finalize(ctx *deploy.DeployContext) error {
-	done, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{})
-	if !done {
-		return err
+func (d *DashboardReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	done := true
+	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleName(ctx)}, &rbacv1.ClusterRole{}); err != nil {
+		done = false
+		logrus.Errorf("Failed to delete ClusterRole %s, cause: %v", d.getClusterRoleName(ctx), err)
 	}
 
-	done, err = deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)}, &rbacv1.ClusterRoleBinding{})
-	if !done {
-		return err
+	if _, err := deploy.Delete(ctx, types.NamespacedName{Name: d.getClusterRoleBindingName(ctx)}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		done = false
+		logrus.Errorf("Failed to delete ClusterRoleBinding %s, cause: %v", d.getClusterRoleBindingName(ctx), err)
 	}
 
-	return deploy.DeleteFinalizer(ctx, ClusterPermissionsDashboardFinalizer)
+	if err := deploy.DeleteFinalizer(ctx, ClusterPermissionsDashboardFinalizer); err != nil {
+		done = false
+		logrus.Errorf("Error deleting finalizer: %v", err)
+	}
+	return done
 }
 
 func (d *DashboardReconciler) createGatewayConfig(ctx *deploy.DeployContext) *gateway.TraefikConfig {

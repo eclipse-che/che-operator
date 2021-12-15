@@ -61,8 +61,8 @@ func (d *DevfileRegistryReconciler) Reconcile(ctx *deploy.DeployContext) (reconc
 	return reconcile.Result{}, true, nil
 }
 
-func (d *DevfileRegistryReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (d *DevfileRegistryReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (d *DevfileRegistryReconciler) syncService(ctx *deploy.DeployContext) (bool, error) {

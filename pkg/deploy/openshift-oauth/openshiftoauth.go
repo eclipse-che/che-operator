@@ -54,8 +54,8 @@ func (oo *OpenShiftOAuth) Reconcile(ctx *deploy.DeployContext) (reconcile.Result
 	return reconcile.Result{}, true, nil
 }
 
-func (oo *OpenShiftOAuth) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (oo *OpenShiftOAuth) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (oo *OpenShiftOAuth) enableOpenShiftOAuth(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {

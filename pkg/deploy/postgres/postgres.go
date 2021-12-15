@@ -73,8 +73,8 @@ func (p *PostgresReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Res
 	return reconcile.Result{}, true, nil
 }
 
-func (p *PostgresReconciler) Finalize(ctx *deploy.DeployContext) error {
-	return nil
+func (p *PostgresReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	return true
 }
 
 func (p *PostgresReconciler) syncService(ctx *deploy.DeployContext) (bool, error) {

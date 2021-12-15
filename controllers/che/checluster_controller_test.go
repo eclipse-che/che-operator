@@ -206,11 +206,13 @@ func TestCheController(t *testing.T) {
 func Init() (client.Client, discovery.DiscoveryInterface, runtime.Scheme) {
 	objs, ds, scheme := createAPIObjects()
 
+	oAuth := &configv1.OAuth{}
 	oAuthClient := &oauthv1.OAuthClient{}
 	users := &userv1.UserList{}
 	user := &userv1.User{}
 
 	// Register operator types with the runtime scheme
+	scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, oAuth)
 	scheme.AddKnownTypes(oauthv1.SchemeGroupVersion, oAuthClient)
 	scheme.AddKnownTypes(userv1.SchemeGroupVersion, users, user)
 	scheme.AddKnownTypes(configv1.SchemeGroupVersion, &configv1.Proxy{})
@@ -262,9 +264,15 @@ func createAPIObjects() ([]runtime.Object, discovery.DiscoveryInterface, runtime
 		},
 	}
 
+	oAuth := &configv1.OAuth{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+	}
+
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		cheCR, pgPod, route, packageManifest,
+		cheCR, pgPod, route, packageManifest, oAuth,
 	}
 
 	// Register operator types with the runtime scheme

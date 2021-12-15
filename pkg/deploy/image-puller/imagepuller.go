@@ -58,7 +58,7 @@ func (ip *ImagePuller) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, b
 	return ReconcileImagePuller(ctx)
 }
 
-func (ip *ImagePuller) Finalize(ctx *deploy.DeployContext) error {
+func (ip *ImagePuller) Finalize(ctx *deploy.DeployContext) bool {
 	return DeleteImagePullerOperatorAndFinalizer(ctx)
 }
 
@@ -195,32 +195,31 @@ func ReconcileImagePuller(ctx *deploy.DeployContext) (reconcile.Result, bool, er
 
 	} else {
 		if foundOperatorsAPI && foundPackagesAPI {
-			err := DeleteImagePullerOperatorAndFinalizer(ctx)
-			if err != nil {
-				return reconcile.Result{}, false, err
-			} else {
-				return reconcile.Result{}, true, nil
-			}
+			done := DeleteImagePullerOperatorAndFinalizer(ctx)
+			return reconcile.Result{}, done, nil
 		}
 	}
 	return reconcile.Result{}, true, nil
 }
 
-func DeleteImagePullerOperatorAndFinalizer(ctx *deploy.DeployContext) error {
+func DeleteImagePullerOperatorAndFinalizer(ctx *deploy.DeployContext) bool {
+	done := true
+
 	if _, err := GetImagePullerOperator(ctx); err == nil {
 		if _, err := UninstallImagePullerOperator(ctx); err != nil {
+			done = false
 			logrus.Errorf("Error uninstalling Image Puller: %v", err)
-			return err
-		}
-	}
-	if HasImagePullerFinalizer(ctx.CheCluster) {
-		if err := DeleteImagePullerFinalizer(ctx); err != nil {
-			logrus.Errorf("Error deleting finalizer: %v", err)
-			return err
 		}
 	}
 
-	return nil
+	if HasImagePullerFinalizer(ctx.CheCluster) {
+		if err := DeleteImagePullerFinalizer(ctx); err != nil {
+			done = false
+			logrus.Errorf("Error deleting finalizer: %v", err)
+		}
+	}
+
+	return done
 }
 
 func HasImagePullerFinalizer(instance *orgv1.CheCluster) bool {

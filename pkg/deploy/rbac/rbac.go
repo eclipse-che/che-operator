@@ -52,23 +52,27 @@ func (c *CheServerPermissionsReconciler) Reconcile(ctx *deploy.DeployContext) (r
 	return reconcile.Result{}, true, err
 }
 
-func (c *CheServerPermissionsReconciler) Finalize(ctx *deploy.DeployContext) error {
+func (c *CheServerPermissionsReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	done := true
+
 	if len(ctx.CheCluster.Spec.Server.CheClusterRoles) > 0 {
 		cheClusterRoles := strings.Split(ctx.CheCluster.Spec.Server.CheClusterRoles, ",")
 		for _, cheClusterRole := range cheClusterRoles {
 			cheClusterRole := strings.TrimSpace(cheClusterRole)
 			cheClusterRoleBindingName := cheClusterRole
 			if err := deploy.ReconcileClusterRoleBindingFinalizer(ctx, cheClusterRoleBindingName); err != nil {
-				logrus.Error(err)
+				done = false
+				logrus.Errorf("Error deleting finalizer: %v", err)
 			}
 
 			// Removes any legacy CRB https://github.com/eclipse/che/issues/19506
 			cheClusterRoleBindingName = deploy.GetLegacyUniqueClusterRoleBindingName(ctx, deploy.CheServiceAccountName, cheClusterRole)
 			if err := deploy.ReconcileLegacyClusterRoleBindingFinalizer(ctx, cheClusterRoleBindingName); err != nil {
-				logrus.Error(err)
+				done = false
+				logrus.Errorf("Error deleting finalizer: %v", err)
 			}
 		}
 	}
 
-	return nil
+	return done
 }

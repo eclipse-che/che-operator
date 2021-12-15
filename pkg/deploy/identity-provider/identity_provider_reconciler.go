@@ -91,13 +91,21 @@ func (ip *IdentityProviderReconciler) Reconcile(ctx *deploy.DeployContext) (reco
 	return reconcile.Result{}, true, nil
 }
 
-func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) error {
+func (ip *IdentityProviderReconciler) Finalize(ctx *deploy.DeployContext) bool {
+	var err error
+
 	oAuthClientName := ctx.CheCluster.Spec.Auth.OAuthClientName
 	if oAuthClientName != "" {
-		return deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
+		err = deploy.DeleteObjectWithFinalizer(ctx, types.NamespacedName{Name: oAuthClientName}, &oauth.OAuthClient{}, OAuthFinalizerName)
 	} else {
-		return deploy.DeleteFinalizer(ctx, OAuthFinalizerName)
+		err = deploy.DeleteFinalizer(ctx, OAuthFinalizerName)
 	}
+
+	if err != nil {
+		logrus.Errorf("Error deleting finalizer: %v", err)
+		return false
+	}
+	return true
 }
 
 func syncService(deployContext *deploy.DeployContext) (bool, error) {
