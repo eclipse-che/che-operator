@@ -78,7 +78,7 @@ func (r *CheUserNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(obj).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, r.watchRulesForSecrets(ctx)).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.watchRulesForConfigMaps(ctx)).
-		Watches(&source.Kind{Type: &v1.CheCluster{}}, r.triggerAllNamespaces(ctx))
+		Watches(&source.Kind{Type: &v1.CheCluster{}}, r.triggerAllNamespaces())
 
 	return bld.Complete(r)
 }
@@ -155,7 +155,7 @@ func (r *CheUserNamespaceReconciler) isInManagedNamespace(ctx context.Context, o
 	return err == nil && info != nil && info.OwnerUid != ""
 }
 
-func (r *CheUserNamespaceReconciler) triggerAllNamespaces(ctx context.Context) handler.EventHandler {
+func (r *CheUserNamespaceReconciler) triggerAllNamespaces() handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		handler.MapFunc(func(obj client.Object) []reconcile.Request {
 			nss := r.namespaceCache.GetAllKnownNamespaces()
@@ -228,6 +228,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileGitTlsCertificate(ctx, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile Che git TLS certificate  into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -286,7 +291,8 @@ func (r *CheUserNamespaceReconciler) reconcileSelfSignedCert(ctx context.Context
 			Name:      targetCertName,
 			Namespace: targetNs,
 			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				constants.DevWorkspaceMountLabel: "true",
+				constants.DevWorkspaceMountLabel:       "true",
+				constants.DevWorkspaceWatchSecretLabel: "true",
 			}),
 			Annotations: map[string]string{
 				constants.DevWorkspaceMountAsAnnotation:   "file",
@@ -330,7 +336,8 @@ func (r *CheUserNamespaceReconciler) reconcileTrustedCerts(ctx context.Context, 
 			Name:      targetConfigMapName,
 			Namespace: targetNs,
 			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				constants.DevWorkspaceMountLabel: "true",
+				constants.DevWorkspaceMountLabel:          "true",
+				constants.DevWorkspaceWatchConfigMapLabel: "true",
 			}),
 			Annotations: addToFirst(sourceMap.Annotations, map[string]string{
 				constants.DevWorkspaceMountAsAnnotation:   "file",
@@ -397,7 +404,8 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	requiredLabels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-		constants.DevWorkspaceMountLabel: "true",
+		constants.DevWorkspaceMountLabel:          "true",
+		constants.DevWorkspaceWatchConfigMapLabel: "true",
 	})
 	requiredAnnos := map[string]string{
 		constants.DevWorkspaceMountAsAnnotation: "env",
@@ -418,6 +426,50 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	_, err = deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Context, targetNs string, checluster *v2alpha1.CheCluster, deployContext *deploy.DeployContext) error {
+	targetName := prefixedName(checluster, "git-tls-creds")
+	delConfigMap := func() error {
+		_, err := deploy.Delete(deployContext, client.ObjectKey{Name: targetName, Namespace: targetNs}, &corev1.Secret{})
+		return err
+	}
+
+	clusterv1 := org.AsV1(checluster)
+	if !clusterv1.Spec.Server.GitSelfSignedCert {
+		return delConfigMap()
+	}
+
+	gitCert := &corev1.ConfigMap{}
+
+	if err := deployContext.ClusterAPI.Client.Get(ctx, client.ObjectKey{Name: deploy.GitSelfSignedCertsConfigMapName, Namespace: checluster.Namespace}, gitCert); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		return delConfigMap()
+	}
+
+	target := corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName,
+			Namespace: targetNs,
+			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+				constants.DevWorkspaceGitTLSLabel:         "true",
+				constants.DevWorkspaceWatchConfigMapLabel: "true",
+			}),
+		},
+		Data: map[string]string{
+			"host":        gitCert.Data["githost"],
+			"certificate": gitCert.Data["ca.crt"],
+		},
+	}
+
+	_, err := deploy.DoSync(deployContext, &target, deploy.ConfigMapDiffOpts)
 	return err
 }
 

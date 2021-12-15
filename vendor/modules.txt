@@ -33,12 +33,12 @@ github.com/cespare/xxhash/v2
 github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/devfile/api/v2 v2.0.0-20210713124824-03e023e7078b
+# github.com/devfile/api/v2 v2.0.0-20210917193329-089a48011460
 ## explicit
 github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2
 github.com/devfile/api/v2/pkg/attributes
 github.com/devfile/api/v2/pkg/devfile
-# github.com/devfile/devworkspace-operator v0.2.1-0.20211005102315-728dff7e987c
+# github.com/devfile/devworkspace-operator v0.2.1-0.20211213140302-4226bdb05e56
 ## explicit
 github.com/devfile/devworkspace-operator/apis/controller/v1alpha1
 github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting
@@ -46,8 +46,10 @@ github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerout
 github.com/devfile/devworkspace-operator/internal/map
 github.com/devfile/devworkspace-operator/pkg/common
 github.com/devfile/devworkspace-operator/pkg/config
+github.com/devfile/devworkspace-operator/pkg/config/configmap
 github.com/devfile/devworkspace-operator/pkg/constants
 github.com/devfile/devworkspace-operator/pkg/infrastructure
+github.com/devfile/devworkspace-operator/pkg/provision/sync
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible => github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/evanphx/json-patch v4.11.0+incompatible => github.com/evanphx/json-patch v4.11.0+incompatible
@@ -886,7 +888,7 @@ sigs.k8s.io/yaml
 # github.com/huandu/xstrings => github.com/huandu/xstrings v1.2.0
 # github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 # github.com/inconshreveable/mousetrap => github.com/inconshreveable/mousetrap v1.0.0
-# github.com/irifrance/gini => github.com/irifrance/gini v1.0.1
+# github.com/irifrance/gini => github.com/go-air/gini v1.0.1
 # github.com/itchyny/astgen-go => github.com/itchyny/astgen-go v0.0.0-20200519013840-cf3ea398f645
 # github.com/itchyny/go-flags => github.com/itchyny/go-flags v1.5.0
 # github.com/itchyny/gojq => github.com/itchyny/gojq v0.11.0

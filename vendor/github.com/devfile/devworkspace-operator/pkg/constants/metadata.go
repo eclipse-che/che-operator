@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package constants
 
-// Constants that are used in labels and annotation on DevWorkspace-related resources.
+// Constants that are used in labels and annotations on DevWorkspace-related resources.
 const (
 	// DevWorkspaceIDLabel is the label key to store workspace identifier
 	DevWorkspaceIDLabel = "controller.devfile.io/devworkspace_id"
@@ -24,6 +25,14 @@ const (
 
 	// DevWorkspaceNameLabel is the label key to store workspace name
 	DevWorkspaceNameLabel = "controller.devfile.io/devworkspace_name"
+
+	// DevWorkspaceWatchConfigMapLabel marks a configmap so that it is watched by the controller. This label is required on all
+	// configmaps that should be seen by the controller
+	DevWorkspaceWatchConfigMapLabel = "controller.devfile.io/watch-configmap"
+
+	// DevWorkspaceWatchSecretLabel marks a secret so that it is watched by the controller. This label is required on all
+	// secrets that should be seen by the controller
+	DevWorkspaceWatchSecretLabel = "controller.devfile.io/watch-secret"
 
 	// DevWorkspaceMountLabel is the label key to store if a configmap or secret should be mounted to the devworkspace
 	DevWorkspaceMountLabel = "controller.devfile.io/mount-to-devworkspace"
@@ -35,6 +44,14 @@ const (
 	// E.g. echo -n "https://{USERNAME}:{PERSONAL_ACCESS_TOKEN}@{GIT_WEBSITE}" | base64
 	// see https://git-scm.com/docs/git-credential-store#_storage_format for more details
 	DevWorkspaceGitCredentialLabel = "controller.devfile.io/git-credential"
+
+	// DevWorkspaceGitTLSLabel is the label key to specify if the configmap is credentials for accessing a git server.
+	// Configmap must contain the following data:
+	// certificate: the certificate used to access the git server in Base64 ASCII
+	// You can also optionally define the git host.
+	// host: the url of the git server
+	// If the git host is not defined then the certificate will be used for all http repositories.
+	DevWorkspaceGitTLSLabel = "controller.devfile.io/git-tls-credential"
 
 	// DevWorkspaceMountPathAnnotation is the annotation key to store the mount path for the secret or configmap.
 	// If no mount path is provided, configmaps will be mounted at /etc/config/<configmap-name>, secrets will
@@ -74,26 +91,21 @@ const (
 	// WebhookRestartedAtAnnotation holds the the time (unixnano) of when the webhook server was forced to restart by controller
 	WebhookRestartedAtAnnotation = "controller.devfile.io/restarted-at"
 
+	// DevWorkspaceStartedAtAnnotation holds the the time (unixnano) of when the devworkspace was started
+	DevWorkspaceStartedAtAnnotation = "controller.devfile.io/started-at"
+
 	// RoutingAnnotationInfix is the infix of the annotations of DevWorkspace that are passed down as annotation to the DevWorkspaceRouting objects.
 	// The full annotation name is supposed to be "<routingClass>.routing.controller.devfile.io/<anything>"
 	RoutingAnnotationInfix = ".routing.controller.devfile.io/"
 
-	// DevWorkspaceStorageTypeAtrr defines the strategy used for provisioning storage for the workspace.
-	// If empty, the common PVC strategy is used.
-	// Supported options:
-	// - "common": Create one PVC per namespace, and store data for all workspaces in that namespace in that PVC
-	// - "async" : Create one PVC per namespace, and create a remote server that syncs data from workspaces to the PVC.
-	//             All volumeMounts used for devworkspaces are emptyDir
-	DevWorkspaceStorageTypeAtrr = "controller.devfile.io/storage-type"
-
-	// WorkspaceEndpointNameAnnotation is the annotation key for storing an endpoint's name from the devfile representation
+	// DevWorkspaceEndpointNameAnnotation is the annotation key for storing an endpoint's name from the devfile representation
 	DevWorkspaceEndpointNameAnnotation = "controller.devfile.io/endpoint_name"
 
 	// DevWorkspaceDiscoverableServiceAnnotation marks a service in a devworkspace as created for a discoverable endpoint,
 	// as opposed to a service created to support the devworkspace itself.
 	DevWorkspaceDiscoverableServiceAnnotation = "controller.devfile.io/discoverable-service"
 
-	// PullSecretLabel marks the intention that secret should be used as pull secret for devworkspaces withing namespace
+	// DevWorkspacePullSecretLabel marks the intention that this secret should be used as a pull secret for devworkspaces within namespace
 	// Only secrets with 'true' value will be mount as pull secret
 	// Should be assigned to secrets with type docker config types (kubernetes.io/dockercfg and kubernetes.io/dockerconfigjson)
 	DevWorkspacePullSecretLabel = "controller.devfile.io/devworkspace_pullsecret"

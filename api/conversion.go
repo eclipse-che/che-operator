@@ -50,7 +50,7 @@ func V1ToV2alpha1(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 		}
 	}
 
-	v2.ObjectMeta = v1.ObjectMeta
+	v2.ObjectMeta = *v1.ObjectMeta.DeepCopy()
 	v2.Spec = v2Spec
 
 	v1Spec, err := yaml.Marshal(v1.Spec)
@@ -89,7 +89,7 @@ func V2alpha1ToV1(v2 *v2alpha1.CheCluster, v1Obj *v1.CheCluster) error {
 		}
 	}
 
-	v1Obj.ObjectMeta = v2.ObjectMeta
+	v1Obj.ObjectMeta = *v2.ObjectMeta.DeepCopy()
 	v1Obj.Spec = v1Spec
 	v1Obj.Status = v1.CheClusterStatus{}
 

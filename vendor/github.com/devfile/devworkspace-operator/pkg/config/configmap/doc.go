@@ -12,21 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+// Package config is used by components to get configuration.
+//
+// Typically each configuration property has the default value.
+// Default value is supposed to be overridden via config map.
+//
+// There is the following configuration names convention:
+// - words are lower-cased
+// - . is used to separate subcomponents
+// - _ is used to separate words in the component name
+//
 
-package config
-
-import "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-
-// DefaultConfig represents the default configuration for the DevWorkspace Operator.
-var DefaultConfig = &v1alpha1.OperatorConfiguration{
-	Routing: &v1alpha1.RoutingConfig{
-		DefaultRoutingClass: "basic",
-		ClusterHostSuffix:   "", // is auto discovered when running on OpenShift. Must be defined by CR on Kubernetes.
-	},
-	Workspace: &v1alpha1.WorkspaceConfig{
-		ImagePullPolicy: "Always",
-		PVCName:         "claim-devworkspace",
-		IdleTimeout:     "15m",
-		ProgressTimeout: "5m",
-	},
-}
+package configmap

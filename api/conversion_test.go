@@ -17,6 +17,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
@@ -691,17 +693,13 @@ func TestFullCircleV1(t *testing.T) {
 	convertedV1 := v1.CheCluster{}
 	V2alpha1ToV1(&v2Obj, &convertedV1)
 
-	if !reflect.DeepEqual(&v1Obj, &convertedV1) {
-		t.Errorf("V1 not equal to itself after the conversion through v2alpha1: %v", cmp.Diff(&v1Obj, &convertedV1))
-	}
+	assert.Empty(t, convertedV1.Annotations[v1StorageAnnotation])
+	assert.NotEmpty(t, convertedV1.Annotations[v2alpha1StorageAnnotation])
 
-	if convertedV1.Annotations[v1StorageAnnotation] != "" {
-		t.Errorf("The v1 storage annotations should not be present on the v1 object")
-	}
+	// remove v2 content annotation on the convertedV1 so that it doesn't interfere with the equality.
+	delete(convertedV1.Annotations, v2alpha1StorageAnnotation)
 
-	if convertedV1.Annotations[v2alpha1StorageAnnotation] == "" {
-		t.Errorf("The v2alpha1 storage annotation should be present on the v1 object")
-	}
+	assert.Equal(t, &v1Obj, &convertedV1)
 }
 
 func TestFullCircleV2(t *testing.T) {
@@ -744,17 +742,13 @@ func TestFullCircleV2(t *testing.T) {
 	convertedV2 := v2alpha1.CheCluster{}
 	V1ToV2alpha1(&v1Obj, &convertedV2)
 
-	if !reflect.DeepEqual(&v2Obj, &convertedV2) {
-		t.Errorf("V2alpha1 not equal to itself after the conversion through v1: %v", cmp.Diff(&v2Obj, &convertedV2))
-	}
+	assert.Empty(t, convertedV2.Annotations[v2alpha1StorageAnnotation])
+	assert.NotEmpty(t, convertedV2.Annotations[v1StorageAnnotation])
 
-	if convertedV2.Annotations[v2alpha1StorageAnnotation] != "" {
-		t.Errorf("The v2alpha1 storage annotations should not be present on the v2alpha1 object")
-	}
+	// remove v1 content annotation on the convertedV1 so that it doesn't interfere with the equality.
+	delete(convertedV2.Annotations, v1StorageAnnotation)
 
-	if convertedV2.Annotations[v1StorageAnnotation] == "" {
-		t.Errorf("The v1 storage annotation should be present on the v2alpha1 object")
-	}
+	assert.Equal(t, &v2Obj, &convertedV2)
 }
 
 func onFakeOpenShift(f func()) {

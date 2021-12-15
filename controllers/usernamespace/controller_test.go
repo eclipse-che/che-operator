@@ -58,7 +58,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 		},
 		Spec: v1.CheClusterSpec{
 			Server: v1.CheClusterSpecServer{
-				CheHost: "che-host",
+				CheHost:           "che-host",
+				GitSelfSignedCert: true,
 				CustomCheProperties: map[string]string{
 					"CHE_INFRA_OPENSHIFT_ROUTE_HOST_DOMAIN__SUFFIX": "root-domain",
 				},
@@ -103,6 +104,20 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 		},
 	}
 	if err := cl.Create(ctx, caCerts); err != nil {
+		t.Fatal(err)
+	}
+
+	gitTlsCredentials := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploy.GitSelfSignedCertsConfigMapName,
+			Namespace: cheNamespaceName,
+		},
+		Data: map[string]string{
+			"githost": "the.host.of.git",
+			"ca.crt":  "the public certificate of the.host.of.git",
+		},
+	}
+	if err := cl.Create(ctx, gitTlsCredentials); err != nil {
 		t.Fatal(err)
 	}
 
@@ -301,6 +316,13 @@ func TestCreatesDataInNamespace(t *testing.T) {
 		assert.Equal(t, 2, len(caCerts.Data), "Expecting exactly 2 data entries in the trusted cert config map")
 		assert.Equal(t, "trusted cert 1", string(caCerts.Data["trusted1"]), "Unexpected trusted cert 1 value")
 		assert.Equal(t, "trusted cert 2", string(caCerts.Data["trusted2"]), "Unexpected trusted cert 2 value")
+
+		gitTlsConfig := corev1.ConfigMap{}
+		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-git-tls-creds", Namespace: namespace.GetName()}, &gitTlsConfig))
+		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceGitTLSLabel])
+		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceWatchConfigMapLabel])
+		assert.Equal(t, "the.host.of.git", gitTlsConfig.Data["host"])
+		assert.Equal(t, "the public certificate of the.host.of.git", gitTlsConfig.Data["certificate"])
 	}
 
 	t.Run("k8s", func(t *testing.T) {
