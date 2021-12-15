@@ -319,7 +319,7 @@ func TestCreatesDataInNamespace(t *testing.T) {
 
 		gitTlsConfig := corev1.ConfigMap{}
 		assert.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "che-eclipse-che-git-tls-creds", Namespace: namespace.GetName()}, &gitTlsConfig))
-		assert.Equal(t, "true", gitTlsConfig.Labels["controller.devfile.io/git-tls-credential"])
+		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceGitTLSLabel])
 		assert.Equal(t, "true", gitTlsConfig.Labels[constants.DevWorkspaceWatchConfigMapLabel])
 		assert.Equal(t, "the.host.of.git", gitTlsConfig.Data["host"])
 		assert.Equal(t, "the public certificate of the.host.of.git", gitTlsConfig.Data["certificate"])

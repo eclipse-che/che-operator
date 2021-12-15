@@ -459,10 +459,8 @@ func (r *CheUserNamespaceReconciler) reconcileGitTlsCertificate(ctx context.Cont
 			Name:      targetName,
 			Namespace: targetNs,
 			Labels: defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
-				// TODO replace with constants.DevWorkspaceGitTLSLabel once
-				// https://github.com/devfile/devworkspace-operator/pull/625 is merged
-				"controller.devfile.io/git-tls-credential": "true",
-				constants.DevWorkspaceWatchConfigMapLabel:  "true",
+				constants.DevWorkspaceGitTLSLabel:         "true",
+				constants.DevWorkspaceWatchConfigMapLabel: "true",
 			}),
 		},
 		Data: map[string]string{

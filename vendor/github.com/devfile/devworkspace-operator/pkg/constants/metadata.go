@@ -45,6 +45,14 @@ const (
 	// see https://git-scm.com/docs/git-credential-store#_storage_format for more details
 	DevWorkspaceGitCredentialLabel = "controller.devfile.io/git-credential"
 
+	// DevWorkspaceGitTLSLabel is the label key to specify if the configmap is credentials for accessing a git server.
+	// Configmap must contain the following data:
+	// certificate: the certificate used to access the git server in Base64 ASCII
+	// You can also optionally define the git host.
+	// host: the url of the git server
+	// If the git host is not defined then the certificate will be used for all http repositories.
+	DevWorkspaceGitTLSLabel = "controller.devfile.io/git-tls-credential"
+
 	// DevWorkspaceMountPathAnnotation is the annotation key to store the mount path for the secret or configmap.
 	// If no mount path is provided, configmaps will be mounted at /etc/config/<configmap-name>, secrets will
 	// be mounted at /etc/secret/<secret-name>, and persistent volume claims will be mounted to /tmp/<claim-name>
@@ -82,6 +90,9 @@ const (
 
 	// WebhookRestartedAtAnnotation holds the the time (unixnano) of when the webhook server was forced to restart by controller
 	WebhookRestartedAtAnnotation = "controller.devfile.io/restarted-at"
+
+	// DevWorkspaceStartedAtAnnotation holds the the time (unixnano) of when the devworkspace was started
+	DevWorkspaceStartedAtAnnotation = "controller.devfile.io/started-at"
 
 	// RoutingAnnotationInfix is the infix of the annotations of DevWorkspace that are passed down as annotation to the DevWorkspaceRouting objects.
 	// The full annotation name is supposed to be "<routingClass>.routing.controller.devfile.io/<anything>"
