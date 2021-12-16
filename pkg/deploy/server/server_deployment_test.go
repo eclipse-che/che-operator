@@ -118,7 +118,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 		initObjects                []runtime.Object
 		expectedConsumerKeyPathEnv corev1.EnvVar
 		expectedPrivateKeyPathEnv  corev1.EnvVar
-		expectedEndpointEnv        corev1.EnvVar
+		expectedOAuthEndpointEnv   corev1.EnvVar
 		expectedVolume             corev1.Volume
 		expectedVolumeMount        corev1.VolumeMount
 	}
@@ -141,7 +141,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "bitbucket",
-							"che.eclipse.org/scm-server-endpoint": "endpoint",
+							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
 						},
 					},
 					Data: map[string][]byte{
@@ -158,9 +158,9 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 				Name:  "CHE_OAUTH1_BITBUCKET_PRIVATEKEYPATH",
 				Value: "/che-conf/oauth/bitbucket/private.key",
 			},
-			expectedEndpointEnv: corev1.EnvVar{
+			expectedOAuthEndpointEnv: corev1.EnvVar{
 				Name:  "CHE_OAUTH1_BITBUCKET_ENDPOINT",
-				Value: "endpoint",
+				Value: "endpoint_1",
 			},
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
@@ -197,7 +197,7 @@ func TestMountBitBucketOAuthEnvVar(t *testing.T) {
 
 			env = util.FindEnv(container.Env, "CHE_OAUTH1_BITBUCKET_ENDPOINT")
 			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedEndpointEnv, *env)
+			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
 
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
@@ -216,7 +216,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 		initObjects              []runtime.Object
 		expectedIdKeyPathEnv     corev1.EnvVar
 		expectedSecretKeyPathEnv corev1.EnvVar
-		expectedEndpointEnv      corev1.EnvVar
+		expectedOAuthEndpointEnv corev1.EnvVar
 		expectedVolume           corev1.Volume
 		expectedVolumeMount      corev1.VolumeMount
 	}
@@ -239,7 +239,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "github",
-							"che.eclipse.org/scm-server-endpoint": "endpoint",
+							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
 						},
 					},
 					Data: map[string][]byte{
@@ -256,9 +256,9 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 				Name:  "CHE_OAUTH2_GITHUB_CLIENTSECRET__FILEPATH",
 				Value: "/che-conf/oauth/github/secret",
 			},
-			expectedEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_INTEGRATION_GITHUB_SERVER__ENDPOINTS",
-				Value: "endpoint",
+			expectedOAuthEndpointEnv: corev1.EnvVar{
+				Name:  "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT",
+				Value: "endpoint_1",
 			},
 			expectedVolume: corev1.Volume{
 				Name: "github-oauth-config",
@@ -293,6 +293,10 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedSecretKeyPathEnv, *env)
 
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITHUB_OAUTH__ENDPOINT")
+			assert.NotNil(t, env)
+			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
+
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "github-oauth-config")
 			assert.NotNil(t, volume)
 			assert.Equal(t, testCase.expectedVolume, volume)
@@ -310,7 +314,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 		initObjects              []runtime.Object
 		expectedIdKeyPathEnv     corev1.EnvVar
 		expectedSecretKeyPathEnv corev1.EnvVar
-		expectedEndpointEnv      corev1.EnvVar
+		expectedOAuthEndpointEnv corev1.EnvVar
 		expectedVolume           corev1.Volume
 		expectedVolumeMount      corev1.VolumeMount
 	}
@@ -333,7 +337,7 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 						},
 						Annotations: map[string]string{
 							"che.eclipse.org/oauth-scm-server":    "gitlab",
-							"che.eclipse.org/scm-server-endpoint": "endpoint",
+							"che.eclipse.org/scm-server-endpoint": "endpoint_1",
 						},
 					},
 					Data: map[string][]byte{
@@ -343,16 +347,16 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 				},
 			},
 			expectedIdKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH_GITLAB_CLIENTID__FILEPATH",
+				Name:  "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH",
 				Value: "/che-conf/oauth/gitlab/id",
 			},
 			expectedSecretKeyPathEnv: corev1.EnvVar{
-				Name:  "CHE_OAUTH_GITLAB_CLIENTSECRET__FILEPATH",
+				Name:  "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH",
 				Value: "/che-conf/oauth/gitlab/secret",
 			},
-			expectedEndpointEnv: corev1.EnvVar{
-				Name:  "CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS",
-				Value: "endpoint",
+			expectedOAuthEndpointEnv: corev1.EnvVar{
+				Name:  "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT",
+				Value: "endpoint_1",
 			},
 			expectedVolume: corev1.Volume{
 				Name: "gitlab-oauth-config",
@@ -379,17 +383,17 @@ func TestMountGitLabOAuthEnvVar(t *testing.T) {
 
 			container := &deployment.Spec.Template.Spec.Containers[0]
 
-			env := util.FindEnv(container.Env, "CHE_OAUTH_GITLAB_CLIENTID__FILEPATH")
+			env := util.FindEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTID__FILEPATH")
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedIdKeyPathEnv, *env)
 
-			env = util.FindEnv(container.Env, "CHE_OAUTH_GITLAB_CLIENTSECRET__FILEPATH")
+			env = util.FindEnv(container.Env, "CHE_OAUTH2_GITLAB_CLIENTSECRET__FILEPATH")
 			assert.NotNil(t, env)
 			assert.Equal(t, testCase.expectedSecretKeyPathEnv, *env)
 
-			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITLAB_SERVER__ENDPOINTS")
+			env = util.FindEnv(container.Env, "CHE_INTEGRATION_GITLAB_OAUTH__ENDPOINT")
 			assert.NotNil(t, env)
-			assert.Equal(t, testCase.expectedEndpointEnv, *env)
+			assert.Equal(t, testCase.expectedOAuthEndpointEnv, *env)
 
 			volume := util.FindVolume(deployment.Spec.Template.Spec.Volumes, "gitlab-oauth-config")
 			assert.NotNil(t, volume)

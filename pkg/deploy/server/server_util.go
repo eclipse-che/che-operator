@@ -12,10 +12,13 @@
 package server
 
 import (
+	"fmt"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func getComponentName(ctx *deploy.DeployContext) string {
@@ -27,4 +30,23 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName
+}
+
+func getOAuthConfig(ctx *deploy.DeployContext, oauthProvider string) (*corev1.Secret, error) {
+	secrets, err := deploy.GetSecrets(ctx, map[string]string{
+		deploy.KubernetesPartOfLabelKey:    deploy.CheEclipseOrg,
+		deploy.KubernetesComponentLabelKey: deploy.OAuthScmConfiguration,
+	}, map[string]string{
+		deploy.CheEclipseOrgOAuthScmServer: oauthProvider,
+	})
+
+	if err != nil {
+		return nil, err
+	} else if len(secrets) == 0 {
+		return nil, nil
+	} else if len(secrets) > 1 {
+		return nil, fmt.Errorf("More than 1 OAuth %s configuration secrets found", oauthProvider)
+	}
+
+	return &secrets[0], nil
 }

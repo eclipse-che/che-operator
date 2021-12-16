@@ -233,7 +233,7 @@ func TestConfigMap(t *testing.T) {
 	}
 }
 
-func TestUpdateBitBucketEndpoints(t *testing.T) {
+func TestUpdateIntegrationServerEndpoints(t *testing.T) {
 	type testCase struct {
 		name         string
 		initObjects  []runtime.Object
@@ -267,6 +267,7 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 			},
 			expectedData: map[string]string{
@@ -298,6 +299,7 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
+					Name:      "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
@@ -308,7 +310,7 @@ func TestUpdateBitBucketEndpoints(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_1,bitbucket_endpoint_2",
+				"CHE_INTEGRATION_BITBUCKET_SERVER__ENDPOINTS": "bitbucket_endpoint_2,bitbucket_endpoint_1",
 			},
 		},
 		{
