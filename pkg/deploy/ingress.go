@@ -65,6 +65,7 @@ func GetIngressSpec(
 	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
 	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
+	exposureType := GetSingleHostExposureType(deployContext.CheCluster)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
@@ -105,7 +106,7 @@ func GetIngressSpec(
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 	// Set bigger proxy buffer size to prevent 502 auth error.
-	if component == IdentityProviderName {
+	if component == IdentityProviderName || exposureType == GatewaySingleHostExposureType {
 		annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
 	}
 	for k, v := range ingressCustomSettings.Annotations {
