@@ -38,6 +38,7 @@ func TestIngressSpec(t *testing.T) {
 		servicePort           int
 		ingressCustomSettings orgv1.IngressCustomSettings
 		expectedIngress       *networking.Ingress
+		cheCluster            *orgv1.CheCluster
 	}
 	cheFlavor := getDefaultFromEnv("CHE_FLAVOR")
 	cheCluster := &orgv1.CheCluster{
@@ -46,12 +47,157 @@ func TestIngressSpec(t *testing.T) {
 			Name:      cheFlavor,
 		},
 	}
+	cheClusterWithGatewaySingleHostExposure := &orgv1.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "eclipse-che",
+			Name:      cheFlavor,
+		},
+		Spec: orgv1.CheClusterSpec{
+			K8s: orgv1.CheClusterSpecK8SOnly{
+				SingleHostExposureType: GatewaySingleHostExposureType,
+			},
+		},
+	}
 
 	testCases := []testCase{
 		{
 			name:             "Test custom host",
 			ingressName:      "test",
 			ingressComponent: DefaultCheFlavor(cheCluster),
+			ingressHost:      "test-host",
+			ingressPath:      "",
+			serviceName:      "che-host",
+			servicePort:      8080,
+			ingressCustomSettings: orgv1.IngressCustomSettings{
+				Labels:      "type=default",
+				Annotations: map[string]string{"annotation-key": "annotation-value"},
+			},
+			cheCluster: cheCluster,
+			expectedIngress: &networking.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "eclipse-che",
+					Labels: map[string]string{
+						"type":                         "default",
+						"app.kubernetes.io/component":  DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/part-of":    "che.eclipse.org",
+						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
+						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
+					},
+					Annotations: map[string]string{
+						"che.eclipse.org/managed-annotations-digest":        "0000",
+						"kubernetes.io/ingress.class":                       "nginx",
+						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
+						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
+						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
+						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
+						"nginx.org/websocket-services":                      "che-host",
+						"annotation-key":                                    "annotation-value",
+					},
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Ingress",
+					APIVersion: networking.SchemeGroupVersion.String(),
+				},
+				Spec: networking.IngressSpec{
+					Rules: []networking.IngressRule{
+						{
+							Host: "test-host",
+							IngressRuleValue: networking.IngressRuleValue{
+								HTTP: &networking.HTTPIngressRuleValue{
+									Paths: []networking.HTTPIngressPath{
+										{
+											Backend: networking.IngressBackend{
+												Service: &networking.IngressServiceBackend{
+													Name: "che-host",
+													Port: networking.ServiceBackendPort{
+														Number: 8080,
+													},
+												},
+											},
+											Path:     "/",
+											PathType: (*networking.PathType)(pointer.StringPtr(string(networking.PathTypeImplementationSpecific))),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:             "Test custom host",
+			ingressName:      "test",
+			ingressComponent: DefaultCheFlavor(cheClusterWithGatewaySingleHostExposure),
+			ingressHost:      "test-host",
+			ingressPath:      "",
+			serviceName:      "che-host",
+			servicePort:      8080,
+			ingressCustomSettings: orgv1.IngressCustomSettings{
+				Labels:      "type=default",
+				Annotations: map[string]string{"annotation-key": "annotation-value"},
+			},
+			cheCluster: cheClusterWithGatewaySingleHostExposure,
+			expectedIngress: &networking.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "eclipse-che",
+					Labels: map[string]string{
+						"type":                         "default",
+						"app.kubernetes.io/component":  DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/instance":   DefaultCheFlavor(cheCluster),
+						"app.kubernetes.io/part-of":    "che.eclipse.org",
+						"app.kubernetes.io/managed-by": DefaultCheFlavor(cheCluster) + "-operator",
+						"app.kubernetes.io/name":       DefaultCheFlavor(cheCluster),
+					},
+					Annotations: map[string]string{
+						"che.eclipse.org/managed-annotations-digest":        "0000",
+						"kubernetes.io/ingress.class":                       "nginx",
+						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
+						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
+						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
+						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
+						"nginx.org/websocket-services":                      "che-host",
+						"annotation-key":                                    "annotation-value",
+					},
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Ingress",
+					APIVersion: networking.SchemeGroupVersion.String(),
+				},
+				Spec: networking.IngressSpec{
+					Rules: []networking.IngressRule{
+						{
+							Host: "test-host",
+							IngressRuleValue: networking.IngressRuleValue{
+								HTTP: &networking.HTTPIngressRuleValue{
+									Paths: []networking.HTTPIngressPath{
+										{
+											Backend: networking.IngressBackend{
+												Service: &networking.IngressServiceBackend{
+													Name: "che-host",
+													Port: networking.ServiceBackendPort{
+														Number: 8080,
+													},
+												},
+											},
+											Path:     "/",
+											PathType: (*networking.PathType)(pointer.StringPtr(string(networking.PathTypeImplementationSpecific))),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:             "Test custom host",
+			ingressName:      "test",
+			ingressComponent: DefaultCheFlavor(cheClusterWithGatewaySingleHostExposure),
 			ingressHost:      "test-host",
 			ingressPath:      "",
 			serviceName:      "che-host",
@@ -77,6 +223,7 @@ func TestIngressSpec(t *testing.T) {
 						"kubernetes.io/ingress.class":                       "nginx",
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
+						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
 						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
 						"nginx.org/websocket-services":                      "che-host",
 						"annotation-key":                                    "annotation-value",
@@ -117,7 +264,7 @@ func TestIngressSpec(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			deployContext := GetTestDeployContext(cheCluster, []runtime.Object{})
+			deployContext := GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
 
 			_, actualIngress := GetIngressSpec(deployContext,
 				testCase.ingressName,
