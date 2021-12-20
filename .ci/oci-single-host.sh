@@ -16,12 +16,8 @@
 ##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
 #######################################################################################################################################################
 
-# exit immediately when a command fails
 set -e
-# only exit with zero if all commands of the pipeline exit successfully
-set -o pipefail
-# error on unset variables
-set -u
+set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
@@ -36,14 +32,14 @@ overrideDefaults() {
 
 runTests() {
   # create namespace
-  oc create namespace eclipse-che || true
+  oc create namespace ${NAMESPACE} || true
 
   # Deploy Eclipse Che applying CR
   applyOlmCR
   waitEclipseCheDeployed "next"
+  waitDevWorkspaceControllerStarted
 }
 
 initDefaults
 overrideDefaults
-printOlmCheObjects
 runTests

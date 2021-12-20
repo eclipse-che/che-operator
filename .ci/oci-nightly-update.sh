@@ -35,17 +35,17 @@ overrideDefaults() {
 }
 
 runTests() {
-  deployEclipseCheStable "operator" "openshift" ${LAST_PACKAGE_VERSION}
+  deployEclipseCheOnWithOperator "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH}
 
   deployCommunityCatalog
   enableImagePuller
 
-  chectl server:update --batch --templates="${TEMPLATES}" --che-operator-image=${OPERATOR_IMAGE}
-  waitEclipseCheDeployed "next"
+  updateEclipseChe ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
 }
 
 initDefaults
-overrideDefaults
-getLatestsStableVersions
-initLatestTemplates
-runTests
+initTemplates
+
+setCustomOperatorImage ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} ${CI_CHE_OPERATOR_IMAGE}
+
+runTest

@@ -144,42 +144,6 @@ done
 # Copy Che Operator into private registry
 sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://quay.io/eclipse/che-operator:next docker://${INTERNAL_REGISTRY_URL}/eclipse/che-operator:next
 
-# Filter all necessary plugins need it to start a workspace in disconnected en
-IFS=$'\r\n' GLOBIGNORE='*' command eval 'PLUGINS_IMAGES=($(podman run --authfile=${XDG_RUNTIME_DIR}/containers/auth.json -it --rm \
-  --entrypoint cat ${INTERNAL_REGISTRY_URL}/eclipse/che-plugin-registry:next  /var/www/html/v3/external_images.txt))'
-for container in "${PLUGINS_IMAGES[@]}";
-do
-    if [[ $container != *"che-plugin-sidecar"* ]] &&
-       [[ $container != *"che-editor"* ]] && \
-       [[ $container != *"codercom"* ]] && \
-       [[ $container != "docker.io"* ]]; then
-        REGISTRY_IMG_NAME=$(echo $container | sed -e "s/quay.io/"${INTERNAL_REGISTRY_URL}"/g")
-        sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://"${container}" docker://"${REGISTRY_IMG_NAME}"
-    fi
-done
-
-# Obtain workspace golang SIDECAR_IMAGE and copy to internal registry
-podman run --authfile=${XDG_RUNTIME_DIR}/containers/auth.json -it --rm \
-  --entrypoint cat "${INTERNAL_REGISTRY_URL}"/eclipse/che-plugin-registry:next  /var/www/html/v3/plugins/golang/go/latest/meta.yaml > /tmp/workspace.yaml
-
-export SIDECAR_IMAGE=$(cat /tmp/workspace.yaml | yq '.spec.containers[] | .image' -r)
-if [[ "$SIDECAR_IMAGE" =~ ^quay.io* ]]; then
-    REGISTRY_IMG_NAME=$(echo $SIDECAR_IMAGE | sed -e "s/quay.io/"${INTERNAL_REGISTRY_URL}"/g")
-    sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://"${SIDECAR_IMAGE}" docker://"${REGISTRY_IMG_NAME}"
-fi
-
-# Obtain the golang image and push to internal Registry
-IFS=$'\r\n' GLOBIGNORE='*' command eval 'DEVFILE_IMAGES=($(podman run --authfile=${XDG_RUNTIME_DIR}/containers/auth.json -it --rm \
-  --entrypoint cat ${INTERNAL_REGISTRY_URL}/eclipse/che-devfile-registry:next /var/www/html/devfiles/external_images.txt))'
-
-for container in "${DEVFILE_IMAGES[@]}"
-do
-    if [[ $container == *"che-golang"* ]]; then
-        REGISTRY_IMG_NAME=$(echo $container | sed -e "s/quay.io/"${INTERNAL_REGISTRY_URL}"/g")
-        sudo skopeo copy --authfile=${REG_CREDS} --dest-tls-verify=false docker://"${container}" docker://"${REGISTRY_IMG_NAME}"
-    fi
-done
-
 # Define the CR patch specifying the airgap registry and nonProxy-hosts
 cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
@@ -187,10 +151,6 @@ spec:
     airGapContainerRegistryHostname: $INTERNAL_REGISTRY_URL
     airGapContainerRegistryOrganization: 'eclipse'
 EOL
-
-# Provision test user to openshift cluster
-initDefaults
-provisionOpenShiftOAuthUser
 
 # Deploy Eclipse Che and retrieve golang devfile from devfile-registry
 chectl server:deploy \
@@ -201,9 +161,6 @@ chectl server:deploy \
     --che-operator-image=${INTERNAL_REGISTRY_URL}/eclipse/che-operator:next \
     --platform=openshift \
     --installer=operator
-
-DEVFILEURL=$(oc get checluster/eclipse-che -n eclipse-che -o "jsonpath={.status.devfileRegistryURL}")
-curl -sSLo- -vk "${DEVFILEURL}/devfiles/go/devfile.yaml" > /tmp/devfile.yaml
 
 # Add a sleep of 2 hours to do some manual tests in the cluster if need it.
 sleep 2h

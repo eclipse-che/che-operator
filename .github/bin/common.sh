@@ -29,17 +29,11 @@ catchFinish() {
 }
 
 initDefaults() {
-  export RAM_MEMORY=8192
   export NAMESPACE="eclipse-che"
-  export USER_NAMEPSACE="admin-che"
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
-  export TEMPLATES=${OPERATOR_REPO}/tmp
+  export CHECTL_TEMPLATES_BASE_DIR=/tmp/chectl-templates
   export OPERATOR_IMAGE="test/che-operator:test"
-  export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/main/devfiles/nodejs/devfile.yaml"
   export OPENSHIFT_NEXT_CSV_FILE="${OPERATOR_REPO}/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-  export DEV_WORKSPACE_CONTROLLER_VERSION="main"
-  export DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE=devworkspace-controller-test
-  export DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE=devworkspace-cheoperator-test
   export IMAGE_PULLER_ENABLE="false"
   export IS_OPENSHIFT=$(kubectl api-resources --api-group="route.openshift.io" --no-headers=true | head -n1 | wc -l)
   export IS_KUBERNETES=$(if [[ $IS_OPENSHIFT == 0 ]]; then echo 1; else echo 0; fi)
@@ -48,19 +42,26 @@ initDefaults() {
   mkdir -p ${HOME}/.config/chectl
   echo "{\"segment.telemetry\":\"off\"}" > ${HOME}/.config/chectl/config.json
 
-  # prepare templates directory
-  rm -rf ${TEMPLATES}
-  mkdir -p "${TEMPLATES}/che-operator" && chmod 777 "${TEMPLATES}"
+  getLatestsStableVersions
 }
 
-initLatestTemplates() {
-rm -rf /tmp/devfile-devworkspace-operator-*
-curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip && \
-  unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
-  mkdir -p /tmp/devworkspace-operator/templates/ && \
-  mv /tmp/devfile-devworkspace-operator-*/deploy ${TEMPLATES}/devworkspace
+initTemplates() {
+  rm -rf ${OPERATOR_REPO}/tmp
+  rm -rf ${CHECTL_TEMPLATES_BASE_DIR} && mkdir -p ${CHECTL_TEMPLATES_BASE_DIR} && chmod 777 ${CHECTL_TEMPLATES_BASE_DIR}
 
-  prepareTemplates "${OPERATOR_REPO}" "${TEMPLATES}/che-operator"
+  PREVIOUS_OPERATOR_VERSION_CLONE_PATH=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}
+  git clone --depth 1 --branch ${PREVIOUS_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${PREVIOUS_OPERATOR_VERSION_CLONE_PATH}
+
+  LAST_OPERATOR_VERSION_CLONE_PATH=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
+  git clone --depth 1 --branch ${LAST_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${LAST_OPERATOR_VERSION_CLONE_PATH}
+
+  export CURRENT_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}
+  export PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}/${PREVIOUS_PACKAGE_VERSION}
+  export LAST_OPERATOR_VERSION_TEMPLATE_PATH=${CHECTL_TEMPLATES_BASE_DIR}/${LAST_PACKAGE_VERSION}
+
+  copyChectlTemplates "${PREVIOUS_OPERATOR_VERSION_CLONE_PATH}" "${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator"
+  copyChectlTemplates "${LAST_OPERATOR_VERSION_CLONE_PATH}" "${LAST_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator"
+  copyChectlTemplates "${OPERATOR_REPO}" "${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}/che-operator"
 }
 
 getLatestsStableVersions() {
@@ -73,93 +74,14 @@ getLatestsStableVersions() {
 
   echo "${versions[*]}"
 
-  LAST_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
-  export LAST_PACKAGE_VERSION
-  PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
-  export PREVIOUS_PACKAGE_VERSION
+  export LAST_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
+  export PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
 }
 
-initStableTemplates() {
-  getLatestsStableVersions
-
-  export lastOperatorPath=${OPERATOR_REPO}/tmp/${LAST_PACKAGE_VERSION}
-  export previousOperatorPath=${OPERATOR_REPO}/tmp/${PREVIOUS_PACKAGE_VERSION}
-
-  export LAST_OPERATOR_TEMPLATE=${lastOperatorPath}/chectl/templates
-  export PREVIOUS_OPERATOR_TEMPLATE=${previousOperatorPath}/chectl/templates
-
-  # clone the exact versions to use their templates
-  git clone --depth 1 --branch ${PREVIOUS_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${previousOperatorPath}
-  git clone --depth 1 --branch ${LAST_PACKAGE_VERSION} https://github.com/eclipse-che/che-operator/ ${lastOperatorPath}
-
-  # chectl requires 'che-operator' template folder
-  mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"
-  mkdir -p "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
-
-  prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
-}
-
-# Utility to wait for a workspace to be started after workspace:create.
-waitWorkspaceStart() {
-  export x=0
-  timeout=240
-  while [ $x -le $timeout ]
-  do
-    login
-
-    chectl workspace:list --chenamespace=${NAMESPACE}
-    workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
-
-    if [ "${workspaceStatus}" == "RUNNING" ]; then
-      echo "[INFO] Workspace started successfully"
-      break
-    elif [ "${workspaceStatus}" == "STOPPED" ]; then
-      echo "[ERROR] Workspace failed to start"
-      exit 1
-    fi
-    sleep 10
-    x=$(( x+1 ))
-  done
-
-  if [ $x -gt $timeout ]
-  then
-    echo "[ERROR] Workspace didn't start after 4 minutes."
-    exit 1
-  fi
-}
-
-waitExistedWorkspaceStop() {
-  login
-
-  maxAttempts=10
-  count=0
-  while [ $count -le $maxAttempts ]; do
-    chectl workspace:list --chenamespace=${NAMESPACE}
-    workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
-
-    if [ "${workspaceStatus}" == "STOPPED" ]; then
-      echo "[INFO] Workspace stopped successfully"
-      break
-    fi
-
-    if [ $x -gt $maxAttempts ]; then
-      echo "[ERROR] Filed to stop workspace"
-      exit 1
-    fi
-
-    sleep 10
-    count=$((count+1))
-  done
-}
-
-installYq() {
-  YQ=$(command -v yq) || true
-  if [[ ! -x "${YQ}" ]]; then
-    pip3 install wheel
-    pip3 install yq
-  fi
-  echo "[INFO] $(yq --version)"
-  echo "[INFO] $(jq --version)"
+copyChectlTemplates() {
+  pushd "${OPERATOR_REPO}" || exit
+  make chectl-templ "SRC=${1}" "TARGET=${2}"
+  popd || exit
 }
 
 collectLogs() {
@@ -268,7 +190,6 @@ collectClusterScopeResources() {
   done
 }
 
-# Build latest operator image
 buildCheOperatorImage() {
   docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
@@ -277,38 +198,42 @@ buildAndPushCheOperatorImage() {
   docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . &&  docker push "${OPERATOR_IMAGE}"
 }
 
-
 copyCheOperatorImageToMinikube() {
-  #docker save "${OPERATOR_IMAGE}" | minikube ssh --native-ssh=false -- docker load
   eval $(minikube docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
-copyCheOperatorImageToMinishift() {
-  #docker save -o "${OPERATOR_IMAGE}" | minishift ssh "docker load"
-  eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
-}
+deployEclipseCheOnWithOperator() {
+  local platform=$1
+  local templates=$2
 
-# Prepare chectl che-operator templates
-prepareTemplates() {
-  if [ -n "${1}" ]; then
-    SRC_TEMPLATES="${1}"
-  else
-    echo "[ERROR] Specify templates original location"
-    exit 1
+  local domainFlag=""
+  if [[ ${platform} == "minikube" ]]; then
+    domainFlag="--domain $(minikube ip).nip.io"
   fi
 
-  if [ -n "${2}" ]; then
-    TARGET_TEMPLATES="${2}"
-  else
-    echo "[ERROR] Specify templates target location"
-    exit 1
-  fi
+  chectl server:deploy \
+    --batch \
+    --platform ${platform} \
+    --installer operator \
+    --workspace-engine dev-workspace \
+    --templates ${templates} ${domainFlag}
 
-  local path=$(pwd)
-  cd ${OPERATOR_REPO}; make chectl-templ "SRC=${SRC_TEMPLATES}" "TARGET=${TARGET_TEMPLATES}"; cd "${path}"
+  waitDevWorkspaceControllerStarted
 }
 
-deployEclipseCheStable(){
+updateEclipseChe() {
+  local templates=$1
+
+  chectl server:update \
+    --batch \
+    --templates ${templates}
+
+  waitEclipseCheDeployed "next"
+
+  waitDevWorkspaceControllerStarted
+}
+
+deployEclipseCheStable() {
   local installer=$1
   local platform=$2
   local version=$3
@@ -322,7 +247,7 @@ deployEclipseCheStable(){
     --version=${version}
 }
 
-deployEclipseCheWithTemplates() {
+deployEclipseChe() {
   local installer=$1
   local platform=$2
   local image=$3
@@ -372,90 +297,12 @@ waitEclipseCheDeployed() {
 }
 
 updateEclipseChe() {
-  local image=$1
-  local templates=$2
+  local templates=$1
 
   chectl server:update \
     --batch \
     --chenamespace=${NAMESPACE} \
-    --che-operator-image=${image} \
     --templates=${templates}
-}
-
-# Create and start a workspace
-startNewWorkspace() {
-  sleep 5s
-  login
-  chectl workspace:create --start --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
-}
-
-getOnlyWorkspaceId() {
-  workspaceList=$(chectl workspace:list --chenamespace=${NAMESPACE})
-
-  # Grep applied to MacOS
-  workspaceID=$(echo "$workspaceList" | grep workspace | awk '{ print $1} ')
-  workspaceID="${workspaceID%'ID'}"
-
-  echo $workspaceID
-}
-
-createWorkspace() {
-  sleep 5s
-  login
-  chectl workspace:create --chenamespace=${NAMESPACE} --devfile="${DEFAULT_DEVFILE}"
-}
-
-startExistedWorkspace() {
-  sleep 5s
-  login
-
-  workspaceID=$(getOnlyWorkspaceId)
-  echo "[INFO] Workspace id of created workspace is: ${workspaceID}"
-
-  chectl workspace:start $workspaceID
-}
-
-stopExistedWorkspace() {
-  login
-
-  workspaceID=$(getOnlyWorkspaceId)
-  echo "[INFO] Workspace id of the workspace to stop is: ${workspaceID}"
-
-  chectl workspace:stop $workspaceID
-}
-
-deleteExistedWorkspace() {
-  login
-
-  workspaceID=$(getOnlyWorkspaceId)
-  echo "[INFO] Workspace id of the workspace to delete is: ${workspaceID}"
-
-  chectl workspace:delete $workspaceID
-}
-
-disableOpenShiftOAuth() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.auth.openShiftoAuth = false' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-}
-
-disableUpdateAdminPassword() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.auth.updateAdminPassword = false' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-}
-
-setServerExposureStrategy() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.server.serverExposureStrategy = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-}
-
-setSingleHostExposureType() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.k8s.singleHostExposureType = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-}
-
-setIngressDomain() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
-  yq -rSY '.spec.k8s.ingressDomain = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setCustomOperatorImage() {
@@ -466,18 +313,6 @@ setCustomOperatorImage() {
 
 enableImagePuller() {
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"imagePuller":{"enable": true}}}'
-}
-
-# Utility to print objects created by Openshift CI automatically
-printOlmCheObjects() {
-  echo -e "[INFO] Operator Group object created in namespace: ${NAMESPACE}"
-  oc get operatorgroup -n "${NAMESPACE}" -o yaml
-
-  echo -e "[INFO] Catalog Source object created in namespace: ${NAMESPACE}"
-  oc get catalogsource -n "${NAMESPACE}" -o yaml
-
-  echo -e "[INFO] Subscription object created in namespace: ${NAMESPACE}"
-  oc get subscription -n "${NAMESPACE}" -o yaml
 }
 
 # Patch subscription with image builded from source in Openshift CI job.
@@ -501,16 +336,6 @@ applyOlmCR() {
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
 }
 
-login() {
-  local oauth=$(kubectl get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
-  if [[ ${oauth} == "true" ]]; then
-    # log in using OpenShift token
-    chectl auth:login --chenamespace=${NAMESPACE}
-  else
-    chectl auth:login -u admin -p admin --chenamespace=${NAMESPACE}
-  fi
-}
-
 # Deploy Eclipse Che behind proxy in openshift ci
 deployCheBehindProxy() {
   chectl server:deploy \
@@ -519,7 +344,6 @@ deployCheBehindProxy() {
     --platform=openshift \
     --templates=${TEMPLATES} \
     --che-operator-image ${OPERATOR_IMAGE}
-  oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 
 waitDevWorkspaceControllerStarted() {
@@ -537,14 +361,10 @@ waitDevWorkspaceControllerStarted() {
   done
 
   echo "[ERROR] Failed to deploy Dev Workspace controller"
-
-  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
-  oc logs ${OPERATOR_POD} -c che-operator -n ${NAMESPACE}
-
   exit 1
 }
 
-createWorkspaceDevWorkspaceController () {
+createDevWorkspace () {
   oc create namespace $DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE
   sleep 10s
 
@@ -557,6 +377,10 @@ createWorkspaceDevWorkspaceController () {
       fi
       sleep 10
   done
+}
+
+waitDevWorkspaceStarted() {
+  waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 }
 
 waitAllPodsRunning() {
@@ -578,20 +402,6 @@ waitAllPodsRunning() {
 
   echo "Failed to run pods in ${namespace}"
   exit 1
-}
-
-enableDevWorkspaceEngine() {
-  kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p "{\"spec\":{\"server\":{\"customCheProperties\": {\"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S\": \"true\"}}}}"
-  kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"devWorkspace":{"enable": true}}}'
-}
-
-deployCertManager() {
-  kubectl apply -f https://raw.githubusercontent.com/che-incubator/chectl/main/resources/cert-manager/cert-manager.yml
-  sleep 10s
-
-  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=60s
-  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=60s
-  kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cainjector -n cert-manager --timeout=60s
 }
 
 deployCommunityCatalog() {

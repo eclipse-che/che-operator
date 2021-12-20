@@ -26,5 +26,4 @@ runTests() {
 }
 
 initDefaults
-initStableTemplates
 runTests
