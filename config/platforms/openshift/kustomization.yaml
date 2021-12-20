@@ -18,10 +18,4 @@ patchesJson6902:
     group: operators.coreos.com
     version: v1alpha1
     kind: ClusterServiceVersion
-    name: eclipse-che-preview-.v0.0.0
-- path: che-operator.clusterserviceversion-name-patch.yaml
-  target:
-    group: operators.coreos.com
-    version: v1alpha1
-    kind: ClusterServiceVersion
-    name: eclipse-che-preview-.v0.0.0
+    name: eclipse-che-preview-openshift.v0.0.0

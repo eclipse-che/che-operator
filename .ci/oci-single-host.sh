@@ -25,7 +25,6 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -33,7 +32,6 @@ trap "catchFinish" EXIT SIGINT
 overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
-  export CHE_EXPOSURE_STRATEGY="single-host"
 }
 
 runTests() {
@@ -43,14 +41,9 @@ runTests() {
   # Deploy Eclipse Che applying CR
   applyOlmCR
   waitEclipseCheDeployed "next"
-  provisionOAuth
-  startNewWorkspace
-  waitWorkspaceStart
 }
 
 initDefaults
 overrideDefaults
-provisionOpenShiftOAuthUser
-patchEclipseCheOperatorImage
 printOlmCheObjects
 runTests

@@ -27,7 +27,7 @@ on:
       - 'version/version.go'
 
 jobs:
-  build:
+  release-helm-charts:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2

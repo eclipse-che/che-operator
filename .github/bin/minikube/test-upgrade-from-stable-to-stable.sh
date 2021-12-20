@@ -16,39 +16,34 @@ set -x
 
 # Get absolute path for root repo directory from github actions context: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
-if [ -z "${OPERATOR_REPO}" ]; then
-  SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-  OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$SCRIPT")")")")
-fi
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-patchTemplates() {
-  disableOpenShiftOAuth ${LAST_OPERATOR_TEMPLATE}
-  disableUpdateAdminPassword ${LAST_OPERATOR_TEMPLATE}
-  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
-}
-
 runTest() {
-  deployEclipseCheWithTemplates "operator" "minishift" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
+  chectl server:deploy \
+    --batch \
+    --platform minikube \
+    --installer operator \
+    --version ${PREVIOUS_PACKAGE_VERSION} \
+    --che-operator-cr-patch-yaml ${OPERATOR_REPO}/tmp/patch.yaml
+
   createWorkspace
 
-  updateEclipseChe  ${OPERATOR_IMAGE} ${TEMPLATES}
-  waitEclipseCheDeployed "next"
+  chectl server:update --batch --templates=$LAST_OPERATOR_TEMPLATE
+  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 
   startExistedWorkspace
   waitWorkspaceStart
 }
 
 initDefaults
+initStableTemplates "kubernetes" "stable"
+runTest
+
+initDefaults
 installYq
-initLatestTemplates
 initStableTemplates "openshift" "stable"
-patchTemplates
-if [[ -z "$GITHUB_ACTIONS" ]]; then
-  buildCheOperatorImage
-fi
-copyCheOperatorImageToMinishift
+preparePatchYaml
 runTest

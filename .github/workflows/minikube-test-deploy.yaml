@@ -10,10 +10,10 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-name: Backup & Restore
+name: Operator test
 on: pull_request
 jobs:
-  backup-restore-test-on-minikube:
+  operator-on-minikube:
     runs-on: ubuntu-20.04
     steps:
     - name: Checkout source code
@@ -30,7 +30,7 @@ jobs:
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-backup-restore.sh
+      run: /bin/bash .github/bin/minikube/test-operator.sh
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:

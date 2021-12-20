@@ -59,6 +59,9 @@ metadata:
               "chePostgresUser": "",
               "externalDb": false
             },
+            "devWorkspace": {
+              "enable": true
+            },
             "metrics": {
               "enable": true
             },
@@ -116,7 +119,7 @@ metadata:
     createdAt: "2021-12-22T18:05:44Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
-    operatorframework.io/suggested-namespace: eclipse-che
+    operatorframework.io/suggested-namespace: openshift-operators
     operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware",
       "fips"]'
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
@@ -1558,13 +1561,13 @@ spec:
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
-    - supported: true
-      type: OwnNamespace
-    - supported: true
-      type: SingleNamespace
-    - supported: true
-      type: MultiNamespace
     - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
       type: AllNamespaces
   keywords:
     - eclipse che

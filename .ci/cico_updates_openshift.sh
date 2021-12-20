@@ -16,34 +16,15 @@ set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-overrideDefaults() {
-  export CHE_EXPOSURE_STRATEGY="single-host"
-}
-
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE}
   waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
-  provisionOAuth
-  startNewWorkspace
-  waitWorkspaceStart
-
-  # Dev Workspace controller tests
-  # enableDevWorkspaceEngine;
-  # waitDevWorkspaceControllerStarted
-  # waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
-
-  # sleep 10s
-  # createWorkspaceDevWorkspaceController
-  # waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 }
 
 initDefaults
-overrideDefaults
-provisionOpenShiftOAuthUser
-initStableTemplates "openshift" "stable"
+initStableTemplates
 runTests

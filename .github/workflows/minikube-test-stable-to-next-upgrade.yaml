@@ -10,10 +10,13 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-name: Backup & Restore
-on: pull_request
+name: Upgrade stable to next
+on:
+  pull_request:
+    branches:
+      - main
 jobs:
-  backup-restore-test-on-minikube:
+  upgrade-stable-to-next-on-minikube:
     runs-on: ubuntu-20.04
     steps:
     - name: Checkout source code
@@ -30,7 +33,9 @@ jobs:
     - name: Install chectl
       run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
     - name: Run tests
-      run: /bin/bash .github/bin/minikube/test-backup-restore.sh
+      run: /bin/bash .github/bin/minikube/test-upgrade-from-stable-to-next.sh
+      env:
+        "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:

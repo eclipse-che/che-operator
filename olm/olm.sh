@@ -313,8 +313,6 @@ metadata:
   name: operatorgroup
   namespace: ${namespace}
 spec:
-  targetNamespaces:
-  - ${namespace}
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -368,8 +366,6 @@ applyCheClusterCR() {
 
   CHECLUSTER=$(kubectl get csv ${CSV_NAME} -n ${NAMESPACE} -o yaml \
     | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" \
-    | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}" \
-    | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY:-multi-host}\"" \
     | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
 
   echo "[INFO] Creating Custom Resource: "

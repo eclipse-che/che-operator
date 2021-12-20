@@ -63,7 +63,7 @@ init() {
 }
 
 usage () {
-	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|next-all-namespaces|stable|tech-preview-all-namespaces) -i CATALOG_IMAGE [-f]"
+	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|stable) -i CATALOG_IMAGE [-f]"
 	echo "Example: $0 -p openshift -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -f"
 }
 

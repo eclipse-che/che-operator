@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (c) 2019-2021 Red Hat, Inc.
 # This program and the accompanying materials are made
@@ -15,7 +15,7 @@ set -e
 set -x
 
 # Get absolute path for root repo directory from github actions context: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
-export OPERATOR_REPO="${GITHUB_WORKSPACE}"
+export OPERATOR_REPO="${GITHUB_WORKSPACE:-}"
 if [ -z "${OPERATOR_REPO}" ]; then
   SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$SCRIPT")")")")
@@ -26,37 +26,21 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 patchTemplates() {
-  disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
-  setServerExposureStrategy ${TEMPLATES} "single-host"
-  setSingleHostExposureType ${TEMPLATES} "native"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
 }
 
 runTest() {
   deployEclipseCheWithTemplates "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
-  startNewWorkspace
-  waitWorkspaceStart
-
-  # stop workspace to clean up resources
-  stopExistedWorkspace
-  waitExistedWorkspaceStop
-  kubectl delete namespace ${USER_NAMEPSACE}
-
-  deployCertManager
-
-  # Dev Workspace controller tests
-  enableDevWorkspaceEngine
   waitDevWorkspaceControllerStarted
-
-  # sleep 10s
-  # createWorkspaceDevWorkspaceController
-  # waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
 }
 
 initDefaults
+
 initLatestTemplates
 patchTemplates
+
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
+
 runTest

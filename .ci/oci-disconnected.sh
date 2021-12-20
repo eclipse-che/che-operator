@@ -20,7 +20,6 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 # Define Disconnected tests environment
 export INTERNAL_REGISTRY_URL=${INTERNAL_REGISTRY_URL-"UNDEFINED"}
@@ -116,7 +115,7 @@ cd .. && rm -rf che-plugin-registry
 podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-devfile-registry:"${TAG}"
 podman push --authfile="${REG_CREDS}" --tls-verify=false "${INTERNAL_REGISTRY_URL}"/"${ORGANIZATION}"/che-plugin-registry:"${TAG}"
 
-# Get all containers images used in eclipse-che deployment(postgresql, che-server, che-dashboard, keycloak...)
+# Get all containers images used in eclipse-che deployment(postgresql, che-server, che-dashboard...)
 curl -sSLo- https://raw.githubusercontent.com/eclipse-che/che-operator/main/config/manager/manager.yaml > /tmp/yam.yaml
 export ARRAY_OF_IMAGES=$(cat /tmp/yam.yaml | yq '.spec.template.spec.containers[0].env[] | select(.name|test("RELATED_")) | .value' -r)
 
@@ -184,8 +183,6 @@ done
 # Define the CR patch specifying the airgap registry and nonProxy-hosts
 cat >/tmp/che-cr-patch.yaml <<EOL
 spec:
-  auth:
-    updateAdminPassword: false
   server:
     airGapContainerRegistryHostname: $INTERNAL_REGISTRY_URL
     airGapContainerRegistryOrganization: 'eclipse'
@@ -207,12 +204,6 @@ chectl server:deploy \
 
 DEVFILEURL=$(oc get checluster/eclipse-che -n eclipse-che -o "jsonpath={.status.devfileRegistryURL}")
 curl -sSLo- -vk "${DEVFILEURL}/devfiles/go/devfile.yaml" > /tmp/devfile.yaml
-
-# Link openshift User with keycloak and start golang workspace
-provisionOAuth
-chectl auth:login -u admin -p admin
-chectl workspace:create --start --devfile=/tmp/devfile.yaml
-waitWorkspaceStart
 
 # Add a sleep of 2 hours to do some manual tests in the cluster if need it.
 sleep 2h

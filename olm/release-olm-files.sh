@@ -87,11 +87,7 @@ fi
 source ${BASE_DIR}/olm.sh
 echo "[INFO] Creating release '${RELEASE}'"
 
-if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]]; then
-  NEXT_BUNDLE_PATH=$(getBundlePath "next-all-namespaces")
-else
-  NEXT_BUNDLE_PATH=$(getBundlePath "next")
-fi
+NEXT_BUNDLE_PATH=$(getBundlePath "next")
 
 LAST_NEXT_CSV="${NEXT_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 lastPackageNextVersion=$(yq -r ".spec.version" "${LAST_NEXT_CSV}")
@@ -116,7 +112,6 @@ sed \
 -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
 -e 's/"cheImageTag": *"next"/"cheImageTag": ""/' \
 -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
--e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:next"|"identityProviderImage": ""|' \
 -e 's|"devfileRegistryImage": *"quay.io/eclipse/che-devfile-registry:next"|"devfileRegistryImage": ""|' \
 -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
 -e "/^  replaces: ${packageName}.v.*/d" \
@@ -126,13 +121,6 @@ sed \
 -e "s/:next/:${RELEASE}/" \
 -e "s/${lastPackageNextVersion}/${RELEASE}/" \
 -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NEXT_CSV}" > "${RELEASE_CSV}"
-
-if [[ ${CHANNEL} == "tech-preview-stable-all-namespaces" ]];then
-  # Set tech-preview-stable-all-namespaces versions
-  yq -Yi '.spec.replaces |= "'${packageName}'.v'$LAST_RELEASE_VERSION'-all-namespaces"' ${RELEASE_CSV}
-  yq -Yi '.spec.version |= "'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
-  yq -Yi '.metadata.name |= "eclipse-che-preview-openshift.v'${RELEASE}'-all-namespaces"' ${RELEASE_CSV}
-fi
 
 # Remove from devWorkspace in stable channel and hide the value from UI
 if [[ ${CHANNEL} == "stable" ]];then

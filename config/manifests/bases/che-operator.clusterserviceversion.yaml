@@ -21,11 +21,11 @@ metadata:
     containerImage: quay.io/eclipse/che-operator:next
     createdAt: "2021-05-11T18:38:31Z"
     description: A Kube-native development solution that delivers portable and collaborative developer workspaces.
-    operatorframework.io/suggested-namespace: eclipse-che
+    operatorframework.io/suggested-namespace: openshift-operators
     operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware", "fips"]'
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-.v0.0.0
+  name: eclipse-che-preview-openshift.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -265,13 +265,13 @@ spec:
       deployments: null
     strategy: ""
   installModes:
-  - supported: true
-    type: OwnNamespace
-  - supported: true
-    type: SingleNamespace
-  - supported: true
-    type: MultiNamespace
   - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
     type: AllNamespaces
   keywords:
   - eclipse che

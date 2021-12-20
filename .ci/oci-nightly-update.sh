@@ -25,7 +25,6 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -41,19 +40,12 @@ runTests() {
   deployCommunityCatalog
   enableImagePuller
 
-  provisionOAuth
-  createWorkspace
-
-  # Update Eclipse Che to next and start workspace
   chectl server:update --batch --templates="${TEMPLATES}" --che-operator-image=${OPERATOR_IMAGE}
   waitEclipseCheDeployed "next"
-  startExistedWorkspace
-  waitWorkspaceStart
 }
 
 initDefaults
 overrideDefaults
-provisionOpenShiftOAuthUser
 getLatestsStableVersions
 initLatestTemplates
 runTests

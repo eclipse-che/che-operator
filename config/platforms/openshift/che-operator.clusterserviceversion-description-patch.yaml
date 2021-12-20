@@ -50,7 +50,3 @@
     Follow the [guide](https://www.eclipse.org/che/docs/che-7/installation-guide/importing-untrusted-tls-certificates/)
     to import certificates into Eclipse Che.
 
-    ## Devworkspace engine
-    To enable [Devworkspace engine](https://github.com/devfile/devworkspace-operator) deploy Eclipse Che from `tech-preview-stable-all-namespaces` channel.
-    Eclipse Che will be installed in `AllNamespaces` mode and Devworkspace engine will be enabled by default.
-

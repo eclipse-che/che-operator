@@ -22,10 +22,6 @@ fi
 CSV_OPENSHIFT_NEXT_NEW="bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 CSV_OPENSHIFT_NEXT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
-CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW="bundle/next-all-namespaces/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/bundle/next-all-namespaces/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
-
-
 compareBundleVersions() {
   git remote add operator https://github.com/eclipse-che/che-operator.git
   git fetch operator -q
@@ -64,25 +60,6 @@ compareVersions() {
   fi
 }
 
-checkBundleVersions() {
-  versionWithoutNext="$${nextVersion%.next*}"
-
-  CSV_OPENSHIFT_NEXT_NEW_VERSION=$(yq -r ".spec.version" ${CSV_OPENSHIFT_NEXT_NEW})
-  CSV_OPENSHIFT_NEXT_NEW_VERSION=${CSV_OPENSHIFT_NEXT_NEW_VERSION%.next*}
-
-  CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION=$(yq -r ".spec.version" ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW})
-  CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION=${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION%.next*}
-
-  if [[ ${CSV_OPENSHIFT_NEXT_NEW_VERSION} != ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION} ]]; then
-    echo "[ERROR] CSVs have different version"
-    echo "[ERROR] OpenShift next channel CSV version: ${CSV_OPENSHIFT_NEXT_NEW_VERSION}"
-    echo "[ERROR] OpenShift next-all-namespaces channel CSV version: ${CSV_OPENSHIFT_NEXT_ALL_NAMESPACES_NEW_VERSION}"
-    exit 1
-  fi
-
-  echo "[INFO] All CSVs have the same version: ${CSV_OPENSHIFT_NEXT_NEW_VERSION}"
-}
-
 convertVersionToNumber() {
   version=$1                                    # 7.28.1-130.next
   versionWithoutNext="${version%.next*}"         # 7.28.1-130
@@ -97,6 +74,5 @@ convertVersionToNumber() {
 }
 
 compareBundleVersions
-checkBundleVersions
 
 echo "[INFO] Done."

@@ -10,7 +10,7 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-name: Build catalog and bundle images
+name: Build catalog images
 on:
   # manual trigger if required
   workflow_dispatch:
@@ -40,8 +40,4 @@ jobs:
       run: |
         ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
           --channel 'next' \
-          --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next
-
-        ${GITHUB_WORKSPACE}/olm/buildCatalog.sh \
-          --channel 'next-all-namespaces' \
           --catalog-image quay.io/eclipse/eclipse-che-openshift-opm-catalog:next

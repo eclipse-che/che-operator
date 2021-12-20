@@ -20,7 +20,6 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -31,15 +30,10 @@ overrideDefaults() {
 }
 
 runTests() {
-    # Deploy Eclipse Che behind proxy using chectl cli
     deployCheBehindProxy
-    provisionOAuth
-    startNewWorkspace
-    waitWorkspaceStart
 }
 
 initDefaults
 overrideDefaults
 initLatestTemplates
-provisionOpenShiftOAuthUser
 runTests

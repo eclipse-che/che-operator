@@ -26,23 +26,22 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 patchTemplates() {
-  disableOpenShiftOAuth ${TEMPLATES}
-  disableUpdateAdminPassword ${TEMPLATES}
-  setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
+  setIngressDomain ${LAST_OPERATOR_TEMPLATE} "$(minikube ip).nip.io"
 }
 
 runTest() {
-  deployEclipseCheWithTemplates "operator" "minishift" ${OPERATOR_IMAGE} ${TEMPLATES}
-  startNewWorkspace
-  waitWorkspaceStart
+  deployEclipseCheWithTemplates "operator" "minikube" "quay.io/eclipse/che-operator:${LAST_PACKAGE_VERSION}" ${LAST_OPERATOR_TEMPLATE}
+
+  updateEclipseChe ${OPERATOR_IMAGE} ${TEMPLATES}
+  waitEclipseCheDeployed "next"
 }
 
 initDefaults
-installYq
 initLatestTemplates
+initStableTemplates
 patchTemplates
-if [[ -z "$GITHUB_ACTIONS" ]]; then
-  buildCheOperatorImage
-fi
-copyCheOperatorImageToMinishift
+
+buildCheOperatorImage
+copyCheOperatorImageToMinikube
+
 runTest

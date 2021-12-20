@@ -36,10 +36,8 @@ initDefaults() {
   export TEMPLATES=${OPERATOR_REPO}/tmp
   export OPERATOR_IMAGE="test/che-operator:test"
   export DEFAULT_DEVFILE="https://raw.githubusercontent.com/eclipse-che/che-devfile-registry/main/devfiles/nodejs/devfile.yaml"
-  export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NEXT_CSV_FILE="${OPERATOR_REPO}/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
-  export DEV_WORKSPACE_ENABLE="false"
   export DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE=devworkspace-controller-test
   export DEVWORKSPACE_CHE_OPERATOR_TEST_NAMESPACE=devworkspace-cheoperator-test
   export IMAGE_PULLER_ENABLE="false"
@@ -98,12 +96,7 @@ initStableTemplates() {
   mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"
   mkdir -p "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
 
-  compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.34.0")
-  if [ "${compareResult}" == "-1" ]; then
-    cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
-  else
-    prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
-  fi
+  prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
 }
 
 # Utility to wait for a workspace to be started after workspace:create.
@@ -344,7 +337,7 @@ deployEclipseCheWithTemplates() {
 
   chectl server:deploy \
     --batch \
-    --platform=${platform} \
+    --platform ${platform} \
     --installer ${installer} \
     --chenamespace ${NAMESPACE} \
     --che-operator-image ${image} \
@@ -502,29 +495,10 @@ applyOlmCR() {
   echo "Creating Custom Resource"
 
   CR=$(yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" "${OPENSHIFT_NEXT_CSV_FILE}")
-  CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
-  CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
   CR=$(echo "$CR" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
 
   echo -e "$CR"
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
-}
-
-# Create admin user inside of openshift cluster and login
-function provisionOpenShiftOAuthUser() {
-  oc create secret generic htpass-secret --from-file=htpasswd="${OPERATOR_REPO}"/.github/bin/resources/users.htpasswd -n openshift-config
-  oc apply -f "${OPERATOR_REPO}"/.github/bin/resources/htpasswdProvider.yaml
-  oc adm policy add-cluster-role-to-user cluster-admin user
-
-  echo -e "[INFO] Waiting for htpasswd auth to be working up to 5 minutes"
-  CURRENT_TIME=$(date +%s)
-  ENDTIME=$(($CURRENT_TIME + 300))
-  while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc login -u user -p user --insecure-skip-tls-verify=false; then
-          break
-      fi
-      sleep 10
-  done
 }
 
 login() {
