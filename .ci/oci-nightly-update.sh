@@ -41,6 +41,7 @@ runTests() {
   enableImagePuller
 
   updateEclipseChe ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
+  waitEclipseCheDeployed "next"
 }
 
 initDefaults

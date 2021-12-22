@@ -15,6 +15,7 @@ ENV GOPATH=/go/
 ENV RESTIC_TAG=v0.12.0
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.9.0"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
+ARG TESTS="true"
 USER root
 
 # upstream, download zips for every build
@@ -55,8 +56,7 @@ COPY pkg/ pkg/
 
 # build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    export MOCK_API=true && \
-    go test -mod=vendor -v ./... && \
+    if [[ ${TESTS} == "true" ]]; then export MOCK_API=true && go test -mod=vendor -v ./...; fi && \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal

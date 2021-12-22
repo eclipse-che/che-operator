@@ -26,6 +26,7 @@ trap "catchFinish" EXIT SIGINT
 runTest() {
   deployEclipseCheOnWithOperator "minikube" ${PREVIOUS_OPERATOR_VERSION_TEMPLATE_PATH}
   updateEclipseChe ${LAST_OPERATOR_VERSION_TEMPLATE_PATH}
+  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 }
 
 initDefaults

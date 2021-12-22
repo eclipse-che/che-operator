@@ -185,11 +185,7 @@ collectClusterScopeResources() {
 }
 
 buildCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
-}
-
-buildAndPushCheOperatorImage() {
-  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile . &&  docker push "${OPERATOR_IMAGE}"
+  docker build -t "${OPERATOR_IMAGE}" -f Dockerfile --build-arg TESTS=false . && docker save "${OPERATOR_IMAGE}" > /tmp/operator.tar
 }
 
 copyCheOperatorImageToMinikube() {
