@@ -16,6 +16,10 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
+  labels:
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/managed-by: olm
+    app.kubernetes.io/name: che
   name: checlusters.org.eclipse.che
 spec:
   group: org.eclipse.che
@@ -989,6 +993,22 @@ spec:
                         placeholders, such as che-workspace-<username>. In that case,
                         a new namespace will be created for each user or workspace.
                       type: string
+                    workspacesDefaultPlugins:
+                      description: Default plug-ins applied to Devworkspaces.
+                      items:
+                        properties:
+                          editor:
+                            description: The editor id to specify default plug-ins
+                              for.
+                            type: string
+                          plugins:
+                            description: Default plug-in ids and uris for the specified
+                              editor.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      type: array
                   type: object
                 storage:
                   description: Configuration settings related to the persistent storage
