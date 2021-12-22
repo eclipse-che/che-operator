@@ -66,16 +66,9 @@ initTemplates() {
 
 getLatestsStableVersions() {
   # Get Stable and new release versions from olm files openshift.
-  versions=$(curl \
-  -H "Authorization: bearer ${GITHUB_TOKEN}" \
-  -X POST -H "Content-Type: application/json" --data \
-  '{"query": "{ repository(owner: \"eclipse-che\", name: \"che-operator\") { refs(refPrefix: \"refs/tags/\", last: 2, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) { edges { node { name } } } } }" } ' \
-  https://api.github.com/graphql)
-
-  echo "${versions[*]}"
-
-  export LAST_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[1].node.name | sub("\""; "")' | tr -d '"')
-  export PREVIOUS_PACKAGE_VERSION=$(echo "${versions[@]}" | jq '.data.repository.refs.edges[0].node.name | sub("\""; "")' | tr -d '"')
+  tags=$(git tag -l --sort=creatordate | tail -n 2)
+  export PREVIOUS_PACKAGE_VERSION=$(echo "${tags}" | sed -n 1p)
+  export LAST_PACKAGE_VERSION=$(echo "${tags}" | sed -n 2p)
 }
 
 copyChectlTemplates() {

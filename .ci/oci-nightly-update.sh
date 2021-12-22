@@ -48,4 +48,4 @@ initTemplates
 
 setCustomOperatorImage ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} ${CI_CHE_OPERATOR_IMAGE}
 
-runTest
+runTests
