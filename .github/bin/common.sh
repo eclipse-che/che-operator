@@ -65,10 +65,11 @@ initTemplates() {
 }
 
 getLatestsStableVersions() {
-  # Get Stable and new release versions from olm files openshift.
-  tags=$(git tag -l --sort=creatordate | tail -n 2)
-  export PREVIOUS_PACKAGE_VERSION=$(echo "${tags}" | sed -n 1p)
-  export LAST_PACKAGE_VERSION=$(echo "${tags}" | sed -n 2p)
+  git remote add operator https://github.com/eclipse-che/che-operator.git
+  git fetch operator -q
+  tags=$(git ls-remote --refs --tags operator | sed -n 's|.*refs/tags/\(7.*\)|\1|p' | awk -F. '{ print ($1*1000)+($2*10)+$3" "$1"."$2"."$3}' | sort | tac)
+  export PREVIOUS_PACKAGE_VERSION=$(echo "${tags}" | sed -n 2p | cut -d ' ' -f2)
+  export LAST_PACKAGE_VERSION=$(echo "${tags}" | sed -n 1p | cut -d ' ' -f2)
 }
 
 copyChectlTemplates() {
