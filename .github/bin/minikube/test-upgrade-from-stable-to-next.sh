@@ -26,16 +26,10 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 trap "catchFinish" EXIT SIGINT
 
 runTest() {
-  deployEclipseCheOnWithOperator "minikube" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH}
-  updateEclipseChe ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
-  waitEclipseCheDeployed "next"
+  deployEclipseCheOnWithOperator "minikube" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  updateEclipseChe "minikube" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults
 initTemplates
-
-buildCheOperatorImage
-copyCheOperatorImageToMinikube
-setCustomOperatorImage ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} ${OPERATOR_IMAGE}
-
 runTest

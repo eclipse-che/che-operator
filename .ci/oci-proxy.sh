@@ -24,13 +24,16 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
+overrideDefaults() {
+  OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
+}
+
 runTests() {
-  deployEclipseCheOnWithOperator "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
+  deployEclipseCheOnWithOperator "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults
 initTemplates
-
-setCustomOperatorImage ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} ${CI_CHE_OPERATOR_IMAGE}
+overrideDefaults
 
 runTests

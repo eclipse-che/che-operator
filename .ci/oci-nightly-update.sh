@@ -31,22 +31,15 @@ trap "catchFinish" EXIT SIGINT
 
 overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
-  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
+  export OPERATOR_IMAGE="abazko/operator:test"
 }
 
 runTests() {
-  deployEclipseCheOnWithOperator "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH}
-
-  deployCommunityCatalog
-  enableImagePuller
-
-  updateEclipseChe ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
-  waitEclipseCheDeployed "next"
+  deployEclipseCheOnWithOperator "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  updateEclipseChe "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults
 initTemplates
-
-setCustomOperatorImage ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} ${CI_CHE_OPERATOR_IMAGE}
-
+overrideDefaults
 runTests

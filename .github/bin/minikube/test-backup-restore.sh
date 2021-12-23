@@ -103,7 +103,7 @@ waitRestoreFinished() {
 }
 
 runTest() {
-  deployEclipseCheOnWithOperator "minikube" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH}
+  deployEclipseCheOnWithOperator "minikube" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 
   triggerBackup
   waitBackupFinished
@@ -114,9 +114,4 @@ runTest() {
 
 initDefaults
 initTemplates
-
-buildCheOperatorImage
-copyCheOperatorImageToMinikube
-setCustomOperatorImage ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} ${OPERATOR_IMAGE}
-
 runTest

@@ -42,5 +42,4 @@ runTests() {
 
 initDefaults
 overrideDefaults
-
 runTests

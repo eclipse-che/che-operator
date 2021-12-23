@@ -193,10 +193,21 @@ copyCheOperatorImageToMinikube() {
 deployEclipseCheOnWithOperator() {
   local platform=$1
   local templates=$2
+  local customimage=$3
 
   local domainFlag=""
   if [[ ${platform} == "minikube" ]]; then
     domainFlag="--domain $(minikube ip).nip.io"
+  fi
+
+  if [[ ${customimage} == "true"  ]]; then
+    if [[ ${platform} == "minikube" ]]; then
+      buildCheOperatorImage
+      copyCheOperatorImageToMinikube
+    fi
+
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
   fi
 
   chectl server:deploy \
@@ -210,53 +221,28 @@ deployEclipseCheOnWithOperator() {
 }
 
 updateEclipseChe() {
-  local templates=$1
+  local platform=$1
+  local templates=$2
+  local customimage=$3
+
+  if [[ ${customimage} == "true"  ]]; then
+    if [[ ${platform} == "minikube" ]]; then
+      buildCheOperatorImage
+      copyCheOperatorImageToMinikube
+    fi
+
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
+  fi
 
   chectl server:update \
     --batch \
     --templates ${templates}
 
-  waitEclipseCheDeployed "next"
+  local cheVersion=$(cat ${templates}/che-operator/operator.yaml | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
+  waitEclipseCheDeployed ${cheVersion}
 
   waitDevWorkspaceControllerStarted
-}
-
-deployEclipseCheStable() {
-  local installer=$1
-  local platform=$2
-  local version=$3
-
-  chectl server:deploy \
-    --batch \
-    --platform=${platform} \
-    --installer ${installer} \
-    --chenamespace ${NAMESPACE} \
-    --skip-kubernetes-health-check \
-    --version=${version}
-}
-
-deployEclipseChe() {
-  local installer=$1
-  local platform=$2
-  local image=$3
-  local templates=$4
-
-  echo "[INFO] Eclipse Che custom resource"
-  local crSample=${templates}/che-operator/crds/org_v1_che_cr.yaml
-  cat ${crSample}
-
-  echo "[INFO] Eclipse Che operator deployment"
-  cat ${templates}/che-operator/operator.yaml
-
-  chectl server:deploy \
-    --batch \
-    --platform ${platform} \
-    --installer ${installer} \
-    --chenamespace ${NAMESPACE} \
-    --che-operator-image ${image} \
-    --skip-kubernetes-health-check \
-    --che-operator-cr-yaml ${crSample} \
-    --templates ${templates}
 }
 
 waitEclipseCheDeployed() {
@@ -270,7 +256,7 @@ waitEclipseCheDeployed() {
     oc get pods -n ${NAMESPACE}
     if [ "${cheVersion}" == "${version}" ] && [ "${cheIsRunning}" == "Available" ]
     then
-      echo -e "\u001b[32m Eclipse Che ${version} has been succesfully deployed \u001b[0m"
+      echo "Eclipse Che ${version} has been succesfully deployed"
       break
     fi
     sleep 6
@@ -284,25 +270,6 @@ waitEclipseCheDeployed() {
   fi
 }
 
-updateEclipseChe() {
-  local templates=$1
-
-  chectl server:update \
-    --batch \
-    --chenamespace=${NAMESPACE} \
-    --templates=${templates}
-}
-
-setCustomOperatorImage() {
-  local file="${1}/che-operator/operator.yaml"
-  yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-  yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
-}
-
-enableImagePuller() {
-  kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"imagePuller":{"enable": true}}}'
-}
-
 useCustomOperatorImageInCSV() {
   local image=$1
   oc patch csv $(getCSVName) -n openshift-operators --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
@@ -314,16 +281,6 @@ createEclipseCheCRFromCSV() {
 
 getCSVName() {
   echo $(oc get csv -n openshift-operators | grep eclipse-che-preview-openshift | awk '{print $1}')
-}
-
-# Deploy Eclipse Che behind proxy in openshift ci
-deployCheBehindProxy() {
-  chectl server:deploy \
-    --batch \
-    --installer=operator \
-    --platform=openshift \
-    --templates=${TEMPLATES} \
-    --che-operator-image ${OPERATOR_IMAGE}
 }
 
 waitDevWorkspaceControllerStarted() {
@@ -341,46 +298,6 @@ waitDevWorkspaceControllerStarted() {
   done
 
   echo "[ERROR] Failed to deploy Dev Workspace controller"
-  exit 1
-}
-
-createDevWorkspace () {
-  oc create namespace $DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE
-  sleep 10s
-
-  echo -e "[INFO] Waiting for webhook-server to be running"
-  CURRENT_TIME=$(date +%s)
-  ENDTIME=$(($CURRENT_TIME + 180))
-  while [ $(date +%s) -lt $ENDTIME ]; do
-      if oc apply -f ${OPERATOR_REPO}/config/samples/devworkspace_flattened_theia-nodejs.yaml -n ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}; then
-          break
-      fi
-      sleep 10
-  done
-}
-
-waitDevWorkspaceStarted() {
-  waitAllPodsRunning ${DEVWORKSPACE_CONTROLLER_TEST_NAMESPACE}
-}
-
-waitAllPodsRunning() {
-  echo "[INFO] Wait for running all pods"
-  local namespace=$1
-
-  n=0
-  while [ $n -le 24 ]
-  do
-    pods=$(oc get pods -n ${namespace})
-    if [[ $pods =~ .*Running.* ]]; then
-      return
-    fi
-
-    kubectl get pods -n ${namespace}
-    sleep 10
-    n=$(( n+1 ))
-  done
-
-  echo "Failed to run pods in ${namespace}"
   exit 1
 }
 
