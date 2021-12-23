@@ -272,15 +272,15 @@ waitEclipseCheDeployed() {
 
 useCustomOperatorImageInCSV() {
   local image=$1
-  oc patch csv $(getCSVName) -n openshift-operators --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
+  oc patch csv $(getCSVName) -n ${NAMESPACE} --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
 }
 
 createEclipseCheCRFromCSV() {
-  oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" | oc apply -n "${NAMESPACE}" -f -
+  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" | oc apply -n "${NAMESPACE}" -f -
 }
 
 getCSVName() {
-  echo $(oc get csv -n openshift-operators | grep eclipse-che-preview-openshift | awk '{print $1}')
+  echo $(oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}')
 }
 
 waitDevWorkspaceControllerStarted() {
