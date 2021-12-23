@@ -297,7 +297,7 @@ subscribeToInstallation() {
   fi
 
   # fourth argument is an optional
-  CSV_NAME="${4-${CSV_NAME}}"
+  CSV_NAME="${3-${CSV_NAME}}"
   if [ -n "${CSV_NAME}" ]; then
     echo "[INFO] Subscribing to the version: '${CSV_NAME}'"
   else
