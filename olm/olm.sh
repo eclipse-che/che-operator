@@ -297,7 +297,7 @@ subscribeToInstallation() {
   fi
 
   # fourth argument is an optional
-  CSV_NAME="${4-${CSV_NAME}}"
+  CSV_NAME="${3-${CSV_NAME}}"
   if [ -n "${CSV_NAME}" ]; then
     echo "[INFO] Subscribing to the version: '${CSV_NAME}'"
   else
@@ -364,9 +364,7 @@ installPackage() {
 applyCheClusterCR() {
   CSV_NAME=${1}
 
-  CHECLUSTER=$(kubectl get csv ${CSV_NAME} -n ${NAMESPACE} -o yaml \
-    | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" \
-    | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
+  CHECLUSTER=$(kubectl get csv ${CSV_NAME} -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")")
 
   echo "[INFO] Creating Custom Resource: "
   echo "${CHECLUSTER}"

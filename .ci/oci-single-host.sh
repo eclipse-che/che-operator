@@ -31,15 +31,16 @@ overrideDefaults() {
 }
 
 runTests() {
-  # create namespace
   oc create namespace ${NAMESPACE} || true
 
-  # Deploy Eclipse Che applying CR
-  applyOlmCR
+  useCustomOperatorImageInCSV ${OPERATOR_IMAGE}
+  createEclipseCheCRFromCSV
+
   waitEclipseCheDeployed "next"
   waitDevWorkspaceControllerStarted
 }
 
 initDefaults
 overrideDefaults
+
 runTests

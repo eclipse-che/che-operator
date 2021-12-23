@@ -33,8 +33,6 @@ initDefaults() {
   export ARTIFACTS_DIR=${ARTIFACT_DIR:-"/tmp/artifacts-che"}
   export CHECTL_TEMPLATES_BASE_DIR=/tmp/chectl-templates
   export OPERATOR_IMAGE="test/che-operator:test"
-  export OPENSHIFT_NEXT_CSV_FILE="${OPERATOR_REPO}/bundle/next/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-  export IMAGE_PULLER_ENABLE="false"
   export IS_OPENSHIFT=$(kubectl api-resources --api-group="route.openshift.io" --no-headers=true | head -n1 | wc -l)
   export IS_KUBERNETES=$(if [[ $IS_OPENSHIFT == 0 ]]; then echo 1; else echo 0; fi)
 
@@ -305,25 +303,19 @@ enableImagePuller() {
   kubectl patch checluster/eclipse-che -n ${NAMESPACE} --type=merge -p '{"spec":{"imagePuller":{"enable": true}}}'
 }
 
-# Patch subscription with image builded from source in Openshift CI job.
-patchEclipseCheOperatorImage() {
-  OPERATOR_POD=$(oc get pods -o json -n ${NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name')
-  oc patch pod ${OPERATOR_POD} -n ${NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":'${OPERATOR_IMAGE}'}]'
-
-  # The following command retrieve the operator image
-  OPERATOR_POD_IMAGE=$(oc get pods -n ${NAMESPACE} -o json | jq -r '.items[] | select(.metadata.name | test("che-operator-")).spec.containers[].image')
-  echo -e "[INFO] CHE operator image is ${OPERATOR_POD_IMAGE}"
+useCustomOperatorImageInCSV() {
+  local image=$1
+  oc patch csv $(getCSVName) -n openshift-operators --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
 }
 
-# Create CheCluster object in Openshift ci with desired values
-applyOlmCR() {
-  echo "Creating Custom Resource"
-
-  CR=$(yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" "${OPENSHIFT_NEXT_CSV_FILE}")
-  CR=$(echo "$CR" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
-
-  echo -e "$CR"
+createEclipseCheCRFromCSV() {
+  local cr=$(oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")")
+  cr=$(echo "$cr" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
+}
+
+getCSVName() {
+  echo $(oc get csv -n openshift-operators | grep eclipse-che-preview-openshift | awk '{print $1}')
 }
 
 # Deploy Eclipse Che behind proxy in openshift ci
