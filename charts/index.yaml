@@ -129,7 +129,142 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2021-12-15T14:29:52.414867123Z"
+    created: "2021-12-23T10:59:57.894513794Z"
+    description: A Helm chart for deploying Eclipse Che on a Kubernetes
+    digest: 91c3fee6a8a1985db1458ca8f69f1ce6d4a8c51d247119922c8f06238bd47238
+    name: eclipse-che
+    urls:
+    - https://eclipse-che.github.io/che-operator/charts/stable/eclipse-che-7.41.0.tgz
+    version: 7.41.0
+  - annotations:
+      artifacthub.io/crds: |-
+        - kind: CheCluster
+          version: v1
+          name: checlusters.org.eclipse.che
+          displayName: CheCluster
+          description: The `CheCluster` custom resource allows defining and managing a Che server installation"
+        - kind: CheBackupServerConfiguration
+          version: v1
+          name: chebackupserverconfigurations.org.eclipse.che
+          displayName: CheBackupServerConfiguration
+          description: The `CheBackupServerConfiguration` custom resource allows defining and managing Eclipse Che Backup Server Configurations
+        - kind: CheClusterRestore
+          version: v1
+          name: checlusterrestores.org.eclipse.che
+          displayName: CheClusterRestore
+          description: The `CheClusterRestore` custom resource allows defining and managing Eclipse Che restore
+        - kind: CheClusterBackup
+          version: v1
+          name: checlusterbackups.org.eclipse.che
+          displayName: CheClusterBackup
+          description: The `CheClusterBackup` custom resource allows defining and managing Eclipse Che backup
+      artifacthub.io/crdsExamples: |
+        - apiVersion: org.eclipse.che/v1
+          kind: CheCluster
+          metadata:
+            name: eclipse-che
+            namespace: eclipse-che
+          spec:
+            server:
+              cheFlavor: ''
+              cheClusterRoles: ''
+              cheWorkspaceClusterRole: ''
+              serverTrustStoreConfigMapName: ''
+              gitSelfSignedCert: false
+              tlsSupport: true
+              proxyURL: ''
+              proxyPort: ''
+              proxyUser: ''
+              proxyPassword: ''
+              nonProxyHosts: ''
+              workspaceNamespaceDefault: "<username>-che"
+              allowUserDefinedWorkspaceNamespaces: false
+              serverExposureStrategy: ''
+            database:
+              externalDb: false
+              chePostgresHostName: ''
+              chePostgresPort: ''
+              chePostgresUser: ''
+              chePostgresPassword: ''
+              chePostgresDb: ''
+            storage:
+              pvcStrategy: 'common'
+              pvcClaimSize: '10Gi'
+              preCreateSubPaths: true
+              postgresPVCStorageClassName: ''
+              workspacePVCStorageClassName: ''
+            auth:
+              initialOpenShiftOAuthUser: true
+              externalIdentityProvider: false
+              identityProviderURL: ''
+              identityProviderAdminUserName: ''
+              identityProviderPassword: ''
+              identityProviderRealm: ''
+              identityProviderClientId: ''
+              oAuthClientName: ''
+              oAuthSecret: ''
+            k8s:
+              ingressDomain: '192.168.99.101.nip.io'
+              ingressClass: ''
+              ingressStrategy: ''
+              tlsSecretName: 'che-tls'
+              securityContextFsGroup: ''
+              securityContextRunAsUser: ''
+              singleHostExposureType: ''
+            metrics:
+              enable: true
+            devWorkspace:
+              enable: false
+        - apiVersion: org.eclipse.che/v1
+          kind: CheClusterBackup
+          metadata:
+            name: eclipse-che-backup
+            namespace: eclipse-che
+          spec:
+            useInternalBackupServer: false
+            backupServerConfigRef: eclipse-che-backup-server-configuration
+        - apiVersion: org.eclipse.che/v1
+          kind: CheClusterRestore
+          metadata:
+            name: eclipse-che-restore
+            namespace: eclipse-che
+          spec:
+            backupServerConfigRef: eclipse-che-backup-server-configuration
+        - apiVersion: org.eclipse.che/v1
+          kind: CheBackupServerConfiguration
+          metadata:
+            name: eclipse-che-backup-server-configuration
+            namespace: eclipse-che
+          spec:
+            awss3:
+              awsAccessKeySecretRef: minio-credentials-secret
+              hostname: minio.mydomain.net
+              port: 9000
+              protocol: http
+              repositoryPath: che-backups-bucket
+              repositoryPasswordSecretRef: secret-name
+      artifacthub.io/license: EPL-2.0
+      artifacthub.io/links: |
+        - name: repository
+          url: https://github.com/eclipse-che/che-operator
+        - name: web-site
+          url: https://www.eclipse.org/che/
+        - name: docs
+          url: https://www.eclipse.org/che/docs
+        - name: support
+          url: https://github.com/eclipse/che
+      artifacthub.io/maintainers: |
+        - name: Anatolii Bazko
+          email: abazko@redhat.com
+        - name: Mykola Morhun
+          email: mmorhun@redhat.com
+        - name: Oleksandr Andriienko
+          email: oandriie@redhat.com
+      artifacthub.io/operator: "true"
+      artifacthub.io/operatorCapabilities: Seamless Upgrades
+      artifacthub.io/provider: Eclipse Foundation
+    apiVersion: v1
+    created: "2021-12-23T10:59:57.893419424Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 485b22612ee63c30e8680fb2fb5e376762deb70487d470d6293c4abf477e5cf9
     name: eclipse-che
@@ -264,7 +399,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2021-12-15T14:29:52.413426158Z"
+    created: "2021-12-23T10:59:57.892173844Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: 1e47c7db4e8b2056bf65c8cb14f6b1e398bd97f010cd6ccc2db58ea63d92c300
     name: eclipse-che
@@ -399,7 +534,7 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2021-12-15T14:29:52.411044817Z"
+    created: "2021-12-23T10:59:57.890998168Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: a404541c568b784ab11f443eb47441807192477879c1be0f8e09d9a2534f9244
     name: eclipse-che
@@ -534,11 +669,11 @@ entries:
       artifacthub.io/operatorCapabilities: Seamless Upgrades
       artifacthub.io/provider: Eclipse Foundation
     apiVersion: v1
-    created: "2021-12-15T14:29:52.40928756Z"
+    created: "2021-12-23T10:59:57.8899372Z"
     description: A Helm chart for deploying Eclipse Che on a Kubernetes
     digest: aa4efbd1168883302315f172124bc11f433131a01b70aaf772e08eec3e3d551b
     name: eclipse-che
     urls:
     - https://eclipse-che.github.io/che-operator/charts/stable/eclipse-che-7.39.2.tgz
     version: 7.39.2
-generated: "2021-12-15T14:29:52.407579203Z"
+generated: "2021-12-23T10:59:57.888009777Z"
