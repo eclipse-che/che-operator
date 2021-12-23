@@ -309,9 +309,7 @@ useCustomOperatorImageInCSV() {
 }
 
 createEclipseCheCRFromCSV() {
-  local cr=$(oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")")
-  cr=$(echo "$cr" | yq -r ".spec.imagePuller.enable = ${IMAGE_PULLER_ENABLE:-false}")
-  echo "$CR" | oc apply -n "${NAMESPACE}" -f -
+  oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" | oc apply -n "${NAMESPACE}" -f -
 }
 
 getCSVName() {
