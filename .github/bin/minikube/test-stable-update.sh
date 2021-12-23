@@ -21,13 +21,13 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-runTest() {
-  chectl server:deploy \
-    --batch \
-    --platform minikube \
-    --installer operator \
-    --version ${PREVIOUS_PACKAGE_VERSION}
+patchTemplates() {
+  disableUpdateAdminPassword ${PREVIOUS_OPERATOR_TEMPLATE}
+  setIngressDomain ${PREVIOUS_OPERATOR_TEMPLATE} "$(minikube ip).nip.io"
+}
 
+runTest() {
+  deployEclipseCheWithTemplates "operator" "minikube" "quay.io/eclipse/che-operator:${PREVIOUS_PACKAGE_VERSION}" ${PREVIOUS_OPERATOR_TEMPLATE}
   createWorkspace
 
   chectl server:update --batch --templates=$LAST_OPERATOR_TEMPLATE
@@ -39,4 +39,5 @@ runTest() {
 
 initDefaults
 initStableTemplates "kubernetes" "stable"
+patchTemplates
 runTest
