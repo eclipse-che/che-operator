@@ -7,8 +7,7 @@ Che/CodeReady workspaces operator uses [Operator SDK](https://github.com/operato
 The operator watches for a Custom Resource of Kind `CheCluster`, and operator controller executes its business logic when a new Che object is created, namely:
 
 * creates k8s/OpenShift objects
-* verifies successful deployment of Postgres, Keycloak, Devfile/Plugin registries and Che server
-* runs exec into Postgres and Keycloak pods to provisions databases, users, realm and clients
+* verifies successful deployment of Postgres, Devfile/Plugin registries and Che server
 * updates CR spec and status (passwords, URLs, provisioning statuses etc.)
 * continuously watches CR, update Che ConfigMap accordingly and schedule a new Che deployment
 * changes state of certain objects depending on CR fields:
@@ -138,26 +137,6 @@ spec:
 $ chectl server:deploy --installer=olm --platform=<PLATFORM> --catalog-source-yaml <PATH_TO_CUSTOM_CATALOG_SOURCE_YAML> --olm-channel=next --package-manifest-name=eclipse-che-preview-<openshift|kubernetes>
 ```
 
-### Deploy stable Che operator in Cluster Wide Availability
-
-Eclipse Che introduced a new channel which installs Eclipse Che in AllNamespace mode with Devworkspace Operator like an OLM dependency.
-More info about DevWorkspace Operator can be found [here](https://github.com/devfile/devworkspace-operator).
-
-Before installing Eclipse Che using channel `tech-preview-stable-all-namespaces` we need to consider the following:
-
-* It is not possible to have Eclipse Che installed in single Namespace (currently the default one) and then try to install Che in All Namespace mode using the new channel tech-preview-stable-all-namespaces.
-* To update to tech-preview-stable-all-namespaces channel you need first to remove all subscriptions created for Che installed from next or stable
-channels. IMPORTANT: Removing subscriptions doesn’t mean Eclipse Che operands(che-server, keycloak or roles) will be removed from the cluster.
-* DevWorkspace engine will be by default enabled in the new channel.
-* In case if you have already installed Che with DevWorkspace engine enabled from channels next or stable you need to remove all DevWorkspace resources from the cluster following the next [scripts](https://github.com/devfile/devworkspace-operator/blob/main/build/make/deploy.mk#L77).
-* `tech-preview-stable-all-namespaces` channel is supported only in OpenShift.
-
-If the OpenShift Cluster already have all these considerations done you can proceed to install the Eclipse Che using tech-preview-stable-all-namespaces channel from OperatorHub or using the new channel you need to perform the following chectl command:
-
-```bash
-chectl server:deploy --installer=olm --platform=openshift --olm-channel=tech-preview-stable-all-namespaces
-```
-
 ### Deploy Che operator using operator-sdk
 
 > WARNING: Cluster Admin privileges are required
@@ -246,23 +225,7 @@ $ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <
 
 ### TLS
 
-TLS is enabled by default. Turning it off is not recommended as it will cause malfunction of some components. But for development purposes you can do that:
-
-```bash
-$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"server":{"tlsSupport": false}}}'
-```
-
-or create `cr-patch.yaml` and use it with chectl:
-
-```yaml
-spec:
-  server:
-    tlsSupport: false
-```
-
-```bash
-$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
-```
+TLS is enabled by default.
 
 #### TLS with OpenShift
 

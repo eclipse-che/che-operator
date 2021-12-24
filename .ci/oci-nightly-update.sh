@@ -25,7 +25,6 @@ set -u
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -36,24 +35,11 @@ overrideDefaults() {
 }
 
 runTests() {
-  deployEclipseCheStable "operator" "openshift" ${LAST_PACKAGE_VERSION}
-
-  deployCommunityCatalog
-  enableImagePuller
-
-  provisionOAuth
-  createWorkspace
-
-  # Update Eclipse Che to next and start workspace
-  chectl server:update --batch --templates="${TEMPLATES}" --che-operator-image=${OPERATOR_IMAGE}
-  waitEclipseCheDeployed "next"
-  startExistedWorkspace
-  waitWorkspaceStart
+  deployEclipseCheOnWithOperator "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
+  updateEclipseChe "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
 
 initDefaults
+initTemplates
 overrideDefaults
-provisionOpenShiftOAuthUser
-getLatestsStableVersions
-initLatestTemplates
 runTests

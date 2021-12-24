@@ -17,26 +17,19 @@ metadata:
   namespace: eclipse-che
 spec:
   server:
-    cheFlavor: ''
     cheClusterRoles: ''
     cheWorkspaceClusterRole: ''
-    serverTrustStoreConfigMapName: ''
     gitSelfSignedCert: false
-    tlsSupport: true
     proxyURL: ''
     proxyPort: ''
-    proxyUser: ''
-    proxyPassword: ''
+    proxySecret: ''
     nonProxyHosts: ''
     workspaceNamespaceDefault: "<username>-che"
-    allowUserDefinedWorkspaceNamespaces: false
-    serverExposureStrategy: ''
   database:
     externalDb: false
     chePostgresHostName: ''
     chePostgresPort: ''
-    chePostgresUser: ''
-    chePostgresPassword: ''
+    chePostgresSecret: ''
     chePostgresDb: ''
   storage:
     pvcStrategy: 'common'
@@ -45,24 +38,16 @@ spec:
     postgresPVCStorageClassName: ''
     workspacePVCStorageClassName: ''
   auth:
-    initialOpenShiftOAuthUser: true
-    externalIdentityProvider: false
     identityProviderURL: ''
-    identityProviderAdminUserName: ''
-    identityProviderPassword: ''
-    identityProviderRealm: ''
-    identityProviderClientId: ''
     oAuthClientName: ''
     oAuthSecret: ''
   k8s:
     ingressDomain: '{{ .Values.k8s.ingressDomain }}'
     ingressClass: ''
-    ingressStrategy: ''
     tlsSecretName: 'che-tls'
     securityContextFsGroup: ''
     securityContextRunAsUser: ''
-    singleHostExposureType: ''
   metrics:
     enable: true
   devWorkspace:
-    enable: false
+    enable: true

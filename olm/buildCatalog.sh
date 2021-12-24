@@ -63,7 +63,7 @@ init() {
 }
 
 usage () {
-	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|next-all-namespaces|stable|tech-preview-all-namespaces) -i CATALOG_IMAGE [-f]"
+	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|stable) -i CATALOG_IMAGE [-f]"
 	echo "Example: $0 -p openshift -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -f"
 }
 
@@ -78,7 +78,7 @@ buildBundle() {
 
 buildCatalog () {
   if [ $(isCatalogExists) == 0 ]; then
-    echo "[INFO] Bundle a new catalog"
+    echo "[INFO] Build a new catalog"
     buildCatalogImage "${CATALOG_IMAGE}" "${BUNDLE_IMAGE}" "docker" "${FORCE}"
   else
     if [[ $(isBundleExistsInCatalog) == 0 ]]; then
@@ -91,7 +91,7 @@ buildCatalog () {
 }
 
 isBundleExistsInCatalog() {
-  local BUNDLE_NAME=$(docker run --entrypoint sh ${CATALOG_IMAGE} -c "apk add sqlite && sqlite3 /database/index.db 'SELECT head_operatorbundle_name FROM channel WHERE name = \"${CHANNEL}\" and head_operatorbundle_name = \"${CSV_NAME}\"'" | tail -n1 | tr -d '\r')
+  local BUNDLE_NAME=$(docker run --entrypoint sh ${CATALOG_IMAGE} -c "apk add sqlite && sqlite3 /database/index.db 'SELECT operatorbundle_name FROM channel_entry WHERE channel_name=\"${CHANNEL}\" and operatorbundle_name=\"${CSV_NAME}\"'" | tail -n1 | tr -d '\r')
 
   # docker run produce more output then a single line
   # so, it is needed to check if the last line is actually a given bunle name

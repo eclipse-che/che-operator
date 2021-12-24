@@ -14,7 +14,6 @@ package devworkspace
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -83,22 +82,6 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 			// Do nothing if WTO exists since it should bring or embeds DWO
 			return reconcile.Result{}, true, nil
 		}
-	}
-
-	if !deploy.IsDevWorkspaceEngineAllowed() {
-		// Note: When the tech-preview-stable-all-namespaces will be by default stable-all-namespaces 7.40.0?, change the channel from the log
-		exists, err := isDevWorkspaceDeploymentExists(ctx)
-		if err != nil {
-			return reconcile.Result{Requeue: true}, false, err
-		}
-		if !exists {
-			// Don't allow to deploy a new DevWorkspace operator
-			return reconcile.Result{}, false, fmt.Errorf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
-		}
-
-		// Allow existed Eclipse Che and DevWorkspace deployments to work
-		// event though is not allowed (for backward compatibility)
-		logrus.Warnf("To enable DevWorkspace engine, deploy Eclipse Che from tech-preview channel.")
 	}
 
 	isCreated, err := createDwNamespace(ctx)

@@ -11,38 +11,30 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-# exit immediately when a command fails
 set -e
-# only exit with zero if all commands of the pipeline exit successfully
-set -o pipefail
-# error on unset variables
-set -u
+set -x
 
 export CHE_REPO_BRANCH="main"
 
-deployChe() {
-  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
-  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE:-"quay.io/eclipse/che-operator:next"}
-
-  chectl server:deploy \
-    --batch \
-    --platform openshift \
-    --templates=${TEMPLATES} \
-    --telemetry=off \
-    --installer=operator \
-    --workspace-engine=dev-workspace \
-    --che-operator-image=${OPERATOR_IMAGE}
-}
-
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-
 source <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/common.sh)
 
-trap "collectLogs" EXIT SIGINT
+#Stop execution on any error
+trap "catchFinish" EXIT SIGINT
+
+overrideDefaults() {
+  # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
+  export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
+}
+
+deployChe() {
+  deployEclipseCheOnWithOperator "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
+}
 
 initDefaults
-initLatestTemplates
+initTemplates
+overrideDefaults
 deployChe
 
 bash <(curl -s https://raw.githubusercontent.com/eclipse/che/${CHE_REPO_BRANCH}/tests/devworkspace-happy-path/remote-launch.sh)

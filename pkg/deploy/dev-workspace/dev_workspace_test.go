@@ -14,7 +14,6 @@ package devworkspace
 import (
 	"context"
 	"os"
-	"strings"
 
 	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -144,34 +143,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			assert.True(t, done, "Dev Workspace operator has not been provisioned")
 		})
 	}
-}
-
-func TestShouldNotReconcileDevWorkspaceIfForbidden(t *testing.T) {
-	cheCluster := &orgv1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "eclipse-che",
-			Name:      "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-				Enable: true,
-			},
-		},
-	}
-
-	deployContext := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})
-
-	util.IsOpenShift = true
-	util.IsOpenShift4 = true
-	err := os.Setenv("ALLOW_DEVWORKSPACE_ENGINE", "false")
-	assert.NoError(t, err)
-
-	devWorkspaceReconciler := NewDevWorkspaceReconciler()
-	_, done, err := devWorkspaceReconciler.Reconcile(deployContext)
-
-	assert.False(t, done, "DevWorkspace should not be reconciled")
-	assert.NotNil(t, err, "Error expected")
-	assert.True(t, strings.Contains(err.Error(), "deploy Eclipse Che from tech-preview channel"), "Unrecognized error occurred %v", err)
 }
 
 func TestShouldReconcileDevWorkspaceIfDevWorkspaceDeploymentExists(t *testing.T) {

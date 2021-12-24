@@ -271,10 +271,6 @@ func DefaultConsoleLinkName() string {
 	return getDefaultFromEnv("CONSOLE_LINK_NAME")
 }
 
-func IsDevWorkspaceEngineAllowed() bool {
-	return getDefaultFromEnv("ALLOW_DEVWORKSPACE_ENGINE") == "true"
-}
-
 func DefaultConsoleLinkDisplayName() string {
 	return getDefaultFromEnv("CONSOLE_LINK_DISPLAY_NAME")
 }

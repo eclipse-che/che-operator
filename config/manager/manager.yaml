@@ -123,8 +123,6 @@ spec:
               value: ca-certs
             - name: MAX_CONCURRENT_RECONCILES
               value: "1"
-            - name: ALLOW_DEVWORKSPACE_ENGINE
-              value: "true"
             - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
               value: "false"
           livenessProbe:

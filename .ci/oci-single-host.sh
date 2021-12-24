@@ -16,16 +16,11 @@
 ##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
 #######################################################################################################################################################
 
-# exit immediately when a command fails
 set -e
-# only exit with zero if all commands of the pipeline exit successfully
-set -o pipefail
-# error on unset variables
-set -u
+set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}"/.github/bin/oauth-provision.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -33,24 +28,18 @@ trap "catchFinish" EXIT SIGINT
 overrideDefaults() {
   # CI_CHE_OPERATOR_IMAGE it is che operator image builded in openshift CI job workflow. More info about how works image dependencies in ci:https://github.com/openshift/ci-tools/blob/master/TEMPLATES.md#parameters-available-to-templates
   export OPERATOR_IMAGE=${CI_CHE_OPERATOR_IMAGE}
-  export CHE_EXPOSURE_STRATEGY="single-host"
 }
 
 runTests() {
-  # create namespace
-  oc create namespace eclipse-che || true
+  oc create namespace ${NAMESPACE} || true
 
-  # Deploy Eclipse Che applying CR
-  applyOlmCR
+  useCustomOperatorImageInCSV ${OPERATOR_IMAGE}
+  createEclipseCheCRFromCSV
+
   waitEclipseCheDeployed "next"
-  provisionOAuth
-  startNewWorkspace
-  waitWorkspaceStart
+  waitDevWorkspaceControllerStarted
 }
 
 initDefaults
 overrideDefaults
-provisionOpenShiftOAuthUser
-patchEclipseCheOperatorImage
-printOlmCheObjects
 runTests

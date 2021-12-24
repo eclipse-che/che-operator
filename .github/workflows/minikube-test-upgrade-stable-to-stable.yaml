@@ -1,0 +1,43 @@
+#
+# Copyright (c) 2019-2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+# Contributors:
+#   Red Hat, Inc. - initial API and implementation
+#
+
+name: Upgrade stable to stable
+on:
+  pull_request:
+    branches:
+     - 7.*
+jobs:
+  upgrade-stable-to-stable-on-minikube:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2.3.1
+    - name: Start minikube cluster
+      id: run-minikube
+      uses: che-incubator/setup-minikube-action@next
+      with:
+        minikube-version: v1.23.2
+    - name: Enable Private registry
+      run: /bin/bash olm/minikube-registry-addon.sh &
+    - name: Install yq
+      run: sudo pip install yq
+    - name: Install chectl
+      run: bash <(curl -sL https://www.eclipse.org/che/chectl/) --channel=next
+    - name: Run tests
+      run: /bin/bash .github/bin/minikube/test-upgrade-from-stable-to-stable.sh
+      env:
+        "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
+    - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
+      with:
+        name: artifacts
+        path: /tmp/artifacts-che

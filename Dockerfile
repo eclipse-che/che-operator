@@ -15,6 +15,7 @@ ENV GOPATH=/go/
 ENV RESTIC_TAG=v0.12.0
 ARG DEV_WORKSPACE_CONTROLLER_VERSION="v0.9.0"
 ARG DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
+ARG TESTS="true"
 USER root
 
 # upstream, download zips for every build
@@ -49,15 +50,13 @@ COPY main.go main.go
 COPY vendor/ vendor/
 COPY mocks/ mocks/
 COPY api/ api/
-COPY templates/ templates/
 COPY config/ config/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
 
 # build operator
 RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    export MOCK_API=true && \
-    go test -mod=vendor -v ./... && \
+    if [[ ${TESTS} == "true" ]]; then export MOCK_API=true && go test -mod=vendor -v ./...; fi && \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on go build -mod=vendor -a -o che-operator main.go
 
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
@@ -71,7 +70,6 @@ COPY --from=builder /tmp/devworkspace-operator/templates /tmp/devworkspace-opera
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
 COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
-COPY --from=builder /che-operator/templates/*.sh /tmp/
 COPY --from=builder /che-operator/che-operator /manager
 
 WORKDIR /

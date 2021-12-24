@@ -240,7 +240,6 @@ fmt: add-license-download ## Run go fmt against code.
 		-not -path "./mocks/*" \
 		-not -path "./vendor/*" \
 		-not -path "./testbin/*" \
-		-not -path "./bundle/tech-preview-stable-all-namespaces/*" \
 		-not -path "./bundle/stable/*" \
 		-not -path "./config/manager/controller_manager_config.yaml" \
 		\( -name '*.sh' -o -name "*.go" -o -name "*.yaml" -o -name "*.yml" \))
@@ -289,14 +288,6 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
 prepare-templates:
-	echo "[INFO] Copying Che Operator ./templates ..."
-	cp templates/keycloak-provision.sh /tmp/keycloak-provision.sh
-	cp templates/delete-identity-provider.sh /tmp/delete-identity-provider.sh
-	cp templates/create-github-identity-provider.sh /tmp/create-github-identity-provider.sh
-	cp templates/oauth-provision.sh /tmp/oauth-provision.sh
-	cp templates/keycloak-update.sh /tmp/keycloak-update.sh
-	echo "[INFO] Copying Che Operator ./templates completed."
-
 	# Download Dev Workspace operator templates
 	echo "[INFO] Downloading Dev Workspace operator templates ..."
 	rm -f /tmp/devworkspace-operator.zip
@@ -367,7 +358,6 @@ create-env-file: prepare-templates
 	CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 	if [ -n $${CLUSTER_API_URL} ]; then
 		echo "CLUSTER_API_URL='$${CLUSTER_API_URL}'" >> "${ENV_FILE}"
-		echo "ALLOW_DEVWORKSPACE_ENGINE='true'" >> "${ENV_FILE}"
 		echo "[INFO] Set up cluster api url: $${CLUSTER_API_URL}"
 	fi;
 	echo "WATCH_NAMESPACE='${ECLIPSE_CHE_NAMESPACE}'" >> "${ENV_FILE}"
@@ -495,12 +485,13 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	cd config/manager && $(KUSTOMIZE) edit set image quay.io/eclipse/che-operator:next=$(IMG) && cd ../..
 	$(KUSTOMIZE) build config/platforms/openshift | \
 	$(OPERATOR_SDK_BINARY) generate bundle \
-	-q --overwrite \
+	--quiet \
+	--overwrite \
 	--version $${newNextBundleVersion} \
 	--package $${BUNDLE_PACKAGE} \
 	--output-dir $${BUNDLE_DIR} \
-	--channels=$(channel) \
-	--default-channel=$(channel)
+	--channels $(channel) \
+	--default-channel $(channel)
 
 	rm -rf bundle.Dockerfile
 
@@ -584,23 +575,7 @@ bundle: generate manifests kustomize ## Generate bundle manifests and metadata, 
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
 
-	# set InstallMode for next-all-namespaces
-	if [ "$${channel}" = "next-all-namespaces" ]; then
-		yq -Yi '.spec.installModes[] |= if .type=="OwnNamespace" then .supported |= false else . end' "$${NEW_CSV}"
-		yq -Yi '.spec.installModes[] |= if .type=="SingleNamespace" then .supported |= false else . end' "$${NEW_CSV}"
-		yq -Yi '.spec.installModes[] |= if .type=="MultiNamespace" then .supported |= false else . end' "$${NEW_CSV}"
-		yq -Yi '.spec.installModes[] |= if .type=="AllNamespaces" then .supported |= true else . end' "$${NEW_CSV}"
-		yq -rYi '.metadata.annotations["operatorframework.io/suggested-namespace"] |= "openshift-operators"' "$${NEW_CSV}"
-
-		# Enable by default devWorkspace engine in `next-all-namespaces` channel
-		CSV_CR_SAMPLES=$$(yq -r ".metadata.annotations[\"alm-examples\"] | \
-				fromjson | \
-				( .[] | select(.kind == \"CheCluster\") | .spec.devWorkspace.enable) |= true" $${NEW_CSV} |  sed -r 's/"/\\"/g')
-		yq -riY ".metadata.annotations[\"alm-examples\"] = \"$${CSV_CR_SAMPLES}\"" $${NEW_CSV}
-
-		# Set specific OpenShift version
-		printf "\n  com.redhat.openshift.versions: \"v4.8\"" >> $${BUNDLE_PATH}/metadata/annotations.yaml
-	fi
+	printf "\n  com.redhat.openshift.versions: \"v4.8\"" >> $${BUNDLE_PATH}/metadata/annotations.yaml
 
 	# Base cluster service version file has got correctly sorted CRDs.
 	# They are sorted with help of annotation markers in the api type files ("api/v1" folder).
@@ -685,10 +660,7 @@ get-next-version-increment:
 
 update-resources: SHELL := /bin/bash
 update-resources: check-requirements update-resource-images update-roles update-helmcharts
-	for channel in 'next-all-namespaces' 'next'
-	do
-		$(MAKE) bundle channel=$${channel}
-	done
+	$(MAKE) bundle channel=next
 
 update-helmcharts: SHELL := /bin/bash
 update-helmcharts: add-license-download check-requirements update-resource-images update-roles
