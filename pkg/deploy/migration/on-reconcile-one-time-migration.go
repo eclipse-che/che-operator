@@ -71,7 +71,12 @@ func (m *Migrator) migrate(ctx *deploy.DeployContext) (bool, error) {
 		return false, err
 	}
 
-	if err := addPartOfLabelForObjectsWithInstanceCheLabel(ctx); err != nil {
+	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
+	if err := addPartOfCheLabelForObjectsWithLabel(ctx, deploy.KubernetesInstanceLabelKey, cheFlavor); err != nil {
+		return false, err
+	}
+
+	if err := addPartOfCheLabelForObjectsWithLabel(ctx, "app", cheFlavor); err != nil {
 		return false, err
 	}
 
@@ -204,13 +209,11 @@ func setPartOfLabel(obj client.Object) client.Object {
 	return obj
 }
 
-// addPartOfLabelForObjectsWithInstanceCheLabel searches for objects in Che installation namespace,
-// that have 'app.kubernetes.io/instance=che' label and adds 'app.kubernetes.io/part-of=che.eclipse.org'
-func addPartOfLabelForObjectsWithInstanceCheLabel(ctx *deploy.DeployContext) error {
-	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
-
+// addPartOfCheLabelForObjectsWithLabel searches for objects in Che installation namespace,
+// that have given label and adds 'app.kubernetes.io/part-of=che.eclipse.org'
+func addPartOfCheLabelForObjectsWithLabel(ctx *deploy.DeployContext, labelKey string, labelValue string) error {
 	// Prepare selector for all instance=che objects in the installation namespace
-	instanceCheSelectorRequirement, err := labels.NewRequirement(deploy.KubernetesInstanceLabelKey, selection.Equals, []string{cheFlavor})
+	instanceCheSelectorRequirement, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelValue})
 	if err != nil {
 		logrus.Error(getFailedToCreateSelectorErrorMessage())
 		return err
