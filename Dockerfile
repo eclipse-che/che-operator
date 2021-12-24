@@ -63,8 +63,8 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
 # https://access.redhat.com/containers/?tab=tags#/registry.access.redhat.com/ubi8-minimal
 FROM registry.access.redhat.com/ubi8-minimal:8.5-204
 
-# install httpd-tools for /usr/bin/htpasswd
-RUN microdnf install -y httpd-tools && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
+# install httpd-tools for /usr/bin/htpasswd and ssh client to connect to sftp server
+RUN microdnf install -y httpd-tools openssh-clients && microdnf -y update && microdnf -y clean all && rm -rf /var/cache/yum && echo "Installed Packages" && rpm -qa | sort -V && echo "End Of Installed Packages" && \
     mkdir ~/.ssh && chmod 0766  ~/.ssh
 
 COPY --from=builder /tmp/devworkspace-operator/templates /tmp/devworkspace-operator/templates
@@ -75,8 +75,19 @@ COPY --from=builder /che-operator/templates/*.sh /tmp/
 COPY --from=builder /che-operator/che-operator /manager
 
 WORKDIR /
-USER 65532:65532
+RUN \
+  # In case of Openshift, allow random user add itself into /etc/passwd
+  chmod g=u /etc/passwd && \
+  # sed replaces file, so need permissions to write in parent directory
+  chmod g+w /etc/ && \
+  # Add user record template into /etc/passwd which is ready in case of Kubernetes
+  echo "operator:x:65532:0:Che operator user:/tmp/:/sbin/nologin" >> /etc/passwd
 
-ENTRYPOINT ["/manager"]
+USER 65532:65532
+# Make home directory writable
+env HOME=/tmp/
+
+# If current user has random ID (usually Openshift), put correct user ID into passwd and run Che Operator
+ENTRYPOINT ['sh', '-c', 'if [ $(id -u) != 65532 ] && [ -w /etc/passwd ]; then sed -i "s/:x:65532:/:x:$(id -u):/g" /etc/passwd ; fi ; /manager']
 
 # append Brew metadata here - see https://github.com/redhat-developer/codeready-workspaces-images/blob/crw-2-rhel-8/crw-jenkins/jobs/CRW_CI/crw-operator_2.x.jenkinsfile
