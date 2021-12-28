@@ -74,7 +74,7 @@ func (ip *IdentityProviderReconciler) Reconcile(ctx *deploy.DeployContext) (reco
 	if ctx.CheCluster.IsNativeUserModeEnabled() {
 		done, err := syncNativeIdentityProviderItems(ctx)
 		if !done {
-			return reconcile.Result{}, false, err
+			return reconcile.Result{Requeue: true}, false, err
 		}
 		return reconcile.Result{}, true, nil
 	}
