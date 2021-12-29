@@ -12,7 +12,6 @@
 #
 
 set -e
-set -x
 
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 
@@ -63,8 +62,21 @@ init() {
 }
 
 usage () {
-	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|stable) -i CATALOG_IMAGE [-f]"
-	echo "Example: $0 -p openshift -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -f"
+  echo "Build and push custom catalog and bundle images."
+  echo
+	echo "Usage:"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-o OPERATOR_IMAGE] [--force]"
+  echo
+  echo "OPTIONS:"
+  echo -e "\t-i,--catalog-image       Catalog image to build"
+  echo -e "\t-c,--channel=next|stable Olm channel to build bundle from"
+  echo -e "\t-o,--operator-image      Operator image to include into bundle"
+  echo -e "\t-f,--force               Force to rebuild a bundle"
+  echo
+	echo "Example:"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -c next"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -c next -f"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -c stable"
 }
 
 buildBundle() {
@@ -106,6 +118,105 @@ isCatalogExists() {
   CATALOG_TAG=$(echo $CATALOG_IMAGE | rev | cut -d ':' -f1 | rev)
   skopeo inspect docker://${CATALOG_IMAGE} 2>/dev/null | jq -r ".RepoTags[]|select(. == \"${CATALOG_TAG}\")" | wc -l
 }
+
+buildBundleImage() {
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${1}"
+  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
+    echo "[ERROR] 'opm bundle' is not specified"
+    exit 1
+  fi
+  channel="${2}"
+  if [ -z "${channel}" ]; then
+    echo "[ERROR] 'channel' is not specified"
+    exit 1
+  fi
+  imageTool="${3}"
+  if [ -z "${imageTool}" ]; then
+    echo "[ERROR] 'imageTool' is not specified"
+    exit 1
+  fi
+
+  echo "[INFO] build bundle image"
+
+  pushd "${ROOT_DIR}" || exit
+
+  make bundle-build bundle-push channel="${channel}" BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" IMAGE_TOOL="${imageTool}"
+  popd || exit
+}
+
+buildCatalogImage() {
+  CATALOG_IMAGENAME="${1}"
+  if [ -z "${CATALOG_IMAGENAME}" ]; then
+    echo "[ERROR] Please specify first argument: 'catalog image'"
+    exit 1
+  fi
+
+  CATALOG_BUNDLE_IMAGE_NAME_LOCAL="${2}"
+  if [ -z "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" ]; then
+    echo "[ERROR] Please specify second argument: 'opm bundle image'"
+    exit 1
+  fi
+
+  imageTool="${3}"
+  if [ -z "${imageTool}" ]; then
+    echo "[ERROR] Please specify third argument: 'image tool'"
+    exit 1
+  fi
+
+  forceBuildAndPush="${4}"
+  if [ -z "${forceBuildAndPush}" ]; then
+    echo "[ERROR] Please specify fourth argument: 'force build and push: true or false'"
+    exit 1
+  fi
+
+  # optional argument
+  FROM_INDEX=${5:-""}
+  BUILD_INDEX_IMAGE_ARG=""
+  if [ ! "${FROM_INDEX}" == "" ]; then
+    BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
+  fi
+
+  SKIP_TLS_ARG=""
+  SKIP_TLS_VERIFY=""
+  if [ "${imageTool}" == "podman" ]; then
+    SKIP_TLS_ARG=" --skip-tls"
+    SKIP_TLS_VERIFY=" --tls-verify=false"
+  fi
+
+  pushd "${ROOT_DIR}" || exit
+
+  INDEX_ADD_CMD="make catalog-build \
+    CATALOG_IMG=\"${CATALOG_IMAGENAME}\" \
+    BUNDLE_IMG=\"${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}\" \
+    IMAGE_TOOL=\"${imageTool}\" \
+    FROM_INDEX_OPT=\"${BUILD_INDEX_IMAGE_ARG}\""
+
+  exitCode=0
+  # Execute command and store an error output to the variable for following handling.
+  {
+    output="$(eval "${INDEX_ADD_CMD}" 2>&1 1>&3 3>&-)"; } 3>&1 || \
+    {
+      exitCode="$?";
+      echo "[INFO] ${exitCode}";
+      true;
+    }
+    echo "${output}"
+  if [[ "${output}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
+    echo "[INFO] Ignore error 'Bundle already added'"
+    # Catalog bundle image contains bundle reference, continue without unnecessary push operation
+    return
+  else
+    echo "[INFO] ${exitCode}"
+    if [ "${exitCode}" != 0 ]; then
+      exit "${exitCode}"
+    fi
+  fi
+
+  make catalog-push CATALOG_IMG="${CATALOG_IMAGENAME}"
+
+  popd || exit
+}
+
 
 init $@
 installOPM

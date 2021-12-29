@@ -11,6 +11,8 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
+set -e
+
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 
 if [ -z "${OPERATOR_REPO}" ]; then
@@ -18,12 +20,12 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
 fi
 source "${OPERATOR_REPO}"/olm/olm.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 init() {
+  NAMESPACE="eclipse-che"
   unset CHANNEL
   unset CATALOG_IMAGE
-  unset OPERATOR_IMAGE
-  unset NAMESPACE
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -35,42 +37,51 @@ init() {
     shift 1
   done
 
-  if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]] || [[ ! ${NAMESPACE} ]]; then usage; exit 1; fi
+  if [[ ! ${CHANNEL} ]] || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 }
 
 usage () {
-	echo "Usage:   $0 -c (next|stable) -i CATALOG_IMAGE -n NAMESPACE"
-	echo "Example: $0 -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n eclipse-che"
+  echo "Deploy and update Eclipse Che from a custom catalog."
+  echo
+	echo "Usage:"
+	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-n NAMESPACE]"
+  echo
+  echo "OPTIONS:"
+  echo -e "\t-i,--catalog-image       Catalog image"
+  echo -e "\t-c,--channel             Olm channel to deploy Eclipse Che from"
+  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namepsace to deploy Eclipse Che into"
+  echo
+	echo "Example:"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -c next"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -c stable"
 }
 
 run() {
   createNamespace "${NAMESPACE}"
-  installOperatorMarketPlace
-  installCatalogSource "${NAMESPACE}" "${CATALOG_IMAGE}"
+  createCatalogSource "custom-eclipse-che-catalog" "${CATALOG_IMAGE}"
 
-  getBundleListFromCatalogSource "${NAMESPACE}"
-  getPreviousCSVInfo "${CHANNEL}"
-  getLatestCSVInfo "${CHANNEL}"
-
-  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
+  local bundles=$(getCatalogSourceBundles "custom-eclipse-che-catalog")
+  fetchPreviousCSVInfo "${CHANNEL}" "${bundles}"
+  fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
 
   if [ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]; then
-    echo "[ERROR] Nothing to update. OLM channel '${channel}' contains only one bundle."
+    echo "[ERROR] Nothing to update. OLM channel '${channel}' contains only one bundle '${LATEST_CSV_BUNDLE_IMAGE}'"
     exit 1
   fi
 
-  forcePullingOlmImages "${NAMESPACE}" "${PREVIOUS_CSV_BUNDLE_IMAGE}"
-  forcePullingOlmImages "${NAMESPACE}" "${LATEST_CSV_BUNDLE_IMAGE}"
+  forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
+  forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  subscribeToInstallation "${NAMESPACE}" "${CHANNEL}" "${PREVIOUS_CSV_NAME}"
-  installPackage "${NAMESPACE}"
-  echo "[INFO] Installation of the previous che-operator version: ${PREVIOUS_CSV_NAME} successfully completed"
+  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
+  createSubscription "eclipse-che-operator" $(getPackageName) "${CHANNEL}" "custom-eclipse-che-catalog" "Manual" "${PREVIOUS_CSV_NAME}"
+  approveInstallPlan "eclipse-che-operator"
 
-  applyCheClusterCR ${PREVIOUS_CSV_NAME}
-  waitCheServerDeploy "${NAMESPACE}"
+  exit
+  createEclipseCheCRFromCSV
+  waitEclipseCheDeployed
 
-  installPackage "${NAMESPACE}"
-  echo "[INFO] Installation of the latest che-operator version: ${LATEST_CSV_NAME} successfully completed"
+  approveInstallPlan "eclipse-che-operator"
+  waitEclipseCheDeployed
 }
 
 init "$@"
