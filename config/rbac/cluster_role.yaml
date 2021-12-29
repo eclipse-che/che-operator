@@ -578,14 +578,6 @@ rules:
     - update
     - watch
   - apiGroups:
-    - config.openshift.io
-    resourceNames:
-    - cluster
-    resources:
-    - proxies
-    verbs:
-    - get
-  - apiGroups:
     - controller.devfile.io
     resources:
     - '*'

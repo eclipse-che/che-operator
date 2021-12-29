@@ -691,7 +691,7 @@ update-resources: check-requirements update-resource-images update-roles update-
 	done
 
 update-helmcharts: SHELL := /bin/bash
-update-helmcharts: add-license-download check-requirements update-resource-images update-roles
+update-helmcharts: add-license-download check-requirements
 	helmFolder=$(HELM_FOLDER)
 	if [ -z "$${helmFolder}" ]; then
 		helmFolder="next"
