@@ -308,10 +308,10 @@ run() {
   checkoutToReleaseBranch
   updateVersionFile
   releaseOperatorCode
-  releaseHelmPackage
   if [[ $RELEASE_OLM_FILES == "true" ]]; then
     releaseOlmFiles
   fi
+  releaseHelmPackage
 }
 
 init "$@"
