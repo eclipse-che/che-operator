@@ -36,7 +36,7 @@ runTests() {
   useCustomOperatorImageInCSV ${OPERATOR_IMAGE}
   createEclipseCheCRFromCSV
 
-  waitEclipseCheDeployed "next"
+  waitEclipseCheDeployed
   waitDevWorkspaceControllerStarted
 }
 

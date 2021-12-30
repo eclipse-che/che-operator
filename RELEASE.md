@@ -49,29 +49,7 @@ Login using HTPassword then allow selected permissions. Validate that the releas
 
 Merge pull request into .x and main branches.
 
-## 4. Testing release on minishift (when chectl is released)
-
-Login to local minishift cluster:
-
-```bash
-oc login <LOCAL_MINISHIFT_CLUSTER_ADDRESS>
-```
-
-Install the previous version of Eclipse Che using the corresponding version of `chectl`:
-
-```bash
-chectl server:deploy --platform=minishift  --installer=operator
-```
-
-Update Eclipse Che to the latest version. Validate that the correct version is installed and workspace can be created:
-
-```bash
-chectl update stable
-chectl server:update --platform=minishift  --installer=operator
-xdg-open http://$(kubectl get ingress -n che | grep ^che | awk -F ' ' '{ print $2 }')
-```
-
-## 5. Prepare community operator PR
+## 4. Prepare community operator PR
 
 See `release-community-operator-PRs.yml` workflow, which will be triggered automatically, once release PRs are merged.
 Alternatively, it can be run manually:

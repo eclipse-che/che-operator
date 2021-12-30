@@ -69,14 +69,13 @@ run() {
     exit 1
   fi
 
+  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  echo "[INFO] Test update from version: ${PREVIOUS_CSV_BUNDLE_IMAGE} to: ${LATEST_CSV_BUNDLE_IMAGE}"
   createSubscription "eclipse-che-operator" $(getPackageName) "${CHANNEL}" "custom-eclipse-che-catalog" "Manual" "${PREVIOUS_CSV_NAME}"
   approveInstallPlan "eclipse-che-operator"
 
-  exit
   createEclipseCheCRFromCSV
   waitEclipseCheDeployed
 

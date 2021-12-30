@@ -133,7 +133,7 @@
             "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; export IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:next\";make bundle IMG=\"${IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\" -s; make bundle-build bundle-push -s BUNDLE_IMG=\"${BUNDLE_IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\"",
             "type": "shell",
             "args": [],
-            "options": {  
+            "options": {
             "env": {
                     "PLATFORM": "kubernetes",
                     "CHANNEL": "next",
@@ -152,7 +152,7 @@
             "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:next\"; make bundle IMG=\"${IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\" -s; make bundle-build bundle-push -s BUNDLE_IMG=\"${BUNDLE_IMG}\" platform=\"${PLATFORM}\" channel=\"${CHANNEL}\"",
             "type": "shell",
             "args": [],
-            "options": {  
+            "options": {
             "env": {
                     "PLATFORM": "openshift",
                     "CHANNEL": "next",
@@ -303,18 +303,5 @@
             },
             "group": "build"
         },
-        {
-            "label": "[CRD beta(Minishift)] Await debugger attach for che-operator",
-            "command": "make debug -s ECLIPSE_CHE_CRD='config/crd/bases/org_v1_che_crd-v1beta1.yaml'",
-            "type": "shell",
-            "args": [],
-            "problemMatcher": [
-                "$go"
-            ],
-            "presentation": {
-                "reveal": "always"
-            },
-            "group": "build"
-        }
     ]
 }
