@@ -13,6 +13,7 @@ package postgres
 
 import (
 	"fmt"
+	"strings"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -222,7 +223,7 @@ func getPostgresImage(clusterDeployment *appsv1.Deployment, cheCluster *orgv1.Ch
 		return cheCluster.Spec.Database.PostgresImage, nil
 	} else if cheCluster.Spec.Database.PostgresVersion == PostgresVersion9_6 {
 		return deploy.DefaultPostgresImage(cheCluster), nil
-	} else if cheCluster.Spec.Database.PostgresVersion == PostgresVersion13_3 {
+	} else if strings.HasPrefix(cheCluster.Spec.Database.PostgresVersion, "13.") {
 		return deploy.DefaultPostgres13Image(cheCluster), nil
 	} else if cheCluster.Spec.Database.PostgresVersion == "" {
 		if clusterDeployment == nil {
