@@ -70,7 +70,8 @@ run() {
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  createSubscription "eclipse-che-operator" $(getPackageName) ${CHANNEL} "custom-eclipse-che-catalog" "Auto"
+  createSubscription "eclipse-che-operator" $(getPackageName) ${CHANNEL} "custom-eclipse-che-catalog" "Manual"
+  approveInstallPlan "eclipse-che-operator"
 
   createEclipseCheCRFromCSV
   waitEclipseCheDeployed
