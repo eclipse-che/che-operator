@@ -14,8 +14,9 @@ package gateway
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
