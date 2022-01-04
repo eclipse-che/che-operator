@@ -58,6 +58,11 @@ usage () {
 
 run() {
   createNamespace "${NAMESPACE}"
+
+  if [[ ${CHANNEL} == "next" ]]; then
+    deployDevWorkspaceOperatorFromFastChannel
+  fi
+
   createCatalogSource "custom-eclipse-che-catalog" "${CATALOG_IMAGE}"
 
   local bundles=$(getCatalogSourceBundles "custom-eclipse-che-catalog")
@@ -79,10 +84,10 @@ run() {
   sleep 10s
 
   echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed ${PREVIOUS_PACKAGE_VERSION}
+  waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
 
   approveInstallPlan "eclipse-che-operator"
-  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
+  waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
 }
 
 init "$@"

@@ -243,9 +243,11 @@ updateEclipseChe() {
 }
 
 waitEclipseCheDeployed() {
+  set -x
   local version=$1
-  export n=0
+  echo "[INFO] Wait for Eclipse Che '${version}' version"
 
+  export n=0
   while [ $n -le 500 ]
   do
     cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
@@ -253,7 +255,7 @@ waitEclipseCheDeployed() {
     oc get pods -n ${NAMESPACE}
     if [ "${cheVersion}" == "${version}" ] && [ "${cheIsRunning}" == "Available" ]
     then
-      echo "Eclipse Che ${version} has been succesfully deployed"
+      echo "[INFO] Eclipse Che '${version}' version has been succesfully deployed"
       break
     fi
     sleep 6
@@ -262,7 +264,7 @@ waitEclipseCheDeployed() {
 
   if [ $n -gt 360 ]
   then
-    echo "Failed to deploy Eclipse Che ${version}"
+    echo "[ERROR] Failed to deploy Eclipse Che '${version}' verion"
     exit 1
   fi
 }
@@ -386,7 +388,6 @@ deployDevWorkspaceOperatorFromFastChannel() {
   createCatalogSource "custom-devworkspace-catalog" "quay.io/devfile/devworkspace-operator-index:next"
   createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "custom-devworkspace-catalog" "Auto"
 
-  echo "[INFO] Wait for Dev Workspace controller started."
   waitDevWorkspaceControllerStarted
 }
 
