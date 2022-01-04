@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -140,6 +142,16 @@ func getOauthProxyContainerSpec(instance *orgv1.CheCluster) corev1.Container {
 			{
 				Name:      "oauth-proxy-config",
 				MountPath: "/etc/oauth-proxy",
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
+				corev1.ResourceCPU:    resource.MustParse("0.5"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("64Mi"),
+				corev1.ResourceCPU:    resource.MustParse("0.1"),
 			},
 		},
 		Ports: []corev1.ContainerPort{

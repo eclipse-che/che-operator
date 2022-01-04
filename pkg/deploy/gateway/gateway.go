@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/sirupsen/logrus"
@@ -535,11 +537,31 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 			Image:           gatewayImage,
 			ImagePullPolicy: corev1.PullAlways,
 			VolumeMounts:    getTraefikContainerVolumeMounts(instance),
+			Resources: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("4Gi"),
+					corev1.ResourceCPU:    resource.MustParse("1"),
+				},
+				Requests: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("128Mi"),
+					corev1.ResourceCPU:    resource.MustParse("0.1"),
+				},
+			},
 		},
 		{
 			Name:            "configbump",
 			Image:           configSidecarImage,
 			ImagePullPolicy: corev1.PullAlways,
+			Resources: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("256Mi"),
+					corev1.ResourceCPU:    resource.MustParse("0.5"),
+				},
+				Requests: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("64Mi"),
+					corev1.ResourceCPU:    resource.MustParse("0.05"),
+				},
+			},
 			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "dynamic-config",
