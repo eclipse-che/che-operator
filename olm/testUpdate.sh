@@ -76,11 +76,13 @@ run() {
   createSubscription "eclipse-che-operator" $(getPackageName) "${CHANNEL}" "custom-eclipse-che-catalog" "Manual" "${PREVIOUS_CSV_NAME}"
   approveInstallPlan "eclipse-che-operator"
 
-  createEclipseCheCRFromCSV
-  waitEclipseCheDeployed
+  sleep 10s
+
+  echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed ${PREVIOUS_PACKAGE_VERSION}
 
   approveInstallPlan "eclipse-che-operator"
-  waitEclipseCheDeployed
+  waitEclipseCheDeployed ${LAST_PACKAGE_VERSION}
 }
 
 init "$@"

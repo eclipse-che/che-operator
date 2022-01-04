@@ -272,15 +272,21 @@ useCustomOperatorImageInCSV() {
   oc patch csv $(getCSVName) -n ${NAMESPACE} --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
 }
 
-createEclipseCheCRFromCSV() {
-  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" | oc apply -n "${NAMESPACE}" -f -
+getCheClusterCRFromExistedCSV() {
+  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")"
+}
+
+getCheVersionFromExistedCSV() {
+  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value'
 }
 
 getCSVName() {
-  echo $(oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}')
+  oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}'
 }
 
 waitDevWorkspaceControllerStarted() {
+  echo "[INFO] Wait for Dev Workspace controller started"
+
   n=0
   while [ $n -le 24 ]
   do
@@ -339,27 +345,8 @@ spec:
       interval: 5m
 EOF
 
-  waitForPodReady "olm.catalogSource=${name}" "openshift-operators"
-}
-
-waitForPodReady() {
-  local selector=${1}
-  local namespace=${2}
-
-  echo "[INFO] Waiting for pod '${selector}' in namespace '${namespace}'"
-
-  while [[ $(kubectl get pod -l ${selector} -n ${namespace} -o go-template='{{len .items}}') == 0 ]]
-  do
-    echo "[INFO] Waiting..."
-    n=$(( n+1 ))
-    if [[ $n == 12 ]]; then
-      echo "[ERROR] Pod not found..."
-      exit 1
-    fi
-
-    sleep 10s
-  done
-  kubectl wait --for=condition=ready pod -l ${selector} -n ${namespace} --timeout=120s
+  sleep 10s
+  kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n "openshift-operators" --timeout=120s
 }
 
 createSubscription() {

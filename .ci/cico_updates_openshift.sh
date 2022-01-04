@@ -22,7 +22,6 @@ trap "catchFinish" EXIT SIGINT
 
 runTests() {
   "${OPERATOR_REPO}"/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE}
-  waitEclipseCheDeployed
 }
 
 initDefaults
