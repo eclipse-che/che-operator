@@ -164,6 +164,19 @@ func TestGetPostgresImage(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Database: orgv1.CheClusterSpecDB{
+						PostgresVersion: "13.5",
+					},
+				},
+			},
+			expectedPostgresImage: deploy.DefaultPostgres13Image(&orgv1.CheCluster{}),
+		},
+		{
+			cheCluster: &orgv1.CheCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "eclipse-che",
+				},
+				Spec: orgv1.CheClusterSpec{
+					Database: orgv1.CheClusterSpecDB{
 						PostgresVersion: "9.6",
 					},
 				},
