@@ -277,7 +277,7 @@ createEclipseCheCRFromCSV() {
 }
 
 getCSVName() {
-  echo $(oc get csv -n ${NAMESPACE} | grep $(getPackageName) | awk '{print $1}')
+  echo $(oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}')
 }
 
 waitDevWorkspaceControllerStarted() {
