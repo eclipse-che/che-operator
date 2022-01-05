@@ -399,7 +399,7 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 add-license-download: ## Download addlicense locally if necessary.
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
-add-license:
+add-license: add-license-download
 	# Get all argument and remove make goal("add-license") to get only list files
 	FILES=$$(echo $(filter-out $@,$(MAKECMDGOALS)))
 	$(ADD_LICENSE) -f hack/license-header.txt $${FILES}
