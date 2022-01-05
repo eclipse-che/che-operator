@@ -61,6 +61,8 @@ run() {
 
   if [[ ${CHANNEL} == "next" ]]; then
     deployDevWorkspaceOperatorFromFastChannel
+  else
+    deployDevWorkspaceOperatorFromNextChannel
   fi
 
   local customCatalogSource=$(getCustomCatalogSourceName)

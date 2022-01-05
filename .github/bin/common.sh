@@ -330,6 +330,8 @@ EOF
 createCatalogSource() {
   local name="${1}"
   local image="${2}"
+  local publisher="${3:-Eclipse-Che}"
+  local displayName="${4:-Eclipse Che Operator Catalog}"
 
   echo "[INFO] Create catalog source '${name}' with image '${image}'"
 
@@ -341,14 +343,16 @@ metadata:
   namespace: openshift-operators
 spec:
   sourceType: grpc
+  publisher: ${publisher}
+  displayName: ${displayName}
   image: ${image}
   updateStrategy:
     registryPoll:
-      interval: 5m
+      interval: 15m
 EOF
 
   sleep 10s
-  kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n "openshift-operators" --timeout=120s
+  kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n openshift-operators --timeout=120s
 }
 
 createSubscription() {
@@ -387,6 +391,16 @@ deployDevWorkspaceOperatorFromFastChannel() {
 
   customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
   createCatalogSource "${customDevWorkspaceCatalog}" "quay.io/devfile/devworkspace-operator-index:next"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
+
+  waitDevWorkspaceControllerStarted
+}
+
+deployDevWorkspaceOperatorFromNextChannel() {
+  echo "[INFO] Deploy Dev Workspace operator from 'stable' channel"
+
+  customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
+  createCatalogSource "${customDevWorkspaceCatalog}" "quay.io/devfile/devworkspace-operator-index:next" "Red Hat" "DevWorkspace Operator Catalog"
   createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
 
   waitDevWorkspaceControllerStarted
