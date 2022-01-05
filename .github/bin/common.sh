@@ -386,22 +386,21 @@ EOF
   fi
 }
 
-deployDevWorkspaceOperatorFromFastChannel() {
-  echo "[INFO] Deploy Dev Workspace operator from 'fast' channel"
+deployDevWorkspaceOperator() {
+  local cheChannel=${1}
+  local devWorkspaceChannel="fast"
+  local devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:next"
+
+  if [[ ${cheChannel} == "stable" ]]; then
+    devWorkspaceChannel="stable"
+    devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:next"
+  fi
+
+  echo "[INFO] Deploy Dev Workspace operator from '${devWorkspaceChannel}' channel"
 
   customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
-  createCatalogSource "${customDevWorkspaceCatalog}" "quay.io/devfile/devworkspace-operator-index:next"
-  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
-
-  waitDevWorkspaceControllerStarted
-}
-
-deployDevWorkspaceOperatorFromNextChannel() {
-  echo "[INFO] Deploy Dev Workspace operator from 'stable' channel"
-
-  customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
-  createCatalogSource "${customDevWorkspaceCatalog}" "quay.io/devfile/devworkspace-operator-index:next" "Red Hat" "DevWorkspace Operator Catalog"
-  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
+  createCatalogSource "${customDevWorkspaceCatalog}" ${devWorkspaceCatalogImage} "Red Hat" "DevWorkspace Operator Catalog"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "${devWorkspaceChannel}" "${customDevWorkspaceCatalog}" "Auto"
 
   waitDevWorkspaceControllerStarted
 }
