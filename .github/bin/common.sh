@@ -11,9 +11,6 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-set -e
-set -x
-
 catchFinish() {
   result=$?
 
@@ -246,9 +243,11 @@ updateEclipseChe() {
 }
 
 waitEclipseCheDeployed() {
+  set -x
   local version=$1
-  export n=0
+  echo "[INFO] Wait for Eclipse Che '${version}' version"
 
+  export n=0
   while [ $n -le 500 ]
   do
     cheVersion=$(oc get checluster/eclipse-che -n "${NAMESPACE}" -o "jsonpath={.status.cheVersion}")
@@ -256,7 +255,7 @@ waitEclipseCheDeployed() {
     oc get pods -n ${NAMESPACE}
     if [ "${cheVersion}" == "${version}" ] && [ "${cheIsRunning}" == "Available" ]
     then
-      echo "Eclipse Che ${version} has been succesfully deployed"
+      echo "[INFO] Eclipse Che '${version}' version has been succesfully deployed"
       break
     fi
     sleep 6
@@ -265,7 +264,7 @@ waitEclipseCheDeployed() {
 
   if [ $n -gt 360 ]
   then
-    echo "Failed to deploy Eclipse Che ${version}"
+    echo "[ERROR] Failed to deploy Eclipse Che '${version}' verion"
     exit 1
   fi
 }
@@ -275,15 +274,21 @@ useCustomOperatorImageInCSV() {
   oc patch csv $(getCSVName) -n ${NAMESPACE} --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
 }
 
-createEclipseCheCRFromCSV() {
-  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")" | oc apply -n "${NAMESPACE}" -f -
+getCheClusterCRFromExistedCSV() {
+  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")"
+}
+
+getCheVersionFromExistedCSV() {
+  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value'
 }
 
 getCSVName() {
-  echo $(oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}')
+  oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}'
 }
 
 waitDevWorkspaceControllerStarted() {
+  echo "[INFO] Wait for Dev Workspace controller started"
+
   n=0
   while [ $n -le 24 ]
   do
@@ -317,6 +322,148 @@ spec:
     registryPoll:
       interval: 30m
 EOF
-  sleep 10s
+
+  sleep 15s
   kubectl wait --for=condition=ready pod -l olm.catalogSource=community-catalog -n openshift-marketplace --timeout=120s
+}
+
+createCatalogSource() {
+  local name="${1}"
+  local image="${2}"
+
+  echo "[INFO] Create catalog source '${name}' with image '${image}'"
+
+  kubectl apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${name}
+  namespace: openshift-operators
+spec:
+  sourceType: grpc
+  image: ${image}
+  updateStrategy:
+    registryPoll:
+      interval: 5m
+EOF
+
+  sleep 10s
+  kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n "openshift-operators" --timeout=120s
+}
+
+createSubscription() {
+  local name=${1}
+  local packageName=${2}
+  local channel=${3}
+  local source=${4}
+  local installPlan=${5}
+  local startingCSV=${6}
+
+  echo "[INFO] Create subscription '${name}'"
+
+  kubectl apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: ${name}
+  namespace: openshift-operators
+spec:
+  channel: ${channel}
+  installPlanApproval: ${installPlan}
+  name: ${packageName}
+  source: ${source}
+  sourceNamespace: openshift-operators
+  startingCSV: ${startingCSV}
+EOF
+
+  sleep 10s
+  if [[ ${installPlan} == "Manual"} ]]; then
+    kubectl wait subscription/"${packageName}" -n openshift-operators --for=condition=InstallPlanPending --timeout=120s
+  fi
+}
+
+deployDevWorkspaceOperatorFromFastChannel() {
+  echo "[INFO] Deploy Dev Workspace operator from 'fast' channel"
+
+  customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
+  createCatalogSource "${customDevWorkspaceCatalog}" "quay.io/devfile/devworkspace-operator-index:next"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
+
+  waitDevWorkspaceControllerStarted
+}
+
+createNamespace() {
+  namespace="${1}"
+
+  echo "[INFO] Create namespace '${namespace}'"
+
+  kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+EOF
+}
+
+approveInstallPlan() {
+  local name="${1}"
+
+  echo "[INFO] Approve install plan '${name}'"
+
+  local installPlan=$(kubectl get subscription/${name} -n openshift-operators -o jsonpath='{.status.installplan.name}')
+  kubectl patch installplan/${installPlan} -n openshift-operators --type=merge -p '{"spec":{"approved":true}}'
+  kubectl wait installplan/${installPlan} -n openshift-operators --for=condition=Installed --timeout=240s
+}
+
+getCatalogSourceBundles() {
+  local name=${1}
+  local catalogService=$(kubectl get service "${name}" -n openshift-operators -o yaml)
+  local catalogIP=$(echo "${catalogService}" | yq -r ".spec.clusterIP")
+  local catalogPort=$(echo "${catalogService}" | yq -r ".spec.ports[0].targetPort")
+
+  LIST_BUNDLES=$(kubectl run grpcurl-query -n openshift-operators \
+  --rm=true \
+  --restart=Never \
+  --attach=true \
+  --image=docker.io/fullstorydev/grpcurl:v1.7.0 \
+  --  -plaintext "${catalogIP}:${catalogPort}" api.Registry.ListBundles
+  )
+
+  echo "${LIST_BUNDLES}" | head -n -1
+}
+
+fetchPreviousCSVInfo() {
+  local channel="${1}"
+  local bundles="${2}"
+
+  previousBundle=$(echo "${bundles}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 2]')
+  export PREVIOUS_CSV_NAME=$(echo "${previousBundle}" | yq -r ".csvName")
+  if [ "${PREVIOUS_CSV_NAME}" == "null" ]; then
+    echo "[ERROR] Catalog source image hasn't got previous bundle."
+    exit 1
+  fi
+  export PREVIOUS_CSV_BUNDLE_IMAGE=$(echo "${previousBundle}" | yq -r ".bundlePath")
+}
+
+fetchLatestCSVInfo() {
+  local channel="${1}"
+  local bundles="${2}"
+
+  latestBundle=$(echo "${bundles}" | jq -s '.' | jq ". | map(. | select(.channelName == \"${channel}\"))" | yq -r '. |=sort_by(.csvName) | .[length - 1]')
+  export LATEST_CSV_NAME=$(echo "${latestBundle}" | yq -r ".csvName")
+  export LATEST_CSV_BUNDLE_IMAGE=$(echo "${latestBundle}" | yq -r ".bundlePath")
+}
+
+# HACK. Unfortunately catalog source image bundle job has image pull policy "IfNotPresent".
+# It makes troubles for test scripts, because image bundle could be outdated with
+# such pull policy. That's why we launch job to fource image bundle pulling before Che installation.
+forcePullingOlmImages() {
+  image="${1}"
+
+  echo "[INFO] Pulling image '${image}'"
+
+  yq -r "(.spec.template.spec.containers[0].image) = \"${image}\"" "${BASE_DIR}/force-pulling-olm-images-job.yaml" | kubectl apply -f - -n openshift-operators
+
+  kubectl wait --for=condition=complete --timeout=30s job/force-pulling-olm-images-job -n openshift-operators
+  kubectl delete job/force-pulling-olm-images-job -n openshift-operators
 }

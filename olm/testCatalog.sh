@@ -20,11 +20,12 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
 fi
 source "${OPERATOR_REPO}/olm/olm.sh"
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 init() {
-  unset CHANNEL
+  NAMESPACE="eclipse-che"
+  CHANNEL="next"
   unset CATALOG_IMAGE
-  unset NAMESPACE
 
   while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -36,33 +37,51 @@ init() {
     shift 1
   done
 
-  if [[ ! ${CHANNEL} ]]  || [[ ! ${CATALOG_IMAGE} ]] || [[ ! ${NAMESPACE} ]]; then usage; exit 1; fi
+  if [[ ! ${CHANNEL} ]]  || [[ ! ${CATALOG_IMAGE} ]]; then usage; exit 1; fi
 }
 
 usage () {
-	echo "Usage:   $0 -p (openshift|kubernetes) -c (next|stable) -i CATALOG_IMAGE -n NAMESPACE"
-	echo "Example: $0 -p openshift -c next -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -n eclipse-che"
+  echo "Deploy Eclipse Che from a custom catalog."
+  echo
+	echo "Usage:"
+	echo -e "\t$0 -i CATALOG_IMAGE [-c CHANNEL] [-n NAMESPACE]"
+  echo
+  echo "OPTIONS:"
+  echo -e "\t-i,--catalog-image       Catalog image"
+  echo -e "\t-c,--channel=next|stable [default: next] Olm channel to deploy Eclipse Che from"
+  echo -e "\t-n,--namespace           [default: eclipse-che] Kubernetes namepsace to deploy Eclipse Che into"
+  echo
+	echo "Example:"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:next -c next"
+	echo -e "\t$0 -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -c stable"
 }
 
 run() {
   createNamespace ${NAMESPACE}
-  installOperatorMarketPlace
-  installCatalogSource "${NAMESPACE}" "${CATALOG_IMAGE}"
 
-  getBundleListFromCatalogSource "${NAMESPACE}"
-  getLatestCSVInfo "${CHANNEL}"
+  if [[ ${CHANNEL} == "next" ]]; then
+    deployDevWorkspaceOperatorFromFastChannel
+  fi
 
-  forcePullingOlmImages "${NAMESPACE}" "${LATEST_CSV_BUNDLE_IMAGE}"
+  local customCatalogSource=$(getCustomCatalogSourceName)
+  createCatalogSource "${customCatalogSource}" "${CATALOG_IMAGE}"
 
-  subscribeToInstallation "${NAMESPACE}" "${CHANNEL}" "${LATEST_CSV_NAME}"
-  installPackage "${NAMESPACE}"
+  local bundles=$(getCatalogSourceBundles "${customCatalogSource}")
+  fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
+  forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  applyCheClusterCR ${LATEST_CSV_NAME}
-  waitCheServerDeploy "${NAMESPACE}"
+  local subscription=$(getSubscriptionName)
+  createSubscription "${subscription}" $(getPackageName) ${CHANNEL} "${customCatalogSource}" "Manual"
+  approveInstallPlan "${subscription}"
+
+  sleep 10s
+
+  echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
 }
 
 init $@
-installOPM
 run
 
 echo "[INFO] Done"
