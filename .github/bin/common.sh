@@ -387,20 +387,18 @@ EOF
 }
 
 deployDevWorkspaceOperator() {
+  echo "[INFO] Deploy Dev Workspace operator"
+
   local cheChannel=${1}
-  local devWorkspaceChannel="fast"
   local devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:next"
 
   if [[ ${cheChannel} == "stable" ]]; then
-    devWorkspaceChannel="stable"
-    devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:next"
+    devWorkspaceCatalogImage="quay.io/devfile/devworkspace-operator-index:release"
   fi
-
-  echo "[INFO] Deploy Dev Workspace operator from '${devWorkspaceChannel}' channel"
 
   customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
   createCatalogSource "${customDevWorkspaceCatalog}" ${devWorkspaceCatalogImage} "Red Hat" "DevWorkspace Operator Catalog"
-  createSubscription "devworkspace-operator" "devworkspace-operator" "${devWorkspaceChannel}" "${customDevWorkspaceCatalog}" "Auto"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
 
   waitDevWorkspaceControllerStarted
 }
