@@ -385,8 +385,9 @@ EOF
 deployDevWorkspaceOperatorFromFastChannel() {
   echo "[INFO] Deploy Dev Workspace operator from 'fast' channel"
 
-  createCatalogSource "custom-devworkspace-catalog" "quay.io/devfile/devworkspace-operator-index:next"
-  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "custom-devworkspace-catalog" "Auto"
+  customDevWorkspaceCatalog=$(getDevWorkspaceCustomCatalogSourceName)
+  createCatalogSource "${customDevWorkspaceCatalog}" "quay.io/devfile/devworkspace-operator-index:next"
+  createSubscription "devworkspace-operator" "devworkspace-operator" "fast" "${customDevWorkspaceCatalog}" "Auto"
 
   waitDevWorkspaceControllerStarted
 }

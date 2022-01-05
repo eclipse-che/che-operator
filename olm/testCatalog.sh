@@ -64,14 +64,16 @@ run() {
     deployDevWorkspaceOperatorFromFastChannel
   fi
 
-  createCatalogSource "custom-eclipse-che-catalog" "${CATALOG_IMAGE}"
+  local customCatalogSource=$(getCustomCatalogSourceName)
+  createCatalogSource "${customCatalogSource}" "${CATALOG_IMAGE}"
 
-  local bundles=$(getCatalogSourceBundles "custom-eclipse-che-catalog")
+  local bundles=$(getCatalogSourceBundles "${customCatalogSource}")
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  createSubscription "eclipse-che-operator" $(getPackageName) ${CHANNEL} "custom-eclipse-che-catalog" "Manual"
-  approveInstallPlan "eclipse-che-operator"
+  local subscription=$(getSubscriptionName)
+  createSubscription "${subscription}" $(getPackageName) ${CHANNEL} "${customCatalogSource}" "Manual"
+  approveInstallPlan "${subscription}"
 
   sleep 10s
 

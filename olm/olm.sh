@@ -23,6 +23,18 @@ getPackageName() {
   echo "eclipse-che-preview-openshift"
 }
 
+getCustomCatalogSourceName() {
+  echo "eclipse-che-custom-catalog-source"
+}
+
+getSubscriptionName() {
+  echo "eclipse-che-subscription"
+}
+
+getDevWorkspaceCustomCatalogSourceName() {
+  echo "custom-devworkspace-operator-catalog"
+}
+
 getBundlePath() {
   channel="${1}"
   if [ -z "${channel}" ]; then

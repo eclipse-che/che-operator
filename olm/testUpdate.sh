@@ -63,14 +63,15 @@ run() {
     deployDevWorkspaceOperatorFromFastChannel
   fi
 
-  createCatalogSource "custom-eclipse-che-catalog" "${CATALOG_IMAGE}"
+  local customCatalogSource=$(getCustomCatalogSourceName)
+  createCatalogSource "${customCatalogSource}" "${CATALOG_IMAGE}"
 
-  local bundles=$(getCatalogSourceBundles "custom-eclipse-che-catalog")
+  local bundles=$(getCatalogSourceBundles "${customCatalogSource}")
   fetchPreviousCSVInfo "${CHANNEL}" "${bundles}"
   fetchLatestCSVInfo "${CHANNEL}" "${bundles}"
 
   if [ "${PREVIOUS_CSV_BUNDLE_IMAGE}" == "${LATEST_CSV_BUNDLE_IMAGE}" ]; then
-    echo "[ERROR] Nothing to update. OLM channel '${channel}' contains only one bundle '${LATEST_CSV_BUNDLE_IMAGE}'"
+    echo "[ERROR] Nothing to update. OLM channel '${CHANNEL}' contains only one bundle '${LATEST_CSV_BUNDLE_IMAGE}'"
     exit 1
   fi
 
@@ -78,8 +79,9 @@ run() {
   forcePullingOlmImages "${PREVIOUS_CSV_BUNDLE_IMAGE}"
   forcePullingOlmImages "${LATEST_CSV_BUNDLE_IMAGE}"
 
-  createSubscription "eclipse-che-operator" $(getPackageName) "${CHANNEL}" "custom-eclipse-che-catalog" "Manual" "${PREVIOUS_CSV_NAME}"
-  approveInstallPlan "eclipse-che-operator"
+  local subscription=$(getSubscriptionName)
+  createSubscription "${subscription}" $(getPackageName) "${CHANNEL}" "${customCatalogSource}" "Manual" "${PREVIOUS_CSV_NAME}"
+  approveInstallPlan "${subscription}"
 
   sleep 10s
 
@@ -92,3 +94,5 @@ run() {
 
 init "$@"
 run
+
+echo "[INFO] Done"
