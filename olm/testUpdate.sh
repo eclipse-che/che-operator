@@ -20,7 +20,7 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$SCRIPT")")
 fi
 source "${OPERATOR_REPO}"/olm/olm.sh
-source "${OPERATOR_REPO}/.github/bin/common.sh"
+source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 init() {
   NAMESPACE="eclipse-che"
