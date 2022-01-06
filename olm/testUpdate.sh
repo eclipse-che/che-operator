@@ -59,7 +59,9 @@ usage () {
 run() {
   createNamespace "${NAMESPACE}"
 
-  deployDevWorkspaceOperator
+  deployDevWorkspaceOperator ${CHANNEL}
+
+  exit
 
   local customCatalogSource=$(getCustomCatalogSourceName)
   createCatalogSource "${customCatalogSource}" "${CATALOG_IMAGE}"

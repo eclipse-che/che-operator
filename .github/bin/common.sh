@@ -352,7 +352,7 @@ spec:
 EOF
 
   sleep 10s
-  kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n openshift-operators --timeout=120s
+  kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n openshift-operators --timeout=240s
 }
 
 createSubscription() {
