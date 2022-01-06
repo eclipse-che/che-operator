@@ -35,6 +35,7 @@ overrideDefaults() {
 }
 
 runTests() {
+  deployDevWorkspaceOperator "stable"
   deployEclipseCheOnWithOperator "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
   updateEclipseChe "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }

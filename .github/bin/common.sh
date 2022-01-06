@@ -351,7 +351,7 @@ spec:
       interval: 15m
 EOF
 
-  sleep 10s
+  sleep 20s
   kubectl wait --for=condition=ready pod -l "olm.catalogSource=${name}" -n openshift-operators --timeout=240s
 }
 
