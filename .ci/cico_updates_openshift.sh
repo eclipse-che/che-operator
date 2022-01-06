@@ -16,6 +16,7 @@ set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
 source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}"/olm/olm.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
