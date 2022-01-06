@@ -214,6 +214,7 @@ releaseHelmPackage() {
   echo "[INFO] releaseHelmPackage :: release Helm package"
   yq -rYi ".version=\"${RELEASE}\"" "$RELEASE_DIR/helmcharts/stable/Chart.yaml"
   make update-helmcharts HELM_FOLDER="stable"
+  git commit -m "ci: Update Helm Charts to $RELEASE" --signoff
 }
 
 releaseOlmFiles() {
