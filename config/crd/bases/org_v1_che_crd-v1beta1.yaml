@@ -964,8 +964,7 @@ spec:
                         description: The editor id to specify default plug-ins for.
                         type: string
                       plugins:
-                        description: Default plug-in ids and uris for the specified
-                          editor.
+                        description: Default plug-in uris for the specified editor.
                         items:
                           type: string
                         type: array

@@ -1002,8 +1002,7 @@ spec:
                               for.
                             type: string
                           plugins:
-                            description: Default plug-in ids and uris for the specified
-                              editor.
+                            description: Default plug-in uris for the specified editor.
                             items:
                               type: string
                             type: array
