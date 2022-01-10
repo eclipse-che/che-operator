@@ -14,36 +14,23 @@
   path: /spec/description
   value: |
     A collaborative Kubernetes-native development solution that delivers OpenShift workspaces and in-browser IDE for rapid cloud application development.
-    This operator installs PostgreSQL, Keycloak, Plugin registry, Devfile registry and the Eclipse Che server, as well as configures all three services.
+    This operator installs PostgreSQL, Plugin and Devfile registries, Dashboard, Gateway and the Eclipse Che server, as well as configures all these services.
+    OpenShift OAuth is used directly for authentication. TLS mode is on.
 
     ## How to Install
     Press the **Install** button, choose the channel and the upgrade strategy, and wait for the **Installed** Operator status.
-    When the operator is installed, create a new CR of Kind CheCluster (click the **Create New** button).
-    The CR spec contains all defaults (see below).
-    You can start using Eclipse Che when the CR status is set to **Available**, and you see a URL to Eclipse Che.
+    When the operator is installed, create a new Custom Resource (CR) of Kind CheCluster (click the **Create New** button).
+    The CR spec contains all defaults. You can start using Eclipse Che when the CR status is set to **Available**, and you see a URL to Eclipse Che.
 
     ## Defaults
     By default, the operator deploys Eclipse Che with:
-    * Bundled PostgreSQL and Keycloak
-    * Common PVC strategy
+    * 10Gi storage
     * Auto-generated passwords
-    * TLS mode (secure routes)
-    * Communicate between components using internal cluster SVC names
-    * Regular login extended with OpenShift OAuth authentication
+    * Bundled PostgreSQL
+    * Bundled Plugin and Devfile registries
 
-    ## Installation Options
-    Eclipse Che operator installation options include:
-    * Connection to external database and Keycloak
-    * Configuration of default passwords and object names
-    * PVC strategy (once shared PVC for all workspaces, PVC per workspace, or PVC per volume)
-    * Authentication options
-
-    Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che configuration.
-    See more configuration options in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
-
-    ### External Database and Keycloak
-    Follow the guides to configure external [Keycloak](https://www.eclipse.org/che/docs/che-7/administration-guide/configuring-authorization/#configuring-che-to-use-external-keycloak_che)
-    and [Database](https://www.eclipse.org/che/docs/che-7/administration-guide/external-database-setup/) setup.
+    Use `oc edit checluster/eclipse-che -n eclipse-che` to update Eclipse Che default installation options.
+    See more in the [Installation guide](https://www.eclipse.org/che/docs/che-7/installation-guide/configuring-the-che-installation/).
 
     ### Certificates
     Operator uses a default router certificate to secure Eclipse Che routes.
