@@ -552,7 +552,7 @@ type ResourcesCustomSettings struct {
 type WorkspacesDefaultPlugins struct {
 	// The editor id to specify default plug-ins for.
 	Editor string `json:"editor,omitempty"`
-	// Default plug-in ids and uris for the specified editor.
+	// Default plug-in uris for the specified editor.
 	Plugins []string `json:"plugins,omitempty"`
 }
 
