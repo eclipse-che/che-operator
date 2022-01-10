@@ -60,9 +60,7 @@ usage () {
 run() {
   createNamespace ${NAMESPACE}
 
-  if [[ ${CHANNEL} == "next" ]]; then
-    deployDevWorkspaceOperatorFromFastChannel
-  fi
+  deployDevWorkspaceOperator ${CHANNEL}
 
   local customCatalogSource=$(getCustomCatalogSourceName)
   createCatalogSource "${customCatalogSource}" "${CATALOG_IMAGE}"

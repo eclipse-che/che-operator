@@ -16,14 +16,11 @@
 ##########  More info about how it is configured can be found here: https://docs.ci.openshift.org/docs/how-tos/testing-operator-sdk-operators #############
 #######################################################################################################################################################
 
-# exit immediately when a command fails
 set -e
-# only exit with zero if all commands of the pipeline exit successfully
-set -o pipefail
-# error on unset variables
-set -u
+set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+source "${OPERATOR_REPO}"/olm/olm.sh
 source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 #Stop execution on any error
@@ -35,6 +32,7 @@ overrideDefaults() {
 }
 
 runTests() {
+  deployDevWorkspaceOperator "stable"
   deployEclipseCheOnWithOperator "openshift" ${LAST_OPERATOR_VERSION_TEMPLATE_PATH} "false"
   updateEclipseChe "openshift" ${CURRENT_OPERATOR_VERSION_TEMPLATE_PATH} "true"
 }
