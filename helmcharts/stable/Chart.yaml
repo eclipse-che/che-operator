@@ -13,7 +13,7 @@
 apiVersion: v1
 description: A Helm chart for deploying Eclipse Che on a Kubernetes
 name: eclipse-che
-version: 7.41.2
+version: 7.42.0
 annotations:
   artifacthub.io/license: EPL-2.0
   artifacthub.io/links: |
@@ -35,33 +35,28 @@ annotations:
   artifacthub.io/operatorCapabilities: Seamless Upgrades
   artifacthub.io/crdsExamples: "- apiVersion: org.eclipse.che/v1\n  kind: CheCluster\n\
     \  metadata:\n    name: eclipse-che\n    namespace: eclipse-che\n  spec:\n   \
-    \ server:\n      cheFlavor: ''\n      cheClusterRoles: ''\n      cheWorkspaceClusterRole:\
-    \ ''\n      serverTrustStoreConfigMapName: ''\n      gitSelfSignedCert: false\n\
-    \      tlsSupport: true\n      proxyURL: ''\n      proxyPort: ''\n      proxyUser:\
-    \ ''\n      proxyPassword: ''\n      nonProxyHosts: ''\n      workspaceNamespaceDefault:\
-    \ \"<username>-che\"\n      allowUserDefinedWorkspaceNamespaces: false\n     \
-    \ serverExposureStrategy: ''\n    database:\n      externalDb: false\n      chePostgresHostName:\
-    \ ''\n      chePostgresPort: ''\n      chePostgresUser: ''\n      chePostgresPassword:\
-    \ ''\n      chePostgresDb: ''\n    storage:\n      pvcStrategy: 'common'\n   \
-    \   pvcClaimSize: '10Gi'\n      preCreateSubPaths: true\n      postgresPVCStorageClassName:\
-    \ ''\n      workspacePVCStorageClassName: ''\n    auth:\n      initialOpenShiftOAuthUser:\
-    \ true\n      externalIdentityProvider: false\n      identityProviderURL: ''\n\
-    \      identityProviderAdminUserName: ''\n      identityProviderPassword: ''\n\
-    \      identityProviderRealm: ''\n      identityProviderClientId: ''\n      oAuthClientName:\
-    \ ''\n      oAuthSecret: ''\n    k8s:\n      ingressDomain: '192.168.99.101.nip.io'\n\
-    \      ingressClass: ''\n      ingressStrategy: ''\n      tlsSecretName: 'che-tls'\n\
-    \      securityContextFsGroup: ''\n      securityContextRunAsUser: ''\n      singleHostExposureType:\
-    \ ''\n    metrics:\n      enable: true\n    devWorkspace:\n      enable: false\n\
-    - apiVersion: org.eclipse.che/v1\n  kind: CheClusterBackup\n  metadata:\n    name:\
-    \ eclipse-che-backup\n    namespace: eclipse-che\n  spec:\n    useInternalBackupServer:\
-    \ false\n    backupServerConfigRef: eclipse-che-backup-server-configuration\n\
-    - apiVersion: org.eclipse.che/v1\n  kind: CheClusterRestore\n  metadata:\n   \
-    \ name: eclipse-che-restore\n    namespace: eclipse-che\n  spec:\n    backupServerConfigRef:\
+    \ server:\n      cheClusterRoles: ''\n      cheWorkspaceClusterRole: ''\n    \
+    \  gitSelfSignedCert: false\n      tlsSupport: true\n      proxyURL: ''\n    \
+    \  proxyPort: ''\n      proxySecret: ''\n      nonProxyHosts: ''\n      workspaceNamespaceDefault:\
+    \ \"<username>-che\"\n    database:\n      externalDb: false\n      chePostgresHostName:\
+    \ ''\n      chePostgresPort: ''\n      chePostgresSecret: ''\n      chePostgresDb:\
+    \ ''\n    storage:\n      pvcStrategy: 'common'\n      pvcClaimSize: '10Gi'\n\
+    \      preCreateSubPaths: true\n      postgresPVCStorageClassName: ''\n      workspacePVCStorageClassName:\
+    \ ''\n    auth:\n      identityProviderURL: ''\n      oAuthClientName: ''\n  \
+    \    oAuthSecret: ''\n    k8s:\n      ingressDomain: '192.168.99.101.nip.io'\n\
+    \      ingressClass: ''\n      tlsSecretName: 'che-tls'\n      securityContextFsGroup:\
+    \ ''\n      securityContextRunAsUser: ''\n    metrics:\n      enable: true\n \
+    \   devWorkspace:\n      enable: true\n- apiVersion: org.eclipse.che/v1\n  kind:\
+    \ CheClusterBackup\n  metadata:\n    name: eclipse-che-backup\n    namespace:\
+    \ eclipse-che\n  spec:\n    useInternalBackupServer: false\n    backupServerConfigRef:\
     \ eclipse-che-backup-server-configuration\n- apiVersion: org.eclipse.che/v1\n\
-    \  kind: CheBackupServerConfiguration\n  metadata:\n    name: eclipse-che-backup-server-configuration\n\
-    \    namespace: eclipse-che\n  spec:\n    awss3:\n      awsAccessKeySecretRef:\
-    \ minio-credentials-secret\n      hostname: minio.mydomain.net\n      port: 9000\n\
-    \      protocol: http\n      repositoryPath: che-backups-bucket\n      repositoryPasswordSecretRef:\
+    \  kind: CheClusterRestore\n  metadata:\n    name: eclipse-che-restore\n    namespace:\
+    \ eclipse-che\n  spec:\n    backupServerConfigRef: eclipse-che-backup-server-configuration\n\
+    - apiVersion: org.eclipse.che/v1\n  kind: CheBackupServerConfiguration\n  metadata:\n\
+    \    name: eclipse-che-backup-server-configuration\n    namespace: eclipse-che\n\
+    \  spec:\n    awss3:\n      awsAccessKeySecretRef: minio-credentials-secret\n\
+    \      hostname: minio.mydomain.net\n      port: 9000\n      protocol: http\n\
+    \      repositoryPath: che-backups-bucket\n      repositoryPasswordSecretRef:\
     \ secret-name\n"
   artifacthub.io/crds: |-
     - kind: CheCluster
