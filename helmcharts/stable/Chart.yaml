@@ -29,8 +29,6 @@ annotations:
   artifacthub.io/maintainers: |
     - name: Anatolii Bazko
       email: abazko@redhat.com
-    - name: Mykola Morhun
-      email: mmorhun@redhat.com
     - name: Oleksandr Andriienko
       email: oandriie@redhat.com
   artifacthub.io/operator: "true"
