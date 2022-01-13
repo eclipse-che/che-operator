@@ -12,7 +12,6 @@
 #
 
 set -e
-set -x
 
 export OPERATOR_REPO="${GITHUB_WORKSPACE}"
 
@@ -82,7 +81,7 @@ run() {
   createSubscription "${subscription}" $(getPackageName) "${CHANNEL}" "${customCatalogSource}" "Manual" "${PREVIOUS_CSV_NAME}"
   approveInstallPlan "${subscription}"
 
-  sleep 30s
+  sleep 10s
 
   echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
   waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
