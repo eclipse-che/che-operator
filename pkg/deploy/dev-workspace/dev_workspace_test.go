@@ -37,7 +37,7 @@ import (
 )
 
 const (
-	DevWorkspaceCSVName = "devworkspace-operator.v0.9.0"
+	DevWorkspaceCSVName = "devworkspace-operator.v0.11.0"
 )
 
 func TestReconcileDevWorkspace(t *testing.T) {
