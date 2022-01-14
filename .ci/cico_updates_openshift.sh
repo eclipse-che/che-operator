@@ -15,12 +15,13 @@ set -e
 set -x
 
 export OPERATOR_REPO=$(dirname $(dirname $(readlink -f "$0")));
+source "${OPERATOR_REPO}"/.github/bin/common.sh
 
 #Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
 runTests() {
-  "${OPERATOR_REPO}"/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE}
+  . "${OPERATOR_REPO}"/olm/testUpdate.sh -c stable -i quay.io/eclipse/eclipse-che-openshift-opm-catalog:test -n ${NAMESPACE}
 }
 
 initDefaults

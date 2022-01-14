@@ -271,19 +271,19 @@ waitEclipseCheDeployed() {
 
 useCustomOperatorImageInCSV() {
   local image=$1
-  oc patch csv $(getCSVName) -n ${NAMESPACE} --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
+  oc patch csv $(getCSVName) -n openshift-operators --type=json -p '[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image", "value": "'${image}'"}]'
 }
 
 getCheClusterCRFromExistedCSV() {
-  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")"
+  oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r ".metadata.annotations[\"alm-examples\"] | fromjson | .[] | select(.kind == \"CheCluster\")"
 }
 
 getCheVersionFromExistedCSV() {
-  oc get csv $(getCSVName) -n ${NAMESPACE} -o yaml | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value'
+  oc get csv $(getCSVName) -n openshift-operators -o yaml | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value'
 }
 
 getCSVName() {
-  oc get csv -n ${NAMESPACE} | grep eclipse-che-preview-openshift | awk '{print $1}'
+  oc get csv -n openshift-operators | grep eclipse-che-preview-openshift | awk '{print $1}'
 }
 
 waitDevWorkspaceControllerStarted() {
