@@ -114,7 +114,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.42.0-406.next
+  name: eclipse-che-preview-openshift.v7.43.0-407.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -927,13 +927,6 @@ spec:
                 - list
                 - watch
             - apiGroups:
-                - authorization.k8s.io
-              resources:
-                - localsubjectaccessreviews
-                - subjectaccessreviews
-              verbs:
-                - create
-            - apiGroups:
                 - batch
               resources:
                 - jobs
@@ -945,14 +938,6 @@ spec:
                 - patch
                 - update
                 - watch
-            - apiGroups:
-                - config.openshift.io
-              resourceNames:
-                - cluster
-              resources:
-                - proxies
-              verbs:
-                - get
             - apiGroups:
                 - controller.devfile.io
               resources:
@@ -981,14 +966,6 @@ spec:
                 - create
                 - get
                 - update
-            - apiGroups:
-                - metrics.k8s.io
-              resources:
-                - pods
-              verbs:
-                - get
-                - list
-                - watch
             - apiGroups:
                 - monitoring.coreos.com
               resources:
@@ -1046,24 +1023,10 @@ spec:
                 - '*'
               verbs:
                 - '*'
-            - apiGroups:
-                - workspace.devfile.io
-              resources:
-                - devworkspaces
-                - devworkspacetemplates
+            - nonResourceURLs:
+                - /metrics
               verbs:
                 - get
-                - list
-                - watch
-            - apiGroups:
-                - controller.devfile.io
-              resources:
-                - devworkspaceroutings
-                - components
-              verbs:
-                - get
-                - list
-                - watch
           serviceAccountName: che-operator
       deployments:
         - name: che-operator
@@ -1129,7 +1092,7 @@ spec:
                       - name: RELATED_IMAGE_single_host_gateway_config_sidecar
                         value: quay.io/che-incubator/configbump:0.1.4
                       - name: RELATED_IMAGE_devworkspace_controller
-                        value: quay.io/devfile/devworkspace-controller:v0.9.0
+                        value: quay.io/devfile/devworkspace-controller:v0.11.0
                       - name: RELATED_IMAGE_internal_rest_backup_server
                         value: quay.io/eclipse/che-backup-server-rest:b6cc165
                       - name: RELATED_IMAGE_gateway_authentication_sidecar
@@ -1443,4 +1406,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.42.0-406.next
+  version: 7.43.0-407.next
