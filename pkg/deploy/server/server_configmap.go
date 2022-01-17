@@ -64,8 +64,6 @@ type CheConfigMap struct {
 	CheLogLevel                            string `json:"CHE_LOG_LEVEL"`
 	IdentityProviderUrl                    string `json:"CHE_OIDC_AUTH__SERVER__URL,omitempty"`
 	IdentityProviderInternalURL            string `json:"CHE_OIDC_AUTH__INTERNAL__SERVER__URL,omitempty"`
-	KeycloakRealm                          string `json:"CHE_KEYCLOAK_REALM,omitempty"`
-	KeycloakClientId                       string `json:"CHE_KEYCLOAK_CLIENT__ID,omitempty"`
 	OpenShiftIdentityProvider              string `json:"CHE_INFRA_OPENSHIFT_OAUTH__IDENTITY__PROVIDER"`
 	JavaOpts                               string `json:"JAVA_OPTS"`
 	WorkspaceJavaOpts                      string `json:"CHE_WORKSPACE_JAVA__OPTIONS"`
@@ -107,7 +105,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 		}
 	}
 
-	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
 	infra := "kubernetes"
 	if util.IsOpenShift {
 		infra = "openshift"
@@ -158,8 +155,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	chePostgresHostName := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
 	chePostgresPort := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
 	chePostgresDb := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresDb, deploy.DefaultChePostgresDb)
-	keycloakRealm := util.GetValue(ctx.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
-	keycloakClientId := util.GetValue(ctx.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
 	ingressStrategy := util.GetServerExposureStrategy(ctx.CheCluster)
 	ingressClass := util.GetValue(ctx.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
 
@@ -187,13 +182,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 
 	cheAPI := protocol + "://" + cheHost + "/api"
-	var keycloakInternalURL, pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint string
-
-	if !ctx.CheCluster.IsNativeUserModeEnabled() &&
-		ctx.CheCluster.IsInternalClusterSVCNamesEnabled() &&
-		!ctx.CheCluster.Spec.Auth.ExternalIdentityProvider {
-		keycloakInternalURL = fmt.Sprintf("%s://%s.%s.svc:8080/auth", "http", deploy.IdentityProviderName, ctx.CheCluster.Namespace)
-	}
+	var pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint string
 
 	// If there is a devfile registry deployed by operator
 	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() && !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
@@ -268,9 +257,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	}
 
 	data.IdentityProviderUrl = identityProviderURL
-	data.IdentityProviderInternalURL = keycloakInternalURL
-	data.KeycloakRealm = keycloakRealm
-	data.KeycloakClientId = keycloakClientId
 	data.DatabaseURL = "jdbc:postgresql://" + chePostgresHostName + ":" + chePostgresPort + "/" + chePostgresDb
 	if len(ctx.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
 		data.DbUserName = ctx.CheCluster.Spec.Database.ChePostgresUser

@@ -17,8 +17,6 @@ import (
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -66,66 +64,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 			}
 		}
 	}
-	if len(ctx.CheCluster.Spec.Auth.IdentityProviderPostgresSecret) < 1 {
-		keycloakPostgresPassword := util.GeneratePasswd(12)
-		keycloakDeployment := &appsv1.Deployment{}
-		exists, err := deploy.GetNamespacedObject(ctx, deploy.IdentityProviderName, keycloakDeployment)
-		if err != nil {
-			logrus.Error(err)
-		}
-		if exists {
-			keycloakPostgresPassword = util.GetDeploymentEnv(keycloakDeployment, "DB_PASSWORD")
-		}
-
-		if len(ctx.CheCluster.Spec.Auth.IdentityProviderPostgresPassword) < 1 {
-			identityPostgresSecret := deploy.DefaultCheIdentityPostgresSecret()
-			_, err := deploy.SyncSecretToCluster(ctx, identityPostgresSecret, cheNamespace, map[string][]byte{"password": []byte(keycloakPostgresPassword)})
-			if err != nil {
-				return reconcile.Result{}, false, err
-			}
-			ctx.CheCluster.Spec.Auth.IdentityProviderPostgresSecret = identityPostgresSecret
-			if err := deploy.UpdateCheCRSpec(ctx, "Identity Provider Postgres Secret", identityPostgresSecret); err != nil {
-				return reconcile.Result{}, false, err
-			}
-		}
-	}
-
-	if len(ctx.CheCluster.Spec.Auth.IdentityProviderSecret) < 1 {
-		keycloakAdminUserName := util.GetValue(ctx.CheCluster.Spec.Auth.IdentityProviderAdminUserName, "admin")
-		keycloakAdminPassword := util.GetValue(ctx.CheCluster.Spec.Auth.IdentityProviderPassword, util.GeneratePasswd(12))
-
-		keycloakDeployment := &appsv1.Deployment{}
-		exists, _ := deploy.GetNamespacedObject(ctx, deploy.IdentityProviderName, keycloakDeployment)
-		if exists {
-			keycloakAdminUserName = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_USERNAME")
-			keycloakAdminPassword = util.GetDeploymentEnv(keycloakDeployment, "SSO_ADMIN_PASSWORD")
-		}
-
-		if len(ctx.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 || len(ctx.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
-			identityProviderSecret := deploy.DefaultCheIdentitySecret()
-			_, err := deploy.SyncSecretToCluster(ctx, identityProviderSecret, cheNamespace, map[string][]byte{"user": []byte(keycloakAdminUserName), "password": []byte(keycloakAdminPassword)})
-			if err != nil {
-				return reconcile.Result{}, false, err
-			}
-			ctx.CheCluster.Spec.Auth.IdentityProviderSecret = identityProviderSecret
-			if err := deploy.UpdateCheCRSpec(ctx, "Identity Provider Secret", identityProviderSecret); err != nil {
-				return reconcile.Result{}, false, err
-			}
-		} else {
-			if len(ctx.CheCluster.Spec.Auth.IdentityProviderPassword) < 1 {
-				ctx.CheCluster.Spec.Auth.IdentityProviderPassword = keycloakAdminPassword
-				if err := deploy.UpdateCheCRSpec(ctx, "Keycloak admin password", "password hidden"); err != nil {
-					return reconcile.Result{}, false, err
-				}
-			}
-			if len(ctx.CheCluster.Spec.Auth.IdentityProviderAdminUserName) < 1 {
-				ctx.CheCluster.Spec.Auth.IdentityProviderAdminUserName = keycloakAdminUserName
-				if err := deploy.UpdateCheCRSpec(ctx, "Keycloak admin username", keycloakAdminUserName); err != nil {
-					return reconcile.Result{}, false, err
-				}
-			}
-		}
-	}
 
 	chePostgresDb := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresDb, "dbche")
 	if len(ctx.CheCluster.Spec.Database.ChePostgresDb) < 1 {
@@ -146,24 +84,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 		ctx.CheCluster.Spec.Database.ChePostgresPort = chePostgresPort
 		if err := deploy.UpdateCheCRSpec(ctx, "Postgres port", chePostgresPort); err != nil {
 			return reconcile.Result{}, false, err
-		}
-	}
-
-	if !ctx.CheCluster.IsNativeUserModeEnabled() {
-		keycloakRealm := util.GetValue(ctx.CheCluster.Spec.Auth.IdentityProviderRealm, cheFlavor)
-		if len(ctx.CheCluster.Spec.Auth.IdentityProviderRealm) < 1 {
-			ctx.CheCluster.Spec.Auth.IdentityProviderRealm = keycloakRealm
-			if err := deploy.UpdateCheCRSpec(ctx, "Keycloak realm", keycloakRealm); err != nil {
-				return reconcile.Result{}, false, err
-			}
-		}
-		keycloakClientId := util.GetValue(ctx.CheCluster.Spec.Auth.IdentityProviderClientId, cheFlavor+"-public")
-		if len(ctx.CheCluster.Spec.Auth.IdentityProviderClientId) < 1 {
-			ctx.CheCluster.Spec.Auth.IdentityProviderClientId = keycloakClientId
-
-			if err := deploy.UpdateCheCRSpec(ctx, "Keycloak client ID", keycloakClientId); err != nil {
-				return reconcile.Result{}, false, err
-			}
 		}
 	}
 
@@ -213,14 +133,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 		(deploy.MigratingToCRW2_0(ctx.CheCluster) && ctx.CheCluster.Spec.Database.PostgresImage != "") {
 		ctx.CheCluster.Spec.Database.PostgresImage = ""
 		if err := deploy.UpdateCheCRSpec(ctx, "postgres image", ctx.CheCluster.Spec.Database.PostgresImage); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	if ctx.CheCluster.Spec.Auth.IdentityProviderImage == deploy.OldDefaultKeycloakUpstreamImageToDetect ||
-		(deploy.MigratingToCRW2_0(ctx.CheCluster) && ctx.CheCluster.Spec.Auth.IdentityProviderImage != "") {
-		ctx.CheCluster.Spec.Auth.IdentityProviderImage = ""
-		if err := deploy.UpdateCheCRSpec(ctx, "keycloak image", ctx.CheCluster.Spec.Auth.IdentityProviderImage); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}

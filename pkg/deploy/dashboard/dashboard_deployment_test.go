@@ -125,7 +125,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 	trueBool := true
 	testCases := []resourcesTestCase{
 		{
-			name:        "Test provisioning Che and Keycloak URLs",
+			name:        "Test provisioning Che URLs",
 			initObjects: []runtime.Object{},
 			envVars: []corev1.EnvVar{
 				{
@@ -165,7 +165,7 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			},
 		},
 		{
-			name:        "Test provisioning Che and Keycloak URLs when internal SVC is disabled",
+			name:        "Test provisioning Che URLs when internal SVC is disabled",
 			initObjects: []runtime.Object{},
 			envVars: []corev1.EnvVar{
 				{

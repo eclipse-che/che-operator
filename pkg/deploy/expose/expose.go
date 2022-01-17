@@ -112,11 +112,6 @@ func ExposeWithHostPath(
 				logrus.Error(err)
 			}
 
-			// Keycloak needs special rule in multihost. It's exposed on / which redirects to /auth
-			// clients which does not support redirects needs /auth be explicitely set
-			if path == "" && component == deploy.IdentityProviderName {
-				path = "/auth"
-			}
 			return route.Spec.Host + path, true, nil
 		}
 	}
@@ -143,11 +138,7 @@ func exposeWithGateway(deployContext *deploy.DeployContext,
 	cleanUpRouting()
 
 	if path == "" {
-		if component == deploy.IdentityProviderName {
-			path = "/auth"
-		} else {
-			path = "/" + component
-		}
+		path = "/" + component
 	}
 	return deployContext.CheCluster.Spec.Server.CheHost + path, true, err
 }

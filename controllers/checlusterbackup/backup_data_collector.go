@@ -164,7 +164,7 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 		bctx.cheCR.Spec.Database.ChePostgresDb,
 	}
 	if !bctx.cheCR.Spec.DevWorkspace.Enable {
-		databasesToBackup = append(databasesToBackup, "keycloak")
+		databasesToBackup = append(databasesToBackup)
 	}
 
 	k8sClient := util.GetK8Client()

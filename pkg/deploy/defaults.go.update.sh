@@ -21,8 +21,8 @@ if [[ ! -f ${defaultsFile} ]]; then
     curl -ssL https://raw.githubusercontent.com/eclipse-che/che-operator/main/pkg/deploy/defaults.go -o ${defaultsFile}
 fi
 
-excludes="eclipse/che-keycloak|centos/postgresql-96-centos7"
-for d in $(cat /tmp/defaults.go | egrep "Keycloak|Postgres|Pvc" | egrep Image | egrep -v "func|return|Old|ToDetect|$excludes" | sed -e "s#.\+= \"\(.\+\)\"#\1#"); do
+excludes="eclipse|centos/postgresql-96-centos7"
+for d in $(cat /tmp/defaults.go | egrep "Postgres|Pvc" | egrep Image | egrep -v "func|return|Old|ToDetect|$excludes" | sed -e "s#.\+= \"\(.\+\)\"#\1#"); do
     echo "- ${d}"
     echo -n "+ ${d%:*}:";
     e=$(skopeo inspect docker://${d%:*}  | yq .RepoTags | egrep -v "\[|\]|latest" | tr -d ",\" " | sort -V | tail -1)

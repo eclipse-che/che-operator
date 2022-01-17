@@ -106,7 +106,7 @@ func GetIngressSpec(
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 	// Set bigger proxy buffer size to prevent 502 auth error.
-	if component == IdentityProviderName || exposureType == GatewaySingleHostExposureType {
+	if exposureType == GatewaySingleHostExposureType {
 		annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
 	}
 	for k, v := range ingressCustomSettings.Annotations {
@@ -194,16 +194,8 @@ func evaluatePath(component, ingressStrategy string) (endpointPath, ingressPath 
 	if ingressStrategy == "multi-host" {
 		ingressPath = "/"
 		endpointPath = "/"
-		// Keycloak needs special rule in multihost. It's exposed on / which redirects to /auth
-		// clients which does not support redirects needs /auth be explicitely set
-		if component == IdentityProviderName {
-			endpointPath = "/auth"
-		}
 	} else {
 		switch component {
-		case IdentityProviderName:
-			endpointPath = "/auth"
-			ingressPath = endpointPath + "/(.*)"
 		case DevfileRegistryName:
 			fallthrough
 		case PluginRegistryName:
