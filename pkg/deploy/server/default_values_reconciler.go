@@ -170,7 +170,7 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 		}
 	}
 
-	if ctx.CheCluster.Spec.DevWorkspace.Enable && ctx.CheCluster.Spec.Auth.NativeUserMode == nil {
+	if ctx.CheCluster.Spec.Auth.NativeUserMode == nil {
 		newNativeUserModeValue := util.NewBoolPointer(true)
 		ctx.CheCluster.Spec.Auth.NativeUserMode = newNativeUserModeValue
 		if err := deploy.UpdateCheCRSpec(ctx, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {

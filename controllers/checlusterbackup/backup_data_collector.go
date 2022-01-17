@@ -163,9 +163,6 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 	databasesToBackup := []string{
 		bctx.cheCR.Spec.Database.ChePostgresDb,
 	}
-	if !bctx.cheCR.Spec.DevWorkspace.Enable {
-		databasesToBackup = append(databasesToBackup)
-	}
 
 	k8sClient := util.GetK8Client()
 	postgresPodName, err := k8sClient.GetDeploymentPod(deploy.PostgresName, bctx.namespace)

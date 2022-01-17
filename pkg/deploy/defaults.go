@@ -387,11 +387,7 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 }
 
 func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	if util.IsOpenShift || cr.Spec.DevWorkspace.Enable {
-		return GatewaySingleHostExposureType
-	}
-
-	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, NativeSingleHostExposureType)
+	return GatewaySingleHostExposureType
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {

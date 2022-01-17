@@ -84,13 +84,7 @@ func (p *GatewayReconciler) Finalize(ctx *deploy.DeployContext) bool {
 
 // SyncGatewayToCluster installs or deletes the gateway based on the custom resource configuration
 func SyncGatewayToCluster(deployContext *deploy.DeployContext) error {
-	if (util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" &&
-		deploy.GetSingleHostExposureType(deployContext.CheCluster) == deploy.GatewaySingleHostExposureType) ||
-		deployContext.CheCluster.Spec.DevWorkspace.Enable {
-		return syncAll(deployContext)
-	}
-
-	return deleteAll(deployContext)
+	return syncAll(deployContext)
 }
 
 func syncAll(deployContext *deploy.DeployContext) error {
@@ -194,73 +188,6 @@ func generateOauthSecretSpec(deployContext *deploy.DeployContext) *corev1.Secret
 			"cookie_secret": generateRandomCookieSecret(),
 		},
 	}
-}
-
-func deleteAll(deployContext *deploy.DeployContext) error {
-	instance := deployContext.CheCluster
-	clusterAPI := deployContext.ClusterAPI
-
-	deployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GatewayServiceName,
-			Namespace: instance.Namespace,
-		},
-	}
-	if err := delete(clusterAPI, &deployment); err != nil {
-		return err
-	}
-
-	serverConfig := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GatewayConfigMapNamePrefix + serverComponentName,
-			Namespace: instance.Namespace,
-		},
-	}
-	if err := delete(clusterAPI, &serverConfig); err != nil {
-		return err
-	}
-
-	traefikConfig := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che-gateway-config",
-			Namespace: instance.Namespace,
-		},
-	}
-	if err := delete(clusterAPI, &traefikConfig); err == nil {
-		return err
-	}
-
-	roleBinding := rbac.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GatewayServiceName,
-			Namespace: instance.Namespace,
-		},
-	}
-	if err := delete(clusterAPI, &roleBinding); err == nil {
-		return err
-	}
-
-	role := rbac.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GatewayServiceName,
-			Namespace: instance.Namespace,
-		},
-	}
-	if err := delete(clusterAPI, &role); err == nil {
-		return err
-	}
-
-	sa := corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GatewayServiceName,
-			Namespace: instance.Namespace,
-		},
-	}
-	if err := delete(clusterAPI, &sa); err == nil {
-		return err
-	}
-
-	return nil
 }
 
 func delete(clusterAPI deploy.ClusterAPI, obj metav1.Object) error {

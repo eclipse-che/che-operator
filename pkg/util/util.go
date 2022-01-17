@@ -209,11 +209,7 @@ func GetServerExposureStrategy(cheCluster *orgv1.CheCluster) string {
 	}
 
 	// Explicitly switch to `single-host` mode
-	if cheCluster.Spec.DevWorkspace.Enable {
-		return "single-host"
-	}
-
-	return "multi-host"
+	return "single-host"
 }
 
 func IsTestMode() (isTesting bool) {

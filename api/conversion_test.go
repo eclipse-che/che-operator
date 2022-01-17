@@ -207,8 +207,8 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.FailNow()
 			}
 
-			if *v2.Spec.Gateway.Enabled {
-				t.Errorf("The default for OpenShift without devworkspace enabled (which is our testing object) is multihost, but we found v2 in singlehost.")
+			if !*v2.Spec.Gateway.Enabled {
+				t.Errorf("The default for OpenShift is single")
 			}
 		})
 	})

@@ -31,10 +31,9 @@ import (
 
 func TestEnsureServerExposureStrategy(t *testing.T) {
 	type testCase struct {
-		name                string
-		expectedCr          *orgv1.CheCluster
-		devWorkspaceEnabled bool
-		initObjects         []runtime.Object
+		name        string
+		expectedCr  *orgv1.CheCluster
+		initObjects []runtime.Object
 	}
 
 	testCases := []testCase{
@@ -47,18 +46,6 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 					},
 				},
 			},
-			devWorkspaceEnabled: true,
-		},
-		{
-			name: "Multi Host should be enabled if devWorkspace is not enabled",
-			expectedCr: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "multi-host",
-					},
-				},
-			},
-			devWorkspaceEnabled: false,
 		},
 	}
 
@@ -71,7 +58,6 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 				},
 			}
 
-			checluster.Spec.DevWorkspace.Enable = testCase.devWorkspaceEnabled
 			ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{})
 
 			defaults := NewDefaultValuesReconciler()
@@ -88,7 +74,6 @@ func TestNativeUserModeEnabled(t *testing.T) {
 		name                    string
 		initObjects             []runtime.Object
 		isOpenshift             bool
-		devworkspaceEnabled     bool
 		initialNativeUserValue  *bool
 		expectedNativeUserValue *bool
 	}
@@ -97,37 +82,26 @@ func TestNativeUserModeEnabled(t *testing.T) {
 		{
 			name:                    "che-operator should use nativeUserMode when devworkspaces on openshift and no initial value in CR for nativeUserMode",
 			isOpenshift:             true,
-			devworkspaceEnabled:     true,
 			initialNativeUserValue:  nil,
 			expectedNativeUserValue: pointer.BoolPtr(true),
 		},
 		{
 			name:                    "che-operator should use nativeUserMode value from initial CR",
 			isOpenshift:             true,
-			devworkspaceEnabled:     true,
 			initialNativeUserValue:  pointer.BoolPtr(false),
 			expectedNativeUserValue: pointer.BoolPtr(false),
 		},
 		{
 			name:                    "che-operator should use nativeUserMode value from initial CR",
 			isOpenshift:             true,
-			devworkspaceEnabled:     true,
 			initialNativeUserValue:  pointer.BoolPtr(true),
 			expectedNativeUserValue: pointer.BoolPtr(true),
 		},
 		{
 			name:                    "che-operator should use nativeUserMode when devworkspaces on kubernetes and no initial value in CR for nativeUserMode",
 			isOpenshift:             false,
-			devworkspaceEnabled:     true,
 			initialNativeUserValue:  nil,
 			expectedNativeUserValue: pointer.BoolPtr(true),
-		},
-		{
-			name:                    "che-operator not modify nativeUserMode when devworkspace not enabled",
-			isOpenshift:             true,
-			devworkspaceEnabled:     false,
-			initialNativeUserValue:  nil,
-			expectedNativeUserValue: nil,
 		},
 	}
 
@@ -148,7 +122,6 @@ func TestNativeUserModeEnabled(t *testing.T) {
 			devworkspace.DevWorkspaceIssuerFile = devworkspace.DevWorkspaceTemplates + "/devworkspace-controller-selfsigned-issuer.Issuer.yaml"
 			devworkspace.DevWorkspaceCertificateFile = devworkspace.DevWorkspaceTemplates + "/devworkspace-controller-serving-cert.Certificate.yaml"
 
-			checluster.Spec.DevWorkspace.Enable = testCase.devworkspaceEnabled
 			checluster.Spec.Auth.NativeUserMode = testCase.initialNativeUserValue
 			ctx := deploy.GetTestDeployContext(checluster, []runtime.Object{})
 

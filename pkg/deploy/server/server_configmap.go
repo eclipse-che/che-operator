@@ -253,7 +253,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 		ServerStrategy:                         ingressStrategy,
 		WorkspaceExposure:                      workspaceExposure,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
-		CheDevWorkspacesEnabled:                strconv.FormatBool(ctx.CheCluster.Spec.DevWorkspace.Enable),
+		CheDevWorkspacesEnabled:                strconv.FormatBool(true),
 	}
 
 	data.IdentityProviderUrl = identityProviderURL
@@ -280,10 +280,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 			"CHE_INFRA_KUBERNETES_INGRESS_ANNOTATIONS__JSON":           "{\"kubernetes.io/ingress.class\": " + ingressClass + ", \"nginx.ingress.kubernetes.io/rewrite-target\": \"/$1\",\"nginx.ingress.kubernetes.io/ssl-redirect\": " + tls + ",\"nginx.ingress.kubernetes.io/proxy-connect-timeout\": \"3600\",\"nginx.ingress.kubernetes.io/proxy-read-timeout\": \"3600\"}",
 			"CHE_INFRA_KUBERNETES_INGRESS_PATH__TRANSFORM":             "%s(.*)",
 		}
-
-		if ctx.CheCluster.Spec.DevWorkspace.Enable {
-			k8sCheEnv["CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S"] = "true"
-		}
+		k8sCheEnv["CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S"] = "true"
 
 		// Add TLS key and server certificate to properties since user workspaces is created in another
 		// than Che server namespace, from where the Che TLS secret is not accessable

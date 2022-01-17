@@ -16,11 +16,9 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,7 +38,6 @@ func TestDashboardOpenShift(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &routev1.Route{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, &corev1.ServiceAccount{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
@@ -60,7 +57,6 @@ func TestDashboardKubernetes(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &networkingv1.Ingress{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: DashboardSA, Namespace: "eclipse-che"}, &corev1.ServiceAccount{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: dashboard.getComponentName(ctx), Namespace: "eclipse-che"}, &appsv1.Deployment{}))
