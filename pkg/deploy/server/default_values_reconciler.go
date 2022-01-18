@@ -13,8 +13,6 @@
 package server
 
 import (
-	"strconv"
-
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -166,14 +164,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 		strategy := util.GetServerExposureStrategy(ctx.CheCluster)
 		ctx.CheCluster.Spec.Server.ServerExposureStrategy = strategy
 		if err := deploy.UpdateCheCRSpec(ctx, "serverExposureStrategy", strategy); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	if ctx.CheCluster.Spec.Auth.NativeUserMode == nil {
-		newNativeUserModeValue := util.NewBoolPointer(true)
-		ctx.CheCluster.Spec.Auth.NativeUserMode = newNativeUserModeValue
-		if err := deploy.UpdateCheCRSpec(ctx, "nativeUserMode", strconv.FormatBool(*newNativeUserModeValue)); err != nil {
 			return reconcile.Result{}, false, err
 		}
 	}

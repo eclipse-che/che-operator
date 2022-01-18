@@ -192,12 +192,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	}
 	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
 
-	cheWorkspaceServiceAccount := "che-workspace"
-	cheUserClusterRoleNames := "NULL"
-	if ctx.CheCluster.IsNativeUserModeEnabled() {
-		cheWorkspaceServiceAccount = "NULL"
-		cheUserClusterRoleNames = fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace, ctx.CheCluster.Namespace)
-	}
+	cheWorkspaceServiceAccount := "NULL"
+	cheUserClusterRoleNames := fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace, ctx.CheCluster.Namespace)
 
 	data := &CheConfigMap{
 		CheMultiUser:                           "true",

@@ -116,9 +116,7 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	if !instance.Spec.Server.ExternalDevfileRegistry {
 		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
 	}
-	if instance.IsNativeUserModeEnabled() {
-		skipAuthPaths = append(skipAuthPaths, "/healthz$")
-	}
+	skipAuthPaths = append(skipAuthPaths, "/healthz$")
 	if len(skipAuthPaths) > 0 {
 		propName := "skip_auth_routes"
 		if util.IsOpenShift {

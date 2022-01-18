@@ -65,8 +65,8 @@ func TestSyncAllToCluster(t *testing.T) {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
 
-	assert.Lenf(t, deployment.Spec.Template.Spec.Containers, 2,
-		"With classic multi-user, there should be 2 containers in the gateway, traefik and configbump. But it has '%d' containers.", len(deployment.Spec.Template.Spec.Containers))
+	assert.Lenf(t, deployment.Spec.Template.Spec.Containers, 4,
+		"There should be 4 containers in the gateway. But it has '%d' containers.", len(deployment.Spec.Template.Spec.Containers))
 	for _, c := range deployment.Spec.Template.Spec.Containers {
 		assert.NotNil(t, c.Resources, "container '%s' has not set resources", c.Name)
 	}
@@ -83,7 +83,6 @@ func TestNativeUserGateway(t *testing.T) {
 	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	nativeUserMode := true
 	deployContext := &deploy.DeployContext{
 		CheCluster: &orgv1.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -91,9 +90,6 @@ func TestNativeUserGateway(t *testing.T) {
 				Name:      "eclipse-che",
 			},
 			Spec: orgv1.CheClusterSpec{
-				Auth: orgv1.CheClusterSpecAuth{
-					NativeUserMode: &nativeUserMode,
-				},
 				Server: orgv1.CheClusterSpecServer{
 					ServerExposureStrategy: "single-host",
 				},
@@ -150,6 +146,9 @@ func TestRandomCookieSecret(t *testing.T) {
 }
 
 func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
+	util.IsOpenShift = true
+	util.IsOpenShift4 = true
+
 	t.Run("no skip auth", func(t *testing.T) {
 		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
 			Spec: orgv1.CheClusterSpec{
@@ -158,7 +157,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 					ExternalPluginRegistry:  true,
 				}}}, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if strings.Contains(config, "skip_auth_regex") {
+		if !strings.Contains(config, "skip_auth_regex = \"/healthz$\"") {
 			t.Errorf("oauth config shold not contain any skip auth when both registries are external")
 		}
 	})
@@ -172,7 +171,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 					ExternalPluginRegistry:  true,
 				}}}, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/devfile-registry\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/devfile-registry|/healthz$\"") {
 			t.Error("oauth config should skip auth for devfile registry", config)
 		}
 	})
@@ -185,7 +184,7 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 					ExternalPluginRegistry:  false,
 				}}}, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|/healthz$\"") {
 			t.Error("oauth config should skip auth for plugin registry", config)
 		}
 	})
@@ -198,17 +197,14 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 					ExternalPluginRegistry:  false,
 				}}}, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
-		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry\"") {
+		if !strings.Contains(config, "skip_auth_regex = \"^/plugin-registry|^/devfile-registry|/healthz$\"") {
 			t.Error("oauth config should skip auth for plugin and devfile registry.", config)
 		}
 	})
 
 	t.Run("skip '/healthz' path", func(t *testing.T) {
 		configmap := getGatewayOauthProxyConfigSpec(&orgv1.CheCluster{
-			Spec: orgv1.CheClusterSpec{
-				Auth: orgv1.CheClusterSpecAuth{
-					NativeUserMode: util.NewBoolPointer(true),
-				}}}, "blabol")
+			Spec: orgv1.CheClusterSpec{}}, "blabol")
 		config := configmap.Data["oauth-proxy.cfg"]
 		assert.Contains(t, config, "/healthz$")
 	})
@@ -220,13 +216,7 @@ func TestTokenValidityCheckOnOpenShiftNativeUser(t *testing.T) {
 		corev1.SchemeBuilder.AddToScheme(scheme.Scheme)
 
 		cm, err := getGatewayServerConfigSpec(&deploy.DeployContext{
-			CheCluster: &orgv1.CheCluster{
-				Spec: orgv1.CheClusterSpec{
-					Auth: orgv1.CheClusterSpecAuth{
-						NativeUserMode: util.NewBoolPointer(true),
-					},
-				},
-			},
+			CheCluster: &orgv1.CheCluster{},
 			ClusterAPI: deploy.ClusterAPI{
 				Scheme: scheme.Scheme,
 			},

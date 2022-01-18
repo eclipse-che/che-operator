@@ -35,23 +35,17 @@ func NewGatewayPermissionsReconciler() *GatewayPermissionsReconciler {
 }
 
 func (gp *GatewayPermissionsReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	if ctx.CheCluster.IsNativeUserModeEnabled() {
-		name := gp.gatewayPermissionsName(ctx.CheCluster)
-		if done, err := deploy.SyncClusterRoleToCluster(ctx, name, gp.getGatewayClusterRoleRules()); !done {
-			return reconcile.Result{Requeue: true}, false, err
-		}
+	name := gp.gatewayPermissionsName(ctx.CheCluster)
+	if done, err := deploy.SyncClusterRoleToCluster(ctx, name, gp.getGatewayClusterRoleRules()); !done {
+		return reconcile.Result{Requeue: true}, false, err
+	}
 
-		if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, gateway.GatewayServiceName, name); !done {
-			return reconcile.Result{Requeue: true}, false, err
-		}
+	if done, err := deploy.SyncClusterRoleBindingToCluster(ctx, name, gateway.GatewayServiceName, name); !done {
+		return reconcile.Result{Requeue: true}, false, err
+	}
 
-		if err := deploy.AppendFinalizer(ctx, CheGatewayClusterPermissionsFinalizerName); err != nil {
-			return reconcile.Result{Requeue: true}, false, err
-		}
-	} else {
-		if done, err := gp.deleteGatewayPermissions(ctx); !done {
-			return reconcile.Result{Requeue: true}, false, err
-		}
+	if err := deploy.AppendFinalizer(ctx, CheGatewayClusterPermissionsFinalizerName); err != nil {
+		return reconcile.Result{Requeue: true}, false, err
 	}
 
 	return reconcile.Result{}, true, nil

@@ -123,13 +123,10 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 					APIVersion: "v1",
 					FieldPath:  "metadata.namespace"}},
 		})
-
-	if ctx.CheCluster.IsNativeUserModeEnabled() {
-		cheEnv = append(cheEnv, corev1.EnvVar{
-			Name:  "CHE_AUTH_NATIVEUSER",
-			Value: "true",
-		})
-	}
+	cheEnv = append(cheEnv, corev1.EnvVar{
+		Name:  "CHE_AUTH_NATIVEUSER",
+		Value: "true",
+	})
 
 	cheImageAndTag := GetFullCheServerImageLink(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))

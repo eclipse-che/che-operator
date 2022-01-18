@@ -104,32 +104,30 @@ func syncAll(deployContext *deploy.DeployContext) error {
 		return err
 	}
 
-	if deployContext.CheCluster.IsNativeUserModeEnabled() {
-		if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
-			if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
-				return err
-			}
-			oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance, string(oauthSecret.Data["cookie_secret"]))
-			if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+	if oauthSecret, err := getGatewaySecretSpec(deployContext); err == nil {
+		if _, err := deploy.Sync(deployContext, oauthSecret, secretDiffOpts); err != nil {
+			return err
+		}
+		oauthProxyConfig := getGatewayOauthProxyConfigSpec(instance, string(oauthSecret.Data["cookie_secret"]))
+		if _, err := deploy.Sync(deployContext, &oauthProxyConfig, configMapDiffOpts); err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+
+	kubeRbacProxyConfig := getGatewayKubeRbacProxyConfigSpec(instance)
+	if _, err := deploy.Sync(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
+		return err
+	}
+
+	if util.IsOpenShift {
+		if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
+			if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
 				return err
 			}
 		} else {
 			return err
-		}
-
-		kubeRbacProxyConfig := getGatewayKubeRbacProxyConfigSpec(instance)
-		if _, err := deploy.Sync(deployContext, &kubeRbacProxyConfig, configMapDiffOpts); err != nil {
-			return err
-		}
-
-		if util.IsOpenShift {
-			if headerRewritePluginConfig, err := getGatewayHeaderRewritePluginConfigSpec(instance); err == nil {
-				if _, err := deploy.Sync(deployContext, headerRewritePluginConfig, configMapDiffOpts); err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
 		}
 	}
 
@@ -225,7 +223,7 @@ func getGatewayServerConfigSpec(deployContext *deploy.DeployContext) (corev1.Con
 		"http://"+deploy.CheServiceName+":8080",
 		[]string{})
 
-	if util.IsOpenShift && deployContext.CheCluster.IsNativeUserModeEnabled() {
+	if util.IsOpenShift {
 		cfg.AddAuthHeaderRewrite(serverComponentName)
 		// native user mode is currently only available on OpenShift but let's be defensive here so that
 		// this doesn't break once we enable it on Kubernetes, too. Token check will have to work
@@ -366,10 +364,7 @@ func getGatewayHeaderRewritePluginConfigSpec(instance *orgv1.CheCluster) (*corev
 }
 
 func getGatewayTraefikConfigSpec(instance *orgv1.CheCluster) corev1.ConfigMap {
-	traefikPort := GatewayServicePort
-	if instance.IsNativeUserModeEnabled() {
-		traefikPort = 8081
-	}
+	traefikPort := 8081
 	data := fmt.Sprintf(`
 entrypoints:
   http:
@@ -390,7 +385,7 @@ providers:
 log:
   level: "INFO"`, traefikPort)
 
-	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
+	if util.IsOpenShift {
 		data += `
 experimental:
   localPlugins:
@@ -517,11 +512,9 @@ func getContainersSpec(instance *orgv1.CheCluster) []corev1.Container {
 		},
 	}
 
-	if instance.IsNativeUserModeEnabled() {
-		containers = append(containers,
-			getOauthProxyContainerSpec(instance),
-			getKubeRbacProxyContainerSpec(instance))
-	}
+	containers = append(containers,
+		getOauthProxyContainerSpec(instance),
+		getKubeRbacProxyContainerSpec(instance))
 
 	return containers
 }
@@ -537,7 +530,7 @@ func getTraefikContainerVolumeMounts(instance *orgv1.CheCluster) []corev1.Volume
 			MountPath: "/dynamic-config",
 		},
 	}
-	if util.IsOpenShift && instance.IsNativeUserModeEnabled() {
+	if util.IsOpenShift {
 		mounts = append(mounts, corev1.VolumeMount{
 			Name:      "header-rewrite-traefik-plugin",
 			MountPath: "/plugins-local/src/github.com/che-incubator/header-rewrite-traefik-plugin",
@@ -567,23 +560,21 @@ func getVolumesSpec(instance *orgv1.CheCluster) []corev1.Volume {
 		},
 	}
 
-	if instance.IsNativeUserModeEnabled() {
-		volumes = append(volumes,
-			getOauthProxyConfigVolume(),
-			getKubeRbacProxyConfigVolume())
+	volumes = append(volumes,
+		getOauthProxyConfigVolume(),
+		getKubeRbacProxyConfigVolume())
 
-		if util.IsOpenShift {
-			volumes = append(volumes, corev1.Volume{
-				Name: "header-rewrite-traefik-plugin",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "che-gateway-config-header-rewrite-traefik-plugin",
-						},
+	if util.IsOpenShift {
+		volumes = append(volumes, corev1.Volume{
+			Name: "header-rewrite-traefik-plugin",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "che-gateway-config-header-rewrite-traefik-plugin",
 					},
 				},
-			})
-		}
+			},
+		})
 	}
 
 	return volumes

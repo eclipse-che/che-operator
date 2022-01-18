@@ -130,7 +130,7 @@ func (d *DashboardReconciler) createGatewayConfig(ctx *deploy.DeployContext) *ga
 		10,
 		"http://"+d.getComponentName(ctx)+":8080",
 		[]string{})
-	if util.IsOpenShift && ctx.CheCluster.IsNativeUserModeEnabled() {
+	if util.IsOpenShift {
 		cfg.AddAuthHeaderRewrite(d.getComponentName(ctx))
 	}
 	return cfg

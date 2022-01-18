@@ -804,7 +804,3 @@ func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
 	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
 }
-
-func (c *CheCluster) IsNativeUserModeEnabled() bool {
-	return c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
-}
