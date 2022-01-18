@@ -70,7 +70,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					},
 				},
 			},
-			expectedDevfileRegistryURL: "http:///devfile-registry",
+			expectedDevfileRegistryURL: "https:///devfile-registry",
 		},
 		{
 			name: "Test Status.DevfileRegistryURL #2",
@@ -93,7 +93,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					},
 				},
 			},
-			expectedDevfileRegistryURL: "http:///devfile-registry",
+			expectedDevfileRegistryURL: "https:///devfile-registry",
 		},
 		{
 			name: "Test Status.DevfileRegistryURL #2",

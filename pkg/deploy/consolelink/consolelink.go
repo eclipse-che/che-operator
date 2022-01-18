@@ -44,12 +44,6 @@ func (c *ConsoleLinkReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.
 		return reconcile.Result{}, true, nil
 	}
 
-	if !ctx.CheCluster.Spec.Server.TlsSupport {
-		// console link is supported only with https
-		logrus.Debug("Console link won't be created. HTTP protocol is not supported.")
-		return reconcile.Result{}, true, nil
-	}
-
 	done, err := c.createConsoleLink(ctx)
 	if !done {
 		return reconcile.Result{Requeue: true}, false, err

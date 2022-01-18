@@ -24,8 +24,6 @@ spec:
     cheWorkspaceClusterRole: ''
     # When enabled, the certificate from `che-git-self-signed-cert` ConfigMap will be propagated to the Che components and provide particular configuration for Git.
     gitSelfSignedCert: false
-    # Deprecated. Instructs the Operator to deploy Che in TLS mode. Disabling TLS sometimes cause malfunction of some Che components.
-    tlsSupport: true
     # URL (protocol+host name) of the proxy server. This drives the appropriate changes in the `JAVA_OPTS` and `https(s)_proxy` variables
     # in the Che server and workspaces containers.
     # Only use when configuring a proxy is required. Operator respects OpenShift cluster wide proxy configuration

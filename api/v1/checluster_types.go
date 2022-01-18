@@ -800,7 +800,3 @@ func (c *CheCluster) IsImagePullerSpecEmpty() bool {
 func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 	return len(c.Spec.ImagePuller.Spec.Images) == 0
 }
-
-func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
-	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
-}

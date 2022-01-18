@@ -92,13 +92,7 @@ func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *deploy.DeployContext) (s
 }
 
 func (d *DevfileRegistryReconciler) updateStatus(endpoint string, ctx *deploy.DeployContext) (bool, error) {
-	var devfileRegistryURL string
-	if ctx.CheCluster.Spec.Server.TlsSupport {
-		devfileRegistryURL = "https://" + endpoint
-	} else {
-		devfileRegistryURL = "http://" + endpoint
-	}
-
+	devfileRegistryURL := "https://" + endpoint
 	if devfileRegistryURL != ctx.CheCluster.Status.DevfileRegistryURL {
 		ctx.CheCluster.Status.DevfileRegistryURL = devfileRegistryURL
 		if err := deploy.UpdateCheCRStatus(ctx, "status: Devfile Registry URL", devfileRegistryURL); err != nil {

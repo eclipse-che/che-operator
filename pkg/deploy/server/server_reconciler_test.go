@@ -36,11 +36,6 @@ func TestReconcile(t *testing.T) {
 			Namespace: "eclipse-che",
 			Name:      os.Getenv("CHE_FLAVOR"),
 		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				TlsSupport: true,
-			},
-		},
 	}
 
 	util.IsOpenShift = true
@@ -69,11 +64,6 @@ func TestSyncLegacyConfigMap(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
-		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				TlsSupport: true,
-			},
 		},
 	}
 	ctx := deploy.GetTestDeployContext(cheCluster, []runtime.Object{})

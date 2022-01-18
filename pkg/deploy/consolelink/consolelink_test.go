@@ -31,11 +31,7 @@ func TestReconcileConsoleLink(t *testing.T) {
 			Namespace: "eclipse-che",
 			Name:      "eclipse-che",
 		},
-		Spec: orgv1.CheClusterSpec{
-			Server: orgv1.CheClusterSpecServer{
-				TlsSupport: true,
-			},
-		},
+		Spec: orgv1.CheClusterSpec{},
 	}
 
 	util.IsOpenShift4 = true

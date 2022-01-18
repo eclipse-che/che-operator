@@ -105,12 +105,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 			openShiftIdentityProviderId = "openshift-v4"
 		}
 	}
-	tlsSupport := ctx.CheCluster.Spec.Server.TlsSupport
-	protocol := "http"
-	if tlsSupport {
-		protocol = "https"
-		tls = "true"
-	}
 
 	proxyJavaOpts := ""
 	cheWorkspaceNoProxy := ctx.Proxy.NoProxy
@@ -169,29 +163,21 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(ctx.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 
-	cheAPI := protocol + "://" + cheHost + "/api"
-	var pluginRegistryInternalURL, devfileRegistryInternalURL, cheInternalAPI, webSocketInternalEndpoint string
+	cheAPI := "https://" + cheHost + "/api"
+	var pluginRegistryInternalURL, devfileRegistryInternalURL string
 
 	// If there is a devfile registry deployed by operator
-	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() && !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
+	if !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
 		devfileRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080", deploy.DevfileRegistryName, ctx.CheCluster.Namespace)
 	}
 
-	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() && !ctx.CheCluster.Spec.Server.ExternalPluginRegistry {
+	if !ctx.CheCluster.Spec.Server.ExternalPluginRegistry {
 		pluginRegistryInternalURL = fmt.Sprintf("http://%s.%s.svc:8080/v3", deploy.PluginRegistryName, ctx.CheCluster.Namespace)
 	}
 
-	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() {
-		cheInternalAPI = fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)
-		webSocketInternalEndpoint = fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, ctx.CheCluster.Namespace)
-	}
-
-	wsprotocol := "ws"
-	if tlsSupport {
-		wsprotocol = "wss"
-	}
-	webSocketEndpoint := wsprotocol + "://" + cheHost + "/api/websocket"
-
+	cheInternalAPI := fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)
+	webSocketInternalEndpoint := fmt.Sprintf("ws://%s.%s.svc:8080/api/websocket", deploy.CheServiceName, ctx.CheCluster.Namespace)
+	webSocketEndpoint := "wss://" + cheHost + "/api/websocket"
 	cheWorkspaceServiceAccount := "NULL"
 	cheUserClusterRoleNames := fmt.Sprintf("%s-cheworkspaces-clusterrole, %s-cheworkspaces-devworkspace-clusterrole", ctx.CheCluster.Namespace, ctx.CheCluster.Namespace)
 
@@ -213,8 +199,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 		WorkspacePvcStorageClassName:           workspacePvcStorageClassName,
 		PvcJobsImage:                           pvcJobsImage,
 		PreCreateSubPaths:                      preCreateSubPaths,
-		TlsSupport:                             tls,
-		K8STrustCerts:                          tls,
+		TlsSupport:                             "true",
+		K8STrustCerts:                          "true",
 		CheLogLevel:                            cheLogLevel,
 		OpenShiftIdentityProvider:              openShiftIdentityProviderId,
 		JavaOpts:                               deploy.DefaultJavaOpts + " " + proxyJavaOpts,

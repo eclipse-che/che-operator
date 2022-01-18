@@ -83,7 +83,6 @@ func GetRouteSpec(
 	component string) (*routev1.Route, error) {
 
 	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
-	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	labels := GetLabels(deployContext.CheCluster, component)
 	MergeLabels(labels, routeCustomSettings.Labels)
 
@@ -153,26 +152,24 @@ func GetRouteSpec(
 		route.Spec.Host = fmt.Sprintf(HostNameTemplate, route.ObjectMeta.Name, route.ObjectMeta.Namespace, routeCustomSettings.Domain)
 	}
 
-	if tlsSupport {
-		route.Spec.TLS = &routev1.TLSConfig{
-			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-			Termination:                   routev1.TLSTerminationEdge,
+	route.Spec.TLS = &routev1.TLSConfig{
+		InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+		Termination:                   routev1.TLSTerminationEdge,
+	}
+
+	// for server and dashboard ingresses
+	if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+		secret := &corev1.Secret{}
+		namespacedName := types.NamespacedName{
+			Namespace: deployContext.CheCluster.Namespace,
+			Name:      deployContext.CheCluster.Spec.Server.CheHostTLSSecret,
+		}
+		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
+			return nil, err
 		}
 
-		// for server and dashboard ingresses
-		if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
-			secret := &corev1.Secret{}
-			namespacedName := types.NamespacedName{
-				Namespace: deployContext.CheCluster.Namespace,
-				Name:      deployContext.CheCluster.Spec.Server.CheHostTLSSecret,
-			}
-			if err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
-				return nil, err
-			}
-
-			route.Spec.TLS.Key = string(secret.Data["tls.key"])
-			route.Spec.TLS.Certificate = string(secret.Data["tls.crt"])
-		}
+		route.Spec.TLS.Key = string(secret.Data["tls.key"])
+		route.Spec.TLS.Certificate = string(secret.Data["tls.crt"])
 	}
 
 	return route, nil

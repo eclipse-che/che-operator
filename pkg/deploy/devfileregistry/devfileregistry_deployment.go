@@ -30,7 +30,7 @@ func (d *DevfileRegistryReconciler) getDevfileRegistryDeploymentSpec(ctx *deploy
 	devfileImagesEnv := util.GetEnvByRegExp("^.*devfile_registry_image.*$")
 
 	// If there is a devfile registry deployed by operator
-	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() && !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
+	if !ctx.CheCluster.Spec.Server.ExternalDevfileRegistry {
 		devfileImagesEnv = append(devfileImagesEnv,
 			corev1.EnvVar{
 				Name:  "CHE_DEVFILE_REGISTRY_INTERNAL_URL",

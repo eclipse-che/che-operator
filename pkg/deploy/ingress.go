@@ -14,7 +14,6 @@ package deploy
 import (
 	"reflect"
 	"sort"
-	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -63,7 +62,6 @@ func GetIngressSpec(
 	component string) (ingressUrl string, i *networking.Ingress) {
 
 	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
-	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
 	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
 	exposureType := GetSingleHostExposureType(deployContext.CheCluster)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
@@ -73,11 +71,9 @@ func GetIngressSpec(
 	MergeLabels(labels, ingressCustomSettings.Labels)
 	pathType := networking.PathTypeImplementationSpecific
 
-	if tlsSupport {
-		// for server and dashboard ingresses
-		if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
-			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
-		}
+	// for server and dashboard ingresses
+	if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+		tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
 	}
 
 	if host == "" {
@@ -100,7 +96,7 @@ func GetIngressSpec(
 		"kubernetes.io/ingress.class":                       ingressClass,
 		"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-		"nginx.ingress.kubernetes.io/ssl-redirect":          strconv.FormatBool(tlsSupport),
+		"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 	}
 	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
@@ -176,13 +172,11 @@ func GetIngressSpec(
 		ingress.ObjectMeta.Annotations["nginx.org/websocket-services"] = serviceName
 	}
 
-	if tlsSupport {
-		ingress.Spec.TLS = []networking.IngressTLS{
-			{
-				Hosts:      []string{host},
-				SecretName: tlsSecretName,
-			},
-		}
+	ingress.Spec.TLS = []networking.IngressTLS{
+		{
+			Hosts:      []string{host},
+			SecretName: tlsSecretName,
+		},
 	}
 
 	return host + endpointPath, ingress
