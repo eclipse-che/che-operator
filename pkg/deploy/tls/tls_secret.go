@@ -15,7 +15,6 @@ package tls
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -34,22 +33,9 @@ func (t *TlsSecretReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 			// To use Openshift v4 OAuth, the OAuth endpoints are served from a namespace
 			// and NOT from the Openshift API Master URL (as in v3)
 			// So we also need the self-signed certificate to access them (same as the Che server)
-			(util.IsOpenShift4 && ctx.CheCluster.IsOpenShiftOAuthEnabled() && !ctx.CheCluster.Spec.Server.TlsSupport) {
+			(util.IsOpenShift4 && !ctx.CheCluster.Spec.Server.TlsSupport) {
 			if err := CreateTLSSecretFromEndpoint(ctx, "", deploy.CheTLSSelfSignedCertificateSecretName); err != nil {
 				return reconcile.Result{}, false, err
-			}
-		}
-
-		if util.IsOpenShift && ctx.CheCluster.IsOpenShiftOAuthEnabled() {
-			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
-			if err != nil {
-				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
-			} else {
-				baseURL := map[bool]string{true: apiInternalUrl, false: apiUrl}[apiInternalUrl != ""]
-				if err := CreateTLSSecretFromEndpoint(ctx, baseURL, "openshift-api-crt"); err != nil {
-					return reconcile.Result{}, false, err
-				}
 			}
 		}
 	} else {

@@ -201,28 +201,6 @@ spec:
 ```bash
 $ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
 
-### OpenShift OAuth
-
-OpenShift clusters include a built-in OAuth server. Che operator supports this authentication method. It's enabled by default.
-
-To disable OpenShift OAuth use command line:
-
-```bash
-$ kubectl patch checluster/eclipse-che -n <ECLIPSE-CHE-NAMESPACE> --type=merge -p '{"spec":{"auth":{"openShiftoAuth": false}}}'
-```
-
-or create `cr-patch.yaml` and use it with chectl:
-
-```yaml
-spec:
-  auth:
-    openShiftoAuth: false
-```
-
-```bash
-$ chectl server:update -n <ECLIPSE-CHE-NAMESPACE> --che-operator-cr-patch-yaml <PATH_TO_CR_PATCH_YAML>
-```
-
 ### TLS
 
 TLS is enabled by default.

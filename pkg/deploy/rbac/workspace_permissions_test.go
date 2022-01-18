@@ -22,7 +22,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 )
 
 func TestReconcileWorkspacePermissions(t *testing.T) {
@@ -47,9 +46,6 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						WorkspaceNamespaceDefault: "some-test-namespace",
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: pointer.BoolPtr(false),
-					},
 				},
 			},
 		},
@@ -66,9 +62,6 @@ func TestReconcileWorkspacePermissions(t *testing.T) {
 						CustomCheProperties: map[string]string{
 							"CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT": "some-test-namespace",
 						},
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: pointer.BoolPtr(false),
 					},
 				},
 			},

@@ -25,7 +25,6 @@ import (
 	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	imagepuller "github.com/eclipse-che/che-operator/pkg/deploy/image-puller"
 	"github.com/eclipse-che/che-operator/pkg/deploy/migration"
-	openshiftoauth "github.com/eclipse-che/che-operator/pkg/deploy/openshift-oauth"
 	"github.com/eclipse-che/che-operator/pkg/deploy/pluginregistry"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/rbac"
@@ -93,7 +92,6 @@ func NewReconciler(
 	}
 	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
-	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth())
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
 	reconcileManager.RegisterReconciler(devworkspace.NewDevWorkspaceReconciler())

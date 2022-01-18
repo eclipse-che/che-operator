@@ -59,9 +59,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 						Enable: true,
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
-					},
 					Server: orgv1.CheClusterSpecServer{
 						ServerExposureStrategy: "single-host",
 					},
@@ -79,9 +76,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 						Enable: true,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
 					},
 					Server: orgv1.CheClusterSpecServer{
 						ServerExposureStrategy: "multi-host",
@@ -104,9 +98,6 @@ func TestReconcileDevWorkspace(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 						Enable: true,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
 					},
 					Server: orgv1.CheClusterSpecServer{
 						ServerExposureStrategy: "single-host",

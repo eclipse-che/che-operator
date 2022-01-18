@@ -675,9 +675,6 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 					ConfigMapName:  "k8s-image-puller",
 				},
 			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
 		},
 	}
 }
@@ -704,9 +701,6 @@ func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluste
 					Images:         images,
 				},
 			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
 		},
 	}
 }
@@ -727,9 +721,6 @@ func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 					DeploymentName: "kubernetes-image-puller-trigger-update",
 					ConfigMapName:  "k8s-image-puller-trigger-update",
 				},
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
 			},
 		},
 	}

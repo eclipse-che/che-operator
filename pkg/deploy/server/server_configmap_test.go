@@ -53,9 +53,6 @@ func TestNewCheConfigMap(t *testing.T) {
 							"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 						},
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
-					},
 				},
 			},
 			expectedData: map[string]string{
@@ -579,9 +576,6 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						ExternalPluginRegistry: true,
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
 				},
 				Status: orgv1.CheClusterStatus{
 					PluginRegistryURL: "http://external-plugin-registry",
@@ -605,9 +599,6 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
 						ExternalPluginRegistry:         true,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
 				},
 				Status: orgv1.CheClusterStatus{
@@ -633,9 +624,6 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
 						ExternalPluginRegistry:         false,
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
 				},
 				Status: orgv1.CheClusterStatus{
 					PluginRegistryURL: "http://plugin-registry/v3",
@@ -658,9 +646,6 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						ExternalPluginRegistry: false,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
 				},
 				Status: orgv1.CheClusterStatus{
@@ -713,9 +698,6 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
 						CheHost:                        "che-host",
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
 				},
 			},
 			expectedData: map[string]string{
@@ -735,9 +717,6 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						CheHost: "http://che-host",
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
 				},
 			},

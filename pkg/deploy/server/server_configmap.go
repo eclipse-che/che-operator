@@ -99,7 +99,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	}
 	tls := "false"
 	openShiftIdentityProviderId := "NULL"
-	if util.IsOpenShift && ctx.CheCluster.IsOpenShiftOAuthEnabled() {
+	if util.IsOpenShift {
 		openShiftIdentityProviderId = "openshift-v3"
 		if util.IsOpenShift4 {
 			openShiftIdentityProviderId = "openshift-v4"
