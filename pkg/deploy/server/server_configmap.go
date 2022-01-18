@@ -93,18 +93,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	cheHost := ctx.CheCluster.Spec.Server.CheHost
 	identityProviderURL := ctx.CheCluster.Spec.Auth.IdentityProviderURL
 
-	// Adds `/auth` for external identity providers.
-	// If identity provide is deployed by operator then `/auth` is already added.
-	if !ctx.CheCluster.IsNativeUserModeEnabled() &&
-		ctx.CheCluster.Spec.Auth.ExternalIdentityProvider &&
-		!strings.HasSuffix(identityProviderURL, "/auth") {
-		if strings.HasSuffix(identityProviderURL, "/") {
-			identityProviderURL = identityProviderURL + "auth"
-		} else {
-			identityProviderURL = identityProviderURL + "/auth"
-		}
-	}
-
 	infra := "kubernetes"
 	if util.IsOpenShift {
 		infra = "openshift"

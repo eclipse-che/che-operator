@@ -71,11 +71,11 @@ var (
 
 func TestCaseAutoDetectOAuth(t *testing.T) {
 	type testCase struct {
-		name                             string
-		initObjects                      []runtime.Object
-		isOpenshift4                     bool
-		initialOAuthValue                *bool
-		oAuthExpected                    *bool
+		name              string
+		initObjects       []runtime.Object
+		isOpenshift4      bool
+		initialOAuthValue *bool
+		oAuthExpected     *bool
 	}
 
 	testCases := []testCase{
@@ -155,9 +155,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithNoIdentityProviders,
 				proxy,
 			},
-			isOpenshift4:                     true,
-			initialOAuthValue:                pointer.BoolPtr(true),
-			oAuthExpected:                    pointer.BoolPtr(true),
+			isOpenshift4:      true,
+			initialOAuthValue: pointer.BoolPtr(true),
+			oAuthExpected:     pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
@@ -165,9 +165,9 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				oAuthWithIdentityProvider,
 				proxy,
 			},
-			isOpenshift4:                     false,
-			initialOAuthValue:                pointer.BoolPtr(true),
-			oAuthExpected:                    pointer.BoolPtr(true),
+			isOpenshift4:      false,
+			initialOAuthValue: pointer.BoolPtr(true),
+			oAuthExpected:     pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
@@ -190,11 +190,11 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			oAuthExpected:     pointer.BoolPtr(false),
 		},
 		{
-			name:                             "che-operator should auto disable oAuth on error retieve identity providers",
-			initObjects:                      []runtime.Object{},
-			isOpenshift4:                     false,
-			initialOAuthValue:                nil,
-			oAuthExpected:                    pointer.BoolPtr(false),
+			name:              "che-operator should auto disable oAuth on error retieve identity providers",
+			initObjects:       []runtime.Object{},
+			isOpenshift4:      false,
+			initialOAuthValue: nil,
+			oAuthExpected:     pointer.BoolPtr(false),
 		},
 	}
 	for _, testCase := range testCases {
@@ -208,7 +208,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth:            testCase.initialOAuthValue,
+						OpenShiftoAuth: testCase.initialOAuthValue,
 					},
 				},
 			}

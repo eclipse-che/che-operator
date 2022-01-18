@@ -380,10 +380,6 @@ func readAndAdaptCheCRFromBackup(rctx *RestoreContext, dataDir string) (*chev1.C
 			cheCR.Spec.Server.CheHost = ""
 		}
 	}
-	if !cheCR.Spec.Auth.ExternalIdentityProvider {
-		// Let operator set the URL automatically
-		cheCR.Spec.Auth.IdentityProviderURL = ""
-	}
 
 	return cheCR, true, nil
 }

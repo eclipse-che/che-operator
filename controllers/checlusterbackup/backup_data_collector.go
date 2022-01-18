@@ -253,12 +253,6 @@ func backupSecrets(bctx *BackupContext, destDir string) (bool, error) {
 	if bctx.cheCR.Spec.Database.ChePostgresSecret != "" {
 		secretsNames = append(secretsNames, bctx.cheCR.Spec.Database.ChePostgresSecret)
 	}
-	if bctx.cheCR.Spec.Auth.IdentityProviderPostgresSecret != "" {
-		secretsNames = append(secretsNames, bctx.cheCR.Spec.Auth.IdentityProviderPostgresSecret)
-	}
-	if bctx.cheCR.Spec.Auth.IdentityProviderSecret != "" {
-		secretsNames = append(secretsNames, bctx.cheCR.Spec.Auth.IdentityProviderSecret)
-	}
 
 	// Retrieve and save each secret
 	for _, secretName := range secretsNames {
