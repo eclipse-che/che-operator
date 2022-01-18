@@ -37,13 +37,10 @@ const (
 )
 
 type OpenShiftOAuth struct {
-	openShiftOAuthUser *OpenShiftOAuthUser
 }
 
-func NewOpenShiftOAuth(openShiftOAuthUser *OpenShiftOAuthUser) *OpenShiftOAuth {
-	return &OpenShiftOAuth{
-		openShiftOAuthUser,
-	}
+func NewOpenShiftOAuth() *OpenShiftOAuth {
+	return &OpenShiftOAuth{}
 }
 
 func (oo *OpenShiftOAuth) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
@@ -71,25 +68,6 @@ func (oo *OpenShiftOAuth) enableOpenShiftOAuth(ctx *deploy.DeployContext) (recon
 				// enable OpenShift OAuth without adding initial OpenShift OAuth user
 				// since kubeadmin is a valid user for native user mode
 				oauth = true
-			} else if ctx.CheCluster.IsOpenShiftOAuthUserConfigured() {
-				provisioned, err := oo.openShiftOAuthUser.Create(ctx)
-				if err != nil {
-					logrus.Error(warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error())
-					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
-
-					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
-					ctx.CheCluster.Spec.Auth.InitialOpenShiftOAuthUser = nil
-					if err := deploy.UpdateCheCRStatus(ctx, "initialOpenShiftOAuthUser", ""); err != nil {
-						return reconcile.Result{}, false, err
-					}
-					oauth = false
-				} else {
-					if !provisioned {
-						// let's wait some time
-						return reconcile.Result{}, false, err
-					}
-					oauth = true
-				}
 			}
 		}
 	} else { // Openshift 3

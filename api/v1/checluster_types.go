@@ -805,15 +805,6 @@ func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
 	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
 }
 
-// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
-func (c *CheCluster) IsOpenShiftOAuthUserConfigured() bool {
-	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
-}
-
-func (c *CheCluster) IsOpenShiftOAuthUserMustBeDeleted() bool {
-	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*c.Spec.Auth.InitialOpenShiftOAuthUser
-}
-
 func (c *CheCluster) IsOpenShiftOAuthEnabled() bool {
 	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
 }

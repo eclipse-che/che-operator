@@ -254,7 +254,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: ## Run tests.
+test: prepare-templates ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 ##@ Build

@@ -93,9 +93,7 @@ func NewReconciler(
 	}
 	reconcileManager.RegisterReconciler(imagepuller.NewImagePuller())
 
-	openShiftOAuthUser := openshiftoauth.NewOpenShiftOAuthUser()
-	reconcileManager.RegisterReconciler(openShiftOAuthUser)
-	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth(openShiftOAuthUser))
+	reconcileManager.RegisterReconciler(openshiftoauth.NewOpenShiftOAuth())
 	reconcileManager.RegisterReconciler(tls.NewCertificatesReconciler())
 	reconcileManager.RegisterReconciler(tls.NewTlsSecretReconciler())
 	reconcileManager.RegisterReconciler(devworkspace.NewDevWorkspaceReconciler())

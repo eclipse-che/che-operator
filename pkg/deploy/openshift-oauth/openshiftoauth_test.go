@@ -76,7 +76,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 		isOpenshift4                     bool
 		initialOAuthValue                *bool
 		oAuthExpected                    *bool
-		initialOpenShiftOAuthUserEnabled *bool
 	}
 
 	testCases := []testCase{
@@ -159,7 +158,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			isOpenshift4:                     true,
 			initialOAuthValue:                pointer.BoolPtr(true),
 			oAuthExpected:                    pointer.BoolPtr(true),
-			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = true even if there are some users on the Openshift 4",
@@ -170,7 +168,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			isOpenshift4:                     false,
 			initialOAuthValue:                pointer.BoolPtr(true),
 			oAuthExpected:                    pointer.BoolPtr(true),
-			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
 		},
 		{
 			name: "che-operator should respect oAuth = false even if there no indentity providers on the Openshift 4",
@@ -197,7 +194,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			initObjects:                      []runtime.Object{},
 			isOpenshift4:                     false,
 			initialOAuthValue:                nil,
-			initialOpenShiftOAuthUserEnabled: pointer.BoolPtr(true),
 			oAuthExpected:                    pointer.BoolPtr(false),
 		},
 	}
@@ -213,7 +209,6 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					Auth: orgv1.CheClusterSpecAuth{
 						OpenShiftoAuth:            testCase.initialOAuthValue,
-						InitialOpenShiftOAuthUser: testCase.initialOpenShiftOAuthUserEnabled,
 					},
 				},
 			}
@@ -222,7 +217,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 			util.IsOpenShift4 = testCase.isOpenshift4
 			deployContext := deploy.GetTestDeployContext(checluster, testCase.initObjects)
 
-			openShiftOAuth := NewOpenShiftOAuth(NewOpenShiftOAuthUser())
+			openShiftOAuth := NewOpenShiftOAuth()
 			_, done, err := openShiftOAuth.Reconcile(deployContext)
 			assert.Nil(t, err)
 			assert.True(t, done)
