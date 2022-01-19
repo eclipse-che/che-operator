@@ -28,7 +28,6 @@ import (
 	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -360,22 +359,6 @@ func GetImageNameAndTag(image string) (string, string) {
 func NewBoolPointer(value bool) *bool {
 	variable := value
 	return &variable
-}
-
-// GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
-func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.CustomCheProperties != nil {
-		k8sNamespaceDefault := cr.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
-		if k8sNamespaceDefault != "" {
-			return k8sNamespaceDefault
-		}
-	}
-
-	workspaceNamespaceDefault := cr.Namespace
-	if IsOpenShift {
-		workspaceNamespaceDefault = "<username>-" + deploy.DefaultCheFlavor(cr)
-	}
-	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {

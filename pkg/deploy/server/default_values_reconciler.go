@@ -107,52 +107,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 		}
 	}
 
-	// This is only to correctly  manage defaults during the transition
-	// from Upstream 7.0.0 GA to the next
-	// version that should fixed bug https://github.com/eclipse/che/issues/13714
-	// Or for the transition from CRW 1.2 to 2.0
-
-	if ctx.CheCluster.Spec.Storage.PvcJobsImage == deploy.OldDefaultPvcJobsUpstreamImageToDetect ||
-		(deploy.MigratingToCRW2_0(ctx.CheCluster) && ctx.CheCluster.Spec.Storage.PvcJobsImage != "") {
-		ctx.CheCluster.Spec.Storage.PvcJobsImage = ""
-		if err := deploy.UpdateCheCRSpec(ctx, "pvc jobs image", ctx.CheCluster.Spec.Storage.PvcJobsImage); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	if ctx.CheCluster.Spec.Database.PostgresImage == deploy.OldDefaultPostgresUpstreamImageToDetect ||
-		(deploy.MigratingToCRW2_0(ctx.CheCluster) && ctx.CheCluster.Spec.Database.PostgresImage != "") {
-		ctx.CheCluster.Spec.Database.PostgresImage = ""
-		if err := deploy.UpdateCheCRSpec(ctx, "postgres image", ctx.CheCluster.Spec.Database.PostgresImage); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	if deploy.MigratingToCRW2_0(ctx.CheCluster) &&
-		!ctx.CheCluster.Spec.Server.ExternalPluginRegistry &&
-		ctx.CheCluster.Spec.Server.PluginRegistryUrl == deploy.OldCrwPluginRegistryUrl {
-		ctx.CheCluster.Spec.Server.PluginRegistryUrl = ""
-		if err := deploy.UpdateCheCRSpec(ctx, "plugin registry url", ctx.CheCluster.Spec.Server.PluginRegistryUrl); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	if deploy.MigratingToCRW2_0(ctx.CheCluster) &&
-		ctx.CheCluster.Spec.Server.CheImage == deploy.OldDefaultCodeReadyServerImageRepo {
-		ctx.CheCluster.Spec.Server.CheImage = ""
-		if err := deploy.UpdateCheCRSpec(ctx, "che image repo", ctx.CheCluster.Spec.Server.CheImage); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
-	if deploy.MigratingToCRW2_0(ctx.CheCluster) &&
-		ctx.CheCluster.Spec.Server.CheImageTag == deploy.OldDefaultCodeReadyServerImageTag {
-		ctx.CheCluster.Spec.Server.CheImageTag = ""
-		if err := deploy.UpdateCheCRSpec(ctx, "che image tag", ctx.CheCluster.Spec.Server.CheImageTag); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
 	return reconcile.Result{}, true, nil
 }
 

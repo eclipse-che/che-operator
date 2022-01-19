@@ -82,16 +82,6 @@ const (
 	ServerExposureStrategy        = "single-host"
 	GatewaySingleHostExposureType = "gateway"
 
-	// This is only to correctly  manage defaults during the transition
-	// from Upstream 7.0.0 GA to the next version
-	// That fixed bug https://github.com/eclipse/che/issues/13714
-	OldDefaultPvcJobsUpstreamImageToDetect  = "registry.access.redhat.com/ubi8-minimal:8.0-127"
-	OldDefaultPostgresUpstreamImageToDetect = "centos/postgresql-96-centos7:9.6"
-
-	OldDefaultCodeReadyServerImageRepo = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	OldDefaultCodeReadyServerImageTag  = "1.2"
-	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
-
 	// kubernetes default labels
 	KubernetesComponentLabelKey = "app.kubernetes.io/component"
 	KubernetesPartOfLabelKey    = "app.kubernetes.io/part-of"
@@ -240,15 +230,6 @@ func getDefaultFromEnv(envName string) string {
 	return value
 }
 
-func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
-	if cr.Spec.Server.CheFlavor == "codeready" &&
-		strings.HasPrefix(cr.Status.CheVersion, "1.2") &&
-		strings.HasPrefix(defaultCheVersion, "2.0") {
-		return true
-	}
-	return false
-}
-
 func IsComponentReadinessInitContainersConfigured(cr *orgv1.CheCluster) bool {
 	return os.Getenv("ADD_COMPONENT_READINESS_INIT_CONTAINERS") == "true"
 }
@@ -383,6 +364,22 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 		return "Always"
 	}
 	return "IfNotPresent"
+}
+
+// GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
+func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.CustomCheProperties != nil {
+		k8sNamespaceDefault := cr.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
+		if k8sNamespaceDefault != "" {
+			return k8sNamespaceDefault
+		}
+	}
+
+	workspaceNamespaceDefault := cr.Namespace
+	if util.IsOpenShift {
+		workspaceNamespaceDefault = "<username>-" + DefaultCheFlavor(cr)
+	}
+	return util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {

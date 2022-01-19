@@ -46,7 +46,7 @@ func (v *CheClusterValidator) Reconcile(ctx *deploy.DeployContext) (reconcile.Re
 		}
 	}
 
-	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(ctx.CheCluster)
+	workspaceNamespaceDefault := deploy.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 	if strings.Index(workspaceNamespaceDefault, "<username>") == -1 && strings.Index(workspaceNamespaceDefault, "<userid>") == -1 {
 		return reconcile.Result{}, false, fmt.Errorf(NamespaceStrategyErrorMessage, workspaceNamespaceDefault)
 	}

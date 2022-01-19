@@ -159,7 +159,7 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(deploy.GetLabels(ctx.CheCluster, deploy.DefaultCheFlavor(ctx.CheCluster)))
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(ctx.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
-	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(ctx.CheCluster)
+	workspaceNamespaceDefault := deploy.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 
 	cheAPI := "https://" + cheHost + "/api"
 	var pluginRegistryInternalURL, devfileRegistryInternalURL string
