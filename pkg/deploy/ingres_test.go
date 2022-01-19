@@ -53,11 +53,6 @@ func TestIngressSpec(t *testing.T) {
 			Namespace: "eclipse-che",
 			Name:      cheFlavor,
 		},
-		Spec: orgv1.CheClusterSpec{
-			K8s: orgv1.CheClusterSpecK8SOnly{
-				SingleHostExposureType: GatewaySingleHostExposureType,
-			},
-		},
 	}
 
 	testCases := []testCase{

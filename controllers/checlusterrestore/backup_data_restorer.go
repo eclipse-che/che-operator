@@ -494,24 +494,6 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 				}
 				return false, err
 			}
-
-			if rctx.cheCR.Spec.Server.ServerExposureStrategy == "multi-host" {
-				// Some databases contain values bind to cluster and/or namespace
-				// These values should be adjusted according to new environmant.
-				pathcDatabaseScript, err := getPatchDatabaseScript(rctx, dbName, dataDir)
-				if err != nil {
-					return false, err
-				}
-				if pathcDatabaseScript != "" {
-					execReason := fmt.Sprintf("patching %s database", dbName)
-					if output, err := k8sClient.DoExecIntoPod(rctx.namespace, postgresPodName, pathcDatabaseScript, execReason); err != nil {
-						if output != "" {
-							logrus.Error(output)
-						}
-						return false, err
-					}
-				}
-			}
 		}
 	}
 

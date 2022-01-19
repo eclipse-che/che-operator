@@ -160,14 +160,6 @@ func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcil
 		}
 	}
 
-	if ctx.CheCluster.Spec.Server.ServerExposureStrategy == "" && ctx.CheCluster.Spec.K8s.IngressStrategy == "" {
-		strategy := util.GetServerExposureStrategy(ctx.CheCluster)
-		ctx.CheCluster.Spec.Server.ServerExposureStrategy = strategy
-		if err := deploy.UpdateCheCRSpec(ctx, "serverExposureStrategy", strategy); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
-
 	return reconcile.Result{}, true, nil
 }
 

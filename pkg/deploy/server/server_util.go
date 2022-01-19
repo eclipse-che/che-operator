@@ -14,22 +14,12 @@ package server
 import (
 	"fmt"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )
 
 func getComponentName(ctx *deploy.DeployContext) string {
 	return deploy.DefaultCheFlavor(ctx.CheCluster)
-}
-
-func getServerExposingServiceName(cr *orgv1.CheCluster) string {
-	if util.GetServerExposureStrategy(cr) == "single-host" && deploy.GetSingleHostExposureType(cr) == deploy.GatewaySingleHostExposureType {
-		return gateway.GatewayServiceName
-	}
-	return deploy.CheServiceName
 }
 
 func getOAuthConfig(ctx *deploy.DeployContext, oauthProvider string) (*corev1.Secret, error) {

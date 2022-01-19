@@ -79,8 +79,7 @@ const (
 
 	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.9"
 
-	DefaultServerExposureStrategy = "multi-host"
-	NativeSingleHostExposureType  = "native"
+	ServerExposureStrategy        = "single-host"
 	GatewaySingleHostExposureType = "gateway"
 
 	// This is only to correctly  manage defaults during the transition
@@ -384,10 +383,6 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 		return "Always"
 	}
 	return "IfNotPresent"
-}
-
-func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	return GatewaySingleHostExposureType
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {

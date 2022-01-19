@@ -62,8 +62,6 @@ func GetIngressSpec(
 	component string) (ingressUrl string, i *networking.Ingress) {
 
 	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
-	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
-	exposureType := GetSingleHostExposureType(deployContext.CheCluster)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
@@ -77,16 +75,12 @@ func GetIngressSpec(
 	}
 
 	if host == "" {
-		if ingressStrategy == "multi-host" {
-			host = component + "-" + deployContext.CheCluster.Namespace + "." + ingressDomain
-		} else if ingressStrategy == "single-host" {
-			host = ingressDomain
-		}
+		host = ingressDomain
 	}
 
 	var endpointPath, ingressPath string
 	if path == "" {
-		endpointPath, ingressPath = evaluatePath(component, ingressStrategy)
+		endpointPath, ingressPath = evaluatePath(component)
 	} else {
 		ingressPath = path
 		endpointPath = path
@@ -98,13 +92,12 @@ func GetIngressSpec(
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 		"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 	}
-	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
+	if component == DevfileRegistryName || component == PluginRegistryName {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 	// Set bigger proxy buffer size to prevent 502 auth error.
-	if exposureType == GatewaySingleHostExposureType {
-		annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
-	}
+	annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
+
 	for k, v := range ingressCustomSettings.Annotations {
 		annotations[k] = v
 	}
@@ -184,22 +177,17 @@ func GetIngressSpec(
 
 // evaluatePath evaluates ingress path (one which is used for rule)
 // and endpoint path (one which client should use during endpoint accessing)
-func evaluatePath(component, ingressStrategy string) (endpointPath, ingressPath string) {
-	if ingressStrategy == "multi-host" {
+func evaluatePath(component string) (endpointPath, ingressPath string) {
+	switch component {
+	case DevfileRegistryName:
+		fallthrough
+	case PluginRegistryName:
+		endpointPath = "/" + component
+		ingressPath = endpointPath + "/(.*)"
+	default:
 		ingressPath = "/"
 		endpointPath = "/"
-	} else {
-		switch component {
-		case DevfileRegistryName:
-			fallthrough
-		case PluginRegistryName:
-			endpointPath = "/" + component
-			ingressPath = endpointPath + "/(.*)"
-		default:
-			ingressPath = "/"
-			endpointPath = "/"
-		}
-
 	}
+
 	return endpointPath, ingressPath
 }

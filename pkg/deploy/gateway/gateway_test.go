@@ -41,11 +41,6 @@ func TestSyncAllToCluster(t *testing.T) {
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
-			Spec: orgv1.CheClusterSpec{
-				Server: orgv1.CheClusterSpecServer{
-					ServerExposureStrategy: "single-host",
-				},
-			},
 		},
 		ClusterAPI: deploy.ClusterAPI{
 			Client:           cli,
@@ -88,11 +83,6 @@ func TestNativeUserGateway(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
-			},
-			Spec: orgv1.CheClusterSpec{
-				Server: orgv1.CheClusterSpecServer{
-					ServerExposureStrategy: "single-host",
-				},
 			},
 		},
 		ClusterAPI: deploy.ClusterAPI{

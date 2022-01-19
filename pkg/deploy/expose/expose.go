@@ -51,69 +51,22 @@ func ExposeWithHostPath(
 	ingressCustomSettings orgv1.IngressCustomSettings,
 	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
 
-	exposureStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
-
 	if path != "" && !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
-	singleHostExposureType := deploy.GetSingleHostExposureType(deployContext.CheCluster)
-	useGateway := exposureStrategy == "single-host" && (util.IsOpenShift || singleHostExposureType == deploy.GatewaySingleHostExposureType)
 	if !util.IsOpenShift {
-		if useGateway {
-			return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-				if _, err = deploy.DeleteNamespacedObject(deployContext, component, &networking.Ingress{}); err != nil {
-					logrus.Error(err)
-				}
-			})
-		} else {
-			endpointUrl, done, err = deploy.SyncIngressToCluster(deployContext, component, host, path, component, 8080, ingressCustomSettings, component)
-			if !done {
-				logrus.Infof("Waiting on ingress '%s' to be ready", component)
-				if err != nil {
-					logrus.Error(err)
-				}
-				return "", false, err
-			}
-			if err := gateway.DeleteGatewayRouteConfig(component, deployContext); !util.IsTestMode() && err != nil {
+		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
+			if _, err = deploy.DeleteNamespacedObject(deployContext, component, &networking.Ingress{}); err != nil {
 				logrus.Error(err)
 			}
-
-			return endpointUrl, true, nil
-		}
+		})
 	} else {
-		if useGateway {
-			return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
-				if _, err := deploy.DeleteNamespacedObject(deployContext, component, &routev1.Route{}); !util.IsTestMode() && err != nil {
-					logrus.Error(err)
-				}
-			})
-		} else {
-			// the empty string for a host is intentional here - we let OpenShift decide on the hostname
-			done, err := deploy.SyncRouteToCluster(deployContext, component, host, path, component, 8080, routeCustomSettings, component)
-			if !done {
-				logrus.Infof("Waiting on route '%s' to be ready", component)
-				if err != nil {
-					logrus.Error(err)
-				}
-				return "", false, err
-			}
-
-			route := &routev1.Route{}
-			exists, err := deploy.GetNamespacedObject(deployContext, component, route)
-			if !exists {
-				if err != nil {
-					logrus.Error(err)
-				}
-				return "", false, err
-			}
-
-			if err := gateway.DeleteGatewayRouteConfig(component, deployContext); !util.IsTestMode() && err != nil {
+		return exposeWithGateway(deployContext, gatewayConfig, component, path, func() {
+			if _, err := deploy.DeleteNamespacedObject(deployContext, component, &routev1.Route{}); !util.IsTestMode() && err != nil {
 				logrus.Error(err)
 			}
-
-			return route.Spec.Host + path, true, nil
-		}
+		})
 	}
 }
 

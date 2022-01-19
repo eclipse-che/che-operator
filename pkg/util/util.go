@@ -195,19 +195,6 @@ func MergeMaps(first map[string]string, second map[string]string) map[string]str
 	return ret
 }
 
-func GetServerExposureStrategy(cheCluster *orgv1.CheCluster) string {
-	if cheCluster.Spec.Server.ServerExposureStrategy != "" {
-		return cheCluster.Spec.Server.ServerExposureStrategy
-	}
-
-	if !IsOpenShift && cheCluster.Spec.K8s.IngressStrategy != "" {
-		return cheCluster.Spec.K8s.IngressStrategy
-	}
-
-	// Explicitly switch to `single-host` mode
-	return "single-host"
-}
-
 func IsTestMode() (isTesting bool) {
 	testMode := os.Getenv("MOCK_API")
 	if len(testMode) == 0 {

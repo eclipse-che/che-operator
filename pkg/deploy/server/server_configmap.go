@@ -137,7 +137,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	chePostgresHostName := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresHostName, deploy.DefaultChePostgresHostName)
 	chePostgresPort := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresPort, deploy.DefaultChePostgresPort)
 	chePostgresDb := util.GetValue(ctx.CheCluster.Spec.Database.ChePostgresDb, deploy.DefaultChePostgresDb)
-	ingressStrategy := util.GetServerExposureStrategy(ctx.CheCluster)
 	ingressClass := util.GetValue(ctx.CheCluster.Spec.K8s.IngressClass, deploy.DefaultIngressClass)
 
 	// grab first the devfile registry url which is deployed by operator
@@ -159,7 +158,6 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 	cheDebug := util.GetValue(ctx.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
 	cheMetrics := strconv.FormatBool(ctx.CheCluster.Spec.Metrics.Enable)
 	cheLabels := util.MapToKeyValuePairs(deploy.GetLabels(ctx.CheCluster, deploy.DefaultCheFlavor(ctx.CheCluster)))
-	workspaceExposure := deploy.GetSingleHostExposureType(ctx.CheCluster)
 	singleHostGatewayConfigMapLabels := labels.FormatLabels(util.GetMapValue(ctx.CheCluster.Spec.Server.SingleHostGatewayConfigMapLabels, deploy.DefaultSingleHostGatewayConfigMapLabels))
 	workspaceNamespaceDefault := util.GetWorkspaceNamespaceDefault(ctx.CheCluster)
 
@@ -220,8 +218,8 @@ func (s *CheServerReconciler) getCheConfigMapData(ctx *deploy.DeployContext) (ch
 		CheJGroupsKubernetesLabels:             cheLabels,
 		CheMetricsEnabled:                      cheMetrics,
 		CheTrustedCABundlesConfigMap:           deploytls.CheAllCACertsConfigMapName,
-		ServerStrategy:                         ingressStrategy,
-		WorkspaceExposure:                      workspaceExposure,
+		ServerStrategy:                         deploy.ServerExposureStrategy,
+		WorkspaceExposure:                      deploy.GatewaySingleHostExposureType,
 		SingleHostGatewayConfigMapLabels:       singleHostGatewayConfigMapLabels,
 		CheDevWorkspacesEnabled:                strconv.FormatBool(true),
 	}

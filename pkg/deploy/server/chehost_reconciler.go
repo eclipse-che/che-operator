@@ -13,6 +13,7 @@ package server
 
 import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	networking "k8s.io/api/networking/v1"
@@ -60,7 +61,7 @@ func (s *CheHostReconciler) getDefaultCheHost(ctx *deploy.DeployContext) (bool, 
 		getComponentName(ctx),
 		"",
 		"/",
-		getServerExposingServiceName(ctx.CheCluster),
+		gateway.GatewayServiceName,
 		8080,
 		ctx.CheCluster.Spec.Server.CheServerRoute,
 		getComponentName(ctx))
@@ -97,7 +98,6 @@ func (s *CheHostReconciler) syncCheService(ctx *deploy.DeployContext) (bool, err
 
 func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, error) {
 	cheHost := ""
-	exposedServiceName := getServerExposingServiceName(ctx.CheCluster)
 
 	if !util.IsOpenShift {
 		_, done, err := deploy.SyncIngressToCluster(
@@ -105,7 +105,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, e
 			getComponentName(ctx),
 			ctx.CheCluster.Spec.Server.CheHost,
 			"",
-			exposedServiceName,
+			gateway.GatewayServiceName,
 			8080,
 			ctx.CheCluster.Spec.Server.CheServerIngress,
 			getComponentName(ctx))
@@ -132,7 +132,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (bool, e
 			getComponentName(ctx),
 			customHost,
 			"/",
-			exposedServiceName,
+			gateway.GatewayServiceName,
 			8080,
 			ctx.CheCluster.Spec.Server.CheServerRoute,
 			getComponentName(ctx))
