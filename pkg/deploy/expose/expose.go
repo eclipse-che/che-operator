@@ -16,7 +16,6 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -32,11 +31,9 @@ const (
 func Expose(
 	deployContext *deploy.DeployContext,
 	componentName string,
-	routeCustomSettings orgv1.RouteCustomSettings,
-	ingressCustomSettings orgv1.IngressCustomSettings,
 	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
 	//the host and path are empty and will be evaluated for the specified component + path
-	return ExposeWithHostPath(deployContext, componentName, "", "", routeCustomSettings, ingressCustomSettings, gatewayConfig)
+	return ExposeWithHostPath(deployContext, componentName, "", "", gatewayConfig)
 }
 
 //Expose exposes the specified component on the specified host and domain.
@@ -47,8 +44,6 @@ func ExposeWithHostPath(
 	component string,
 	host string,
 	path string,
-	routeCustomSettings orgv1.RouteCustomSettings,
-	ingressCustomSettings orgv1.IngressCustomSettings,
 	gatewayConfig *gateway.TraefikConfig) (endpointUrl string, done bool, err error) {
 
 	if path != "" && !strings.HasPrefix(path, "/") {

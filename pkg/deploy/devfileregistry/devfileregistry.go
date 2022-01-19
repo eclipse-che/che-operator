@@ -86,8 +86,6 @@ func (d *DevfileRegistryReconciler) exposeEndpoint(ctx *deploy.DeployContext) (s
 	return expose.Expose(
 		ctx,
 		deploy.DevfileRegistryName,
-		ctx.CheCluster.Spec.Server.DevfileRegistryRoute,
-		ctx.CheCluster.Spec.Server.DevfileRegistryIngress,
 		d.createGatewayConfig())
 }
 

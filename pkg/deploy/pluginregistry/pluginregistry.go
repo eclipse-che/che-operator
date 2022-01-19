@@ -95,8 +95,6 @@ func (p *PluginRegistryReconciler) ExposeEndpoint(ctx *deploy.DeployContext) (st
 	return expose.Expose(
 		ctx,
 		deploy.PluginRegistryName,
-		ctx.CheCluster.Spec.Server.PluginRegistryRoute,
-		ctx.CheCluster.Spec.Server.PluginRegistryIngress,
 		p.createGatewayConfig(ctx))
 }
 
