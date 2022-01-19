@@ -28,6 +28,7 @@ import (
 	"time"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/eclipse-che/che-operator/pkg/deploy"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -372,7 +373,7 @@ func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
 
 	workspaceNamespaceDefault := cr.Namespace
 	if IsOpenShift {
-		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
+		workspaceNamespaceDefault = "<username>-" + deploy.DefaultCheFlavor(cr)
 	}
 	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }

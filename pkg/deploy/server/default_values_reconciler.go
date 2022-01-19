@@ -27,14 +27,7 @@ func NewDefaultValuesReconciler() *DefaultValuesReconciler {
 }
 
 func (p *DefaultValuesReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
-	cheFlavor := deploy.DefaultCheFlavor(ctx.CheCluster)
 	cheNamespace := ctx.CheCluster.Namespace
-	if len(ctx.CheCluster.Spec.Server.CheFlavor) < 1 {
-		ctx.CheCluster.Spec.Server.CheFlavor = cheFlavor
-		if err := deploy.UpdateCheCRSpec(ctx, "installation flavor", cheFlavor); err != nil {
-			return reconcile.Result{}, false, err
-		}
-	}
 
 	if len(ctx.CheCluster.Spec.Database.ChePostgresSecret) < 1 {
 		if len(ctx.CheCluster.Spec.Database.ChePostgresUser) < 1 || len(ctx.CheCluster.Spec.Database.ChePostgresPassword) < 1 {

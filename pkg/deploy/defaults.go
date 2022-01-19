@@ -258,7 +258,7 @@ func DefaultServerTrustStoreConfigMapName() string {
 }
 
 func DefaultCheFlavor(cr *orgv1.CheCluster) string {
-	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
+	return getDefaultFromEnv("CHE_FLAVOR")
 }
 
 func DefaultConsoleLinkName() string {
