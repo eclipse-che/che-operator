@@ -10,17 +10,23 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-name: Code Coverage Report
-on: [push]
+name: CODECOV
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 jobs:
-  code-coverage-report:
+  coverage-report:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2.3.1
-      - name: Submit code coverage results
-        run: |
-         echo "" > coverage.txt
-         make prepare-templates
-         export MOCK_API=true && go test -mod=vendor -v ./... -coverprofile coverage.txt
-         bash <(curl -s https://codecov.io/bash)
+      - name: Run unit tests
+        run: make test
+      - name: Build Codecov report
+        uses: codecov/codecov-action@v1
+        with:
+          files: cover.out
