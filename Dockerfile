@@ -50,6 +50,7 @@ COPY main.go main.go
 COPY vendor/ vendor/
 COPY mocks/ mocks/
 COPY api/ api/
+COPY templates/ templates/
 COPY config/ config/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
@@ -70,6 +71,7 @@ COPY --from=builder /tmp/devworkspace-operator/templates /tmp/devworkspace-opera
 COPY --from=builder /tmp/header-rewrite-traefik-plugin /tmp/header-rewrite-traefik-plugin
 COPY --from=builder /tmp/restic/restic /usr/local/bin/restic
 COPY --from=builder /go/restic/LICENSE /usr/local/bin/restic-LICENSE.txt
+COPY --from=builder /che-operator/templates/*.sh /tmp/
 COPY --from=builder /che-operator/che-operator /manager
 
 WORKDIR /
