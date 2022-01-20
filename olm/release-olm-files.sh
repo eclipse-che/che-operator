@@ -97,7 +97,6 @@ sed \
 -e 's|"pluginRegistryImage": *"quay.io/eclipse/che-plugin-registry:next"|"pluginRegistryImage": ""|' \
 -e "/^  replaces: ${packageName}.v.*/d" \
 -e "s/^  version: ${lastPackageNextVersion}/  version: ${RELEASE}/" \
--e "/^  version: ${RELEASE}/i\ \ replaces: ${packageName}.v${LAST_RELEASE_VERSION}" \
 -e "s/: next/: ${RELEASE}/" \
 -e "s/:next/:${RELEASE}/" \
 -e "s/${lastPackageNextVersion}/${RELEASE}/" \
