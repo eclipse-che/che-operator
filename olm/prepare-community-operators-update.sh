@@ -120,7 +120,6 @@ do
   echo
   sed \
   -e "/^  replaces: ${packageName}.v.*/d" \
-  -e "/^  version: ${LAST_PACKAGE_VERSION}/i\ \ replaces: eclipse-che.v${PREVIOUS_PACKAGE_VERSION}" \
   -e "s/${packageName}/eclipse-che/" \
   "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml" \
   > "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/eclipse-che.v${LAST_PACKAGE_VERSION}.clusterserviceversion.yaml"
@@ -128,8 +127,8 @@ do
   echo "   - Update the CRD files"
   cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/checlusters.org.eclipse.che.crd.yaml"
   cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests//org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
-  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests//org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
+  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterbackups_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusterbackups_crd.yaml"
+  cp "${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusterrestores_crd.yaml" "${folderToUpdate}/${LAST_PACKAGE_VERSION}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
   echo
 
   cp ${OPERATOR_REPO}/bundle/$channel/eclipse-che-preview-openshift/metadata/* "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata"
@@ -139,9 +138,6 @@ do
     -e '/operators.operatorframework.io.test.mediatype.v1: scorecard+v1/d' \
     -i "${folderToUpdate}/${LAST_PACKAGE_VERSION}/metadata/annotations.yaml"
 
-  # NOTE: if you update this file, you need to submit a PR against these two files:
-  # https://github.com/redhat-openshift-ecosystem/community-operators-prod/blob/main/operators/eclipse-che/ci.yaml
-  # https://github.com/k8s-operatorhub/community-operators/blob/main/operators/eclipse-che/ci.yaml
   echo "   - Replace ci.yaml file"
   cp ${BASE_DIR}/ci.yaml ${folderToUpdate}/ci.yaml
 
