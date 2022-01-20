@@ -113,7 +113,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.43.0-411.next
+  name: eclipse-che-preview-openshift.v7.43.0-412.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1078,8 +1078,6 @@ spec:
                         value: quay.io/eclipse/che--centos--postgresql-96-centos7:9.6-b681d78125361519180a6ac05242c296f8906c11eab7e207b5ca9a89b6344392
                       - name: RELATED_IMAGE_postgres_13_3
                         value: quay.io/eclipse/che--centos--postgresql-13-centos7:1-71b24684d64da46f960682cc4216222a7e4ed8b1a31dd5a865b3e71afdea20d2
-                      - name: RELATED_IMAGE_keycloak
-                        value: quay.io/eclipse/che-keycloak:next
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_metadata
                         value: quay.io/eclipse/che-plugin-metadata-broker:v3.4.0
                       - name: RELATED_IMAGE_che_workspace_plugin_broker_artifacts
@@ -1405,4 +1403,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.43.0-411.next
+  version: 7.43.0-412.next
