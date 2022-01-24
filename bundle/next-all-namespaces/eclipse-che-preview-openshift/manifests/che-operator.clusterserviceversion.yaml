@@ -60,7 +60,7 @@ metadata:
               "externalDb": false
             },
             "devWorkspace": {
-              "enable": false
+              "enable": true
             },
             "metrics": {
               "enable": true
@@ -119,14 +119,14 @@ metadata:
     createdAt: "2021-05-11T18:38:31Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
-    operatorframework.io/suggested-namespace: eclipse-che
+    operatorframework.io/suggested-namespace: openshift-operators
     operators.openshift.io/infrastructure-features: '["disconnected", "proxy-aware",
       "fips"]'
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.42.0-406.next
+  name: eclipse-che-preview-openshift.v7.41.0-388.next-all-namespaces
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -975,14 +975,6 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - config.openshift.io
-              resourceNames:
-                - cluster
-              resources:
-                - proxies
-              verbs:
-                - get
-            - apiGroups:
                 - controller.devfile.io
               resources:
                 - '*'
@@ -1446,13 +1438,13 @@ spec:
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
-    - supported: true
-      type: OwnNamespace
-    - supported: true
-      type: SingleNamespace
-    - supported: true
-      type: MultiNamespace
     - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
       type: AllNamespaces
   keywords:
     - eclipse che
@@ -1474,4 +1466,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.42.0-406.next
+  version: 7.41.0-388.next-all-namespaces
