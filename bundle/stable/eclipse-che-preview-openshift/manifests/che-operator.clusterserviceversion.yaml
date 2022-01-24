@@ -1808,9 +1808,6 @@ spec:
     - name: che-rust-1.39-ce0526f
       image: quay.io/eclipse/che-rust-1.39@sha256:4b9f381ca0cb1f6efe1f56572a2698aa4e9b62e7c0f92da9b60bcf0c5e85733d
       # tag: quay.io/eclipse/che-rust-1.39:ce0526f
-    - name: ubi8-minimal-8.3
-      image: registry.access.redhat.com/ubi8-minimal@sha256:2f6b88c037c0503da7704bccd3fc73cb76324101af39ad28f16460e7bce98324
-      # tag: registry.access.redhat.com/ubi8-minimal:8.3
     - name: ubi-minimal-
       image: registry.access.redhat.com/ubi8/ubi-minimal@sha256:cf1c63e3247e4074ee3549a064b8798a1a2513ad57dd79c9edb979836355b469
       # tag: registry.access.redhat.com/ubi8/ubi-minimal
