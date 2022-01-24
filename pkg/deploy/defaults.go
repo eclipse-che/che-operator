@@ -37,7 +37,6 @@ var (
 	defaultPvcJobsImage                        string
 	defaultPostgresImage                       string
 	defaultPostgres13Image                     string
-	defaultKeycloakImage                       string
 	defaultSingleHostGatewayImage              string
 	defaultSingleHostGatewayConfigSidecarImage string
 	defaultInternalRestBackupServerImage       string
@@ -63,7 +62,6 @@ const (
 	DefaultPvcClaimSize        = "10Gi"
 	DefaultIngressClass        = "nginx"
 
-	DefaultKeycloakAdminUserName   = "admin"
 	DefaultCheLogLevel             = "INFO"
 	DefaultCheDebug                = "false"
 	DefaultCheMetricsPort          = int32(8087)
@@ -81,20 +79,8 @@ const (
 
 	KubernetesImagePullerOperatorCSV = "kubernetes-imagepuller-operator.v0.0.9"
 
-	DefaultServerExposureStrategy = "multi-host"
-	NativeSingleHostExposureType  = "native"
+	ServerExposureStrategy        = "single-host"
 	GatewaySingleHostExposureType = "gateway"
-
-	// This is only to correctly  manage defaults during the transition
-	// from Upstream 7.0.0 GA to the next version
-	// That fixed bug https://github.com/eclipse/che/issues/13714
-	OldDefaultKeycloakUpstreamImageToDetect = "eclipse/che-keycloak:7.0.0"
-	OldDefaultPvcJobsUpstreamImageToDetect  = "registry.access.redhat.com/ubi8-minimal:8.0-127"
-	OldDefaultPostgresUpstreamImageToDetect = "centos/postgresql-96-centos7:9.6"
-
-	OldDefaultCodeReadyServerImageRepo = "registry.redhat.io/codeready-workspaces/server-rhel8"
-	OldDefaultCodeReadyServerImageTag  = "1.2"
-	OldCrwPluginRegistryUrl            = "https://che-plugin-registry.openshift.io"
 
 	// kubernetes default labels
 	KubernetesComponentLabelKey = "app.kubernetes.io/component"
@@ -118,10 +104,9 @@ const (
 	CheEclipseOrgManagedAnnotationsDigest = "che.eclipse.org/managed-annotations-digest"
 
 	// components
-	IdentityProviderName = "keycloak"
-	DevfileRegistryName  = "devfile-registry"
-	PluginRegistryName   = "plugin-registry"
-	PostgresName         = "postgres"
+	DevfileRegistryName = "devfile-registry"
+	PluginRegistryName  = "plugin-registry"
+	PostgresName        = "postgres"
 
 	// CheServiceAccountName - service account name for che-server.
 	CheServiceAccountName = "che"
@@ -198,7 +183,6 @@ func InitDefaultsFromFile(defaultsPath string) {
 	defaultPvcJobsImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_pvc_jobs"))
 	defaultPostgresImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres"))
 	defaultPostgres13Image = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
-	defaultKeycloakImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultGatewayAuthenticationSidecarImage = util.GetDeploymentEnv(operatorDeployment, util.GetArchitectureDependentEnv("RELATED_IMAGE_gateway_authentication_sidecar"))
@@ -246,15 +230,6 @@ func getDefaultFromEnv(envName string) string {
 	return value
 }
 
-func MigratingToCRW2_0(cr *orgv1.CheCluster) bool {
-	if cr.Spec.Server.CheFlavor == "codeready" &&
-		strings.HasPrefix(cr.Status.CheVersion, "1.2") &&
-		strings.HasPrefix(defaultCheVersion, "2.0") {
-		return true
-	}
-	return false
-}
-
 func IsComponentReadinessInitContainersConfigured(cr *orgv1.CheCluster) bool {
 	return os.Getenv("ADD_COMPONENT_READINESS_INIT_CONTAINERS") == "true"
 }
@@ -264,7 +239,7 @@ func DefaultServerTrustStoreConfigMapName() string {
 }
 
 func DefaultCheFlavor(cr *orgv1.CheCluster) string {
-	return util.GetValue(cr.Spec.Server.CheFlavor, getDefaultFromEnv("CHE_FLAVOR"))
+	return getDefaultFromEnv("CHE_FLAVOR")
 }
 
 func DefaultConsoleLinkName() string {
@@ -331,10 +306,6 @@ func DefaultDevworkspaceControllerImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultDevworkspaceControllerImage)
 }
 
-func DefaultKeycloakImage(cr *orgv1.CheCluster) string {
-	return patchDefaultImageName(cr, defaultKeycloakImage)
-}
-
 func DefaultPluginRegistryImage(cr *orgv1.CheCluster) string {
 	return patchDefaultImageName(cr, defaultPluginRegistryImage)
 }
@@ -395,12 +366,20 @@ func DefaultPullPolicyFromDockerImage(dockerImage string) string {
 	return "IfNotPresent"
 }
 
-func GetSingleHostExposureType(cr *orgv1.CheCluster) string {
-	if util.IsOpenShift || cr.Spec.DevWorkspace.Enable {
-		return GatewaySingleHostExposureType
+// GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
+func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
+	if cr.Spec.Server.CustomCheProperties != nil {
+		k8sNamespaceDefault := cr.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
+		if k8sNamespaceDefault != "" {
+			return k8sNamespaceDefault
+		}
 	}
 
-	return util.GetValue(cr.Spec.K8s.SingleHostExposureType, NativeSingleHostExposureType)
+	workspaceNamespaceDefault := cr.Namespace
+	if util.IsOpenShift {
+		workspaceNamespaceDefault = "<username>-" + DefaultCheFlavor(cr)
+	}
+	return util.GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
 }
 
 func patchDefaultImageName(cr *orgv1.CheCluster, imageName string) string {
@@ -474,7 +453,6 @@ func InitDefaultsFromEnv() {
 	// while downstream is not migrated to PostgreSQL 13.3 yet
 	defaultPostgres13Image = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_postgres_13_3"))
 
-	defaultKeycloakImage = os.Getenv(util.GetArchitectureDependentEnv("RELATED_IMAGE_keycloak"))
 	defaultSingleHostGatewayImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway"))
 	defaultSingleHostGatewayConfigSidecarImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_single_host_gateway_config_sidecar"))
 	defaultInternalRestBackupServerImage = getDefaultFromEnv(util.GetArchitectureDependentEnv("RELATED_IMAGE_internal_rest_backup_server"))

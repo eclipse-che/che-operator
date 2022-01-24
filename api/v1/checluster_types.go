@@ -95,6 +95,7 @@ type CheClusterSpecServer struct {
 	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	CheImagePullPolicy corev1.PullPolicy `json:"cheImagePullPolicy,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Specifies a variation of the installation. The options are `che` for upstream Che installations, or `codeready` for link:https://developers.redhat.com/products/codeready-workspaces/overview[CodeReady Workspaces] installation.
 	// Override the default value only on necessary occasions.
 	// +optional
@@ -158,6 +159,7 @@ type CheClusterSpecServer struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	UseInternalClusterSVCNames bool `json:"useInternalClusterSVCNames"`
+	// Deprecated. The value of this flag is ignored.
 	// Disable internal cluster SVC names usage to communicate between components to speed up the traffic and avoid proxy issues.
 	// +optional
 	DisableInternalClusterSVCNames *bool `json:"disableInternalClusterSVCNames,omitempty"`
@@ -183,9 +185,11 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	DashboardCpuRequest string `json:"dashboardCpuRequest,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Dashboard ingress custom settings.
 	// +optional
 	DashboardIngress IngressCustomSettings `json:"dashboardIngress,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Dashboard route custom settings.
 	// +optional
 	DashboardRoute RouteCustomSettings `json:"dashboardRoute,omitempty"`
@@ -215,9 +219,11 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	DevfileRegistryCpuRequest string `json:"devfileRegistryCpuRequest,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// The devfile registry ingress custom settings.
 	// +optional
 	DevfileRegistryIngress IngressCustomSettings `json:"devfileRegistryIngress,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// The devfile registry route custom settings.
 	// +optional
 	DevfileRegistryRoute RouteCustomSettings `json:"devfileRegistryRoute,omitempty"`
@@ -259,9 +265,11 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	PluginRegistryCpuRequest string `json:"pluginRegistryCpuRequest,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Plugin registry ingress custom settings.
 	// +optional
 	PluginRegistryIngress IngressCustomSettings `json:"pluginRegistryIngress,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Plugin registry route custom settings.
 	// +optional
 	PluginRegistryRoute RouteCustomSettings `json:"pluginRegistryRoute,omitempty"`
@@ -318,6 +326,7 @@ type CheClusterSpecServer struct {
 	// In cores. (500m = .5 cores). Default to 100m.
 	// +optional
 	ServerCpuRequest string `json:"serverCpuRequest,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Sets the server and workspaces exposure type.
 	// Possible values are `multi-host`, `single-host`, `default-host`. Defaults to `multi-host`, which creates a separate ingress, or OpenShift routes, for every required endpoint.
 	// `single-host` makes Che exposed on a single host name with workspaces exposed on subpaths.
@@ -403,6 +412,7 @@ type CheClusterSpecDB struct {
 // +k8s:openapi-gen=true
 // Configuration settings related to the Authentication used by the Che installation.
 type CheClusterSpecAuth struct {
+	// Deprecated. The value of this flag is ignored.
 	// For operating with the OpenShift OAuth authentication, create a new user account since the kubeadmin can not be used.
 	// If the value is true, then a new OpenShift OAuth user will be created for the HTPasswd identity provider.
 	// If the value is false and the user has already been created, then it will be removed.
@@ -410,6 +420,7 @@ type CheClusterSpecAuth struct {
 	// The user's credentials are stored in the `openshift-oauth-user-credentials` secret in 'openshift-config' namespace by Operator.
 	// Note that this solution is Openshift 4 platform-specific.
 	InitialOpenShiftOAuthUser *bool `json:"initialOpenShiftOAuthUser,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Instructs the Operator on whether or not to deploy a dedicated Identity Provider (Keycloak or RH SSO instance).
 	// Instructs the Operator on whether to deploy a dedicated Identity Provider (Keycloak or RH-SSO instance).
 	// By default, a dedicated Identity Provider server is deployed as part of the Che installation. When `externalIdentityProvider` is `true`,
@@ -422,14 +433,17 @@ type CheClusterSpecAuth struct {
 	// See the `externalIdentityProvider` field. By default, this will be automatically calculated and set by the Operator.
 	// +optional
 	IdentityProviderURL string `json:"identityProviderURL,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Overrides the name of the Identity Provider administrator user. Defaults to `admin`.
 	// +optional
 	IdentityProviderAdminUserName string `json:"identityProviderAdminUserName,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Overrides the password of Keycloak administrator user.
 	// Override this when an external Identity Provider is in use. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to an auto-generated password.
 	// +optional
 	IdentityProviderPassword string `json:"identityProviderPassword,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// The secret that contains `user` and `password` for Identity Provider.
 	// When the secret is defined, the `identityProviderAdminUserName` and `identityProviderPassword` are ignored.
 	// When the value is omitted or left blank, the one of following scenarios applies:
@@ -439,21 +453,25 @@ type CheClusterSpecAuth struct {
 	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	IdentityProviderSecret string `json:"identityProviderSecret,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Name of a Identity provider, Keycloak or RH-SSO, realm that is used for Che.
 	// Override this when an external Identity Provider is in use. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to the value of the `flavour` field.
 	// +optional
 	IdentityProviderRealm string `json:"identityProviderRealm,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Name of a Identity provider, Keycloak or RH-SSO, `client-id` that is used for Che.
 	// Override this when an external Identity Provider is in use. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to the value of the `flavour` field suffixed with `-public`.
 	// +optional
 	IdentityProviderClientId string `json:"identityProviderClientId,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Password for a Identity Provider, Keycloak or RH-SSO, to connect to the database.
 	// Override this when an external Identity Provider is in use. See the `externalIdentityProvider` field.
 	// When omitted or left blank, it is set to an auto-generated password.
 	// +optional
 	IdentityProviderPostgresPassword string `json:"identityProviderPostgresPassword,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// The secret that contains `password` for the Identity Provider, Keycloak or RH-SSO, to connect to the database.
 	// When the secret is defined, the `identityProviderPostgresPassword` is ignored. When the value is omitted or left blank, the one of following scenarios applies:
 	// 1. `identityProviderPostgresPassword` is defined, then it will be used to connect to the database.
@@ -461,9 +479,11 @@ type CheClusterSpecAuth struct {
 	// The secret must have `app.kubernetes.io/part-of=che.eclipse.org` label.
 	// +optional
 	IdentityProviderPostgresSecret string `json:"identityProviderPostgresSecret,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Forces the default `admin` Che user to update password on first login. Defaults to `false`.
 	// +optional
 	UpdateAdminPassword bool `json:"updateAdminPassword"`
+	// Deprecated. The value of this flag is ignored.
 	// Enables the integration of the identity provider (Keycloak / RHSSO) with OpenShift OAuth.
 	// Empty value on OpenShift by default. This will allow users to directly login with their OpenShift user through the OpenShift login,
 	// and have their workspaces created under personal OpenShift namespaces.
@@ -476,23 +496,29 @@ type CheClusterSpecAuth struct {
 	// Name of the secret set in the OpenShift `OAuthClient` resource used to setup identity federation on the OpenShift side. Auto-generated when left blank. See also the `OAuthClientName` field.
 	// +optional
 	OAuthSecret string `json:"oAuthSecret,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Overrides the container image used in the Identity Provider, Keycloak or RH-SSO, deployment.
 	// This includes the image tag. Omit it or leave it empty to use the default container image provided by the Operator.
 	// +optional
 	IdentityProviderImage string `json:"identityProviderImage,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Overrides the image pull policy used in the Identity Provider, Keycloak or RH-SSO, deployment.
 	// Default value is `Always` for `nightly`, `next` or `latest` images, and `IfNotPresent` in other cases.
 	// +optional
 	IdentityProviderImagePullPolicy corev1.PullPolicy `json:"identityProviderImagePullPolicy,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Ingress custom settings.
 	// +optional
 	IdentityProviderIngress IngressCustomSettings `json:"identityProviderIngress,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Route custom settings.
 	// +optional
 	IdentityProviderRoute RouteCustomSettings `json:"identityProviderRoute,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Identity provider container custom settings.
 	// +optional
 	IdentityProviderContainerResources ResourcesCustomSettings `json:"identityProviderContainerResources,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Enables native user mode. Currently works only on OpenShift and DevWorkspace engine.
 	// Native User mode uses OpenShift OAuth directly as identity provider, without Keycloak.
 	// +optional
@@ -509,7 +535,7 @@ type CheClusterSpecAuth struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors="urn:alm:descriptor:com.tectonic.ui:hidden"
 	GatewayHeaderRewriteSidecarImage string `json:"gatewayHeaderRewriteSidecarImage,omitempty"`
-
+	// Deprecated. The value of this flag is ignored.
 	// Debug internal identity provider.
 	Debug bool `json:"debug,omitempty"`
 }
@@ -597,6 +623,7 @@ type CheClusterSpecStorage struct {
 type CheClusterSpecK8SOnly struct {
 	// Global ingress domain for a Kubernetes cluster. This MUST be explicitly specified: there are no defaults.
 	IngressDomain string `json:"ingressDomain,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// Strategy for ingress creation. Options are: `multi-host` (host is explicitly provided in ingress),
 	// `single-host` (host is provided, path-based rules) and `default-host` (no host is provided, path-based rules).
 	// Defaults to `multi-host` Deprecated in favor of `serverExposureStrategy` in the `server` section,
@@ -617,6 +644,7 @@ type CheClusterSpecK8SOnly struct {
 	// ID of the user the Che Pod and workspace Pods containers run as. Default value is `1724`.
 	// +optional
 	SecurityContextRunAsUser string `json:"securityContextRunAsUser,omitempty"`
+	// Deprecated. The value of this flag is ignored.
 	// When the serverExposureStrategy is set to `single-host`, the way the server, registries and workspaces are exposed is further configured by this property.
 	// The possible values are `native`, which means that the server and workspaces are exposed using ingresses on K8s
 	// or `gateway` where the server and workspaces are exposed using a custom gateway based on link:https://doc.traefik.io/traefik/[Traefik].
@@ -746,7 +774,6 @@ type CheClusterStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Help link"
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors="urn:alm:descriptor:org.w3:link"
 	HelpLink string `json:"helpLink,omitempty"`
-
 	// The status of the Devworkspace subsystem
 	// +optional
 	DevworkspaceStatus v2alpha1.CheClusterStatusV2Alpha1 `json:"devworkspaceStatus,omitempty"`
@@ -799,25 +826,4 @@ func (c *CheCluster) IsImagePullerSpecEmpty() bool {
 
 func (c *CheCluster) IsImagePullerImagesEmpty() bool {
 	return len(c.Spec.ImagePuller.Spec.Images) == 0
-}
-
-func (c *CheCluster) IsInternalClusterSVCNamesEnabled() bool {
-	return c.Spec.Server.DisableInternalClusterSVCNames == nil || !*c.Spec.Server.DisableInternalClusterSVCNames
-}
-
-// IsInitialOpenShiftOAuthUserEnabled returns true when initial Openshift oAuth user is enabled for CheCluster resource, otherwise false.
-func (c *CheCluster) IsOpenShiftOAuthUserConfigured() bool {
-	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && *c.Spec.Auth.InitialOpenShiftOAuthUser
-}
-
-func (c *CheCluster) IsOpenShiftOAuthUserMustBeDeleted() bool {
-	return c.Spec.Auth.InitialOpenShiftOAuthUser != nil && !*c.Spec.Auth.InitialOpenShiftOAuthUser
-}
-
-func (c *CheCluster) IsOpenShiftOAuthEnabled() bool {
-	return c.Spec.Auth.OpenShiftoAuth != nil && *c.Spec.Auth.OpenShiftoAuth
-}
-
-func (c *CheCluster) IsNativeUserModeEnabled() bool {
-	return c.Spec.Auth.NativeUserMode != nil && *c.Spec.Auth.NativeUserMode
 }

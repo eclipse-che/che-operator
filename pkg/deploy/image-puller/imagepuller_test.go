@@ -123,9 +123,6 @@ func TestImagePullerConfiguration(t *testing.T) {
 							ConfigMapName:  "k8s-image-puller",
 						},
 					},
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "multi-host",
-					},
 				},
 			},
 			initObjects: []runtime.Object{
@@ -557,9 +554,6 @@ func InitCheCRWithImagePullerEnabled() *orgv1.CheCluster {
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
 			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
-			},
 		},
 	}
 }
@@ -582,9 +576,6 @@ func InitCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
 			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
-			},
 		},
 	}
 }
@@ -602,9 +593,6 @@ func InitCheCRWithImagePullerFinalizerAndDeletionTimestamp() *orgv1.CheCluster {
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
 			},
 		},
 	}
@@ -627,9 +615,6 @@ func ExpectedCheCRWithImagePullerFinalizer() *orgv1.CheCluster {
 		Spec: orgv1.CheClusterSpec{
 			ImagePuller: orgv1.CheClusterSpecImagePuller{
 				Enable: true,
-			},
-			Server: orgv1.CheClusterSpecServer{
-				ServerExposureStrategy: "multi-host",
 			},
 		},
 	}
@@ -675,9 +660,6 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 					ConfigMapName:  "k8s-image-puller",
 				},
 			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
 		},
 	}
 }
@@ -704,9 +686,6 @@ func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluste
 					Images:         images,
 				},
 			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
-			},
 		},
 	}
 }
@@ -727,9 +706,6 @@ func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 					DeploymentName: "kubernetes-image-puller-trigger-update",
 					ConfigMapName:  "k8s-image-puller-trigger-update",
 				},
-			},
-			Auth: orgv1.CheClusterSpecAuth{
-				OpenShiftoAuth: util.NewBoolPointer(false),
 			},
 		},
 	}

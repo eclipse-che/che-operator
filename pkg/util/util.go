@@ -15,14 +15,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"net/http"
 	"os"
 	"regexp"
 	"runtime"
@@ -199,126 +195,12 @@ func MergeMaps(first map[string]string, second map[string]string) map[string]str
 	return ret
 }
 
-func GetServerExposureStrategy(cheCluster *orgv1.CheCluster) string {
-	if cheCluster.Spec.Server.ServerExposureStrategy != "" {
-		return cheCluster.Spec.Server.ServerExposureStrategy
-	}
-
-	if !IsOpenShift && cheCluster.Spec.K8s.IngressStrategy != "" {
-		return cheCluster.Spec.K8s.IngressStrategy
-	}
-
-	// Explicitly switch to `single-host` mode
-	if cheCluster.Spec.DevWorkspace.Enable {
-		return "single-host"
-	}
-
-	return "multi-host"
-}
-
 func IsTestMode() (isTesting bool) {
 	testMode := os.Getenv("MOCK_API")
 	if len(testMode) == 0 {
 		return false
 	}
 	return true
-}
-
-func GetOpenShiftAPIUrls() (string, string, error) {
-	// for debug purpose
-	apiUrl := os.Getenv("CLUSTER_API_URL")
-	apiInternalUrl := os.Getenv("CLUSTER_API_INTERNAL_URL")
-	if apiUrl != "" || apiInternalUrl != "" {
-		return apiUrl, apiInternalUrl, nil
-	}
-
-	if IsOpenShift4 {
-		return getAPIUrlsForOpenShiftV4()
-	}
-
-	return getAPIUrlsForOpenShiftV3()
-}
-
-// getAPIUrlsForOpenShiftV3 is a hacky way to get OpenShift API public DNS/IP
-// to be used in OpenShift oAuth provider as baseURL
-func getAPIUrlsForOpenShiftV3() (apiUrl string, apiInternalUrl string, err error) {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
-	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
-	url := "https://" + kubeApi + "/.well-known/oauth-authorization-server"
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", "", err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", "", err
-	}
-	var jsonData map[string]interface{}
-	err = json.Unmarshal(body, &jsonData)
-	if err != nil {
-		logrus.Errorf("An error occurred when unmarshalling: %s", err)
-		return "", "", err
-	}
-	apiUrl = jsonData["issuer"].(string)
-	return apiUrl, "", nil
-}
-
-// getClusterPublicHostnameForOpenshiftV3 is a way to get OpenShift API public DNS/IP
-// to be used in OpenShift oAuth provider as baseURL
-func getAPIUrlsForOpenShiftV4() (apiUrl string, apiInternalUrl string, err error) {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{}
-	kubeApi := os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
-	url := "https://" + kubeApi + "/apis/config.openshift.io/v1/infrastructures/cluster"
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	file, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
-	if err != nil {
-		logrus.Errorf("Failed to locate token file: %s", err)
-		return "", "", err
-	}
-	token := string(file)
-
-	req.Header = http.Header{
-		"Authorization": []string{"Bearer " + token},
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode/100 != 2 {
-		message := url + " - " + resp.Status
-		logrus.Errorf("An error occurred when getting API public hostname: %s", message)
-		return "", "", errors.New(message)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logrus.Errorf("An error occurred when getting API public hostname: %s", err)
-		return "", "", err
-	}
-	var jsonData map[string]interface{}
-	err = json.Unmarshal(body, &jsonData)
-	if err != nil {
-		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", err)
-		return "", "", err
-	}
-	switch status := jsonData["status"].(type) {
-	case map[string]interface{}:
-		apiUrl = status["apiServerURL"].(string)
-		apiInternalUrl = status["apiServerInternalURI"].(string)
-	default:
-		logrus.Errorf("An error occurred when unmarshalling while getting API public hostname: %s", body)
-		return "", "", errors.New(string(body))
-	}
-
-	return apiUrl, apiInternalUrl, nil
 }
 
 func GetRouterCanonicalHostname(client client.Client, namespace string) (string, error) {
@@ -479,22 +361,6 @@ func NewBoolPointer(value bool) *bool {
 	return &variable
 }
 
-// GetWorkspaceNamespaceDefault - returns workspace namespace default strategy, which points on the namespaces used for workspaces execution.
-func GetWorkspaceNamespaceDefault(cr *orgv1.CheCluster) string {
-	if cr.Spec.Server.CustomCheProperties != nil {
-		k8sNamespaceDefault := cr.Spec.Server.CustomCheProperties["CHE_INFRA_KUBERNETES_NAMESPACE_DEFAULT"]
-		if k8sNamespaceDefault != "" {
-			return k8sNamespaceDefault
-		}
-	}
-
-	workspaceNamespaceDefault := cr.Namespace
-	if IsOpenShift && cr.IsOpenShiftOAuthEnabled() {
-		workspaceNamespaceDefault = "<username>-" + cr.Spec.Server.CheFlavor
-	}
-	return GetValue(cr.Spec.Server.WorkspaceNamespaceDefault, workspaceNamespaceDefault)
-}
-
 func GetResourceQuantity(value string, defaultValue string) resource.Quantity {
 	if value != "" {
 		return resource.MustParse(value)
@@ -565,11 +431,5 @@ func ClearMetadata(objectMeta *metav1.ObjectMeta) {
 
 // GetCheURL returns Che url.
 func GetCheURL(cheCluster *orgv1.CheCluster) string {
-	var cheUrl string
-	if cheCluster.Spec.Server.TlsSupport {
-		cheUrl = "https://" + cheCluster.Spec.Server.CheHost
-	} else {
-		cheUrl = "http://" + cheCluster.Spec.Server.CheHost
-	}
-	return cheUrl
+	return "https://" + cheCluster.Spec.Server.CheHost
 }

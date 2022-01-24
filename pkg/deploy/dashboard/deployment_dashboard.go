@@ -64,13 +64,11 @@ func (d *DashboardReconciler) getDashboardDeploymentSpec(ctx *deploy.DeployConte
 			Value: ctx.CheCluster.Name},
 	)
 
-	if ctx.CheCluster.IsInternalClusterSVCNamesEnabled() {
-		envVars = append(envVars,
-			corev1.EnvVar{
-				Name:  "CHE_INTERNAL_URL",
-				Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
-		)
-	}
+	envVars = append(envVars,
+		corev1.EnvVar{
+			Name:  "CHE_INTERNAL_URL",
+			Value: fmt.Sprintf("http://%s.%s.svc:8080/api", deploy.CheServiceName, ctx.CheCluster.Namespace)},
+	)
 
 	if util.IsOpenShift {
 		envVars = append(envVars,

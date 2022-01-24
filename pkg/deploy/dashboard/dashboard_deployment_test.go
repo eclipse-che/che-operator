@@ -122,19 +122,18 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 		envVars     []corev1.EnvVar
 		cheCluster  *orgv1.CheCluster
 	}
-	trueBool := true
 	testCases := []resourcesTestCase{
 		{
-			name:        "Test provisioning Che and Keycloak URLs",
+			name:        "Test provisioning Che URLs",
 			initObjects: []runtime.Object{},
 			envVars: []corev1.EnvVar{
 				{
 					Name:  "CHE_HOST",
-					Value: "http://che.com",
+					Value: "https://che.com",
 				},
 				{
 					Name:  "CHE_URL",
-					Value: "http://che.com",
+					Value: "https://che.com",
 				},
 				{
 					Name:  "CHECLUSTER_CR_NAMESPACE",
@@ -165,44 +164,6 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			},
 		},
 		{
-			name:        "Test provisioning Che and Keycloak URLs when internal SVC is disabled",
-			initObjects: []runtime.Object{},
-			envVars: []corev1.EnvVar{
-				{
-					Name:  "CHE_HOST",
-					Value: "http://che.com",
-				},
-				{
-					Name:  "CHE_URL",
-					Value: "http://che.com",
-				},
-				{
-					Name:  "CHECLUSTER_CR_NAMESPACE",
-					Value: "eclipse-che",
-				},
-				{
-					Name:  "CHECLUSTER_CR_NAME",
-					Value: "eclipse-che",
-				},
-				{
-					Name: "OPENSHIFT_CONSOLE_URL",
-				},
-				// the following are not provisioned: CHE_INTERNAL_URL
-			},
-			cheCluster: &orgv1.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-					Name:      "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: &trueBool,
-						CheHost:                        "che.com",
-					},
-				},
-			},
-		},
-		{
 			name: "Test provisioning OpenShift Console URL",
 			initObjects: []runtime.Object{
 				&configv1.Console{
@@ -218,11 +179,11 @@ func TestDashboardDeploymentEnvVars(t *testing.T) {
 			envVars: []corev1.EnvVar{
 				{
 					Name:  "CHE_HOST",
-					Value: "http://che.com",
+					Value: "https://che.com",
 				},
 				{
 					Name:  "CHE_URL",
-					Value: "http://che.com",
+					Value: "https://che.com",
 				},
 				{
 					Name:  "CHECLUSTER_CR_NAMESPACE",

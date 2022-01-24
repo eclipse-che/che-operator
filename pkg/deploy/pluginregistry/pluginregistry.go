@@ -95,18 +95,11 @@ func (p *PluginRegistryReconciler) ExposeEndpoint(ctx *deploy.DeployContext) (st
 	return expose.Expose(
 		ctx,
 		deploy.PluginRegistryName,
-		ctx.CheCluster.Spec.Server.PluginRegistryRoute,
-		ctx.CheCluster.Spec.Server.PluginRegistryIngress,
 		p.createGatewayConfig(ctx))
 }
 
 func (p *PluginRegistryReconciler) updateStatus(endpoint string, ctx *deploy.DeployContext) (bool, error) {
-	var pluginRegistryURL string
-	if ctx.CheCluster.Spec.Server.TlsSupport {
-		pluginRegistryURL = "https://" + endpoint
-	} else {
-		pluginRegistryURL = "http://" + endpoint
-	}
+	pluginRegistryURL := "https://" + endpoint
 
 	// append the API version to plugin registry
 	if !strings.HasSuffix(pluginRegistryURL, "/") {

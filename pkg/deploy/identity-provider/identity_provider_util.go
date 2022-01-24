@@ -12,32 +12,9 @@
 package identityprovider
 
 import (
-	"strings"
-
 	oauth "github.com/openshift/api/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func getKeycloakOAuthClientSpec(name string, oauthSecret string, keycloakURL string, keycloakRealm string, isOpenShift4 bool) *oauth.OAuthClient {
-	providerName := "openshift-v3"
-	if isOpenShift4 {
-		providerName = "openshift-v4"
-	}
-
-	redirectURLSuffix := "/realms/" + keycloakRealm + "/broker/" + providerName + "/endpoint"
-	redirectURIs := []string{
-		keycloakURL + redirectURLSuffix,
-	}
-
-	keycloakURL = strings.NewReplacer("https://", "", "http://", "").Replace(keycloakURL)
-	if !strings.Contains(keycloakURL, "://") {
-		redirectURIs = []string{
-			"http://" + keycloakURL + redirectURLSuffix,
-			"https://" + keycloakURL + redirectURLSuffix,
-		}
-	}
-	return getOAuthClientSpec(name, oauthSecret, redirectURIs)
-}
 
 func getOAuthClientSpec(name string, oauthSecret string, redirectURIs []string) *oauth.OAuthClient {
 	return &oauth.OAuthClient{

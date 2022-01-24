@@ -13,7 +13,6 @@
 package org
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -54,10 +53,9 @@ func TestV1ToV2alpha1(t *testing.T) {
 				},
 			},
 			K8s: v1.CheClusterSpecK8SOnly{
-				IngressDomain:   "ingressDomain",
-				IngressClass:    "traefik",
-				TlsSecretName:   "k8sSecret",
-				IngressStrategy: "single-host",
+				IngressDomain: "ingressDomain",
+				IngressClass:  "traefik",
+				TlsSecretName: "k8sSecret",
 			},
 			Metrics: v1.CheClusterSpecMetrics{
 				Enable: true,
@@ -207,8 +205,8 @@ func TestV1ToV2alpha1(t *testing.T) {
 				t.FailNow()
 			}
 
-			if *v2.Spec.Gateway.Enabled {
-				t.Errorf("The default for OpenShift without devworkspace enabled (which is our testing object) is multihost, but we found v2 in singlehost.")
+			if !*v2.Spec.Gateway.Enabled {
+				t.Errorf("The default for OpenShift is single")
 			}
 		})
 	})
@@ -418,11 +416,6 @@ func TestV2alpha1ToV1(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-
-			if util.GetServerExposureStrategy(v1) != "single-host" {
-				t.Logf("When gateway.enabled is true in v2, v1 is single-host.")
-				t.FailNow()
-			}
 		})
 	})
 
@@ -463,180 +456,6 @@ func TestV2alpha1ToV1(t *testing.T) {
 	})
 }
 
-func TestExposureStrategyConversions(t *testing.T) {
-	testWithExposure := func(v1ExposureStrategy string, v1IngressStrategy string, v1DevWorkspaceEnabled bool, v2GatewayEnabledChange *bool, test func(*testing.T, *v1.CheCluster)) {
-		origV1 := &v1.CheCluster{
-			Spec: v1.CheClusterSpec{
-				Server: v1.CheClusterSpecServer{
-					ServerExposureStrategy: v1ExposureStrategy,
-				},
-				K8s: v1.CheClusterSpecK8SOnly{
-					IngressStrategy: v1IngressStrategy,
-				},
-				DevWorkspace: v1.CheClusterSpecDevWorkspace{
-					Enable: v1DevWorkspaceEnabled,
-				},
-			},
-		}
-
-		t.Run(fmt.Sprintf("[v1ExposureStrategy=%v/v1IngressStrategy=%v/v1DevworkspaceEnabled=%v/v2GatewayEnabledChange=%v]", v1ExposureStrategy, v1IngressStrategy, v1DevWorkspaceEnabled, v2GatewayEnabledChange), func(t *testing.T) {
-			v2 := &v2alpha1.CheCluster{}
-			if err := V1ToV2alpha1(origV1, v2); err != nil {
-				t.Error(err)
-			}
-
-			if v2GatewayEnabledChange != nil {
-				v2.Spec.Gateway.Enabled = v2GatewayEnabledChange
-			}
-
-			// now convert back and run the test
-			v1Tested := &v1.CheCluster{}
-			if err := V2alpha1ToV1(v2, v1Tested); err != nil {
-				t.Error(err)
-			}
-
-			test(t, v1Tested)
-		})
-	}
-
-	testWithExposure("single-host", "", true, nil, func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "single-host" {
-			t.Errorf("The v1 should have single-host exposure after conversion")
-		}
-	})
-
-	testWithExposure("single-host", "", true, pointer.BoolPtr(false), func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "multi-host" {
-			t.Errorf("The v1 should have multi-host exposure after conversion")
-		}
-	})
-
-	testWithExposure("multi-host", "", true, nil, func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "multi-host" {
-			t.Errorf("The v1 should have multi-host exposure after conversion")
-		}
-	})
-
-	testWithExposure("multi-host", "", true, pointer.BoolPtr(true), func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "single-host" {
-			t.Errorf("The v1 should have single-host exposure after conversion")
-		}
-	})
-
-	testWithExposure("default-host", "", true, nil, func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "default-host" {
-			t.Errorf("The v1 should have default-host exposure after conversion")
-		}
-	})
-
-	testWithExposure("default-host", "", true, pointer.BoolPtr(true), func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "default-host" {
-			t.Errorf("The v1 should have default-host exposure after conversion")
-		}
-	})
-
-	testWithExposure("default-host", "", true, pointer.BoolPtr(false), func(t *testing.T, old *v1.CheCluster) {
-		if old.Spec.Server.ServerExposureStrategy != "multi-host" {
-			t.Errorf("The v1 should have multi-host exposure after conversion")
-		}
-	})
-
-	onFakeKubernetes(func() {
-		testWithExposure("", "single-host", true, nil, func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "single-host" {
-				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-
-		testWithExposure("", "single-host", true, pointer.BoolPtr(false), func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "multi-host" {
-				t.Errorf("The ingress strategy should have been set to multi-host after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-
-		testWithExposure("", "single-host", true, pointer.BoolPtr(true), func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "single-host" {
-				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-
-		testWithExposure("", "multi-host", true, nil, func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "multi-host" {
-				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-
-		// the below two tests test that we're leaving the ingress strategy unchanged if it doesn't affect the effective exposure
-		// strategy
-		testWithExposure("", "multi-host", true, pointer.BoolPtr(false), func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "multi-host" {
-				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-
-		testWithExposure("", "multi-host", true, pointer.BoolPtr(true), func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "single-host" {
-				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-
-		testWithExposure("", "default-host", true, nil, func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-			if old.Spec.K8s.IngressStrategy != "default-host" {
-				t.Errorf("The ingress strategy should have been unchanged after conversion but was: %v", old.Spec.K8s.IngressStrategy)
-			}
-		})
-	})
-
-	onFakeOpenShift(func() {
-		testWithExposure("", "", true, nil, func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-		})
-
-		testWithExposure("", "", false, nil, func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-		})
-
-		testWithExposure("", "", true, pointer.BoolPtr(false), func(t *testing.T, old *v1.CheCluster) {
-			// default on openshift with devworkspace enabled in v1 is single-host, but we've disabled the gateway in v2. So after the conversion
-			// v1 should change to an explicit multi-host.
-			if old.Spec.Server.ServerExposureStrategy != "multi-host" {
-				t.Errorf("The server exposure strategy should have been set to multi-host after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-		})
-
-		testWithExposure("", "", true, pointer.BoolPtr(true), func(t *testing.T, old *v1.CheCluster) {
-			if old.Spec.Server.ServerExposureStrategy != "" {
-				t.Errorf("The server exposure strategy should have been left empty after conversion but was: %v", old.Spec.Server.ServerExposureStrategy)
-			}
-		})
-	})
-}
-
 func TestFullCircleV1(t *testing.T) {
 	v1Obj := v1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -661,10 +480,9 @@ func TestFullCircleV1(t *testing.T) {
 				},
 			},
 			K8s: v1.CheClusterSpecK8SOnly{
-				IngressDomain:   "ingressDomain",
-				IngressClass:    "traefik",
-				TlsSecretName:   "k8sSecret",
-				IngressStrategy: "single-host",
+				IngressDomain: "ingressDomain",
+				IngressClass:  "traefik",
+				TlsSecretName: "k8sSecret",
 			},
 			Metrics: v1.CheClusterSpecMetrics{
 				Enable: true,

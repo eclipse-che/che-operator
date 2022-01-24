@@ -163,9 +163,6 @@ func backupDatabases(bctx *BackupContext, destDir string) (bool, error) {
 	databasesToBackup := []string{
 		bctx.cheCR.Spec.Database.ChePostgresDb,
 	}
-	if !bctx.cheCR.Spec.DevWorkspace.Enable {
-		databasesToBackup = append(databasesToBackup, "keycloak")
-	}
 
 	k8sClient := util.GetK8Client()
 	postgresPodName, err := k8sClient.GetDeploymentPod(deploy.PostgresName, bctx.namespace)
@@ -255,12 +252,6 @@ func backupSecrets(bctx *BackupContext, destDir string) (bool, error) {
 	secretsNames := []string{}
 	if bctx.cheCR.Spec.Database.ChePostgresSecret != "" {
 		secretsNames = append(secretsNames, bctx.cheCR.Spec.Database.ChePostgresSecret)
-	}
-	if bctx.cheCR.Spec.Auth.IdentityProviderPostgresSecret != "" {
-		secretsNames = append(secretsNames, bctx.cheCR.Spec.Auth.IdentityProviderPostgresSecret)
-	}
-	if bctx.cheCR.Spec.Auth.IdentityProviderSecret != "" {
-		secretsNames = append(secretsNames, bctx.cheCR.Spec.Auth.IdentityProviderSecret)
 	}
 
 	// Retrieve and save each secret

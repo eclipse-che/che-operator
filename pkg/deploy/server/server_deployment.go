@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	identityprovider "github.com/eclipse-che/che-operator/pkg/deploy/identity-provider"
 	"github.com/eclipse-che/che-operator/pkg/deploy/postgres"
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
 
@@ -112,42 +111,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 	cheEnv = append(cheEnv, selfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertEnv)
 	cheEnv = append(cheEnv, gitSelfSignedCertHostEnv)
-
-	identityProviderSecret := ctx.CheCluster.Spec.Auth.IdentityProviderSecret
-	if len(identityProviderSecret) > 0 {
-		cheEnv = append(cheEnv, corev1.EnvVar{
-			Name: "CHE_KEYCLOAK_ADMIN__PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "password",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: identityProviderSecret,
-					},
-				},
-			},
-		},
-			corev1.EnvVar{
-				Name: "CHE_KEYCLOAK_ADMIN__USERNAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key: "user",
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: identityProviderSecret,
-						},
-					},
-				},
-			})
-	} else {
-		cheEnv = append(cheEnv, corev1.EnvVar{
-			Name:  "CHE_KEYCLOAK_ADMIN__PASSWORD",
-			Value: ctx.CheCluster.Spec.Auth.IdentityProviderPassword,
-		},
-			corev1.EnvVar{
-				Name:  "CHE_KEYCLOAK_ADMIN__USERNAME",
-				Value: ctx.CheCluster.Spec.Auth.IdentityProviderAdminUserName,
-			})
-	}
-
 	cheEnv = append(cheEnv,
 		corev1.EnvVar{
 			Name:  "CM_REVISION",
@@ -160,13 +123,10 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 					APIVersion: "v1",
 					FieldPath:  "metadata.namespace"}},
 		})
-
-	if ctx.CheCluster.IsNativeUserModeEnabled() {
-		cheEnv = append(cheEnv, corev1.EnvVar{
-			Name:  "CHE_AUTH_NATIVEUSER",
-			Value: "true",
-		})
-	}
+	cheEnv = append(cheEnv, corev1.EnvVar{
+		Name:  "CHE_AUTH_NATIVEUSER",
+		Value: "true",
+	})
 
 	cheImageAndTag := GetFullCheServerImageLink(ctx.CheCluster)
 	pullPolicy := corev1.PullPolicy(util.GetValue(string(ctx.CheCluster.Spec.Server.CheImagePullPolicy), deploy.DefaultPullPolicyFromDockerImage(cheImageAndTag)))
@@ -367,14 +327,6 @@ func (s CheServerReconciler) getDeploymentSpec(ctx *deploy.DeployContext) (*apps
 				return nil, err
 			}
 			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForPostgresInitContainer)
-		}
-
-		if !ctx.CheCluster.Spec.Auth.ExternalIdentityProvider {
-			waitForKeycloakInitContainer, err := identityprovider.GetWaitForKeycloakInitContainer(ctx)
-			if err != nil {
-				return nil, err
-			}
-			deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, *waitForKeycloakInitContainer)
 		}
 	}
 

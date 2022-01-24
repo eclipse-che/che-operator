@@ -254,7 +254,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: manifests generate fmt vet prepare-templates ## Run tests.
+test: prepare-templates ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
 
 ##@ Build
@@ -664,8 +664,9 @@ get-next-version-increment:
 	echo "$${incrementPart}"
 
 update-resources: SHELL := /bin/bash
-update-resources: check-requirements update-resource-images update-roles update-helmcharts
+update-resources: check-requirements update-resource-images update-roles
 	$(MAKE) bundle channel=next
+	$(MAKE) update-helmcharts HELM_FOLDER=next
 
 update-helmcharts: SHELL := /bin/bash
 update-helmcharts: add-license-download check-requirements

@@ -111,14 +111,6 @@ func RestoreChe(rctx *RestoreContext, dataDir string) (bool, error) {
 			return done, err
 		}
 
-		if !rctx.cheCR.Spec.DevWorkspace.Enable {
-			// After Keycloak's database restoring, it is required to restart Keycloak to invalidate its cache.
-			done, err = deleteKeycloakPod(rctx)
-			if err != nil || !done {
-				return done, err
-			}
-		}
-
 		rctx.state.cheDatabaseRestored = true
 		if err := rctx.UpdateRestoreStatus(); err != nil {
 			return false, err
@@ -235,24 +227,6 @@ func waitPreviousInstallationDeleted(rctx *RestoreContext) (bool, error) {
 		return false, nil
 	}
 	// Che CR is deleted
-	return true, nil
-}
-
-func deleteKeycloakPod(rctx *RestoreContext) (bool, error) {
-	k8sClient := util.GetK8Client()
-	keycloakPodName, err := k8sClient.GetDeploymentPod(deploy.IdentityProviderName, rctx.namespace)
-	if err != nil {
-		// Keycloak pod is already deleted, just skip it
-		return true, nil
-	}
-	keycloakPodNsN := types.NamespacedName{Name: keycloakPodName, Namespace: rctx.namespace}
-	keycloakPod := &corev1.Pod{}
-	if err := rctx.r.nonCachingClient.Get(context.TODO(), keycloakPodNsN, keycloakPod); err != nil {
-		return false, err
-	}
-	if err := rctx.r.nonCachingClient.Delete(context.TODO(), keycloakPod); err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -406,10 +380,6 @@ func readAndAdaptCheCRFromBackup(rctx *RestoreContext, dataDir string) (*chev1.C
 			cheCR.Spec.Server.CheHost = ""
 		}
 	}
-	if !cheCR.Spec.Auth.ExternalIdentityProvider {
-		// Let operator set the URL automatically
-		cheCR.Spec.Auth.IdentityProviderURL = ""
-	}
 
 	return cheCR, true, nil
 }
@@ -466,7 +436,6 @@ func dropDatabases(rctx *RestoreContext) {
 
 	databasesToDrop := []string{
 		rctx.cheCR.Spec.Database.ChePostgresDb,
-		"keycloak",
 	}
 
 	k8sClient := util.GetK8Client()
@@ -525,24 +494,6 @@ func restoreDatabase(rctx *RestoreContext, dataDir string) (bool, error) {
 				}
 				return false, err
 			}
-
-			if rctx.cheCR.Spec.Server.ServerExposureStrategy == "multi-host" {
-				// Some databases contain values bind to cluster and/or namespace
-				// These values should be adjusted according to new environmant.
-				pathcDatabaseScript, err := getPatchDatabaseScript(rctx, dbName, dataDir)
-				if err != nil {
-					return false, err
-				}
-				if pathcDatabaseScript != "" {
-					execReason := fmt.Sprintf("patching %s database", dbName)
-					if output, err := k8sClient.DoExecIntoPod(rctx.namespace, postgresPodName, pathcDatabaseScript, execReason); err != nil {
-						if output != "" {
-							logrus.Error(output)
-						}
-						return false, err
-					}
-				}
-			}
 		}
 	}
 
@@ -565,8 +516,6 @@ func getDatabaseOwner(rctx *RestoreContext, dbName string) (string, error) {
 			return "", err
 		}
 		return string(secret.Data["user"]), nil
-	case "keycloak":
-		return "keycloak", nil
 	default:
 		return "postgres", nil
 	}
@@ -615,14 +564,6 @@ func getPatchDatabaseScript(rctx *RestoreContext, dbName string, dataDir string)
 		if shouldPatchUrls {
 			script += "\n" + getReplaceInColumnScript(dbName, "devfile_project", "location", oldAppsSubStr, newAppsSubStr)
 		}
-		return script, nil
-	case "keycloak":
-		if !shouldPatchUrls {
-			// No need to do anything, restoring into the same cluster and the same namespace
-			break
-		}
-		script := getReplaceInColumnScript(dbName, "redirect_uris", "value", oldAppsSubStr, newAppsSubStr) + "\n" +
-			getReplaceInColumnScript(dbName, "web_origins", "value", oldAppsSubStr, newAppsSubStr)
 		return script, nil
 	}
 	return "", nil

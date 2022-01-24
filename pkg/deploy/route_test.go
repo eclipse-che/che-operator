@@ -84,6 +84,7 @@ func TestRouteSpec(t *testing.T) {
 						Name:   "che",
 						Weight: &weight,
 					},
+					TLS: &routev1.TLSConfig{Termination: routev1.TLSTerminationEdge, InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect},
 					Port: &routev1.RoutePort{
 						TargetPort: intstr.IntOrString{
 							Type:   intstr.Int,
@@ -127,6 +128,7 @@ func TestRouteSpec(t *testing.T) {
 						Name:   "che",
 						Weight: &weight,
 					},
+					TLS: &routev1.TLSConfig{Termination: routev1.TLSTerminationEdge, InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect},
 					Port: &routev1.RoutePort{
 						TargetPort: intstr.IntOrString{
 							Type:   intstr.Int,

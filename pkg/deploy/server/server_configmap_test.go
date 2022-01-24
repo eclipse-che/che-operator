@@ -19,7 +19,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -47,14 +46,10 @@ func TestNewCheConfigMap(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						CheHost:    "myhostname.com",
-						TlsSupport: true,
+						CheHost: "myhostname.com",
 						CustomCheProperties: map[string]string{
 							"CHE_WORKSPACE_NO_PROXY": "myproxy.myhostname.com",
 						},
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
 					},
 				},
 			},
@@ -159,7 +154,7 @@ func TestConfigMap(t *testing.T) {
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT": "ws://che-host/api/websocket",
+				"CHE_WEBSOCKET_ENDPOINT": "wss://che-host/api/websocket",
 			},
 		},
 		{
@@ -188,33 +183,12 @@ func TestConfigMap(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						CheHost:                        "che-host",
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
+						CheHost: "che-host",
 					},
 				},
 			},
 			expectedData: map[string]string{
-				"CHE_WEBSOCKET_ENDPOINT": "ws://che-host/api/websocket",
-			},
-		},
-		{
-			name: "Kubernetes strategy should be set correctly",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					K8s: orgv1.CheClusterSpecK8SOnly{
-						IngressStrategy: "single-host",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_INFRA_KUBERNETES_SERVER__STRATEGY": "single-host",
+				"CHE_WEBSOCKET_ENDPOINT": "wss://che-host/api/websocket",
 			},
 		},
 	}
@@ -418,9 +392,8 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-						ExternalDevfileRegistry:        true,
-						DevfileRegistryUrl:             "http://devfile-registry.external.1",
+						ExternalDevfileRegistry: true,
+						DevfileRegistryUrl:      "http://devfile-registry.external.1",
 						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
 							{Url: "http://devfile-registry.external.2"},
 						},
@@ -430,31 +403,6 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.external.1 http://devfile-registry.external.2",
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "",
-			},
-		},
-		{
-			name: "Test devfile registry urls #4",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-						ExternalDevfileRegistry:        false,
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					DevfileRegistryURL: "http://devfile-registry.internal",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "",
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.internal",
 			},
 		},
 		{
@@ -479,35 +427,6 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 			expectedData: map[string]string{
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "http://devfile-registry.eclipse-che.svc:8080",
 				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.internal",
-			},
-		},
-		{
-			name: "Test devfile registry urls #6",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-						ExternalDevfileRegistry:        false,
-						DevfileRegistryUrl:             "http://devfile-registry.external.1",
-						ExternalDevfileRegistries: []orgv1.ExternalDevfileRegistries{
-							{Url: "http://devfile-registry.external.2"},
-						},
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					DevfileRegistryURL: "http://devfile-registry.internal",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__INTERNAL__URL": "",
-				"CHE_WORKSPACE_DEVFILE__REGISTRY__URL":           "http://devfile-registry.internal http://devfile-registry.external.1 http://devfile-registry.external.2",
 			},
 		},
 		{
@@ -579,9 +498,6 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 					Server: orgv1.CheClusterSpecServer{
 						ExternalPluginRegistry: true,
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
 				},
 				Status: orgv1.CheClusterStatus{
 					PluginRegistryURL: "http://external-plugin-registry",
@@ -603,64 +519,7 @@ func TestShouldSetUpCorrectlyInternalPluginRegistryServiceURL(t *testing.T) {
 				},
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-						ExternalPluginRegistry:         true,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					PluginRegistryURL: "http://external-plugin-registry",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL": "",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #3",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-						ExternalPluginRegistry:         false,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
-				},
-				Status: orgv1.CheClusterStatus{
-					PluginRegistryURL: "http://plugin-registry/v3",
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL": "",
-			},
-		},
-		{
-			name: "Test CHE_WORKSPACE_PLUGIN__REGISTRY__INTERNAL__URL #4",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
 						ExternalPluginRegistry: false,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
 				},
 				Status: orgv1.CheClusterStatus{
@@ -699,30 +558,6 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Should be an empty when internal network is disabled",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-						CheHost:                        "che-host",
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_API_INTERNAL": "",
-			},
-		},
-		{
 			name: "Should use internal che-server url, when internal network is enabled",
 			cheCluster: &orgv1.CheCluster{
 				TypeMeta: metav1.TypeMeta{
@@ -735,9 +570,6 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 				Spec: orgv1.CheClusterSpec{
 					Server: orgv1.CheClusterSpecServer{
 						CheHost: "http://che-host",
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(false),
 					},
 				},
 			},
@@ -756,157 +588,6 @@ func TestShouldSetUpCorrectlyInternalCheServerURL(t *testing.T) {
 			server := NewCheServerReconciler()
 			actualData, err := server.getCheConfigMapData(ctx)
 			assert.Nil(t, err)
-			util.ValidateContainData(actualData, testCase.expectedData, t)
-		})
-	}
-}
-
-func TestShouldSetUpCorrectlyInternalIdentityProviderServiceURL(t *testing.T) {
-	type testCase struct {
-		name         string
-		isOpenShift  bool
-		isOpenShift4 bool
-		initObjects  []runtime.Object
-		cheCluster   *orgv1.CheCluster
-		expectedData map[string]string
-	}
-
-	testCases := []testCase{
-		{
-			name: "Should be an empty when enabled 'external' public identity provider url and internal network is enabled #1",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth:           util.NewBoolPointer(false),
-						ExternalIdentityProvider: true,
-						IdentityProviderURL:      "http://external-keycloak",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_OIDC_AUTH__SERVER__URL":           "http://external-keycloak/auth",
-			},
-		},
-		{
-			name: "Should be an empty when enabled 'external' public identity provider url and internal network is enabled #2",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth:           util.NewBoolPointer(false),
-						ExternalIdentityProvider: true,
-						IdentityProviderURL:      "http://external-keycloak/auth",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_OIDC_AUTH__SERVER__URL":           "http://external-keycloak/auth",
-			},
-		},
-		{
-			name: "Should be and empty when enabled 'external' public identity provider url and internal network is disabled",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth:           util.NewBoolPointer(false),
-						ExternalIdentityProvider: true,
-						IdentityProviderURL:      "http://external-keycloak",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_OIDC_AUTH__SERVER__URL":           "http://external-keycloak/auth",
-			},
-		},
-		{
-			name: "Should be an empty when internal network is disabled",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Server: orgv1.CheClusterSpecServer{
-						DisableInternalClusterSVCNames: pointer.BoolPtr(true),
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth:           util.NewBoolPointer(false),
-						ExternalIdentityProvider: false,
-						IdentityProviderURL:      "http://keycloak/auth",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "",
-				"CHE_OIDC_AUTH__SERVER__URL":           "http://keycloak/auth",
-			},
-		},
-		{
-			name: "Should use internal identity provider url, when internal network is enabled",
-			cheCluster: &orgv1.CheCluster{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CheCluster",
-					APIVersion: "org.eclipse.che/v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth:           util.NewBoolPointer(false),
-						ExternalIdentityProvider: false,
-						IdentityProviderURL:      "http://keycloak/auth",
-					},
-				},
-			},
-			expectedData: map[string]string{
-				"CHE_OIDC_AUTH__INTERNAL__SERVER__URL": "http://keycloak.eclipse-che.svc:8080/auth",
-				"CHE_OIDC_AUTH__SERVER__URL":           "http://keycloak/auth",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			util.IsOpenShift = testCase.isOpenShift
-			util.IsOpenShift4 = testCase.isOpenShift4
-			ctx := deploy.GetTestDeployContext(testCase.cheCluster, []runtime.Object{})
-
-			server := NewCheServerReconciler()
-			actualData, err := server.getCheConfigMapData(ctx)
-			if err != nil {
-				t.Fatalf("Error creating ConfigMap data: %v", err)
-			}
-
 			util.ValidateContainData(actualData, testCase.expectedData, t)
 		})
 	}

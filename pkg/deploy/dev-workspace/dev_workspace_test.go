@@ -59,19 +59,13 @@ func TestReconcileDevWorkspace(t *testing.T) {
 					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 						Enable: true,
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
-					},
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "single-host",
-					},
 				},
 			},
 			IsOpenShift:  true,
 			IsOpenShift4: true,
 		},
 		{
-			name: "Reconcile DevWorkspace on K8S multi-host",
+			name: "Reconcile DevWorkspace on K8S",
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "eclipse-che",
@@ -80,37 +74,8 @@ func TestReconcileDevWorkspace(t *testing.T) {
 					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
 						Enable: true,
 					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
-					},
 					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "multi-host",
-						CustomCheProperties:    map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
-					},
-					K8s: orgv1.CheClusterSpecK8SOnly{
-						IngressDomain: "che.domain",
-					},
-				},
-			},
-			IsOpenShift:  false,
-			IsOpenShift4: false,
-		},
-		{
-			name: "Reconcile DevWorkspace on K8S single-host",
-			cheCluster: &orgv1.CheCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "eclipse-che",
-				},
-				Spec: orgv1.CheClusterSpec{
-					DevWorkspace: orgv1.CheClusterSpecDevWorkspace{
-						Enable: true,
-					},
-					Auth: orgv1.CheClusterSpecAuth{
-						OpenShiftoAuth: util.NewBoolPointer(true),
-					},
-					Server: orgv1.CheClusterSpecServer{
-						ServerExposureStrategy: "single-host",
-						CustomCheProperties:    map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
+						CustomCheProperties: map[string]string{"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"},
 					},
 					K8s: orgv1.CheClusterSpecK8SOnly{
 						IngressDomain: "che.domain",

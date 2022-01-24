@@ -17,7 +17,6 @@ import (
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
-	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +37,6 @@ func TestDevfileRegistryReconcile(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &routev1.Route{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &corev1.ConfigMap{}))
 	assert.True(t, util.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: "devfile-registry", Namespace: "eclipse-che"}, &appsv1.Deployment{}))
 	assert.NotEmpty(t, ctx.CheCluster.Status.DevfileRegistryURL)
@@ -72,7 +70,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					},
 				},
 			},
-			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
+			expectedDevfileRegistryURL: "https:///devfile-registry",
 		},
 		{
 			name: "Test Status.DevfileRegistryURL #2",
@@ -95,7 +93,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 					},
 				},
 			},
-			expectedDevfileRegistryURL: "http://devfile-registry-eclipse-che./",
+			expectedDevfileRegistryURL: "https:///devfile-registry",
 		},
 		{
 			name: "Test Status.DevfileRegistryURL #2",

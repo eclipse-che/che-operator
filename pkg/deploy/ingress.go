@@ -14,7 +14,6 @@ package deploy
 import (
 	"reflect"
 	"sort"
-	"strconv"
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/pkg/util"
@@ -63,9 +62,6 @@ func GetIngressSpec(
 	component string) (ingressUrl string, i *networking.Ingress) {
 
 	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
-	tlsSupport := deployContext.CheCluster.Spec.Server.TlsSupport
-	ingressStrategy := util.GetServerExposureStrategy(deployContext.CheCluster)
-	exposureType := GetSingleHostExposureType(deployContext.CheCluster)
 	ingressDomain := deployContext.CheCluster.Spec.K8s.IngressDomain
 	tlsSecretName := deployContext.CheCluster.Spec.K8s.TlsSecretName
 	ingressClass := util.GetValue(deployContext.CheCluster.Spec.K8s.IngressClass, DefaultIngressClass)
@@ -73,24 +69,18 @@ func GetIngressSpec(
 	MergeLabels(labels, ingressCustomSettings.Labels)
 	pathType := networking.PathTypeImplementationSpecific
 
-	if tlsSupport {
-		// for server and dashboard ingresses
-		if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
-			tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
-		}
+	// for server and dashboard ingresses
+	if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+		tlsSecretName = deployContext.CheCluster.Spec.Server.CheHostTLSSecret
 	}
 
 	if host == "" {
-		if ingressStrategy == "multi-host" {
-			host = component + "-" + deployContext.CheCluster.Namespace + "." + ingressDomain
-		} else if ingressStrategy == "single-host" {
-			host = ingressDomain
-		}
+		host = ingressDomain
 	}
 
 	var endpointPath, ingressPath string
 	if path == "" {
-		endpointPath, ingressPath = evaluatePath(component, ingressStrategy)
+		endpointPath, ingressPath = evaluatePath(component)
 	} else {
 		ingressPath = path
 		endpointPath = path
@@ -100,15 +90,14 @@ func GetIngressSpec(
 		"kubernetes.io/ingress.class":                       ingressClass,
 		"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 		"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
-		"nginx.ingress.kubernetes.io/ssl-redirect":          strconv.FormatBool(tlsSupport),
+		"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 	}
-	if ingressStrategy != "multi-host" && (component == DevfileRegistryName || component == PluginRegistryName) {
+	if component == DevfileRegistryName || component == PluginRegistryName {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$1"
 	}
 	// Set bigger proxy buffer size to prevent 502 auth error.
-	if component == IdentityProviderName || exposureType == GatewaySingleHostExposureType {
-		annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
-	}
+	annotations["nginx.ingress.kubernetes.io/proxy-buffer-size"] = "16k"
+
 	for k, v := range ingressCustomSettings.Annotations {
 		annotations[k] = v
 	}
@@ -176,13 +165,11 @@ func GetIngressSpec(
 		ingress.ObjectMeta.Annotations["nginx.org/websocket-services"] = serviceName
 	}
 
-	if tlsSupport {
-		ingress.Spec.TLS = []networking.IngressTLS{
-			{
-				Hosts:      []string{host},
-				SecretName: tlsSecretName,
-			},
-		}
+	ingress.Spec.TLS = []networking.IngressTLS{
+		{
+			Hosts:      []string{host},
+			SecretName: tlsSecretName,
+		},
 	}
 
 	return host + endpointPath, ingress
@@ -190,30 +177,17 @@ func GetIngressSpec(
 
 // evaluatePath evaluates ingress path (one which is used for rule)
 // and endpoint path (one which client should use during endpoint accessing)
-func evaluatePath(component, ingressStrategy string) (endpointPath, ingressPath string) {
-	if ingressStrategy == "multi-host" {
+func evaluatePath(component string) (endpointPath, ingressPath string) {
+	switch component {
+	case DevfileRegistryName:
+		fallthrough
+	case PluginRegistryName:
+		endpointPath = "/" + component
+		ingressPath = endpointPath + "/(.*)"
+	default:
 		ingressPath = "/"
 		endpointPath = "/"
-		// Keycloak needs special rule in multihost. It's exposed on / which redirects to /auth
-		// clients which does not support redirects needs /auth be explicitely set
-		if component == IdentityProviderName {
-			endpointPath = "/auth"
-		}
-	} else {
-		switch component {
-		case IdentityProviderName:
-			endpointPath = "/auth"
-			ingressPath = endpointPath + "/(.*)"
-		case DevfileRegistryName:
-			fallthrough
-		case PluginRegistryName:
-			endpointPath = "/" + component
-			ingressPath = endpointPath + "/(.*)"
-		default:
-			ingressPath = "/"
-			endpointPath = "/"
-		}
-
 	}
+
 	return endpointPath, ingressPath
 }

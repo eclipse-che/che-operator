@@ -63,11 +63,6 @@ func (d *DevWorkspaceReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile
 		return reconcile.Result{}, true, nil
 	}
 
-	if !ctx.CheCluster.Spec.DevWorkspace.Enable {
-		// Do nothing if DevWorkspace is disabled
-		return reconcile.Result{}, true, nil
-	}
-
 	if isDevWorkspaceOperatorCSVExists(ctx) {
 		// Do nothing if DevWorkspace has been already deployed via OLM
 		return reconcile.Result{}, true, nil

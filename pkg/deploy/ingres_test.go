@@ -19,6 +19,7 @@ import (
 
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	networking "k8s.io/api/networking/v1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -51,11 +52,6 @@ func TestIngressSpec(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "eclipse-che",
 			Name:      cheFlavor,
-		},
-		Spec: orgv1.CheClusterSpec{
-			K8s: orgv1.CheClusterSpecK8SOnly{
-				SingleHostExposureType: GatewaySingleHostExposureType,
-			},
 		},
 	}
 
@@ -90,7 +86,7 @@ func TestIngressSpec(t *testing.T) {
 						"kubernetes.io/ingress.class":                       "nginx",
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
+						"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
 						"nginx.org/websocket-services":                      "che-host",
 						"annotation-key":                                    "annotation-value",
@@ -101,6 +97,7 @@ func TestIngressSpec(t *testing.T) {
 					APIVersion: networking.SchemeGroupVersion.String(),
 				},
 				Spec: networking.IngressSpec{
+					TLS: []v1.IngressTLS{{Hosts: []string{"test-host"}}},
 					Rules: []networking.IngressRule{
 						{
 							Host: "test-host",
@@ -158,7 +155,7 @@ func TestIngressSpec(t *testing.T) {
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
-						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
+						"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 						"nginx.org/websocket-services":                      "che-host",
 						"annotation-key":                                    "annotation-value",
 					},
@@ -168,6 +165,7 @@ func TestIngressSpec(t *testing.T) {
 					APIVersion: networking.SchemeGroupVersion.String(),
 				},
 				Spec: networking.IngressSpec{
+					TLS: []v1.IngressTLS{{Hosts: []string{"test-host"}}},
 					Rules: []networking.IngressRule{
 						{
 							Host: "test-host",
@@ -224,7 +222,7 @@ func TestIngressSpec(t *testing.T) {
 						"nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
 						"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 						"nginx.ingress.kubernetes.io/proxy-buffer-size":     "16k",
-						"nginx.ingress.kubernetes.io/ssl-redirect":          "false",
+						"nginx.ingress.kubernetes.io/ssl-redirect":          "true",
 						"nginx.org/websocket-services":                      "che-host",
 						"annotation-key":                                    "annotation-value",
 					},
@@ -234,6 +232,7 @@ func TestIngressSpec(t *testing.T) {
 					APIVersion: networking.SchemeGroupVersion.String(),
 				},
 				Spec: networking.IngressSpec{
+					TLS: []v1.IngressTLS{{Hosts: []string{"test-host"}}},
 					Rules: []networking.IngressRule{
 						{
 							Host: "test-host",
