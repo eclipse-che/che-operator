@@ -559,13 +559,6 @@ rules:
     - list
     - watch
   - apiGroups:
-    - authorization.k8s.io
-    resources:
-    - localsubjectaccessreviews
-    - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
     - batch
     resources:
     - jobs
@@ -577,14 +570,6 @@ rules:
     - patch
     - update
     - watch
-  - apiGroups:
-    - config.openshift.io
-    resourceNames:
-    - cluster
-    resources:
-    - proxies
-    verbs:
-    - get
   - apiGroups:
     - controller.devfile.io
     resources:
@@ -613,14 +598,6 @@ rules:
     - create
     - get
     - update
-  - apiGroups:
-    - metrics.k8s.io
-    resources:
-    - pods
-    verbs:
-    - get
-    - list
-    - watch
   - apiGroups:
     - monitoring.coreos.com
     resources:
@@ -678,22 +655,8 @@ rules:
     - '*'
     verbs:
     - '*'
-  # devworkspace-controller-view-workspaces.ClusterRole.yaml
-  - apiGroups:
-    - workspace.devfile.io
-    resources:
-    - devworkspaces
-    - devworkspacetemplates
+  # devworkspace-controller-metrics-reader.ClusterRole.yaml
+  - nonResourceURLs:
+    - /metrics
     verbs:
     - get
-    - list
-    - watch
-  - apiGroups:
-    - controller.devfile.io
-    resources:
-    - devworkspaceroutings
-    - components
-    verbs:
-    - get
-    - list
-    - watch
