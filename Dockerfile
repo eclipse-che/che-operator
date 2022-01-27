@@ -36,11 +36,6 @@ RUN unzip /tmp/asset-header-rewrite-traefik-plugin.zip -d /tmp && \
     mkdir -p /tmp/header-rewrite-traefik-plugin && \
     mv /tmp/*-header-rewrite-traefik-plugin-*/headerRewrite.go /tmp/*-header-rewrite-traefik-plugin-*/.traefik.yml /tmp/header-rewrite-traefik-plugin
 
-# Build restic. Needed for backup / restore capabilities
-RUN cd $GOPATH/restic && \
-    export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH="amd64"; elif [[ ${ARCH} == "aarch64" ]]; then export ARCH="arm64"; fi && \
-    GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/restic/restic ./cmd/restic
-
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
