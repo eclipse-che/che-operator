@@ -72,7 +72,7 @@ ECLIPSE_CHE_BACKUP_SERVER_CONFIGURATION_CRD="$(CRD_FOLDER)/org.eclipse.che_cheba
 ECLIPSE_CHE_BACKUP_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterbackups.yaml"
 ECLIPSE_CHE_RESTORE_CRD="$(CRD_FOLDER)/org.eclipse.che_checlusterrestores.yaml"
 
-DEV_WORKSPACE_CONTROLLER_VERSION="v0.11.0"
+DEV_WORKSPACE_CONTROLLER_VERSION="v0.12.1"
 DEV_HEADER_REWRITE_TRAEFIK_PLUGIN="main"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
