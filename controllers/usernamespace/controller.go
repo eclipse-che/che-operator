@@ -15,6 +15,7 @@ package usernamespace
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 
 	"github.com/eclipse-che/che-operator/pkg/deploy/tls"
@@ -46,7 +47,7 @@ const (
 	userSettingsComponentLabelValue = "user-settings"
 	// we're define these here because we're forced to use an older version
 	// of devworkspace operator as our dependency due to different go version
-	nodeSelectorAnnotation = "controller.devfile.io/node-selector"
+	nodeSelectorAnnotation   = "controller.devfile.io/node-selector"
 	podTolerationsAnnotation = "controller.devfile.io/pod-tolerations"
 )
 

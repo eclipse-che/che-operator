@@ -14,6 +14,8 @@ package org
 
 import (
 	"encoding/json"
+	"strings"
+
 	v1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/api/v2alpha1"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
@@ -21,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 const (
@@ -159,7 +160,7 @@ func v1ToV2alpha1_WorkspacePodNodeSelector(v1 *v1.CheCluster, v2 *v2alpha1.CheCl
 		prop := v1.Spec.Server.CustomCheProperties["CHE_WORKSPACE_POD_NODE__SELECTOR"]
 		if prop != "" {
 			selector = map[string]string{}
-			kvs := strings.Split(prop,",")
+			kvs := strings.Split(prop, ",")
 			for _, pair := range kvs {
 				kv := strings.Split(pair, "=")
 				if len(kv) == 2 {
@@ -171,7 +172,7 @@ func v1ToV2alpha1_WorkspacePodNodeSelector(v1 *v1.CheCluster, v2 *v2alpha1.CheCl
 	v2.Spec.Workspaces.PodNodeSelector = selector
 }
 
-func v1ToV2alpha1_WorkspacePodTolerations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error  {
+func v1ToV2alpha1_WorkspacePodTolerations(v1 *v1.CheCluster, v2 *v2alpha1.CheCluster) error {
 	tolerations := v1.Spec.Server.WorkspacePodTolerations
 
 	if len(tolerations) == 0 {

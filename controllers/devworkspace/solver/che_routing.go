@@ -15,11 +15,12 @@ package solver
 import (
 	"context"
 	"fmt"
-	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
-	"k8s.io/utils/pointer"
 	"path"
 	"strconv"
 	"strings"
+
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
+	"k8s.io/utils/pointer"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 

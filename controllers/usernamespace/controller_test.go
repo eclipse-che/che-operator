@@ -67,14 +67,14 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				WorkspacePodNodeSelector: map[string]string{"a": "b", "c": "d"},
 				WorkspacePodTolerations: []corev1.Toleration{
 					{
-						Key:               "a",
-						Operator:          corev1.TolerationOpEqual,
-						Value:             "b",
+						Key:      "a",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "b",
 					},
 					{
-						Key:               "c",
-						Operator:          corev1.TolerationOpEqual,
-						Value:             "d",
+						Key:      "c",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "d",
 					},
 				},
 			},
@@ -289,14 +289,14 @@ func TestMatchingCheClusterCanBeSelectedUsingLabels(t *testing.T) {
 func TestCreatesDataInNamespace(t *testing.T) {
 	expectedPodTolerations, err := json.Marshal([]corev1.Toleration{
 		{
-			Key:               "a",
-			Operator:          corev1.TolerationOpEqual,
-			Value:             "b",
+			Key:      "a",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "b",
 		},
 		{
-			Key:               "c",
-			Operator:          corev1.TolerationOpEqual,
-			Value:             "d",
+			Key:      "c",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "d",
 		},
 	})
 	assert.NoError(t, err)

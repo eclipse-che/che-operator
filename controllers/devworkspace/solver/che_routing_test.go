@@ -15,10 +15,11 @@ package solver
 import (
 	"context"
 	"fmt"
-	"github.com/devfile/api/v2/pkg/attributes"
-	"k8s.io/utils/pointer"
 	"strings"
 	"testing"
+
+	"github.com/devfile/api/v2/pkg/attributes"
+	"k8s.io/utils/pointer"
 
 	"github.com/eclipse-che/che-operator/pkg/util"
 
@@ -806,7 +807,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointIngresses(t *testing.T) {
 			},
 			Workspaces: v2alpha1.Workspaces{
 				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "almost.trivial",
+					BaseDomain:    "almost.trivial",
 					TlsSecretName: "tlsSecret",
 				},
 			},
@@ -887,7 +888,7 @@ func TestUsesCustomCertificateForWorkspaceEndpointRoutes(t *testing.T) {
 			},
 			Workspaces: v2alpha1.Workspaces{
 				DomainEndpoints: v2alpha1.DomainEndpoints{
-					BaseDomain: "almost.trivial",
+					BaseDomain:    "almost.trivial",
 					TlsSecretName: "tlsSecret",
 				},
 			},
